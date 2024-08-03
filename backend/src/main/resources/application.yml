@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: worm
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: Ov23ligeKkVcgRwN7x6M
+            client-secret: 7970ae714cb737de11a7063ff5609580faf659e3
+            scope: read:user
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+            user-name-attribute: id
+management:
+  server:
+    port: 9090
+  endpoints:
+    web:
+      exposure:
+        include: openapi,swagger-ui
+springdoc:
+  show-actuator: true
+  use-management-port: true
+
+
+#  api-docs:
+#    path: /api-docs
+#  swagger-ui:
+#    path: /swagger-ui.html
+#    url: /api-docs
