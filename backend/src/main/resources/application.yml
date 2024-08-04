@@ -6,6 +6,7 @@ spring:
       client:
         registration:
           github:
+            # noinspection SpellCheckingInspection
             client-id: Ov23ligeKkVcgRwN7x6M
             client-secret: 7970ae714cb737de11a7063ff5609580faf659e3
             scope: read:user
