@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: worm
+  session:
+    store-type: none
+  data:
+    mongodb:
+      enabled: false
+      auto-configure: false
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.session.SessionAutoConfiguration
+      - org.springframework.boot.autoconfigure.session.SessionRepositoryAutoConfiguration

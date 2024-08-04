@@ -8,3 +8,11 @@ services:
       - 'MONGO_INITDB_ROOT_USERNAME=root'
     ports:
       - '27017'
+  nginx:
+    image: 'nginx:latest'
+    ports:
+      - '8333:8333'
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - mongodb
