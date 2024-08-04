@@ -2,43 +2,25 @@ package observer.quantum.worm.global;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
 @SuppressWarnings("unused")
-@Configuration
+@TestConfiguration
 @EnableWebSecurity
 @Slf4j
-public class SecurityConfig {
-
-    @Autowired
-    private CustomUserDetailsService userDetailsService;
-
-    @Autowired
-    private MongoTokenRepository mongoTokenRepository;
+public class TestSecurityConfig {
 
     @Bean
-    public SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers("/api-docs/**", "/swagger-ui/**", "/login").permitAll()
                 .anyRequest().authenticated()
         );
-
-        http.oauth2Login(oauth2 -> oauth2
-                .defaultSuccessUrl("/", true));
-
-        http.rememberMe(rememberMe -> {
-            rememberMe
-                    .tokenRepository(mongoTokenRepository)
-                    .userDetailsService(userDetailsService)
-                    .alwaysRemember(true)
-                    .key("worm");
-        });
 
         http.logout(logout -> logout.logoutUrl("/logout"));
 
@@ -51,4 +33,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-
