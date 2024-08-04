@@ -10,6 +10,7 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
 
+    @SuppressWarnings("unused")
     public ProjectService(ProjectRepository projectRepository) {
         this.projectRepository = projectRepository;
     }
@@ -42,6 +43,7 @@ public class ProjectService {
     }
 
     public void delete(String id) {
-        projectRepository.deleteById(id);
+        Project project = findById(id);
+        projectRepository.delete(project);
     }
 }

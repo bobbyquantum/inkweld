@@ -9,7 +9,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @SuppressWarnings("unused")
 @Configuration
 @EnableWebSecurity
-public class SecurityConfig  {
+public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
