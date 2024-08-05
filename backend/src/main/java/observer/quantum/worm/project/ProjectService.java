@@ -10,7 +10,6 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
 
-    @SuppressWarnings("unused")
     public ProjectService(ProjectRepository projectRepository) {
         this.projectRepository = projectRepository;
     }
