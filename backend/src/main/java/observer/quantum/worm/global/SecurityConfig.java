@@ -32,13 +32,11 @@ public class SecurityConfig {
         http.oauth2Login(oauth2 -> oauth2
                 .defaultSuccessUrl("/", true));
 
-        http.rememberMe(rememberMe -> {
-            rememberMe
-                    .tokenRepository(mongoTokenRepository)
-                    .userDetailsService(userDetailsService)
-                    .alwaysRemember(true)
-                    .key("worm");
-        });
+        http.rememberMe(rememberMe -> rememberMe
+                .tokenRepository(mongoTokenRepository)
+                .userDetailsService(userDetailsService)
+                .alwaysRemember(true)
+                .key("worm"));
 
         http.logout(logout -> logout.logoutUrl("/logout"));
 

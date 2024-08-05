@@ -29,9 +29,7 @@ public class UserService {
         if (authentication instanceof OAuth2AuthenticationToken) {
             var clientRegistrationId = ((OAuth2AuthenticationToken) authentication).getAuthorizedClientRegistrationId();
             var userIdentity = userIdentityRepository.findByProviderAndProviderId(clientRegistrationId, authentication.getName());
-            if (userIdentity.isPresent()) {
-                return Optional.ofNullable(userIdentity.get().getUser());
-            }
+            return userIdentity.map(UserIdentity::getUser).or(() -> Optional.ofNullable(registerUser(clientRegistrationId, ((OAuth2AuthenticationToken) authentication).getPrincipal())));
         } else if (authentication instanceof RememberMeAuthenticationToken) {
             return this.getUser(authentication.getName());
         }
@@ -39,7 +37,6 @@ public class UserService {
     }
 
     public User registerUser(String provider, OAuth2User user) {
-
         var userRecord = new User();
         var userIdentity = new UserIdentity();
         userIdentity.setProvider(provider);
@@ -60,7 +57,6 @@ public class UserService {
         userRepository.save(userRecord);
         userIdentityRepository.save(userIdentity);
         return userRecord;
-
     }
 
     public Optional<User> getUser(String username) {

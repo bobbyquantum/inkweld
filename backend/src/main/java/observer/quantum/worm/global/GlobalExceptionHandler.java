@@ -1,6 +1,7 @@
 package observer.quantum.worm.global;
 
 import observer.quantum.worm.project.ProjectNotFoundException;
+import observer.quantum.worm.user.UserAuthInvalidException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -18,6 +19,13 @@ public class GlobalExceptionHandler {
         Map<String, String> response = new HashMap<>();
         response.put("error", ex.getMessage());
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(UserAuthInvalidException.class)
+    public ResponseEntity<Map<String, String>> handleUserAuthInvalid(UserAuthInvalidException ex) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", ex.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(Exception.class)
