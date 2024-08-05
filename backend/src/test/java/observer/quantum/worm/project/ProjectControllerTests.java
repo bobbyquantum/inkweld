@@ -114,6 +114,7 @@ public class ProjectControllerTests {
 
         verify(projectService, times(1)).delete("1");
     }
+
     @Test
     public void testGetProjectByIdNotFound() throws Exception {
         when(projectService.findById("1")).thenThrow(new ProjectNotFoundException("1"));
