@@ -1,8 +1,8 @@
 spring:
   application:
     name: worm
-  config:
-    import: auth.yml
+  #  config:
+  #properties    import: auth.yml
   mvc:
     ignore-trailing-slash: true
   session:
