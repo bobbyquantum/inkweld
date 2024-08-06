@@ -9,6 +9,7 @@ services:
     ports:
       - '27017'
   nginx:
+    network_mode: host
     image: 'nginx:latest'
     ports:
       - '8333:8333'
