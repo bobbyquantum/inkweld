@@ -1,0 +1,38 @@
+.menu-popover {
+  min-width: 16rem;
+}
+
+.user-menu {
+  text-indent: 2.5em;
+  width:12rem;
+  justify-content: start;
+}
+
+.avatar {
+  height: 2.5rem;
+  width: 2.5rem;
+  display: flex;
+  position: fixed;
+  margin-top: -12px;
+  margin-left: -12px;
+}
+
+.rounded-full {
+  border-radius: 9999px;
+}
+
+img {
+  height: auto;
+}
+
+.user-menu {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 1000;
+}
+
+mat-divider {
+  margin: 8px 0;
+  width: 12rem;
+}

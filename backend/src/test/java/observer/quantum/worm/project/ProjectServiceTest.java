@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.*;
 
-public class ProjectServiceTests {
+public class ProjectServiceTest {
 
     @InjectMocks
     private ProjectService projectService;

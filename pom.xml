@@ -7,6 +7,6 @@
     <packaging>pom</packaging>
     <modules>
         <module>backend</module>
-        <!--        <module>frontend</module>-->
+        <module>api-client</module>
     </modules>
 </project>

@@ -1,4 +1,4 @@
-## worm-api-client@v1
+## worm-api-client@0.0.1-SNAPSHOT
 
 ### Building
 
@@ -19,7 +19,7 @@ Navigate to the folder of your consuming project and run one of next commands.
 _published:_
 
 ```
-npm install worm-api-client@v1 --save
+npm install worm-api-client@0.0.1-SNAPSHOT --save
 ```
 
 _without publishing (not recommended):_

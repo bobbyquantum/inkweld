@@ -8,6 +8,7 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="worm-backend" />
+        <module name="worm-api-client" />
       </profile>
     </annotationProcessing>
   </component>

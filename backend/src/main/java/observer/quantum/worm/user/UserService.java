@@ -7,6 +7,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -61,5 +62,31 @@ public class UserService {
 
     public Optional<User> getUser(String username) {
         return userRepository.findByUsername(username);
+    }
+
+
+    @Transactional
+    public User updateUserDetails(UpdateUserRequest updateUserDto) {
+        if (updateUserDto.getName() == null && updateUserDto.getAvatarImageUrl() == null) {
+            throw new IllegalArgumentException("At least one field must be provided for update");
+        }
+        User currentUser = getCurrentUser().orElseThrow(UserAuthInvalidException::new);
+
+        if (updateUserDto.getName() != null) {
+            currentUser.setName(updateUserDto.getName());
+        }
+        if (updateUserDto.getAvatarImageUrl() != null) {
+            currentUser.setAvatarImageUrl(updateUserDto.getAvatarImageUrl());
+        }
+
+        return userRepository.save(currentUser);
+    }
+
+    @Transactional
+    public void deleteAccount() {
+        User currentUser = getCurrentUser().orElseThrow(UserAuthInvalidException::new);
+        userIdentityRepository.deleteAllByUser(currentUser);
+        userRepository.delete(currentUser);
+        SecurityContextHolder.clearContext();
     }
 }

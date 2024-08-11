@@ -1,22 +1,25 @@
 package observer.quantum.worm.user;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import observer.quantum.worm.global.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class UserControllerTests {
-    @Autowired
-    UserController controller;
+@Slf4j
+public class UserControllerTest {
 
     @InjectMocks
     private UserController userController;
@@ -28,6 +31,8 @@ public class UserControllerTests {
 
     private User user;
 
+    private ObjectMapper objectMapper;
+
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -37,13 +42,18 @@ public class UserControllerTests {
 
         user = new User();
         user.setUsername("testuser");
+
+        objectMapper = new ObjectMapper();
     }
 
     @Test
     public void testGetCurrentUser() throws Exception {
         when(userService.getCurrentUser()).thenReturn(java.util.Optional.of(user));
 
-        mockMvc.perform(get("/api/users/me"))
+        mockMvc.perform(get("/api/users/me").accept(MediaType.APPLICATION_JSON))
+                .andDo(result -> {
+                    log.info("Result {}", result);
+                })
                 .andExpect(status().isOk());
 
         verify(userService, times(1)).getCurrentUser();
@@ -53,9 +63,74 @@ public class UserControllerTests {
     public void testGetCurrentUser_notAuthenticated() throws Exception {
         when(userService.getCurrentUser()).thenReturn(java.util.Optional.empty());
 
-        mockMvc.perform(get("/api/users/me"))
+        mockMvc.perform(get("/api/users/me").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
 
         verify(userService, times(1)).getCurrentUser();
+    }
+
+    @Test
+    public void testGetCurrentUser_accessDenied() throws Exception {
+        doThrow(AccessDeniedException.class).when(userService).getCurrentUser();
+
+        mockMvc.perform(get("/api/users/me").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("Access denied"));
+
+        verify(userService, times(1)).getCurrentUser();
+    }
+
+    @Test
+    public void testUpdateUserDetails() throws Exception {
+        UpdateUserRequest updateUserDto = new UpdateUserRequest();
+        updateUserDto.setName("New Name");
+
+        User updatedUser = new User();
+        updatedUser.setUsername("testuser");
+        updatedUser.setName("New Name");
+
+        when(userService.updateUserDetails(any(UpdateUserRequest.class))).thenReturn(updatedUser);
+
+        mockMvc.perform(put("/api/users/me")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateUserDto))
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("New Name"));
+
+        verify(userService, times(1)).updateUserDetails(any(UpdateUserRequest.class));
+    }
+
+    @Test
+    public void testUpdateUserDetails_invalidInput() throws Exception {
+        when(userService.getCurrentUser()).thenReturn(java.util.Optional.of(user));
+        UpdateUserRequest updateUserDto = new UpdateUserRequest();
+
+        mockMvc.perform(put("/api/users/me")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateUserDto))
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(userService, never()).updateUserDetails(any(UpdateUserRequest.class));
+    }
+
+    @Test
+    public void testDeleteAccount() throws Exception {
+        mockMvc.perform(delete("/api/users/me"))
+                .andExpect(status().isNoContent());
+
+        verify(userService, times(1)).deleteAccount();
+    }
+
+    @Test
+    public void testDeleteAccount_accessDenied() throws Exception {
+        doThrow(AccessDeniedException.class).when(userService).deleteAccount();
+
+        mockMvc.perform(delete("/api/users/me"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("Access denied"));
+
+        verify(userService, times(1)).deleteAccount();
     }
 }
