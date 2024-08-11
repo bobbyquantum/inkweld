@@ -11,20 +11,11 @@ import lombok.Setter;
 @Getter
 @Setter
 @Schema(description = "User information")
-public class UserDto {
-
-    @Schema(description = "Username", example = "johnDoe")
-    private String username;
+public class UpdateUserRequest {
 
     @Schema(description = "User's name", example = "John Doe")
     private String name;
 
     @Schema(description = "URL of the user's avatar image", example = "https://example.com/avatar.jpg")
     private String avatarImageUrl;
-
-    public UserDto(User user) {
-        username = user.getUsername();
-        name = user.getName();
-        avatarImageUrl = user.getAvatarImageUrl();
-    }
 }

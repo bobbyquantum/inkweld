@@ -15,14 +15,13 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ActiveProfiles("test")
 class WormApplicationTests {
 
-    @SuppressWarnings("unused")
     @Container
     @ServiceConnection
     static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:latest");
 
     @Test
     void contextLoads() {
-        log.info("Context loads completed.");
+        log.info("Context loads completed: {}", mongoDBContainer.getContainerId());
     }
 
 }

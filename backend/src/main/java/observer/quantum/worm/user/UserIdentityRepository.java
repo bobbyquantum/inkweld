@@ -6,4 +6,6 @@ import java.util.Optional;
 
 public interface UserIdentityRepository extends MongoRepository<UserIdentity, String> {
     Optional<UserIdentity> findByProviderAndProviderId(String provider, String providerId);
+
+    void deleteAllByUser(User user);
 }

@@ -2,8 +2,10 @@ package observer.quantum.worm.project;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import observer.quantum.worm.user.User;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Date;
@@ -21,7 +23,8 @@ public class Project {
     private String description;
 
     @Indexed
-    private String userId;
+    @DBRef
+    private User user;
 
     private String status; // Consider using an Enum for better type safety.
 

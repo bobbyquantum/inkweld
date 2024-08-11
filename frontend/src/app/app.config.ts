@@ -1,15 +1,41 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, Provider, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideHttpClient } from '@angular/common/http';
-
+import { HttpClient, provideHttpClient } from '@angular/common/http';
+import { Configuration, ConfigurationParameters, UserService } from 'worm-api-client';
+import { ThemeService } from '../themes/theme.service';
+export function provideApiConfig(): Provider {
+  return {
+    provide: Configuration,
+    useFactory: () => new Configuration(
+      {
+        basePath: "http://localhost:8333"
+      }
+    ),
+    deps: [],
+    multi: false
+  }
+}
+export function provideUserService(): Provider {
+  return {
+    provide: UserService,
+    useFactory: (httpClient: HttpClient, configuration: Configuration) => {
+      return new UserService(httpClient, "http://localhost:8333", configuration);
+    },
+    deps: [HttpClient, Configuration]
+  };
+}
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideZoneChangeDetection({ eventCoalescing: true }), 
-    provideRouter(routes), 
-    provideAnimationsAsync(), 
-    provideHttpClient()
-  ]
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes),
+    provideAnimationsAsync(),
+    provideHttpClient(),
+    provideApiConfig(),
+    provideUserService(),
+    ThemeService
+  ],
+
 };
