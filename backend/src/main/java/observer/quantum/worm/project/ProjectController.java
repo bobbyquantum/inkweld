@@ -26,8 +26,7 @@ public class ProjectController {
     @Operation(summary = "Get all projects", description = "Retrieve a list of all projects")
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Project>> getAllProjects() {
-        log.info("getAllProjects");
-        List<Project> projects = projectService.findAll();
+        List<Project> projects = projectService.findAllForCurrentUser();
         return new ResponseEntity<>(projects, HttpStatus.OK);
     }
 
@@ -38,8 +37,8 @@ public class ProjectController {
     })
     @GetMapping(path = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Project> getProjectById(@Parameter(description = "ID of the project to be retrieved") @PathVariable String id) {
-        Project project = projectService.findById(id);
-        return project != null ? new ResponseEntity<>(project, HttpStatus.OK) : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        Project project = projectService.findByIdForCurrentUser(id);
+        return new ResponseEntity<>(project, HttpStatus.OK);
     }
 
     @Operation(summary = "Create a new project", description = "Add a new project to the system")
