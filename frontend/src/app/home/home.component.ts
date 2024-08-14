@@ -3,7 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { ThemeService } from '../../themes/theme.service';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { UserMenuComponent } from "../user-menu/user-menu.component";
+import { UserMenuComponent } from "../components/user-menu/user-menu.component";
 import { UserDto, UserService } from 'worm-api-client';
 import { firstValueFrom } from 'rxjs';
 @Component({

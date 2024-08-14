@@ -49,26 +49,26 @@ public class ProjectControllerTest {
     @Test
     public void testGetAllProjects() throws Exception {
         List<Project> projects = Collections.singletonList(project);
-        when(projectService.findAll()).thenReturn(projects);
+        when(projectService.findAllForCurrentUser()).thenReturn(projects);
 
         mockMvc.perform(get("/api/projects"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$[0].title").value("My Project"));
 
-        verify(projectService, times(1)).findAll();
+        verify(projectService, times(1)).findAllForCurrentUser();
     }
 
     @Test
     public void testGetProjectById() throws Exception {
-        when(projectService.findById("1")).thenReturn(project);
+        when(projectService.findByIdForCurrentUser("1")).thenReturn(project);
 
         mockMvc.perform(get("/api/projects/1"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.title").value("My Project"));
 
-        verify(projectService, times(1)).findById("1");
+        verify(projectService, times(1)).findByIdForCurrentUser("1");
     }
 
     @Test
@@ -117,14 +117,14 @@ public class ProjectControllerTest {
 
     @Test
     public void testGetProjectByIdNotFound() throws Exception {
-        when(projectService.findById("1")).thenThrow(new ProjectNotFoundException("1"));
+        when(projectService.findByIdForCurrentUser("1")).thenThrow(new ProjectNotFoundException("1"));
 
         mockMvc.perform(get("/api/projects/1"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.error").value("Project not found with ID: 1"));
 
-        verify(projectService, times(1)).findById("1");
+        verify(projectService, times(1)).findByIdForCurrentUser("1");
     }
 
     @Test
