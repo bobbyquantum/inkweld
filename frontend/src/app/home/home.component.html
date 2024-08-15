@@ -1,20 +1,15 @@
-
 <mat-toolbar>Projects</mat-toolbar>
 @for (project of projects; track project.id) {
   <mat-card class="project-card" appearance="raised">
     <mat-card-header>
-      <img
-      mat-card-avatar
-      [src]="user?.avatarImageUrl"
-      alt="User avatar"
-    />
-      <mat-card-title>{{project.title}}</mat-card-title>
-      <mat-card-subtitle>{{project.user?.name}}</mat-card-subtitle>
+      <img mat-card-avatar [src]="user?.avatarImageUrl" alt="User avatar" />
+      <mat-card-title>{{ project.title }}</mat-card-title>
+      <mat-card-subtitle>{{ project.user?.name }}</mat-card-subtitle>
     </mat-card-header>
     <!-- <img mat-card-image src="https://material.angular.io/assets/img/examples/shiba2.jpg" alt="Photo of a Shiba Inu"> -->
     <mat-card-content>
       <p>
-        {{project.description}}
+        {{ project.description }}
       </p>
     </mat-card-content>
     <mat-card-actions>
@@ -22,4 +17,4 @@
     </mat-card-actions>
   </mat-card>
 }
-<app-user-menu [user]="user"/>
+<app-user-menu [user]="user" />

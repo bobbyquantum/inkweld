@@ -4,12 +4,8 @@ import { MatExpansionModule } from '@angular/material/expansion';
 @Component({
   selector: 'app-project-selector',
   standalone: true,
-  imports: [
-    MatExpansionModule
-  ],
+  imports: [MatExpansionModule],
   templateUrl: './project-selector.component.html',
-  styleUrl: './project-selector.component.scss'
+  styleUrl: './project-selector.component.scss',
 })
-export class ProjectSelectorComponent {
-
-}
+export class ProjectSelectorComponent {}
