@@ -1,5 +1,5 @@
-export * from './projectController.service';
-import { ProjectControllerService } from './projectController.service';
-export * from './user.service';
-import { UserService } from './user.service';
-export const APIS = [ProjectControllerService, UserService];
+export * from './projectAPI.service';
+import { ProjectAPIService } from './projectAPI.service';
+export * from './userAPI.service';
+import { UserAPIService } from './userAPI.service';
+export const APIS = [ProjectAPIService, UserAPIService];

@@ -4,7 +4,7 @@ import { MatCardModule } from '@angular/material/card';
 import { ThemeService } from '../../themes/theme.service';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { UserMenuComponent } from "../components/user-menu/user-menu.component";
-import { UserDto, UserService } from 'worm-api-client';
+import { Project, ProjectAPIService, User, UserAPIService } from 'worm-api-client';
 import { firstValueFrom } from 'rxjs';
 @Component({
   selector: 'app-home',
@@ -20,14 +20,19 @@ import { firstValueFrom } from 'rxjs';
 })
 export class HomeComponent {
 
-  protected user: UserDto | null = null;
-  constructor(private themeService: ThemeService, private userService: UserService) { }
+  protected user: User | null = null;
+  projects: Project[] = [];
+  constructor(private themeService: ThemeService, private userService: UserAPIService, private projectService: ProjectAPIService) { }
 
   ngOnInit() {
     firstValueFrom(this.userService.getCurrentUser()).then((result) => {
       this.user = result;
     }).catch(() => {
 
+    })
+
+    firstValueFrom(this.projectService.getAllProjects()).then((result) => {
+      this.projects = result;
     })
   }
 

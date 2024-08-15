@@ -4,7 +4,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 
-import { UserDto } from 'worm-api-client';
+import { User } from 'worm-api-client';
 
 @Component({
   selector: 'app-user-menu',
@@ -19,19 +19,16 @@ import { UserDto } from 'worm-api-client';
   styleUrl: './user-menu.component.scss'
 })
 export class UserMenuComponent {
-  @Input() user: UserDto | null = null;
+  @Input() user: User | null = null;
   constructor(private ngZone: NgZone) {
   }
   onLogout() {
-    // Implement logout logic here
-    console.log('Logout clicked');
     this.ngZone.runOutsideAngular(() => {
       window.location.href = '/logout';
     });
   }
 
   onSettings() {
-    // Implement settings navigation here
     console.log('Settings clicked');
   }
 }

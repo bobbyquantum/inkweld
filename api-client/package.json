@@ -1,6 +1,6 @@
 {
   "name": "worm-api-client",
-  "version": "0.0.1-SNAPSHOT2",
+  "version": "0.0.1-SNAPSHOT",
   "description": "OpenAPI client for worm-api-client",
   "author": "OpenAPI-Generator Contributors",
   "repository": {

@@ -1,6 +1,6 @@
 /**
  * Worm API
- * worm tunnel protocol
+ * Worm tunnel protocol - Secure API for managing projects and user data
  *
  * The version of the OpenAPI document: 0.0.1-SNAPSHOT
  * 
@@ -19,6 +19,8 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
+import { ErrorResponse } from '../model/errorResponse';
+// @ts-ignore
 import { Project } from '../model/project';
 
 // @ts-ignore
@@ -30,9 +32,9 @@ import { Configuration }                                     from '../configurat
 @Injectable({
   providedIn: 'root'
 })
-export class ProjectControllerService {
+export class ProjectAPIService {
 
-    protected basePath = 'http://localhost:56997';
+    protected basePath = 'http://localhost:60551';
     public defaultHeaders = new HttpHeaders();
     public configuration = new Configuration();
     public encoder: HttpParameterCodec;
@@ -94,20 +96,27 @@ export class ProjectControllerService {
 
     /**
      * Create a new project
-     * Add a new project to the system
-     * @param project 
+     * Creates a new project for the authenticated user. Requires a valid CSRF token.
+     * @param xXSRFTOKEN CSRF token
+     * @param project Project details
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public createProject(project: Project, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Project>;
-    public createProject(project: Project, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Project>>;
-    public createProject(project: Project, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Project>>;
-    public createProject(project: Project, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public createProject(xXSRFTOKEN: string, project: Project, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Project>;
+    public createProject(xXSRFTOKEN: string, project: Project, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Project>>;
+    public createProject(xXSRFTOKEN: string, project: Project, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Project>>;
+    public createProject(xXSRFTOKEN: string, project: Project, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
+            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling createProject.');
+        }
         if (project === null || project === undefined) {
             throw new Error('Required parameter project was null or undefined when calling createProject.');
         }
 
         let localVarHeaders = this.defaultHeaders;
+        if (xXSRFTOKEN !== undefined && xXSRFTOKEN !== null) {
+            localVarHeaders = localVarHeaders.set('X-XSRF-TOKEN', String(xXSRFTOKEN));
+        }
 
         let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
         if (localVarHttpHeaderAcceptSelected === undefined) {
@@ -152,7 +161,7 @@ export class ProjectControllerService {
             }
         }
 
-        let localVarPath = `/api/projects`;
+        let localVarPath = `/api/v1/projects`;
         return this.httpClient.request<Project>('post', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
@@ -169,25 +178,33 @@ export class ProjectControllerService {
 
     /**
      * Delete a project
-     * Remove a project from the system by ID
+     * Removes a project from the system by ID for the authenticated user. Requires a valid CSRF token.
      * @param id ID of the project to be deleted
+     * @param xXSRFTOKEN CSRF token
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public deleteProject(id: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any>;
-    public deleteProject(id: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
-    public deleteProject(id: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
-    public deleteProject(id: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public deleteProject(id: string, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any>;
+    public deleteProject(id: string, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
+    public deleteProject(id: string, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
+    public deleteProject(id: string, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (id === null || id === undefined) {
             throw new Error('Required parameter id was null or undefined when calling deleteProject.');
         }
+        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
+            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling deleteProject.');
+        }
 
         let localVarHeaders = this.defaultHeaders;
+        if (xXSRFTOKEN !== undefined && xXSRFTOKEN !== null) {
+            localVarHeaders = localVarHeaders.set('X-XSRF-TOKEN', String(xXSRFTOKEN));
+        }
 
         let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
         if (localVarHttpHeaderAcceptSelected === undefined) {
             // to determine the Accept header
             const httpHeaderAccepts: string[] = [
+                'application/json'
             ];
             localVarHttpHeaderAcceptSelected = this.configuration.selectHeaderAccept(httpHeaderAccepts);
         }
@@ -217,7 +234,7 @@ export class ProjectControllerService {
             }
         }
 
-        let localVarPath = `/api/projects/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         return this.httpClient.request<any>('delete', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
@@ -232,8 +249,8 @@ export class ProjectControllerService {
     }
 
     /**
-     * Get all projects
-     * Retrieve a list of all projects
+     * Get all projects for the current user
+     * Retrieves a list of all projects belonging to the authenticated user.
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
@@ -278,7 +295,7 @@ export class ProjectControllerService {
             }
         }
 
-        let localVarPath = `/api/projects`;
+        let localVarPath = `/api/v1/projects`;
         return this.httpClient.request<Array<Project>>('get', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
@@ -294,7 +311,7 @@ export class ProjectControllerService {
 
     /**
      * Get project by ID
-     * Retrieve a project by its ID
+     * Retrieves a specific project by its ID for the authenticated user.
      * @param id ID of the project to be retrieved
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
@@ -343,7 +360,7 @@ export class ProjectControllerService {
             }
         }
 
-        let localVarPath = `/api/projects/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         return this.httpClient.request<Project>('get', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
@@ -359,24 +376,31 @@ export class ProjectControllerService {
 
     /**
      * Update an existing project
-     * Update project details by ID
+     * Updates the details of an existing project for the authenticated user. Requires a valid CSRF token.
      * @param id ID of the project to be updated
-     * @param project 
+     * @param xXSRFTOKEN CSRF token
+     * @param project Updated project details
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public updateProject(id: string, project: Project, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Project>;
-    public updateProject(id: string, project: Project, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Project>>;
-    public updateProject(id: string, project: Project, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Project>>;
-    public updateProject(id: string, project: Project, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public updateProject(id: string, xXSRFTOKEN: string, project: Project, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Project>;
+    public updateProject(id: string, xXSRFTOKEN: string, project: Project, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Project>>;
+    public updateProject(id: string, xXSRFTOKEN: string, project: Project, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Project>>;
+    public updateProject(id: string, xXSRFTOKEN: string, project: Project, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (id === null || id === undefined) {
             throw new Error('Required parameter id was null or undefined when calling updateProject.');
+        }
+        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
+            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling updateProject.');
         }
         if (project === null || project === undefined) {
             throw new Error('Required parameter project was null or undefined when calling updateProject.');
         }
 
         let localVarHeaders = this.defaultHeaders;
+        if (xXSRFTOKEN !== undefined && xXSRFTOKEN !== null) {
+            localVarHeaders = localVarHeaders.set('X-XSRF-TOKEN', String(xXSRFTOKEN));
+        }
 
         let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
         if (localVarHttpHeaderAcceptSelected === undefined) {
@@ -421,7 +445,7 @@ export class ProjectControllerService {
             }
         }
 
-        let localVarPath = `/api/projects/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         return this.httpClient.request<Project>('put', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,

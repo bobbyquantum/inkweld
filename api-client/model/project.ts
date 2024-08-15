@@ -1,6 +1,6 @@
 /**
  * Worm API
- * worm tunnel protocol
+ * Worm tunnel protocol - Secure API for managing projects and user data
  *
  * The version of the OpenAPI document: 0.0.1-SNAPSHOT
  * 
@@ -9,17 +9,45 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { User } from './user';
 
 
+/**
+ * Project Data
+ */
 export interface Project { 
+    /**
+     * Project ID
+     */
     id?: string;
+    /**
+     * Project title
+     */
     title?: string;
+    /**
+     * Project description
+     */
     description?: string;
-    userId?: string;
+    user?: User;
+    /**
+     * Current status of the project
+     */
     status?: string;
+    /**
+     * Date when the project was created
+     */
     createdDate?: string;
+    /**
+     * Date when the project was last updated
+     */
     updatedDate?: string;
+    /**
+     * List of chapter IDs in the project
+     */
     chapters?: Array<string>;
+    /**
+     * List of tags associated with the project
+     */
     tags?: Array<string>;
 }
 

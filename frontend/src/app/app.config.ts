@@ -4,7 +4,7 @@ import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { HttpClient, provideHttpClient } from '@angular/common/http';
-import { Configuration, ConfigurationParameters, UserService } from 'worm-api-client';
+import { Configuration, ConfigurationParameters, ProjectAPIService, UserAPIService } from 'worm-api-client';
 import { ThemeService } from '../themes/theme.service';
 export function provideApiConfig(): Provider {
   return {
@@ -20,9 +20,18 @@ export function provideApiConfig(): Provider {
 }
 export function provideUserService(): Provider {
   return {
-    provide: UserService,
+    provide: UserAPIService,
     useFactory: (httpClient: HttpClient, configuration: Configuration) => {
-      return new UserService(httpClient, "http://localhost:8333", configuration);
+      return new UserAPIService(httpClient, "http://localhost:8333", configuration);
+    },
+    deps: [HttpClient, Configuration]
+  };
+}
+export function provideProjectService(): Provider {
+  return {
+    provide: ProjectAPIService,
+    useFactory: (httpClient: HttpClient, configuration: Configuration) => {
+      return new ProjectAPIService(httpClient, "http://localhost:8333", configuration);
     },
     deps: [HttpClient, Configuration]
   };
@@ -35,6 +44,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(),
     provideApiConfig(),
     provideUserService(),
+    provideProjectService(),
     ThemeService
   ],
 

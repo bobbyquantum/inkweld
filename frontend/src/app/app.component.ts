@@ -1,6 +1,6 @@
 import { Component, HostBinding, NgZone } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { UserDto, UserService } from 'worm-api-client';
+import { User, UserAPIService } from 'worm-api-client';
 import { firstValueFrom } from 'rxjs';
 import { ThemeService } from '../themes/theme.service';
 @Component({
@@ -14,14 +14,14 @@ import { ThemeService } from '../themes/theme.service';
 })
 export class AppComponent {
   title = 'worm-frontend';
-  user: UserDto | null = null;
+  user: User | null = null;
   @HostBinding('class') className = '';
-  constructor(private userService: UserService, private ngZone: NgZone, protected themeService: ThemeService) {
+  constructor(private userService: UserAPIService, private ngZone: NgZone, protected themeService: ThemeService) {
   }
 
   ngOnInit(): void {
     this.themeService.initTheme()
-    firstValueFrom(this.userService.getCurrentUser()).then((user: UserDto) => {
+    firstValueFrom(this.userService.getCurrentUser()).then((user: User) => {
       this.user = user;
     }).catch((error: any) => {
       this.ngZone.runOutsideAngular(() => {
