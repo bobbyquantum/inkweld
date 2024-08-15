@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { MatSidenavModule } from '@angular/material/sidenav';
-import { ProjectSelectorComponent } from "../components/project-selector/project-selector.component";
-import { UserMenuComponent } from "../components/user-menu/user-menu.component";
+import { ProjectSelectorComponent } from '../components/project-selector/project-selector.component';
+import { UserMenuComponent } from '../components/user-menu/user-menu.component';
 import { Editor, NgxEditorModule } from 'ngx-editor';
 
 @Component({
@@ -11,18 +11,17 @@ import { Editor, NgxEditorModule } from 'ngx-editor';
     MatSidenavModule,
     ProjectSelectorComponent,
     UserMenuComponent,
-    NgxEditorModule
-],
+    NgxEditorModule,
+  ],
   templateUrl: './project.component.html',
-  styleUrl: './project.component.scss'
+  styleUrl: './project.component.scss',
 })
-export class ProjectComponent {
-
+export class ProjectComponent implements OnInit, OnDestroy {
   editor!: Editor;
 
   ngOnInit(): void {
     this.editor = new Editor({});
-    this.editor.setContent("content");
+    this.editor.setContent('content');
   }
 
   ngOnDestroy(): void {

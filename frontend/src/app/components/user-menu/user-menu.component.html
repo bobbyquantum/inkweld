@@ -4,8 +4,7 @@
       <img
         class="rounded-full"
         [src]="user?.avatarImageUrl"
-        alt="User avatar"
-      />
+        alt="User avatar" />
     </div>
     {{ user?.name }}
   </button>
@@ -14,8 +13,7 @@
     #menu="matMenu"
     yPosition="above"
     class="menu-popover"
-    backdropClass="menu-popover"
-  >
+    backdropClass="menu-popover">
     <div class="user-info" mat-menu-item disabled>
       <span>{{ user?.name }}</span>
     </div>

@@ -3,11 +3,13 @@ import { DOCUMENT } from '@angular/common';
 import { BehaviorSubject } from 'rxjs';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ThemeService {
   private renderer: Renderer2;
-  private colorTheme = new BehaviorSubject<'light-theme' | 'dark-theme'>('dark-theme');
+  private colorTheme = new BehaviorSubject<'light-theme' | 'dark-theme'>(
+    'dark-theme'
+  );
 
   constructor(
     rendererFactory: RendererFactory2,
@@ -23,7 +25,8 @@ export class ThemeService {
 
   update(theme: 'light-theme' | 'dark-theme') {
     this.setColorTheme(theme);
-    const previousColorTheme = (theme === 'dark-theme' ? 'light-theme' : 'dark-theme');
+    const previousColorTheme =
+      theme === 'dark-theme' ? 'light-theme' : 'dark-theme';
     this.renderer.removeClass(this.document.body, previousColorTheme);
     this.renderer.addClass(this.document.body, theme);
   }

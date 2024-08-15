@@ -9,19 +9,13 @@ import { User } from 'worm-api-client';
 @Component({
   selector: 'app-user-menu',
   standalone: true,
-  imports: [
-    MatButtonModule,
-    MatMenuModule,
-    MatIconModule,
-    MatDividerModule
-  ],
+  imports: [MatButtonModule, MatMenuModule, MatIconModule, MatDividerModule],
   templateUrl: './user-menu.component.html',
-  styleUrl: './user-menu.component.scss'
+  styleUrl: './user-menu.component.scss',
 })
 export class UserMenuComponent {
   @Input() user: User | null = null;
-  constructor(private ngZone: NgZone) {
-  }
+  constructor(private ngZone: NgZone) {}
   onLogout() {
     this.ngZone.runOutsideAngular(() => {
       window.location.href = '/logout';
