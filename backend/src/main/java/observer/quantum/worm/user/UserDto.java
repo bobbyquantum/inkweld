@@ -10,7 +10,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
-@Schema(description = "User information")
+@Schema(name = "User", description = "User information")
 public class UserDto {
 
     @Schema(description = "Username", example = "johnDoe")

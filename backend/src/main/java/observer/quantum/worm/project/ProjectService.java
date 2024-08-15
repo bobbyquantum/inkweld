@@ -21,13 +21,13 @@ public class ProjectService {
 
     public List<Project> findAllForCurrentUser() {
         User currentUser = userService.getCurrentUser()
-                .orElseThrow(() -> new UserAuthInvalidException());
+                .orElseThrow(UserAuthInvalidException::new);
         return projectRepository.findByUser(currentUser);
     }
 
     public Project findByIdForCurrentUser(String id) {
         User currentUser = userService.getCurrentUser()
-                .orElseThrow(() -> new UserAuthInvalidException());
+                .orElseThrow(UserAuthInvalidException::new);
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ProjectNotFoundException(id));
         if (!project.getUser().equals(currentUser)) {
@@ -38,7 +38,7 @@ public class ProjectService {
 
     public Project create(Project project) {
         User currentUser = userService.getCurrentUser()
-                .orElseThrow(() -> new UserAuthInvalidException());
+                .orElseThrow(UserAuthInvalidException::new);
         project.setUser(currentUser);
         project.setCreatedDate(new Date());
         project.setUpdatedDate(new Date());

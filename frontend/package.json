@@ -23,7 +23,7 @@
     "ngx-editor": "^17.5.4",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
-    "worm-api-client": "file:../api-client/dist/worm-api-client-0.0.1-SNAPSHOT2.tgz",
+    "worm-api-client": "file:../api-client/dist/worm-api-client-0.0.1-SNAPSHOT.tgz",
     "worm-frontend": "file:",
     "zone.js": "~0.14.3"
   },

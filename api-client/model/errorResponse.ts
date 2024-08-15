@@ -1,6 +1,6 @@
 /**
  * Worm API
- * worm tunnel protocol
+ * Worm tunnel protocol - Secure API for managing projects and user data
  *
  * The version of the OpenAPI document: 0.0.1-SNAPSHOT
  * 
@@ -12,20 +12,20 @@
 
 
 /**
- * User information
+ * Standard error response
  */
-export interface UserDto { 
+export interface ErrorResponse { 
     /**
-     * Username
+     * Error message
      */
-    username?: string;
+    error?: string;
     /**
-     * User\'s name
+     * HTTP status code
      */
-    name?: string;
+    status?: number;
     /**
-     * URL of the user\'s avatar image
+     * Error code for client-side error handling
      */
-    avatarImageUrl?: string;
+    code?: string;
 }
 
