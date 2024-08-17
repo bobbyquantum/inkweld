@@ -1,0 +1,22 @@
+<mat-card class="project-card" appearance="outlined">
+  <mat-card-header>
+    <img
+      mat-card-avatar
+      [src]="project.user?.avatarImageUrl"
+      alt="User avatar" />
+    <mat-card-title>{{ project.title }}</mat-card-title>
+    <mat-card-subtitle>{{ project.user?.name }}</mat-card-subtitle>
+  </mat-card-header>
+  <img
+    mat-card-image
+    src="https://material.angular.io/assets/img/examples/shiba2.jpg"
+    alt="Photo of a Shiba Inu" />
+  <mat-card-content>
+    <p>
+      {{ project.description }}
+    </p>
+  </mat-card-content>
+  <mat-card-actions>
+    <button mat-button (click)="openProject()">OPEN</button>
+  </mat-card-actions>
+</mat-card>
