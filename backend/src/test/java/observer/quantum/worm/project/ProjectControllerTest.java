@@ -1,47 +1,59 @@
 package observer.quantum.worm.project;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import observer.quantum.worm.error.GlobalExceptionHandler;
+import observer.quantum.worm.user.User;
+import observer.quantum.worm.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@Slf4j
+@WebMvcTest(ProjectController.class)
+@Import(GlobalExceptionHandler.class)
+@WithMockUser(username = "testUser", roles = "USER")
 public class ProjectControllerTest {
 
-    @InjectMocks
-    private ProjectController projectController;
-
-    @Mock
-    private ProjectService projectService;
-
+    @Autowired
     private MockMvc mockMvc;
 
-    private Project project;
+    @MockBean
+    private ProjectService projectService;
 
-    private ObjectMapper objectMapper;
+    @MockBean
+    private UserService userService;
+
+    private Project project;
+    private User mockUser;
+
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String XSRF_TOKEN = "test-xsrf-token";
     private static final String XSRF_HEADER = "X-XSRF-TOKEN";
 
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(projectController)
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
+        mockUser = new User();
+        mockUser.setId("testUserId");
+        mockUser.setUsername("testUser");
+        when(userService.getCurrentUser()).thenReturn(Optional.of(mockUser));
 
         project = new Project();
         project.setId("1");
@@ -50,8 +62,8 @@ public class ProjectControllerTest {
         project.setStatus("Writing");
         project.setCreatedDate(new Date());
         project.setUpdatedDate(new Date());
+        project.setUser(mockUser);
 
-        objectMapper = new ObjectMapper();
     }
 
     @Test
@@ -60,6 +72,7 @@ public class ProjectControllerTest {
         when(projectService.findAllForCurrentUser()).thenReturn(projects);
 
         mockMvc.perform(get("/api/v1/projects"))
+                .andDo(result -> log.info(result.getResponse().getContentAsString()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$[0].title").value("My Project"));
@@ -72,6 +85,7 @@ public class ProjectControllerTest {
         when(projectService.findByIdForCurrentUser("1")).thenReturn(project);
 
         mockMvc.perform(get("/api/v1/projects/1"))
+                .andDo(result -> log.info(result.getResponse().getContentAsString()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.title").value("My Project"));
@@ -84,10 +98,12 @@ public class ProjectControllerTest {
         Project newProject = new Project();
         newProject.setTitle("New Project");
         newProject.setDescription("New Description");
+        newProject.setUser(mockUser);
 
         when(projectService.create(any(Project.class))).thenReturn(newProject);
 
         mockMvc.perform(post("/api/v1/projects")
+                        .with(csrf())
                         .header(XSRF_HEADER, XSRF_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(newProject)))
@@ -105,6 +121,7 @@ public class ProjectControllerTest {
         when(projectService.update(eq("1"), any(Project.class))).thenReturn(project);
 
         mockMvc.perform(put("/api/v1/projects/1")
+                        .with(csrf())
                         .header(XSRF_HEADER, XSRF_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(project)))
@@ -119,7 +136,7 @@ public class ProjectControllerTest {
     public void testDeleteProject() throws Exception {
         doNothing().when(projectService).delete("1");
 
-        mockMvc.perform(delete("/api/v1/projects/1")
+        mockMvc.perform(delete("/api/v1/projects/1").with(csrf())
                         .header(XSRF_HEADER, XSRF_TOKEN))
                 .andExpect(status().isNoContent());
 
@@ -143,6 +160,7 @@ public class ProjectControllerTest {
         when(projectService.update(eq("1"), any(Project.class))).thenThrow(new ProjectNotFoundException("1"));
 
         mockMvc.perform(put("/api/v1/projects/1")
+                        .with(csrf())
                         .header(XSRF_HEADER, XSRF_TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(project)))
@@ -157,7 +175,7 @@ public class ProjectControllerTest {
     public void testDeleteProjectNotFound() throws Exception {
         doThrow(new ProjectNotFoundException("1")).when(projectService).delete("1");
 
-        mockMvc.perform(delete("/api/v1/projects/1")
+        mockMvc.perform(delete("/api/v1/projects/1").with(csrf())
                         .header(XSRF_HEADER, XSRF_TOKEN))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -167,7 +185,7 @@ public class ProjectControllerTest {
     }
 
     @Test
-    public void testCreateProject_missingXsrfToken() throws Exception {
+    public void testCreateProject_missingCsrfToken() throws Exception {
         Project newProject = new Project();
         newProject.setTitle("New Project");
         newProject.setDescription("New Description");
@@ -175,34 +193,25 @@ public class ProjectControllerTest {
         mockMvc.perform(post("/api/v1/projects")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(newProject)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error").value("Missing required header: X-XSRF-TOKEN"))
-                .andExpect(jsonPath("$.status").value(403))
-                .andExpect(jsonPath("$.code").value("MISSING_REQUIRED_HEADER"));
+                .andExpect(status().isForbidden());
 
         verify(projectService, never()).create(any(Project.class));
     }
 
     @Test
-    public void testUpdateProject_missingXsrfToken() throws Exception {
+    public void testUpdateProject_missingCsrfToken() throws Exception {
         mockMvc.perform(put("/api/v1/projects/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(project)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error").value("Missing required header: X-XSRF-TOKEN"))
-                .andExpect(jsonPath("$.status").value(403))
-                .andExpect(jsonPath("$.code").value("MISSING_REQUIRED_HEADER"));
+                .andExpect(status().isForbidden());
 
         verify(projectService, never()).update(anyString(), any(Project.class));
     }
 
     @Test
-    public void testDeleteProject_missingXsrfToken() throws Exception {
+    public void testDeleteProject_missingCsrfToken() throws Exception {
         mockMvc.perform(delete("/api/v1/projects/1"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error").value("Missing required header: X-XSRF-TOKEN"))
-                .andExpect(jsonPath("$.status").value(403))
-                .andExpect(jsonPath("$.code").value("MISSING_REQUIRED_HEADER"));
+                .andExpect(status().isForbidden());
 
         verify(projectService, never()).delete(anyString());
     }

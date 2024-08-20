@@ -2,13 +2,7 @@ package observer.quantum.worm.project;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
-import observer.quantum.worm.user.User;
 import observer.quantum.worm.user.UserDto;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.DBRef;
-import org.springframework.data.mongodb.core.mapping.Document;
-
 import java.util.Date;
 import java.util.List;
 
@@ -49,7 +43,7 @@ public class ProjectDto {
         this.id = project.getId();
         this.title = project.getTitle();
         this.description = project.getDescription();
-        this.user = project.getUser() != null ? new UserDto(project.getUser()) : null;
+        this.user = new UserDto(project.getUser());
         this.status = project.getStatus();
         this.createdDate = project.getCreatedDate();
         this.updatedDate = project.getUpdatedDate();

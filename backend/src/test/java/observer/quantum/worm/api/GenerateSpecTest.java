@@ -27,12 +27,12 @@ public class GenerateSpecTest {
 
     @Container
     @ServiceConnection
-    static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:latest");
+    final static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:latest");
 
     @LocalServerPort
     private int port;
 
-    @WithMockUser(value = "user", roles = {"USER"})
+    @WithMockUser()
     @Test
     public void generateOpenApiSpec() throws Exception {
         log.info("Starting test, mongo container ID: {}", mongoDBContainer.getContainerId());
