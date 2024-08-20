@@ -62,7 +62,7 @@ public class ProjectServiceTest {
         List<Project> result = projectService.findAllForCurrentUser();
 
         assertEquals(1, result.size());
-        assertEquals("My Project", result.get(0).getTitle());
+        assertEquals("My Project", result.getFirst().getTitle());
         verify(projectRepository, times(1)).findByUser(user);
     }
 

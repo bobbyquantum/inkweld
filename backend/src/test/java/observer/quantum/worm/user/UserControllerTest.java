@@ -44,12 +44,42 @@ public class UserControllerTest {
                 .build();
 
         user = new User();
-        user.setUsername("testuser");
+        user.setUsername("tester");
 
         objectMapper = new ObjectMapper();
     }
 
-    // ... (previous test methods remain unchanged)
+    @Test
+    public void testGetCurrentUser() throws Exception {
+        when(userService.getCurrentUser()).thenReturn(java.util.Optional.of(user));
+
+        mockMvc.perform(get("/api/v1/users/me").accept(MediaType.APPLICATION_JSON))
+                .andDo(result -> log.info("Result {}", result))
+                .andExpect(status().isOk());
+
+        verify(userService, times(1)).getCurrentUser();
+    }
+
+    @Test
+    public void testGetCurrentUser_notAuthenticated() throws Exception {
+        when(userService.getCurrentUser()).thenReturn(java.util.Optional.empty());
+
+        mockMvc.perform(get("/api/v1/users/me").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
+
+        verify(userService, times(1)).getCurrentUser();
+    }
+
+    @Test
+    public void testGetCurrentUser_accessDenied() throws Exception {
+        doThrow(AccessDeniedException.class).when(userService).getCurrentUser();
+
+        mockMvc.perform(get("/api/v1/users/me").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("Access denied"));
+
+        verify(userService, times(1)).getCurrentUser();
+    }
 
     @Test
     public void testUpdateUserDetails() throws Exception {
@@ -57,7 +87,7 @@ public class UserControllerTest {
         updateUserDto.setName("New Name");
 
         User updatedUser = new User();
-        updatedUser.setUsername("testuser");
+        updatedUser.setUsername("tester");
         updatedUser.setName("New Name");
 
         when(userService.updateUserDetails(any(UpdateUserRequest.class))).thenReturn(updatedUser);

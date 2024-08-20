@@ -1,6 +1,7 @@
 README.md
 api.module.ts
 api/api.ts
+api/fileAPI.service.ts
 api/projectAPI.service.ts
 api/userAPI.service.ts
 configuration.ts
@@ -8,6 +9,7 @@ encoder.ts
 git_push.sh
 index.ts
 model/errorResponse.ts
+model/modelFile.ts
 model/models.ts
 model/project.ts
 model/updateUserRequest.ts

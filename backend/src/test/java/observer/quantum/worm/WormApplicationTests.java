@@ -17,7 +17,7 @@ class WormApplicationTests {
 
     @Container
     @ServiceConnection
-    static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:latest");
+    final static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:latest");
 
     @Test
     void contextLoads() {

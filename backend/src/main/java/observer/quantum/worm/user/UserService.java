@@ -1,6 +1,7 @@
 package observer.quantum.worm.user;
 
 import org.springframework.security.authentication.RememberMeAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+@SuppressWarnings("unused")
 @Service
 public class UserService {
 
@@ -32,6 +34,8 @@ public class UserService {
             var userIdentity = userIdentityRepository.findByProviderAndProviderId(clientRegistrationId, authentication.getName());
             return userIdentity.map(UserIdentity::getUser).or(() -> Optional.ofNullable(registerUser(clientRegistrationId, ((OAuth2AuthenticationToken) authentication).getPrincipal())));
         } else if (authentication instanceof RememberMeAuthenticationToken) {
+            return this.getUser(authentication.getName());
+        } else if (authentication instanceof UsernamePasswordAuthenticationToken) {
             return this.getUser(authentication.getName());
         }
         return Optional.empty();

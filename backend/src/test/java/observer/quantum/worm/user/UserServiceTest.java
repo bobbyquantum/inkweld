@@ -12,10 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -202,4 +199,104 @@ public class UserServiceTest {
         // Assert
         assertFalse(user.isPresent());
     }
+
+    @Test
+    public void testUpdateUserDetails_withValidInput() {
+        // Arrange
+        User currentUser = new User();
+        currentUser.setName("Old Name");
+        currentUser.setAvatarImageUrl("old-avatar-url");
+
+        UpdateUserRequest updateUserDto = new UpdateUserRequest();
+        updateUserDto.setName("New Name");
+        updateUserDto.setAvatarImageUrl("new-avatar-url");
+
+        // Mock OAuth2AuthenticationToken
+        OAuth2AuthenticationToken oauth2Auth = mock(OAuth2AuthenticationToken.class);
+        when(oauth2Auth.getAuthorizedClientRegistrationId()).thenReturn("github");
+        when(oauth2Auth.getName()).thenReturn("1234567890");
+
+        SecurityContextHolder.getContext().setAuthentication(oauth2Auth);
+
+        // Mock UserIdentity and User retrieval
+        UserIdentity userIdentity = new UserIdentity();
+        userIdentity.setUser(currentUser);
+        when(userIdentityRepository.findByProviderAndProviderId("github", "1234567890"))
+                .thenReturn(Optional.of(userIdentity));
+
+        when(userRepository.save(any(User.class))).thenReturn(currentUser);
+
+        // Act
+        User updatedUser = userService.updateUserDetails(updateUserDto);
+
+        // Assert
+        assertNotNull(updatedUser);
+        assertEquals("New Name", updatedUser.getName());
+        assertEquals("new-avatar-url", updatedUser.getAvatarImageUrl());
+        verify(userRepository).save(currentUser);
+    }
+
+
+    @Test
+    public void testUpdateUserDetails_withNullInput() {
+        // Arrange
+        UpdateUserRequest updateUserDto = new UpdateUserRequest();
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> userService.updateUserDetails(updateUserDto));
+    }
+
+    @Test
+    public void testUpdateUserDetails_withNoAuthentication() {
+        // Arrange
+        UpdateUserRequest updateUserDto = new UpdateUserRequest();
+        updateUserDto.setName("New Name");
+
+        // Clear the SecurityContext
+        SecurityContextHolder.clearContext();
+
+        // Act & Assert
+        assertThrows(UserAuthInvalidException.class, () -> userService.updateUserDetails(updateUserDto));
+    }
+
+    @Test
+    public void testDeleteAccount_withValidAuthentication() {
+        // Arrange
+        User currentUser = new User();
+        currentUser.setName("Test User");
+
+        // Mock OAuth2AuthenticationToken
+        OAuth2AuthenticationToken oauth2Auth = mock(OAuth2AuthenticationToken.class);
+        when(oauth2Auth.getAuthorizedClientRegistrationId()).thenReturn("github");
+        when(oauth2Auth.getName()).thenReturn("1234567890");
+
+        SecurityContextHolder.getContext().setAuthentication(oauth2Auth);
+
+        // Mock UserIdentity and User retrieval
+        UserIdentity userIdentity = new UserIdentity();
+        userIdentity.setUser(currentUser);
+        when(userIdentityRepository.findByProviderAndProviderId("github", "1234567890"))
+                .thenReturn(Optional.of(userIdentity));
+
+        // Act
+        userService.deleteAccount();
+
+        // Assert
+        verify(userIdentityRepository).deleteAllByUser(currentUser);
+        verify(userRepository).delete(currentUser);
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+
+    @Test
+    public void testDeleteAccount_withNoAuthentication() {
+        // Arrange
+
+        // Clear the SecurityContext
+        SecurityContextHolder.clearContext();
+
+        // Act & Assert
+        assertThrows(UserAuthInvalidException.class, () -> userService.deleteAccount());
+    }
+
 }

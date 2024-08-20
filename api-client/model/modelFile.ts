@@ -8,23 +8,17 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { User } from './user';
 
 
-/**
- * User information
- */
-export interface User { 
-    /**
-     * Username
-     */
-    username?: string;
-    /**
-     * User\'s name
-     */
+export interface ModelFile { 
+    id?: string;
     name?: string;
-    /**
-     * URL of the user\'s avatar image
-     */
-    avatarImageUrl?: string;
+    created?: string;
+    summary?: string;
+    contentId?: string;
+    contentLength?: number;
+    contentMimeType?: string;
+    owner?: User;
 }
 
