@@ -21,7 +21,7 @@
     "@angular/material": "^18.1.3",
     "@angular/platform-browser": "^18.1.0",
     "@angular/platform-browser-dynamic": "^18.1.0",
-    "@angular/router": "^18.1.0",
+    "@angular/router": "^18.2.0",
     "ngx-editor": "^17.5.4",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
