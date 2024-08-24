@@ -1,23 +1,16 @@
 package observer.quantum.worm.global;
 
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.ExternalDocumentation;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.SpecVersion;
-import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.info.License;
-import io.swagger.v3.oas.models.security.*;
-import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.io.FileInputStream;
 import java.util.Arrays;
-import java.util.Properties;
 
+@SuppressWarnings("unused")
 @Configuration
 public class OpenAPIConfig {
 
@@ -25,9 +18,9 @@ public class OpenAPIConfig {
     public OpenAPI customOpenAPI(@Value("${worm.version}") String version) {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Worm API")
-                        .description("Worm tunnel protocol - Secure API for managing projects and user data")
-                        .version(version)
+                                .title("Worm API")
+                                .description("Worm tunnel protocol - Secure API for managing projects and user data")
+                                .version(version)
 //                        .contact(new Contact()
 //                                .name("API Support")
 //                                .email("support@wormapi.com")

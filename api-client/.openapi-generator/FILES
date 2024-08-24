@@ -9,8 +9,12 @@ encoder.ts
 git_push.sh
 index.ts
 model/errorResponse.ts
+model/filePatchDto.ts
 model/modelFile.ts
 model/models.ts
+model/pageFileResponse.ts
+model/pageInfo.ts
+model/pageable.ts
 model/project.ts
 model/updateUserRequest.ts
 model/user.ts

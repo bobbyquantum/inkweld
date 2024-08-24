@@ -10,6 +10,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { HttpClient, provideHttpClient } from '@angular/common/http';
 import {
   Configuration,
+  FileAPIService,
   ProjectAPIService,
   UserAPIService,
 } from 'worm-api-client';
@@ -43,6 +44,19 @@ export function provideProjectService(): Provider {
     provide: ProjectAPIService,
     useFactory: (httpClient: HttpClient, configuration: Configuration) => {
       return new ProjectAPIService(
+        httpClient,
+        'http://localhost:8333',
+        configuration
+      );
+    },
+    deps: [HttpClient, Configuration],
+  };
+}
+export function provideContentService(): Provider {
+  return {
+    provide: FileAPIService,
+    useFactory: (httpClient: HttpClient, configuration: Configuration) => {
+      return new FileAPIService(
         httpClient,
         'http://localhost:8333',
         configuration

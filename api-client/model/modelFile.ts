@@ -11,13 +11,33 @@
 import { User } from './user';
 
 
+/**
+ * File Data
+ */
 export interface ModelFile { 
+    /**
+     * File ID
+     */
     id?: string;
+    /**
+     * File name
+     */
     name?: string;
+    /**
+     * Date when the file was created
+     */
     created?: string;
+    /**
+     * Summary or description of the file
+     */
     summary?: string;
-    contentId?: string;
+    /**
+     * Length of the file content in bytes
+     */
     contentLength?: number;
+    /**
+     * MIME type of the file content
+     */
     contentMimeType?: string;
     owner?: User;
 }

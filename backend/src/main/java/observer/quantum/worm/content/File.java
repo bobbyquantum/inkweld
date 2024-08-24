@@ -21,6 +21,7 @@ import java.util.Date;
 public class File {
 
     @Id
+    @ContentId
     @GeneratedValue(strategy = GenerationType.AUTO)
     private String id;
 
@@ -28,8 +29,6 @@ public class File {
     private Date created = new Date();
     private String summary;
 
-    @ContentId
-    private String contentId;
     @ContentLength
     private long contentLength;
     private String contentMimeType = "text/plain";
