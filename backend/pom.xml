@@ -111,7 +111,7 @@
         </dependency>
         <dependency>
             <groupId>com.github.paulcwarren</groupId>
-            <artifactId>spring-content-fs-boot-starter</artifactId>
+            <artifactId>spring-content-mongo-boot-starter</artifactId>
             <version>3.0.13</version>
         </dependency>
         <dependency>
