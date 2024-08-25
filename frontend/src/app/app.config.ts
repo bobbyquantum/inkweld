@@ -20,7 +20,8 @@ import {
 import { ThemeService } from '../themes/theme.service';
 
 import { DOCUMENT } from '@angular/common';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, isDevMode } from '@angular/core';
+import { provideServiceWorker } from '@angular/service-worker';
 
 @Injectable({
   providedIn: 'root',
@@ -102,5 +103,9 @@ export const appConfig: ApplicationConfig = {
     provideProjectService(),
     ThemeService,
     XsrfService,
+    provideServiceWorker('ngsw-worker.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000',
+    }),
   ],
 };
