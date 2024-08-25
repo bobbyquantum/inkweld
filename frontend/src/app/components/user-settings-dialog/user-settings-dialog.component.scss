@@ -1,0 +1,51 @@
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px 0 0;
+}
+
+.close-button {
+  margin-right: -12px;
+}
+
+mat-dialog-content {
+  padding-top: 0;
+}
+
+.settings-container {
+  display: flex;
+  height: 400px;
+}
+
+.settings-nav {
+  width: 200px;
+  min-width:200px;
+  border-right: 1px solid var(--mat-divider-color);
+  overflow-y: auto;
+  padding-right: 16px;
+}
+
+.settings-content {
+  flex-grow: 1;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mat-mdc-list-item {
+  &.active {
+    background-color: var(--mat-list-active-indicator-color);
+    color: var(--mat-list-list-item-selected-trailing-icon-color);
+    font-weight: bold;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-list-list-item-focus-state-layer-color);
+    outline-offset: -2px;
+  }
+
+  &:hover {
+    background-color: var(--mat-list-list-item-hover-state-layer-color);
+  }
+}

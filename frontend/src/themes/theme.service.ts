@@ -1,51 +1,71 @@
 import { Injectable, Renderer2, RendererFactory2, Inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
+
+export type ThemeOption = 'light-theme' | 'dark-theme' | 'system';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ThemeService {
   private renderer: Renderer2;
-  private colorTheme = new BehaviorSubject<'light-theme' | 'dark-theme'>(
-    'dark-theme'
-  );
+  private colorTheme = new BehaviorSubject<ThemeOption>('system');
+  private systemDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
 
   constructor(
     rendererFactory: RendererFactory2,
     @Inject(DOCUMENT) private document: Document
   ) {
     this.renderer = rendererFactory.createRenderer(null, null);
+    this.systemDarkMode.addListener(this.systemThemeChanged.bind(this));
   }
 
   initTheme() {
     this.getColorTheme();
-    this.renderer.addClass(this.document.body, this.colorTheme.value);
+    this.updateBodyClass();
   }
 
-  update(theme: 'light-theme' | 'dark-theme') {
+  update(theme: ThemeOption) {
     this.setColorTheme(theme);
-    const previousColorTheme =
-      theme === 'dark-theme' ? 'light-theme' : 'dark-theme';
-    this.renderer.removeClass(this.document.body, previousColorTheme);
-    this.renderer.addClass(this.document.body, theme);
+    this.updateBodyClass();
   }
 
-  isDarkMode() {
+  isDarkMode(): boolean {
+    if (this.colorTheme.value === 'system') {
+      return this.systemDarkMode.matches;
+    }
     return this.colorTheme.value === 'dark-theme';
   }
 
-  private setColorTheme(theme: 'light-theme' | 'dark-theme') {
+  getCurrentTheme(): Observable<ThemeOption> {
+    return this.colorTheme.asObservable();
+  }
+
+  private setColorTheme(theme: ThemeOption) {
     this.colorTheme.next(theme);
     localStorage.setItem('user-theme', theme);
   }
 
   private getColorTheme() {
-    const theme = localStorage.getItem('user-theme');
+    const theme = localStorage.getItem('user-theme') as ThemeOption;
     if (theme) {
-      this.colorTheme.next(theme as 'light-theme' | 'dark-theme');
+      this.colorTheme.next(theme);
     } else {
-      this.colorTheme.next('dark-theme');
+      this.colorTheme.next('system');
+    }
+  }
+
+  private updateBodyClass() {
+    const theme = this.isDarkMode() ? 'dark-theme' : 'light-theme';
+    this.renderer.removeClass(this.document.body, 'light-theme');
+    this.renderer.removeClass(this.document.body, 'dark-theme');
+    this.renderer.addClass(this.document.body, theme);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private systemThemeChanged(_event: MediaQueryListEvent) {
+    if (this.colorTheme.value === 'system') {
+      this.updateBodyClass();
     }
   }
 }

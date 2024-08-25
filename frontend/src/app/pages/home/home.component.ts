@@ -1,8 +1,8 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { ThemeService } from '../../themes/theme.service';
+import { ThemeService } from '@themes/theme.service';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatGridListModule } from '@angular/material/grid-list';
-import { UserMenuComponent } from '../components/user-menu/user-menu.component';
+import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import {
   Project,
   ProjectAPIService,
@@ -10,7 +10,7 @@ import {
   UserAPIService,
 } from 'worm-api-client';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
-import { ProjectCardComponent } from '../components/project-card/project-card.component';
+import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 @Component({
   selector: 'app-home',
