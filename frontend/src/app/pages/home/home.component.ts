@@ -12,6 +12,7 @@ import {
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { XsrfService } from 'app/app.config';
 @Component({
   selector: 'app-home',
   standalone: true,
@@ -34,7 +35,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     private themeService: ThemeService,
     private userService: UserAPIService,
     private projectService: ProjectAPIService,
-    private breakpointObserver: BreakpointObserver
+    private breakpointObserver: BreakpointObserver,
+    private xsrfService: XsrfService
   ) {}
 
   ngOnInit() {
@@ -78,6 +80,22 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.themeService.isDarkMode() ? 'light-theme' : 'dark-theme'
     );
   }
+
+  async addProject() {
+    try {
+      const result = await this.projectService.createProject(
+        this.xsrfService.getXsrfToken(),
+        {
+          title: 'hello2',
+        }
+      );
+      const value = await firstValueFrom(result);
+      console.log(value.createdDate);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
