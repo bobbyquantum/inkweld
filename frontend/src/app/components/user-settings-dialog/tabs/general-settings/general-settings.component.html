@@ -1,0 +1,8 @@
+<mat-form-field>
+  <mat-label>Theme</mat-label>
+  <mat-select [(ngModel)]="selectedTheme" (selectionChange)="onThemeChange()">
+    <mat-option value="system">Follow System</mat-option>
+    <mat-option value="light-theme">Light</mat-option>
+    <mat-option value="dark-theme">Dark</mat-option>
+  </mat-select>
+</mat-form-field>

@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 
 import { User } from 'worm-api-client';
+import { UserSettingsService } from '@services/user-settings.service';
 
 @Component({
   selector: 'app-user-menu',
@@ -15,7 +16,10 @@ import { User } from 'worm-api-client';
 })
 export class UserMenuComponent {
   @Input() user: User | null = null;
-  constructor(private ngZone: NgZone) {}
+  constructor(
+    private ngZone: NgZone,
+    private userSettings: UserSettingsService
+  ) {}
   onLogout() {
     this.ngZone.runOutsideAngular(() => {
       window.location.href = '/logout';
@@ -24,5 +28,6 @@ export class UserMenuComponent {
 
   onSettings() {
     console.log('Settings clicked');
+    this.userSettings.openSettingsDialog();
   }
 }

@@ -1,0 +1,49 @@
+<div class="dialog-header">
+  <h2 mat-dialog-title>Settings</h2>
+  <button mat-icon-button mat-dialog-close class="close-button">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+<mat-divider></mat-divider>
+<mat-dialog-content>
+  <div class="settings-container">
+    <mat-nav-list class="settings-nav">
+      <a
+        mat-list-item
+        (click)="selectCategory('general')"
+        (keydown.enter)="selectCategory('general')"
+        [attr.aria-selected]="selectedCategory === 'general'"
+        [class.active]="selectedCategory === 'general'"
+        tabindex="0"
+        role="tab">
+        <mat-icon matListItemIcon>settings</mat-icon>
+        <span matListItemTitle>General</span>
+      </a>
+      <a
+        mat-list-item
+        (click)="selectCategory('account')"
+        (keydown.enter)="selectCategory('account')"
+        [attr.aria-selected]="selectedCategory === 'account'"
+        [class.active]="selectedCategory === 'account'"
+        tabindex="1"
+        role="tab">
+        <mat-icon matListItemIcon>account_circle</mat-icon>
+        <span matListItemTitle>Account</span>
+      </a>
+    </mat-nav-list>
+
+    <div
+      class="settings-content"
+      role="tabpanel"
+      [@slideAnimation]="getAnimationState()">
+      @switch (selectedCategory) {
+        @case ('general') {
+          <app-general-settings />
+        }
+        @case ('account') {
+          <p>Account settings content goes here</p>
+        }
+      }
+    </div>
+  </div>
+</mat-dialog-content>
