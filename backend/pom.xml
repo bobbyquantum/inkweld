@@ -112,7 +112,7 @@
         <dependency>
             <groupId>com.github.paulcwarren</groupId>
             <artifactId>spring-content-mongo-boot-starter</artifactId>
-            <version>3.0.13</version>
+            <version>3.0.14</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
