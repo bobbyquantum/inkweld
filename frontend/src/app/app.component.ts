@@ -27,10 +27,13 @@ export class AppComponent implements OnInit {
         this.user = user;
       })
       .catch(error => {
-        this.ngZone.runOutsideAngular(() => {
-          console.log('Error', error);
-          window.location.href = '/login';
-        });
+        console.log('Error', error);
+        this.redirectToLogin();
       });
+  }
+  redirectToLogin(): void {
+    this.ngZone.runOutsideAngular(() => {
+      window.location.href = '/login';
+    });
   }
 }

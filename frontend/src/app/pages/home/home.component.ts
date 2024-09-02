@@ -12,7 +12,8 @@ import {
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { XsrfService } from 'app/app.config';
+import { XsrfService } from '@services/xsrf.service';
+
 @Component({
   selector: 'app-home',
   standalone: true,
