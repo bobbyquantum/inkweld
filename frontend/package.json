@@ -9,7 +9,8 @@
     "test": "ng test",
     "lint": "ng lint",
     "lint:fix": "ng lint --fix",
-    "update-api-client": "node update-api-client.js"
+    "update-api-client": "node update-api-client.js",
+    "analyze": "esbuild-visualizer --metadata dist/wor98-frontend/stats.json"
   },
   "private": true,
   "dependencies": {
@@ -37,6 +38,8 @@
     "@angular/compiler-cli": "^18.2.1",
     "@types/jasmine": "~5.1.0",
     "angular-eslint": "18.3.0",
+    "esbuild": "0.23.1",
+    "esbuild-visualizer": "^0.6.0",
     "eslint": "^9.9.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
