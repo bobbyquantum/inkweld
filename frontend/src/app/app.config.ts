@@ -19,24 +19,10 @@ import {
 } from 'worm-api-client';
 import { ThemeService } from '../themes/theme.service';
 
-import { DOCUMENT } from '@angular/common';
-import { inject, Injectable, isDevMode } from '@angular/core';
+import { isDevMode } from '@angular/core';
 import { provideServiceWorker } from '@angular/service-worker';
+import { XsrfService } from '@services/xsrf.service';
 
-@Injectable({
-  providedIn: 'root',
-})
-export class XsrfService {
-  private document = inject(DOCUMENT);
-
-  getXsrfToken(): string {
-    const cookies = this.document.cookie.split(';');
-    const xsrfCookie = cookies.find(cookie =>
-      cookie.trim().startsWith('XSRF-TOKEN=')
-    );
-    return xsrfCookie ? xsrfCookie.split('=')[1] : '';
-  }
-}
 export function provideApiConfig(): Provider {
   return {
     provide: Configuration,
@@ -109,3 +95,4 @@ export const appConfig: ApplicationConfig = {
     }),
   ],
 };
+export { XsrfService };
