@@ -18,6 +18,11 @@
       <span>{{ user?.name }}</span>
     </div>
     <mat-divider></mat-divider>
+    <button mat-menu-item (click)="onFiles()">
+      <mat-icon>perm_media</mat-icon>
+      <span>My Files</span>
+    </button>
+    <mat-divider></mat-divider>
     <button mat-menu-item (click)="onSettings()">
       <mat-icon>settings</mat-icon>
       <span>Settings</span>

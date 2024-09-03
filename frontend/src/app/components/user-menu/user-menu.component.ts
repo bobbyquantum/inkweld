@@ -25,9 +25,10 @@ export class UserMenuComponent {
       window.location.href = '/logout';
     });
   }
-
   onSettings() {
-    console.log('Settings clicked');
     this.userSettings.openSettingsDialog();
+  }
+  onFiles() {
+    this.userSettings.openFileDialog();
   }
 }

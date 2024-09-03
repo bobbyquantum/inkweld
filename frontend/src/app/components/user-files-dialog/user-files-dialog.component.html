@@ -1,0 +1,28 @@
+<h2 mat-dialog-title>User Files</h2>
+
+<mat-dialog-content>
+  <mat-grid-list cols="4" rowHeight="1:1" gutterSize="16px">
+    @for (file of files; track file.id) {
+      <mat-grid-tile>
+        <div class="file-tile">
+          <img
+            src="/api/v1/files/{{ file.id }}/content"
+            alt="{{ file.name }}" />
+          <p>{{ file.name }}</p>
+        </div>
+      </mat-grid-tile>
+    }
+  </mat-grid-list>
+
+  <mat-paginator
+    [length]="page?.totalElements"
+    [pageSize]="pageSize"
+    [pageSizeOptions]="pageSizeOptions"
+    (page)="onPageChange($event)"
+    aria-label="Select page">
+  </mat-paginator>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Close</button>
+</mat-dialog-actions>

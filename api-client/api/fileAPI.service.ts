@@ -37,7 +37,7 @@ import { Configuration }                                     from '../configurat
 })
 export class FileAPIService {
 
-    protected basePath = 'http://localhost:60662';
+    protected basePath = 'http://localhost:54490';
     public defaultHeaders = new HttpHeaders();
     public configuration = new Configuration();
     public encoder: HttpParameterCodec;
