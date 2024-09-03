@@ -12,8 +12,12 @@ import { XsrfService } from 'app/app.config';
 import { of, throwError } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
-import { ActivatedRoute, convertToParamMap } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
+import {
+  ActivatedRoute,
+  convertToParamMap,
+  provideRouter,
+} from '@angular/router';
+import { provideLocationMocks } from '@angular/common/testing';
 
 describe('HomeComponent', () => {
   let component: HomeComponent;
@@ -53,15 +57,13 @@ describe('HomeComponent', () => {
     );
 
     await TestBed.configureTestingModule({
-      imports: [
-        HomeComponent,
-        NoopAnimationsModule,
-        RouterTestingModule.withRoutes([
+      imports: [HomeComponent, NoopAnimationsModule],
+      providers: [
+        provideRouter([
           { path: '', component: HomeComponent },
           { path: 'project/:id', component: HomeComponent },
         ]),
-      ],
-      providers: [
+        provideLocationMocks(),
         { provide: ThemeService, useValue: themeServiceMock },
         { provide: UserAPIService, useValue: userServiceMock },
         { provide: ProjectAPIService, useValue: projectServiceMock },

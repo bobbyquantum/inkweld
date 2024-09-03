@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ProjectComponent } from './project.component';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { Editor } from 'ngx-editor';
 
 describe('ProjectComponent', () => {
   let component: ProjectComponent;
@@ -8,7 +10,16 @@ describe('ProjectComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ProjectComponent],
+      imports: [ProjectComponent, NoopAnimationsModule],
+      providers: [
+        {
+          provide: Editor,
+          useValue: {
+            setContent: jasmine.createSpy('setContent'),
+            destroy: jasmine.createSpy('destroy'),
+          },
+        },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ProjectComponent);
