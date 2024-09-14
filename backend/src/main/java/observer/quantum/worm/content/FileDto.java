@@ -3,6 +3,8 @@ package observer.quantum.worm.content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import observer.quantum.worm.user.UserDto;
+
+import java.time.OffsetDateTime;
 import java.util.Date;
 
 @AllArgsConstructor
@@ -12,13 +14,13 @@ import java.util.Date;
 @Schema(name = "File", description = "File Data")
 public class FileDto {
     @Schema(description = "File ID", example = "66c8e88630d2507bab875d28")
-    private String id;
+    private Long id;
 
     @Schema(description = "File name", example = "filename.png")
     private String name;
 
     @Schema(description = "Date when the file was created", example = "2024-08-23T19:52:38.690Z")
-    private Date created;
+    private OffsetDateTime created;
 
     @Schema(description = "Summary or description of the file")
     private String summary;

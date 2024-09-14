@@ -31,11 +31,11 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
 
-    private final MongoTokenRepository mongoTokenRepository;
+    private final JpaTokenRepository jpaTokenRepository;
 
-    public SecurityConfig(CustomUserDetailsService userDetailsService, MongoTokenRepository mongoTokenRepository) {
+    public SecurityConfig(CustomUserDetailsService userDetailsService, JpaTokenRepository jpaTokenRepository) {
         this.userDetailsService = userDetailsService;
-        this.mongoTokenRepository = mongoTokenRepository;
+        this.jpaTokenRepository = jpaTokenRepository;
     }
 
     @Bean
@@ -50,7 +50,7 @@ public class SecurityConfig {
                 .defaultSuccessUrl("/", true));
 
         http.rememberMe(rememberMe -> rememberMe
-                .tokenRepository(mongoTokenRepository)
+                .tokenRepository(jpaTokenRepository)
                 .userDetailsService(userDetailsService)
                 .alwaysRemember(true)
                 .key("worm"));

@@ -1,25 +1,30 @@
 package observer.quantum.worm.user;
 
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.CompoundIndex;
-import org.springframework.data.mongodb.core.mapping.DBRef;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(collection = "identities")
-@CompoundIndex(name = "provider_providerId", def = "{'provider': 1, 'providerId': 1}")
+@Entity
+@Table(name = "user_identities",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "provider_id"}))
 public class UserIdentity {
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
     private String provider;
+
+    @Column(name = "provider_id", nullable = false)
     private String providerId;
-    @DBRef
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user;
 }

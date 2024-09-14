@@ -15,7 +15,7 @@ import { UserSettingsService } from '@services/user-settings.service';
   styleUrl: './user-menu.component.scss',
 })
 export class UserMenuComponent {
-  @Input() user: User | null = null;
+  @Input() user: User | undefined = undefined;
   constructor(
     private ngZone: NgZone,
     private userSettings: UserSettingsService

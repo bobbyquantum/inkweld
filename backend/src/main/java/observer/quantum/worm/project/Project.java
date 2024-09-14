@@ -1,38 +1,56 @@
 package observer.quantum.worm.project;
 
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import observer.quantum.worm.user.User;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.DBRef;
-import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.Date;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
 @NoArgsConstructor
-@Document(collection = "projects")
+@Entity
+@Table(name = "projects")
 public class Project {
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
+    @Column(nullable = false)
     private String title;
 
+    @Column(length = 1000)
     private String description;
 
-    @Indexed
-    @DBRef
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    private String status; // Consider using an Enum for better type safety.
+    @Column(name = "created_date", nullable = false, updatable = false)
+    private OffsetDateTime createdDate;
 
-    private Date createdDate;
+    @Column(name = "updated_date")
+    private OffsetDateTime updatedDate;
 
-    private Date updatedDate;
+    @ElementCollection
+    @CollectionTable(name = "project_chapters", joinColumns = @JoinColumn(name = "project_id"))
+    @Column(name = "chapter_id")
+    private List<String> chapters = new ArrayList<>();
 
-    private List<String> chapters; // List of chapter IDs
+    @ElementCollection
+    @CollectionTable(name = "project_tags", joinColumns = @JoinColumn(name = "project_id"))
+    @Column(name = "tag")
+    private List<String> tags = new ArrayList<>();
 
-    private List<String> tags; // Tags for the project
+    @PrePersist
+    protected void onCreate() {
+        createdDate = OffsetDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedDate = OffsetDateTime.now();
+    }
 }

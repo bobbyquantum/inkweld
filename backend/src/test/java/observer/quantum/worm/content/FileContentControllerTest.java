@@ -53,11 +53,11 @@ public class FileContentControllerTest {
                 .build();
 
         owner = new User();
-        owner.setId("ownerId");
+        owner.setId(1L);
         owner.setUsername("owner");
 
         file = new File();
-        file.setId("1");
+        file.setId(1L);
         file.setName("test.txt");
         file.setContentMimeType("text/plain");
         file.setContentLength(100L);
@@ -264,7 +264,6 @@ public class FileContentControllerTest {
         patchDto.setSummary("Updated summary");
 
         File updatedFile = new File();
-        updatedFile.setId("1");
         updatedFile.setName("updated.txt");
         updatedFile.setSummary("Updated summary");
         updatedFile.setContentMimeType("text/plain");

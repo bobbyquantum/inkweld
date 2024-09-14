@@ -34,7 +34,7 @@ public class UserServiceTest {
 
     @Test
     public void testUserConstructors() {
-        String id = "id";
+        Long id = 1L;
         String username = "username";
         String name = "name";
         String avatarImageUrl = "avatarImageUrl";

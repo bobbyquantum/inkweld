@@ -1,9 +1,56 @@
-.project-card {
-  max-width: 400px;
+.toolbar-spacer {
+  flex: 1 1 auto;
+}
+.custom-search-field {
+  --mdc-outlined-text-field-container-shape: 28px !important;
+  .is-mobile & {
+    width: calc(100vw - 32px);
+  }
+}
+.content-container {
+  display: flex;
+  height: calc(100vh - 64px);
+  overflow: hidden;
 
+  &.is-mobile {
+    flex-direction: column;
+  }
 }
 
-.grid-container {
-  margin: 20px;
+.project-list {
+  width: 300px;
+  overflow-y: auto;
+  padding: 16px;
+
+  .is-mobile & {
+    width: calc(100vw - 32px);
+    height: 100%;
+  }
 }
 
+.project-detail,
+.project-detail-placeholder {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+
+  .is-mobile & {
+    height: 100%;
+  }
+}
+
+.project-card-wrapper {
+  cursor: pointer;
+  margin-bottom: 16px;
+  outline: none;
+
+  &:focus {
+    box-shadow: 0 0 0 2px #007bff; // Adjust color as needed
+  }
+}
+
+.add-project-fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+}

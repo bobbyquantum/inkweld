@@ -3,6 +3,8 @@ package observer.quantum.worm.global;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.web.authentication.rememberme.PersistentRememberMeToken;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,10 +24,10 @@ class PersistentTokenTest {
 
     @Test
     void testAllArgsConstructor() {
-        String id = "testId";
+        Long id = 1L;
         String series = "testSeries";
         String tokenValue = "testTokenValue";
-        Date lastUsed = new Date();
+        OffsetDateTime lastUsed = OffsetDateTime.now();
         String username = "testUser";
 
         PersistentToken token = new PersistentToken(id, series, tokenValue, lastUsed, username);
@@ -50,18 +52,21 @@ class PersistentTokenTest {
         assertNull(token.getId());
         assertEquals(series, token.getSeries());
         assertEquals(tokenValue, token.getTokenValue());
-        assertEquals(lastUsed, token.getLastUsed());
+        assertEquals(lastUsed, token.getLastUsedAsDate());
         assertEquals(username, token.getUsername());
+
+        // Additional test to ensure the OffsetDateTime is correct
+        assertEquals(lastUsed.toInstant(), token.getLastUsed().toInstant());
     }
 
     @Test
     void testSettersAndGetters() {
         PersistentToken token = new PersistentToken();
 
-        String id = "testId";
+        Long id = 1L;
         String series = "testSeries";
         String tokenValue = "testTokenValue";
-        Date lastUsed = new Date();
+        OffsetDateTime lastUsed = OffsetDateTime.now();
         String username = "testUser";
 
         token.setId(id);

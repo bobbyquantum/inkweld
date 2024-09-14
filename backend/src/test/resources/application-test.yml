@@ -1,6 +1,17 @@
 spring:
   application:
     name: worm-test
+  datasource:
+    url: jdbc:tc:postgresql:13:///testdb
+    username: test
+    password: test
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 springdoc:
   api-docs:
     path: /api-docs
+

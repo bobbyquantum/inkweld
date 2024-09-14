@@ -1,6 +1,6 @@
 package observer.quantum.worm.content;
 
-import org.springframework.content.mongo.store.MongoContentStore;
+import org.springframework.content.commons.store.ContentStore;
 
-public interface FileContentStore extends MongoContentStore<File, String> {
+public interface FileContentStore extends ContentStore<File, String> {
 }

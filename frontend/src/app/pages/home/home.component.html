@@ -1,14 +1,59 @@
-<mat-toolbar>Projects</mat-toolbar>
+<mat-toolbar color="primary">
+  @if (isMobile && selectedProject) {
+    <button
+      mat-icon-button
+      (click)="backToList()"
+      aria-label="Back to project list">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+  }
+  <span>{{ 'Projects' }}</span>
+  <span class="toolbar-spacer"></span>
+  <app-user-menu [user]="user()" />
+</mat-toolbar>
 
-<div class="grid-container">
-  <mat-grid-list [cols]="cols" rowHeight="350px">
-    @for (project of projects; track project.id) {
-      <mat-grid-tile>
-        <app-project-card [project]="project" />
-      </mat-grid-tile>
+<div class="content-container" [class.is-mobile]="isMobile">
+  @if (!isMobile || (isMobile && !selectedProject)) {
+    <div class="project-list">
+      <mat-form-field appearance="outline" class="custom-search-field">
+        <input matInput placeholder="Search" />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+
+      @for (project of projects; track project.id) {
+        <div
+          (click)="selectProject(project)"
+          (keyup.enter)="selectProject(project)"
+          tabindex="0"
+          role="button"
+          class="project-card-wrapper">
+          <app-project-card [project]="project" />
+        </div>
+      }
+    </div>
+  }
+
+  @if (!isMobile || (isMobile && selectedProject)) {
+    @if (selectedProject) {
+      <div class="project-detail">
+        <h2>{{ selectedProject.title }}</h2>
+        <!-- Add more project details here -->
+      </div>
+    } @else if (!isMobile) {
+      <div class="project-detail-placeholder">
+        <p>Select a project to view details</p>
+      </div>
     }
-  </mat-grid-list>
+  }
 </div>
 
-<button (click)="addProject()">Add</button>
-<app-user-menu [user]="user" />
+<button
+  mat-fab
+  extended
+  color="accent"
+  class="add-project-fab"
+  (click)="addProject()"
+  aria-label="Add new project">
+  <mat-icon>add</mat-icon>
+  New Project
+</button>

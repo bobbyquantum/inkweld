@@ -1,6 +1,7 @@
 package observer.quantum.worm.project;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 import observer.quantum.worm.error.GlobalExceptionHandler;
 import observer.quantum.worm.user.User;
@@ -15,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -43,25 +45,29 @@ public class ProjectControllerTest {
     private Project project;
     private User mockUser;
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private ObjectMapper objectMapper;
 
     private static final String XSRF_TOKEN = "test-xsrf-token";
     private static final String XSRF_HEADER = "X-XSRF-TOKEN";
 
     @BeforeEach
     public void setUp() {
+
+        objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+
         mockUser = new User();
-        mockUser.setId("testUserId");
+        mockUser.setId(1L);
         mockUser.setUsername("testUser");
         when(userService.getCurrentUser()).thenReturn(Optional.of(mockUser));
 
         project = new Project();
-        project.setId("1");
+        project.setId(1L);
         project.setTitle("My Project");
         project.setDescription("Project Description");
-        project.setStatus("Writing");
-        project.setCreatedDate(new Date());
-        project.setUpdatedDate(new Date());
+//        project.setStatus("Writing");
+        project.setCreatedDate(OffsetDateTime.now());
+        project.setUpdatedDate(OffsetDateTime.now());
         project.setUser(mockUser);
 
     }
