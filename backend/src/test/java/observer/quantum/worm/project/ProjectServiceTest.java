@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.security.access.AccessDeniedException;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -37,17 +38,17 @@ public class ProjectServiceTest {
         MockitoAnnotations.openMocks(this);
 
         user = new User();
-        user.setId("userId");
+        user.setId(1L);
         user.setUsername("testUser");
 
         project = new Project();
-        project.setId("1");
+        project.setId(1L);
         project.setTitle("My Project");
         project.setDescription("Project Description");
-        project.setStatus("Writing");
+//        project.setStatus("Writing");
         project.setUser(user);
-        project.setCreatedDate(new Date());
-        project.setUpdatedDate(new Date());
+        project.setCreatedDate(OffsetDateTime.now());
+        project.setUpdatedDate(OffsetDateTime.now());
 
         when(userService.getCurrentUser()).thenReturn(Optional.of(user));
     }
@@ -80,7 +81,7 @@ public class ProjectServiceTest {
     @Test
     public void testFindByIdForCurrentUser_AccessDenied() {
         User otherUser = new User();
-        otherUser.setId("otherUserId");
+        otherUser.setId(2L);
         project.setUser(otherUser);
 
         when(projectRepository.findById("1")).thenReturn(Optional.of(project));
@@ -101,7 +102,7 @@ public class ProjectServiceTest {
         // Mock behavior
         when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> {
             Project savedProject = invocation.getArgument(0);
-            savedProject.setId("generatedId"); // Simulate ID generation
+            savedProject.setId(2L); // Simulate ID generation
             return savedProject;
         });
 
@@ -144,7 +145,7 @@ public class ProjectServiceTest {
     @Test
     public void testUpdate_AccessDenied() {
         User otherUser = new User();
-        otherUser.setId("otherUserId");
+        otherUser.setId(2L);
         project.setUser(otherUser);
 
         when(projectRepository.findById("1")).thenReturn(Optional.of(project));
@@ -168,7 +169,7 @@ public class ProjectServiceTest {
     @Test
     public void testDelete_AccessDenied() {
         User otherUser = new User();
-        otherUser.setId("otherUserId");
+        otherUser.setId(2L);
         project.setUser(otherUser);
 
         when(projectRepository.findById("1")).thenReturn(Optional.of(project));

@@ -1,16 +1,33 @@
-#file: noinspection SpellCheckingInspection
+version: '3.8'
+
 services:
-  mongodb:
-    image: 'mongo:latest'
+  postgres:
+    image: 'postgres:13'
     environment:
-      - 'MONGO_INITDB_DATABASE=mydatabase'
-      - 'MONGO_INITDB_ROOT_PASSWORD=secret'
-      - 'MONGO_INITDB_ROOT_USERNAME=root'
+      - 'POSTGRES_DB=wormdb'
+      - 'POSTGRES_PASSWORD=secret'
+      - 'POSTGRES_USER=wormuser'
     ports:
-      - '27017:27017'
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: 'dpage/pgadmin4'
+    environment:
+      - 'PGADMIN_DEFAULT_EMAIL=admin@example.com'
+      - 'PGADMIN_DEFAULT_PASSWORD=admin'
+    ports:
+      - '5050:80'
+    depends_on:
+      - postgres
+
   nginx:
     image: 'nginx:latest'
     ports:
       - '8333:8333'
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
+
+volumes:
+  postgres_data:

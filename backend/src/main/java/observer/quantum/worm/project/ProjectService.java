@@ -6,6 +6,7 @@ import observer.quantum.worm.user.UserService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.List;
 
@@ -42,8 +43,8 @@ public class ProjectService {
         User currentUser = userService.getCurrentUser()
                 .orElseThrow(UserAuthInvalidException::new);
         project.setUser(currentUser);
-        project.setCreatedDate(new Date());
-        project.setUpdatedDate(new Date());
+        project.setCreatedDate(OffsetDateTime.now());
+        project.setUpdatedDate(OffsetDateTime.now());
         return projectRepository.save(project);
     }
 
@@ -51,9 +52,9 @@ public class ProjectService {
         Project existingProject = findByIdForCurrentUser(id);
         existingProject.setTitle(projectDetails.getTitle());
         existingProject.setDescription(projectDetails.getDescription());
-        existingProject.setStatus(projectDetails.getStatus());
+//        existingProject.setStatus(projectDetails.getStatus());
         existingProject.setTags(projectDetails.getTags());
-        existingProject.setUpdatedDate(new Date());
+        existingProject.setUpdatedDate(OffsetDateTime.now());
         return projectRepository.save(existingProject);
     }
 
