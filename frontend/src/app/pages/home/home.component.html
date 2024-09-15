@@ -26,7 +26,8 @@
           (keyup.enter)="selectProject(project)"
           tabindex="0"
           role="button"
-          class="project-card-wrapper">
+          class="project-card-wrapper"
+          title="Select {{ project.title }}">
           <app-project-card [project]="project" />
         </div>
       }
