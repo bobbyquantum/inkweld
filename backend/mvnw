@@ -105,6 +105,11 @@ trim() {
   printf "%s" "${1}" | tr -d '[:space:]'
 }
 
+# Load environment variables from .env file
+if [ -f ../.env ]; then
+  export $(grep -v '^#' .env | xargs)
+fi
+
 # parse distributionUrl and optional distributionSha256Sum, requires .mvn/wrapper/maven-wrapper.properties
 while IFS="=" read -r key value; do
   case "${key-}" in
