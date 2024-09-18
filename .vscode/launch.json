@@ -1,14 +1,15 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-      {
-        "name": "Launch Full Stack",
-        "type": "node",
-        "request": "launch",
-        "preLaunchTask": "Start Backend",
-        "postDebugTask": "Start Frontend",
-        "console": "integratedTerminal",
-        "internalConsoleOptions": "neverOpen"
-      }
-    ]
-  }
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Full Stack",
+      "type": "java",
+      "request": "launch",
+      "preLaunchTask": "Start Full Stack",
+      "mainClass": "observer.quantum.worm.WormApplication",
+      "projectName": "worm-backend",
+      "cwd": "${workspaceFolder}/backend",
+      "console": "integratedTerminal"
+    }
+  ]
+}
