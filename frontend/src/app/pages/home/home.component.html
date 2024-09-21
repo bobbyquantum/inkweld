@@ -38,7 +38,6 @@
     @if (selectedProject) {
       <div class="project-detail">
         <h2>{{ selectedProject.title }}</h2>
-        <!-- Add more project details here -->
       </div>
     } @else if (!isMobile) {
       <div class="project-detail-placeholder">
@@ -53,8 +52,9 @@
   extended
   color="accent"
   class="add-project-fab"
-  (click)="addProject()"
+  [routerLink]="['/new-project']"
   aria-label="Add new project">
   <mat-icon>add</mat-icon>
+
   New Project
 </button>

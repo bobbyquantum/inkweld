@@ -13,6 +13,7 @@ import { CommonModule } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-home',
@@ -26,6 +27,7 @@ import { MatInputModule } from '@angular/material/input';
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
+    RouterModule,
   ],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
@@ -80,10 +82,6 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   backToList() {
     this.selectedProject = null;
-  }
-
-  addProject() {
-    // Implementation remains the same
   }
 
   toggleTheme() {

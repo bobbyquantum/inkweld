@@ -1,0 +1,14 @@
+.form-container {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+
+  mat-form-field {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+
+  button {
+    align-self: flex-end;
+  }
+}
