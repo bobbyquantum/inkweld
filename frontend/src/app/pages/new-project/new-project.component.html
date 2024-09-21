@@ -1,0 +1,34 @@
+<mat-toolbar color="primary">
+  <a mat-icon-button [routerLink]="['/']" aria-label="Back">
+    <mat-icon>arrow_back</mat-icon>
+  </a>
+  <span>New Project</span>
+</mat-toolbar>
+
+<form [formGroup]="projectForm" (ngSubmit)="onSubmit()" class="form-container">
+  <mat-form-field appearance="outline">
+    <mat-label>Project Title</mat-label>
+    <input
+      matInput
+      formControlName="title"
+      title="Project Title"
+      placeholder="Title"
+      required />
+    <mat-error *ngIf="projectForm.get('title')?.hasError('required')">
+      Title is required
+    </mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Project Description</mat-label>
+    <textarea
+      matInput
+      title="Project Description"
+      placeholder="Project Description"
+      formControlName="description"></textarea>
+  </mat-form-field>
+
+  <button mat-raised-button color="primary" type="submit">
+    Create Project
+  </button>
+</form>
