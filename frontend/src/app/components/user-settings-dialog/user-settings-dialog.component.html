@@ -7,9 +7,10 @@
 <mat-divider></mat-divider>
 <mat-dialog-content>
   <div class="settings-container">
-    <mat-nav-list class="settings-nav">
+    <mat-nav-list class="settings-nav" role="tablist">
       <a
         mat-list-item
+        role="tab"
         (click)="selectCategory('general')"
         (keydown.enter)="selectCategory('general')"
         [attr.aria-selected]="selectedCategory === 'general'"
@@ -21,6 +22,7 @@
       </a>
       <a
         mat-list-item
+        role="tab"
         (click)="selectCategory('account')"
         (keydown.enter)="selectCategory('account')"
         [attr.aria-selected]="selectedCategory === 'account'"
