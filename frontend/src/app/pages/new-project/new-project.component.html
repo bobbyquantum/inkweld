@@ -14,9 +14,9 @@
       title="Project Title"
       placeholder="Title"
       required />
-    <mat-error *ngIf="projectForm.get('title')?.hasError('required')">
-      Title is required
-    </mat-error>
+    @if (projectForm.get('title')?.hasError('required')) {
+      <mat-error> Title is required </mat-error>
+    }
   </mat-form-field>
 
   <mat-form-field appearance="outline">
