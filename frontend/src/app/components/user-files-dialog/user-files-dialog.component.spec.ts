@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { UserFilesDialogComponent } from './user-files-dialog.component';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { FileAPIService } from 'worm-api-client';
