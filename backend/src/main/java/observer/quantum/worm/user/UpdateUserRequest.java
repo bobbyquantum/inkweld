@@ -13,9 +13,11 @@ import lombok.Setter;
 @Schema(description = "User information")
 public class UpdateUserRequest {
 
-    @Schema(description = "User's name", example = "John Doe")
-    private String name;
+  @Schema(description = "User's name", example = "John Doe")
+  private String name;
 
-    @Schema(description = "URL of the user's avatar image", example = "https://example.com/avatar.jpg")
-    private String avatarImageUrl;
+  @Schema(
+      description = "URL of the user's avatar image",
+      example = "https://example.com/avatar.jpg")
+  private String avatarImageUrl;
 }

@@ -11,20 +11,21 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "user_identities",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "provider_id"}))
+@Table(
+    name = "user_identities",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "provider_id"}))
 public class UserIdentity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(nullable = false)
-    private String provider;
+  @Column(nullable = false)
+  private String provider;
 
-    @Column(name = "provider_id", nullable = false)
-    private String providerId;
+  @Column(name = "provider_id", nullable = false)
+  private String providerId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id")
+  private User user;
 }

@@ -63,7 +63,7 @@
                                 <configuration>
                                     <inputSpec>target/openapi.json</inputSpec>
                                     <generatorName>typescript-angular</generatorName>
-                                    <output>../api-client</output>
+                                    <outputDir>../api-client</outputDir>
                                     <configOptions>
                                         <npmName>worm-api-client</npmName>
                                     </configOptions>
@@ -201,6 +201,27 @@
                         </exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>2.43.0</version>
+                <configuration>
+                    <java>
+                        <googleJavaFormat>
+                            <version>1.18.1</version>
+                            <style>GOOGLE</style>
+                        </googleJavaFormat>
+                        <removeUnusedImports />
+                    </java>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
