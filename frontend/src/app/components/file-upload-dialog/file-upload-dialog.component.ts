@@ -5,8 +5,6 @@ import { Component } from '@angular/core';
   standalone: true,
   imports: [],
   templateUrl: './file-upload-dialog.component.html',
-  styleUrl: './file-upload-dialog.component.scss'
+  styleUrl: './file-upload-dialog.component.scss',
 })
-export class FileUploadDialogComponent {
-
-}
+export class FileUploadDialogComponent {}

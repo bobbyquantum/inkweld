@@ -8,10 +8,8 @@ import {
   Project,
 } from 'worm-api-client';
 import { BreakpointObserver } from '@angular/cdk/layout';
-import { XsrfService } from 'app/app.config';
-import { of, throwError } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import {
   ActivatedRoute,
   convertToParamMap,
@@ -26,35 +24,37 @@ describe('HomeComponent', () => {
   let userServiceMock: jasmine.SpyObj<UserAPIService>;
   let projectServiceMock: jasmine.SpyObj<ProjectAPIService>;
   let breakpointObserverMock: jasmine.SpyObj<BreakpointObserver>;
-  let xsrfServiceMock: jasmine.SpyObj<XsrfService>;
 
   beforeEach(async () => {
     themeServiceMock = jasmine.createSpyObj('ThemeService', [
       'update',
       'isDarkMode',
     ]);
-    userServiceMock = jasmine.createSpyObj('UserAPIService', [
-      'getCurrentUser',
-    ]);
-    projectServiceMock = jasmine.createSpyObj('ProjectAPIService', [
-      'getAllProjects',
-      'createProject',
-    ]);
     breakpointObserverMock = jasmine.createSpyObj('BreakpointObserver', [
       'observe',
     ]);
-    xsrfServiceMock = jasmine.createSpyObj('XsrfService', ['getXsrfToken']);
-
-    userServiceMock.getCurrentUser.and.returnValue(
-      of(new HttpResponse<User>({ body: {} as User }))
-    );
-    projectServiceMock.getAllProjects.and.returnValue(
-      of(new HttpResponse<Project[]>({ body: [] }))
-    );
-
     breakpointObserverMock.observe.and.returnValue(
       of({ matches: true, breakpoints: {} })
     );
+
+    //user service mock
+    userServiceMock = jasmine.createSpyObj<UserAPIService>('UserAPIService', [
+      'getCurrentUser',
+    ]);
+    const getCurrentUserSpy = userServiceMock.getCurrentUser as jasmine.Spy<
+      (observe: 'body') => Observable<User>
+    >;
+    getCurrentUserSpy.and.returnValue(of({} as User));
+
+    //project mock
+    projectServiceMock = jasmine.createSpyObj<ProjectAPIService>(
+      'ProjectAPIService',
+      ['getAllProjects', 'createProject']
+    );
+    const getAllProjectsSpy = projectServiceMock.getAllProjects as jasmine.Spy<
+      (observe: 'body') => Observable<Project[]>
+    >;
+    getAllProjectsSpy.and.returnValue(of([] as Project[]));
 
     await TestBed.configureTestingModule({
       imports: [HomeComponent, NoopAnimationsModule],
@@ -68,7 +68,6 @@ describe('HomeComponent', () => {
         { provide: UserAPIService, useValue: userServiceMock },
         { provide: ProjectAPIService, useValue: projectServiceMock },
         { provide: BreakpointObserver, useValue: breakpointObserverMock },
-        { provide: XsrfService, useValue: xsrfServiceMock },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -95,48 +94,14 @@ describe('HomeComponent', () => {
     expect(projectServiceMock.getAllProjects).toHaveBeenCalled();
   });
 
-  it('should toggle theme', () => {
-    themeServiceMock.isDarkMode.and.returnValue(true);
-    component.toggleTheme();
-    expect(themeServiceMock.update).toHaveBeenCalledWith('light-theme');
-
-    themeServiceMock.isDarkMode.and.returnValue(false);
-    component.toggleTheme();
-    expect(themeServiceMock.update).toHaveBeenCalledWith('dark-theme');
+  it('should select a project', () => {
+    const project = { id: '123', name: 'Test Project' } as Project;
+    component.selectProject(project);
+    expect(component.selectedProject).toEqual(project);
   });
 
-  it('should add project', async () => {
-    const mockProject: Project = {
-      id: '1',
-      title: 'Test Project',
-      createdDate: new Date().toISOString(),
-    };
-    projectServiceMock.createProject.and.returnValue(
-      of(new HttpResponse<Project>({ body: mockProject }))
-    );
-    xsrfServiceMock.getXsrfToken.and.returnValue('test-token');
-
-    await component.addProject();
-
-    expect(xsrfServiceMock.getXsrfToken).toHaveBeenCalled();
-    expect(projectServiceMock.createProject).toHaveBeenCalledWith(
-      'test-token',
-      { title: 'hello2' }
-    );
-  });
-
-  it('should handle error when adding project', async () => {
-    const errorResponse = new HttpErrorResponse({
-      error: 'Error',
-      status: 400,
-    });
-    projectServiceMock.createProject.and.returnValue(
-      throwError(() => errorResponse)
-    );
-    spyOn(console, 'error');
-
-    await component.addProject();
-
-    expect(console.error).toHaveBeenCalledWith(errorResponse);
+  it('should back to list', () => {
+    component.backToList();
+    expect(component.selectedProject).toBeNull();
   });
 });

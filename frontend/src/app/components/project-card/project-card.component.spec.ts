@@ -15,7 +15,6 @@ describe('ProjectCardComponent', () => {
     fixture = TestBed.createComponent(ProjectCardComponent);
     component = fixture.componentInstance;
 
-    // Provide mock data for the component
     component.project = {
       id: '1',
       title: 'Test Project',

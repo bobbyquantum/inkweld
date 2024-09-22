@@ -1,5 +1,4 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
-import { ThemeService } from '@themes/theme.service';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,7 +7,6 @@ import { ProjectCardComponent } from '@components/project-card/project-card.comp
 import { Project, ProjectAPIService, UserAPIService } from 'worm-api-client';
 import { EMPTY, Subject, catchError, takeUntil } from 'rxjs';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { XsrfService } from '@services/xsrf.service';
 import { CommonModule } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -35,10 +33,7 @@ import { RouterModule } from '@angular/router';
 export class HomeComponent implements OnInit, OnDestroy {
   private userService = inject(UserAPIService);
   private projectService = inject(ProjectAPIService);
-  private xsrfService = inject(XsrfService);
   private breakpointObserver = inject(BreakpointObserver);
-  private themeService = inject(ThemeService);
-
   protected user = toSignal(
     this.userService.getCurrentUser('body', true, { transferCache: true })
   );
@@ -82,12 +77,6 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   backToList() {
     this.selectedProject = null;
-  }
-
-  toggleTheme() {
-    this.themeService.update(
-      this.themeService.isDarkMode() ? 'light-theme' : 'dark-theme'
-    );
   }
 
   ngOnDestroy() {
