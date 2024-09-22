@@ -9,6 +9,26 @@
       "mainClass": "observer.quantum.worm.WormApplication",
       "cwd": "${workspaceFolder}/backend",
       "console": "integratedTerminal"
+    },
+    {
+      "type": "chrome",
+      "name": "Debug Angular Frontend",
+      "request": "launch",
+      "url": "http://localhost:8333",
+      "webRoot": "${workspaceFolder}/frontend",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "webpack:///./src/*": "${webRoot}/src/*",
+        "webpack:///src/*": "${webRoot}/src/*",
+        "webpack:///*": "*",
+        "/*": "${webRoot}/*"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug Full Stack",
+      "configurations": ["Launch Full Stack", "Debug Angular Frontend"]
     }
   ]
 }
