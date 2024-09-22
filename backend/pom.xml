@@ -209,7 +209,6 @@
                 <configuration>
                     <java>
                         <googleJavaFormat>
-                            <version>1.18.1</version>
                             <style>GOOGLE</style>
                         </googleJavaFormat>
                         <removeUnusedImports />
