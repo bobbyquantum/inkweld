@@ -1,5 +1,9 @@
 package observer.quantum.worm.user;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import java.util.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,291 +16,276 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 
-import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
+  @Mock private UserRepository userRepository;
 
-    @Mock
-    private UserIdentityRepository userIdentityRepository;
+  @Mock private UserIdentityRepository userIdentityRepository;
 
-    @Mock
-    private SecurityContext securityContext;
+  @Mock private SecurityContext securityContext;
 
-    @InjectMocks
-    private UserService userService;
+  @InjectMocks private UserService userService;
 
-    @Test
-    public void testUserConstructors() {
-        Long id = 1L;
-        String username = "username";
-        String name = "name";
-        String avatarImageUrl = "avatarImageUrl";
-        List<UserIdentity> identities = new ArrayList<>();
+  @Test
+  public void testUserConstructors() {
+    Long id = 1L;
+    String username = "username";
+    String name = "name";
+    String avatarImageUrl = "avatarImageUrl";
+    List<UserIdentity> identities = new ArrayList<>();
 
-        User user = new User(id, username, name, avatarImageUrl, identities);
+    User user = new User(id, username, name, avatarImageUrl, identities);
 
-        assertEquals(id, user.getId());
-        assertEquals(username, user.getUsername());
-        assertEquals(name, user.getName());
-        assertEquals(avatarImageUrl, user.getAvatarImageUrl());
-        assertEquals(identities, user.getIdentities());
+    assertEquals(id, user.getId());
+    assertEquals(username, user.getUsername());
+    assertEquals(name, user.getName());
+    assertEquals(avatarImageUrl, user.getAvatarImageUrl());
+    assertEquals(identities, user.getIdentities());
 
-        String provider = "provider";
-        String providerId = "providerId";
+    String provider = "provider";
+    String providerId = "providerId";
 
-        UserIdentity identity = new UserIdentity(id, provider, providerId, user);
+    UserIdentity identity = new UserIdentity(id, provider, providerId, user);
 
-        assertEquals(id, identity.getId());
-        assertEquals(provider, identity.getProvider());
-        assertEquals(providerId, identity.getProviderId());
-        assertEquals(user.getUsername(), identity.getUser().getUsername());
+    assertEquals(id, identity.getId());
+    assertEquals(provider, identity.getProvider());
+    assertEquals(providerId, identity.getProviderId());
+    assertEquals(user.getUsername(), identity.getUser().getUsername());
+  }
 
+  @Test
+  public void testGetCurrentUser_withOAuth2AuthenticationToken() {
+    // Arrange
+    var oAuth2User =
+        new DefaultOAuth2User(
+            Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
+            Map.of(
+                "name", "John Doe",
+                "email", "john.doe@example.com",
+                "avatar_url", "https://example.com/avatar.jpg"),
+            "name");
+    var oAuth2AuthenticationToken = mock(OAuth2AuthenticationToken.class);
+    when(oAuth2AuthenticationToken.getAuthorizedClientRegistrationId()).thenReturn("github");
+    when(oAuth2AuthenticationToken.getPrincipal()).thenReturn(oAuth2User);
+    when(oAuth2AuthenticationToken.getName()).thenReturn("1234567890");
 
-    }
+    var userRecord = new User();
+    when(userRepository.save(any(User.class))).thenReturn(userRecord);
 
-    @Test
-    public void testGetCurrentUser_withOAuth2AuthenticationToken() {
-        // Arrange
-        var oAuth2User = new DefaultOAuth2User(
-                Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
-                Map.of(
-                        "name", "John Doe",
-                        "email", "john.doe@example.com",
-                        "avatar_url", "https://example.com/avatar.jpg"
-                ),
-                "name"
-        );
-        var oAuth2AuthenticationToken = mock(OAuth2AuthenticationToken.class);
-        when(oAuth2AuthenticationToken.getAuthorizedClientRegistrationId()).thenReturn("github");
-        when(oAuth2AuthenticationToken.getPrincipal()).thenReturn(oAuth2User);
-        when(oAuth2AuthenticationToken.getName()).thenReturn("1234567890");
+    var userIdentity = new UserIdentity();
+    when(userIdentityRepository.save(any(UserIdentity.class))).thenReturn(userIdentity);
 
-        var userRecord = new User();
-        when(userRepository.save(any(User.class))).thenReturn(userRecord);
+    when(securityContext.getAuthentication()).thenReturn(oAuth2AuthenticationToken);
 
-        var userIdentity = new UserIdentity();
-        when(userIdentityRepository.save(any(UserIdentity.class))).thenReturn(userIdentity);
+    // Act
+    SecurityContextHolder.setContext(securityContext);
+    var currentUser = userService.getCurrentUser();
 
-        when(securityContext.getAuthentication()).thenReturn(oAuth2AuthenticationToken);
+    // Assert
+    assertTrue(currentUser.isPresent());
+    assertNotNull(currentUser.get().getUsername());
+    assertNotNull(currentUser.get().getName());
+    assertNotNull(currentUser.get().getAvatarImageUrl());
+  }
 
-        // Act
-        SecurityContextHolder.setContext(securityContext);
-        var currentUser = userService.getCurrentUser();
+  @Test
+  public void testGetCurrentUser_withRememberMeAuthenticationToken() {
+    // Arrange
+    var rememberMeAuthenticationToken = mock(RememberMeAuthenticationToken.class);
+    when(rememberMeAuthenticationToken.getName()).thenReturn("john.doe");
 
-        // Assert
-        assertTrue(currentUser.isPresent());
-        assertNotNull(currentUser.get().getUsername());
-        assertNotNull(currentUser.get().getName());
-        assertNotNull(currentUser.get().getAvatarImageUrl());
-    }
+    var userRecord = new User();
+    userRecord.setUsername("john.doe");
+    when(userRepository.findByUsername(anyString())).thenReturn(java.util.Optional.of(userRecord));
 
-    @Test
-    public void testGetCurrentUser_withRememberMeAuthenticationToken() {
-        // Arrange
-        var rememberMeAuthenticationToken = mock(RememberMeAuthenticationToken.class);
-        when(rememberMeAuthenticationToken.getName()).thenReturn("john.doe");
+    when(securityContext.getAuthentication()).thenReturn(rememberMeAuthenticationToken);
 
-        var userRecord = new User();
-        userRecord.setUsername("john.doe");
-        when(userRepository.findByUsername(anyString())).thenReturn(java.util.Optional.of(userRecord));
+    // Act
+    SecurityContextHolder.setContext(securityContext);
+    var currentUser = userService.getCurrentUser();
 
-        when(securityContext.getAuthentication()).thenReturn(rememberMeAuthenticationToken);
+    // Assert
+    assertTrue(currentUser.isPresent());
+    assertNotNull(currentUser.get().getUsername());
+  }
 
-        // Act
-        SecurityContextHolder.setContext(securityContext);
-        var currentUser = userService.getCurrentUser();
+  @Test
+  public void testGetCurrentUser_withoutAuthentication() {
+    // Arrange
+    when(securityContext.getAuthentication()).thenReturn(null);
 
-        // Assert
-        assertTrue(currentUser.isPresent());
-        assertNotNull(currentUser.get().getUsername());
-    }
+    // Act
+    SecurityContextHolder.setContext(securityContext);
+    var currentUser = userService.getCurrentUser();
 
-    @Test
-    public void testGetCurrentUser_withoutAuthentication() {
-        // Arrange
-        when(securityContext.getAuthentication()).thenReturn(null);
+    // Assert
+    assertFalse(currentUser.isPresent());
+  }
 
-        // Act
-        SecurityContextHolder.setContext(securityContext);
-        var currentUser = userService.getCurrentUser();
+  @Test
+  public void testRegisterUser_withGitHubProvider() {
+    // Arrange
+    var oAuth2User =
+        new DefaultOAuth2User(
+            Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
+            Map.of(
+                "name", "John Doe",
+                "email", "john.doe@example.com",
+                "avatar_url", "https://example.com/avatar.jpg"),
+            "name");
+    // Act
+    var userRecord = userService.registerUser("github", oAuth2User);
 
-        // Assert
-        assertFalse(currentUser.isPresent());
-    }
+    // Assert
+    assertNotNull(userRecord);
+    assertNotNull(userRecord.getUsername());
+    assertNotNull(userRecord.getName());
+    assertNotNull(userRecord.getAvatarImageUrl());
+  }
 
-    @Test
-    public void testRegisterUser_withGitHubProvider() {
-        // Arrange
-        var oAuth2User = new DefaultOAuth2User(
-                Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
-                Map.of(
-                        "name", "John Doe",
-                        "email", "john.doe@example.com",
-                        "avatar_url", "https://example.com/avatar.jpg"
-                ),
-                "name"
-        );
-        // Act
-        var userRecord = userService.registerUser("github", oAuth2User);
+  @Test
+  public void testRegisterUser_withGoogleProvider() {
+    // Arrange
+    var oAuth2User =
+        new DefaultOAuth2User(
+            Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
+            Map.of(
+                "name", "John Doe",
+                "email", "john.doe@example.com"),
+            "name");
+    // Act
+    var userRecord = userService.registerUser("google", oAuth2User);
 
-        // Assert
-        assertNotNull(userRecord);
-        assertNotNull(userRecord.getUsername());
-        assertNotNull(userRecord.getName());
-        assertNotNull(userRecord.getAvatarImageUrl());
-    }
+    // Assert
+    assertNotNull(userRecord);
+    assertNotNull(userRecord.getUsername());
+    assertNotNull(userRecord.getName());
+  }
 
-    @Test
-    public void testRegisterUser_withGoogleProvider() {
-        // Arrange
-        var oAuth2User = new DefaultOAuth2User(
-                Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
-                Map.of(
-                        "name", "John Doe",
-                        "email", "john.doe@example.com"
-                ),
-                "name"
-        );
-        // Act
-        var userRecord = userService.registerUser("google", oAuth2User);
+  @Test
+  public void testGetUser_withExistingUsername() {
+    // Arrange
+    var userRecord = new User();
+    userRecord.setUsername("john.doe");
+    when(userRepository.findByUsername(anyString())).thenReturn(java.util.Optional.of(userRecord));
 
-        // Assert
-        assertNotNull(userRecord);
-        assertNotNull(userRecord.getUsername());
-        assertNotNull(userRecord.getName());
-    }
+    // Act
+    var user = userService.getUser("john.doe");
 
-    @Test
-    public void testGetUser_withExistingUsername() {
-        // Arrange
-        var userRecord = new User();
-        userRecord.setUsername("john.doe");
-        when(userRepository.findByUsername(anyString())).thenReturn(java.util.Optional.of(userRecord));
+    // Assert
+    assertTrue(user.isPresent());
+    assertNotNull(user.get().getUsername());
+  }
 
-        // Act
-        var user = userService.getUser("john.doe");
+  @Test
+  public void testGetUser_withNonExistingUsername() {
+    // Arrange
+    when(userRepository.findByUsername(anyString())).thenReturn(java.util.Optional.empty());
 
-        // Assert
-        assertTrue(user.isPresent());
-        assertNotNull(user.get().getUsername());
-    }
+    // Act
+    var user = userService.getUser("john.doe");
 
-    @Test
-    public void testGetUser_withNonExistingUsername() {
-        // Arrange
-        when(userRepository.findByUsername(anyString())).thenReturn(java.util.Optional.empty());
+    // Assert
+    assertFalse(user.isPresent());
+  }
 
-        // Act
-        var user = userService.getUser("john.doe");
+  @Test
+  public void testUpdateUserDetails_withValidInput() {
+    // Arrange
+    User currentUser = new User();
+    currentUser.setName("Old Name");
+    currentUser.setAvatarImageUrl("old-avatar-url");
 
-        // Assert
-        assertFalse(user.isPresent());
-    }
+    UpdateUserRequest updateUserDto = new UpdateUserRequest();
+    updateUserDto.setName("New Name");
+    updateUserDto.setAvatarImageUrl("new-avatar-url");
 
-    @Test
-    public void testUpdateUserDetails_withValidInput() {
-        // Arrange
-        User currentUser = new User();
-        currentUser.setName("Old Name");
-        currentUser.setAvatarImageUrl("old-avatar-url");
+    // Mock OAuth2AuthenticationToken
+    OAuth2AuthenticationToken oauth2Auth = mock(OAuth2AuthenticationToken.class);
+    when(oauth2Auth.getAuthorizedClientRegistrationId()).thenReturn("github");
+    when(oauth2Auth.getName()).thenReturn("1234567890");
 
-        UpdateUserRequest updateUserDto = new UpdateUserRequest();
-        updateUserDto.setName("New Name");
-        updateUserDto.setAvatarImageUrl("new-avatar-url");
+    SecurityContextHolder.getContext().setAuthentication(oauth2Auth);
 
-        // Mock OAuth2AuthenticationToken
-        OAuth2AuthenticationToken oauth2Auth = mock(OAuth2AuthenticationToken.class);
-        when(oauth2Auth.getAuthorizedClientRegistrationId()).thenReturn("github");
-        when(oauth2Auth.getName()).thenReturn("1234567890");
+    // Mock UserIdentity and User retrieval
+    UserIdentity userIdentity = new UserIdentity();
+    userIdentity.setUser(currentUser);
+    when(userIdentityRepository.findByProviderAndProviderId("github", "1234567890"))
+        .thenReturn(Optional.of(userIdentity));
 
-        SecurityContextHolder.getContext().setAuthentication(oauth2Auth);
+    when(userRepository.save(any(User.class))).thenReturn(currentUser);
 
-        // Mock UserIdentity and User retrieval
-        UserIdentity userIdentity = new UserIdentity();
-        userIdentity.setUser(currentUser);
-        when(userIdentityRepository.findByProviderAndProviderId("github", "1234567890"))
-                .thenReturn(Optional.of(userIdentity));
+    // Act
+    User updatedUser = userService.updateUserDetails(updateUserDto);
 
-        when(userRepository.save(any(User.class))).thenReturn(currentUser);
+    // Assert
+    assertNotNull(updatedUser);
+    assertEquals("New Name", updatedUser.getName());
+    assertEquals("new-avatar-url", updatedUser.getAvatarImageUrl());
+    verify(userRepository).save(currentUser);
+  }
 
-        // Act
-        User updatedUser = userService.updateUserDetails(updateUserDto);
+  @Test
+  public void testUpdateUserDetails_withNullInput() {
+    // Arrange
+    UpdateUserRequest updateUserDto = new UpdateUserRequest();
 
-        // Assert
-        assertNotNull(updatedUser);
-        assertEquals("New Name", updatedUser.getName());
-        assertEquals("new-avatar-url", updatedUser.getAvatarImageUrl());
-        verify(userRepository).save(currentUser);
-    }
+    // Act & Assert
+    assertThrows(
+        IllegalArgumentException.class, () -> userService.updateUserDetails(updateUserDto));
+  }
 
+  @Test
+  public void testUpdateUserDetails_withNoAuthentication() {
+    // Arrange
+    UpdateUserRequest updateUserDto = new UpdateUserRequest();
+    updateUserDto.setName("New Name");
 
-    @Test
-    public void testUpdateUserDetails_withNullInput() {
-        // Arrange
-        UpdateUserRequest updateUserDto = new UpdateUserRequest();
+    // Clear the SecurityContext
+    SecurityContextHolder.clearContext();
 
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> userService.updateUserDetails(updateUserDto));
-    }
+    // Act & Assert
+    assertThrows(
+        UserAuthInvalidException.class, () -> userService.updateUserDetails(updateUserDto));
+  }
 
-    @Test
-    public void testUpdateUserDetails_withNoAuthentication() {
-        // Arrange
-        UpdateUserRequest updateUserDto = new UpdateUserRequest();
-        updateUserDto.setName("New Name");
+  @Test
+  public void testDeleteAccount_withValidAuthentication() {
+    // Arrange
+    User currentUser = new User();
+    currentUser.setName("Test User");
 
-        // Clear the SecurityContext
-        SecurityContextHolder.clearContext();
+    // Mock OAuth2AuthenticationToken
+    OAuth2AuthenticationToken oauth2Auth = mock(OAuth2AuthenticationToken.class);
+    when(oauth2Auth.getAuthorizedClientRegistrationId()).thenReturn("github");
+    when(oauth2Auth.getName()).thenReturn("1234567890");
 
-        // Act & Assert
-        assertThrows(UserAuthInvalidException.class, () -> userService.updateUserDetails(updateUserDto));
-    }
+    SecurityContextHolder.getContext().setAuthentication(oauth2Auth);
 
-    @Test
-    public void testDeleteAccount_withValidAuthentication() {
-        // Arrange
-        User currentUser = new User();
-        currentUser.setName("Test User");
+    // Mock UserIdentity and User retrieval
+    UserIdentity userIdentity = new UserIdentity();
+    userIdentity.setUser(currentUser);
+    when(userIdentityRepository.findByProviderAndProviderId("github", "1234567890"))
+        .thenReturn(Optional.of(userIdentity));
 
-        // Mock OAuth2AuthenticationToken
-        OAuth2AuthenticationToken oauth2Auth = mock(OAuth2AuthenticationToken.class);
-        when(oauth2Auth.getAuthorizedClientRegistrationId()).thenReturn("github");
-        when(oauth2Auth.getName()).thenReturn("1234567890");
+    // Act
+    userService.deleteAccount();
 
-        SecurityContextHolder.getContext().setAuthentication(oauth2Auth);
+    // Assert
+    verify(userIdentityRepository).deleteAllByUser(currentUser);
+    verify(userRepository).delete(currentUser);
+    assertNull(SecurityContextHolder.getContext().getAuthentication());
+  }
 
-        // Mock UserIdentity and User retrieval
-        UserIdentity userIdentity = new UserIdentity();
-        userIdentity.setUser(currentUser);
-        when(userIdentityRepository.findByProviderAndProviderId("github", "1234567890"))
-                .thenReturn(Optional.of(userIdentity));
+  @Test
+  public void testDeleteAccount_withNoAuthentication() {
+    // Arrange
 
-        // Act
-        userService.deleteAccount();
+    // Clear the SecurityContext
+    SecurityContextHolder.clearContext();
 
-        // Assert
-        verify(userIdentityRepository).deleteAllByUser(currentUser);
-        verify(userRepository).delete(currentUser);
-        assertNull(SecurityContextHolder.getContext().getAuthentication());
-    }
-
-
-    @Test
-    public void testDeleteAccount_withNoAuthentication() {
-        // Arrange
-
-        // Clear the SecurityContext
-        SecurityContextHolder.clearContext();
-
-        // Act & Assert
-        assertThrows(UserAuthInvalidException.class, () -> userService.deleteAccount());
-    }
-
+    // Act & Assert
+    assertThrows(UserAuthInvalidException.class, () -> userService.deleteAccount());
+  }
 }

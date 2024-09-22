@@ -9,16 +9,15 @@ import org.springframework.stereotype.Service;
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
-    private final UserService userService;
+  private final UserService userService;
 
-    public CustomUserDetailsService(UserService userService) {
-        this.userService = userService;
-    }
+  public CustomUserDetailsService(UserService userService) {
+    this.userService = userService;
+  }
 
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        var currentUser = userService.getUser(username);
-        return currentUser.map(user -> new UserDetailsWrapper(user.getUsername())).orElse(null);
-    }
-
+  @Override
+  public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    var currentUser = userService.getUser(username);
+    return currentUser.map(user -> new UserDetailsWrapper(user.getUsername())).orElse(null);
+  }
 }

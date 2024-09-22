@@ -20,156 +20,152 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @Slf4j
 @SuppressWarnings("unused")
-@Tag(name = "User API", description = "The user controller allows accessing and updating details for the current user.")
+@Tag(
+    name = "User API",
+    description = "The user controller allows accessing and updating details for the current user.")
 public class UserController {
 
-    private final UserService userService;
+  private final UserService userService;
 
-    public UserController(UserService userService) {
-        this.userService = userService;
+  public UserController(UserService userService) {
+    this.userService = userService;
+  }
+
+  @Operation(
+      summary = "Get the currently authenticated user",
+      description = "Retrieves information about the currently authenticated user.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "User information retrieved successfully",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = UserDto.class))),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Invalid or missing authentication",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class)))
+      })
+  @GetMapping(path = "/me", produces = MediaType.APPLICATION_JSON_VALUE)
+  @Secured({"USER", "OAUTH2_USER"})
+  public ResponseEntity<UserDto> getCurrentUser() {
+    var userOptional = userService.getCurrentUser();
+    if (userOptional.isPresent()) {
+      var user = userOptional.get();
+      log.trace("User info request for {}", user.getUsername());
+      return ResponseEntity.ok(new UserDto(user));
     }
+    throw new UserAuthInvalidException();
+  }
 
-    @Operation(
-            summary = "Get the currently authenticated user",
-            description = "Retrieves information about the currently authenticated user."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "User information retrieved successfully",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = UserDto.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Invalid or missing authentication",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = ErrorResponse.class)
-                    )
-            )
-    })
-    @GetMapping(path = "/me", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Secured({"USER", "OAUTH2_USER"})
-    public ResponseEntity<UserDto> getCurrentUser() {
-        var userOptional = userService.getCurrentUser();
-        if (userOptional.isPresent()) {
-            var user = userOptional.get();
-            log.trace("User info request for {}", user.getUsername());
-            return ResponseEntity.ok(new UserDto(user));
-        }
-        throw new UserAuthInvalidException();
+  @Operation(
+      summary = "Update user details",
+      description =
+          "Updates the details of the currently authenticated user. Requires a valid CSRF token.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "User details updated successfully",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = UserDto.class))),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Invalid or missing authentication",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Invalid CSRF token",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class)))
+      })
+  @PutMapping(
+      path = "/me",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  @Secured("USER")
+  public ResponseEntity<UserDto> updateUserDetails(
+      @Parameter(
+              in = ParameterIn.HEADER,
+              name = "X-XSRF-TOKEN",
+              description = "CSRF token",
+              required = true,
+              schema = @Schema(type = "string"))
+          @RequestHeader(name = "X-XSRF-TOKEN")
+          String csrfToken,
+      @io.swagger.v3.oas.annotations.parameters.RequestBody(
+              description = "User details to update",
+              required = true,
+              content =
+                  @Content(
+                      mediaType = MediaType.APPLICATION_JSON_VALUE,
+                      schema = @Schema(implementation = UpdateUserRequest.class)))
+          @Valid
+          @RequestBody
+          UpdateUserRequest updateUserRequest) {
+    if (updateUserRequest.getName() == null && updateUserRequest.getAvatarImageUrl() == null) {
+      throw new InvalidInputException(
+          "At least one field (name or avatarImageUrl) must be provided");
     }
+    var updatedUser = userService.updateUserDetails(updateUserRequest);
+    log.info("User details updated for {}", updatedUser.getUsername());
+    return ResponseEntity.ok(new UserDto(updatedUser));
+  }
 
-    @Operation(
-            summary = "Update user details",
-            description = "Updates the details of the currently authenticated user. Requires a valid CSRF token."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "User details updated successfully",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = UserDto.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Invalid input",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = ErrorResponse.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Invalid or missing authentication",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = ErrorResponse.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "403",
-                    description = "Invalid CSRF token",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = ErrorResponse.class)
-                    )
-            )
-    })
-    @PutMapping(path = "/me", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Secured("USER")
-    public ResponseEntity<UserDto> updateUserDetails(
-            @Parameter(in = ParameterIn.HEADER,
-                    name = "X-XSRF-TOKEN",
-                    description = "CSRF token",
-                    required = true,
-                    schema = @Schema(type = "string"))
-            @RequestHeader(name = "X-XSRF-TOKEN") String csrfToken,
-
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "User details to update",
-                    required = true,
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = UpdateUserRequest.class)
-                    )
-            )
-            @Valid @RequestBody UpdateUserRequest updateUserRequest
-    ) {
-        if (updateUserRequest.getName() == null && updateUserRequest.getAvatarImageUrl() == null) {
-            throw new InvalidInputException("At least one field (name or avatarImageUrl) must be provided");
-        }
-        var updatedUser = userService.updateUserDetails(updateUserRequest);
-        log.info("User details updated for {}", updatedUser.getUsername());
-        return ResponseEntity.ok(new UserDto(updatedUser));
-    }
-
-    @Operation(
-            summary = "Delete user account",
-            description = "Deletes the account of the currently authenticated user. Requires a valid CSRF token."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "204",
-                    description = "User account deleted successfully"
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Invalid or missing authentication",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = ErrorResponse.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "403",
-                    description = "Invalid CSRF token",
-                    content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = ErrorResponse.class)
-                    )
-            )
-    })
-    @DeleteMapping(path = "/me")
-    @Secured({"USER", "OAUTH2_USER"})
-    public ResponseEntity<Void> deleteAccount(
-            @Parameter(
-                    in = ParameterIn.HEADER,
-                    name = "X-XSRF-TOKEN",
-                    description = "CSRF token",
-                    required = true,
-                    schema = @Schema(type = "string")
-            )
-            @RequestHeader(name = "X-XSRF-TOKEN") String csrfToken
-    ) {
-        userService.deleteAccount();
-        log.info("User account deleted");
-        return ResponseEntity.noContent().build();
-    }
-
+  @Operation(
+      summary = "Delete user account",
+      description =
+          "Deletes the account of the currently authenticated user. Requires a valid CSRF token.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(responseCode = "204", description = "User account deleted successfully"),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Invalid or missing authentication",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Invalid CSRF token",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class)))
+      })
+  @DeleteMapping(path = "/me")
+  @Secured({"USER", "OAUTH2_USER"})
+  public ResponseEntity<Void> deleteAccount(
+      @Parameter(
+              in = ParameterIn.HEADER,
+              name = "X-XSRF-TOKEN",
+              description = "CSRF token",
+              required = true,
+              schema = @Schema(type = "string"))
+          @RequestHeader(name = "X-XSRF-TOKEN")
+          String csrfToken) {
+    userService.deleteAccount();
+    log.info("User account deleted");
+    return ResponseEntity.noContent().build();
+  }
 }

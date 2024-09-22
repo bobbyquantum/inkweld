@@ -1,5 +1,12 @@
 package observer.quantum.worm.content;
 
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import java.io.ByteArrayInputStream;
+import java.util.Collections;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import observer.quantum.worm.error.GlobalExceptionHandler;
 import observer.quantum.worm.global.TestPageableArgumentResolver;
@@ -16,271 +23,278 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.io.ByteArrayInputStream;
-import java.util.Collections;
-import java.util.Optional;
-
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 @Slf4j
 public class FileContentControllerTest {
 
-    @InjectMocks
-    private FileContentController fileContentController;
+  @InjectMocks private FileContentController fileContentController;
 
-    @Mock
-    private FileService fileService;
+  @Mock private FileService fileService;
 
-    @Mock
-    private FileContentStore contentStore;
+  @Mock private FileContentStore contentStore;
 
-    @Mock
-    private UserService userService;
+  @Mock private UserService userService;
 
-    private MockMvc mockMvc;
+  private MockMvc mockMvc;
 
-    private File file;
-    private User owner;
+  private File file;
+  private User owner;
 
-    @BeforeEach
-    public void setUp() {
-        MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(fileContentController)
-                .setCustomArgumentResolvers(new TestPageableArgumentResolver())
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
+  @BeforeEach
+  public void setUp() {
+    MockitoAnnotations.openMocks(this);
+    mockMvc =
+        MockMvcBuilders.standaloneSetup(fileContentController)
+            .setCustomArgumentResolvers(new TestPageableArgumentResolver())
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .build();
 
-        owner = new User();
-        owner.setId(1L);
-        owner.setUsername("owner");
+    owner = new User();
+    owner.setId(1L);
+    owner.setUsername("owner");
 
-        file = new File();
-        file.setId(1L);
-        file.setName("test.txt");
-        file.setContentMimeType("text/plain");
-        file.setContentLength(100L);
-        file.setOwner(owner);
-    }
+    file = new File();
+    file.setId(1L);
+    file.setName("test.txt");
+    file.setContentMimeType("text/plain");
+    file.setContentLength(100L);
+    file.setOwner(owner);
+  }
 
-    @Test
-    public void testUploadFile() throws Exception {
-        when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
-        when(fileService.createFile(any())).thenReturn(file);
+  @Test
+  public void testUploadFile() throws Exception {
+    when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
+    when(fileService.createFile(any())).thenReturn(file);
 
-        MockMultipartFile multipartFile = new MockMultipartFile("file", "test.txt",
-                "text/plain", "Hello, World!".getBytes());
+    MockMultipartFile multipartFile =
+        new MockMultipartFile("file", "test.txt", "text/plain", "Hello, World!".getBytes());
 
-        mockMvc.perform(multipart("/api/v1/files")
-                        .file(multipartFile)
-                        .header("X-XSRF-TOKEN", "test-token"))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value("1"))
-                .andExpect(jsonPath("$.name").value("test.txt"))
-                .andExpect(jsonPath("$.contentMimeType").value("text/plain"))
-                .andExpect(jsonPath("$.contentLength").value(100));
+    mockMvc
+        .perform(
+            multipart("/api/v1/files").file(multipartFile).header("X-XSRF-TOKEN", "test-token"))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.id").value("1"))
+        .andExpect(jsonPath("$.name").value("test.txt"))
+        .andExpect(jsonPath("$.contentMimeType").value("text/plain"))
+        .andExpect(jsonPath("$.contentLength").value(100));
 
-        verify(fileService, times(1)).createFile(any());
-    }
+    verify(fileService, times(1)).createFile(any());
+  }
 
-    @Test
-    public void testGetFileMeta() throws Exception {
-        when(fileService.getFile("1")).thenReturn(Optional.of(file));
+  @Test
+  public void testGetFileMeta() throws Exception {
+    when(fileService.getFile("1")).thenReturn(Optional.of(file));
 
-        mockMvc.perform(get("/api/v1/files/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("1"))
-                .andExpect(jsonPath("$.name").value("test.txt"))
-                .andExpect(jsonPath("$.contentMimeType").value("text/plain"))
-                .andExpect(jsonPath("$.contentLength").value(100));
+    mockMvc
+        .perform(get("/api/v1/files/1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value("1"))
+        .andExpect(jsonPath("$.name").value("test.txt"))
+        .andExpect(jsonPath("$.contentMimeType").value("text/plain"))
+        .andExpect(jsonPath("$.contentLength").value(100));
 
-        verify(fileService, times(1)).getFile("1");
-    }
+    verify(fileService, times(1)).getFile("1");
+  }
 
-    @Test
-    public void testDownloadFile() throws Exception {
-        when(fileService.getFile("1")).thenReturn(Optional.of(file));
-        when(contentStore.getContent(file)).thenReturn(new ByteArrayInputStream("Hello, World!".getBytes()));
+  @Test
+  public void testDownloadFile() throws Exception {
+    when(fileService.getFile("1")).thenReturn(Optional.of(file));
+    when(contentStore.getContent(file))
+        .thenReturn(new ByteArrayInputStream("Hello, World!".getBytes()));
 
-        mockMvc.perform(get("/api/v1/files/1/content"))
-                .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "text/plain"))
-                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"test.txt\""))
-                .andExpect(content().string("Hello, World!"));
+    mockMvc
+        .perform(get("/api/v1/files/1/content"))
+        .andExpect(status().isOk())
+        .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "text/plain"))
+        .andExpect(
+            header().string(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"test.txt\""))
+        .andExpect(content().string("Hello, World!"));
 
-        verify(fileService, times(1)).getFile("1");
-        verify(contentStore, times(1)).getContent(file);
-    }
+    verify(fileService, times(1)).getFile("1");
+    verify(contentStore, times(1)).getContent(file);
+  }
 
-    @Test
-    public void testDownloadFileInline() throws Exception {
-        when(fileService.getFile("1")).thenReturn(Optional.of(file));
-        when(contentStore.getContent(file)).thenReturn(new ByteArrayInputStream("Hello, World!".getBytes()));
+  @Test
+  public void testDownloadFileInline() throws Exception {
+    when(fileService.getFile("1")).thenReturn(Optional.of(file));
+    when(contentStore.getContent(file))
+        .thenReturn(new ByteArrayInputStream("Hello, World!".getBytes()));
 
-        mockMvc.perform(get("/api/v1/files/1/content").param("download", "false"))
-                .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "text/plain"))
-                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"test.txt\""))
-                .andExpect(content().string("Hello, World!"));
+    mockMvc
+        .perform(get("/api/v1/files/1/content").param("download", "false"))
+        .andExpect(status().isOk())
+        .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "text/plain"))
+        .andExpect(
+            header().string(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"test.txt\""))
+        .andExpect(content().string("Hello, World!"));
 
-        verify(fileService, times(1)).getFile("1");
-        verify(contentStore, times(1)).getContent(file);
-    }
-//    @Test
-//    public void testDownloadFilePartialContent() throws Exception {
-//        File binaryFile = new File();
-//        binaryFile.setId("2");
-//        binaryFile.setName("test.bin");
-//        binaryFile.setContentMimeType("application/octet-stream");
-//        binaryFile.setContentLength(100L);
-//        binaryFile.setOwner(owner);
-//
-//        byte[] content = new byte[100];
-//        for (int i = 0; i < 100; i++) {
-//            content[i] = (byte) i;
-//        }
-//
-//        when(fileService.getFile("2")).thenReturn(Optional.of(binaryFile));
-//        when(contentStore.getContent(binaryFile)).thenReturn(new ByteArrayInputStream(content));
-//
-//        mockMvc.perform(get("/api/v1/files/2/content")
-//                        .header(HttpHeaders.RANGE, "bytes=0-9"))
-//                .andDo(result -> log.info(result.getResponse().getContentAsString()))
-//                .andExpect(status().isPartialContent())
-//                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "application/octet-stream"))
-//                .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes 0-9/100"))
-//                .andExpect(content().bytes(Arrays.copyOfRange(content, 0, 10)));
-//
-//        verify(fileService, times(1)).getFile("2");
-//        verify(contentStore, times(1)).getContent(binaryFile);
-//    }
+    verify(fileService, times(1)).getFile("1");
+    verify(contentStore, times(1)).getContent(file);
+  }
 
-    @Test
-    public void testDownloadFileNotFound() throws Exception {
-        when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
-        when(fileService.getFile("1")).thenReturn(Optional.empty());
+  //    @Test
+  //    public void testDownloadFilePartialContent() throws Exception {
+  //        File binaryFile = new File();
+  //        binaryFile.setId("2");
+  //        binaryFile.setName("test.bin");
+  //        binaryFile.setContentMimeType("application/octet-stream");
+  //        binaryFile.setContentLength(100L);
+  //        binaryFile.setOwner(owner);
+  //
+  //        byte[] content = new byte[100];
+  //        for (int i = 0; i < 100; i++) {
+  //            content[i] = (byte) i;
+  //        }
+  //
+  //        when(fileService.getFile("2")).thenReturn(Optional.of(binaryFile));
+  //        when(contentStore.getContent(binaryFile)).thenReturn(new ByteArrayInputStream(content));
+  //
+  //        mockMvc.perform(get("/api/v1/files/2/content")
+  //                        .header(HttpHeaders.RANGE, "bytes=0-9"))
+  //                .andDo(result -> log.info(result.getResponse().getContentAsString()))
+  //                .andExpect(status().isPartialContent())
+  //                .andExpect(header().string(HttpHeaders.CONTENT_TYPE,
+  // "application/octet-stream"))
+  //                .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes 0-9/100"))
+  //                .andExpect(content().bytes(Arrays.copyOfRange(content, 0, 10)));
+  //
+  //        verify(fileService, times(1)).getFile("2");
+  //        verify(contentStore, times(1)).getContent(binaryFile);
+  //    }
 
-        mockMvc.perform(get("/api/v1/files/1"))
-                .andExpect(status().isNotFound());
+  @Test
+  public void testDownloadFileNotFound() throws Exception {
+    when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
+    when(fileService.getFile("1")).thenReturn(Optional.empty());
 
-        verify(fileService, times(1)).getFile("1");
-        verify(contentStore, never()).getContent(any());
-    }
+    mockMvc.perform(get("/api/v1/files/1")).andExpect(status().isNotFound());
 
-    @Test
-    public void testUpdateFileContent() throws Exception {
-        when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
-        when(fileService.updateFileContent(eq("1"), any())).thenReturn(true);
+    verify(fileService, times(1)).getFile("1");
+    verify(contentStore, never()).getContent(any());
+  }
 
-        MockMultipartFile multipartFile = new MockMultipartFile("file", "test.txt",
-                "text/plain", "Updated content".getBytes());
+  @Test
+  public void testUpdateFileContent() throws Exception {
+    when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
+    when(fileService.updateFileContent(eq("1"), any())).thenReturn(true);
 
-        mockMvc.perform(multipart("/api/v1/files/1")
-                        .file(multipartFile)
-                        .header("X-XSRF-TOKEN", "test-token")
-                        .with(request -> {
-                            request.setMethod("PUT");
-                            return request;
-                        }))
-                .andExpect(status().isOk());
+    MockMultipartFile multipartFile =
+        new MockMultipartFile("file", "test.txt", "text/plain", "Updated content".getBytes());
 
-        verify(fileService, times(1)).updateFileContent(eq("1"), any());
-    }
+    mockMvc
+        .perform(
+            multipart("/api/v1/files/1")
+                .file(multipartFile)
+                .header("X-XSRF-TOKEN", "test-token")
+                .with(
+                    request -> {
+                      request.setMethod("PUT");
+                      return request;
+                    }))
+        .andExpect(status().isOk());
 
-    @Test
-    public void testUpdateFileContentNotFound() throws Exception {
-        when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
-        when(fileService.updateFileContent(eq("1"), any())).thenReturn(false);
+    verify(fileService, times(1)).updateFileContent(eq("1"), any());
+  }
 
-        MockMultipartFile multipartFile = new MockMultipartFile("file", "test.txt",
-                "text/plain", "Updated content".getBytes());
+  @Test
+  public void testUpdateFileContentNotFound() throws Exception {
+    when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
+    when(fileService.updateFileContent(eq("1"), any())).thenReturn(false);
 
-        mockMvc.perform(multipart("/api/v1/files/1")
-                        .file(multipartFile)
-                        .header("X-XSRF-TOKEN", "test-token")
-                        .with(request -> {
-                            request.setMethod("PUT");
-                            return request;
-                        }))
-                .andExpect(status().isNotFound());
+    MockMultipartFile multipartFile =
+        new MockMultipartFile("file", "test.txt", "text/plain", "Updated content".getBytes());
 
-        verify(fileService, times(1)).updateFileContent(eq("1"), any());
-    }
+    mockMvc
+        .perform(
+            multipart("/api/v1/files/1")
+                .file(multipartFile)
+                .header("X-XSRF-TOKEN", "test-token")
+                .with(
+                    request -> {
+                      request.setMethod("PUT");
+                      return request;
+                    }))
+        .andExpect(status().isNotFound());
 
-    @Test
-    public void testDeleteFile() throws Exception {
-        when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
-        when(fileService.deleteFile("1")).thenReturn(true);
+    verify(fileService, times(1)).updateFileContent(eq("1"), any());
+  }
 
-        mockMvc.perform(delete("/api/v1/files/1")
-                        .header("X-XSRF-TOKEN", "test-token"))
-                .andExpect(status().isNoContent());
+  @Test
+  public void testDeleteFile() throws Exception {
+    when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
+    when(fileService.deleteFile("1")).thenReturn(true);
 
-        verify(fileService, times(1)).deleteFile("1");
-    }
+    mockMvc
+        .perform(delete("/api/v1/files/1").header("X-XSRF-TOKEN", "test-token"))
+        .andExpect(status().isNoContent());
 
-    @Test
-    public void testDeleteFileNotFound() throws Exception {
-        when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
-        when(fileService.deleteFile("1")).thenReturn(false);
+    verify(fileService, times(1)).deleteFile("1");
+  }
 
-        mockMvc.perform(delete("/api/v1/files/1")
-                        .header("X-XSRF-TOKEN", "test-token"))
-                .andExpect(status().isNotFound());
+  @Test
+  public void testDeleteFileNotFound() throws Exception {
+    when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
+    when(fileService.deleteFile("1")).thenReturn(false);
 
-        verify(fileService, times(1)).deleteFile("1");
-    }
+    mockMvc
+        .perform(delete("/api/v1/files/1").header("X-XSRF-TOKEN", "test-token"))
+        .andExpect(status().isNotFound());
 
-    @Test
-    public void testSearchFiles() throws Exception {
-        when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
+    verify(fileService, times(1)).deleteFile("1");
+  }
 
-        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "name"));
-        Page<File> filePage = new PageImpl<>(Collections.singletonList(file), pageable, 1);
-        when(fileService.searchFiles(eq("test"), any(Pageable.class))).thenReturn(filePage);
+  @Test
+  public void testSearchFiles() throws Exception {
+    when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
 
-        mockMvc.perform(get("/api/v1/files/search")
-                        .param("name", "test")
-                        .param("page", "0")
-                        .param("size", "10")
-                        .param("sort", "name,desc"))
-                .andDo(result -> log.info(result.getResponse().getContentAsString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value("1"))
-                .andExpect(jsonPath("$.content[0].name").value("test.txt"))
-                .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.totalPages").value(1))
-                .andExpect(jsonPath("$.size").value(10))
-                .andExpect(jsonPath("$.number").value(0));
+    Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "name"));
+    Page<File> filePage = new PageImpl<>(Collections.singletonList(file), pageable, 1);
+    when(fileService.searchFiles(eq("test"), any(Pageable.class))).thenReturn(filePage);
 
-        verify(fileService, times(1)).searchFiles(eq("test"), any(Pageable.class));
-    }
+    mockMvc
+        .perform(
+            get("/api/v1/files/search")
+                .param("name", "test")
+                .param("page", "0")
+                .param("size", "10")
+                .param("sort", "name,desc"))
+        .andDo(result -> log.info(result.getResponse().getContentAsString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].id").value("1"))
+        .andExpect(jsonPath("$.content[0].name").value("test.txt"))
+        .andExpect(jsonPath("$.totalElements").value(1))
+        .andExpect(jsonPath("$.totalPages").value(1))
+        .andExpect(jsonPath("$.size").value(10))
+        .andExpect(jsonPath("$.number").value(0));
 
-    @Test
-    public void testPatchFile() throws Exception {
-        FilePatchDto patchDto = new FilePatchDto();
-        patchDto.setName("updated.txt");
-        patchDto.setSummary("Updated summary");
+    verify(fileService, times(1)).searchFiles(eq("test"), any(Pageable.class));
+  }
 
-        File updatedFile = new File();
-        updatedFile.setName("updated.txt");
-        updatedFile.setSummary("Updated summary");
-        updatedFile.setContentMimeType("text/plain");
-        updatedFile.setContentLength(100L);
-        updatedFile.setOwner(owner);
+  @Test
+  public void testPatchFile() throws Exception {
+    FilePatchDto patchDto = new FilePatchDto();
+    patchDto.setName("updated.txt");
+    patchDto.setSummary("Updated summary");
 
-        when(fileService.patchFile(eq("1"), any(FilePatchDto.class))).thenReturn(Optional.of(updatedFile));
+    File updatedFile = new File();
+    updatedFile.setName("updated.txt");
+    updatedFile.setSummary("Updated summary");
+    updatedFile.setContentMimeType("text/plain");
+    updatedFile.setContentLength(100L);
+    updatedFile.setOwner(owner);
 
-        mockMvc.perform(patch("/api/v1/files/1")
-                        .contentType("application/json")
-                        .header("X-XSRF-TOKEN", "test-token")
-                        .content("{\"name\":\"updated.txt\",\"summary\":\"Updated summary\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("updated.txt"))
-                .andExpect(jsonPath("$.summary").value("Updated summary"));
+    when(fileService.patchFile(eq("1"), any(FilePatchDto.class)))
+        .thenReturn(Optional.of(updatedFile));
 
-        verify(fileService, times(1)).patchFile(eq("1"), any(FilePatchDto.class));
-    }
+    mockMvc
+        .perform(
+            patch("/api/v1/files/1")
+                .contentType("application/json")
+                .header("X-XSRF-TOKEN", "test-token")
+                .content("{\"name\":\"updated.txt\",\"summary\":\"Updated summary\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("updated.txt"))
+        .andExpect(jsonPath("$.summary").value("Updated summary"));
 
+    verify(fileService, times(1)).patchFile(eq("1"), any(FilePatchDto.class));
+  }
 }

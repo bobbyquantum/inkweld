@@ -7,9 +7,9 @@ import lombok.Setter;
 @Getter
 @Setter
 public class FilePatchDto {
-    @Schema(description = "New name for the file")
-    private String name;
+  @Schema(description = "New name for the file")
+  private String name;
 
-    @Schema(description = "New summary for the file")
-    private String summary;
+  @Schema(description = "New summary for the file")
+  private String summary;
 }

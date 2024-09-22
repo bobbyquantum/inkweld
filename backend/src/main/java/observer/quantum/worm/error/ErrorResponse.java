@@ -11,12 +11,12 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Standard error response")
 public class ErrorResponse {
 
-    @Schema(description = "Error message", example = "A description would be here")
-    private String error;
+  @Schema(description = "Error message", example = "A description would be here")
+  private String error;
 
-    @Schema(description = "HTTP status code", example = "404")
-    private int status;
+  @Schema(description = "HTTP status code", example = "404")
+  private int status;
 
-    @Schema(description = "Error code for client-side error handling", example = "SOME_CLIENT_CODE")
-    private String code;
+  @Schema(description = "Error code for client-side error handling", example = "SOME_CLIENT_CODE")
+  private String code;
 }

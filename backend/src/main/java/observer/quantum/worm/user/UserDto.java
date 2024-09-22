@@ -13,18 +13,20 @@ import lombok.Setter;
 @Schema(name = "User", description = "User information")
 public class UserDto {
 
-    @Schema(description = "Username", example = "johnDoe")
-    private String username;
+  @Schema(description = "Username", example = "johnDoe")
+  private String username;
 
-    @Schema(description = "User's name", example = "John Doe")
-    private String name;
+  @Schema(description = "User's name", example = "John Doe")
+  private String name;
 
-    @Schema(description = "URL of the user's avatar image", example = "https://example.com/avatar.jpg")
-    private String avatarImageUrl;
+  @Schema(
+      description = "URL of the user's avatar image",
+      example = "https://example.com/avatar.jpg")
+  private String avatarImageUrl;
 
-    public UserDto(User user) {
-        username = user.getUsername();
-        name = user.getName();
-        avatarImageUrl = user.getAvatarImageUrl();
-    }
+  public UserDto(User user) {
+    username = user.getUsername();
+    name = user.getName();
+    avatarImageUrl = user.getAvatarImageUrl();
+  }
 }
