@@ -5,8 +5,7 @@
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "dbaeumer.vscode-eslint",
   "java.configuration.updateBuildConfiguration": "automatic",
-  "java.format.settings.url": "https://raw.githubusercontent.com/google/styleguide/gh-pages/eclipse-java-google-style.xml",
-  "java.format.settings.profile": "GoogleStyle",
-  "java.format.enabled": true,
-  "java.saveActions.organizeImports": true
+  "[java]": {
+    "editor.formatOnSave": false
+  }
 }
