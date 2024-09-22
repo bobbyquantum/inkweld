@@ -9,7 +9,6 @@
     "test": "ng test",
     "lint": "ng lint",
     "lint:fix": "ng lint --fix",
-    "update-api-client": "node update-api-client.js",
     "analyze": "esbuild-visualizer --metadata dist/wor98-frontend/stats.json"
   },
   "private": true,
