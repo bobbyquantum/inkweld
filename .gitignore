@@ -1,2 +1,5 @@
 /.env
+node_modules
 frontend/stats.html
+frontend/node_modules
+api-client/node_modules
