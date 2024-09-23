@@ -13,6 +13,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Make mvnw executable
+      run: chmod +x ./backend/mvnw
+
     - name: Setup GraalVM CE
       uses: graalvm/setup-graalvm@v1
       with:
