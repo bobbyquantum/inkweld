@@ -37,7 +37,7 @@
     "@angular/compiler-cli": "^18.2.2",
     "@types/jasmine": "~5.1.0",
     "angular-eslint": "18.3.0",
-    "esbuild": "0.23.1",
+    "esbuild": "0.24.0",
     "esbuild-visualizer": "^0.6.0",
     "eslint": "^9.9.1",
     "eslint-config-prettier": "^9.1.0",
