@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup GraalVM CE
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: '22'
+        distribution: 'graalvm-ce'
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: npm run install-all
+
+    - name: Check code formatting
+      run: npm run lint:ci
+
+    - name: Run backend tests
+      run: cd backend && ./mvnw test
+
+    - name: Run frontend tests
+      run: cd frontend && npm test -- --watch=false --browsers=ChromeHeadless
+
+    - name: Build project
+      run: npm run build
+
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: |
+          frontend/dist
+          backend/target/*.jar
