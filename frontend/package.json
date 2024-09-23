@@ -32,7 +32,7 @@
     "worm-api-client": "file:../api-client/dist/worm-api-client-0.0.1-SNAPSHOT.tgz"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^18.2.2",
+    "@angular-devkit/build-angular": "^18.2.5",
     "@angular/cli": "^18.2.2",
     "@angular/compiler-cli": "^18.2.2",
     "@types/jasmine": "~5.1.0",
