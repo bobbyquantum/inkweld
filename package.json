@@ -8,7 +8,7 @@
     "start-backend": "cd backend && npm run mvnw spring-boot:run",
     "start": "npm-run-all --parallel start-frontend start-backend",
     "install-all": "npm install && cd api-client && npm install && npm run build && cd dist && npm pack && cd ../.. && cd frontend && npm install",
-    "build": "npm run update-api-client && cd frontend && npm run build && cd .. && cd backend && npm run mvnw clean package",
+    "build": "cd frontend && npm run build && cd .. && cd backend && npm run mvnw clean package",
     "lint:ci": "cd backend && npm run mvnw spotless:check && cd .. && cd frontend && npm run lint",
     "lint:fix": "cd backend && npm run mvnw spotless:apply && cd .. && cd frontend && npm run lint -- --fix",
     "mvnw": "node -e \"process.exit(require('child_process').spawnSync(process.platform === 'win32' ? 'mvnw.cmd' : './mvnw', process.argv.slice(2), {stdio:'inherit'}).status)\" --"
