@@ -17,7 +17,7 @@ jobs:
       uses: graalvm/setup-graalvm@v1
       with:
         java-version: '22'
-        distribution: 'graalvm-ce'
+        distribution: 'graalvm-community'
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Node.js
