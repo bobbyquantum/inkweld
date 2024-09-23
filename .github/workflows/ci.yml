@@ -25,8 +25,17 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Install dependencies
-      run: npm run install-all
+    - name: Update API client
+      run: node update-api-client.js
+
+    - name: Install root dependencies
+      run: npm install
+
+    - name: Install frontend dependencies
+      run: cd frontend && npm install
+
+    - name: Install api-client dependencies
+      run: cd api-client && npm install
 
     - name: Check code formatting
       run: npm run lint:ci
