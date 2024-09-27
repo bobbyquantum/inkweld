@@ -25,6 +25,9 @@ public class User {
   @Column(nullable = false)
   private String name;
 
+  @Column(nullable = false)
+  private String password;
+
   @Column(name = "avatar_image_url")
   private String avatarImageUrl;
 

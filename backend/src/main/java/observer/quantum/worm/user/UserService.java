@@ -1,27 +1,32 @@
 package observer.quantum.worm.user;
 
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.security.authentication.RememberMeAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@SuppressWarnings("unused")
 @Service
 public class UserService {
 
   private final UserRepository userRepository;
-
   private final UserIdentityRepository userIdentityRepository;
+  private final PasswordEncoder passwordEncoder;
 
-  public UserService(UserRepository userRepository, UserIdentityRepository userIdentityRepository) {
+  public UserService(
+      UserRepository userRepository,
+      UserIdentityRepository userIdentityRepository,
+      PasswordEncoder passwordEncoder) {
     this.userRepository = userRepository;
     this.userIdentityRepository = userIdentityRepository;
+    this.passwordEncoder = passwordEncoder;
   }
 
   public Optional<User> getCurrentUser() {
@@ -68,9 +73,30 @@ public class UserService {
       }
       default -> throw new UserAuthInvalidException();
     }
+    // Set a random password for OAuth2 users
+    String randomPassword = UUID.randomUUID().toString();
+    userRecord.setPassword(passwordEncoder.encode(randomPassword));
+
     userRepository.save(userRecord);
     userIdentityRepository.save(userIdentity);
     return userRecord;
+  }
+
+  public User registerUser(String username, String password, String name) {
+    if (userRepository.findByUsername(username).isPresent()) {
+      throw new IllegalArgumentException("Username already exists");
+    }
+
+    if (!isPasswordStrong(password)) {
+      throw new IllegalArgumentException("Password does not meet strength requirements");
+    }
+
+    var userRecord = new User();
+    userRecord.setUsername(username);
+    userRecord.setName(name);
+    userRecord.setPassword(passwordEncoder.encode(password));
+
+    return userRepository.save(userRecord);
   }
 
   public Optional<User> getUser(String username) {
@@ -95,10 +121,47 @@ public class UserService {
   }
 
   @Transactional
+  public void updatePassword(String oldPassword, String newPassword) {
+    User currentUser = getCurrentUser().orElseThrow(UserAuthInvalidException::new);
+
+    if (!passwordEncoder.matches(oldPassword, currentUser.getPassword())) {
+      throw new IllegalArgumentException("Old password is incorrect");
+    }
+
+    if (!isPasswordStrong(newPassword)) {
+      throw new IllegalArgumentException("New password does not meet strength requirements");
+    }
+
+    currentUser.setPassword(passwordEncoder.encode(newPassword));
+    userRepository.save(currentUser);
+  }
+
+  @Transactional
   public void deleteAccount() {
     User currentUser = getCurrentUser().orElseThrow(UserAuthInvalidException::new);
     userIdentityRepository.deleteAllByUser(currentUser);
     userRepository.delete(currentUser);
     SecurityContextHolder.clearContext();
+  }
+
+  private boolean isPasswordStrong(String password) {
+    // Password must be at least 8 characters long and contain at least one uppercase letter,
+    // one lowercase letter, one digit, and one special character
+    String passwordRegex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$";
+    return password.matches(passwordRegex);
+  }
+
+  @Transactional
+  public void migrateUnhashedPasswords() {
+    userRepository
+        .findAll()
+        .forEach(
+            user -> {
+              if (!user.getPassword()
+                  .startsWith("$2a$")) { // Check if the password is not already hashed
+                user.setPassword(passwordEncoder.encode(user.getPassword()));
+                userRepository.save(user);
+              }
+            });
   }
 }

@@ -8,7 +8,6 @@ import observer.quantum.worm.user.UserService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
-@SuppressWarnings("unused")
 @Service
 public class ProjectService {
 

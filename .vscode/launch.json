@@ -5,7 +5,6 @@
       "name": "Launch Full Stack",
       "type": "java",
       "request": "launch",
-      "preLaunchTask": "Start Full Stack",
       "mainClass": "observer.quantum.worm.WormApplication",
       "cwd": "${workspaceFolder}/backend",
       "console": "integratedTerminal"
