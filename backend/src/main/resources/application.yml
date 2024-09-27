@@ -1,5 +1,5 @@
 worm:
-  version: @project.version@
+  version: "@project.version@"
 
 logging:
   level:
