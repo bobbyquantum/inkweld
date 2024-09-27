@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/users")
 @RestController
 @Slf4j
-@SuppressWarnings("unused")
 @Tag(
     name = "User API",
     description = "The user controller allows accessing and updating details for the current user.")
@@ -29,6 +28,50 @@ public class UserController {
 
   public UserController(UserService userService) {
     this.userService = userService;
+  }
+
+  @Operation(
+      summary = "Register a new user",
+      description = "Registers a new user with the provided details.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "201",
+            description = "User registered successfully",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = UserDto.class))),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input or username already exists",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class)))
+      })
+  @PostMapping(
+      path = "/register",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<UserDto> registerUser(
+      @io.swagger.v3.oas.annotations.parameters.RequestBody(
+              description = "User registration details",
+              required = true,
+              content =
+                  @Content(
+                      mediaType = MediaType.APPLICATION_JSON_VALUE,
+                      schema = @Schema(implementation = RegisterUserRequest.class)))
+          @Valid
+          @RequestBody
+          RegisterUserRequest registerUserRequest) {
+    User newUser =
+        userService.registerUser(
+            registerUserRequest.getUsername(),
+            registerUserRequest.getPassword(),
+            registerUserRequest.getName());
+    log.info("New user registered: {}", newUser.getUsername());
+    return ResponseEntity.status(201).body(new UserDto(newUser));
   }
 
   @Operation(
@@ -129,6 +172,62 @@ public class UserController {
     var updatedUser = userService.updateUserDetails(updateUserRequest);
     log.info("User details updated for {}", updatedUser.getUsername());
     return ResponseEntity.ok(new UserDto(updatedUser));
+  }
+
+  @Operation(
+      summary = "Update user password",
+      description =
+          "Updates the password of the currently authenticated user. Requires a valid CSRF token.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(responseCode = "204", description = "Password updated successfully"),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input or incorrect old password",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Invalid or missing authentication",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Invalid CSRF token",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class)))
+      })
+  @PutMapping(path = "/me/password", consumes = MediaType.APPLICATION_JSON_VALUE)
+  @Secured("USER")
+  public ResponseEntity<Void> updatePassword(
+      @Parameter(
+              in = ParameterIn.HEADER,
+              name = "X-XSRF-TOKEN",
+              description = "CSRF token",
+              required = true,
+              schema = @Schema(type = "string"))
+          @RequestHeader(name = "X-XSRF-TOKEN")
+          String csrfToken,
+      @io.swagger.v3.oas.annotations.parameters.RequestBody(
+              description = "Password update details",
+              required = true,
+              content =
+                  @Content(
+                      mediaType = MediaType.APPLICATION_JSON_VALUE,
+                      schema = @Schema(implementation = UpdatePasswordRequest.class)))
+          @Valid
+          @RequestBody
+          UpdatePasswordRequest updatePasswordRequest) {
+    userService.updatePassword(
+        updatePasswordRequest.getOldPassword(), updatePasswordRequest.getNewPassword());
+    log.info("Password updated for current user");
+    return ResponseEntity.noContent().build();
   }
 
   @Operation(

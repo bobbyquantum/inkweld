@@ -13,6 +13,7 @@ import org.springframework.security.authentication.RememberMeAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 
@@ -25,6 +26,8 @@ public class UserServiceTest {
 
   @Mock private SecurityContext securityContext;
 
+  @Mock private PasswordEncoder passwordEncoder;
+
   @InjectMocks private UserService userService;
 
   @Test
@@ -32,14 +35,16 @@ public class UserServiceTest {
     Long id = 1L;
     String username = "username";
     String name = "name";
+    String password = "password";
     String avatarImageUrl = "avatarImageUrl";
     List<UserIdentity> identities = new ArrayList<>();
 
-    User user = new User(id, username, name, avatarImageUrl, identities);
+    User user = new User(id, username, name, password, avatarImageUrl, identities);
 
     assertEquals(id, user.getId());
     assertEquals(username, user.getUsername());
     assertEquals(name, user.getName());
+    assertEquals(password, user.getPassword());
     assertEquals(avatarImageUrl, user.getAvatarImageUrl());
     assertEquals(identities, user.getIdentities());
 
@@ -71,12 +76,14 @@ public class UserServiceTest {
     when(oAuth2AuthenticationToken.getName()).thenReturn("1234567890");
 
     var userRecord = new User();
+    userRecord.setPassword("dummyPassword"); // Set a dummy password for the test
     when(userRepository.save(any(User.class))).thenReturn(userRecord);
 
     var userIdentity = new UserIdentity();
     when(userIdentityRepository.save(any(UserIdentity.class))).thenReturn(userIdentity);
 
     when(securityContext.getAuthentication()).thenReturn(oAuth2AuthenticationToken);
+    when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
 
     // Act
     SecurityContextHolder.setContext(securityContext);
@@ -87,6 +94,8 @@ public class UserServiceTest {
     assertNotNull(currentUser.get().getUsername());
     assertNotNull(currentUser.get().getName());
     assertNotNull(currentUser.get().getAvatarImageUrl());
+    assertNotNull(currentUser.get().getPassword());
+    verify(passwordEncoder).encode(anyString());
   }
 
   @Test
@@ -97,6 +106,7 @@ public class UserServiceTest {
 
     var userRecord = new User();
     userRecord.setUsername("john.doe");
+    userRecord.setPassword("dummyPassword"); // Set a dummy password for the test
     when(userRepository.findByUsername(anyString())).thenReturn(java.util.Optional.of(userRecord));
 
     when(securityContext.getAuthentication()).thenReturn(rememberMeAuthenticationToken);
@@ -108,6 +118,7 @@ public class UserServiceTest {
     // Assert
     assertTrue(currentUser.isPresent());
     assertNotNull(currentUser.get().getUsername());
+    assertNotNull(currentUser.get().getPassword());
   }
 
   @Test
@@ -134,6 +145,8 @@ public class UserServiceTest {
                 "email", "john.doe@example.com",
                 "avatar_url", "https://example.com/avatar.jpg"),
             "name");
+    when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+
     // Act
     var userRecord = userService.registerUser("github", oAuth2User);
 
@@ -142,6 +155,8 @@ public class UserServiceTest {
     assertNotNull(userRecord.getUsername());
     assertNotNull(userRecord.getName());
     assertNotNull(userRecord.getAvatarImageUrl());
+    assertNotNull(userRecord.getPassword()); // Check that a password is set
+    verify(passwordEncoder).encode(anyString());
   }
 
   @Test
@@ -154,6 +169,8 @@ public class UserServiceTest {
                 "name", "John Doe",
                 "email", "john.doe@example.com"),
             "name");
+    when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+
     // Act
     var userRecord = userService.registerUser("google", oAuth2User);
 
@@ -161,6 +178,8 @@ public class UserServiceTest {
     assertNotNull(userRecord);
     assertNotNull(userRecord.getUsername());
     assertNotNull(userRecord.getName());
+    assertNotNull(userRecord.getPassword()); // Check that a password is set
+    verify(passwordEncoder).encode(anyString());
   }
 
   @Test
@@ -168,6 +187,7 @@ public class UserServiceTest {
     // Arrange
     var userRecord = new User();
     userRecord.setUsername("john.doe");
+    userRecord.setPassword("dummyPassword"); // Set a dummy password for the test
     when(userRepository.findByUsername(anyString())).thenReturn(java.util.Optional.of(userRecord));
 
     // Act
@@ -176,6 +196,7 @@ public class UserServiceTest {
     // Assert
     assertTrue(user.isPresent());
     assertNotNull(user.get().getUsername());
+    assertNotNull(user.get().getPassword());
   }
 
   @Test
@@ -196,6 +217,7 @@ public class UserServiceTest {
     User currentUser = new User();
     currentUser.setName("Old Name");
     currentUser.setAvatarImageUrl("old-avatar-url");
+    currentUser.setPassword("oldPassword");
 
     UpdateUserRequest updateUserDto = new UpdateUserRequest();
     updateUserDto.setName("New Name");
@@ -223,6 +245,7 @@ public class UserServiceTest {
     assertNotNull(updatedUser);
     assertEquals("New Name", updatedUser.getName());
     assertEquals("new-avatar-url", updatedUser.getAvatarImageUrl());
+    assertEquals("oldPassword", updatedUser.getPassword()); // Password should remain unchanged
     verify(userRepository).save(currentUser);
   }
 
@@ -255,6 +278,7 @@ public class UserServiceTest {
     // Arrange
     User currentUser = new User();
     currentUser.setName("Test User");
+    currentUser.setPassword("testPassword");
 
     // Mock OAuth2AuthenticationToken
     OAuth2AuthenticationToken oauth2Auth = mock(OAuth2AuthenticationToken.class);

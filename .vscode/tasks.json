@@ -5,6 +5,9 @@
         "label": "Start Backend",
         "type": "shell",
         "command": "cd backend && ./mvnw spring-boot:run",
+        "options": {
+          "envFile": "${workspaceFolder}/.env"
+        },
         "isBackground": true,
         "problemMatcher": [
           {
