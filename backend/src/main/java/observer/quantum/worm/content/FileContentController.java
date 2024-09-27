@@ -24,7 +24,6 @@ import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-@SuppressWarnings("unused")
 @RestController
 @RequestMapping("/api/v1/files")
 @Tag(
