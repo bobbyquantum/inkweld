@@ -18,7 +18,7 @@ export interface Project {
     /**
      * Project ID
      */
-    id?: string;
+    id?: number;
     /**
      * Project title
      */
