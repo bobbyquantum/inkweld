@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/projects")
 @Slf4j
-@SuppressWarnings("unused")
 @Tag(
     name = "Project API",
     description = "The project controller supports various functions relating to projects.")
