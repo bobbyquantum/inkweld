@@ -61,9 +61,10 @@
                                     <goal>generate</goal>
                                 </goals>
                                 <configuration>
-                                    <inputSpec>target/openapi.json</inputSpec>
+                                    <inputSpec>backend/target/openapi.json</inputSpec>
                                     <generatorName>typescript-angular</generatorName>
-                                    <outputDir>../api-client</outputDir>
+                                
+                                    <output>../api-client</output>
                                     <configOptions>
                                         <npmName>worm-api-client</npmName>
                                     </configOptions>

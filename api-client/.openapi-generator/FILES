@@ -16,6 +16,8 @@ model/pageFileResponse.ts
 model/pageInfo.ts
 model/pageable.ts
 model/project.ts
+model/registerUserRequest.ts
+model/updatePasswordRequest.ts
 model/updateUserRequest.ts
 model/user.ts
 ng-package.json

@@ -5,5 +5,7 @@ export * from './pageFileResponse';
 export * from './pageInfo';
 export * from './pageable';
 export * from './project';
+export * from './registerUserRequest';
+export * from './updatePasswordRequest';
 export * from './updateUserRequest';
 export * from './user';
