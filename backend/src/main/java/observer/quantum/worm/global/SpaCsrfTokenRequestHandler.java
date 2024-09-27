@@ -9,7 +9,7 @@ import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
 import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 import org.springframework.util.StringUtils;
 
-final class SpaCsrfTokenRequestHandler extends CsrfTokenRequestAttributeHandler {
+public final class SpaCsrfTokenRequestHandler extends CsrfTokenRequestAttributeHandler {
   private final CsrfTokenRequestHandler delegate = new XorCsrfTokenRequestAttributeHandler();
 
   @Override
