@@ -1,4 +1,4 @@
-package observer.quantum.worm.global;
+package observer.quantum.worm.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.SpecVersion;

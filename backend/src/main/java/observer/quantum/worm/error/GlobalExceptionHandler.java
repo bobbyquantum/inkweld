@@ -10,7 +10,6 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-@SuppressWarnings("unused")
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
