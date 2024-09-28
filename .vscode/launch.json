@@ -2,11 +2,12 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch Full Stack",
+      "name": "Debug Java Backend",
       "type": "java",
       "request": "launch",
       "mainClass": "observer.quantum.worm.WormApplication",
       "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/.env",
       "console": "integratedTerminal"
     },
     {
@@ -27,7 +28,7 @@
   "compounds": [
     {
       "name": "Debug Full Stack",
-      "configurations": ["Launch Full Stack", "Debug Angular Frontend"]
+      "configurations": ["Debug Java Backend", "Debug Angular Frontend"]
     }
   ]
 }
