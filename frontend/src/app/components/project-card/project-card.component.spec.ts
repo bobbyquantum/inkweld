@@ -16,7 +16,7 @@ describe('ProjectCardComponent', () => {
     component = fixture.componentInstance;
 
     component.project = {
-      id: '1',
+      id: 1,
       title: 'Test Project',
       createdDate: new Date().toISOString(),
       user: { name: 'test' },
