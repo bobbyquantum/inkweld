@@ -56,7 +56,7 @@ fs.writeFileSync(
   JSON.stringify(frontendPackageJson, null, 2)
 );
 
-runCommand("npm install --no-save", frontendPath);
+runCommand("npm install", frontendPath);
 
 console.log(`Updated frontend to use worm-api-client version ${version}`);
 console.log("Contents of api-client/dist folder:");
