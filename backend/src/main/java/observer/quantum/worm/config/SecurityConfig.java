@@ -10,8 +10,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -42,7 +42,7 @@ public class SecurityConfig {
   }
 
   @Bean
-  public DaoAuthenticationProvider authenticationProvider() {
+  public DaoAuthenticationProvider daoAuthenticationProvider() {
     DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
     authProvider.setUserDetailsService(userDetailsService);
     authProvider.setPasswordEncoder(passwordEncoder);
@@ -50,13 +50,15 @@ public class SecurityConfig {
   }
 
   @Bean
-  public AuthenticationManager authenticationManager() {
-    return new ProviderManager(authenticationProvider());
+  public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+    AuthenticationManagerBuilder authenticationManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
+    authenticationManagerBuilder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder);
+    authenticationManagerBuilder.authenticationProvider(daoAuthenticationProvider());
+    return authenticationManagerBuilder.build();
   }
 
   @Bean
   public SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
-
     http.authorizeHttpRequests(
         authorize ->
             authorize
@@ -65,10 +67,9 @@ public class SecurityConfig {
                 .anyRequest()
                 .authenticated());
 
-    http.oauth2Login(oauth2 -> oauth2.defaultSuccessUrl("/", true));
-
-    http.formLogin(
-        formLogin -> formLogin.defaultSuccessUrl("/", true).failureUrl("/login?error=true"));
+    http.oauth2Login(oauth2 -> oauth2.defaultSuccessUrl("/", true))
+        .formLogin(
+            formLogin -> formLogin.defaultSuccessUrl("/", true).failureUrl("/login?error=true"));
 
     http.rememberMe(
         rememberMe ->
@@ -96,7 +97,7 @@ public class SecurityConfig {
                     .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
         .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
 
-    http.authenticationManager(authenticationManager());
+    http.authenticationManager(authenticationManager(http));
 
     return http.build();
   }
