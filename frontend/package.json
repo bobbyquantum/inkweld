@@ -28,8 +28,7 @@
     "rxjs": "~7.8.0",
     "tslib": "^2.7.0",
     "worm-frontend": "file:",
-    "zone.js": "~0.14.10",
-    "worm-api-client": "file:../api-client/dist/worm-api-client-0.0.1-SNAPSHOT.tgz"
+    "zone.js": "~0.14.10"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^18.2.6",
