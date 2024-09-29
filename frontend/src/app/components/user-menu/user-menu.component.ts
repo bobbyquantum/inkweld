@@ -1,4 +1,4 @@
-import { Component, Input, NgZone } from '@angular/core';
+import { Component, Input, NgZone, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,18 +16,20 @@ import { UserSettingsService } from '@services/user-settings.service';
 })
 export class UserMenuComponent {
   @Input() user: User | undefined = undefined;
-  constructor(
-    private ngZone: NgZone,
-    private userSettings: UserSettingsService
-  ) {}
+
+  private ngZone = inject(NgZone);
+  private userSettings = inject(UserSettingsService);
+
   onLogout() {
     this.ngZone.runOutsideAngular(() => {
       window.location.href = '/logout';
     });
   }
+
   onSettings() {
     this.userSettings.openSettingsDialog();
   }
+
   onFiles() {
     this.userSettings.openFileDialog();
   }
