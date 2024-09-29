@@ -28,7 +28,7 @@ export class AppComponent implements OnInit {
       })
       .catch(error => {
         console.log('Error', error);
-        this.redirectToLogin();
+        // this.redirectToLogin();
       });
   }
   redirectToLogin(): void {
