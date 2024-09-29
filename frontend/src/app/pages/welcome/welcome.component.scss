@@ -21,6 +21,7 @@ mat-card {
   margin-bottom: 24px;
   padding: 24px;
   box-shadow: var(--mdc-elevated-card-container-elevation);
+  background-color: var(--card-background-color);
 }
 
 form {
@@ -70,4 +71,3 @@ mat-divider {
     }
   }
 }
-

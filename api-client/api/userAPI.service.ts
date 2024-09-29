@@ -27,6 +27,8 @@ import { UpdatePasswordRequest } from '../model/updatePasswordRequest';
 import { UpdateUserRequest } from '../model/updateUserRequest';
 // @ts-ignore
 import { User } from '../model/user';
+// @ts-ignore
+import { UsernameAvailabilityResponse } from '../model/usernameAvailabilityResponse';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -39,7 +41,7 @@ import { Configuration }                                     from '../configurat
 })
 export class UserAPIService {
 
-    protected basePath = 'http://localhost:52597';
+    protected basePath = 'http://localhost:51579';
     public defaultHeaders = new HttpHeaders();
     public configuration = new Configuration();
     public encoder: HttpParameterCodec;
@@ -97,6 +99,78 @@ export class UserAPIService {
             throw Error("key may not be null if value is not object or array");
         }
         return httpParams;
+    }
+
+    /**
+     * Check username availability
+     * Checks if a username is available and provides alternate suggestions if it\&#39;s taken.
+     * @param username Username to check
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public checkUsernameAvailability(username: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<UsernameAvailabilityResponse>;
+    public checkUsernameAvailability(username: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<UsernameAvailabilityResponse>>;
+    public checkUsernameAvailability(username: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<UsernameAvailabilityResponse>>;
+    public checkUsernameAvailability(username: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (username === null || username === undefined) {
+            throw new Error('Required parameter username was null or undefined when calling checkUsernameAvailability.');
+        }
+
+        let localVarQueryParameters = new HttpParams({encoder: this.encoder});
+        if (username !== undefined && username !== null) {
+          localVarQueryParameters = this.addToHttpParams(localVarQueryParameters,
+            <any>username, 'username');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
+        if (localVarHttpHeaderAcceptSelected === undefined) {
+            // to determine the Accept header
+            const httpHeaderAccepts: string[] = [
+                'application/json'
+            ];
+            localVarHttpHeaderAcceptSelected = this.configuration.selectHeaderAccept(httpHeaderAccepts);
+        }
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        let localVarHttpContext: HttpContext | undefined = options && options.context;
+        if (localVarHttpContext === undefined) {
+            localVarHttpContext = new HttpContext();
+        }
+
+        let localVarTransferCache: boolean | undefined = options && options.transferCache;
+        if (localVarTransferCache === undefined) {
+            localVarTransferCache = true;
+        }
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/users/check-username`;
+        return this.httpClient.request<UsernameAvailabilityResponse>('get', `${this.configuration.basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                params: localVarQueryParameters,
+                responseType: <any>responseType_,
+                withCredentials: this.configuration.withCredentials,
+                headers: localVarHeaders,
+                observe: observe,
+                transferCache: localVarTransferCache,
+                reportProgress: reportProgress
+            }
+        );
     }
 
     /**
