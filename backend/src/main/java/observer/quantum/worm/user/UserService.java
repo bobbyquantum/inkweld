@@ -2,6 +2,9 @@ package observer.quantum.worm.user;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import org.springframework.security.authentication.RememberMeAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -163,5 +166,42 @@ public class UserService {
                 userRepository.save(user);
               }
             });
+  }
+
+  public UsernameAvailabilityResponse checkUsernameAvailability(String username) {
+    boolean isAvailable = !userRepository.findByUsername(username).isPresent();
+    List<String> suggestions = new ArrayList<>();
+
+    if (!isAvailable) {
+      suggestions = generateUsernameSuggestions(username);
+    }
+
+    return new UsernameAvailabilityResponse(isAvailable, suggestions);
+  }
+
+  private List<String> generateUsernameSuggestions(String username) {
+    List<String> suggestions = new ArrayList<>();
+    Random random = new Random();
+
+    // Add a random number to the end
+    suggestions.add(username + random.nextInt(1000));
+
+    // Add an underscore and a random number
+    suggestions.add(username + "_" + random.nextInt(100));
+
+    // Add a random adjective before the username
+    String[] adjectives = {"cool", "awesome", "super", "mega", "ultra"};
+    suggestions.add(adjectives[random.nextInt(adjectives.length)] + "_" + username);
+
+    // Add a random suffix
+    String[] suffixes = {"dev", "coder", "ninja", "guru", "pro"};
+    suggestions.add(username + "_" + suffixes[random.nextInt(suffixes.length)]);
+
+    // Ensure all suggestions are unique and available
+    return suggestions.stream()
+        .distinct()
+        .filter(suggestion -> !userRepository.findByUsername(suggestion).isPresent())
+        .limit(3)
+        .toList();
   }
 }

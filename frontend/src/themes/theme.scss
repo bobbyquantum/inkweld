@@ -151,6 +151,10 @@ $dark-theme: mat.define-theme((
     theme-type: dark,
     primary: $_primary,
     tertiary: $_tertiary,
+    use-system-variables: true,
+  ),
+  typography: (
+      use-system-variables: true,
   ),
   density: (
     scale: 0,
@@ -159,9 +163,15 @@ $dark-theme: mat.define-theme((
 @import '@angular/cdk/overlay-prebuilt.css';
 :root {
   @include mat.all-component-themes($light-theme);
+  @include mat.system-level-colors($light-theme);
+  @include mat.system-level-typography($dark-theme);
+  --card-background-color: var(--sys-secondary-container);
 }
 .dark-theme {
   @include mat.all-component-colors($dark-theme);
+  @include mat.system-level-colors($dark-theme);
+  @include mat.system-level-typography($dark-theme);
+  --card-background-color: var(--sys-secondary-container);
 }
 body {
   background-color: var(--mat-app-background-color);

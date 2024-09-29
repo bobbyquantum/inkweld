@@ -20,6 +20,7 @@ model/registerUserRequest.ts
 model/updatePasswordRequest.ts
 model/updateUserRequest.ts
 model/user.ts
+model/usernameAvailabilityResponse.ts
 ng-package.json
 package.json
 param.ts
