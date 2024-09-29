@@ -1,1 +1,60 @@
-<p>welcome works!</p>
+<div class="welcome-container" [class.mobile]="isMobile">
+  <div class="content-wrapper">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>
+          <h1 class="mat-headline-4">Welcome to Worm</h1>
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <form (ngSubmit)="onLogin()">
+          <mat-form-field appearance="outline">
+            <mat-label>Username</mat-label>
+            <input
+              matInput
+              type="text"
+              [(ngModel)]="username"
+              name="username"
+              required
+              aria-label="Username" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Password</mat-label>
+            <input
+              matInput
+              type="password"
+              [(ngModel)]="password"
+              name="password"
+              required
+              aria-label="Password" />
+          </mat-form-field>
+          <button mat-raised-button color="primary" type="submit">Login</button>
+        </form>
+
+        <mat-divider></mat-divider>
+
+        <div class="oauth-container">
+          <h3 class="mat-subtitle-1">Or login with:</h3>
+          <button mat-raised-button (click)="loginWithGoogle()">
+            <mat-icon svgIcon="google"></mat-icon> Google
+          </button>
+          <button mat-raised-button (click)="loginWithFacebook()">
+            <mat-icon svgIcon="facebook"></mat-icon> Facebook
+          </button>
+          <button mat-raised-button (click)="loginWithGithub()">
+            <mat-icon svgIcon="github"></mat-icon> GitHub
+          </button>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="register-link">
+          <p class="mat-body-1">
+            Don't have an account?
+            <a mat-button routerLink="/register">Register here</a>
+          </p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

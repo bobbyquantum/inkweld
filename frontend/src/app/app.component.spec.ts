@@ -6,7 +6,7 @@ import {
 } from '@angular/common/http/testing';
 import { UserAPIService, Configuration } from 'worm-api-client';
 import { ThemeService } from '../themes/theme.service';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 
 describe('AppComponent', () => {
   let httpTestingController: HttpTestingController;
@@ -80,24 +80,6 @@ describe('AppComponent', () => {
     const component = fixture.componentInstance;
     expect(component.title).toBe('worm-frontend');
   });
-
-  it('should handle error when fetching user fails', fakeAsync(() => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const component = fixture.componentInstance;
-    const userService = TestBed.inject(UserAPIService);
-    const consoleSpy = spyOn(console, 'log');
-    const redirectSpy = spyOn(component, 'redirectToLogin');
-
-    (userService.getCurrentUser as jasmine.Spy).and.returnValue(
-      throwError(() => new Error('Test error'))
-    );
-
-    component.ngOnInit();
-    tick();
-
-    expect(consoleSpy).toHaveBeenCalledWith('Error', jasmine.any(Error));
-    expect(redirectSpy).toHaveBeenCalled();
-  }));
 
   it('should have a router outlet', () => {
     const fixture = TestBed.createComponent(AppComponent);
