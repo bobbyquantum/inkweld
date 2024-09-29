@@ -1,6 +1,8 @@
 package observer.quantum.worm.user;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import java.util.*;
@@ -35,27 +37,30 @@ public class UserServiceTest {
     Long id = 1L;
     String username = "username";
     String name = "name";
+    String email = "email@example.com";
     String password = "password";
     String avatarImageUrl = "avatarImageUrl";
     List<UserIdentity> identities = new ArrayList<>();
 
-    User user = new User(id, username, name, password, avatarImageUrl, identities);
+    User user = new User(id, username, name, email, password, avatarImageUrl, identities);
 
     assertEquals(id, user.getId());
     assertEquals(username, user.getUsername());
     assertEquals(name, user.getName());
+    assertEquals(email, user.getEmail());
     assertEquals(password, user.getPassword());
     assertEquals(avatarImageUrl, user.getAvatarImageUrl());
     assertEquals(identities, user.getIdentities());
 
-    String provider = "provider";
-    String providerId = "providerId";
-
-    UserIdentity identity = new UserIdentity(id, provider, providerId, user);
+    UserIdentity identity = new UserIdentity();
+    identity.setId(id);
+    identity.setProvider("provider");
+    identity.setProviderId("providerId");
+    identity.setUser(user);
 
     assertEquals(id, identity.getId());
-    assertEquals(provider, identity.getProvider());
-    assertEquals(providerId, identity.getProviderId());
+    assertEquals("provider", identity.getProvider());
+    assertEquals("providerId", identity.getProviderId());
     assertEquals(user.getUsername(), identity.getUser().getUsername());
   }
 
@@ -133,6 +138,37 @@ public class UserServiceTest {
     // Assert
     assertFalse(currentUser.isPresent());
   }
+
+  @Test
+  public void testCheckUsernameAvailability_Available() {
+    // Arrange
+    String username = "newuser";
+    when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
+
+    // Act
+    UsernameAvailabilityResponse response = userService.checkUsernameAvailability(username);
+
+    // Assert
+    assertTrue(response.isAvailable());
+    assertTrue(response.getSuggestions().isEmpty());
+  }
+
+  @Test
+  public void testCheckUsernameAvailability_Unavailable() {
+    // Arrange
+    String username = "existinguser";
+    
+    when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
+    when(userRepository.findByUsername(username)).thenReturn(Optional.of(new User()));
+
+    // Act
+    UsernameAvailabilityResponse response = userService.checkUsernameAvailability(username);
+
+    // Assert
+    assertFalse(response.isAvailable());
+    assertEquals(3, response.getSuggestions().size());
+    assertTrue(response.getSuggestions().stream().allMatch(suggestion -> !suggestion.equals(username)));
+}
 
   @Test
   public void testRegisterUser_withGitHubProvider() {

@@ -267,4 +267,32 @@ public class UserController {
     log.info("User account deleted");
     return ResponseEntity.noContent().build();
   }
+
+  @Operation(
+      summary = "Check username availability",
+      description = "Checks if a username is available and provides alternate suggestions if it's taken.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Username availability checked successfully",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = UsernameAvailabilityResponse.class))),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class)))
+      })
+  @GetMapping(path = "/check-username", produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<UsernameAvailabilityResponse> checkUsernameAvailability(
+      @Parameter(description = "Username to check", required = true)
+      @RequestParam String username) {
+    UsernameAvailabilityResponse response = userService.checkUsernameAvailability(username);
+    return ResponseEntity.ok(response);
+  }
 }
