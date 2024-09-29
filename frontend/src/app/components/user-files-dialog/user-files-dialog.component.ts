@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { FileAPIService, ModelFile, PageInfo } from 'worm-api-client';
 import { MatGridListModule } from '@angular/material/grid-list';
@@ -24,7 +24,7 @@ export class UserFilesDialogComponent implements OnInit {
   public pageSize = 12; // Adjust as needed
   public pageSizeOptions: number[] = [12, 24, 48, 96];
 
-  constructor(protected fileService: FileAPIService) {}
+  private fileService = inject(FileAPIService);
 
   async ngOnInit(): Promise<void> {
     await this.loadFiles(0, this.pageSize);
