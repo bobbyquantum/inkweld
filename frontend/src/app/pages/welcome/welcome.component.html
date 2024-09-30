@@ -31,15 +31,37 @@
 
         <div class="oauth-container">
           <h3 class="mat-subtitle-1">Or login with:</h3>
-          <button mat-raised-button (click)="loginWithGoogle()">
-            <mat-icon svgIcon="google"></mat-icon> Google
-          </button>
-          <button mat-raised-button (click)="loginWithFacebook()">
-            <mat-icon svgIcon="facebook"></mat-icon> Facebook
-          </button>
-          <button mat-raised-button (click)="loginWithGithub()">
-            <mat-icon svgIcon="github"></mat-icon> GitHub
-          </button>
+          @if (googleEnabled) {
+            <button mat-raised-button type="button" (click)="loginWithGoogle()">
+              <mat-icon svgIcon="google"></mat-icon> Google
+            </button>
+          }
+          @if (facebookEnabled) {
+            <button
+              mat-raised-button
+              type="button"
+              (click)="loginWithFacebook()">
+              <mat-icon svgIcon="facebook"></mat-icon> Facebook
+            </button>
+          }
+          @if (githubEnabled) {
+            <button mat-raised-button type="button" (click)="loginWithGithub()">
+              <mat-icon svgIcon="github"></mat-icon> GitHub
+            </button>
+          }
+          @if (appleEnabled) {
+            <button mat-raised-button type="button" (click)="loginWithApple()">
+              <mat-icon svgIcon="apple"></mat-icon> Apple
+            </button>
+          }
+          @if (discordEnabled) {
+            <button
+              mat-raised-button
+              type="button"
+              (click)="loginWithDiscord()">
+              <mat-icon svgIcon="discord"></mat-icon> Discord
+            </button>
+          }
         </div>
       </mat-card-content>
       <mat-card-actions>

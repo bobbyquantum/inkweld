@@ -9,12 +9,12 @@
 }
 
 .avatar {
-  height: 2.5rem;
-  width: 2.5rem;
+  height: 2rem;
+  width: 2rem;
   display: flex;
   position: fixed;
-  margin-top: -12px;
-  margin-left: -12px;
+  margin-top: -0.1rem;
+  margin-left: -0.5rem;
 }
 
 .rounded-full {
@@ -23,13 +23,6 @@
 
 img {
   height: auto;
-}
-
-.user-menu {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  z-index: 1000;
 }
 
 mat-divider {

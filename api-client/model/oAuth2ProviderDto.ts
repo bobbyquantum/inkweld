@@ -10,10 +10,9 @@
  */
 
 
-export interface RegisterUserRequest { 
-    username: string;
-    email: string;
-    password: string;
-    name: string;
+export interface OAuth2ProviderDto { 
+    providerId?: string;
+    providerName?: string;
+    authorizationUrl?: string;
 }
 

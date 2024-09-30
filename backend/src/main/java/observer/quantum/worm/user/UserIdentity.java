@@ -25,6 +25,12 @@ public class UserIdentity {
   @Column(name = "provider_id", nullable = false)
   private String providerId;
 
+  @Column(nullable = false)
+  private String providerUser;
+
+  @Column(nullable = false)
+  private String providerDisplay;
+
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id")
   private User user;
