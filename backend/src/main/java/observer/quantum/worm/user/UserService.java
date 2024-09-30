@@ -1,10 +1,10 @@
 package observer.quantum.worm.user;
 
-import java.util.Optional;
-import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
+import java.util.UUID;
 import org.springframework.security.authentication.RememberMeAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -217,10 +217,11 @@ public class UserService {
 
   public List<String> getEnabledOAuth2Providers() {
     List<String> providers = new ArrayList<>();
-    
+
     String[] providerIds = {"github", "google"};
     for (String providerId : providerIds) {
-      ClientRegistration registration = clientRegistrationRepository.findByRegistrationId(providerId);
+      ClientRegistration registration =
+          clientRegistrationRepository.findByRegistrationId(providerId);
       if (registration != null) {
         providers.add(registration.getRegistrationId());
       }

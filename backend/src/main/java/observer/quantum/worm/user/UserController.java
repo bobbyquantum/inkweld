@@ -10,14 +10,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import observer.quantum.worm.error.ErrorResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RequestMapping("/api/v1/users")
 @RestController
@@ -35,7 +34,7 @@ public class UserController {
 
   @Operation(
       summary = "Register a new user",
-      description = "Registers a new user with the provided details.")
+      description = "Registers a new user with the provided details. Requires a valid CSRF token.")
   @ApiResponses(
       value = {
         @ApiResponse(
@@ -51,6 +50,13 @@ public class UserController {
             content =
                 @Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Invalid CSRF token",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ErrorResponse.class)))
       })
   @PostMapping(
@@ -58,6 +64,14 @@ public class UserController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<UserDto> registerUser(
+      @Parameter(
+              in = ParameterIn.HEADER,
+              name = "X-XSRF-TOKEN",
+              description = "CSRF token",
+              required = true,
+              schema = @Schema(type = "string"))
+          @RequestHeader(name = "X-XSRF-TOKEN")
+          String csrfToken,
       @io.swagger.v3.oas.annotations.parameters.RequestBody(
               description = "User registration details",
               required = true,
@@ -274,7 +288,8 @@ public class UserController {
 
   @Operation(
       summary = "Check username availability",
-      description = "Checks if a username is available and provides alternate suggestions if it's taken.")
+      description =
+          "Checks if a username is available and provides alternate suggestions if it's taken.")
   @ApiResponses(
       value = {
         @ApiResponse(
@@ -294,8 +309,8 @@ public class UserController {
       })
   @GetMapping(path = "/check-username", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<UsernameAvailabilityResponse> checkUsernameAvailability(
-      @Parameter(description = "Username to check", required = true)
-      @RequestParam String username) {
+      @Parameter(description = "Username to check", required = true) @RequestParam
+          String username) {
     UsernameAvailabilityResponse response = userService.checkUsernameAvailability(username);
     return ResponseEntity.ok(response);
   }

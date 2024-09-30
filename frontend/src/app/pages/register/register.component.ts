@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -9,7 +9,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { UserAPIService, UsernameAvailabilityResponse } from 'worm-api-client';
+import {
+  UserAPIService,
+  UsernameAvailabilityResponse,
+  RegisterUserRequest,
+} from 'worm-api-client';
+import { XsrfService } from '@services/xsrf.service';
 import { firstValueFrom } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -32,11 +37,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 })
 export class RegisterComponent implements OnInit {
   username = '';
+  name = '';
   email = '';
   password = '';
   confirmPassword = '';
   isMobile = false;
   usernameSuggestions: string[] | undefined = [];
+  usernameAvailability: 'available' | 'unavailable' | 'unknown' = 'unknown';
 
   githubEnabled = false;
   googleEnabled = false;
@@ -47,51 +54,75 @@ export class RegisterComponent implements OnInit {
   private userService = inject(UserAPIService);
   private snackBar = inject(MatSnackBar);
   private ngZone = inject(NgZone);
+  private router = inject(Router);
+  private xsrfService = inject(XsrfService);
 
   async ngOnInit() {
-    // Simple mobile detection (can be improved with a proper responsive design service)
     this.isMobile = window.innerWidth < 768;
 
-    // Fetch enabled OAuth2 providers
-    const providers = await firstValueFrom(
-      this.userService.getEnabledOAuth2Providers()
-    );
-    console.log('Enabled OAuth2 providers:', providers);
-    providers.forEach(provider => {
-      if (provider === 'github') {
-        this.githubEnabled = true;
-      }
-      if (provider === 'google') {
-        this.googleEnabled = true;
-      }
-      if (provider === 'facebook') {
-        this.facebookEnabled = true;
-      }
-      if (provider === 'discord') {
-        this.discordEnabled = true;
-      }
-      if (provider === 'apple') {
-        this.appleEnabled = true;
-      }
-    });
+    try {
+      const providers = await firstValueFrom(
+        this.userService.getEnabledOAuth2Providers()
+      );
+      console.log('Enabled OAuth2 providers:', providers);
+      providers.forEach(provider => {
+        if (provider === 'github') this.githubEnabled = true;
+        if (provider === 'google') this.googleEnabled = true;
+        if (provider === 'facebook') this.facebookEnabled = true;
+        if (provider === 'discord') this.discordEnabled = true;
+        if (provider === 'apple') this.appleEnabled = true;
+      });
+    } catch (error) {
+      console.error('Error fetching OAuth2 providers:', error);
+      this.snackBar.open('Failed to load OAuth2 providers', 'Close', {
+        duration: 5000,
+      });
+    }
   }
 
-  onRegister() {
-    // Implement registration logic here
-    // this.userService.registerUser({
-    //   username: this.username,
-    //   name: 'test',
-    //   password: this.password,
-    // });
-    console.log('Register clicked', {
-      username: this.username,
-      email: this.email,
-    });
+  async onRegister() {
+    if (this.password !== this.confirmPassword) {
+      this.snackBar.open('Passwords do not match', 'Close', { duration: 3000 });
+      return;
+    }
+
+    try {
+      const registerRequest: RegisterUserRequest = {
+        username: this.username,
+        name: this.name,
+        email: this.email,
+        password: this.password,
+      };
+
+      const xsrfToken = this.xsrfService.getXsrfToken();
+      await firstValueFrom(
+        this.userService.registerUser(xsrfToken, registerRequest)
+      );
+      this.snackBar.open('Registration successful!', 'Close', {
+        duration: 3000,
+      });
+      this.router.navigate(['/home']);
+    } catch (error: unknown) {
+      if (error instanceof HttpErrorResponse) {
+        console.error('Error during registration:', error.message);
+        this.snackBar.open(`Registration failed: ${error.message}`, 'Close', {
+          duration: 5000,
+        });
+      } else {
+        console.error('Unknown error during registration:', error);
+        this.snackBar.open(
+          'An unknown error occurred during registration. Please try again.',
+          'Close',
+          { duration: 5000 }
+        );
+      }
+    }
   }
 
   async checkUsernameAvailability() {
     if (this.username.length < 3) {
-      return; // Don't check availability for usernames shorter than 3 characters
+      this.usernameAvailability = 'unknown';
+      return;
     }
 
     try {
@@ -100,33 +131,18 @@ export class RegisterComponent implements OnInit {
       );
 
       if (response.available) {
-        this.snackBar.open('Username is available!', 'Close', {
-          duration: 3000,
-        });
+        this.usernameAvailability = 'available';
         this.usernameSuggestions = [];
       } else {
-        this.snackBar.open(
-          'Username is already taken. Try one of the suggestions below.',
-          'Close',
-          { duration: 5000 }
-        );
+        this.usernameAvailability = 'unavailable';
         this.usernameSuggestions = response.suggestions;
       }
     } catch (error: unknown) {
+      this.usernameAvailability = 'unknown';
       if (error instanceof HttpErrorResponse) {
         console.error('Error checking username availability:', error.message);
-        this.snackBar.open(
-          `Error checking username availability: ${error.message}. Please try again.`,
-          'Close',
-          { duration: 5000 }
-        );
       } else {
         console.error('Unknown error checking username availability:', error);
-        this.snackBar.open(
-          'An unknown error occurred. Please try again.',
-          'Close',
-          { duration: 5000 }
-        );
       }
     }
   }
@@ -137,38 +153,10 @@ export class RegisterComponent implements OnInit {
     this.checkUsernameAvailability();
   }
 
-  registerWithGoogle() {
-    console.log('Register with Google clicked');
+  registerWithOAuth(provider: string) {
+    console.log(`Register with ${provider} clicked`);
     this.ngZone.runOutsideAngular(() => {
-      window.location.href = '/oauth2/authorization/google';
-    });
-  }
-
-  registerWithFacebook() {
-    console.log('Register with Facebook clicked');
-    this.ngZone.runOutsideAngular(() => {
-      window.location.href = '/oauth2/authorization/facebook';
-    });
-  }
-
-  registerWithGithub() {
-    console.log('Register with GitHub clicked');
-    this.ngZone.runOutsideAngular(() => {
-      window.location.href = '/oauth2/authorization/github';
-    });
-  }
-
-  registerWithApple() {
-    console.log('Register with Apple clicked');
-    this.ngZone.runOutsideAngular(() => {
-      window.location.href = '/oauth2/authorization/apple';
-    });
-  }
-
-  registerWithDiscord() {
-    console.log('Register with Discord clicked');
-    this.ngZone.runOutsideAngular(() => {
-      window.location.href = '/oauth2/authorization/discord';
+      window.location.href = `/oauth2/authorization/${provider.toLowerCase()}`;
     });
   }
 }

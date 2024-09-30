@@ -12,8 +12,16 @@
               [(ngModel)]="username"
               name="username"
               required
-              (input)="checkUsernameAvailability()"
+              (blur)="checkUsernameAvailability()"
               aria-label="Username" />
+            <mat-icon matSuffix [ngSwitch]="usernameAvailability">
+              <ng-container *ngSwitchCase="'available'">
+                <mat-icon color="primary">check_circle</mat-icon>
+              </ng-container>
+              <ng-container *ngSwitchCase="'unavailable'">
+                <mat-icon color="warn">cancel</mat-icon>
+              </ng-container>
+            </mat-icon>
             <mat-hint
               *ngIf="usernameSuggestions && usernameSuggestions.length > 0">
               Suggestions:
@@ -28,6 +36,16 @@
                 >{{ last ? '' : ', ' }}
               </span>
             </mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Name</mat-label>
+            <input
+              matInput
+              type="text"
+              [(ngModel)]="name"
+              name="name"
+              required
+              aria-label="Name" />
           </mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>Email</mat-label>
@@ -69,27 +87,27 @@
         <div class="oauth-container">
           <h3 class="mat-subtitle-1">Or register with:</h3>
           @if (googleEnabled) {
-            <button mat-raised-button (click)="registerWithGoogle()">
+            <button mat-raised-button (click)="registerWithOAuth('google')">
               <mat-icon svgIcon="google"></mat-icon> Google
             </button>
           }
           @if (facebookEnabled) {
-            <button mat-raised-button (click)="registerWithFacebook()">
+            <button mat-raised-button (click)="registerWithOAuth('facebook')">
               <mat-icon svgIcon="facebook"></mat-icon> Facebook
             </button>
           }
           @if (githubEnabled) {
-            <button mat-raised-button (click)="registerWithGithub()">
+            <button mat-raised-button (click)="registerWithOAuth('github')">
               <mat-icon svgIcon="github"></mat-icon> GitHub
             </button>
           }
           @if (appleEnabled) {
-            <button mat-raised-button (click)="registerWithApple()">
+            <button mat-raised-button (click)="registerWithOAuth('apple')">
               <mat-icon svgIcon="apple"></mat-icon> Apple
             </button>
           }
           @if (discordEnabled) {
-            <button mat-raised-button (click)="registerWithDiscord()">
+            <button mat-raised-button (click)="registerWithOAuth('discord')">
               <mat-icon svgIcon="discord"></mat-icon> Discord
             </button>
           }
