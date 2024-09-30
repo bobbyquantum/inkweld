@@ -42,7 +42,7 @@ public class UserServiceTest {
     String avatarImageUrl = "avatarImageUrl";
     List<UserIdentity> identities = new ArrayList<>();
 
-    User user = new User(id, username, name, email, password, avatarImageUrl, identities);
+    User user = new User(id, username, name, email, password,  true, avatarImageUrl, identities);
 
     assertEquals(id, user.getId());
     assertEquals(username, user.getUsername());
@@ -72,6 +72,7 @@ public class UserServiceTest {
             Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
             Map.of(
                 "name", "John Doe",
+                "login", "john.doe",
                 "email", "john.doe@example.com",
                 "avatar_url", "https://example.com/avatar.jpg"),
             "name");
@@ -178,6 +179,7 @@ public class UserServiceTest {
             Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")),
             Map.of(
                 "name", "John Doe",
+                "login", "john.doe",
                 "email", "john.doe@example.com",
                 "avatar_url", "https://example.com/avatar.jpg"),
             "name");

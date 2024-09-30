@@ -3,6 +3,7 @@ package observer.quantum.worm.user;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,6 +16,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RequestMapping("/api/v1/users")
 @RestController
@@ -68,6 +71,7 @@ public class UserController {
     User newUser =
         userService.registerUser(
             registerUserRequest.getUsername(),
+            registerUserRequest.getEmail(),
             registerUserRequest.getPassword(),
             registerUserRequest.getName());
     log.info("New user registered: {}", newUser.getUsername());
@@ -294,5 +298,24 @@ public class UserController {
       @RequestParam String username) {
     UsernameAvailabilityResponse response = userService.checkUsernameAvailability(username);
     return ResponseEntity.ok(response);
+  }
+
+  @Operation(
+      summary = "Get enabled OAuth2 providers",
+      description = "Retrieves a list of enabled OAuth2 providers for user authentication.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "OAuth2 providers retrieved successfully",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    array = @ArraySchema(schema = @Schema(implementation = String.class))))
+      })
+  @GetMapping(path = "/oauth2-providers", produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<List<String>> getEnabledOAuth2Providers() {
+    List<String> providers = userService.getEnabledOAuth2Providers();
+    return ResponseEntity.ok(providers);
   }
 }

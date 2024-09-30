@@ -1,12 +1,12 @@
 <div class="menu-container">
-  <button mat-fab extended [matMenuTriggerFor]="menu" class="user-menu">
+  <button mat-button [matMenuTriggerFor]="menu" class="user-menu">
     <div class="avatar">
       <img
         class="rounded-full"
         [src]="user?.avatarImageUrl"
         alt="User avatar" />
     </div>
-    {{ user?.name }}
+    &nbsp;
   </button>
 
   <mat-menu

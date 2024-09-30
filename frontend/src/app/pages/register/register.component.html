@@ -68,15 +68,31 @@
 
         <div class="oauth-container">
           <h3 class="mat-subtitle-1">Or register with:</h3>
-          <button mat-raised-button (click)="registerWithGoogle()">
-            <mat-icon svgIcon="google"></mat-icon> Google
-          </button>
-          <button mat-raised-button (click)="registerWithFacebook()">
-            <mat-icon svgIcon="facebook"></mat-icon> Facebook
-          </button>
-          <button mat-raised-button (click)="registerWithGithub()">
-            <mat-icon svgIcon="github"></mat-icon> GitHub
-          </button>
+          @if (googleEnabled) {
+            <button mat-raised-button (click)="registerWithGoogle()">
+              <mat-icon svgIcon="google"></mat-icon> Google
+            </button>
+          }
+          @if (facebookEnabled) {
+            <button mat-raised-button (click)="registerWithFacebook()">
+              <mat-icon svgIcon="facebook"></mat-icon> Facebook
+            </button>
+          }
+          @if (githubEnabled) {
+            <button mat-raised-button (click)="registerWithGithub()">
+              <mat-icon svgIcon="github"></mat-icon> GitHub
+            </button>
+          }
+          @if (appleEnabled) {
+            <button mat-raised-button (click)="registerWithApple()">
+              <mat-icon svgIcon="apple"></mat-icon> Apple
+            </button>
+          }
+          @if (discordEnabled) {
+            <button mat-raised-button (click)="registerWithDiscord()">
+              <mat-icon svgIcon="discord"></mat-icon> Discord
+            </button>
+          }
         </div>
       </mat-card-content>
       <mat-card-actions>

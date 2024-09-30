@@ -12,6 +12,8 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,14 +24,17 @@ public class UserService {
   private final UserRepository userRepository;
   private final UserIdentityRepository userIdentityRepository;
   private final PasswordEncoder passwordEncoder;
+  private final ClientRegistrationRepository clientRegistrationRepository;
 
   public UserService(
       UserRepository userRepository,
       UserIdentityRepository userIdentityRepository,
-      PasswordEncoder passwordEncoder) {
+      PasswordEncoder passwordEncoder,
+      ClientRegistrationRepository clientRegistrationRepository) {
     this.userRepository = userRepository;
     this.userIdentityRepository = userIdentityRepository;
     this.passwordEncoder = passwordEncoder;
+    this.clientRegistrationRepository = clientRegistrationRepository;
   }
 
   public Optional<User> getCurrentUser() {
@@ -66,9 +71,12 @@ public class UserService {
     userIdentity.setUser(userRecord);
     switch (provider) {
       case "github" -> {
+        userIdentity.setProviderUser(user.getAttribute("login"));
+        userIdentity.setProviderDisplay(user.getAttribute("name"));
+        userRecord.setUsername(user.getAttribute("login"));
         userRecord.setName(user.getAttribute("name"));
         userRecord.setAvatarImageUrl(user.getAttribute("avatar_url"));
-        userRecord.setUsername(user.getAttribute("email"));
+        userRecord.setEmail(user.getAttribute("email"));
       }
       case "google" -> {
         userRecord.setName(user.getAttribute("name"));
@@ -85,7 +93,7 @@ public class UserService {
     return userRecord;
   }
 
-  public User registerUser(String username, String password, String name) {
+  public User registerUser(String username, String email, String password, String name) {
     if (userRepository.findByUsername(username).isPresent()) {
       throw new IllegalArgumentException("Username already exists");
     }
@@ -97,7 +105,9 @@ public class UserService {
     var userRecord = new User();
     userRecord.setUsername(username);
     userRecord.setName(name);
+    userRecord.setEmail(email);
     userRecord.setPassword(passwordEncoder.encode(password));
+    userRecord.setEnabled(true);
 
     return userRepository.save(userRecord);
   }
@@ -203,5 +213,19 @@ public class UserService {
         .filter(suggestion -> !userRepository.findByUsername(suggestion).isPresent())
         .limit(3)
         .toList();
+  }
+
+  public List<String> getEnabledOAuth2Providers() {
+    List<String> providers = new ArrayList<>();
+    
+    String[] providerIds = {"github", "google"};
+    for (String providerId : providerIds) {
+      ClientRegistration registration = clientRegistrationRepository.findByRegistrationId(providerId);
+      if (registration != null) {
+        providers.add(registration.getRegistrationId());
+      }
+    }
+
+    return providers;
   }
 }
