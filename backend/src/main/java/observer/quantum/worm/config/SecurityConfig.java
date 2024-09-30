@@ -62,7 +62,7 @@ public class SecurityConfig {
     http.authorizeHttpRequests(
         authorize ->
             authorize
-                .requestMatchers("/api-docs", "/swagger-ui/**", "/login", "/api/v1/users/check-username", "/api/v1/users/register")
+                .requestMatchers("/api-docs", "/swagger-ui/**", "/login", "/api/v1/users/oauth2-providers", "/api/v1/users/check-username", "/api/v1/users/register")
                 .permitAll()
                 .anyRequest()
                 .authenticated());
@@ -79,7 +79,7 @@ public class SecurityConfig {
                 .alwaysRemember(true)
                 .key("worm"));
 
-    http.logout(logout -> logout.logoutUrl("/logout"));
+    http.logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/"));
 
     http.exceptionHandling(
         exceptionHandling ->

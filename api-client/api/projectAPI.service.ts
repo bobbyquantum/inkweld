@@ -33,7 +33,7 @@ import { Configuration }                                     from '../configurat
 })
 export class ProjectAPIService {
 
-    protected basePath = 'http://localhost:51579';
+    protected basePath = 'http://localhost:58977';
     public defaultHeaders = new HttpHeaders();
     public configuration = new Configuration();
     public encoder: HttpParameterCodec;
