@@ -51,8 +51,11 @@ public class SecurityConfig {
 
   @Bean
   public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
-    AuthenticationManagerBuilder authenticationManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
-    authenticationManagerBuilder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder);
+    AuthenticationManagerBuilder authenticationManagerBuilder =
+        http.getSharedObject(AuthenticationManagerBuilder.class);
+    authenticationManagerBuilder
+        .userDetailsService(userDetailsService)
+        .passwordEncoder(passwordEncoder);
     authenticationManagerBuilder.authenticationProvider(daoAuthenticationProvider());
     return authenticationManagerBuilder.build();
   }
@@ -62,7 +65,13 @@ public class SecurityConfig {
     http.authorizeHttpRequests(
         authorize ->
             authorize
-                .requestMatchers("/api-docs", "/swagger-ui/**", "/login", "/api/v1/users/oauth2-providers", "/api/v1/users/check-username", "/api/v1/users/register")
+                .requestMatchers(
+                    "/api-docs",
+                    "/swagger-ui/**",
+                    "/login",
+                    "/api/v1/users/oauth2-providers",
+                    "/api/v1/users/check-username",
+                    "/api/v1/users/register")
                 .permitAll()
                 .anyRequest()
                 .authenticated());
