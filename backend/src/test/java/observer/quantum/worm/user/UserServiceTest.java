@@ -42,7 +42,7 @@ public class UserServiceTest {
     String avatarImageUrl = "avatarImageUrl";
     List<UserIdentity> identities = new ArrayList<>();
 
-    User user = new User(id, username, name, email, password,  true, avatarImageUrl, identities);
+    User user = new User(id, username, name, email, password, true, avatarImageUrl, identities);
 
     assertEquals(id, user.getId());
     assertEquals(username, user.getUsername());
@@ -158,7 +158,7 @@ public class UserServiceTest {
   public void testCheckUsernameAvailability_Unavailable() {
     // Arrange
     String username = "existinguser";
-    
+
     when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
     when(userRepository.findByUsername(username)).thenReturn(Optional.of(new User()));
 
@@ -168,8 +168,9 @@ public class UserServiceTest {
     // Assert
     assertFalse(response.isAvailable());
     assertEquals(3, response.getSuggestions().size());
-    assertTrue(response.getSuggestions().stream().allMatch(suggestion -> !suggestion.equals(username)));
-}
+    assertTrue(
+        response.getSuggestions().stream().allMatch(suggestion -> !suggestion.equals(username)));
+  }
 
   @Test
   public void testRegisterUser_withGitHubProvider() {

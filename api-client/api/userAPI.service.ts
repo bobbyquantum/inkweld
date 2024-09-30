@@ -41,7 +41,7 @@ import { Configuration }                                     from '../configurat
 })
 export class UserAPIService {
 
-    protected basePath = 'http://localhost:58977';
+    protected basePath = 'http://localhost:61521';
     public defaultHeaders = new HttpHeaders();
     public configuration = new Configuration();
     public encoder: HttpParameterCodec;
@@ -365,20 +365,27 @@ export class UserAPIService {
 
     /**
      * Register a new user
-     * Registers a new user with the provided details.
+     * Registers a new user with the provided details. Requires a valid CSRF token.
+     * @param xXSRFTOKEN CSRF token
      * @param registerUserRequest User registration details
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public registerUser(registerUserRequest: RegisterUserRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<User>;
-    public registerUser(registerUserRequest: RegisterUserRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<User>>;
-    public registerUser(registerUserRequest: RegisterUserRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<User>>;
-    public registerUser(registerUserRequest: RegisterUserRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public registerUser(xXSRFTOKEN: string, registerUserRequest: RegisterUserRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<User>;
+    public registerUser(xXSRFTOKEN: string, registerUserRequest: RegisterUserRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<User>>;
+    public registerUser(xXSRFTOKEN: string, registerUserRequest: RegisterUserRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<User>>;
+    public registerUser(xXSRFTOKEN: string, registerUserRequest: RegisterUserRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
+            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling registerUser.');
+        }
         if (registerUserRequest === null || registerUserRequest === undefined) {
             throw new Error('Required parameter registerUserRequest was null or undefined when calling registerUser.');
         }
 
         let localVarHeaders = this.defaultHeaders;
+        if (xXSRFTOKEN !== undefined && xXSRFTOKEN !== null) {
+            localVarHeaders = localVarHeaders.set('X-XSRF-TOKEN', String(xXSRFTOKEN));
+        }
 
         let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
         if (localVarHttpHeaderAcceptSelected === undefined) {
