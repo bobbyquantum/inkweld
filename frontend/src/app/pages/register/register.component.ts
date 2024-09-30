@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -38,12 +38,42 @@ export class RegisterComponent implements OnInit {
   isMobile = false;
   usernameSuggestions: string[] | undefined = [];
 
+  githubEnabled = false;
+  googleEnabled = false;
+  facebookEnabled = false;
+  discordEnabled = false;
+  appleEnabled = false;
+
   private userService = inject(UserAPIService);
   private snackBar = inject(MatSnackBar);
+  private ngZone = inject(NgZone);
 
-  ngOnInit() {
+  async ngOnInit() {
     // Simple mobile detection (can be improved with a proper responsive design service)
     this.isMobile = window.innerWidth < 768;
+
+    // Fetch enabled OAuth2 providers
+    const providers = await firstValueFrom(
+      this.userService.getEnabledOAuth2Providers()
+    );
+    console.log('Enabled OAuth2 providers:', providers);
+    providers.forEach(provider => {
+      if (provider === 'github') {
+        this.githubEnabled = true;
+      }
+      if (provider === 'google') {
+        this.googleEnabled = true;
+      }
+      if (provider === 'facebook') {
+        this.facebookEnabled = true;
+      }
+      if (provider === 'discord') {
+        this.discordEnabled = true;
+      }
+      if (provider === 'apple') {
+        this.appleEnabled = true;
+      }
+    });
   }
 
   onRegister() {
@@ -108,17 +138,37 @@ export class RegisterComponent implements OnInit {
   }
 
   registerWithGoogle() {
-    // Implement Google OAuth registration
     console.log('Register with Google clicked');
+    this.ngZone.runOutsideAngular(() => {
+      window.location.href = '/oauth2/authorization/google';
+    });
   }
 
   registerWithFacebook() {
-    // Implement Facebook OAuth registration
     console.log('Register with Facebook clicked');
+    this.ngZone.runOutsideAngular(() => {
+      window.location.href = '/oauth2/authorization/facebook';
+    });
   }
 
   registerWithGithub() {
-    // Implement GitHub OAuth registration
     console.log('Register with GitHub clicked');
+    this.ngZone.runOutsideAngular(() => {
+      window.location.href = '/oauth2/authorization/github';
+    });
+  }
+
+  registerWithApple() {
+    console.log('Register with Apple clicked');
+    this.ngZone.runOutsideAngular(() => {
+      window.location.href = '/oauth2/authorization/apple';
+    });
+  }
+
+  registerWithDiscord() {
+    console.log('Register with Discord clicked');
+    this.ngZone.runOutsideAngular(() => {
+      window.location.href = '/oauth2/authorization/discord';
+    });
   }
 }
