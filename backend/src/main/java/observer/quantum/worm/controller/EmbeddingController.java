@@ -34,7 +34,10 @@ public class EmbeddingController {
 
     @Operation(
         summary = "Generate embeddings for given texts",
-        description = "Generates embeddings for a list of input texts using the Ollama model specified in the configuration. Requires a valid CSRF token."
+        description = "Generates embeddings for a list of input texts using the Ollama model specified in the configuration. " +
+                      "Each text is transformed into a single embedding vector of 384 dimensions. " +
+                      "The response is a list of embedding vectors, where each vector corresponds to an input text. " +
+                      "Requires a valid CSRF token."
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -42,7 +45,8 @@ public class EmbeddingController {
             description = "Successfully generated embeddings",
             content = @Content(
                 mediaType = MediaType.APPLICATION_JSON_VALUE,
-                array = @ArraySchema(schema = @Schema(implementation = List.class))
+                array = @ArraySchema(schema = @Schema(implementation = List.class, 
+                                    description = "List of embedding vectors, each vector is an array of 384 float values"))
             )
         ),
         @ApiResponse(
@@ -104,7 +108,7 @@ public class EmbeddingController {
     ) {
         logger.info("Received request to generate embeddings for {} texts", texts.size());
         List<List<Float>> embeddings = embeddingService.generateEmbeddings(texts);
-        logger.info("Generated embeddings for {} texts", embeddings.size());
+        logger.info("Generated {} embedding vectors, each with {} dimensions", embeddings.size(), embeddings.get(0).size());
         return ResponseEntity.ok(embeddings);
     }
 }
