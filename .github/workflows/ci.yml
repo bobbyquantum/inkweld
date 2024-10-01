@@ -35,7 +35,7 @@ jobs:
       run: npm run lint:ci
 
     - name: Run backend tests
-      run: cd backend && npm run mvnw test
+      run: npm run test-backend
 
     - name: Run frontend tests
       run: cd frontend && npm test -- --watch=false --browsers=ChromeHeadless
