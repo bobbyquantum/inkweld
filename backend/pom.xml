@@ -28,6 +28,7 @@
     </scm>
     <properties>
         <java.version>22</java.version>
+        <spring-ai.version>1.0.0-M2</spring-ai.version>
     </properties>
     <profiles>
         <profile>
@@ -63,7 +64,6 @@
                                 <configuration>
                                     <inputSpec>backend/target/openapi.json</inputSpec>
                                     <generatorName>typescript-angular</generatorName>
-                                
                                     <output>../api-client</output>
                                     <configOptions>
                                         <npmName>worm-api-client</npmName>
@@ -147,6 +147,18 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- Spring AI dependencies -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-ollama-spring-boot-starter</artifactId>
+            <version>1.0.0-M2</version>
+        </dependency>
+        <!-- pgvector dependency -->
+        <dependency>
+            <groupId>com.pgvector</groupId>
+            <artifactId>pgvector</artifactId>
+            <version>0.1.6</version>
+        </dependency>
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -185,6 +197,18 @@
         </dependency>
     </dependencies>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <build>
         <plugins>
             <plugin>
@@ -218,5 +242,16 @@
             </plugin>
         </plugins>
     </build>
+
+    <repositories>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
 </project>
