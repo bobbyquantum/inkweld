@@ -7,7 +7,7 @@ import {
   User,
   Project,
 } from 'worm-api-client';
-import { BreakpointObserver } from '@angular/cdk/layout';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Observable, of } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
@@ -16,6 +16,7 @@ import {
   provideRouter,
 } from '@angular/router';
 import { provideLocationMocks } from '@angular/common/testing';
+import { HttpClient } from '@angular/common/http';
 
 describe('HomeComponent', () => {
   let component: HomeComponent;
@@ -24,6 +25,7 @@ describe('HomeComponent', () => {
   let userServiceMock: jasmine.SpyObj<UserAPIService>;
   let projectServiceMock: jasmine.SpyObj<ProjectAPIService>;
   let breakpointObserverMock: jasmine.SpyObj<BreakpointObserver>;
+  let httpClientMock: jasmine.SpyObj<HttpClient>;
 
   beforeEach(async () => {
     themeServiceMock = jasmine.createSpyObj('ThemeService', [
@@ -37,7 +39,13 @@ describe('HomeComponent', () => {
       of({ matches: true, breakpoints: {} })
     );
 
-    //user service mock
+    httpClientMock = jasmine.createSpyObj('HttpClient', [
+      'get',
+      'post',
+      'put',
+      'delete',
+    ]);
+
     userServiceMock = jasmine.createSpyObj<UserAPIService>('UserAPIService', [
       'getCurrentUser',
     ]);
@@ -46,7 +54,6 @@ describe('HomeComponent', () => {
     >;
     getCurrentUserSpy.and.returnValue(of({} as User));
 
-    //project mock
     projectServiceMock = jasmine.createSpyObj<ProjectAPIService>(
       'ProjectAPIService',
       ['getAllProjects', 'createProject']
@@ -68,6 +75,7 @@ describe('HomeComponent', () => {
         { provide: UserAPIService, useValue: userServiceMock },
         { provide: ProjectAPIService, useValue: projectServiceMock },
         { provide: BreakpointObserver, useValue: breakpointObserverMock },
+        { provide: HttpClient, useValue: httpClientMock },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -79,7 +87,6 @@ describe('HomeComponent', () => {
 
     fixture = TestBed.createComponent(HomeComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
   it('should create', () => {
@@ -87,11 +94,21 @@ describe('HomeComponent', () => {
   });
 
   it('should fetch current user on init', () => {
+    component.ngOnInit();
     expect(userServiceMock.getCurrentUser).toHaveBeenCalled();
   });
 
   it('should fetch all projects on init', () => {
+    component.ngOnInit();
     expect(projectServiceMock.getAllProjects).toHaveBeenCalled();
+  });
+
+  it('should setup breakpoint observer on init', () => {
+    component.ngOnInit();
+    expect(breakpointObserverMock.observe).toHaveBeenCalledWith([
+      Breakpoints.XSmall,
+      Breakpoints.Small,
+    ]);
   });
 
   it('should select a project', () => {
@@ -103,5 +120,21 @@ describe('HomeComponent', () => {
   it('should back to list', () => {
     component.backToList();
     expect(component.selectedProject).toBeNull();
+  });
+
+  it('should set isMobile to true when breakpoint matches', () => {
+    breakpointObserverMock.observe.and.returnValue(
+      of({ matches: true, breakpoints: {} })
+    );
+    component.ngOnInit();
+    expect(component.isMobile).toBe(true);
+  });
+
+  it('should set isMobile to false when breakpoint does not match', () => {
+    breakpointObserverMock.observe.and.returnValue(
+      of({ matches: false, breakpoints: {} })
+    );
+    component.ngOnInit();
+    expect(component.isMobile).toBe(false);
   });
 });
