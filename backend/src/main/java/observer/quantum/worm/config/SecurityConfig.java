@@ -1,6 +1,7 @@
 package observer.quantum.worm.config;
 
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
 import observer.quantum.worm.global.CsrfCookieFilter;
 import observer.quantum.worm.global.CustomUserDetailsService;
@@ -20,6 +21,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.*;
 import org.springframework.security.web.firewall.StrictHttpFirewall;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Slf4j
 @Profile("default")
@@ -69,6 +73,7 @@ public class SecurityConfig {
                     "/api-docs",
                     "/swagger-ui/**",
                     "/login",
+                    "/logout",
                     "/api/v1/users/oauth2-providers",
                     "/api/v1/users/check-username",
                     "/api/v1/users/register")
@@ -78,7 +83,20 @@ public class SecurityConfig {
 
     http.oauth2Login(oauth2 -> oauth2.defaultSuccessUrl("/", true))
         .formLogin(
-            formLogin -> formLogin.defaultSuccessUrl("/", true).failureUrl("/login?error=true"));
+            formLogin ->
+                formLogin
+                    .loginProcessingUrl("/login")
+                    .successHandler(
+                        (request, response, authentication) -> {
+                          response.setStatus(HttpServletResponse.SC_OK);
+                          response.getWriter().flush();
+                        })
+                    .failureHandler(
+                        (request, response, exception) -> {
+                          response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                          response.getWriter().write("{\"error\":\"Invalid credentials\"}");
+                          response.getWriter().flush();
+                        }));
 
     http.rememberMe(
         rememberMe ->
@@ -88,17 +106,31 @@ public class SecurityConfig {
                 .alwaysRemember(true)
                 .key("worm"));
 
-    http.logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/"));
+    http.logout(
+        logout ->
+            logout
+                .logoutUrl("/logout")
+                .logoutSuccessHandler(
+                    (request, response, authentication) -> {
+                      response.setStatus(HttpServletResponse.SC_OK);
+                      response.setContentType("application/json");
+                      response
+                          .getWriter()
+                          .write(
+                              "{\"message\":\"Logout successful\",\"redirectUrl\":\"/welcome\"}");
+                      response.getWriter().flush();
+                    })
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID"));
 
     http.exceptionHandling(
         exceptionHandling ->
-            exceptionHandling.defaultAuthenticationEntryPointFor(
-                (request, response, accessDeniedException) -> {
+            exceptionHandling.authenticationEntryPoint(
+                (request, response, authException) -> {
                   response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                   response.setContentType("application/json");
                   response.getWriter().write("{\"error\":\"Unauthorized\"}");
-                },
-                request -> request.getServletPath().startsWith("/api")));
+                }));
 
     http.csrf(
             (csrf) ->
@@ -106,9 +138,23 @@ public class SecurityConfig {
                     .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
         .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
 
+    http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
+
     http.authenticationManager(authenticationManager(http));
 
     return http.build();
+  }
+
+  @Bean
+  public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
+    configuration.setAllowedOrigins(Arrays.asList("http://localhost:8333"));
+    configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+    configuration.setAllowedHeaders(Arrays.asList("*"));
+    configuration.setAllowCredentials(true);
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
   }
 
   @Bean
