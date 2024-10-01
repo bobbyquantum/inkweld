@@ -10,4 +10,7 @@ function runCommand(command, cwd) {
 // Run backend tests
 console.log("Running backend tests...");
 const backendPath = path.join(__dirname, "backend");
-runCommand(".\\mvnw test", backendPath);
+const mvnwCommand = process.platform === "win32" ? "mvnw.cmd" : "./mvnw";
+const fullCommand = `${mvnwCommand} test`;
+
+runCommand(fullCommand, backendPath);
