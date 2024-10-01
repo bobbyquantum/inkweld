@@ -1,0 +1,87 @@
+.register-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.content-wrapper {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+mat-card {
+  margin-bottom: 24px;
+  padding: 24px;
+  box-shadow: var(--mdc-elevated-card-container-elevation);
+  background-color: var(--card-background-color);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.oauth-container {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  h3 {
+    margin-bottom: 8px;
+  }
+
+  button {
+    width: 100%;
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+}
+
+mat-divider {
+  margin: 24px 0;
+}
+
+.mobile {
+  .content-wrapper {
+    max-width: 100%;
+  }
+
+  mat-card {
+    padding: 16px;
+  }
+
+  .oauth-container {
+    button {
+      padding: 8px 16px;
+    }
+  }
+}
+
+// New styles for username suggestions
+mat-hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.85em;
+}
+
+.suggestion-button {
+  font-size: 0.85em;
+  padding: 2px 6px;
+  min-width: 0;
+  line-height: 1.5;
+  height: auto;
+}
+
+// Adjust the layout of suggestions
+span {
+  display: inline-block;
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
