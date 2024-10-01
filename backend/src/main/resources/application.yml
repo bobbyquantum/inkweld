@@ -47,6 +47,12 @@ spring:
     store-type: jdbc
     jdbc:
       initialize-schema: always
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      embedding:
+        options:
+          model: mxbai-embed-large
 
 springdoc:
   api-docs:

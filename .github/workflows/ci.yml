@@ -34,8 +34,12 @@ jobs:
     - name: Check code formatting
       run: npm run lint:ci
 
+    - name: Set execute permissions on mvnw (Unix-like systems only)
+      if: runner.os == 'Linux' || runner.os == 'macOS'
+      run: chmod +x backend/mvnw
+
     - name: Run backend tests
-      run: cd backend && npm run mvnw test
+      run: npm run test-backend
 
     - name: Run frontend tests
       run: cd frontend && npm test -- --watch=false --browsers=ChromeHeadless
