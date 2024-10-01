@@ -1,0 +1,123 @@
+<div class="register-container" [class.mobile]="isMobile">
+  <div class="content-wrapper">
+    <mat-card>
+      <mat-card-header><h2>Register for Worm</h2></mat-card-header>
+      <mat-card-content>
+        <form (ngSubmit)="onRegister()">
+          <mat-form-field appearance="outline">
+            <mat-label>Username</mat-label>
+            <input
+              matInput
+              type="text"
+              [(ngModel)]="username"
+              name="username"
+              required
+              (blur)="checkUsernameAvailability()"
+              aria-label="Username" />
+            <mat-icon matSuffix [ngSwitch]="usernameAvailability">
+              <ng-container *ngSwitchCase="'available'">
+                <mat-icon color="primary">check_circle</mat-icon>
+              </ng-container>
+              <ng-container *ngSwitchCase="'unavailable'">
+                <mat-icon color="warn">cancel</mat-icon>
+              </ng-container>
+            </mat-icon>
+            <mat-hint
+              *ngIf="usernameSuggestions && usernameSuggestions.length > 0">
+              Suggestions:
+              <span
+                *ngFor="let suggestion of usernameSuggestions; let last = last">
+                <button
+                  mat-button
+                  type="button"
+                  (click)="selectSuggestion(suggestion)"
+                  class="suggestion-button">
+                  {{ suggestion }}</button
+                >{{ last ? '' : ', ' }}
+              </span>
+            </mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Name</mat-label>
+            <input
+              matInput
+              type="text"
+              [(ngModel)]="name"
+              name="name"
+              required
+              aria-label="Name" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Email</mat-label>
+            <input
+              matInput
+              type="email"
+              [(ngModel)]="email"
+              name="email"
+              required
+              aria-label="Email" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Password</mat-label>
+            <input
+              matInput
+              type="password"
+              [(ngModel)]="password"
+              name="password"
+              required
+              aria-label="Password" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Confirm Password</mat-label>
+            <input
+              matInput
+              type="password"
+              [(ngModel)]="confirmPassword"
+              name="confirmPassword"
+              required
+              aria-label="Confirm Password" />
+          </mat-form-field>
+          <button mat-raised-button color="primary" type="submit">
+            Register
+          </button>
+        </form>
+
+        <mat-divider></mat-divider>
+
+        <div class="oauth-container">
+          <h3 class="mat-subtitle-1">Or register with:</h3>
+          @if (googleEnabled) {
+            <button mat-raised-button (click)="registerWithOAuth('google')">
+              <mat-icon svgIcon="google"></mat-icon> Google
+            </button>
+          }
+          @if (facebookEnabled) {
+            <button mat-raised-button (click)="registerWithOAuth('facebook')">
+              <mat-icon svgIcon="facebook"></mat-icon> Facebook
+            </button>
+          }
+          @if (githubEnabled) {
+            <button mat-raised-button (click)="registerWithOAuth('github')">
+              <mat-icon svgIcon="github"></mat-icon> GitHub
+            </button>
+          }
+          @if (appleEnabled) {
+            <button mat-raised-button (click)="registerWithOAuth('apple')">
+              <mat-icon svgIcon="apple"></mat-icon> Apple
+            </button>
+          }
+          @if (discordEnabled) {
+            <button mat-raised-button (click)="registerWithOAuth('discord')">
+              <mat-icon svgIcon="discord"></mat-icon> Discord
+            </button>
+          }
+        </div>
+      </mat-card-content>
+      <mat-card-actions>
+        <button mat-button routerLink="/welcome">
+          Already have an account? Login here
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>

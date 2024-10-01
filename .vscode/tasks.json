@@ -32,6 +32,7 @@
         "type": "shell",
         "command": "cd frontend && npm start",
         "isBackground": true,
+        
         "problemMatcher": [
           {
             "pattern": [
@@ -44,8 +45,8 @@
             ],
             "background": {
               "activeOnStart": true,
-              "beginsPattern": "^.*: Compiled successfully.*$",
-              "endsPattern": "^.*: Compiled successfully.*$"
+              "beginsPattern": "^.*Application bundle generation complete$",
+              "endsPattern": "^.*: Compiled successfully.*$",
             }
           }
         ]
