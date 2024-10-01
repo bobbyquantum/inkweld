@@ -10,4 +10,4 @@ function runCommand(command, cwd) {
 // Run backend tests
 console.log("Running backend tests...");
 const backendPath = path.join(__dirname, "backend");
-runCommand(".\\mvnw.cmd test", backendPath);
+runCommand(".\\mvnw test", backendPath);
