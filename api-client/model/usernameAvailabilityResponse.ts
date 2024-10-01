@@ -10,10 +10,8 @@
  */
 
 
-export interface RegisterUserRequest { 
-    username: string;
-    email: string;
-    password: string;
-    name: string;
+export interface UsernameAvailabilityResponse { 
+    available?: boolean;
+    suggestions?: Array<string>;
 }
 

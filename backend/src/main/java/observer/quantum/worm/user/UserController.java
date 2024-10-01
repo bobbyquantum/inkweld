@@ -3,12 +3,14 @@ package observer.quantum.worm.user;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import observer.quantum.worm.error.ErrorResponse;
 import org.springframework.http.MediaType;
@@ -32,7 +34,7 @@ public class UserController {
 
   @Operation(
       summary = "Register a new user",
-      description = "Registers a new user with the provided details.")
+      description = "Registers a new user with the provided details. Requires a valid CSRF token.")
   @ApiResponses(
       value = {
         @ApiResponse(
@@ -48,6 +50,13 @@ public class UserController {
             content =
                 @Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Invalid CSRF token",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ErrorResponse.class)))
       })
   @PostMapping(
@@ -55,6 +64,14 @@ public class UserController {
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<UserDto> registerUser(
+      @Parameter(
+              in = ParameterIn.HEADER,
+              name = "X-XSRF-TOKEN",
+              description = "CSRF token",
+              required = true,
+              schema = @Schema(type = "string"))
+          @RequestHeader(name = "X-XSRF-TOKEN")
+          String csrfToken,
       @io.swagger.v3.oas.annotations.parameters.RequestBody(
               description = "User registration details",
               required = true,
@@ -68,6 +85,7 @@ public class UserController {
     User newUser =
         userService.registerUser(
             registerUserRequest.getUsername(),
+            registerUserRequest.getEmail(),
             registerUserRequest.getPassword(),
             registerUserRequest.getName());
     log.info("New user registered: {}", newUser.getUsername());
@@ -266,5 +284,53 @@ public class UserController {
     userService.deleteAccount();
     log.info("User account deleted");
     return ResponseEntity.noContent().build();
+  }
+
+  @Operation(
+      summary = "Check username availability",
+      description =
+          "Checks if a username is available and provides alternate suggestions if it's taken.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Username availability checked successfully",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = UsernameAvailabilityResponse.class))),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class)))
+      })
+  @GetMapping(path = "/check-username", produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<UsernameAvailabilityResponse> checkUsernameAvailability(
+      @Parameter(description = "Username to check", required = true) @RequestParam
+          String username) {
+    UsernameAvailabilityResponse response = userService.checkUsernameAvailability(username);
+    return ResponseEntity.ok(response);
+  }
+
+  @Operation(
+      summary = "Get enabled OAuth2 providers",
+      description = "Retrieves a list of enabled OAuth2 providers for user authentication.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "OAuth2 providers retrieved successfully",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    array = @ArraySchema(schema = @Schema(implementation = String.class))))
+      })
+  @GetMapping(path = "/oauth2-providers", produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<List<String>> getEnabledOAuth2Providers() {
+    List<String> providers = userService.getEnabledOAuth2Providers();
+    return ResponseEntity.ok(providers);
   }
 }
