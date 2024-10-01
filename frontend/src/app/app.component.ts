@@ -32,8 +32,8 @@ export class AppComponent implements OnInit {
       });
   }
   redirectToLogin(): void {
-    this.ngZone.runOutsideAngular(() => {
-      window.location.href = '/login';
-    });
+    // this.ngZone.runOutsideAngular(() => {
+    //   window.location.href = '/welcome';
+    // });
   }
 }

@@ -76,7 +76,8 @@ public class SecurityConfig {
                     "/logout",
                     "/api/v1/users/oauth2-providers",
                     "/api/v1/users/check-username",
-                    "/api/v1/users/register")
+                    "/api/v1/users/register",
+                    "/api/v1/embeddings")  // Add this line to permit access to the embeddings endpoint
                 .permitAll()
                 .anyRequest()
                 .authenticated());
