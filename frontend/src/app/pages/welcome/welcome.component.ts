@@ -1,6 +1,6 @@
 import { Component, NgZone, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -11,6 +11,9 @@ import { CommonModule } from '@angular/common';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 import { UserAPIService } from 'worm-api-client';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { XsrfService } from '@services/xsrf.service';
 
 @Component({
   selector: 'app-welcome',
@@ -33,6 +36,10 @@ export class WelcomeComponent implements OnInit, OnDestroy {
   private breakpointObserver = inject(BreakpointObserver);
   private ngZone = inject(NgZone);
   private userService = inject(UserAPIService);
+  private http = inject(HttpClient);
+  private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
+  private xsrfService = inject(XsrfService);
   isMobile = false;
   private destroy$ = new Subject<void>();
 
@@ -47,6 +54,7 @@ export class WelcomeComponent implements OnInit, OnDestroy {
   constructor() {
     this.setupBreakpointObserver();
   }
+
   async ngOnInit(): Promise<void> {
     const providers = await firstValueFrom(
       this.userService.getEnabledOAuth2Providers()
@@ -81,8 +89,37 @@ export class WelcomeComponent implements OnInit, OnDestroy {
   }
 
   onLogin() {
-    // Implement login logic here
-    console.log('Login attempted with:', this.username, this.password);
+    const body = new URLSearchParams();
+    body.set('username', this.username);
+    body.set('password', this.password);
+
+    const xsrfToken = this.xsrfService.getXsrfToken();
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-XSRF-TOKEN': xsrfToken,
+    });
+
+    this.http
+      .post('/login', body.toString(), {
+        headers,
+        observe: 'response',
+        withCredentials: true,
+      })
+      .subscribe({
+        next: response => {
+          console.log('Login successful', response);
+          this.snackBar.open('Login successful', 'Close', { duration: 3000 });
+          this.router.navigate(['/']);
+        },
+        error: error => {
+          console.error('Login failed', error);
+          this.snackBar.open(
+            'Login failed. Please check your credentials.',
+            'Close',
+            { duration: 5000 }
+          );
+        },
+      });
   }
 
   loginWithGoogle() {
