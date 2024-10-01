@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -17,7 +17,6 @@ import { MatInputModule } from '@angular/material/input';
 
 @Component({
   selector: 'app-new-project',
-
   standalone: true,
   imports: [
     ReactiveFormsModule,
@@ -35,13 +34,13 @@ import { MatInputModule } from '@angular/material/input';
 export class NewProjectComponent {
   projectForm: FormGroup;
 
-  constructor(
-    private fb: FormBuilder,
-    private projectService: ProjectAPIService,
-    private xsrfService: XsrfService,
-    private router: Router,
-    private snackBar: MatSnackBar
-  ) {
+  private fb = inject(FormBuilder);
+  private projectService = inject(ProjectAPIService);
+  private xsrfService = inject(XsrfService);
+  private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
+
+  constructor() {
     this.projectForm = this.fb.group({
       title: ['', Validators.required],
       description: [''],

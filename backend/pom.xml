@@ -62,7 +62,7 @@
                                     <goal>generate</goal>
                                 </goals>
                                 <configuration>
-                                    <inputSpec>backend/target/openapi.json</inputSpec>
+                                    <inputSpec>target/openapi.json</inputSpec>
                                     <generatorName>typescript-angular</generatorName>
                                     <output>../api-client</output>
                                     <configOptions>
