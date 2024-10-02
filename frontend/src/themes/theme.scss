@@ -160,7 +160,9 @@ $dark-theme: mat.define-theme((
     scale: 0,
   )
 ));
+
 @import '@angular/cdk/overlay-prebuilt.css';
+
 :root {
   @include mat.all-component-themes($light-theme);
   @include mat.system-level-colors($light-theme);
