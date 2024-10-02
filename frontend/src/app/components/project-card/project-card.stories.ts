@@ -1,15 +1,35 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { ProjectCardComponent } from './project-card.component';
+import { moduleMetadata } from '@storybook/angular';
+import { ActivatedRoute } from '@angular/router';
+import { of } from 'rxjs';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { RouterTestingModule } from '@angular/router/testing';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 const meta: Meta<ProjectCardComponent> = {
   title: 'Components/ProjectCard',
   component: ProjectCardComponent,
   tags: ['autodocs'],
-  render: (args: ProjectCardComponent) => ({
-    props: {
-      ...args,
-    },
-  }),
+  decorators: [
+    moduleMetadata({
+      imports: [
+        MatCardModule,
+        MatButtonModule,
+        RouterTestingModule,
+        BrowserAnimationsModule,
+      ],
+      providers: [
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            params: of({ id: 'test-id' }),
+          },
+        },
+      ],
+    }),
+  ],
 };
 
 export default meta;
