@@ -2,8 +2,6 @@ package observer.quantum.worm.project;
 
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import observer.quantum.worm.user.User;
@@ -16,6 +14,9 @@ public class Project {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
+
+  @Column(nullable = false)
+  private String slug;
 
   @Column(nullable = false)
   private String title;
@@ -32,16 +33,6 @@ public class Project {
 
   @Column(name = "updated_date")
   private OffsetDateTime updatedDate;
-
-  @ElementCollection
-  @CollectionTable(name = "project_chapters", joinColumns = @JoinColumn(name = "project_id"))
-  @Column(name = "chapter_id")
-  private List<String> chapters = new ArrayList<>();
-
-  @ElementCollection
-  @CollectionTable(name = "project_tags", joinColumns = @JoinColumn(name = "project_id"))
-  @Column(name = "tag")
-  private List<String> tags = new ArrayList<>();
 
   @PrePersist
   protected void onCreate() {

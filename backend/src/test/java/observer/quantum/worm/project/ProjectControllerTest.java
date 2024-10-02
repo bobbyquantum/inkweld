@@ -22,6 +22,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -47,7 +48,6 @@ public class ProjectControllerTest {
 
   @BeforeEach
   public void setUp() {
-
     objectMapper = new ObjectMapper();
     objectMapper.registerModule(new JavaTimeModule());
 
@@ -60,7 +60,7 @@ public class ProjectControllerTest {
     project.setId(1L);
     project.setTitle("My Project");
     project.setDescription("Project Description");
-    //        project.setStatus("Writing");
+    project.setSlug("my-project");
     project.setCreatedDate(OffsetDateTime.now());
     project.setUpdatedDate(OffsetDateTime.now());
     project.setUser(mockUser);
@@ -82,17 +82,17 @@ public class ProjectControllerTest {
   }
 
   @Test
-  public void testGetProjectById() throws Exception {
-    when(projectService.findByIdForCurrentUser("1")).thenReturn(project);
+  public void testGetProjectByUsernameAndSlug() throws Exception {
+    when(projectService.findByUsernameAndSlug("testUser", "my-project")).thenReturn(project);
 
     mockMvc
-        .perform(get("/api/v1/projects/1"))
+        .perform(get("/api/v1/projects/testUser/my-project"))
         .andDo(result -> log.info(result.getResponse().getContentAsString()))
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.title").value("My Project"));
 
-    verify(projectService, times(1)).findByIdForCurrentUser("1");
+    verify(projectService, times(1)).findByUsernameAndSlug("testUser", "my-project");
   }
 
   @Test
@@ -100,6 +100,7 @@ public class ProjectControllerTest {
     Project newProject = new Project();
     newProject.setTitle("New Project");
     newProject.setDescription("New Description");
+    newProject.setSlug("new-project");
     newProject.setUser(mockUser);
 
     when(projectService.create(any(Project.class))).thenReturn(newProject);
@@ -122,11 +123,12 @@ public class ProjectControllerTest {
   public void testUpdateProject() throws Exception {
     project.setTitle("Updated Project");
 
-    when(projectService.update(eq("1"), any(Project.class))).thenReturn(project);
+    when(projectService.update(eq("testUser"), eq("my-project"), any(Project.class)))
+        .thenReturn(project);
 
     mockMvc
         .perform(
-            put("/api/v1/projects/1")
+            put("/api/v1/projects/testUser/my-project")
                 .with(csrf())
                 .header(XSRF_HEADER, XSRF_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -135,63 +137,78 @@ public class ProjectControllerTest {
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.title").value("Updated Project"));
 
-    verify(projectService, times(1)).update(eq("1"), any(Project.class));
+    verify(projectService, times(1)).update(eq("testUser"), eq("my-project"), any(Project.class));
   }
 
   @Test
   public void testDeleteProject() throws Exception {
-    doNothing().when(projectService).delete("1");
+    doNothing().when(projectService).delete("testUser", "my-project");
 
     mockMvc
-        .perform(delete("/api/v1/projects/1").with(csrf()).header(XSRF_HEADER, XSRF_TOKEN))
+        .perform(
+            delete("/api/v1/projects/testUser/my-project")
+                .with(csrf())
+                .header(XSRF_HEADER, XSRF_TOKEN))
         .andExpect(status().isNoContent());
 
-    verify(projectService, times(1)).delete("1");
+    verify(projectService, times(1)).delete("testUser", "my-project");
   }
 
   @Test
-  public void testGetProjectByIdNotFound() throws Exception {
-    when(projectService.findByIdForCurrentUser("1")).thenThrow(new ProjectNotFoundException("1"));
+  public void testGetProjectByUsernameAndSlugNotFound() throws Exception {
+    when(projectService.findByUsernameAndSlug("testUser", "non-existent"))
+        .thenThrow(new ProjectNotFoundException("testUser", "non-existent"));
 
     mockMvc
-        .perform(get("/api/v1/projects/1"))
+        .perform(get("/api/v1/projects/testUser/non-existent"))
         .andExpect(status().isNotFound())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.error").value("Project not found with ID: 1"));
+        .andExpect(
+            jsonPath("$.error")
+                .value("Project not found with username: testUser and slug: non-existent"));
 
-    verify(projectService, times(1)).findByIdForCurrentUser("1");
+    verify(projectService, times(1)).findByUsernameAndSlug("testUser", "non-existent");
   }
 
   @Test
   public void testUpdateProjectNotFound() throws Exception {
-    when(projectService.update(eq("1"), any(Project.class)))
-        .thenThrow(new ProjectNotFoundException("1"));
+    when(projectService.update(eq("testUser"), eq("non-existent"), any(Project.class)))
+        .thenThrow(new ProjectNotFoundException("testUser", "non-existent"));
 
     mockMvc
         .perform(
-            put("/api/v1/projects/1")
+            put("/api/v1/projects/testUser/non-existent")
                 .with(csrf())
                 .header(XSRF_HEADER, XSRF_TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(project)))
         .andExpect(status().isNotFound())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.error").value("Project not found with ID: 1"));
+        .andExpect(
+            jsonPath("$.error")
+                .value("Project not found with username: testUser and slug: non-existent"));
 
-    verify(projectService, times(1)).update(eq("1"), any(Project.class));
+    verify(projectService, times(1)).update(eq("testUser"), eq("non-existent"), any(Project.class));
   }
 
   @Test
   public void testDeleteProjectNotFound() throws Exception {
-    doThrow(new ProjectNotFoundException("1")).when(projectService).delete("1");
+    doThrow(new ProjectNotFoundException("testUser", "non-existent"))
+        .when(projectService)
+        .delete("testUser", "non-existent");
 
     mockMvc
-        .perform(delete("/api/v1/projects/1").with(csrf()).header(XSRF_HEADER, XSRF_TOKEN))
+        .perform(
+            delete("/api/v1/projects/testUser/non-existent")
+                .with(csrf())
+                .header(XSRF_HEADER, XSRF_TOKEN))
         .andExpect(status().isNotFound())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.error").value("Project not found with ID: 1"));
+        .andExpect(
+            jsonPath("$.error")
+                .value("Project not found with username: testUser and slug: non-existent"));
 
-    verify(projectService, times(1)).delete("1");
+    verify(projectService, times(1)).delete("testUser", "non-existent");
   }
 
   @Test
@@ -199,6 +216,7 @@ public class ProjectControllerTest {
     Project newProject = new Project();
     newProject.setTitle("New Project");
     newProject.setDescription("New Description");
+    newProject.setSlug("new-project");
 
     mockMvc
         .perform(
@@ -214,18 +232,59 @@ public class ProjectControllerTest {
   public void testUpdateProject_missingCsrfToken() throws Exception {
     mockMvc
         .perform(
-            put("/api/v1/projects/1")
+            put("/api/v1/projects/testUser/my-project")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(project)))
         .andExpect(status().isForbidden());
 
-    verify(projectService, never()).update(anyString(), any(Project.class));
+    verify(projectService, never()).update(anyString(), anyString(), any(Project.class));
   }
 
   @Test
   public void testDeleteProject_missingCsrfToken() throws Exception {
-    mockMvc.perform(delete("/api/v1/projects/1")).andExpect(status().isForbidden());
+    mockMvc
+        .perform(delete("/api/v1/projects/testUser/my-project"))
+        .andExpect(status().isForbidden());
 
-    verify(projectService, never()).delete(anyString());
+    verify(projectService, never()).delete(anyString(), anyString());
+  }
+
+  @Test
+  public void testUpdateProject_AccessDenied() throws Exception {
+    project.setTitle("Updated Project");
+
+    when(projectService.update(eq("otherUser"), eq("my-project"), any(Project.class)))
+        .thenThrow(new AccessDeniedException("Access denied"));
+
+    mockMvc
+        .perform(
+            put("/api/v1/projects/otherUser/my-project")
+                .with(csrf())
+                .header(XSRF_HEADER, XSRF_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(project)))
+        .andExpect(status().isForbidden())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.error").value("Access denied"));
+
+    verify(projectService, times(1)).update(eq("otherUser"), eq("my-project"), any(Project.class));
+  }
+
+  @Test
+  public void testDeleteProject_AccessDenied() throws Exception {
+    doThrow(new AccessDeniedException("Access denied"))
+        .when(projectService)
+        .delete("otherUser", "my-project");
+
+    mockMvc
+        .perform(
+            delete("/api/v1/projects/otherUser/my-project")
+                .with(csrf())
+                .header(XSRF_HEADER, XSRF_TOKEN))
+        .andExpect(status().isForbidden())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.error").value("Access denied"));
+
+    verify(projectService, times(1)).delete("otherUser", "my-project");
   }
 }

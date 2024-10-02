@@ -1,5 +1,5 @@
 <mat-toolbar color="primary">
-  <a mat-icon-button [routerLink]="['/']" aria-label="Back">
+  <a mat-icon-button routerLink="/" aria-label="Back">
     <mat-icon>arrow_back</mat-icon>
   </a>
   <span>New Project</span>
@@ -14,8 +14,36 @@
       title="Project Title"
       placeholder="Title"
       required />
-    @if (projectForm.get('title')?.hasError('required')) {
-      <mat-error> Title is required </mat-error>
+    @if (
+      projectForm.get('title')?.hasError('required') &&
+      projectForm.get('title')?.touched
+    ) {
+      <mat-error>Title is required</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Project Slug</mat-label>
+    <input
+      matInput
+      formControlName="slug"
+      title="Project Slug"
+      placeholder="project-slug"
+      required />
+    @if (
+      projectForm.get('slug')?.hasError('required') &&
+      projectForm.get('slug')?.touched
+    ) {
+      <mat-error>Slug is required</mat-error>
+    }
+    @if (
+      projectForm.get('slug')?.hasError('pattern') &&
+      projectForm.get('slug')?.touched
+    ) {
+      <mat-error
+        >Slug can only contain lowercase letters, numbers, and
+        hyphens</mat-error
+      >
     }
   </mat-form-field>
 
@@ -28,7 +56,17 @@
       formControlName="description"></textarea>
   </mat-form-field>
 
-  <button mat-raised-button color="primary" type="submit">
+  @if (projectUrl) {
+    <div class="project-url-preview">
+      <strong>Project URL:</strong> {{ projectUrl }}
+    </div>
+  }
+
+  <button
+    mat-raised-button
+    color="primary"
+    type="submit"
+    [disabled]="projectForm.invalid">
     Create Project
   </button>
 </form>

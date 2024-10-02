@@ -63,8 +63,9 @@ public class ProjectController {
   }
 
   @Operation(
-      summary = "Get project by ID",
-      description = "Retrieves a specific project by its ID for the authenticated user.")
+      summary = "Get project by username and slug",
+      description =
+          "Retrieves a specific project by its username and slug. Only accessible by the project owner.")
   @ApiResponses(
       value = {
         @ApiResponse(
@@ -96,12 +97,13 @@ public class ProjectController {
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ErrorResponse.class)))
       })
-  @GetMapping(path = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+  @GetMapping(path = "/{username}/{slug}", produces = MediaType.APPLICATION_JSON_VALUE)
   @Secured({"USER", "OAUTH2_USER"})
-  public ResponseEntity<ProjectDto> getProjectById(
-      @Parameter(description = "ID of the project to be retrieved", required = true) @PathVariable
-          String id) {
-    Project project = projectService.findByIdForCurrentUser(id);
+  public ResponseEntity<ProjectDto> getProjectByUsernameAndSlug(
+      @Parameter(description = "Username of the project owner", required = true) @PathVariable
+          String username,
+      @Parameter(description = "Slug of the project", required = true) @PathVariable String slug) {
+    Project project = projectService.findByUsernameAndSlug(username, slug);
     return ResponseEntity.ok(new ProjectDto(project));
   }
 
@@ -211,13 +213,15 @@ public class ProjectController {
                     schema = @Schema(implementation = ErrorResponse.class)))
       })
   @PutMapping(
-      path = "/{id}",
+      path = "/{username}/{slug}",
       produces = MediaType.APPLICATION_JSON_VALUE,
       consumes = MediaType.APPLICATION_JSON_VALUE)
   @Secured({"USER", "OAUTH2_USER"})
   public ResponseEntity<ProjectDto> updateProject(
-      @Parameter(description = "ID of the project to be updated", required = true) @PathVariable
-          String id,
+      @Parameter(description = "Username of the project owner", required = true) @PathVariable
+          String username,
+      @Parameter(description = "Slug of the project to be updated", required = true) @PathVariable
+          String slug,
       @Parameter(
               in = ParameterIn.HEADER,
               name = "X-XSRF-TOKEN",
@@ -236,14 +240,14 @@ public class ProjectController {
           @RequestBody
           ProjectDto projectDto) {
     Project project = projectDto.toProject();
-    Project updatedProject = projectService.update(id, project);
+    Project updatedProject = projectService.update(username, slug, project);
     return ResponseEntity.ok(new ProjectDto(updatedProject));
   }
 
   @Operation(
       summary = "Delete a project",
       description =
-          "Removes a project from the system by ID for the authenticated user. Requires a valid CSRF token.")
+          "Removes a project from the system by username and slug for the authenticated user. Requires a valid CSRF token.")
   @ApiResponses(
       value = {
         @ApiResponse(responseCode = "204", description = "Project successfully deleted"),
@@ -270,11 +274,13 @@ public class ProjectController {
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ErrorResponse.class)))
       })
-  @DeleteMapping(path = "/{id}")
+  @DeleteMapping(path = "/{username}/{slug}")
   @Secured({"USER", "OAUTH2_USER"})
   public ResponseEntity<Void> deleteProject(
-      @Parameter(description = "ID of the project to be deleted", required = true) @PathVariable
-          String id,
+      @Parameter(description = "Username of the project owner", required = true) @PathVariable
+          String username,
+      @Parameter(description = "Slug of the project to be deleted", required = true) @PathVariable
+          String slug,
       @Parameter(
               in = ParameterIn.HEADER,
               name = "X-XSRF-TOKEN",
@@ -283,7 +289,7 @@ public class ProjectController {
               schema = @Schema(type = "string"))
           @RequestHeader(name = "X-XSRF-TOKEN")
           String csrfToken) {
-    projectService.delete(id);
+    projectService.delete(username, slug);
     return ResponseEntity.noContent().build();
   }
 }

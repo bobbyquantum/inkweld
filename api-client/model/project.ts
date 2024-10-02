@@ -20,6 +20,10 @@ export interface Project {
      */
     id?: number;
     /**
+     * Project slug
+     */
+    slug?: string;
+    /**
      * Project title
      */
     title?: string;
@@ -29,10 +33,6 @@ export interface Project {
     description?: string;
     user?: User;
     /**
-     * Current status of the project
-     */
-    status?: string;
-    /**
      * Date when the project was created
      */
     createdDate?: string;
@@ -40,13 +40,5 @@ export interface Project {
      * Date when the project was last updated
      */
     updatedDate?: string;
-    /**
-     * List of chapter IDs in the project
-     */
-    chapters?: Array<string>;
-    /**
-     * List of tags associated with the project
-     */
-    tags?: Array<string>;
 }
 
