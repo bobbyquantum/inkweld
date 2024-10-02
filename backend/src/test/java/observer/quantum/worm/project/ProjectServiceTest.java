@@ -40,7 +40,7 @@ public class ProjectServiceTest {
     project.setId(1L);
     project.setTitle("My Project");
     project.setDescription("Project Description");
-    //        project.setStatus("Writing");
+    project.setSlug("my-project");
     project.setUser(user);
     project.setCreatedDate(OffsetDateTime.now());
     project.setUpdatedDate(OffsetDateTime.now());
@@ -63,59 +63,60 @@ public class ProjectServiceTest {
   }
 
   @Test
-  public void testFindByIdForCurrentUser_Success() {
-    when(projectRepository.findById("1")).thenReturn(Optional.of(project));
+  public void testFindByUsernameAndSlug_Success() {
+    when(projectRepository.findByUserUsernameAndSlug("testUser", "my-project"))
+        .thenReturn(Optional.of(project));
 
-    Project result = projectService.findByIdForCurrentUser("1");
+    Project result = projectService.findByUsernameAndSlug("testUser", "my-project");
 
     assertNotNull(result);
     assertEquals("My Project", result.getTitle());
-    verify(projectRepository, times(1)).findById("1");
+    verify(projectRepository, times(1)).findByUserUsernameAndSlug("testUser", "my-project");
   }
 
   @Test
-  public void testFindByIdForCurrentUser_AccessDenied() {
+  public void testFindByUsernameAndSlug_AccessDenied() {
     User otherUser = new User();
     otherUser.setId(2L);
+    otherUser.setUsername("otherUser");
     project.setUser(otherUser);
 
-    when(projectRepository.findById("1")).thenReturn(Optional.of(project));
+    when(projectRepository.findByUserUsernameAndSlug("otherUser", "my-project"))
+        .thenReturn(Optional.of(project));
 
-    assertThrows(AccessDeniedException.class, () -> projectService.findByIdForCurrentUser("1"));
+    assertThrows(
+        AccessDeniedException.class,
+        () -> projectService.findByUsernameAndSlug("otherUser", "my-project"));
   }
 
   @Test
-  public void testCreate() {
-    // Prepare
+  public void testCreate_Success() {
     Project newProject = new Project();
     newProject.setTitle("New Project");
     newProject.setDescription("New Description");
+    newProject.setSlug("new-project");
 
-    // We need to capture the Project being saved to verify its contents
     ArgumentCaptor<Project> projectCaptor = ArgumentCaptor.forClass(Project.class);
 
-    // Mock behavior
     when(projectRepository.save(any(Project.class)))
         .thenAnswer(
             invocation -> {
               Project savedProject = invocation.getArgument(0);
-              savedProject.setId(2L); // Simulate ID generation
+              savedProject.setId(2L);
               return savedProject;
             });
 
-    // Act
     Project result = projectService.create(newProject);
 
-    // Assert
     assertNotNull(result);
     assertEquals("New Project", result.getTitle());
     assertEquals("New Description", result.getDescription());
+    assertEquals("new-project", result.getSlug());
     assertEquals(user, result.getUser());
     assertNotNull(result.getId());
     assertNotNull(result.getCreatedDate());
     assertNotNull(result.getUpdatedDate());
 
-    // Verify
     verify(projectRepository).save(projectCaptor.capture());
     Project capturedProject = projectCaptor.getValue();
     assertEquals(user, capturedProject.getUser());
@@ -124,40 +125,72 @@ public class ProjectServiceTest {
   }
 
   @Test
+  public void testCreate_InvalidSlug() {
+    Project newProject = new Project();
+    newProject.setTitle("New Project");
+    newProject.setDescription("New Description");
+    newProject.setSlug("Invalid Slug");
+
+    assertThrows(IllegalArgumentException.class, () -> projectService.create(newProject));
+  }
+
+  @Test
   public void testUpdate_Success() {
-    when(projectRepository.findById("1")).thenReturn(Optional.of(project));
+    when(projectRepository.findByUserUsernameAndSlug("testUser", "my-project"))
+        .thenReturn(Optional.of(project));
     when(projectRepository.save(any(Project.class))).thenReturn(project);
 
     Project updatedProject = new Project();
     updatedProject.setTitle("Updated Project");
-    Project result = projectService.update("1", updatedProject);
+    updatedProject.setSlug("updated-project");
+    Project result = projectService.update("testUser", "my-project", updatedProject);
 
     assertNotNull(result);
     assertEquals("Updated Project", result.getTitle());
-    verify(projectRepository, times(1)).findById("1");
+    assertEquals("updated-project", result.getSlug());
+    verify(projectRepository, times(1)).findByUserUsernameAndSlug("testUser", "my-project");
     verify(projectRepository, times(1)).save(any(Project.class));
+  }
+
+  @Test
+  public void testUpdate_InvalidSlug() {
+    when(projectRepository.findByUserUsernameAndSlug("testUser", "my-project"))
+        .thenReturn(Optional.of(project));
+
+    Project updatedProject = new Project();
+    updatedProject.setTitle("Updated Project");
+    updatedProject.setSlug("Invalid Slug");
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> projectService.update("testUser", "my-project", updatedProject));
   }
 
   @Test
   public void testUpdate_AccessDenied() {
     User otherUser = new User();
     otherUser.setId(2L);
+    otherUser.setUsername("otherUser");
     project.setUser(otherUser);
 
-    when(projectRepository.findById("1")).thenReturn(Optional.of(project));
+    when(projectRepository.findByUserUsernameAndSlug("otherUser", "my-project"))
+        .thenReturn(Optional.of(project));
 
     Project updatedProject = new Project();
     updatedProject.setTitle("Updated Project");
 
-    assertThrows(AccessDeniedException.class, () -> projectService.update("1", updatedProject));
+    assertThrows(
+        AccessDeniedException.class,
+        () -> projectService.update("otherUser", "my-project", updatedProject));
   }
 
   @Test
   public void testDelete_Success() {
-    when(projectRepository.findById("1")).thenReturn(Optional.of(project));
+    when(projectRepository.findByUserUsernameAndSlug("testUser", "my-project"))
+        .thenReturn(Optional.of(project));
     doNothing().when(projectRepository).delete(any(Project.class));
 
-    projectService.delete("1");
+    projectService.delete("testUser", "my-project");
 
     verify(projectRepository, times(1)).delete(project);
   }
@@ -166,10 +199,13 @@ public class ProjectServiceTest {
   public void testDelete_AccessDenied() {
     User otherUser = new User();
     otherUser.setId(2L);
+    otherUser.setUsername("otherUser");
     project.setUser(otherUser);
 
-    when(projectRepository.findById("1")).thenReturn(Optional.of(project));
+    when(projectRepository.findByUserUsernameAndSlug("otherUser", "my-project"))
+        .thenReturn(Optional.of(project));
 
-    assertThrows(AccessDeniedException.class, () -> projectService.delete("1"));
+    assertThrows(
+        AccessDeniedException.class, () -> projectService.delete("otherUser", "my-project"));
   }
 }

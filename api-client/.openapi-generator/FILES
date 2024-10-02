@@ -1,6 +1,7 @@
 README.md
 api.module.ts
 api/api.ts
+api/embeddingAPI.service.ts
 api/fileAPI.service.ts
 api/projectAPI.service.ts
 api/userAPI.service.ts

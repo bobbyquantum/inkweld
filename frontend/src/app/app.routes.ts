@@ -4,6 +4,7 @@ import { NewProjectComponent } from './pages/new-project/new-project.component';
 import { RegisterComponent } from './pages/register/register.component';
 import { authGuard } from './guards/auth.guard';
 import { WelcomeComponent } from './pages/welcome/welcome.component';
+import { ProjectComponent } from './pages/project/project.component';
 
 export const routes: Routes = [
   {
@@ -29,8 +30,8 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
-    path: 'project/:id',
-    component: HomeComponent,
+    path: 'project/:username/:slug',
+    component: ProjectComponent,
     title: 'Project',
     canActivate: [authGuard],
   },

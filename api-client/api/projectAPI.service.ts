@@ -33,7 +33,7 @@ import { Configuration }                                     from '../configurat
 })
 export class ProjectAPIService {
 
-    protected basePath = 'http://localhost:61521';
+    protected basePath = 'http://localhost:62743';
     public defaultHeaders = new HttpHeaders();
     public configuration = new Configuration();
     public encoder: HttpParameterCodec;
@@ -177,18 +177,22 @@ export class ProjectAPIService {
 
     /**
      * Delete a project
-     * Removes a project from the system by ID for the authenticated user. Requires a valid CSRF token.
-     * @param id ID of the project to be deleted
+     * Removes a project from the system by username and slug for the authenticated user. Requires a valid CSRF token.
+     * @param username Username of the project owner
+     * @param slug Slug of the project to be deleted
      * @param xXSRFTOKEN CSRF token
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public deleteProject(id: string, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any>;
-    public deleteProject(id: string, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
-    public deleteProject(id: string, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
-    public deleteProject(id: string, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (id === null || id === undefined) {
-            throw new Error('Required parameter id was null or undefined when calling deleteProject.');
+    public deleteProject(username: string, slug: string, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any>;
+    public deleteProject(username: string, slug: string, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
+    public deleteProject(username: string, slug: string, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
+    public deleteProject(username: string, slug: string, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (username === null || username === undefined) {
+            throw new Error('Required parameter username was null or undefined when calling deleteProject.');
+        }
+        if (slug === null || slug === undefined) {
+            throw new Error('Required parameter slug was null or undefined when calling deleteProject.');
         }
         if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
             throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling deleteProject.');
@@ -233,7 +237,7 @@ export class ProjectAPIService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         return this.httpClient.request<any>('delete', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
@@ -309,18 +313,22 @@ export class ProjectAPIService {
     }
 
     /**
-     * Get project by ID
-     * Retrieves a specific project by its ID for the authenticated user.
-     * @param id ID of the project to be retrieved
+     * Get project by username and slug
+     * Retrieves a specific project by its username and slug. Only accessible by the project owner.
+     * @param username Username of the project owner
+     * @param slug Slug of the project
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getProjectById(id: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Project>;
-    public getProjectById(id: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Project>>;
-    public getProjectById(id: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Project>>;
-    public getProjectById(id: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (id === null || id === undefined) {
-            throw new Error('Required parameter id was null or undefined when calling getProjectById.');
+    public getProjectByUsernameAndSlug(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Project>;
+    public getProjectByUsernameAndSlug(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Project>>;
+    public getProjectByUsernameAndSlug(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Project>>;
+    public getProjectByUsernameAndSlug(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (username === null || username === undefined) {
+            throw new Error('Required parameter username was null or undefined when calling getProjectByUsernameAndSlug.');
+        }
+        if (slug === null || slug === undefined) {
+            throw new Error('Required parameter slug was null or undefined when calling getProjectByUsernameAndSlug.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -359,7 +367,7 @@ export class ProjectAPIService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         return this.httpClient.request<Project>('get', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
@@ -376,18 +384,22 @@ export class ProjectAPIService {
     /**
      * Update an existing project
      * Updates the details of an existing project for the authenticated user. Requires a valid CSRF token.
-     * @param id ID of the project to be updated
+     * @param username Username of the project owner
+     * @param slug Slug of the project to be updated
      * @param xXSRFTOKEN CSRF token
      * @param project Updated project details
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public updateProject(id: string, xXSRFTOKEN: string, project: Project, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Project>;
-    public updateProject(id: string, xXSRFTOKEN: string, project: Project, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Project>>;
-    public updateProject(id: string, xXSRFTOKEN: string, project: Project, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Project>>;
-    public updateProject(id: string, xXSRFTOKEN: string, project: Project, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (id === null || id === undefined) {
-            throw new Error('Required parameter id was null or undefined when calling updateProject.');
+    public updateProject(username: string, slug: string, xXSRFTOKEN: string, project: Project, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Project>;
+    public updateProject(username: string, slug: string, xXSRFTOKEN: string, project: Project, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Project>>;
+    public updateProject(username: string, slug: string, xXSRFTOKEN: string, project: Project, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Project>>;
+    public updateProject(username: string, slug: string, xXSRFTOKEN: string, project: Project, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (username === null || username === undefined) {
+            throw new Error('Required parameter username was null or undefined when calling updateProject.');
+        }
+        if (slug === null || slug === undefined) {
+            throw new Error('Required parameter slug was null or undefined when calling updateProject.');
         }
         if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
             throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling updateProject.');
@@ -444,7 +456,7 @@ export class ProjectAPIService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "id", value: id, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         return this.httpClient.request<Project>('put', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,

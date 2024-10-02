@@ -1,0 +1,73 @@
+.main-container {
+  height: calc(100vh - 64px); // Adjust for toolbar height
+}
+
+.sidenav-content {
+  width: 250px;
+}
+
+.sidenav-wrapper {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+.file-tree-invisible {
+  display: none;
+}
+
+.mat-tree-node {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 12px;
+}
+
+.type-icon {
+  margin-right: 8px;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+}
+
+.node-name {
+  font-size: 14px;
+}
+
+button[mat-icon-button] {
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  margin-right: 8px;
+}
+
+.mat-icon-rtl-mirror {
+  transform: scaleX(-1);
+}
+
+mat-nested-tree-node div[role=group] {
+  padding-left: 24px;
+}
+
+mat-tree-node, mat-nested-tree-node {
+  cursor: pointer;
+}
+
+.editor-container {
+  height: 100%;
+  padding: 16px;
+}
+
+// Ensure the ngx-editor takes up the full height of its container
+::ng-deep .NgxEditor {
+  height: calc(100% - 32px); // Adjust for padding
+}
+
+::ng-deep .NgxEditor__Content {
+  height: calc(100% - 40px); // Adjust for toolbar height
+  overflow-y: auto;
+}
