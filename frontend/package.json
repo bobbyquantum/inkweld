@@ -9,7 +9,9 @@
     "test": "ng test",
     "lint": "ng lint",
     "lint:fix": "ng lint --fix",
-    "analyze": "esbuild-visualizer --metadata dist/wor98-frontend/stats.json"
+    "analyze": "esbuild-visualizer --metadata dist/wor98-frontend/stats.json",
+    "storybook": "ng run worm-frontend:storybook",
+    "build-storybook": "ng run worm-frontend:build-storybook"
   },
   "private": true,
   "dependencies": {
@@ -35,6 +37,16 @@
     "@angular-devkit/build-angular": "^18.2.6",
     "@angular/cli": "^18.2.6",
     "@angular/compiler-cli": "^18.2.6",
+    "@chromatic-com/storybook": "^1.9.0",
+    "@compodoc/compodoc": "^1.1.25",
+    "@storybook/addon-docs": "^8.3.4",
+    "@storybook/addon-essentials": "8.3.4",
+    "@storybook/addon-interactions": "8.3.4",
+    "@storybook/addon-links": "8.3.4",
+    "@storybook/addon-onboarding": "^8.3.4",
+    "@storybook/angular": "8.3.4",
+    "@storybook/blocks": "8.3.4",
+    "@storybook/test": "8.3.4",
     "@types/jasmine": "~5.1.0",
     "angular-eslint": "18.3.0",
     "esbuild": "0.24.0",
@@ -42,6 +54,7 @@
     "eslint": "^9.11.1",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-storybook": "^0.9.0",
     "jasmine-core": "~5.2.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
@@ -50,7 +63,13 @@
     "karma-jasmine-html-reporter": "~2.1.0",
     "prettier": "^3.3.3",
     "prettier-eslint": "^16.3.0",
+    "storybook": "^8.3.4",
     "typescript": "~5.5.2",
     "typescript-eslint": "8.4.0"
+  },
+  "eslintConfig": {
+    "extends": [
+      "plugin:storybook/recommended"
+    ]
   }
 }
