@@ -18,17 +18,35 @@ const config: StorybookConfig = {
   staticDirs: [],
   webpackFinal: async config => {
     if (config.module && config.module.rules) {
-      // Add rule for SCSS files, including those with query parameters
+      // Safely filter out existing SCSS and CSS rules
+      config.module.rules = config.module.rules.filter(
+        (rule): rule is webpack.RuleSetRule => {
+          return (
+            typeof rule !== 'string' &&
+            rule !== false &&
+            rule !== null &&
+            rule !== undefined &&
+            !(
+              'test' in rule &&
+              rule.test instanceof RegExp &&
+              (rule.test.test('.scss') || rule.test.test('.css'))
+            )
+          );
+        }
+      );
+
+      // Add rule for SCSS files in the 'src' directory
       config.module.rules.push({
-        test: /\.scss(?:\?.*)?$/i, // Adjusted regex to match '.scss' with optional query parameters
+        test: /\.scss$/i,
         use: ['style-loader', 'css-loader', 'sass-loader'],
-        include: path.resolve(__dirname, '../'), // Ensure proper path resolution
+        include: path.resolve(__dirname, '../src'),
       });
-      // Add rule for CSS files, including those with query parameters
+
+      // Add rule for CSS files in the 'src' directory
       config.module.rules.push({
-        test: /\.css(?:\?.*)?$/i, // Adjusted regex to match '.css' with optional query parameters
+        test: /\.css$/i,
         use: ['style-loader', 'css-loader'],
-        include: path.resolve(__dirname, '../'), // Ensure proper path resolution
+        include: path.resolve(__dirname, '../src'),
       });
     }
     return config;
