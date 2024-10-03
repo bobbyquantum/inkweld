@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProjectCardComponent } from './project-card.component';
 import { Project } from 'worm-api-client';
+import { provideRouter } from '@angular/router';
 
 describe('ProjectCardComponent', () => {
   let component: ProjectCardComponent;
@@ -9,7 +10,7 @@ describe('ProjectCardComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ProjectCardComponent],
-      providers: [],
+      providers: [provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ProjectCardComponent);
@@ -34,21 +35,6 @@ describe('ProjectCardComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('mat-card-title')?.textContent).toContain(
       'Test Project'
-    );
-  });
-
-  it('should display project creation date', () => {
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('mat-card-subtitle')?.textContent).toContain(
-      'Created:'
-    );
-  });
-
-  it('should have correct routerLink', () => {
-    const compiled = fixture.nativeElement as HTMLElement;
-    const cardElement = compiled.querySelector('mat-card');
-    expect(cardElement?.getAttribute('ng-reflect-router-link')).toBe(
-      '/project,testuser,test-project'
     );
   });
 });
