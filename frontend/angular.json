@@ -118,7 +118,10 @@
               "-d",
               "."
             ],
-            "port": 6006
+            "port": 6006,
+            "styles": [
+              "src/themes/theme.scss"
+            ]
           }
         },
         "build-storybook": {
@@ -133,7 +136,10 @@
               "-d",
               "."
             ],
-            "outputDir": "storybook-static"
+            "outputDir": "storybook-static",
+            "styles": [
+              "src/themes/theme.scss"
+            ]
           }
         }
       }
