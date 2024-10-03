@@ -6,7 +6,7 @@ import { of } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { RouterTestingModule } from '@angular/router/testing';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { provideAnimations } from '@angular/platform-browser/animations';
 
 const meta: Meta<ProjectCardComponent> = {
   title: 'Components/ProjectCard',
@@ -14,13 +14,9 @@ const meta: Meta<ProjectCardComponent> = {
   tags: ['autodocs'],
   decorators: [
     moduleMetadata({
-      imports: [
-        MatCardModule,
-        MatButtonModule,
-        RouterTestingModule,
-        BrowserAnimationsModule,
-      ],
+      imports: [MatCardModule, MatButtonModule, RouterTestingModule],
       providers: [
+        provideAnimations(),
         {
           provide: ActivatedRoute,
           useValue: {

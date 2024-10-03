@@ -6,11 +6,9 @@ import {
   applicationConfig,
   type Preview,
 } from '@storybook/angular';
-import { importProvidersFrom } from '@angular/core';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { HttpClientModule } from '@angular/common/http';
+import { provideAnimations } from '@angular/platform-browser/animations';
 
-import '!style-loader!css-loader!sass-loader!./../src/themes/theme.scss';
+//import '../src/themes/theme.scss';
 
 setCompodocJson(docJson);
 
@@ -32,12 +30,10 @@ const preview: Preview = {
   },
   decorators: [
     moduleMetadata({
-      imports: [BrowserAnimationsModule, HttpClientModule],
+      imports: [],
     }),
     applicationConfig({
-      providers: [
-        importProvidersFrom(BrowserAnimationsModule, HttpClientModule),
-      ],
+      providers: [provideAnimations()],
     }),
     (Story, context) => {
       const theme = context.globals['theme'] as ThemeOption;
