@@ -378,7 +378,7 @@
         },
         {
             "name": "UserSettingsService",
-            "id": "injectable-UserSettingsService-18d3c6b7319f9e9559ab948eecd17573302d5883d71ef216ede6800eb5c080e0224cf071f8bcae0690d7d500e7037e41b22a9a6582d7b0c4b742f76728a89241",
+            "id": "injectable-UserSettingsService-ea73c4399db22623781d839f8a2d94da619848f2a51361fc2676bf8e11561dbcff68d7079425908b0d7fd9e72ea2211adc4af7c80d1eeba4d0720c38ce392344",
             "file": "src/app/services/user-settings.service.ts",
             "properties": [],
             "methods": [
@@ -407,7 +407,7 @@
             "deprecationMessage": "",
             "description": "",
             "rawdescription": "\n",
-            "sourceCode": "import { Injectable } from '@angular/core';\r\nimport { Observable } from 'rxjs';\r\nimport { MatDialog } from '@angular/material/dialog';\r\nimport { UserSettingsDialogComponent } from '@components/user-settings-dialog/user-settings-dialog.component';\r\nimport { UserFilesDialogComponent } from '@components/user-files-dialog/user-files-dialog.component';\r\n\r\n@Injectable({\r\n  providedIn: 'root',\r\n})\r\nexport class UserSettingsService {\r\n  constructor(private dialog: MatDialog) {}\r\n\r\n  openSettingsDialog(): Observable<void> {\r\n    console.log('Settings');\r\n    return this.dialog\r\n      .open(UserSettingsDialogComponent, {\r\n        width: '700px',\r\n      })\r\n      .afterClosed();\r\n  }\r\n\r\n  openFileDialog(): Observable<void> {\r\n    console.log('Files');\r\n    return this.dialog\r\n      .open(UserFilesDialogComponent, {\r\n        width: '700px',\r\n      })\r\n      .afterClosed();\r\n  }\r\n}\r\n",
+            "sourceCode": "import { Injectable } from '@angular/core';\r\nimport { Observable } from 'rxjs';\r\nimport { MatDialog } from '@angular/material/dialog';\r\nimport { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';\r\nimport { UserFilesDialogComponent } from '@dialogs/user-files-dialog/user-files-dialog.component';\r\n\r\n@Injectable({\r\n  providedIn: 'root',\r\n})\r\nexport class UserSettingsService {\r\n  constructor(private dialog: MatDialog) {}\r\n\r\n  openSettingsDialog(): Observable<void> {\r\n    console.log('Settings');\r\n    return this.dialog\r\n      .open(UserSettingsDialogComponent, {\r\n        width: '700px',\r\n      })\r\n      .afterClosed();\r\n  }\r\n\r\n  openFileDialog(): Observable<void> {\r\n    console.log('Files');\r\n    return this.dialog\r\n      .open(UserFilesDialogComponent, {\r\n        width: '700px',\r\n      })\r\n      .afterClosed();\r\n  }\r\n}\r\n",
             "constructorObj": {
                 "name": "constructor",
                 "description": "",
@@ -640,7 +640,7 @@
         {
             "name": "FileUploadDialogComponent",
             "id": "component-FileUploadDialogComponent-e7d9aa2249cd33c31604582e362f03e4bd34f1c3a4374c20d36790d436195b747f5a20bf4b1dba02f5cff791a594184d0f341a82de3939cfba0f3c2c6a232d8b",
-            "file": "src/app/components/file-upload-dialog/file-upload-dialog.component.ts",
+            "file": "src/app/dialogs/file-upload-dialog/file-upload-dialog.component.ts",
             "encapsulation": [],
             "entryComponents": [],
             "inputs": [],
@@ -678,7 +678,7 @@
         {
             "name": "GeneralSettingsComponent",
             "id": "component-GeneralSettingsComponent-4c41f8fd97ac367c21bd8fc44696b369bc2387d3a6baf27cb2e184e96138becc89239c89efd4d72ada03ac53702da5c21cc29f4f9226b4c63ee28699b67b1b53",
-            "file": "src/app/components/user-settings-dialog/tabs/general-settings/general-settings.component.ts",
+            "file": "src/app/dialogs/user-settings-dialog/tabs/general-settings/general-settings.component.ts",
             "encapsulation": [],
             "entryComponents": [],
             "inputs": [],
@@ -2039,7 +2039,7 @@
         {
             "name": "UserFilesDialogComponent",
             "id": "component-UserFilesDialogComponent-6813ed13a226ca83964963b3a45fcdbeec1ee3f15ef02c5c145d0f256e1724ebb435b744bd57f48dba456460a8519d2bbbea8d130890f30e4bf5b62901747ab7",
-            "file": "src/app/components/user-files-dialog/user-files-dialog.component.ts",
+            "file": "src/app/dialogs/user-files-dialog/user-files-dialog.component.ts",
             "encapsulation": [],
             "entryComponents": [],
             "inputs": [],
@@ -2391,8 +2391,8 @@
         },
         {
             "name": "UserSettingsDialogComponent",
-            "id": "component-UserSettingsDialogComponent-4b2b1eba59f463eed97a03b5698728435d799d23672086d65dc47f5978318424b647f23ce95e4f2d7492b8ae5e1618a1f1e47f9195eb0c03ac11ff2eec17654a",
-            "file": "src/app/components/user-settings-dialog/user-settings-dialog.component.ts",
+            "id": "component-UserSettingsDialogComponent-c1f8562a020984c23f2bb7f31257268806fa7ee11e20bb1c1708827269a59fc0ae21b5685093e6d6c6ca40562a3d2bf386422a21e99b6a575a14d25602186ac2",
+            "file": "src/app/dialogs/user-settings-dialog/user-settings-dialog.component.ts",
             "encapsulation": [],
             "entryComponents": [],
             "inputs": [],
@@ -2406,9 +2406,55 @@
             ],
             "viewProviders": [],
             "hostDirectives": [],
-            "inputsClass": [],
+            "inputsClass": [
+                {
+                    "name": "selectedCategory",
+                    "defaultValue": "'general'",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "line": 77,
+                    "type": "\"general\" | \"account\"",
+                    "decorators": []
+                }
+            ],
             "outputsClass": [],
             "propertiesClass": [
+                {
+                    "name": "breakpointObserver",
+                    "defaultValue": "inject(BreakpointObserver)",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "",
+                    "optional": false,
+                    "description": "",
+                    "line": 81,
+                    "modifierKind": [
+                        123
+                    ]
+                },
+                {
+                    "name": "destroyed",
+                    "defaultValue": "new Subject<void>()",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "",
+                    "optional": false,
+                    "description": "",
+                    "line": 80,
+                    "modifierKind": [
+                        123
+                    ]
+                },
+                {
+                    "name": "isMobile",
+                    "defaultValue": "false",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "",
+                    "optional": false,
+                    "description": "",
+                    "line": 79
+                },
                 {
                     "name": "previousCategory",
                     "defaultValue": "'general'",
@@ -2417,17 +2463,7 @@
                     "type": "\"general\" | \"account\"",
                     "optional": false,
                     "description": "",
-                    "line": 71
-                },
-                {
-                    "name": "selectedCategory",
-                    "defaultValue": "'general'",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "\"general\" | \"account\"",
-                    "optional": false,
-                    "description": "",
-                    "line": 70
+                    "line": 78
                 }
             ],
             "methodsClass": [
@@ -2437,7 +2473,27 @@
                     "optional": false,
                     "returnType": "{ value: \"general\" | \"account\"; params: { enterTransform: string; leaveTransform: string; }; }",
                     "typeParameters": [],
-                    "line": 78,
+                    "line": 102,
+                    "deprecated": false,
+                    "deprecationMessage": ""
+                },
+                {
+                    "name": "ngOnDestroy",
+                    "args": [],
+                    "optional": false,
+                    "returnType": "void",
+                    "typeParameters": [],
+                    "line": 92,
+                    "deprecated": false,
+                    "deprecationMessage": ""
+                },
+                {
+                    "name": "ngOnInit",
+                    "args": [],
+                    "optional": false,
+                    "returnType": "void",
+                    "typeParameters": [],
+                    "line": 83,
                     "deprecated": false,
                     "deprecationMessage": ""
                 },
@@ -2454,7 +2510,7 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 73,
+                    "line": 97,
                     "deprecated": false,
                     "deprecationMessage": "",
                     "jsdoctags": [
@@ -2476,6 +2532,10 @@
             "hostListeners": [],
             "standalone": true,
             "imports": [
+                {
+                    "name": "CommonModule",
+                    "type": "module"
+                },
                 {
                     "name": "MatDialogTitle"
                 },
@@ -2501,6 +2561,10 @@
                     "type": "module"
                 },
                 {
+                    "name": "MatTooltipModule",
+                    "type": "module"
+                },
+                {
                     "name": "GeneralSettingsComponent",
                     "type": "component"
                 }
@@ -2508,13 +2572,17 @@
             "description": "",
             "rawdescription": "\n",
             "type": "component",
-            "sourceCode": "import { Component } from '@angular/core';\r\nimport { MatButtonModule } from '@angular/material/button';\r\nimport {\r\n  MatDialogContent,\r\n  MatDialogTitle,\r\n  MatDialogActions,\r\n  MatDialogClose,\r\n} from '@angular/material/dialog';\r\nimport { MatIconModule } from '@angular/material/icon';\r\nimport { MatListModule } from '@angular/material/list';\r\nimport { GeneralSettingsComponent } from './tabs/general-settings/general-settings.component';\r\nimport {\r\n  trigger,\r\n  transition,\r\n  style,\r\n  animate,\r\n  query,\r\n  group,\r\n} from '@angular/animations';\r\n\r\nconst slideAnimation = trigger('slideAnimation', [\r\n  transition(\r\n    '* => *',\r\n    [\r\n      query(':enter, :leave', style({ position: 'absolute', width: '100%' }), {\r\n        optional: true,\r\n      }),\r\n      group([\r\n        query(\r\n          ':enter',\r\n          [\r\n            style({ transform: 'translateY({{enterTransform}})' }),\r\n            animate('300ms ease-out', style({ transform: 'translateY(0%)' })),\r\n          ],\r\n          { optional: true }\r\n        ),\r\n        query(\r\n          ':leave',\r\n          [\r\n            animate(\r\n              '300ms ease-out',\r\n              style({ transform: 'translateY({{leaveTransform}})' })\r\n            ),\r\n          ],\r\n          { optional: true }\r\n        ),\r\n      ]),\r\n    ],\r\n    { params: { enterTransform: '100%', leaveTransform: '-100%' } }\r\n  ),\r\n]);\r\n@Component({\r\n  selector: 'app-user-settings-dialog',\r\n  standalone: true,\r\n  imports: [\r\n    MatDialogTitle,\r\n    MatDialogContent,\r\n    MatDialogActions,\r\n    MatDialogClose,\r\n    MatListModule,\r\n    MatButtonModule,\r\n    MatIconModule,\r\n    GeneralSettingsComponent,\r\n  ],\r\n  animations: [slideAnimation],\r\n  templateUrl: './user-settings-dialog.component.html',\r\n  styleUrl: './user-settings-dialog.component.scss',\r\n})\r\nexport class UserSettingsDialogComponent {\r\n  selectedCategory: 'general' | 'account' = 'general';\r\n  previousCategory: 'general' | 'account' = 'general';\r\n\r\n  selectCategory(category: 'general' | 'account') {\r\n    this.previousCategory = this.selectedCategory;\r\n    this.selectedCategory = category;\r\n  }\r\n\r\n  getAnimationState() {\r\n    const isMovingDown =\r\n      this.selectedCategory === 'account' &&\r\n      this.previousCategory === 'general';\r\n    return {\r\n      value: this.selectedCategory,\r\n      params: {\r\n        enterTransform: isMovingDown ? '100%' : '-100%',\r\n        leaveTransform: isMovingDown ? '-100%' : '100%',\r\n      },\r\n    };\r\n  }\r\n}\r\n",
+            "sourceCode": "import { Component, Input, inject, OnInit, OnDestroy } from '@angular/core';\r\nimport { MatButtonModule } from '@angular/material/button';\r\nimport {\r\n  MatDialogContent,\r\n  MatDialogTitle,\r\n  MatDialogActions,\r\n  MatDialogClose,\r\n} from '@angular/material/dialog';\r\nimport { MatIconModule } from '@angular/material/icon';\r\nimport { MatListModule } from '@angular/material/list';\r\nimport { MatTooltipModule } from '@angular/material/tooltip';\r\nimport { GeneralSettingsComponent } from './tabs/general-settings/general-settings.component';\r\nimport {\r\n  trigger,\r\n  transition,\r\n  style,\r\n  animate,\r\n  query,\r\n  group,\r\n} from '@angular/animations';\r\nimport { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';\r\nimport { Subject, takeUntil } from 'rxjs';\r\nimport { CommonModule } from '@angular/common';\r\n\r\nconst slideAnimation = trigger('slideAnimation', [\r\n  transition(\r\n    '* => *',\r\n    [\r\n      query(':enter, :leave', style({ position: 'absolute', width: '100%' }), {\r\n        optional: true,\r\n      }),\r\n      group([\r\n        query(\r\n          ':enter',\r\n          [\r\n            style({ transform: 'translateY({{enterTransform}})' }),\r\n            animate('300ms ease-out', style({ transform: 'translateY(0%)' })),\r\n          ],\r\n          { optional: true }\r\n        ),\r\n        query(\r\n          ':leave',\r\n          [\r\n            animate(\r\n              '300ms ease-out',\r\n              style({ transform: 'translateY({{leaveTransform}})' })\r\n            ),\r\n          ],\r\n          { optional: true }\r\n        ),\r\n      ]),\r\n    ],\r\n    { params: { enterTransform: '100%', leaveTransform: '-100%' } }\r\n  ),\r\n]);\r\n\r\n@Component({\r\n  selector: 'app-user-settings-dialog',\r\n  standalone: true,\r\n  imports: [\r\n    CommonModule,\r\n    MatDialogTitle,\r\n    MatDialogContent,\r\n    MatDialogActions,\r\n    MatDialogClose,\r\n    MatListModule,\r\n    MatButtonModule,\r\n    MatIconModule,\r\n    MatTooltipModule,\r\n    GeneralSettingsComponent,\r\n  ],\r\n  animations: [slideAnimation],\r\n  templateUrl: './user-settings-dialog.component.html',\r\n  styleUrl: './user-settings-dialog.component.scss',\r\n})\r\nexport class UserSettingsDialogComponent implements OnInit, OnDestroy {\r\n  @Input() selectedCategory: 'general' | 'account' = 'general';\r\n  previousCategory: 'general' | 'account' = 'general';\r\n  isMobile = false;\r\n  private destroyed = new Subject<void>();\r\n  private breakpointObserver = inject(BreakpointObserver);\r\n\r\n  ngOnInit() {\r\n    this.breakpointObserver\r\n      .observe([Breakpoints.HandsetPortrait, Breakpoints.TabletPortrait])\r\n      .pipe(takeUntil(this.destroyed))\r\n      .subscribe(result => {\r\n        this.isMobile = result.matches;\r\n      });\r\n  }\r\n\r\n  ngOnDestroy() {\r\n    this.destroyed.next();\r\n    this.destroyed.complete();\r\n  }\r\n\r\n  selectCategory(category: 'general' | 'account') {\r\n    this.previousCategory = this.selectedCategory;\r\n    this.selectedCategory = category;\r\n  }\r\n\r\n  getAnimationState() {\r\n    const isMovingDown =\r\n      this.selectedCategory === 'account' &&\r\n      this.previousCategory === 'general';\r\n    return {\r\n      value: this.selectedCategory,\r\n      params: {\r\n        enterTransform: isMovingDown ? '100%' : '-100%',\r\n        leaveTransform: isMovingDown ? '-100%' : '100%',\r\n      },\r\n    };\r\n  }\r\n}\r\n",
             "styleUrl": "./user-settings-dialog.component.scss",
             "assetsDirs": [],
             "styleUrlsData": "",
             "stylesData": "",
             "extends": [],
-            "templateData": "<div class=\"dialog-header\">\r\n  <h2 mat-dialog-title>Settings</h2>\r\n  <button mat-icon-button mat-dialog-close class=\"close-button\">\r\n    <mat-icon>close</mat-icon>\r\n  </button>\r\n</div>\r\n<mat-divider></mat-divider>\r\n<mat-dialog-content>\r\n  <div class=\"settings-container\">\r\n    <mat-nav-list class=\"settings-nav\" role=\"tablist\">\r\n      <a\r\n        mat-list-item\r\n        role=\"tab\"\r\n        (click)=\"selectCategory('general')\"\r\n        (keydown.enter)=\"selectCategory('general')\"\r\n        [attr.aria-selected]=\"selectedCategory === 'general'\"\r\n        [class.active]=\"selectedCategory === 'general'\"\r\n        tabindex=\"0\"\r\n        role=\"tab\">\r\n        <mat-icon matListItemIcon>settings</mat-icon>\r\n        <span matListItemTitle>General</span>\r\n      </a>\r\n      <a\r\n        mat-list-item\r\n        role=\"tab\"\r\n        (click)=\"selectCategory('account')\"\r\n        (keydown.enter)=\"selectCategory('account')\"\r\n        [attr.aria-selected]=\"selectedCategory === 'account'\"\r\n        [class.active]=\"selectedCategory === 'account'\"\r\n        tabindex=\"1\"\r\n        role=\"tab\">\r\n        <mat-icon matListItemIcon>account_circle</mat-icon>\r\n        <span matListItemTitle>Account</span>\r\n      </a>\r\n    </mat-nav-list>\r\n\r\n    <div\r\n      class=\"settings-content\"\r\n      role=\"tabpanel\"\r\n      [@slideAnimation]=\"getAnimationState()\">\r\n      @switch (selectedCategory) {\r\n        @case ('general') {\r\n          <app-general-settings />\r\n        }\r\n        @case ('account') {\r\n          <p>Account settings content goes here</p>\r\n        }\r\n      }\r\n    </div>\r\n  </div>\r\n</mat-dialog-content>\r\n"
+            "implements": [
+                "OnInit",
+                "OnDestroy"
+            ],
+            "templateData": "<div class=\"dialog-header\">\r\n  <h2 mat-dialog-title>Settings</h2>\r\n  <button mat-icon-button mat-dialog-close class=\"close-button\">\r\n    <mat-icon>close</mat-icon>\r\n  </button>\r\n</div>\r\n<mat-divider></mat-divider>\r\n<mat-dialog-content>\r\n  <div class=\"settings-container\" [class.mobile]=\"isMobile\">\r\n    <mat-nav-list class=\"settings-nav\" role=\"tablist\" [class.mobile]=\"isMobile\">\r\n      <a\r\n        mat-list-item\r\n        role=\"tab\"\r\n        (click)=\"selectCategory('general')\"\r\n        (keydown.enter)=\"selectCategory('general')\"\r\n        [attr.aria-selected]=\"selectedCategory === 'general'\"\r\n        [class.active]=\"selectedCategory === 'general'\"\r\n        tabindex=\"0\"\r\n        aria-label=\"General settings\">\r\n        <mat-icon matListItemIcon>settings</mat-icon>\r\n        <span matListItemTitle>General</span>\r\n      </a>\r\n      <a\r\n        mat-list-item\r\n        role=\"tab\"\r\n        (click)=\"selectCategory('account')\"\r\n        (keydown.enter)=\"selectCategory('account')\"\r\n        [attr.aria-selected]=\"selectedCategory === 'account'\"\r\n        [class.active]=\"selectedCategory === 'account'\"\r\n        tabindex=\"1\"\r\n        aria-label=\"Account settings\">\r\n        <mat-icon matListItemIcon>account_circle</mat-icon>\r\n        <span matListItemTitle>Account</span>\r\n      </a>\r\n    </mat-nav-list>\r\n\r\n    <div\r\n      class=\"settings-content\"\r\n      [class.mobile]=\"isMobile\"\r\n      role=\"tabpanel\"\r\n      [@slideAnimation]=\"getAnimationState()\">\r\n      @switch (selectedCategory) {\r\n        @case ('general') {\r\n          <app-general-settings />\r\n        }\r\n        @case ('account') {\r\n          <p>Account settings content goes here</p>\r\n        }\r\n      }\r\n    </div>\r\n  </div>\r\n</mat-dialog-content>\r\n"
         },
         {
             "name": "WelcomeComponent",
@@ -2919,7 +2987,7 @@
                 "name": "slideAnimation",
                 "ctype": "miscellaneous",
                 "subtype": "variable",
-                "file": "src/app/components/user-settings-dialog/user-settings-dialog.component.ts",
+                "file": "src/app/dialogs/user-settings-dialog/user-settings-dialog.component.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
                 "type": "",
@@ -3021,12 +3089,12 @@
                     "defaultValue": "null"
                 }
             ],
-            "src/app/components/user-settings-dialog/user-settings-dialog.component.ts": [
+            "src/app/dialogs/user-settings-dialog/user-settings-dialog.component.ts": [
                 {
                     "name": "slideAnimation",
                     "ctype": "miscellaneous",
                     "subtype": "variable",
-                    "file": "src/app/components/user-settings-dialog/user-settings-dialog.component.ts",
+                    "file": "src/app/dialogs/user-settings-dialog/user-settings-dialog.component.ts",
                     "deprecated": false,
                     "deprecationMessage": "",
                     "type": "",
@@ -3164,30 +3232,12 @@
                 "status": "low"
             },
             {
-                "filePath": "src/app/components/file-upload-dialog/file-upload-dialog.component.ts",
-                "type": "component",
-                "linktype": "component",
-                "name": "FileUploadDialogComponent",
-                "coveragePercent": 0,
-                "coverageCount": "0/1",
-                "status": "low"
-            },
-            {
                 "filePath": "src/app/components/project-card/project-card.component.ts",
                 "type": "component",
                 "linktype": "component",
                 "name": "ProjectCardComponent",
                 "coveragePercent": 0,
                 "coverageCount": "0/2",
-                "status": "low"
-            },
-            {
-                "filePath": "src/app/components/user-files-dialog/user-files-dialog.component.ts",
-                "type": "component",
-                "linktype": "component",
-                "name": "UserFilesDialogComponent",
-                "coveragePercent": 0,
-                "coverageCount": "0/9",
                 "status": "low"
             },
             {
@@ -3209,7 +3259,25 @@
                 "status": "low"
             },
             {
-                "filePath": "src/app/components/user-settings-dialog/tabs/general-settings/general-settings.component.ts",
+                "filePath": "src/app/dialogs/file-upload-dialog/file-upload-dialog.component.ts",
+                "type": "component",
+                "linktype": "component",
+                "name": "FileUploadDialogComponent",
+                "coveragePercent": 0,
+                "coverageCount": "0/1",
+                "status": "low"
+            },
+            {
+                "filePath": "src/app/dialogs/user-files-dialog/user-files-dialog.component.ts",
+                "type": "component",
+                "linktype": "component",
+                "name": "UserFilesDialogComponent",
+                "coveragePercent": 0,
+                "coverageCount": "0/9",
+                "status": "low"
+            },
+            {
+                "filePath": "src/app/dialogs/user-settings-dialog/tabs/general-settings/general-settings.component.ts",
                 "type": "component",
                 "linktype": "component",
                 "name": "GeneralSettingsComponent",
@@ -3218,16 +3286,16 @@
                 "status": "low"
             },
             {
-                "filePath": "src/app/components/user-settings-dialog/user-settings-dialog.component.ts",
+                "filePath": "src/app/dialogs/user-settings-dialog/user-settings-dialog.component.ts",
                 "type": "component",
                 "linktype": "component",
                 "name": "UserSettingsDialogComponent",
                 "coveragePercent": 0,
-                "coverageCount": "0/5",
+                "coverageCount": "0/10",
                 "status": "low"
             },
             {
-                "filePath": "src/app/components/user-settings-dialog/user-settings-dialog.component.ts",
+                "filePath": "src/app/dialogs/user-settings-dialog/user-settings-dialog.component.ts",
                 "type": "variable",
                 "linktype": "miscellaneous",
                 "linksubtype": "variable",

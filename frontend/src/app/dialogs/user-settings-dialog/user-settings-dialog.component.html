@@ -6,8 +6,8 @@
 </div>
 <mat-divider></mat-divider>
 <mat-dialog-content>
-  <div class="settings-container">
-    <mat-nav-list class="settings-nav" role="tablist">
+  <div class="settings-container" [class.mobile]="isMobile">
+    <mat-nav-list class="settings-nav" role="tablist" [class.mobile]="isMobile">
       <a
         mat-list-item
         role="tab"
@@ -16,7 +16,7 @@
         [attr.aria-selected]="selectedCategory === 'general'"
         [class.active]="selectedCategory === 'general'"
         tabindex="0"
-        role="tab">
+        aria-label="General settings">
         <mat-icon matListItemIcon>settings</mat-icon>
         <span matListItemTitle>General</span>
       </a>
@@ -28,7 +28,7 @@
         [attr.aria-selected]="selectedCategory === 'account'"
         [class.active]="selectedCategory === 'account'"
         tabindex="1"
-        role="tab">
+        aria-label="Account settings">
         <mat-icon matListItemIcon>account_circle</mat-icon>
         <span matListItemTitle>Account</span>
       </a>
@@ -36,6 +36,7 @@
 
     <div
       class="settings-content"
+      [class.mobile]="isMobile"
       role="tabpanel"
       [@slideAnimation]="getAnimationState()">
       @switch (selectedCategory) {
