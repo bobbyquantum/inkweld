@@ -1,0 +1,31 @@
+<mat-tree
+  #tree
+  [dataSource]="dataSource"
+  [levelAccessor]="levelAccessor"
+  cdkDropList
+  [cdkDropListData]="dataSource"
+  (cdkDropListDropped)="drop($event)">
+  <mat-tree-node
+    cdkDrag
+    [cdkDragData]="node"
+    matTreeNodePadding
+    [isExpanded]="node.expanded"
+    *matTreeNodeDef="let node; when: hasChild">
+    <button mat-icon-button (click)="toggleExpanded(node)">
+      <mat-icon>
+        {{ node.expanded ? 'expand_more' : 'chevron_right' }}
+      </mat-icon>
+    </button>
+    {{ node.name }}
+    <button mat-icon-button (click)="addItem(node)">
+      <mat-icon>add</mat-icon>
+    </button>
+  </mat-tree-node>
+  <mat-tree-node
+    *matTreeNodeDef="let node"
+    cdkDrag
+    [cdkDragData]="node"
+    matTreeNodePadding>
+    {{ node.name }}
+  </mat-tree-node>
+</mat-tree>

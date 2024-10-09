@@ -86,6 +86,99 @@
             "extends": []
         },
         {
+            "name": "MenuItem",
+            "id": "interface-MenuItem-ac811fd02cdb50d1da579d94321dc8a7dfeaac10e5e27b2d99e64c78393ca542188af495ce421c4a4001786ee8604845b7fe7579d307fff3fed2d46e185ea46b",
+            "file": "src/app/components/project-main-menu/project-main-menu.component.ts",
+            "deprecated": false,
+            "deprecationMessage": "",
+            "type": "interface",
+            "sourceCode": "import { Component } from '@angular/core';\r\nimport { CommonModule } from '@angular/common';\r\nimport { MatMenuModule } from '@angular/material/menu';\r\nimport { MatButtonModule } from '@angular/material/button';\r\n\r\ninterface MenuItem {\r\n  label: string;\r\n  items: string[];\r\n}\r\n\r\n@Component({\r\n  selector: 'app-project-main-menu',\r\n  standalone: true,\r\n  imports: [CommonModule, MatMenuModule, MatButtonModule],\r\n  templateUrl: './project-main-menu.component.html',\r\n  styleUrl: './project-main-menu.component.scss',\r\n})\r\nexport class ProjectMainMenuComponent {\r\n  menuItems: MenuItem[] = [\r\n    {\r\n      label: 'File',\r\n      items: ['New', 'Open', 'Save', 'Save As', 'Close'],\r\n    },\r\n    {\r\n      label: 'Edit',\r\n      items: ['Undo', 'Redo', 'Cut', 'Copy', 'Paste'],\r\n    },\r\n    {\r\n      label: 'View',\r\n      items: ['Zoom In', 'Zoom Out', 'Reset Zoom'],\r\n    },\r\n    {\r\n      label: 'Help',\r\n      items: ['Documentation', 'About'],\r\n    },\r\n  ];\r\n\r\n  onMenuItemClick(item: string): void {\r\n    console.log(`Clicked: ${item}`);\r\n    // Implement the actual functionality for each menu item here\r\n  }\r\n}\r\n",
+            "properties": [
+                {
+                    "name": "items",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "string[]",
+                    "optional": false,
+                    "description": "",
+                    "line": 8
+                },
+                {
+                    "name": "label",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "string",
+                    "optional": false,
+                    "description": "",
+                    "line": 7
+                }
+            ],
+            "indexSignatures": [],
+            "kind": 171,
+            "methods": [],
+            "extends": []
+        },
+        {
+            "name": "TreeNode",
+            "id": "interface-TreeNode-0da1b734f0a7336eb9cb23e1bec52c18307040e813efb589e0105db8e7fd7caa5a09cbdf36ef9cef52972d467080c84993cc55739a7922781741381243c08b3e",
+            "file": "src/app/components/project-tree/project-tree.component.ts",
+            "deprecated": false,
+            "deprecationMessage": "",
+            "type": "interface",
+            "sourceCode": "import { Component, ViewChild } from '@angular/core';\r\nimport { MatTree, MatTreeModule } from '@angular/material/tree';\r\nimport { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';\r\nimport { MatIconModule } from '@angular/material/icon';\r\nimport { MatButtonModule } from '@angular/material/button';\r\n\r\ninterface TreeNode {\r\n  id: string;\r\n  name: string;\r\n  expanded?: boolean;\r\n  children?: TreeNode[];\r\n  type: 'folder' | 'item';\r\n}\r\n\r\nconst TREE_DATA: TreeNode[] = [\r\n  // ... (Your tree data)\r\n];\r\n\r\n@Component({\r\n  standalone: true,\r\n  imports: [MatTreeModule, DragDropModule, MatIconModule, MatButtonModule],\r\n  selector: 'app-project-tree',\r\n  template: `\r\n    <mat-tree #tree [dataSource]=\"dataSource\" [childrenAccessor]=\"getChildren\">\r\n      <mat-tree-node\r\n        cdkDrag\r\n        [cdkDragData]=\"node\"\r\n        matTreeNodePadding\r\n        *matTreeNodeDef=\"let node; when: hasChild\">\r\n        <div>\r\n          <button mat-icon-button matTreeNodeToggle>\r\n            <mat-icon>\r\n              {{ tree.isExpanded(node) ? 'expand_more' : 'chevron_right' }}\r\n            </mat-icon>\r\n          </button>\r\n          {{ node.name }}\r\n          <button mat-icon-button (click)=\"addItem(node)\">\r\n            <mat-icon>add</mat-icon>\r\n          </button>\r\n        </div>\r\n      </mat-tree-node>\r\n      <mat-tree-node\r\n        *matTreeNodeDef=\"let node\"\r\n        cdkDrag\r\n        [cdkDragData]=\"node\"\r\n        matTreeNodePadding>\r\n        {{ node.name }}\r\n      </mat-tree-node>\r\n    </mat-tree>\r\n  `,\r\n  styles: [\r\n    `\r\n      .mat-tree-node {\r\n        display: flex;\r\n        align-items: center;\r\n      }\r\n      .mat-tree-node button {\r\n        margin-right: 8px;\r\n      }\r\n    `,\r\n  ],\r\n})\r\nexport class ProjectTreeComponent {\r\n  dataSource = TREE_DATA;\r\n\r\n  @ViewChild('tree')\r\n  treeEl!: MatTree<TreeNode>;\r\n\r\n  getChildren = (node: TreeNode) => node.children ?? [];\r\n\r\n  hasChild = (_: number, node: TreeNode) =>\r\n    !!node.children && node.children.length > 0;\r\n\r\n  addItem(node: TreeNode) {\r\n    const newItem: TreeNode = {\r\n      id: Date.now().toString(),\r\n      name: 'New Item',\r\n      type: 'item',\r\n    };\r\n    if (!node.children) {\r\n      node.children = [];\r\n    }\r\n    node.children.push(newItem);\r\n  }\r\n\r\n  visibleNodes(): TreeNode[] {\r\n    const result: TreeNode[] = [];\r\n\r\n    function addExpandedChildren(\r\n      node: TreeNode,\r\n      isExpandedFn: (node: TreeNode) => boolean\r\n    ) {\r\n      result.push(node);\r\n      if (isExpandedFn(node) && node.children) {\r\n        node.children.forEach(child =>\r\n          addExpandedChildren(child, isExpandedFn)\r\n        );\r\n      }\r\n    }\r\n\r\n    this.dataSource.forEach(node => {\r\n      addExpandedChildren(node, node => this.treeEl.isExpanded(node));\r\n    });\r\n\r\n    return result;\r\n  }\r\n\r\n  drop(event: CdkDragDrop<TreeNode[]>) {\r\n    if (!event.isPointerOverContainer) return;\r\n\r\n    // Capture the expanded node IDs before the data change\r\n    const expandedNodeIds = this.getExpandedNodeIds(this.dataSource);\r\n\r\n    // Get the list of visible nodes\r\n    const visibleNodes = this.visibleNodes();\r\n\r\n    // Deep clone the data source to mutate it\r\n    const changedData: TreeNode[] = JSON.parse(JSON.stringify(this.dataSource));\r\n\r\n    function findNodeSiblings(\r\n      arr: TreeNode[],\r\n      id: string\r\n    ): TreeNode[] | undefined {\r\n      let result: TreeNode[] | undefined;\r\n      for (const item of arr) {\r\n        if (item.id === id) {\r\n          result = arr;\r\n        } else if (item.children) {\r\n          const subResult = findNodeSiblings(item.children, id);\r\n          if (subResult) result = subResult;\r\n        }\r\n      }\r\n      return result;\r\n    }\r\n\r\n    // Determine where to insert the node\r\n    const nodeAtDest = visibleNodes[event.currentIndex];\r\n    const newSiblings = findNodeSiblings(changedData, nodeAtDest.id);\r\n\r\n    if (!newSiblings) return;\r\n    const insertIndex = newSiblings.findIndex(s => s.id === nodeAtDest.id);\r\n\r\n    // Remove the node from its old place\r\n    const node = event.item.data;\r\n    const siblings = findNodeSiblings(changedData, node.id);\r\n    if (!siblings) return;\r\n    const siblingIndex = siblings.findIndex(n => n.id === node.id);\r\n    const nodeToInsert: TreeNode = siblings.splice(siblingIndex, 1)[0];\r\n    if (nodeAtDest.id === nodeToInsert.id) return;\r\n\r\n    // Insert the node at the new position\r\n    newSiblings.splice(insertIndex, 0, nodeToInsert);\r\n\r\n    // Update the data source with the modified tree data\r\n    this.dataSource = changedData;\r\n\r\n    // Restore the expansion state after the data change\r\n    this.setExpandedNodes(this.dataSource, expandedNodeIds);\r\n  }\r\n\r\n  getExpandedNodeIds(nodeList: TreeNode[]): string[] {\r\n    const ids: string[] = [];\r\n    nodeList.forEach(node => {\r\n      if (this.treeEl.isExpanded(node)) {\r\n        ids.push(node.id);\r\n      }\r\n      if (node.children) {\r\n        ids.push(...this.getExpandedNodeIds(node.children));\r\n      }\r\n    });\r\n    return ids;\r\n  }\r\n\r\n  setExpandedNodes(nodeList: TreeNode[], expandedIds: string[]) {\r\n    nodeList.forEach(node => {\r\n      if (expandedIds.includes(node.id)) {\r\n        this.treeEl.expand(node);\r\n      }\r\n      if (node.children) {\r\n        this.setExpandedNodes(node.children, expandedIds);\r\n      }\r\n    });\r\n  }\r\n\r\n  getDropListId(node: TreeNode): string {\r\n    return node.name.replace(/\\s+/g, '-').toLowerCase();\r\n  }\r\n\r\n  trackByName(index: number, node: TreeNode): string {\r\n    return node.name;\r\n  }\r\n}\r\n",
+            "properties": [
+                {
+                    "name": "children",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "TreeNode[]",
+                    "optional": true,
+                    "description": "",
+                    "line": 11
+                },
+                {
+                    "name": "expanded",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "boolean",
+                    "optional": true,
+                    "description": "",
+                    "line": 10
+                },
+                {
+                    "name": "id",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "string",
+                    "optional": false,
+                    "description": "",
+                    "line": 8
+                },
+                {
+                    "name": "name",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "string",
+                    "optional": false,
+                    "description": "",
+                    "line": 9
+                },
+                {
+                    "name": "type",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "\"folder\" | \"item\"",
+                    "optional": false,
+                    "description": "",
+                    "line": 12
+                }
+            ],
+            "indexSignatures": [],
+            "kind": 171,
+            "methods": [],
+            "extends": []
+        },
+        {
             "name": "User",
             "id": "interface-User-d4821beac0e4a852e513391b7470981c4353fdd95a18628bb68136c8695b489ee15b926e2e5031bc26cf30e1508e0a362c3ee13a06734702b4d15af140e485d5",
             "file": "src/stories/user.ts",
@@ -1667,6 +1760,409 @@
             "templateData": "<mat-toolbar color=\"primary\">\r\n  <span>{{ project?.title }}</span>\r\n  <span class=\"toolbar-spacer\"></span>\r\n  <app-user-menu [user]=\"user\"></app-user-menu>\r\n</mat-toolbar>\r\n\r\n<mat-sidenav-container class=\"main-container\">\r\n  <mat-sidenav mode=\"side\" opened class=\"sidenav-content\">\r\n    <div class=\"sidenav-wrapper\">\r\n      <mat-tree\r\n        [dataSource]=\"dataSource\"\r\n        [childrenAccessor]=\"childrenAccessor\"\r\n        class=\"file-tree\">\r\n        <mat-tree-node *matTreeNodeDef=\"let node\" matTreeNodePadding>\r\n          <mat-icon class=\"type-icon\">{{\r\n            node.type === 'file' ? 'description' : 'folder'\r\n          }}</mat-icon>\r\n          <span class=\"node-name\">{{ node.name }}</span>\r\n        </mat-tree-node>\r\n        <mat-nested-tree-node *matTreeNodeDef=\"let node; when: hasChild\">\r\n          <div class=\"mat-tree-node\">\r\n            <button\r\n              mat-icon-button\r\n              matTreeNodeToggle\r\n              [attr.aria-label]=\"'Toggle ' + node.name\">\r\n              <mat-icon class=\"mat-icon-rtl-mirror\">\r\n                {{ node.expanded ? 'expand_more' : 'chevron_right' }}\r\n              </mat-icon>\r\n            </button>\r\n            <mat-icon class=\"type-icon\">{{\r\n              node.type === 'file' ? 'description' : 'folder'\r\n            }}</mat-icon>\r\n            <span class=\"node-name\">{{ node.name }}</span>\r\n          </div>\r\n          <div [class.file-tree-invisible]=\"!node.expanded\" role=\"group\">\r\n            <ng-container matTreeNodeOutlet></ng-container>\r\n          </div>\r\n        </mat-nested-tree-node>\r\n      </mat-tree>\r\n    </div>\r\n  </mat-sidenav>\r\n  <mat-sidenav-content>\r\n    <div class=\"editor-container\">\r\n      <ngx-editor [editor]=\"editor\"></ngx-editor>\r\n    </div>\r\n  </mat-sidenav-content>\r\n</mat-sidenav-container>\r\n"
         },
         {
+            "name": "ProjectMainMenuComponent",
+            "id": "component-ProjectMainMenuComponent-ac811fd02cdb50d1da579d94321dc8a7dfeaac10e5e27b2d99e64c78393ca542188af495ce421c4a4001786ee8604845b7fe7579d307fff3fed2d46e185ea46b",
+            "file": "src/app/components/project-main-menu/project-main-menu.component.ts",
+            "encapsulation": [],
+            "entryComponents": [],
+            "inputs": [],
+            "outputs": [],
+            "providers": [],
+            "selector": "app-project-main-menu",
+            "styleUrls": [],
+            "styles": [],
+            "templateUrl": [
+                "./project-main-menu.component.html"
+            ],
+            "viewProviders": [],
+            "hostDirectives": [],
+            "inputsClass": [],
+            "outputsClass": [],
+            "propertiesClass": [
+                {
+                    "name": "menuItems",
+                    "defaultValue": "[\r\n    {\r\n      label: 'File',\r\n      items: ['New', 'Open', 'Save', 'Save As', 'Close'],\r\n    },\r\n    {\r\n      label: 'Edit',\r\n      items: ['Undo', 'Redo', 'Cut', 'Copy', 'Paste'],\r\n    },\r\n    {\r\n      label: 'View',\r\n      items: ['Zoom In', 'Zoom Out', 'Reset Zoom'],\r\n    },\r\n    {\r\n      label: 'Help',\r\n      items: ['Documentation', 'About'],\r\n    },\r\n  ]",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "MenuItem[]",
+                    "optional": false,
+                    "description": "",
+                    "line": 19
+                }
+            ],
+            "methodsClass": [
+                {
+                    "name": "onMenuItemClick",
+                    "args": [
+                        {
+                            "name": "item",
+                            "type": "string",
+                            "deprecated": false,
+                            "deprecationMessage": ""
+                        }
+                    ],
+                    "optional": false,
+                    "returnType": "void",
+                    "typeParameters": [],
+                    "line": 38,
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "jsdoctags": [
+                        {
+                            "name": "item",
+                            "type": "string",
+                            "deprecated": false,
+                            "deprecationMessage": "",
+                            "tagName": {
+                                "text": "param"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "deprecated": false,
+            "deprecationMessage": "",
+            "hostBindings": [],
+            "hostListeners": [],
+            "standalone": true,
+            "imports": [
+                {
+                    "name": "CommonModule",
+                    "type": "module"
+                },
+                {
+                    "name": "MatMenuModule",
+                    "type": "module"
+                },
+                {
+                    "name": "MatButtonModule",
+                    "type": "module"
+                }
+            ],
+            "description": "",
+            "rawdescription": "\n",
+            "type": "component",
+            "sourceCode": "import { Component } from '@angular/core';\r\nimport { CommonModule } from '@angular/common';\r\nimport { MatMenuModule } from '@angular/material/menu';\r\nimport { MatButtonModule } from '@angular/material/button';\r\n\r\ninterface MenuItem {\r\n  label: string;\r\n  items: string[];\r\n}\r\n\r\n@Component({\r\n  selector: 'app-project-main-menu',\r\n  standalone: true,\r\n  imports: [CommonModule, MatMenuModule, MatButtonModule],\r\n  templateUrl: './project-main-menu.component.html',\r\n  styleUrl: './project-main-menu.component.scss',\r\n})\r\nexport class ProjectMainMenuComponent {\r\n  menuItems: MenuItem[] = [\r\n    {\r\n      label: 'File',\r\n      items: ['New', 'Open', 'Save', 'Save As', 'Close'],\r\n    },\r\n    {\r\n      label: 'Edit',\r\n      items: ['Undo', 'Redo', 'Cut', 'Copy', 'Paste'],\r\n    },\r\n    {\r\n      label: 'View',\r\n      items: ['Zoom In', 'Zoom Out', 'Reset Zoom'],\r\n    },\r\n    {\r\n      label: 'Help',\r\n      items: ['Documentation', 'About'],\r\n    },\r\n  ];\r\n\r\n  onMenuItemClick(item: string): void {\r\n    console.log(`Clicked: ${item}`);\r\n    // Implement the actual functionality for each menu item here\r\n  }\r\n}\r\n",
+            "styleUrl": "./project-main-menu.component.scss",
+            "assetsDirs": [],
+            "styleUrlsData": "",
+            "stylesData": "",
+            "extends": [],
+            "templateData": "<div class=\"menu-bar\">\r\n  @for (menu of menuItems; track menu.label) {\r\n    <button mat-button [matMenuTriggerFor]=\"menuTrigger\">\r\n      {{ menu.label }}\r\n    </button>\r\n    <mat-menu #menuTrigger=\"matMenu\">\r\n      @for (item of menu.items; track item) {\r\n        <button mat-menu-item (click)=\"onMenuItemClick(item)\">\r\n          {{ item }}\r\n        </button>\r\n      }\r\n    </mat-menu>\r\n  }\r\n</div>\r\n"
+        },
+        {
+            "name": "ProjectTreeComponent",
+            "id": "component-ProjectTreeComponent-0da1b734f0a7336eb9cb23e1bec52c18307040e813efb589e0105db8e7fd7caa5a09cbdf36ef9cef52972d467080c84993cc55739a7922781741381243c08b3e",
+            "file": "src/app/components/project-tree/project-tree.component.ts",
+            "encapsulation": [],
+            "entryComponents": [],
+            "inputs": [],
+            "outputs": [],
+            "providers": [],
+            "selector": "app-project-tree",
+            "styleUrls": [],
+            "styles": [
+                "\n      .mat-tree-node {\n        display: flex;\n        align-items: center;\n      }\n      .mat-tree-node button {\n        margin-right: 8px;\n      }\n    "
+            ],
+            "template": "<mat-tree #tree [dataSource]=\"dataSource\" [childrenAccessor]=\"getChildren\">\n  <mat-tree-node\n    cdkDrag\n    [cdkDragData]=\"node\"\n    matTreeNodePadding\n    *matTreeNodeDef=\"let node; when: hasChild\">\n    <div>\n      <button mat-icon-button matTreeNodeToggle>\n        <mat-icon>\n          {{ tree.isExpanded(node) ? 'expand_more' : 'chevron_right' }}\n        </mat-icon>\n      </button>\n      {{ node.name }}\n      <button mat-icon-button (click)=\"addItem(node)\">\n        <mat-icon>add</mat-icon>\n      </button>\n    </div>\n  </mat-tree-node>\n  <mat-tree-node\n    *matTreeNodeDef=\"let node\"\n    cdkDrag\n    [cdkDragData]=\"node\"\n    matTreeNodePadding>\n    {{ node.name }}\n  </mat-tree-node>\n</mat-tree>\n",
+            "templateUrl": [],
+            "viewProviders": [],
+            "hostDirectives": [],
+            "inputsClass": [],
+            "outputsClass": [],
+            "propertiesClass": [
+                {
+                    "name": "dataSource",
+                    "defaultValue": "TREE_DATA",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "",
+                    "optional": false,
+                    "description": "",
+                    "line": 64
+                },
+                {
+                    "name": "getChildren",
+                    "defaultValue": "() => {...}",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "",
+                    "optional": false,
+                    "description": "",
+                    "line": 69
+                },
+                {
+                    "name": "hasChild",
+                    "defaultValue": "() => {...}",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "",
+                    "optional": false,
+                    "description": "",
+                    "line": 71
+                },
+                {
+                    "name": "treeEl",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "MatTree<TreeNode>",
+                    "optional": false,
+                    "description": "",
+                    "line": 67,
+                    "decorators": [
+                        {
+                            "name": "ViewChild",
+                            "stringifiedArguments": "'tree'"
+                        }
+                    ],
+                    "modifierKind": [
+                        170
+                    ]
+                }
+            ],
+            "methodsClass": [
+                {
+                    "name": "addItem",
+                    "args": [
+                        {
+                            "name": "node",
+                            "type": "TreeNode",
+                            "deprecated": false,
+                            "deprecationMessage": ""
+                        }
+                    ],
+                    "optional": false,
+                    "returnType": "void",
+                    "typeParameters": [],
+                    "line": 74,
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "jsdoctags": [
+                        {
+                            "name": "node",
+                            "type": "TreeNode",
+                            "deprecated": false,
+                            "deprecationMessage": "",
+                            "tagName": {
+                                "text": "param"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "drop",
+                    "args": [
+                        {
+                            "name": "event",
+                            "type": "CdkDragDrop<TreeNode[]>",
+                            "deprecated": false,
+                            "deprecationMessage": ""
+                        }
+                    ],
+                    "optional": false,
+                    "returnType": "void",
+                    "typeParameters": [],
+                    "line": 108,
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "jsdoctags": [
+                        {
+                            "name": "event",
+                            "type": "CdkDragDrop<TreeNode[]>",
+                            "deprecated": false,
+                            "deprecationMessage": "",
+                            "tagName": {
+                                "text": "param"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "getDropListId",
+                    "args": [
+                        {
+                            "name": "node",
+                            "type": "TreeNode",
+                            "deprecated": false,
+                            "deprecationMessage": ""
+                        }
+                    ],
+                    "optional": false,
+                    "returnType": "string",
+                    "typeParameters": [],
+                    "line": 185,
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "jsdoctags": [
+                        {
+                            "name": "node",
+                            "type": "TreeNode",
+                            "deprecated": false,
+                            "deprecationMessage": "",
+                            "tagName": {
+                                "text": "param"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "getExpandedNodeIds",
+                    "args": [
+                        {
+                            "name": "nodeList",
+                            "type": "TreeNode[]",
+                            "deprecated": false,
+                            "deprecationMessage": ""
+                        }
+                    ],
+                    "optional": false,
+                    "returnType": "string[]",
+                    "typeParameters": [],
+                    "line": 161,
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "jsdoctags": [
+                        {
+                            "name": "nodeList",
+                            "type": "TreeNode[]",
+                            "deprecated": false,
+                            "deprecationMessage": "",
+                            "tagName": {
+                                "text": "param"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "setExpandedNodes",
+                    "args": [
+                        {
+                            "name": "nodeList",
+                            "type": "TreeNode[]",
+                            "deprecated": false,
+                            "deprecationMessage": ""
+                        },
+                        {
+                            "name": "expandedIds",
+                            "type": "string[]",
+                            "deprecated": false,
+                            "deprecationMessage": ""
+                        }
+                    ],
+                    "optional": false,
+                    "returnType": "void",
+                    "typeParameters": [],
+                    "line": 174,
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "jsdoctags": [
+                        {
+                            "name": "nodeList",
+                            "type": "TreeNode[]",
+                            "deprecated": false,
+                            "deprecationMessage": "",
+                            "tagName": {
+                                "text": "param"
+                            }
+                        },
+                        {
+                            "name": "expandedIds",
+                            "type": "string[]",
+                            "deprecated": false,
+                            "deprecationMessage": "",
+                            "tagName": {
+                                "text": "param"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "trackByName",
+                    "args": [
+                        {
+                            "name": "index",
+                            "type": "number",
+                            "deprecated": false,
+                            "deprecationMessage": ""
+                        },
+                        {
+                            "name": "node",
+                            "type": "TreeNode",
+                            "deprecated": false,
+                            "deprecationMessage": ""
+                        }
+                    ],
+                    "optional": false,
+                    "returnType": "string",
+                    "typeParameters": [],
+                    "line": 189,
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "jsdoctags": [
+                        {
+                            "name": "index",
+                            "type": "number",
+                            "deprecated": false,
+                            "deprecationMessage": "",
+                            "tagName": {
+                                "text": "param"
+                            }
+                        },
+                        {
+                            "name": "node",
+                            "type": "TreeNode",
+                            "deprecated": false,
+                            "deprecationMessage": "",
+                            "tagName": {
+                                "text": "param"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "visibleNodes",
+                    "args": [],
+                    "optional": false,
+                    "returnType": "TreeNode[]",
+                    "typeParameters": [],
+                    "line": 86,
+                    "deprecated": false,
+                    "deprecationMessage": ""
+                }
+            ],
+            "deprecated": false,
+            "deprecationMessage": "",
+            "hostBindings": [],
+            "hostListeners": [],
+            "standalone": true,
+            "imports": [
+                {
+                    "name": "MatTreeModule",
+                    "type": "module"
+                },
+                {
+                    "name": "DragDropModule",
+                    "type": "module"
+                },
+                {
+                    "name": "MatIconModule",
+                    "type": "module"
+                },
+                {
+                    "name": "MatButtonModule",
+                    "type": "module"
+                }
+            ],
+            "description": "",
+            "rawdescription": "\n",
+            "type": "component",
+            "sourceCode": "import { Component, ViewChild } from '@angular/core';\r\nimport { MatTree, MatTreeModule } from '@angular/material/tree';\r\nimport { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';\r\nimport { MatIconModule } from '@angular/material/icon';\r\nimport { MatButtonModule } from '@angular/material/button';\r\n\r\ninterface TreeNode {\r\n  id: string;\r\n  name: string;\r\n  expanded?: boolean;\r\n  children?: TreeNode[];\r\n  type: 'folder' | 'item';\r\n}\r\n\r\nconst TREE_DATA: TreeNode[] = [\r\n  // ... (Your tree data)\r\n];\r\n\r\n@Component({\r\n  standalone: true,\r\n  imports: [MatTreeModule, DragDropModule, MatIconModule, MatButtonModule],\r\n  selector: 'app-project-tree',\r\n  template: `\r\n    <mat-tree #tree [dataSource]=\"dataSource\" [childrenAccessor]=\"getChildren\">\r\n      <mat-tree-node\r\n        cdkDrag\r\n        [cdkDragData]=\"node\"\r\n        matTreeNodePadding\r\n        *matTreeNodeDef=\"let node; when: hasChild\">\r\n        <div>\r\n          <button mat-icon-button matTreeNodeToggle>\r\n            <mat-icon>\r\n              {{ tree.isExpanded(node) ? 'expand_more' : 'chevron_right' }}\r\n            </mat-icon>\r\n          </button>\r\n          {{ node.name }}\r\n          <button mat-icon-button (click)=\"addItem(node)\">\r\n            <mat-icon>add</mat-icon>\r\n          </button>\r\n        </div>\r\n      </mat-tree-node>\r\n      <mat-tree-node\r\n        *matTreeNodeDef=\"let node\"\r\n        cdkDrag\r\n        [cdkDragData]=\"node\"\r\n        matTreeNodePadding>\r\n        {{ node.name }}\r\n      </mat-tree-node>\r\n    </mat-tree>\r\n  `,\r\n  styles: [\r\n    `\r\n      .mat-tree-node {\r\n        display: flex;\r\n        align-items: center;\r\n      }\r\n      .mat-tree-node button {\r\n        margin-right: 8px;\r\n      }\r\n    `,\r\n  ],\r\n})\r\nexport class ProjectTreeComponent {\r\n  dataSource = TREE_DATA;\r\n\r\n  @ViewChild('tree')\r\n  treeEl!: MatTree<TreeNode>;\r\n\r\n  getChildren = (node: TreeNode) => node.children ?? [];\r\n\r\n  hasChild = (_: number, node: TreeNode) =>\r\n    !!node.children && node.children.length > 0;\r\n\r\n  addItem(node: TreeNode) {\r\n    const newItem: TreeNode = {\r\n      id: Date.now().toString(),\r\n      name: 'New Item',\r\n      type: 'item',\r\n    };\r\n    if (!node.children) {\r\n      node.children = [];\r\n    }\r\n    node.children.push(newItem);\r\n  }\r\n\r\n  visibleNodes(): TreeNode[] {\r\n    const result: TreeNode[] = [];\r\n\r\n    function addExpandedChildren(\r\n      node: TreeNode,\r\n      isExpandedFn: (node: TreeNode) => boolean\r\n    ) {\r\n      result.push(node);\r\n      if (isExpandedFn(node) && node.children) {\r\n        node.children.forEach(child =>\r\n          addExpandedChildren(child, isExpandedFn)\r\n        );\r\n      }\r\n    }\r\n\r\n    this.dataSource.forEach(node => {\r\n      addExpandedChildren(node, node => this.treeEl.isExpanded(node));\r\n    });\r\n\r\n    return result;\r\n  }\r\n\r\n  drop(event: CdkDragDrop<TreeNode[]>) {\r\n    if (!event.isPointerOverContainer) return;\r\n\r\n    // Capture the expanded node IDs before the data change\r\n    const expandedNodeIds = this.getExpandedNodeIds(this.dataSource);\r\n\r\n    // Get the list of visible nodes\r\n    const visibleNodes = this.visibleNodes();\r\n\r\n    // Deep clone the data source to mutate it\r\n    const changedData: TreeNode[] = JSON.parse(JSON.stringify(this.dataSource));\r\n\r\n    function findNodeSiblings(\r\n      arr: TreeNode[],\r\n      id: string\r\n    ): TreeNode[] | undefined {\r\n      let result: TreeNode[] | undefined;\r\n      for (const item of arr) {\r\n        if (item.id === id) {\r\n          result = arr;\r\n        } else if (item.children) {\r\n          const subResult = findNodeSiblings(item.children, id);\r\n          if (subResult) result = subResult;\r\n        }\r\n      }\r\n      return result;\r\n    }\r\n\r\n    // Determine where to insert the node\r\n    const nodeAtDest = visibleNodes[event.currentIndex];\r\n    const newSiblings = findNodeSiblings(changedData, nodeAtDest.id);\r\n\r\n    if (!newSiblings) return;\r\n    const insertIndex = newSiblings.findIndex(s => s.id === nodeAtDest.id);\r\n\r\n    // Remove the node from its old place\r\n    const node = event.item.data;\r\n    const siblings = findNodeSiblings(changedData, node.id);\r\n    if (!siblings) return;\r\n    const siblingIndex = siblings.findIndex(n => n.id === node.id);\r\n    const nodeToInsert: TreeNode = siblings.splice(siblingIndex, 1)[0];\r\n    if (nodeAtDest.id === nodeToInsert.id) return;\r\n\r\n    // Insert the node at the new position\r\n    newSiblings.splice(insertIndex, 0, nodeToInsert);\r\n\r\n    // Update the data source with the modified tree data\r\n    this.dataSource = changedData;\r\n\r\n    // Restore the expansion state after the data change\r\n    this.setExpandedNodes(this.dataSource, expandedNodeIds);\r\n  }\r\n\r\n  getExpandedNodeIds(nodeList: TreeNode[]): string[] {\r\n    const ids: string[] = [];\r\n    nodeList.forEach(node => {\r\n      if (this.treeEl.isExpanded(node)) {\r\n        ids.push(node.id);\r\n      }\r\n      if (node.children) {\r\n        ids.push(...this.getExpandedNodeIds(node.children));\r\n      }\r\n    });\r\n    return ids;\r\n  }\r\n\r\n  setExpandedNodes(nodeList: TreeNode[], expandedIds: string[]) {\r\n    nodeList.forEach(node => {\r\n      if (expandedIds.includes(node.id)) {\r\n        this.treeEl.expand(node);\r\n      }\r\n      if (node.children) {\r\n        this.setExpandedNodes(node.children, expandedIds);\r\n      }\r\n    });\r\n  }\r\n\r\n  getDropListId(node: TreeNode): string {\r\n    return node.name.replace(/\\s+/g, '-').toLowerCase();\r\n  }\r\n\r\n  trackByName(index: number, node: TreeNode): string {\r\n    return node.name;\r\n  }\r\n}\r\n",
+            "assetsDirs": [],
+            "styleUrlsData": "",
+            "stylesData": "\n      .mat-tree-node {\n        display: flex;\n        align-items: center;\n      }\n      .mat-tree-node button {\n        margin-right: 8px;\n      }\n    \n",
+            "extends": []
+        },
+        {
             "name": "RegisterComponent",
             "id": "component-RegisterComponent-b97ca328d4292c967ed85b4d163851280b25620cb324e654740837ad11cbb336683dc936e7a09a2c8acc45e11fa1cd0ca71b41a0c367995a69513ded88052a11",
             "file": "src/app/pages/register/register.component.ts",
@@ -2992,6 +3488,16 @@
                 "deprecationMessage": "",
                 "type": "",
                 "defaultValue": "trigger('slideAnimation', [\r\n  transition(\r\n    '* => *',\r\n    [\r\n      query(':enter, :leave', style({ position: 'absolute', width: '100%' }), {\r\n        optional: true,\r\n      }),\r\n      group([\r\n        query(\r\n          ':enter',\r\n          [\r\n            style({ transform: 'translateY({{enterTransform}})' }),\r\n            animate('300ms ease-out', style({ transform: 'translateY(0%)' })),\r\n          ],\r\n          { optional: true }\r\n        ),\r\n        query(\r\n          ':leave',\r\n          [\r\n            animate(\r\n              '300ms ease-out',\r\n              style({ transform: 'translateY({{leaveTransform}})' })\r\n            ),\r\n          ],\r\n          { optional: true }\r\n        ),\r\n      ]),\r\n    ],\r\n    { params: { enterTransform: '100%', leaveTransform: '-100%' } }\r\n  ),\r\n])"
+            },
+            {
+                "name": "TREE_DATA",
+                "ctype": "miscellaneous",
+                "subtype": "variable",
+                "file": "src/app/components/project-tree/project-tree.component.ts",
+                "deprecated": false,
+                "deprecationMessage": "",
+                "type": "TreeNode[]",
+                "defaultValue": "[\r\n  // ... (Your tree data)\r\n]"
             }
         ],
         "functions": [
@@ -3099,6 +3605,18 @@
                     "deprecationMessage": "",
                     "type": "",
                     "defaultValue": "trigger('slideAnimation', [\r\n  transition(\r\n    '* => *',\r\n    [\r\n      query(':enter, :leave', style({ position: 'absolute', width: '100%' }), {\r\n        optional: true,\r\n      }),\r\n      group([\r\n        query(\r\n          ':enter',\r\n          [\r\n            style({ transform: 'translateY({{enterTransform}})' }),\r\n            animate('300ms ease-out', style({ transform: 'translateY(0%)' })),\r\n          ],\r\n          { optional: true }\r\n        ),\r\n        query(\r\n          ':leave',\r\n          [\r\n            animate(\r\n              '300ms ease-out',\r\n              style({ transform: 'translateY({{leaveTransform}})' })\r\n            ),\r\n          ],\r\n          { optional: true }\r\n        ),\r\n      ]),\r\n    ],\r\n    { params: { enterTransform: '100%', leaveTransform: '-100%' } }\r\n  ),\r\n])"
+                }
+            ],
+            "src/app/components/project-tree/project-tree.component.ts": [
+                {
+                    "name": "TREE_DATA",
+                    "ctype": "miscellaneous",
+                    "subtype": "variable",
+                    "file": "src/app/components/project-tree/project-tree.component.ts",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "TreeNode[]",
+                    "defaultValue": "[\r\n  // ... (Your tree data)\r\n]"
                 }
             ]
         },
@@ -3238,6 +3756,52 @@
                 "name": "ProjectCardComponent",
                 "coveragePercent": 0,
                 "coverageCount": "0/2",
+                "status": "low"
+            },
+            {
+                "filePath": "src/app/components/project-main-menu/project-main-menu.component.ts",
+                "type": "component",
+                "linktype": "component",
+                "name": "ProjectMainMenuComponent",
+                "coveragePercent": 0,
+                "coverageCount": "0/3",
+                "status": "low"
+            },
+            {
+                "filePath": "src/app/components/project-main-menu/project-main-menu.component.ts",
+                "type": "interface",
+                "linktype": "interface",
+                "name": "MenuItem",
+                "coveragePercent": 0,
+                "coverageCount": "0/3",
+                "status": "low"
+            },
+            {
+                "filePath": "src/app/components/project-tree/project-tree.component.ts",
+                "type": "component",
+                "linktype": "component",
+                "name": "ProjectTreeComponent",
+                "coveragePercent": 0,
+                "coverageCount": "0/12",
+                "status": "low"
+            },
+            {
+                "filePath": "src/app/components/project-tree/project-tree.component.ts",
+                "type": "interface",
+                "linktype": "interface",
+                "name": "TreeNode",
+                "coveragePercent": 0,
+                "coverageCount": "0/6",
+                "status": "low"
+            },
+            {
+                "filePath": "src/app/components/project-tree/project-tree.component.ts",
+                "type": "variable",
+                "linktype": "miscellaneous",
+                "linksubtype": "variable",
+                "name": "TREE_DATA",
+                "coveragePercent": 0,
+                "coverageCount": "0/1",
                 "status": "low"
             },
             {
