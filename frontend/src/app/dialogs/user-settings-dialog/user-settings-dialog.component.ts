@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Input, inject, OnInit, OnDestroy } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MatDialogContent,
@@ -8,6 +8,7 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { GeneralSettingsComponent } from './tabs/general-settings/general-settings.component';
 import {
   trigger,
@@ -17,6 +18,9 @@ import {
   query,
   group,
 } from '@angular/animations';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { Subject, takeUntil } from 'rxjs';
+import { CommonModule } from '@angular/common';
 
 const slideAnimation = trigger('slideAnimation', [
   transition(
@@ -49,10 +53,12 @@ const slideAnimation = trigger('slideAnimation', [
     { params: { enterTransform: '100%', leaveTransform: '-100%' } }
   ),
 ]);
+
 @Component({
   selector: 'app-user-settings-dialog',
   standalone: true,
   imports: [
+    CommonModule,
     MatDialogTitle,
     MatDialogContent,
     MatDialogActions,
@@ -60,15 +66,33 @@ const slideAnimation = trigger('slideAnimation', [
     MatListModule,
     MatButtonModule,
     MatIconModule,
+    MatTooltipModule,
     GeneralSettingsComponent,
   ],
   animations: [slideAnimation],
   templateUrl: './user-settings-dialog.component.html',
   styleUrl: './user-settings-dialog.component.scss',
 })
-export class UserSettingsDialogComponent {
-  selectedCategory: 'general' | 'account' = 'general';
+export class UserSettingsDialogComponent implements OnInit, OnDestroy {
+  @Input() selectedCategory: 'general' | 'account' = 'general';
   previousCategory: 'general' | 'account' = 'general';
+  isMobile = false;
+  private destroyed = new Subject<void>();
+  private breakpointObserver = inject(BreakpointObserver);
+
+  ngOnInit() {
+    this.breakpointObserver
+      .observe([Breakpoints.HandsetPortrait, Breakpoints.TabletPortrait])
+      .pipe(takeUntil(this.destroyed))
+      .subscribe(result => {
+        this.isMobile = result.matches;
+      });
+  }
+
+  ngOnDestroy() {
+    this.destroyed.next();
+    this.destroyed.complete();
+  }
 
   selectCategory(category: 'general' | 'account') {
     this.previousCategory = this.selectedCategory;
