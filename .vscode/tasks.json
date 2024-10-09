@@ -32,7 +32,6 @@
         "type": "shell",
         "command": "cd frontend && npm start",
         "isBackground": true,
-        
         "problemMatcher": [
           {
             "pattern": [
@@ -45,8 +44,8 @@
             ],
             "background": {
               "activeOnStart": true,
-              "beginsPattern": "^.*Application bundle generation complete$",
-              "endsPattern": "^.*: Compiled successfully.*$",
+              "beginsPattern": "^.*Initial chunk files.*$",
+              "endsPattern": "^.*Application bundle generation complete.*$"
             }
           }
         ]
