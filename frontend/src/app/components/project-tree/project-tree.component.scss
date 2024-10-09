@@ -1,3 +1,20 @@
 .mat-icon-rtl-mirror {
   margin-right: 8px;
 }
+
+.drag-placeholder {
+  background: #2196F3;
+  height: 2px;
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+.drag-placeholder.invalid-drop {
+  background-color: rgba(255, 0, 0, 0.5);
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drop-list-dragging .mat-tree-node:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}

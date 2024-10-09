@@ -64,10 +64,10 @@ mat-tree-node, mat-nested-tree-node {
 
 // Ensure the ngx-editor takes up the full height of its container
 ::ng-deep .NgxEditor {
-  height: calc(100% - 32px); // Adjust for padding
+  height: calc(100% - 64px); // Adjust for padding
 }
 
 ::ng-deep .NgxEditor__Content {
-  height: calc(100% - 40px); // Adjust for toolbar height
+  height: calc(100% - 64px); // Adjust for toolbar height
   overflow-y: auto;
 }

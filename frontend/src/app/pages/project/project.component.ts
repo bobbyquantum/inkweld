@@ -10,6 +10,8 @@ import { ActivatedRoute } from '@angular/router';
 import { ProjectAPIService, Project, User } from 'worm-api-client';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
+import { ProjectTreeComponent } from '../../components/project-tree/project-tree.component';
+import { ProjectMainMenuComponent } from '../../components/project-main-menu/project-main-menu.component';
 
 interface FileNode {
   name: string;
@@ -31,6 +33,8 @@ interface FileNode {
     UserMenuComponent,
     NgxEditorModule,
     MatSnackBarModule,
+    ProjectTreeComponent,
+    ProjectMainMenuComponent,
   ],
   templateUrl: './project.component.html',
   styleUrl: './project.component.scss',
