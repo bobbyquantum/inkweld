@@ -1,42 +1,11 @@
 <mat-toolbar color="primary">
-  <span>{{ project?.title }}</span>
-  <span class="toolbar-spacer"></span>
-  <app-user-menu [user]="user"></app-user-menu>
+  <app-project-main-menu></app-project-main-menu>
 </mat-toolbar>
 
 <mat-sidenav-container class="main-container">
   <mat-sidenav mode="side" opened class="sidenav-content">
     <div class="sidenav-wrapper">
-      <mat-tree
-        [dataSource]="dataSource"
-        [childrenAccessor]="childrenAccessor"
-        class="file-tree">
-        <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
-          <mat-icon class="type-icon">{{
-            node.type === 'file' ? 'description' : 'folder'
-          }}</mat-icon>
-          <span class="node-name">{{ node.name }}</span>
-        </mat-tree-node>
-        <mat-nested-tree-node *matTreeNodeDef="let node; when: hasChild">
-          <div class="mat-tree-node">
-            <button
-              mat-icon-button
-              matTreeNodeToggle
-              [attr.aria-label]="'Toggle ' + node.name">
-              <mat-icon class="mat-icon-rtl-mirror">
-                {{ node.expanded ? 'expand_more' : 'chevron_right' }}
-              </mat-icon>
-            </button>
-            <mat-icon class="type-icon">{{
-              node.type === 'file' ? 'description' : 'folder'
-            }}</mat-icon>
-            <span class="node-name">{{ node.name }}</span>
-          </div>
-          <div [class.file-tree-invisible]="!node.expanded" role="group">
-            <ng-container matTreeNodeOutlet></ng-container>
-          </div>
-        </mat-nested-tree-node>
-      </mat-tree>
+      <app-project-tree></app-project-tree>
     </div>
   </mat-sidenav>
   <mat-sidenav-content>

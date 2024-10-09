@@ -1,11 +1,17 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, ViewChild, ElementRef, Input, OnInit } from '@angular/core';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
-import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
+import {
+  CdkDragDrop,
+  DragDropModule,
+  CdkDragMove,
+  CdkDrag,
+  CdkDropList,
+} from '@angular/cdk/drag-drop';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { ArrayDataSource } from '@angular/cdk/collections';
 
-interface ProjectElement {
+export interface ProjectElement {
   id: string;
   name: string;
   children?: ProjectElement[];
@@ -16,116 +22,6 @@ interface ProjectElement {
   visible?: boolean;
 }
 
-const TREE_DATA: ProjectElement[] = [
-  {
-    id: 'chapters',
-    name: '📖 Chapters',
-    type: 'folder',
-    level: 0,
-    expandable: true,
-    expanded: false,
-    visible: true,
-  },
-  {
-    id: 'c1',
-    name: 'Chapter 1',
-    type: 'item',
-    level: 1,
-    expandable: false,
-    expanded: true,
-    visible: false,
-  },
-  {
-    id: 'c2',
-    name: 'Chapter 2',
-    type: 'item',
-    level: 1,
-    expandable: false,
-    expanded: true,
-    visible: false,
-  },
-  {
-    id: 'chars',
-    name: 'Characters',
-    type: 'folder',
-    level: 0,
-    expandable: true,
-    expanded: true,
-    visible: true,
-  },
-  {
-    id: 'ch1',
-    name: 'Extras',
-    type: 'folder',
-    level: 1,
-    expandable: true,
-    expanded: true,
-    visible: true,
-  },
-  {
-    id: 'ce1',
-    name: 'Extra A',
-    type: 'item',
-    level: 2,
-    expandable: false,
-    expanded: true,
-    visible: true,
-  },
-  {
-    id: 'ce2',
-    name: 'Extra B',
-    type: 'item',
-    level: 2,
-    expandable: false,
-    expanded: true,
-    visible: true,
-  },
-  {
-    id: 'ch1',
-    name: 'Character A',
-    type: 'item',
-    level: 1,
-    expandable: false,
-    expanded: true,
-    visible: true,
-  },
-  {
-    id: 'ch2',
-    name: 'Character B',
-    type: 'item',
-    level: 1,
-    expandable: false,
-    expanded: true,
-    visible: true,
-  },
-  {
-    id: 'lo',
-    name: 'Locations',
-    type: 'folder',
-    level: 0,
-    expandable: true,
-    expanded: true,
-    visible: true,
-  },
-  {
-    id: 'l1',
-    name: 'Location 1',
-    type: 'item',
-    level: 1,
-    expandable: false,
-    expanded: true,
-    visible: true,
-  },
-  {
-    id: 'l2',
-    name: 'Location 2',
-    type: 'item',
-    level: 1,
-    expandable: false,
-    expanded: true,
-    visible: true,
-  },
-];
 @Component({
   standalone: true,
   imports: [MatTreeModule, DragDropModule, MatIconModule, MatButtonModule],
@@ -133,20 +29,40 @@ const TREE_DATA: ProjectElement[] = [
   templateUrl: './project-tree.component.html',
   styleUrls: ['./project-tree.component.scss'],
 })
-export class ProjectTreeComponent {
-  sourceData: ProjectElement[] = JSON.parse(JSON.stringify(TREE_DATA));
+export class ProjectTreeComponent implements OnInit {
+  @Input() treeData: ProjectElement[] = [];
+
+  sourceData: ProjectElement[] = [];
 
   @ViewChild('tree')
   treeEl!: MatTree<ProjectElement>;
 
-  dataSource = new ArrayDataSource<ProjectElement>(
-    this.sourceData.filter(x => x.visible)
-  );
+  @ViewChild('treeContainer', { static: true })
+  treeContainer!: ElementRef;
+
+  dataSource!: ArrayDataSource<ProjectElement>;
+
+  currentDropLevel = 0;
+  draggedNode: ProjectElement | null = null;
+  targetNode: ProjectElement | null = null;
+
+  ngOnInit() {
+    this.sourceData = JSON.parse(JSON.stringify(this.treeData));
+    this.updateDataSource();
+  }
+
+  updateDataSource() {
+    this.dataSource = new ArrayDataSource<ProjectElement>(
+      this.sourceData.filter(x => x.visible)
+    );
+  }
 
   levelAccessor(dataNode: ProjectElement): number {
     return dataNode.level;
   }
+
   hasChild = (_: number, node: ProjectElement) => node.expandable;
+
   parentExpanded = (_: number, node: ProjectElement) => {
     return this.getParentNode(node)?.expanded;
   };
@@ -161,9 +77,7 @@ export class ProjectTreeComponent {
         break;
       }
     }
-    this.dataSource = new ArrayDataSource<ProjectElement>(
-      this.sourceData.filter(x => x.visible)
-    );
+    this.updateDataSource();
   }
 
   getParentNode(node: ProjectElement) {
@@ -192,6 +106,7 @@ export class ProjectTreeComponent {
     }
     node.children.push(newItem);
   }
+
   getNodeSubtree(nodeIndex: number): ProjectElement[] {
     const subtree = [this.sourceData[nodeIndex]];
     const nodeLevel = this.sourceData[nodeIndex].level;
@@ -204,19 +119,17 @@ export class ProjectTreeComponent {
     }
     return subtree;
   }
+
   updateVisibility() {
     const stack: { level: number; expanded?: boolean }[] = [];
 
     for (const node of this.sourceData) {
-      // Pop from stack if current node's level is less than the last level in stack
       while (stack.length > 0 && stack[stack.length - 1].level >= node.level) {
         stack.pop();
       }
 
-      // Determine visibility
       node.visible = stack.every(parent => parent.expanded !== false);
 
-      // If the node is expandable, push it to the stack
       if (node.expandable) {
         stack.push({ level: node.level, expanded: node.expanded });
       }
@@ -226,52 +139,249 @@ export class ProjectTreeComponent {
   visibleNodes(): ProjectElement[] {
     return this.sourceData.filter(x => x.visible);
   }
-  drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {
-    console.log('origin/destination', event.previousIndex, event.currentIndex);
 
+  getCondensedTreeSummary(): string {
+    return this.sourceData
+      .filter(node => node.visible)
+      .map(node => `${node.level}${node.name}`)
+      .join('\n');
+  }
+  calculateDropLevel(event: CdkDragMove<ProjectElement>) {
+    const pointerY = event.pointerPosition.y;
+    const pointerX = event.pointerPosition.x;
+
+    // Get all visible node elements
+    const nodeElements = Array.from(
+      this.treeContainer.nativeElement.querySelectorAll('.mat-tree-node')
+    ) as HTMLElement[];
+    const visibleNodes = this.visibleNodes();
+
+    // Find the closest node to the pointer
+    let closestNodeIndex = -1;
+    let minDistance = Infinity;
+
+    nodeElements.forEach((nodeElement, index) => {
+      const nodeRect = nodeElement.getBoundingClientRect();
+      const nodeY = nodeRect.top + nodeRect.height / 2;
+      const distance = Math.abs(pointerY - nodeY);
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestNodeIndex = index;
+      }
+    });
+
+    if (closestNodeIndex >= 0) {
+      const targetNode = visibleNodes[closestNodeIndex];
+      const targetNodeLevel = targetNode.level;
+
+      // Determine the index of the previous node
+      const previousNodeIndex =
+        closestNodeIndex > 0 ? closestNodeIndex - 1 : null;
+      const previousNode =
+        previousNodeIndex !== null ? visibleNodes[previousNodeIndex] : null;
+      const previousNodeLevel = previousNode ? previousNode.level : null;
+
+      // Set the targetNode and draggedNode
+      this.targetNode = targetNode;
+      this.draggedNode = event.source.data;
+
+      // Calculate level based on pointerX position
+      const treeRect = this.treeContainer.nativeElement.getBoundingClientRect();
+      const levelWidth = 24; // Adjust if your indent per level is different
+      const calculatedLevel = Math.floor(
+        (pointerX - treeRect.left) / levelWidth
+      );
+
+      let possibleLevels: number[] = [];
+
+      // Build possibleLevels based on targetNode and previousNode levels
+      if (closestNodeIndex === 0) {
+        // Only allow level 0 at the top of the list
+        possibleLevels = [0];
+      } else {
+        // Possible levels are from minLevel to maxLevel
+        const minLevel = previousNodeLevel !== null ? previousNodeLevel : 0;
+        const maxLevel = targetNodeLevel + 1;
+
+        for (let level = minLevel; level <= maxLevel; level++) {
+          possibleLevels.push(level);
+        }
+      }
+
+      // Remove invalid levels
+      possibleLevels = possibleLevels.filter(level => level >= 0);
+
+      // Now, select the closest level to calculatedLevel from possibleLevels
+      this.currentDropLevel = possibleLevels.reduce((prev, curr) =>
+        Math.abs(curr - calculatedLevel) < Math.abs(prev - calculatedLevel)
+          ? curr
+          : prev
+      );
+
+      // Validate the drop level using isValidDrop
+      if (
+        !this.isValidDrop(
+          this.draggedNode,
+          this.targetNode,
+          this.currentDropLevel
+        )
+      ) {
+        // If the calculated drop level is not valid, default to the closest valid level
+        this.currentDropLevel =
+          possibleLevels.find(level =>
+            this.isValidDrop(this.draggedNode, this.targetNode!, level)
+          ) ?? targetNode.level;
+      }
+    } else {
+      // Default to root level if no node is close
+      this.currentDropLevel = 0;
+      this.targetNode = null;
+      this.draggedNode = event.source.data;
+    }
+
+    console.log(`Calculated drop level: ${this.currentDropLevel}`);
+  }
+
+  isValidDrop(
+    node: ProjectElement | null,
+    targetNode: ProjectElement | null,
+    newLevel: number
+  ): boolean {
+    if (!node || !targetNode) {
+      return newLevel === 0;
+    }
+
+    console.log('isValidDrop:', {
+      node: node.name,
+      nodeType: node.type,
+      targetNode: targetNode.name,
+      targetType: targetNode.type,
+      newLevel,
+      targetLevel: targetNode.level,
+    });
+
+    // Prevent dropping a node as its own descendant
+    if (this.isDescendant(node, targetNode)) {
+      return false;
+    }
+
+    // Don't allow dropping an item as a child of another item
+    if (
+      node.type === 'item' &&
+      targetNode.type === 'item' &&
+      newLevel > targetNode.level
+    ) {
+      return false;
+    }
+
+    // Don't allow dropping a folder as a child of an item
+    if (targetNode.type === 'item' && newLevel > targetNode.level) {
+      return false;
+    }
+
+    // Don't allow dropping at a level that would create invalid hierarchy
+    if (newLevel < targetNode.level && targetNode.level > 0) {
+      const previousNode = this.getPreviousVisibleNode(targetNode);
+      if (previousNode && newLevel <= previousNode.level) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+  getPreviousVisibleNode(node: ProjectElement): ProjectElement | null {
+    const visibleNodes = this.visibleNodes();
+    const index = visibleNodes.indexOf(node);
+    if (index > 0) {
+      return visibleNodes[index - 1];
+    }
+    return null;
+  }
+
+  isDescendant(node: ProjectElement, targetNode: ProjectElement): boolean {
+    if (node === targetNode) {
+      return true;
+    }
+
+    const nodeIndex = this.sourceData.indexOf(node);
+    const targetIndex = this.sourceData.indexOf(targetNode);
+
+    if (nodeIndex === -1 || targetIndex === -1) {
+      return false;
+    }
+
+    const nodeSubtree = this.getNodeSubtree(nodeIndex);
+    return nodeSubtree.includes(targetNode);
+  }
+
+  canEnterDropList = (drag: CdkDrag, drop: CdkDropList) => {
+    const node = drag.data as ProjectElement;
+    const targetNode = this.targetNode;
+
+    return this.isValidDrop(node, targetNode, this.currentDropLevel);
+  };
+
+  drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {
     if (!event.isPointerOverContainer) return;
 
-    const visibleNodes = this.visibleNodes();
-    console.log('visible nodes', visibleNodes);
-
+    // Get the node being dragged
     const node = event.item.data as ProjectElement;
     const nodeIndex = this.sourceData.findIndex(n => n.id === node.id);
     if (nodeIndex === -1) return;
 
+    // Get the node at the drop position
+    const visibleNodes = this.visibleNodes();
     const targetNode = visibleNodes[event.currentIndex];
+    if (!targetNode) return;
+
     const targetIndex = this.sourceData.findIndex(n => n.id === targetNode.id);
     if (targetIndex === -1) return;
 
-    // Remove the node and its descendants from their current positions
+    if (!this.isValidDrop(node, targetNode, this.currentDropLevel)) {
+      console.log('Invalid drop operation');
+      return;
+    }
+
+    // Remove the node and its subtree
     const nodeSubtree = this.getNodeSubtree(nodeIndex);
     this.sourceData.splice(nodeIndex, nodeSubtree.length);
 
-    // Adjust target index if necessary
-    let newIndex = targetIndex;
+    // Adjust the target index after removal
+    let adjustedTargetIndex = targetIndex;
     if (nodeIndex < targetIndex) {
-      newIndex = targetIndex - nodeSubtree.length + 1;
+      adjustedTargetIndex -= nodeSubtree.length;
     }
 
-    // Insert the node and its descendants at the new position
-    this.sourceData.splice(newIndex, 0, ...nodeSubtree);
+    // Determine the insert index
+    let insertIndex = adjustedTargetIndex;
 
-    // Update levels
-    let prevNodeLevel = -1;
-    if (newIndex > 0) {
-      prevNodeLevel = this.sourceData[newIndex - 1].level;
+    // Decide whether to insert before or after the targetNode
+    if (
+      this.currentDropLevel > targetNode.level ||
+      event.currentIndex > event.previousIndex
+    ) {
+      // Insert after the target node and its subtree
+      const targetSubtree = this.getNodeSubtree(adjustedTargetIndex);
+      insertIndex = adjustedTargetIndex + targetSubtree.length;
     }
-    const levelDifference = prevNodeLevel + 1 - node.level;
 
+    // Adjust levels
+    const levelDifference = this.currentDropLevel - node.level;
     for (const n of nodeSubtree) {
       n.level += levelDifference;
     }
 
-    // Update visibility
-    this.updateVisibility();
+    // Insert the node and its subtree
+    this.sourceData.splice(insertIndex, 0, ...nodeSubtree);
 
-    // Update the data source
-    this.dataSource = new ArrayDataSource(
-      this.sourceData.filter(x => x.visible)
-    );
+    this.updateVisibility();
+    this.updateDataSource();
+
+    console.log('Tree after drag:');
+    console.log(this.getCondensedTreeSummary());
+
+    this.targetNode = null;
+    this.draggedNode = null;
   }
 }
