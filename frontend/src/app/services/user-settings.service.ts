@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
-import { UserSettingsDialogComponent } from '@components/user-settings-dialog/user-settings-dialog.component';
-import { UserFilesDialogComponent } from '@components/user-files-dialog/user-files-dialog.component';
+import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
+import { UserFilesDialogComponent } from '@dialogs/user-files-dialog/user-files-dialog.component';
 
 @Injectable({
   providedIn: 'root',
