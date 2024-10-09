@@ -119,22 +119,31 @@
             "extends": []
         },
         {
-            "name": "TreeNode",
-            "id": "interface-TreeNode-0da1b734f0a7336eb9cb23e1bec52c18307040e813efb589e0105db8e7fd7caa5a09cbdf36ef9cef52972d467080c84993cc55739a7922781741381243c08b3e",
+            "name": "ProjectElement",
+            "id": "interface-ProjectElement-bb4ab166c2787aeaad7a3ae921fb523430079b37c1978e7e06a36494f6bcd1c58e3f4ebdf12046b98150de67d9f854715805faf9ef9fafc82e864ef8ef270f15",
             "file": "src/app/components/project-tree/project-tree.component.ts",
             "deprecated": false,
             "deprecationMessage": "",
             "type": "interface",
-            "sourceCode": "import { Component, ViewChild } from '@angular/core';\r\nimport { MatTree, MatTreeModule } from '@angular/material/tree';\r\nimport { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';\r\nimport { MatIconModule } from '@angular/material/icon';\r\nimport { MatButtonModule } from '@angular/material/button';\r\n\r\ninterface TreeNode {\r\n  id: string;\r\n  name: string;\r\n  expanded?: boolean;\r\n  children?: TreeNode[];\r\n  type: 'folder' | 'item';\r\n}\r\n\r\nconst TREE_DATA: TreeNode[] = [\r\n  // ... (Your tree data)\r\n];\r\n\r\n@Component({\r\n  standalone: true,\r\n  imports: [MatTreeModule, DragDropModule, MatIconModule, MatButtonModule],\r\n  selector: 'app-project-tree',\r\n  template: `\r\n    <mat-tree #tree [dataSource]=\"dataSource\" [childrenAccessor]=\"getChildren\">\r\n      <mat-tree-node\r\n        cdkDrag\r\n        [cdkDragData]=\"node\"\r\n        matTreeNodePadding\r\n        *matTreeNodeDef=\"let node; when: hasChild\">\r\n        <div>\r\n          <button mat-icon-button matTreeNodeToggle>\r\n            <mat-icon>\r\n              {{ tree.isExpanded(node) ? 'expand_more' : 'chevron_right' }}\r\n            </mat-icon>\r\n          </button>\r\n          {{ node.name }}\r\n          <button mat-icon-button (click)=\"addItem(node)\">\r\n            <mat-icon>add</mat-icon>\r\n          </button>\r\n        </div>\r\n      </mat-tree-node>\r\n      <mat-tree-node\r\n        *matTreeNodeDef=\"let node\"\r\n        cdkDrag\r\n        [cdkDragData]=\"node\"\r\n        matTreeNodePadding>\r\n        {{ node.name }}\r\n      </mat-tree-node>\r\n    </mat-tree>\r\n  `,\r\n  styles: [\r\n    `\r\n      .mat-tree-node {\r\n        display: flex;\r\n        align-items: center;\r\n      }\r\n      .mat-tree-node button {\r\n        margin-right: 8px;\r\n      }\r\n    `,\r\n  ],\r\n})\r\nexport class ProjectTreeComponent {\r\n  dataSource = TREE_DATA;\r\n\r\n  @ViewChild('tree')\r\n  treeEl!: MatTree<TreeNode>;\r\n\r\n  getChildren = (node: TreeNode) => node.children ?? [];\r\n\r\n  hasChild = (_: number, node: TreeNode) =>\r\n    !!node.children && node.children.length > 0;\r\n\r\n  addItem(node: TreeNode) {\r\n    const newItem: TreeNode = {\r\n      id: Date.now().toString(),\r\n      name: 'New Item',\r\n      type: 'item',\r\n    };\r\n    if (!node.children) {\r\n      node.children = [];\r\n    }\r\n    node.children.push(newItem);\r\n  }\r\n\r\n  visibleNodes(): TreeNode[] {\r\n    const result: TreeNode[] = [];\r\n\r\n    function addExpandedChildren(\r\n      node: TreeNode,\r\n      isExpandedFn: (node: TreeNode) => boolean\r\n    ) {\r\n      result.push(node);\r\n      if (isExpandedFn(node) && node.children) {\r\n        node.children.forEach(child =>\r\n          addExpandedChildren(child, isExpandedFn)\r\n        );\r\n      }\r\n    }\r\n\r\n    this.dataSource.forEach(node => {\r\n      addExpandedChildren(node, node => this.treeEl.isExpanded(node));\r\n    });\r\n\r\n    return result;\r\n  }\r\n\r\n  drop(event: CdkDragDrop<TreeNode[]>) {\r\n    if (!event.isPointerOverContainer) return;\r\n\r\n    // Capture the expanded node IDs before the data change\r\n    const expandedNodeIds = this.getExpandedNodeIds(this.dataSource);\r\n\r\n    // Get the list of visible nodes\r\n    const visibleNodes = this.visibleNodes();\r\n\r\n    // Deep clone the data source to mutate it\r\n    const changedData: TreeNode[] = JSON.parse(JSON.stringify(this.dataSource));\r\n\r\n    function findNodeSiblings(\r\n      arr: TreeNode[],\r\n      id: string\r\n    ): TreeNode[] | undefined {\r\n      let result: TreeNode[] | undefined;\r\n      for (const item of arr) {\r\n        if (item.id === id) {\r\n          result = arr;\r\n        } else if (item.children) {\r\n          const subResult = findNodeSiblings(item.children, id);\r\n          if (subResult) result = subResult;\r\n        }\r\n      }\r\n      return result;\r\n    }\r\n\r\n    // Determine where to insert the node\r\n    const nodeAtDest = visibleNodes[event.currentIndex];\r\n    const newSiblings = findNodeSiblings(changedData, nodeAtDest.id);\r\n\r\n    if (!newSiblings) return;\r\n    const insertIndex = newSiblings.findIndex(s => s.id === nodeAtDest.id);\r\n\r\n    // Remove the node from its old place\r\n    const node = event.item.data;\r\n    const siblings = findNodeSiblings(changedData, node.id);\r\n    if (!siblings) return;\r\n    const siblingIndex = siblings.findIndex(n => n.id === node.id);\r\n    const nodeToInsert: TreeNode = siblings.splice(siblingIndex, 1)[0];\r\n    if (nodeAtDest.id === nodeToInsert.id) return;\r\n\r\n    // Insert the node at the new position\r\n    newSiblings.splice(insertIndex, 0, nodeToInsert);\r\n\r\n    // Update the data source with the modified tree data\r\n    this.dataSource = changedData;\r\n\r\n    // Restore the expansion state after the data change\r\n    this.setExpandedNodes(this.dataSource, expandedNodeIds);\r\n  }\r\n\r\n  getExpandedNodeIds(nodeList: TreeNode[]): string[] {\r\n    const ids: string[] = [];\r\n    nodeList.forEach(node => {\r\n      if (this.treeEl.isExpanded(node)) {\r\n        ids.push(node.id);\r\n      }\r\n      if (node.children) {\r\n        ids.push(...this.getExpandedNodeIds(node.children));\r\n      }\r\n    });\r\n    return ids;\r\n  }\r\n\r\n  setExpandedNodes(nodeList: TreeNode[], expandedIds: string[]) {\r\n    nodeList.forEach(node => {\r\n      if (expandedIds.includes(node.id)) {\r\n        this.treeEl.expand(node);\r\n      }\r\n      if (node.children) {\r\n        this.setExpandedNodes(node.children, expandedIds);\r\n      }\r\n    });\r\n  }\r\n\r\n  getDropListId(node: TreeNode): string {\r\n    return node.name.replace(/\\s+/g, '-').toLowerCase();\r\n  }\r\n\r\n  trackByName(index: number, node: TreeNode): string {\r\n    return node.name;\r\n  }\r\n}\r\n",
+            "sourceCode": "import { Component, ViewChild } from '@angular/core';\r\nimport { MatTree, MatTreeModule } from '@angular/material/tree';\r\nimport { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';\r\nimport { MatIconModule } from '@angular/material/icon';\r\nimport { MatButtonModule } from '@angular/material/button';\r\nimport { ArrayDataSource } from '@angular/cdk/collections';\r\n\r\ninterface ProjectElement {\r\n  id: string;\r\n  name: string;\r\n  children?: ProjectElement[];\r\n  type: 'folder' | 'item';\r\n  level: number;\r\n  expandable?: boolean;\r\n  expanded?: boolean;\r\n  visible?: boolean;\r\n}\r\n\r\nconst TREE_DATA: ProjectElement[] = [\r\n  {\r\n    id: 'chapters',\r\n    name: '📖 Chapters',\r\n    type: 'folder',\r\n    level: 0,\r\n    expandable: true,\r\n    expanded: false,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'c1',\r\n    name: 'Chapter 1',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: false,\r\n  },\r\n  {\r\n    id: 'c2',\r\n    name: 'Chapter 2',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: false,\r\n  },\r\n  {\r\n    id: 'chars',\r\n    name: 'Characters',\r\n    type: 'folder',\r\n    level: 0,\r\n    expandable: true,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ch1',\r\n    name: 'Extras',\r\n    type: 'folder',\r\n    level: 1,\r\n    expandable: true,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ce1',\r\n    name: 'Extra A',\r\n    type: 'item',\r\n    level: 2,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ce2',\r\n    name: 'Extra B',\r\n    type: 'item',\r\n    level: 2,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ch1',\r\n    name: 'Character A',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ch2',\r\n    name: 'Character B',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'lo',\r\n    name: 'Locations',\r\n    type: 'folder',\r\n    level: 0,\r\n    expandable: true,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'l1',\r\n    name: 'Location 1',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'l2',\r\n    name: 'Location 2',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n];\r\n@Component({\r\n  standalone: true,\r\n  imports: [MatTreeModule, DragDropModule, MatIconModule, MatButtonModule],\r\n  selector: 'app-project-tree',\r\n  templateUrl: './project-tree.component.html',\r\n  styleUrls: ['./project-tree.component.scss'],\r\n})\r\nexport class ProjectTreeComponent {\r\n  sourceData: ProjectElement[] = JSON.parse(JSON.stringify(TREE_DATA));\r\n\r\n  @ViewChild('tree')\r\n  treeEl!: MatTree<ProjectElement>;\r\n\r\n  dataSource = new ArrayDataSource<ProjectElement>(\r\n    this.sourceData.filter(x => x.visible)\r\n  );\r\n\r\n  levelAccessor(dataNode: ProjectElement): number {\r\n    return dataNode.level;\r\n  }\r\n  hasChild = (_: number, node: ProjectElement) => node.expandable;\r\n  parentExpanded = (_: number, node: ProjectElement) => {\r\n    return this.getParentNode(node)?.expanded;\r\n  };\r\n\r\n  toggleExpanded(node: ProjectElement) {\r\n    const nodeIndex = this.sourceData.indexOf(node);\r\n    this.sourceData[nodeIndex].expanded = !this.sourceData[nodeIndex].expanded;\r\n    for (let i = nodeIndex + 1; i < this.sourceData.length; i++) {\r\n      if (this.sourceData[i].level > node.level) {\r\n        this.sourceData[i].visible = this.sourceData[nodeIndex].expanded;\r\n      } else {\r\n        break;\r\n      }\r\n    }\r\n    this.dataSource = new ArrayDataSource<ProjectElement>(\r\n      this.sourceData.filter(x => x.visible)\r\n    );\r\n  }\r\n\r\n  getParentNode(node: ProjectElement) {\r\n    const nodeIndex = this.sourceData.indexOf(node);\r\n    for (let i = nodeIndex - 1; i >= 0; i--) {\r\n      if (this.sourceData[i].level === node.level - 1) {\r\n        return this.sourceData[i];\r\n      }\r\n    }\r\n    return null;\r\n  }\r\n\r\n  addItem(node: ProjectElement) {\r\n    const newItem: ProjectElement = {\r\n      id: 'aaaa',\r\n      name: 'New Item',\r\n      type: 'item',\r\n      level: 1,\r\n    };\r\n    if (!node.children) {\r\n      node.children = [];\r\n    }\r\n    if (node.children.length >= 5) {\r\n      alert('Maximum number of children reached');\r\n      return;\r\n    }\r\n    node.children.push(newItem);\r\n  }\r\n  getNodeSubtree(nodeIndex: number): ProjectElement[] {\r\n    const subtree = [this.sourceData[nodeIndex]];\r\n    const nodeLevel = this.sourceData[nodeIndex].level;\r\n    for (let i = nodeIndex + 1; i < this.sourceData.length; i++) {\r\n      if (this.sourceData[i].level > nodeLevel) {\r\n        subtree.push(this.sourceData[i]);\r\n      } else {\r\n        break;\r\n      }\r\n    }\r\n    return subtree;\r\n  }\r\n  updateVisibility() {\r\n    const stack: { level: number; expanded?: boolean }[] = [];\r\n\r\n    for (const node of this.sourceData) {\r\n      // Pop from stack if current node's level is less than the last level in stack\r\n      while (stack.length > 0 && stack[stack.length - 1].level >= node.level) {\r\n        stack.pop();\r\n      }\r\n\r\n      // Determine visibility\r\n      node.visible = stack.every(parent => parent.expanded !== false);\r\n\r\n      // If the node is expandable, push it to the stack\r\n      if (node.expandable) {\r\n        stack.push({ level: node.level, expanded: node.expanded });\r\n      }\r\n    }\r\n  }\r\n\r\n  visibleNodes(): ProjectElement[] {\r\n    return this.sourceData.filter(x => x.visible);\r\n  }\r\n  drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {\r\n    console.log('origin/destination', event.previousIndex, event.currentIndex);\r\n\r\n    if (!event.isPointerOverContainer) return;\r\n\r\n    const visibleNodes = this.visibleNodes();\r\n    console.log('visible nodes', visibleNodes);\r\n\r\n    const node = event.item.data as ProjectElement;\r\n    const nodeIndex = this.sourceData.findIndex(n => n.id === node.id);\r\n    if (nodeIndex === -1) return;\r\n\r\n    const targetNode = visibleNodes[event.currentIndex];\r\n    const targetIndex = this.sourceData.findIndex(n => n.id === targetNode.id);\r\n    if (targetIndex === -1) return;\r\n\r\n    // Remove the node and its descendants from their current positions\r\n    const nodeSubtree = this.getNodeSubtree(nodeIndex);\r\n    this.sourceData.splice(nodeIndex, nodeSubtree.length);\r\n\r\n    // Adjust target index if necessary\r\n    let newIndex = targetIndex;\r\n    if (nodeIndex < targetIndex) {\r\n      newIndex = targetIndex - nodeSubtree.length + 1;\r\n    }\r\n\r\n    // Insert the node and its descendants at the new position\r\n    this.sourceData.splice(newIndex, 0, ...nodeSubtree);\r\n\r\n    // Update levels\r\n    let prevNodeLevel = -1;\r\n    if (newIndex > 0) {\r\n      prevNodeLevel = this.sourceData[newIndex - 1].level;\r\n    }\r\n    const levelDifference = prevNodeLevel + 1 - node.level;\r\n\r\n    for (const n of nodeSubtree) {\r\n      n.level += levelDifference;\r\n    }\r\n\r\n    // Update visibility\r\n    this.updateVisibility();\r\n\r\n    // Update the data source\r\n    this.dataSource = new ArrayDataSource(\r\n      this.sourceData.filter(x => x.visible)\r\n    );\r\n  }\r\n}\r\n",
             "properties": [
                 {
                     "name": "children",
                     "deprecated": false,
                     "deprecationMessage": "",
-                    "type": "TreeNode[]",
+                    "type": "ProjectElement[]",
                     "optional": true,
                     "description": "",
                     "line": 11
+                },
+                {
+                    "name": "expandable",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "boolean",
+                    "optional": true,
+                    "description": "",
+                    "line": 14
                 },
                 {
                     "name": "expanded",
@@ -143,7 +152,7 @@
                     "type": "boolean",
                     "optional": true,
                     "description": "",
-                    "line": 10
+                    "line": 15
                 },
                 {
                     "name": "id",
@@ -152,7 +161,16 @@
                     "type": "string",
                     "optional": false,
                     "description": "",
-                    "line": 8
+                    "line": 9
+                },
+                {
+                    "name": "level",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "number",
+                    "optional": false,
+                    "description": "",
+                    "line": 13
                 },
                 {
                     "name": "name",
@@ -161,7 +179,7 @@
                     "type": "string",
                     "optional": false,
                     "description": "",
-                    "line": 9
+                    "line": 10
                 },
                 {
                     "name": "type",
@@ -171,6 +189,15 @@
                     "optional": false,
                     "description": "",
                     "line": 12
+                },
+                {
+                    "name": "visible",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "boolean",
+                    "optional": true,
+                    "description": "",
+                    "line": 16
                 }
             ],
             "indexSignatures": [],
@@ -180,12 +207,12 @@
         },
         {
             "name": "User",
-            "id": "interface-User-d4821beac0e4a852e513391b7470981c4353fdd95a18628bb68136c8695b489ee15b926e2e5031bc26cf30e1508e0a362c3ee13a06734702b4d15af140e485d5",
+            "id": "interface-User-23c11020a2831beb3fa02ee911a75b64009c31bb46f73a01145c2560cb13b7f7e641105b678bd8fb01a5a199117001f3da4a78351d29d85d213ed7b82982091f",
             "file": "src/stories/user.ts",
             "deprecated": false,
             "deprecationMessage": "",
             "type": "interface",
-            "sourceCode": "export interface User {\n  name: string;\n}\n",
+            "sourceCode": "export interface User {\r\n  name: string;\r\n}\r\n",
             "properties": [
                 {
                     "name": "name",
@@ -1852,7 +1879,7 @@
         },
         {
             "name": "ProjectTreeComponent",
-            "id": "component-ProjectTreeComponent-0da1b734f0a7336eb9cb23e1bec52c18307040e813efb589e0105db8e7fd7caa5a09cbdf36ef9cef52972d467080c84993cc55739a7922781741381243c08b3e",
+            "id": "component-ProjectTreeComponent-bb4ab166c2787aeaad7a3ae921fb523430079b37c1978e7e06a36494f6bcd1c58e3f4ebdf12046b98150de67d9f854715805faf9ef9fafc82e864ef8ef270f15",
             "file": "src/app/components/project-tree/project-tree.component.ts",
             "encapsulation": [],
             "entryComponents": [],
@@ -1860,12 +1887,13 @@
             "outputs": [],
             "providers": [],
             "selector": "app-project-tree",
-            "styleUrls": [],
-            "styles": [
-                "\n      .mat-tree-node {\n        display: flex;\n        align-items: center;\n      }\n      .mat-tree-node button {\n        margin-right: 8px;\n      }\n    "
+            "styleUrls": [
+                "./project-tree.component.scss"
             ],
-            "template": "<mat-tree #tree [dataSource]=\"dataSource\" [childrenAccessor]=\"getChildren\">\n  <mat-tree-node\n    cdkDrag\n    [cdkDragData]=\"node\"\n    matTreeNodePadding\n    *matTreeNodeDef=\"let node; when: hasChild\">\n    <div>\n      <button mat-icon-button matTreeNodeToggle>\n        <mat-icon>\n          {{ tree.isExpanded(node) ? 'expand_more' : 'chevron_right' }}\n        </mat-icon>\n      </button>\n      {{ node.name }}\n      <button mat-icon-button (click)=\"addItem(node)\">\n        <mat-icon>add</mat-icon>\n      </button>\n    </div>\n  </mat-tree-node>\n  <mat-tree-node\n    *matTreeNodeDef=\"let node\"\n    cdkDrag\n    [cdkDragData]=\"node\"\n    matTreeNodePadding>\n    {{ node.name }}\n  </mat-tree-node>\n</mat-tree>\n",
-            "templateUrl": [],
+            "styles": [],
+            "templateUrl": [
+                "./project-tree.component.html"
+            ],
             "viewProviders": [],
             "hostDirectives": [],
             "inputsClass": [],
@@ -1873,23 +1901,13 @@
             "propertiesClass": [
                 {
                     "name": "dataSource",
-                    "defaultValue": "TREE_DATA",
+                    "defaultValue": "new ArrayDataSource<ProjectElement>(\r\n    this.sourceData.filter(x => x.visible)\r\n  )",
                     "deprecated": false,
                     "deprecationMessage": "",
                     "type": "",
                     "optional": false,
                     "description": "",
-                    "line": 64
-                },
-                {
-                    "name": "getChildren",
-                    "defaultValue": "() => {...}",
-                    "deprecated": false,
-                    "deprecationMessage": "",
-                    "type": "",
-                    "optional": false,
-                    "description": "",
-                    "line": 69
+                    "line": 142
                 },
                 {
                     "name": "hasChild",
@@ -1899,16 +1917,36 @@
                     "type": "",
                     "optional": false,
                     "description": "",
-                    "line": 71
+                    "line": 149
+                },
+                {
+                    "name": "parentExpanded",
+                    "defaultValue": "() => {...}",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "",
+                    "optional": false,
+                    "description": "",
+                    "line": 150
+                },
+                {
+                    "name": "sourceData",
+                    "defaultValue": "JSON.parse(JSON.stringify(TREE_DATA))",
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "type": "ProjectElement[]",
+                    "optional": false,
+                    "description": "",
+                    "line": 137
                 },
                 {
                     "name": "treeEl",
                     "deprecated": false,
                     "deprecationMessage": "",
-                    "type": "MatTree<TreeNode>",
+                    "type": "MatTree<ProjectElement>",
                     "optional": false,
                     "description": "",
-                    "line": 67,
+                    "line": 140,
                     "decorators": [
                         {
                             "name": "ViewChild",
@@ -1926,7 +1964,7 @@
                     "args": [
                         {
                             "name": "node",
-                            "type": "TreeNode",
+                            "type": "ProjectElement",
                             "deprecated": false,
                             "deprecationMessage": ""
                         }
@@ -1934,13 +1972,13 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 74,
+                    "line": 179,
                     "deprecated": false,
                     "deprecationMessage": "",
                     "jsdoctags": [
                         {
                             "name": "node",
-                            "type": "TreeNode",
+                            "type": "ProjectElement",
                             "deprecated": false,
                             "deprecationMessage": "",
                             "tagName": {
@@ -1954,7 +1992,7 @@
                     "args": [
                         {
                             "name": "event",
-                            "type": "CdkDragDrop<TreeNode[]>",
+                            "type": "CdkDragDrop<ArrayDataSource<ProjectElement>>",
                             "deprecated": false,
                             "deprecationMessage": ""
                         }
@@ -1962,13 +2000,13 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 108,
+                    "line": 229,
                     "deprecated": false,
                     "deprecationMessage": "",
                     "jsdoctags": [
                         {
                             "name": "event",
-                            "type": "CdkDragDrop<TreeNode[]>",
+                            "type": "CdkDragDrop<ArrayDataSource<ProjectElement>>",
                             "deprecated": false,
                             "deprecationMessage": "",
                             "tagName": {
@@ -1978,25 +2016,25 @@
                     ]
                 },
                 {
-                    "name": "getDropListId",
+                    "name": "getNodeSubtree",
                     "args": [
                         {
-                            "name": "node",
-                            "type": "TreeNode",
+                            "name": "nodeIndex",
+                            "type": "number",
                             "deprecated": false,
                             "deprecationMessage": ""
                         }
                     ],
                     "optional": false,
-                    "returnType": "string",
+                    "returnType": "ProjectElement[]",
                     "typeParameters": [],
-                    "line": 185,
+                    "line": 195,
                     "deprecated": false,
                     "deprecationMessage": "",
                     "jsdoctags": [
                         {
-                            "name": "node",
-                            "type": "TreeNode",
+                            "name": "nodeIndex",
+                            "type": "number",
                             "deprecated": false,
                             "deprecationMessage": "",
                             "tagName": {
@@ -2006,25 +2044,25 @@
                     ]
                 },
                 {
-                    "name": "getExpandedNodeIds",
+                    "name": "getParentNode",
                     "args": [
                         {
-                            "name": "nodeList",
-                            "type": "TreeNode[]",
+                            "name": "node",
+                            "type": "ProjectElement",
                             "deprecated": false,
                             "deprecationMessage": ""
                         }
                     ],
                     "optional": false,
-                    "returnType": "string[]",
+                    "returnType": "any",
                     "typeParameters": [],
-                    "line": 161,
+                    "line": 169,
                     "deprecated": false,
                     "deprecationMessage": "",
                     "jsdoctags": [
                         {
-                            "name": "nodeList",
-                            "type": "TreeNode[]",
+                            "name": "node",
+                            "type": "ProjectElement",
                             "deprecated": false,
                             "deprecationMessage": "",
                             "tagName": {
@@ -2034,17 +2072,39 @@
                     ]
                 },
                 {
-                    "name": "setExpandedNodes",
+                    "name": "levelAccessor",
                     "args": [
                         {
-                            "name": "nodeList",
-                            "type": "TreeNode[]",
+                            "name": "dataNode",
+                            "type": "ProjectElement",
                             "deprecated": false,
                             "deprecationMessage": ""
-                        },
+                        }
+                    ],
+                    "optional": false,
+                    "returnType": "number",
+                    "typeParameters": [],
+                    "line": 146,
+                    "deprecated": false,
+                    "deprecationMessage": "",
+                    "jsdoctags": [
                         {
-                            "name": "expandedIds",
-                            "type": "string[]",
+                            "name": "dataNode",
+                            "type": "ProjectElement",
+                            "deprecated": false,
+                            "deprecationMessage": "",
+                            "tagName": {
+                                "text": "param"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "toggleExpanded",
+                    "args": [
+                        {
+                            "name": "node",
+                            "type": "ProjectElement",
                             "deprecated": false,
                             "deprecationMessage": ""
                         }
@@ -2052,22 +2112,13 @@
                     "optional": false,
                     "returnType": "void",
                     "typeParameters": [],
-                    "line": 174,
+                    "line": 154,
                     "deprecated": false,
                     "deprecationMessage": "",
                     "jsdoctags": [
                         {
-                            "name": "nodeList",
-                            "type": "TreeNode[]",
-                            "deprecated": false,
-                            "deprecationMessage": "",
-                            "tagName": {
-                                "text": "param"
-                            }
-                        },
-                        {
-                            "name": "expandedIds",
-                            "type": "string[]",
+                            "name": "node",
+                            "type": "ProjectElement",
                             "deprecated": false,
                             "deprecationMessage": "",
                             "tagName": {
@@ -2077,55 +2128,22 @@
                     ]
                 },
                 {
-                    "name": "trackByName",
-                    "args": [
-                        {
-                            "name": "index",
-                            "type": "number",
-                            "deprecated": false,
-                            "deprecationMessage": ""
-                        },
-                        {
-                            "name": "node",
-                            "type": "TreeNode",
-                            "deprecated": false,
-                            "deprecationMessage": ""
-                        }
-                    ],
+                    "name": "updateVisibility",
+                    "args": [],
                     "optional": false,
-                    "returnType": "string",
+                    "returnType": "void",
                     "typeParameters": [],
-                    "line": 189,
+                    "line": 207,
                     "deprecated": false,
-                    "deprecationMessage": "",
-                    "jsdoctags": [
-                        {
-                            "name": "index",
-                            "type": "number",
-                            "deprecated": false,
-                            "deprecationMessage": "",
-                            "tagName": {
-                                "text": "param"
-                            }
-                        },
-                        {
-                            "name": "node",
-                            "type": "TreeNode",
-                            "deprecated": false,
-                            "deprecationMessage": "",
-                            "tagName": {
-                                "text": "param"
-                            }
-                        }
-                    ]
+                    "deprecationMessage": ""
                 },
                 {
                     "name": "visibleNodes",
                     "args": [],
                     "optional": false,
-                    "returnType": "TreeNode[]",
+                    "returnType": "ProjectElement[]",
                     "typeParameters": [],
-                    "line": 86,
+                    "line": 226,
                     "deprecated": false,
                     "deprecationMessage": ""
                 }
@@ -2156,11 +2174,17 @@
             "description": "",
             "rawdescription": "\n",
             "type": "component",
-            "sourceCode": "import { Component, ViewChild } from '@angular/core';\r\nimport { MatTree, MatTreeModule } from '@angular/material/tree';\r\nimport { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';\r\nimport { MatIconModule } from '@angular/material/icon';\r\nimport { MatButtonModule } from '@angular/material/button';\r\n\r\ninterface TreeNode {\r\n  id: string;\r\n  name: string;\r\n  expanded?: boolean;\r\n  children?: TreeNode[];\r\n  type: 'folder' | 'item';\r\n}\r\n\r\nconst TREE_DATA: TreeNode[] = [\r\n  // ... (Your tree data)\r\n];\r\n\r\n@Component({\r\n  standalone: true,\r\n  imports: [MatTreeModule, DragDropModule, MatIconModule, MatButtonModule],\r\n  selector: 'app-project-tree',\r\n  template: `\r\n    <mat-tree #tree [dataSource]=\"dataSource\" [childrenAccessor]=\"getChildren\">\r\n      <mat-tree-node\r\n        cdkDrag\r\n        [cdkDragData]=\"node\"\r\n        matTreeNodePadding\r\n        *matTreeNodeDef=\"let node; when: hasChild\">\r\n        <div>\r\n          <button mat-icon-button matTreeNodeToggle>\r\n            <mat-icon>\r\n              {{ tree.isExpanded(node) ? 'expand_more' : 'chevron_right' }}\r\n            </mat-icon>\r\n          </button>\r\n          {{ node.name }}\r\n          <button mat-icon-button (click)=\"addItem(node)\">\r\n            <mat-icon>add</mat-icon>\r\n          </button>\r\n        </div>\r\n      </mat-tree-node>\r\n      <mat-tree-node\r\n        *matTreeNodeDef=\"let node\"\r\n        cdkDrag\r\n        [cdkDragData]=\"node\"\r\n        matTreeNodePadding>\r\n        {{ node.name }}\r\n      </mat-tree-node>\r\n    </mat-tree>\r\n  `,\r\n  styles: [\r\n    `\r\n      .mat-tree-node {\r\n        display: flex;\r\n        align-items: center;\r\n      }\r\n      .mat-tree-node button {\r\n        margin-right: 8px;\r\n      }\r\n    `,\r\n  ],\r\n})\r\nexport class ProjectTreeComponent {\r\n  dataSource = TREE_DATA;\r\n\r\n  @ViewChild('tree')\r\n  treeEl!: MatTree<TreeNode>;\r\n\r\n  getChildren = (node: TreeNode) => node.children ?? [];\r\n\r\n  hasChild = (_: number, node: TreeNode) =>\r\n    !!node.children && node.children.length > 0;\r\n\r\n  addItem(node: TreeNode) {\r\n    const newItem: TreeNode = {\r\n      id: Date.now().toString(),\r\n      name: 'New Item',\r\n      type: 'item',\r\n    };\r\n    if (!node.children) {\r\n      node.children = [];\r\n    }\r\n    node.children.push(newItem);\r\n  }\r\n\r\n  visibleNodes(): TreeNode[] {\r\n    const result: TreeNode[] = [];\r\n\r\n    function addExpandedChildren(\r\n      node: TreeNode,\r\n      isExpandedFn: (node: TreeNode) => boolean\r\n    ) {\r\n      result.push(node);\r\n      if (isExpandedFn(node) && node.children) {\r\n        node.children.forEach(child =>\r\n          addExpandedChildren(child, isExpandedFn)\r\n        );\r\n      }\r\n    }\r\n\r\n    this.dataSource.forEach(node => {\r\n      addExpandedChildren(node, node => this.treeEl.isExpanded(node));\r\n    });\r\n\r\n    return result;\r\n  }\r\n\r\n  drop(event: CdkDragDrop<TreeNode[]>) {\r\n    if (!event.isPointerOverContainer) return;\r\n\r\n    // Capture the expanded node IDs before the data change\r\n    const expandedNodeIds = this.getExpandedNodeIds(this.dataSource);\r\n\r\n    // Get the list of visible nodes\r\n    const visibleNodes = this.visibleNodes();\r\n\r\n    // Deep clone the data source to mutate it\r\n    const changedData: TreeNode[] = JSON.parse(JSON.stringify(this.dataSource));\r\n\r\n    function findNodeSiblings(\r\n      arr: TreeNode[],\r\n      id: string\r\n    ): TreeNode[] | undefined {\r\n      let result: TreeNode[] | undefined;\r\n      for (const item of arr) {\r\n        if (item.id === id) {\r\n          result = arr;\r\n        } else if (item.children) {\r\n          const subResult = findNodeSiblings(item.children, id);\r\n          if (subResult) result = subResult;\r\n        }\r\n      }\r\n      return result;\r\n    }\r\n\r\n    // Determine where to insert the node\r\n    const nodeAtDest = visibleNodes[event.currentIndex];\r\n    const newSiblings = findNodeSiblings(changedData, nodeAtDest.id);\r\n\r\n    if (!newSiblings) return;\r\n    const insertIndex = newSiblings.findIndex(s => s.id === nodeAtDest.id);\r\n\r\n    // Remove the node from its old place\r\n    const node = event.item.data;\r\n    const siblings = findNodeSiblings(changedData, node.id);\r\n    if (!siblings) return;\r\n    const siblingIndex = siblings.findIndex(n => n.id === node.id);\r\n    const nodeToInsert: TreeNode = siblings.splice(siblingIndex, 1)[0];\r\n    if (nodeAtDest.id === nodeToInsert.id) return;\r\n\r\n    // Insert the node at the new position\r\n    newSiblings.splice(insertIndex, 0, nodeToInsert);\r\n\r\n    // Update the data source with the modified tree data\r\n    this.dataSource = changedData;\r\n\r\n    // Restore the expansion state after the data change\r\n    this.setExpandedNodes(this.dataSource, expandedNodeIds);\r\n  }\r\n\r\n  getExpandedNodeIds(nodeList: TreeNode[]): string[] {\r\n    const ids: string[] = [];\r\n    nodeList.forEach(node => {\r\n      if (this.treeEl.isExpanded(node)) {\r\n        ids.push(node.id);\r\n      }\r\n      if (node.children) {\r\n        ids.push(...this.getExpandedNodeIds(node.children));\r\n      }\r\n    });\r\n    return ids;\r\n  }\r\n\r\n  setExpandedNodes(nodeList: TreeNode[], expandedIds: string[]) {\r\n    nodeList.forEach(node => {\r\n      if (expandedIds.includes(node.id)) {\r\n        this.treeEl.expand(node);\r\n      }\r\n      if (node.children) {\r\n        this.setExpandedNodes(node.children, expandedIds);\r\n      }\r\n    });\r\n  }\r\n\r\n  getDropListId(node: TreeNode): string {\r\n    return node.name.replace(/\\s+/g, '-').toLowerCase();\r\n  }\r\n\r\n  trackByName(index: number, node: TreeNode): string {\r\n    return node.name;\r\n  }\r\n}\r\n",
+            "sourceCode": "import { Component, ViewChild } from '@angular/core';\r\nimport { MatTree, MatTreeModule } from '@angular/material/tree';\r\nimport { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';\r\nimport { MatIconModule } from '@angular/material/icon';\r\nimport { MatButtonModule } from '@angular/material/button';\r\nimport { ArrayDataSource } from '@angular/cdk/collections';\r\n\r\ninterface ProjectElement {\r\n  id: string;\r\n  name: string;\r\n  children?: ProjectElement[];\r\n  type: 'folder' | 'item';\r\n  level: number;\r\n  expandable?: boolean;\r\n  expanded?: boolean;\r\n  visible?: boolean;\r\n}\r\n\r\nconst TREE_DATA: ProjectElement[] = [\r\n  {\r\n    id: 'chapters',\r\n    name: '📖 Chapters',\r\n    type: 'folder',\r\n    level: 0,\r\n    expandable: true,\r\n    expanded: false,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'c1',\r\n    name: 'Chapter 1',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: false,\r\n  },\r\n  {\r\n    id: 'c2',\r\n    name: 'Chapter 2',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: false,\r\n  },\r\n  {\r\n    id: 'chars',\r\n    name: 'Characters',\r\n    type: 'folder',\r\n    level: 0,\r\n    expandable: true,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ch1',\r\n    name: 'Extras',\r\n    type: 'folder',\r\n    level: 1,\r\n    expandable: true,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ce1',\r\n    name: 'Extra A',\r\n    type: 'item',\r\n    level: 2,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ce2',\r\n    name: 'Extra B',\r\n    type: 'item',\r\n    level: 2,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ch1',\r\n    name: 'Character A',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ch2',\r\n    name: 'Character B',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'lo',\r\n    name: 'Locations',\r\n    type: 'folder',\r\n    level: 0,\r\n    expandable: true,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'l1',\r\n    name: 'Location 1',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'l2',\r\n    name: 'Location 2',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n];\r\n@Component({\r\n  standalone: true,\r\n  imports: [MatTreeModule, DragDropModule, MatIconModule, MatButtonModule],\r\n  selector: 'app-project-tree',\r\n  templateUrl: './project-tree.component.html',\r\n  styleUrls: ['./project-tree.component.scss'],\r\n})\r\nexport class ProjectTreeComponent {\r\n  sourceData: ProjectElement[] = JSON.parse(JSON.stringify(TREE_DATA));\r\n\r\n  @ViewChild('tree')\r\n  treeEl!: MatTree<ProjectElement>;\r\n\r\n  dataSource = new ArrayDataSource<ProjectElement>(\r\n    this.sourceData.filter(x => x.visible)\r\n  );\r\n\r\n  levelAccessor(dataNode: ProjectElement): number {\r\n    return dataNode.level;\r\n  }\r\n  hasChild = (_: number, node: ProjectElement) => node.expandable;\r\n  parentExpanded = (_: number, node: ProjectElement) => {\r\n    return this.getParentNode(node)?.expanded;\r\n  };\r\n\r\n  toggleExpanded(node: ProjectElement) {\r\n    const nodeIndex = this.sourceData.indexOf(node);\r\n    this.sourceData[nodeIndex].expanded = !this.sourceData[nodeIndex].expanded;\r\n    for (let i = nodeIndex + 1; i < this.sourceData.length; i++) {\r\n      if (this.sourceData[i].level > node.level) {\r\n        this.sourceData[i].visible = this.sourceData[nodeIndex].expanded;\r\n      } else {\r\n        break;\r\n      }\r\n    }\r\n    this.dataSource = new ArrayDataSource<ProjectElement>(\r\n      this.sourceData.filter(x => x.visible)\r\n    );\r\n  }\r\n\r\n  getParentNode(node: ProjectElement) {\r\n    const nodeIndex = this.sourceData.indexOf(node);\r\n    for (let i = nodeIndex - 1; i >= 0; i--) {\r\n      if (this.sourceData[i].level === node.level - 1) {\r\n        return this.sourceData[i];\r\n      }\r\n    }\r\n    return null;\r\n  }\r\n\r\n  addItem(node: ProjectElement) {\r\n    const newItem: ProjectElement = {\r\n      id: 'aaaa',\r\n      name: 'New Item',\r\n      type: 'item',\r\n      level: 1,\r\n    };\r\n    if (!node.children) {\r\n      node.children = [];\r\n    }\r\n    if (node.children.length >= 5) {\r\n      alert('Maximum number of children reached');\r\n      return;\r\n    }\r\n    node.children.push(newItem);\r\n  }\r\n  getNodeSubtree(nodeIndex: number): ProjectElement[] {\r\n    const subtree = [this.sourceData[nodeIndex]];\r\n    const nodeLevel = this.sourceData[nodeIndex].level;\r\n    for (let i = nodeIndex + 1; i < this.sourceData.length; i++) {\r\n      if (this.sourceData[i].level > nodeLevel) {\r\n        subtree.push(this.sourceData[i]);\r\n      } else {\r\n        break;\r\n      }\r\n    }\r\n    return subtree;\r\n  }\r\n  updateVisibility() {\r\n    const stack: { level: number; expanded?: boolean }[] = [];\r\n\r\n    for (const node of this.sourceData) {\r\n      // Pop from stack if current node's level is less than the last level in stack\r\n      while (stack.length > 0 && stack[stack.length - 1].level >= node.level) {\r\n        stack.pop();\r\n      }\r\n\r\n      // Determine visibility\r\n      node.visible = stack.every(parent => parent.expanded !== false);\r\n\r\n      // If the node is expandable, push it to the stack\r\n      if (node.expandable) {\r\n        stack.push({ level: node.level, expanded: node.expanded });\r\n      }\r\n    }\r\n  }\r\n\r\n  visibleNodes(): ProjectElement[] {\r\n    return this.sourceData.filter(x => x.visible);\r\n  }\r\n  drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {\r\n    console.log('origin/destination', event.previousIndex, event.currentIndex);\r\n\r\n    if (!event.isPointerOverContainer) return;\r\n\r\n    const visibleNodes = this.visibleNodes();\r\n    console.log('visible nodes', visibleNodes);\r\n\r\n    const node = event.item.data as ProjectElement;\r\n    const nodeIndex = this.sourceData.findIndex(n => n.id === node.id);\r\n    if (nodeIndex === -1) return;\r\n\r\n    const targetNode = visibleNodes[event.currentIndex];\r\n    const targetIndex = this.sourceData.findIndex(n => n.id === targetNode.id);\r\n    if (targetIndex === -1) return;\r\n\r\n    // Remove the node and its descendants from their current positions\r\n    const nodeSubtree = this.getNodeSubtree(nodeIndex);\r\n    this.sourceData.splice(nodeIndex, nodeSubtree.length);\r\n\r\n    // Adjust target index if necessary\r\n    let newIndex = targetIndex;\r\n    if (nodeIndex < targetIndex) {\r\n      newIndex = targetIndex - nodeSubtree.length + 1;\r\n    }\r\n\r\n    // Insert the node and its descendants at the new position\r\n    this.sourceData.splice(newIndex, 0, ...nodeSubtree);\r\n\r\n    // Update levels\r\n    let prevNodeLevel = -1;\r\n    if (newIndex > 0) {\r\n      prevNodeLevel = this.sourceData[newIndex - 1].level;\r\n    }\r\n    const levelDifference = prevNodeLevel + 1 - node.level;\r\n\r\n    for (const n of nodeSubtree) {\r\n      n.level += levelDifference;\r\n    }\r\n\r\n    // Update visibility\r\n    this.updateVisibility();\r\n\r\n    // Update the data source\r\n    this.dataSource = new ArrayDataSource(\r\n      this.sourceData.filter(x => x.visible)\r\n    );\r\n  }\r\n}\r\n",
             "assetsDirs": [],
-            "styleUrlsData": "",
-            "stylesData": "\n      .mat-tree-node {\n        display: flex;\n        align-items: center;\n      }\n      .mat-tree-node button {\n        margin-right: 8px;\n      }\n    \n",
-            "extends": []
+            "styleUrlsData": [
+                {
+                    "data": ".mat-icon-rtl-mirror {\r\n  margin-right: 8px;\r\n}\r\n",
+                    "styleUrl": "./project-tree.component.scss"
+                }
+            ],
+            "stylesData": "",
+            "extends": [],
+            "templateData": "<mat-tree\r\n  #tree\r\n  [dataSource]=\"dataSource\"\r\n  [levelAccessor]=\"levelAccessor\"\r\n  cdkDropList\r\n  [cdkDropListData]=\"dataSource\"\r\n  (cdkDropListDropped)=\"drop($event)\">\r\n  <mat-tree-node\r\n    cdkDrag\r\n    [cdkDragData]=\"node\"\r\n    matTreeNodePadding\r\n    [isExpanded]=\"node.expanded\"\r\n    *matTreeNodeDef=\"let node; when: hasChild\">\r\n    <button mat-icon-button (click)=\"toggleExpanded(node)\">\r\n      <mat-icon>\r\n        {{ node.expanded ? 'expand_more' : 'chevron_right' }}\r\n      </mat-icon>\r\n    </button>\r\n    {{ node.name }}\r\n    <button mat-icon-button (click)=\"addItem(node)\">\r\n      <mat-icon>add</mat-icon>\r\n    </button>\r\n  </mat-tree-node>\r\n  <mat-tree-node\r\n    *matTreeNodeDef=\"let node\"\r\n    cdkDrag\r\n    [cdkDragData]=\"node\"\r\n    matTreeNodePadding>\r\n    {{ node.name }}\r\n  </mat-tree-node>\r\n</mat-tree>\r\n"
         },
         {
             "name": "RegisterComponent",
@@ -3496,8 +3520,8 @@
                 "file": "src/app/components/project-tree/project-tree.component.ts",
                 "deprecated": false,
                 "deprecationMessage": "",
-                "type": "TreeNode[]",
-                "defaultValue": "[\r\n  // ... (Your tree data)\r\n]"
+                "type": "ProjectElement[]",
+                "defaultValue": "[\r\n  {\r\n    id: 'chapters',\r\n    name: '📖 Chapters',\r\n    type: 'folder',\r\n    level: 0,\r\n    expandable: true,\r\n    expanded: false,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'c1',\r\n    name: 'Chapter 1',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: false,\r\n  },\r\n  {\r\n    id: 'c2',\r\n    name: 'Chapter 2',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: false,\r\n  },\r\n  {\r\n    id: 'chars',\r\n    name: 'Characters',\r\n    type: 'folder',\r\n    level: 0,\r\n    expandable: true,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ch1',\r\n    name: 'Extras',\r\n    type: 'folder',\r\n    level: 1,\r\n    expandable: true,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ce1',\r\n    name: 'Extra A',\r\n    type: 'item',\r\n    level: 2,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ce2',\r\n    name: 'Extra B',\r\n    type: 'item',\r\n    level: 2,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ch1',\r\n    name: 'Character A',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ch2',\r\n    name: 'Character B',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'lo',\r\n    name: 'Locations',\r\n    type: 'folder',\r\n    level: 0,\r\n    expandable: true,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'l1',\r\n    name: 'Location 1',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'l2',\r\n    name: 'Location 2',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n]"
             }
         ],
         "functions": [
@@ -3615,8 +3639,8 @@
                     "file": "src/app/components/project-tree/project-tree.component.ts",
                     "deprecated": false,
                     "deprecationMessage": "",
-                    "type": "TreeNode[]",
-                    "defaultValue": "[\r\n  // ... (Your tree data)\r\n]"
+                    "type": "ProjectElement[]",
+                    "defaultValue": "[\r\n  {\r\n    id: 'chapters',\r\n    name: '📖 Chapters',\r\n    type: 'folder',\r\n    level: 0,\r\n    expandable: true,\r\n    expanded: false,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'c1',\r\n    name: 'Chapter 1',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: false,\r\n  },\r\n  {\r\n    id: 'c2',\r\n    name: 'Chapter 2',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: false,\r\n  },\r\n  {\r\n    id: 'chars',\r\n    name: 'Characters',\r\n    type: 'folder',\r\n    level: 0,\r\n    expandable: true,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ch1',\r\n    name: 'Extras',\r\n    type: 'folder',\r\n    level: 1,\r\n    expandable: true,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ce1',\r\n    name: 'Extra A',\r\n    type: 'item',\r\n    level: 2,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ce2',\r\n    name: 'Extra B',\r\n    type: 'item',\r\n    level: 2,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ch1',\r\n    name: 'Character A',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'ch2',\r\n    name: 'Character B',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'lo',\r\n    name: 'Locations',\r\n    type: 'folder',\r\n    level: 0,\r\n    expandable: true,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'l1',\r\n    name: 'Location 1',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n  {\r\n    id: 'l2',\r\n    name: 'Location 2',\r\n    type: 'item',\r\n    level: 1,\r\n    expandable: false,\r\n    expanded: true,\r\n    visible: true,\r\n  },\r\n]"
                 }
             ]
         },
@@ -3782,16 +3806,16 @@
                 "linktype": "component",
                 "name": "ProjectTreeComponent",
                 "coveragePercent": 0,
-                "coverageCount": "0/12",
+                "coverageCount": "0/14",
                 "status": "low"
             },
             {
                 "filePath": "src/app/components/project-tree/project-tree.component.ts",
                 "type": "interface",
                 "linktype": "interface",
-                "name": "TreeNode",
+                "name": "ProjectElement",
                 "coveragePercent": 0,
-                "coverageCount": "0/6",
+                "coverageCount": "0/9",
                 "status": "low"
             },
             {
