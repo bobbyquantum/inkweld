@@ -110,3 +110,42 @@ export const TREE_DATA: ProjectElement[] = [
     visible: true,
   },
 ];
+
+// export const TREE_DATA: ProjectElement[] = [
+//   {
+//     id: 'file1',
+//     name: 'File 1',
+//     type: 'item',
+//     level: 0,
+//     expandable: false,
+//     expanded: true,
+//     visible: true,
+//   },
+//   {
+//     id: 'file2',
+//     name: 'File 2',
+//     type: 'item',
+//     level: 0,
+//     expandable: false,
+//     expanded: true,
+//     visible: true,
+//   },
+//   {
+//     id: 'file3',
+//     name: 'File 3',
+//     type: 'item',
+//     level: 0,
+//     expandable: false,
+//     expanded: true,
+//     visible: true,
+//   },
+//   {
+//     id: 'file4',
+//     name: 'File 4',
+//     type: 'item',
+//     level: 0,
+//     expandable: false,
+//     expanded: true,
+//     visible: true,
+//   },
+// ];
