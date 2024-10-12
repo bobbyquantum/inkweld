@@ -1,9 +1,9 @@
-import { ProjectElement } from './project-tree.component';
+import { ProjectElement } from './ProjectElement';
 
 export const TREE_DATA: ProjectElement[] = [
   {
     id: 'chapters',
-    name: '📖 Chapters',
+    name: 'Chapters',
     type: 'folder',
     level: 0,
     expandable: true,
@@ -111,41 +111,41 @@ export const TREE_DATA: ProjectElement[] = [
   },
 ];
 
-// export const TREE_DATA: ProjectElement[] = [
-//   {
-//     id: 'file1',
-//     name: 'File 1',
-//     type: 'item',
-//     level: 0,
-//     expandable: false,
-//     expanded: true,
-//     visible: true,
-//   },
-//   {
-//     id: 'file2',
-//     name: 'File 2',
-//     type: 'item',
-//     level: 0,
-//     expandable: false,
-//     expanded: true,
-//     visible: true,
-//   },
-//   {
-//     id: 'file3',
-//     name: 'File 3',
-//     type: 'item',
-//     level: 0,
-//     expandable: false,
-//     expanded: true,
-//     visible: true,
-//   },
-//   {
-//     id: 'file4',
-//     name: 'File 4',
-//     type: 'item',
-//     level: 0,
-//     expandable: false,
-//     expanded: true,
-//     visible: true,
-//   },
-// ];
+export const FILE_ONLY_DATA: ProjectElement[] = [
+  {
+    id: 'file1',
+    name: 'File 1',
+    type: 'item',
+    level: 0,
+    expandable: false,
+    expanded: true,
+    visible: true,
+  },
+  {
+    id: 'file2',
+    name: 'File 2',
+    type: 'item',
+    level: 0,
+    expandable: false,
+    expanded: true,
+    visible: true,
+  },
+  {
+    id: 'file3',
+    name: 'File 3',
+    type: 'item',
+    level: 0,
+    expandable: false,
+    expanded: true,
+    visible: true,
+  },
+  {
+    id: 'file4',
+    name: 'File 4',
+    type: 'item',
+    level: 0,
+    expandable: false,
+    expanded: true,
+    visible: true,
+  },
+];
