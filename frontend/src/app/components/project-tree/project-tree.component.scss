@@ -18,3 +18,15 @@
 .cdk-drop-list-dragging .mat-tree-node:not(.cdk-drag-placeholder) {
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
+
+
+.mat-tree-node {
+  display: flex;
+  align-items: center;
+  justify-content: start
+}
+
+.add-button {
+  justify-self: end;
+}
+

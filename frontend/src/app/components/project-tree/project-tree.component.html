@@ -5,36 +5,43 @@
     [levelAccessor]="levelAccessor"
     cdkDropList
     [cdkDropListData]="dataSource"
-    [cdkDropListEnterPredicate]="canEnterDropList"
     (cdkDropListDropped)="drop($event)">
     <mat-tree-node
+      class="folder-node"
       cdkDrag
       [cdkDragData]="node"
-      (cdkDragMoved)="calculateDropLevel($event)"
+      (cdkDragStarted)="dragStarted(node)"
+      (cdkDragMoved)="dragMove($event)"
       [style.padding-left.px]="node.level * 24"
       [isExpanded]="node.expanded"
       *matTreeNodeDef="let node; when: hasChild">
+      <button cdkDragHandle mat-icon-button>
+        <mat-icon> drag_indicator </mat-icon>
+      </button>
+      @if (editingNode !== node.id) {
+        <span (dblclick)="startEditing(node)">{{ node.name }}</span>
+      } @else {
+        <mat-form-field appearance="outline" class="node-edit-field">
+          <input
+            matInput
+            #editInput
+            [value]="node.name"
+            (blur)="finishEditing(node, editInput.value)"
+            (keyup.enter)="finishEditing(node, editInput.value)"
+            (keyup.escape)="cancelEditing()"
+            [attr.aria-label]="'Edit ' + node.name"
+            placeholder="Edit node name" />
+        </mat-form-field>
+      }
+
       <button mat-icon-button (click)="toggleExpanded(node)">
         <mat-icon>
           {{ node.expanded ? 'expand_more' : 'chevron_right' }}
         </mat-icon>
       </button>
-      {{ node.name }}
-      <button mat-icon-button (click)="addItem(node)">
+      <button mat-icon-button (click)="addItem(node)" class="add-button">
         <mat-icon>add</mat-icon>
       </button>
-      <div
-        class="drag-placeholder"
-        *cdkDragPlaceholder
-        [style.marginLeft.px]="currentDropLevel * 24"></div>
-    </mat-tree-node>
-    <mat-tree-node
-      *matTreeNodeDef="let node"
-      cdkDrag
-      [cdkDragData]="node"
-      (cdkDragMoved)="calculateDropLevel($event)"
-      [style.padding-left.px]="node.level * 24">
-      {{ node.name }}
       <div
         class="drag-placeholder"
         *cdkDragPlaceholder
@@ -44,6 +51,44 @@
         [style.marginLeft.px]="currentDropLevel * 24">
         {{ isValidDrop(draggedNode, targetNode, currentDropLevel) }}
         {{ currentDropLevel }}
+        D:{{ draggedNode?.id }} T:{{ targetNode?.id }}
+      </div>
+    </mat-tree-node>
+    <mat-tree-node
+      *matTreeNodeDef="let node"
+      cdkDrag
+      [cdkDragData]="node"
+      (cdkDragStarted)="draggedNode = node"
+      (cdkDragMoved)="dragMove($event)"
+      [style.padding-left.px]="node.level * 24">
+      <button cdkDragHandle mat-icon-button>
+        <mat-icon> drag_indicator </mat-icon>
+      </button>
+      @if (editingNode !== node.id) {
+        <span (dblclick)="startEditing(node)">{{ node.name }}</span>
+      } @else {
+        <mat-form-field appearance="outline" class="node-edit-field">
+          <input
+            matInput
+            #editInput
+            [value]="node.name"
+            (blur)="finishEditing(node, editInput.value)"
+            (keyup.enter)="finishEditing(node, editInput.value)"
+            (keyup.escape)="cancelEditing()"
+            [attr.aria-label]="'Edit ' + node.name"
+            placeholder="Edit node name" />
+        </mat-form-field>
+      }
+      <div
+        class="drag-placeholder"
+        *cdkDragPlaceholder
+        [class.invalid-drop]="
+          !isValidDrop(draggedNode, targetNode, currentDropLevel)
+        "
+        [style.marginLeft.px]="currentDropLevel * 24">
+        {{ isValidDrop(draggedNode, targetNode, currentDropLevel) }}
+        {{ currentDropLevel }}
+        D:{{ draggedNode?.id }} T:{{ targetNode?.id }}
       </div>
     </mat-tree-node>
   </mat-tree>
