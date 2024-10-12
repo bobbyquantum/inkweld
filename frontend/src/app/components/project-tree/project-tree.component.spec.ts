@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ProjectTreeComponent, ProjectElement } from './project-tree.component';
+import { ProjectTreeComponent } from './project-tree.component';
+import { ProjectElement } from './ProjectElement';
 import { CdkDragDrop, CdkDrag, CdkDropList } from '@angular/cdk/drag-drop';
 import { ArrayDataSource } from '@angular/cdk/collections';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
