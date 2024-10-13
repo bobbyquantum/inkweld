@@ -4,6 +4,8 @@ import {
   CdkDragDrop,
   DragDropModule,
   CdkDragMove,
+  CdkDragSortEvent,
+  CdkDropList,
 } from '@angular/cdk/drag-drop';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -41,7 +43,9 @@ export class ProjectTreeComponent implements OnInit {
   draggedNode: ProjectElement | null = null;
   targetNode: ProjectElement | null = null;
   editingNode: string | null = null;
-
+  validLevelsArray: number[] = [];
+  nodeBelow: ProjectElement | null = null;
+  nodeAbove: ProjectElement | null = null;
   ngOnInit() {
     this.sourceData = JSON.parse(JSON.stringify(this.treeData));
     this.updateDataSource();
@@ -138,35 +142,6 @@ export class ProjectTreeComponent implements OnInit {
       .join('\n');
   }
 
-  isValidDrop(
-    node: ProjectElement | null,
-    targetNode: ProjectElement | null,
-    newLevel: number
-  ): boolean {
-    if (!node) {
-      return false;
-    }
-
-    // Prevent dropping a node as its own descendant
-    if (targetNode && this.isDescendant(node, targetNode)) {
-      return false;
-    }
-
-    // Ensure the node is not being dropped into an invalid level
-    if (newLevel < 0) {
-      return false;
-    }
-
-    // Prevent making an item a child of another item
-    if (newLevel > 0) {
-      const parentNode = this.getParentAtLevel(targetNode, newLevel - 1);
-      if (parentNode && parentNode.type === 'item') {
-        return false;
-      }
-    }
-
-    return true;
-  }
   getParentAtLevel(
     node: ProjectElement | null,
     level: number
@@ -208,92 +183,103 @@ export class ProjectTreeComponent implements OnInit {
 
   dragStarted(node: ProjectElement) {
     this.draggedNode = node;
-    //we need to collapse this node if it's a folder and expanded
     if (node.type === 'folder' && node.expanded) {
       this.toggleExpanded(node);
     }
   }
 
-  dragMove(event: CdkDragMove<ProjectElement>) {
-    console.log('Drag move event: ', event);
-
+  dragMove(event: CdkDragMove<ArrayDataSource<ProjectElement>>) {
     const pointerX = event.pointerPosition.x;
-    const pointerY = event.pointerPosition.y;
     const treeRect = this.treeContainer.nativeElement.getBoundingClientRect();
-    const levelWidth = 24; // Indent per level
+    const indentPerLevel = 24;
 
-    // Include placeholders in the node elements
-    const nodeElements = Array.from(
-      this.treeContainer.nativeElement.querySelectorAll(
-        '.mat-tree-node, .cdk-drag-placeholder'
-      )
-    ) as HTMLElement[];
+    const relativeX = pointerX - treeRect.left;
+    const intendedLevel = Math.max(0, Math.floor(relativeX / indentPerLevel));
 
-    const visibleNodes = this.visibleNodes();
+    const validLevels = this.validLevelsArray;
 
-    // Exclude the dragged node from visibleNodes to realign indices
-    const adjustedVisibleNodes = visibleNodes.filter(
-      node => node !== this.draggedNode
+    // Find the closest valid level to the intended level
+    const selectedLevel = validLevels.reduce((prev, curr) =>
+      Math.abs(curr - intendedLevel) < Math.abs(prev - intendedLevel)
+        ? curr
+        : prev
     );
 
-    let closestNodeIndex = -1;
-    let minDistance = Infinity;
+    this.currentDropLevel = selectedLevel;
 
-    nodeElements.forEach((nodeElement, index) => {
-      const nodeRect = nodeElement.getBoundingClientRect();
-      const nodeY = nodeRect.top + nodeRect.height / 2;
-      const distance = Math.abs(pointerY - nodeY);
-
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestNodeIndex = index;
-      }
-    });
-
-    if (
-      closestNodeIndex >= 0 &&
-      closestNodeIndex < adjustedVisibleNodes.length
-    ) {
-      this.targetNode = adjustedVisibleNodes[closestNodeIndex];
-    } else {
-      this.targetNode = null;
+    // Update the placeholder indentation
+    const placeholderElement = this.treeContainer.nativeElement.querySelector(
+      '.cdk-drag-placeholder'
+    );
+    if (placeholderElement) {
+      placeholderElement.style.marginLeft = `${selectedLevel * indentPerLevel}px`;
     }
-    console.log('Target node: ', this.targetNode?.id);
-    this.draggedNode = event.source.data;
-
-    // Calculate the intended level based on horizontal position
-    const calculatedLevel = Math.floor((pointerX - treeRect.left) / levelWidth);
-    const maxLevel = Math.max(...this.sourceData.map(n => n.level)) + 1;
-    this.currentDropLevel = Math.max(0, Math.min(calculatedLevel, maxLevel));
   }
+
+  sorted(event: CdkDragSortEvent<ArrayDataSource<ProjectElement>>) {
+    const { currentIndex, container } = event;
+    const sortedNodes = (
+      container as CdkDropList<ArrayDataSource<ProjectElement>>
+    )
+      .getSortedItems()
+      .map(dragItem => dragItem.data as ProjectElement);
+    const nodeCount = sortedNodes.length;
+    this.draggedNode = sortedNodes[currentIndex];
+    this.nodeAbove = currentIndex > 0 ? sortedNodes[currentIndex - 1] : null;
+    this.nodeBelow =
+      currentIndex + 1 < nodeCount ? sortedNodes[currentIndex + 1] : null;
+    const validLevels = new Set<number>();
+    if (this.nodeAbove) {
+      if (this.nodeAbove.expandable) {
+        validLevels.add(this.nodeAbove.level + 1);
+      } else {
+        validLevels.add(this.nodeAbove.level);
+      }
+    } else {
+      validLevels.add(0);
+    }
+    if (this.nodeBelow) {
+      const minLevel = this.nodeBelow.level;
+      const maxLevel = this.nodeAbove ? this.nodeAbove.level : 0;
+      for (let level = minLevel; level < maxLevel; level++) {
+        validLevels.add(level);
+      }
+    }
+    this.validLevelsArray = Array.from(validLevels).sort((a, b) => a - b);
+    console.log(
+      `C:${currentIndex} A:${this.nodeAbove?.id},${this.nodeAbove?.level} B:${this.nodeBelow?.id},${this.nodeBelow?.level} L: ${this.validLevelsArray}`
+    );
+    this.currentDropLevel = this.validLevelsArray[0];
+  }
+
   drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {
-    console.log('Drop event: ', event);
+    // console.log('Drop event: ', event);
     const node = event.item.data as ProjectElement;
     const nodeIndex = this.sourceData.findIndex(n => n.id === node.id);
     if (nodeIndex === -1) {
       console.log('Node not found');
       return;
     }
-    console.log(
-      'Source data at drop: ',
-      this.getCondensedTreeSummary(this.sourceData)
-    );
-    console.log('nodeIndex', nodeIndex);
+    // console.log(
+    //   'Source data at drop: ',
+    //   this.getCondensedTreeSummary(this.sourceData)
+    // );
+    // console.log('nodeIndex', nodeIndex);
 
     // Remove node and its subtree
     const nodeSubtree = this.getNodeSubtree(nodeIndex);
     this.sourceData.splice(nodeIndex, nodeSubtree.length);
 
     // Find the drop index in the source data
-    const visibleNodes = this.visibleNodes();
-    console.log('Visible Nodes: ', this.getCondensedTreeSummary(visibleNodes));
+    // const visibleNodes = this.visibleNodes();
+    // console.log('Visible Nodes: ', this.getCondensedTreeSummary(visibleNodes));
     const targetIndex = event.currentIndex;
 
-    console.log('targetIndex', targetIndex);
+    // console.log('targetIndex', targetIndex);
 
     const insertIndex = targetIndex;
 
-    console.log('insertIndex', insertIndex);
+    // console.log('insertIndex', insertIndex);
 
     // Adjust levels
     const levelDifference = this.currentDropLevel - node.level;
@@ -306,10 +292,10 @@ export class ProjectTreeComponent implements OnInit {
 
     this.updateVisibility();
     this.updateDataSource();
-    console.log(
-      'Source data after drop: ',
-      this.getCondensedTreeSummary(this.sourceData)
-    );
+    // console.log(
+    //   'Source data after drop: ',
+    //   this.getCondensedTreeSummary(this.sourceData)
+    // );
     // Reset drag variables
     this.targetNode = null;
     this.draggedNode = null;
