@@ -16,8 +16,8 @@
       [style.padding-left.px]="node.level * 24"
       [isExpanded]="node.expanded"
       *matTreeNodeDef="let node; when: hasChild">
-      <button cdkDragHandle mat-icon-button>
-        <mat-icon> drag_indicator </mat-icon>
+      <button type="button" cdkDragHandle mat-icon-button>
+        <mat-icon>drag_indicator</mat-icon>
       </button>
       @if (editingNode !== node.id) {
         <span (dblclick)="startEditing(node)">{{ node.name }}</span>
@@ -35,32 +35,38 @@
         </mat-form-field>
       }
 
-      <button mat-icon-button (click)="toggleExpanded(node)">
-        <mat-icon>
-          {{ node.expanded ? 'expand_more' : 'chevron_right' }}
-        </mat-icon>
+      <button mat-icon-button type="button" (click)="toggleExpanded(node)">
+        <mat-icon>{{
+          node.expanded ? 'expand_more' : 'chevron_right'
+        }}</mat-icon>
       </button>
-      <button mat-icon-button (click)="addItem(node)" class="add-button">
+      <button
+        mat-icon-button
+        type="button"
+        (click)="addItem(node)"
+        class="add-button">
         <mat-icon>add</mat-icon>
       </button>
       <div
         class="drag-placeholder"
         *cdkDragPlaceholder
         [style.marginLeft.px]="currentDropLevel * 24">
-        {{ currentDropLevel }}
-        D:{{ draggedNode?.id }} T:{{ validLevelsArray }} A:
-        {{ nodeAbove?.id }} B: {{ nodeBelow?.id }}
+        <button cdkDragHandle mat-icon-button type="button">
+          <mat-icon>drag_indicator</mat-icon>
+        </button>
+        {{ node.name }}
       </div>
     </mat-tree-node>
+
     <mat-tree-node
       *matTreeNodeDef="let node"
       cdkDrag
       [cdkDragData]="node"
-      (cdkDragStarted)="draggedNode = node"
+      (cdkDragStarted)="dragStarted(node)"
       (cdkDragMoved)="dragMove($event)"
       [style.padding-left.px]="node.level * 24">
-      <button cdkDragHandle mat-icon-button>
-        <mat-icon> drag_indicator </mat-icon>
+      <button cdkDragHandle mat-icon-button type="button">
+        <mat-icon>drag_indicator</mat-icon>
       </button>
       @if (editingNode !== node.id) {
         <span (dblclick)="startEditing(node)">{{ node.name }}</span>
@@ -81,9 +87,10 @@
         class="drag-placeholder"
         *cdkDragPlaceholder
         [style.marginLeft.px]="currentDropLevel * 24">
-        {{ currentDropLevel }}
-        D:{{ draggedNode?.id }} T:{{ validLevelsArray }} A:
-        {{ nodeAbove?.id }} B: {{ nodeBelow?.id }}
+        <button type="button" cdkDragHandle mat-icon-button>
+          <mat-icon>drag_indicator</mat-icon>
+        </button>
+        {{ node.name }}
       </div>
     </mat-tree-node>
   </mat-tree>
