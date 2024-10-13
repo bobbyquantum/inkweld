@@ -5,6 +5,7 @@
     [levelAccessor]="levelAccessor"
     cdkDropList
     [cdkDropListData]="dataSource"
+    (cdkDropListSorted)="sorted($event)"
     (cdkDropListDropped)="drop($event)">
     <mat-tree-node
       class="folder-node"
@@ -45,13 +46,10 @@
       <div
         class="drag-placeholder"
         *cdkDragPlaceholder
-        [class.invalid-drop]="
-          !isValidDrop(draggedNode, targetNode, currentDropLevel)
-        "
         [style.marginLeft.px]="currentDropLevel * 24">
-        {{ isValidDrop(draggedNode, targetNode, currentDropLevel) }}
         {{ currentDropLevel }}
-        D:{{ draggedNode?.id }} T:{{ targetNode?.id }}
+        D:{{ draggedNode?.id }} T:{{ validLevelsArray }} A:
+        {{ nodeAbove?.id }} B: {{ nodeBelow?.id }}
       </div>
     </mat-tree-node>
     <mat-tree-node
@@ -82,13 +80,10 @@
       <div
         class="drag-placeholder"
         *cdkDragPlaceholder
-        [class.invalid-drop]="
-          !isValidDrop(draggedNode, targetNode, currentDropLevel)
-        "
         [style.marginLeft.px]="currentDropLevel * 24">
-        {{ isValidDrop(draggedNode, targetNode, currentDropLevel) }}
         {{ currentDropLevel }}
-        D:{{ draggedNode?.id }} T:{{ targetNode?.id }}
+        D:{{ draggedNode?.id }} T:{{ validLevelsArray }} A:
+        {{ nodeAbove?.id }} B: {{ nodeBelow?.id }}
       </div>
     </mat-tree-node>
   </mat-tree>
