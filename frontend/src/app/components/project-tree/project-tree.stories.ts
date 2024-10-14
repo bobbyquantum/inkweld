@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 import { ProjectTreeComponent } from './project-tree.component';
-import { FILE_ONLY_DATA, TREE_DATA } from './TREE_DATA';
+import { FILE_ONLY_DATA, SINGLE_FOLDER_DATA, TREE_DATA } from './TREE_DATA';
 
 const meta: Meta<ProjectTreeComponent> = {
   title: 'Components/ProjectTree',
@@ -43,5 +43,11 @@ export const FoldersOnly: Story = {
 export const FilesOnly: Story = {
   args: {
     treeData: FILE_ONLY_DATA,
+  },
+};
+
+export const SIngleFolder: Story = {
+  args: {
+    treeData: SINGLE_FOLDER_DATA,
   },
 };
