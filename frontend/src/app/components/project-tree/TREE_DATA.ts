@@ -149,3 +149,33 @@ export const FILE_ONLY_DATA: ProjectElement[] = [
     visible: true,
   },
 ];
+
+export const SINGLE_FOLDER_DATA: ProjectElement[] = [
+  {
+    id: 'chapters',
+    name: 'Chapters',
+    type: 'folder',
+    level: 0,
+    expandable: true,
+    expanded: true,
+    visible: true,
+  },
+  {
+    id: 'c1',
+    name: 'Chapter 1',
+    type: 'item',
+    level: 1,
+    expandable: false,
+    expanded: true,
+    visible: true,
+  },
+  {
+    id: 'c2',
+    name: 'Chapter 2',
+    type: 'item',
+    level: 1,
+    expandable: false,
+    expanded: true,
+    visible: true,
+  },
+];

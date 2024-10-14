@@ -34,7 +34,8 @@
             placeholder="Edit node name" />
         </mat-form-field>
       }
-
+      {{ nodeBelow?.id === node.id ? 'BELOW' : '' }}
+      {{ nodeAbove?.id === node.id ? 'ABOVE' : '' }}
       <button mat-icon-button type="button" (click)="toggleExpanded(node)">
         <mat-icon>{{
           node.expanded ? 'expand_more' : 'chevron_right'
@@ -83,6 +84,8 @@
             placeholder="Edit node name" />
         </mat-form-field>
       }
+      {{ nodeBelow?.id === node.id ? 'BELOW' : '' }}
+      {{ nodeAbove?.id === node.id ? 'ABOVE' : '' }}
       <div
         class="drag-placeholder"
         *cdkDragPlaceholder
