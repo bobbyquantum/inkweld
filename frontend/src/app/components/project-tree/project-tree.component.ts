@@ -9,7 +9,7 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { ArrayDataSource } from '@angular/cdk/collections';
-import { MatInputModule } from '@angular/material/input';
+import { MatInput, MatInputModule } from '@angular/material/input';
 import { ProjectElement } from './ProjectElement';
 
 @Component({
@@ -31,7 +31,7 @@ export class ProjectTreeComponent implements OnInit {
 
   @ViewChild('tree') treeEl!: MatTree<ProjectElement>;
   @ViewChild('treeContainer', { static: true }) treeContainer!: ElementRef;
-
+  @ViewChild('editInput') inputEl!: MatInput;
   dataSource!: ArrayDataSource<ProjectElement>;
   currentDropLevel = 0;
   draggedNode: ProjectElement | null = null;
@@ -54,8 +54,6 @@ export class ProjectTreeComponent implements OnInit {
   levelAccessor(dataNode: ProjectElement): number {
     return dataNode.level;
   }
-
-  hasChild = (_: number, node: ProjectElement) => node.expandable;
 
   toggleExpanded(node: ProjectElement) {
     const nodeIndex = this.sourceData.indexOf(node);
@@ -158,27 +156,22 @@ export class ProjectTreeComponent implements OnInit {
       .getSortedItems()
       .map(dragItem => dragItem.data as ProjectElement)
       .filter(node => node.id !== this.draggedNode?.id);
-    console.log('Sorted nodes: ' + sortedNodes.map(node => node.id).join(','));
+    console.log(
+      'Sorted nodes: ' +
+        sortedNodes.map((node, i) => `${i}:${node.id}`).join(',')
+    );
     this.nodeAbove = sortedNodes[currentIndex - 1] || null;
     this.nodeBelow = sortedNodes[currentIndex] || null;
-
     const validLevels = new Set<number>();
-
     if (this.nodeAbove && this.nodeBelow) {
       if (this.nodeAbove.level < this.nodeBelow.level) {
-        // Case where nodeBelow is deeper level than nodeAbove
-        // Valid level is nodeAbove.level + 1 (inside nodeAbove if expandable)
         if (this.nodeAbove.expandable) {
           validLevels.add(this.nodeAbove.level + 1);
         }
-        // Also consider nodeBelow.level (same level as nodeBelow)
         validLevels.add(this.nodeBelow.level);
       } else if (this.nodeAbove.level === this.nodeBelow.level) {
-        // Same level, valid level is nodeAbove.level
         validLevels.add(this.nodeAbove.level);
       } else {
-        // nodeAbove.level > nodeBelow.level
-        // Valid levels from nodeBelow.level up to nodeAbove.level
         for (
           let level = this.nodeBelow.level;
           level <= this.nodeAbove.level;
@@ -188,25 +181,15 @@ export class ProjectTreeComponent implements OnInit {
         }
       }
     } else if (this.nodeAbove && !this.nodeBelow) {
-      // At the end of the list
-      // Valid levels from 0 up to nodeAbove.level
       for (let level = 0; level <= this.nodeAbove.level; level++) {
         validLevels.add(level);
       }
-      // If nodeAbove is expandable, include nodeAbove.level + 1
       if (this.nodeAbove.expandable) {
         validLevels.add(this.nodeAbove.level + 1);
       }
     } else if (!this.nodeAbove && this.nodeBelow) {
-      // At the top of the list
-      // Valid level is nodeBelow.level
       validLevels.add(this.nodeBelow.level);
-      // If nodeBelow is expandable, include nodeBelow.level + 1
-      // if (this.nodeBelow.expandable) {
-      //   validLevels.add(this.nodeBelow.level + 1);
-      // }
     } else {
-      // Both nodeAbove and nodeBelow are null (empty list)
       validLevels.add(0);
     }
 
@@ -224,71 +207,69 @@ export class ProjectTreeComponent implements OnInit {
     this.nodeBelow = null;
   }
   drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {
-    console.debug('Drop event', event);
+    const { currentIndex, container, item } = event;
+    const sortedNodes = container
+      .getSortedItems()
+      .map(dragItem => dragItem.data as ProjectElement)
+      .filter(node => node.id !== this.draggedNode?.id);
+    this.nodeAbove = sortedNodes[currentIndex - 1] || null;
+    this.nodeBelow = sortedNodes[currentIndex] || null;
 
-    const node = event.item.data as ProjectElement;
+    console.log(
+      `Dropping ${this.draggedNode?.id} above ${this.nodeAbove?.id} below ${this.nodeBelow?.id}`
+    );
+
+    const node = item.data as ProjectElement;
     const nodeIndex = this.sourceData.findIndex(n => n.id === node.id);
     if (nodeIndex === -1) {
       console.log('Node not found');
       return;
     }
 
+    // Remove the node subtree from sourceData
     const nodeSubtree = this.getNodeSubtree(nodeIndex);
     const nodeSubtreeLength = nodeSubtree.length;
-
-    if (this.currentDropLevel < 0) {
-      // Invalid level, cancel the drop
-      this.sourceData.splice(nodeIndex, 0, ...nodeSubtree);
-      this.resetDropState();
-      return;
-    }
-    // Remove the nodeSubtree from sourceData
     this.sourceData.splice(nodeIndex, nodeSubtreeLength);
 
-    // Adjust targetIndex if necessary
-    let adjustedTargetIndex = event.currentIndex;
-    if (nodeIndex < event.currentIndex) {
-      adjustedTargetIndex = event.currentIndex - nodeSubtreeLength + 1;
-    }
+    // Determine the insertion index in sourceData
+    let insertIndex: number;
 
-    // Ensure adjustedTargetIndex is within bounds
-    if (adjustedTargetIndex < 0) {
-      adjustedTargetIndex = 0;
-    }
-
-    // Get the parent node at the currentDropLevel
-    const potentialParentIndex = adjustedTargetIndex - 1;
-    let potentialParent: ProjectElement | null = null;
-    if (
-      potentialParentIndex >= 0 &&
-      potentialParentIndex < this.sourceData.length
-    ) {
-      for (let i = potentialParentIndex; i >= 0; i--) {
-        if (this.sourceData[i].level === this.currentDropLevel - 1) {
-          potentialParent = this.sourceData[i];
-          break;
-        }
+    if (this.nodeAbove) {
+      // Find nodeAbove in sourceData
+      const nodeAboveIndex = this.sourceData.findIndex(
+        n => n.id === this.nodeAbove?.id
+      );
+      if (nodeAboveIndex === -1) {
+        console.log('Node above not found');
+        return;
       }
-    }
-    console.debug('Potential parent', potentialParent);
-    // If the potential parent is not expandable, prevent the drop
-    if (
-      this.currentDropLevel > 0 &&
-      potentialParent &&
-      !potentialParent.expandable
-    ) {
-      // Cancel the drop and reinsert the node at its original position
-      this.sourceData.splice(nodeIndex, 0, ...nodeSubtree);
-      this.resetDropState();
-      return;
+      // Find the end of nodeAbove's subtree
+      const nodeAboveSubtree = this.getNodeSubtree(nodeAboveIndex);
+      insertIndex = nodeAboveIndex + nodeAboveSubtree.length;
+    } else if (this.nodeBelow) {
+      // No nodeAbove, insert before nodeBelow
+      const nodeBelowIndex = this.sourceData.findIndex(
+        n => n.id === this.nodeBelow?.id
+      );
+      if (nodeBelowIndex === -1) {
+        console.log('Node below not found');
+        return;
+      }
+      insertIndex = nodeBelowIndex;
+    } else {
+      // No nodeAbove and no nodeBelow, insert at the end
+      insertIndex = this.sourceData.length;
     }
 
+    // Adjust levels of the nodeSubtree
     const levelDifference = this.currentDropLevel - node.level;
     nodeSubtree.forEach(n => {
       n.level += levelDifference;
     });
 
-    this.sourceData.splice(adjustedTargetIndex, 0, ...nodeSubtree);
+    // Insert the nodeSubtree into sourceData at insertIndex
+    this.sourceData.splice(insertIndex, 0, ...nodeSubtree);
+
     this.resetDropState();
   }
 

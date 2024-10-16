@@ -51,7 +51,11 @@ describe('ProjectTreeComponent', () => {
       } as CdkDrag<ProjectElement>,
       container: {
         data: new ArrayDataSource<ProjectElement>([]),
-      } as CdkDropList<ArrayDataSource<ProjectElement>>,
+        getSortedItems: () => {
+          // Return the sorted items as per the test scenario
+          return [];
+        },
+      } as unknown as CdkDropList<ArrayDataSource<ProjectElement>>,
       previousContainer: {
         data: new ArrayDataSource<ProjectElement>([]),
       } as CdkDropList<ArrayDataSource<ProjectElement>>,
@@ -78,6 +82,14 @@ describe('ProjectTreeComponent', () => {
       mockDragEvent.previousIndex = 0;
       mockDragEvent.currentIndex = 1;
       component.currentDropLevel = 1; // Attempting to make it a child of Item 2
+
+      // Update getSortedItems to return the sorted list after dragging
+      if (mockDragEvent.container) {
+        mockDragEvent.container.getSortedItems = () =>
+          [
+            { data: component.sourceData[1] }, // Item 2
+          ] as CdkDrag<ProjectElement>[];
+      }
 
       component.drop(
         mockDragEvent as CdkDragDrop<ArrayDataSource<ProjectElement>>

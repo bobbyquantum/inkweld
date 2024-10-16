@@ -38,7 +38,7 @@ export const TREE_DATA: ProjectElement[] = [
     visible: true,
   },
   {
-    id: 'ch1',
+    id: 'extras',
     name: 'Extras',
     type: 'folder',
     level: 1,

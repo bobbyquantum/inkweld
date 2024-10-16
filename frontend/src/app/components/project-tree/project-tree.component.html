@@ -8,67 +8,28 @@
     (cdkDropListSorted)="sorted($event)"
     (cdkDropListDropped)="drop($event)">
     <mat-tree-node
-      class="folder-node"
       cdkDrag
       [cdkDragData]="node"
       (cdkDragStarted)="dragStarted(node)"
       (cdkDragMoved)="dragMove($event)"
-      [style.padding-left.px]="node.level * 24"
+      [style.padding-left.px]="node.level * 24 + (node.expandable ? 0 : 24)"
+      [class.folder-node]="node.expandable"
       [isExpanded]="node.expanded"
-      *matTreeNodeDef="let node; when: hasChild">
-      <button type="button" cdkDragHandle mat-icon-button>
-        <mat-icon>drag_indicator</mat-icon>
-      </button>
-      @if (editingNode !== node.id) {
-        <span (dblclick)="startEditing(node)">{{ node.name }}</span>
-      } @else {
-        <mat-form-field appearance="outline" class="node-edit-field">
-          <input
-            matInput
-            #editInput
-            [value]="node.name"
-            (blur)="finishEditing(node, editInput.value)"
-            (keyup.enter)="finishEditing(node, editInput.value)"
-            (keyup.escape)="cancelEditing()"
-            [attr.aria-label]="'Edit ' + node.name"
-            placeholder="Edit node name" />
-        </mat-form-field>
-      }
-      {{ nodeBelow?.id === node.id ? 'BELOW' : '' }}
-      {{ nodeAbove?.id === node.id ? 'ABOVE' : '' }}
-      <button mat-icon-button type="button" (click)="toggleExpanded(node)">
-        <mat-icon>{{
-          node.expanded ? 'expand_more' : 'chevron_right'
-        }}</mat-icon>
-      </button>
-      <button
-        mat-icon-button
-        type="button"
-        (click)="addItem(node)"
-        class="add-button">
-        <mat-icon>add</mat-icon>
-      </button>
-      <div
-        class="drag-placeholder"
-        *cdkDragPlaceholder
-        [style.marginLeft.px]="currentDropLevel * 24">
-        <button cdkDragHandle mat-icon-button type="button">
-          <mat-icon>drag_indicator</mat-icon>
+      *matTreeNodeDef="let node">
+      @if (node.expandable) {
+        <button mat-icon-button type="button" (click)="toggleExpanded(node)">
+          <mat-icon>{{
+            node.expanded ? 'expand_more' : 'chevron_right'
+          }}</mat-icon>
         </button>
-        {{ node.name }}
-      </div>
-    </mat-tree-node>
+      } @else {
+        <mat-icon>upload_file</mat-icon>
+      }
 
-    <mat-tree-node
-      *matTreeNodeDef="let node"
-      cdkDrag
-      [cdkDragData]="node"
-      (cdkDragStarted)="dragStarted(node)"
-      (cdkDragMoved)="dragMove($event)"
-      [style.padding-left.px]="node.level * 24">
-      <button cdkDragHandle mat-icon-button type="button">
+      <!-- <button cdkDragHandle mat-icon-button type="button">
         <mat-icon>drag_indicator</mat-icon>
-      </button>
+      </button> -->
+
       @if (editingNode !== node.id) {
         <span (dblclick)="startEditing(node)">{{ node.name }}</span>
       } @else {
@@ -84,15 +45,37 @@
             placeholder="Edit node name" />
         </mat-form-field>
       }
+
       {{ nodeBelow?.id === node.id ? 'BELOW' : '' }}
       {{ nodeAbove?.id === node.id ? 'ABOVE' : '' }}
+
+      @if (node.expandable) {
+        <button
+          mat-icon-button
+          type="button"
+          (click)="addItem(node)"
+          class="add-button">
+          <mat-icon>create_new_folder</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          type="button"
+          (click)="addItem(node)"
+          class="add-button">
+          <mat-icon>note_add</mat-icon>
+        </button>
+      }
       <div
         class="drag-placeholder"
         *cdkDragPlaceholder
-        [style.marginLeft.px]="currentDropLevel * 24">
-        <button type="button" cdkDragHandle mat-icon-button>
-          <mat-icon>drag_indicator</mat-icon>
-        </button>
+        [style.padding-left.px]="node.level * 24 + (node.expandable ? 0 : 24)">
+        @if (node.expandable) {
+          <button mat-icon-button type="button" (click)="toggleExpanded(node)">
+            <mat-icon>{{
+              node.expanded ? 'expand_more' : 'chevron_right'
+            }}</mat-icon>
+          </button>
+        }
         {{ node.name }}
       </div>
     </mat-tree-node>
