@@ -10,28 +10,34 @@
     <mat-tree-node
       cdkDrag
       [cdkDragData]="node"
-      (cdkDragStarted)="dragStarted(node)"
+      (mousedown)="onDragPointerDown(node)"
+      (touchstart)="onDragPointerDown(node)"
+      (cdkDragStarted)="dragStarted(node, $event)"
       (cdkDragMoved)="dragMove($event)"
-      [style.padding-left.px]="node.level * 24 + (node.expandable ? 0 : 24)"
+      [style.padding-left.px]="node.level * 24 + (node.expandable ? 0 : 16)"
       [class.folder-node]="node.expandable"
+      [class.context-item]="node.id === contextItem?.id"
       [isExpanded]="node.expanded"
-      *matTreeNodeDef="let node">
+      *matTreeNodeDef="let node"
+      [cdkContextMenuTriggerFor]="contextMenu"
+      (cdkContextMenuOpened)="onContextMenuOpen($event, node)"
+      (cdkContextMenuClosed)="onContextMenuClose($event, node)"
+      [cdkContextMenuTriggerData]="{ node: node }">
       @if (node.expandable) {
         <button mat-icon-button type="button" (click)="toggleExpanded(node)">
           <mat-icon>{{
             node.expanded ? 'expand_more' : 'chevron_right'
           }}</mat-icon>
         </button>
+        <mat-icon>folder</mat-icon>
       } @else {
-        <mat-icon>upload_file</mat-icon>
+        <mat-icon>description</mat-icon>
       }
 
-      <!-- <button cdkDragHandle mat-icon-button type="button">
-        <mat-icon>drag_indicator</mat-icon>
-      </button> -->
-
       @if (editingNode !== node.id) {
-        <span (dblclick)="startEditing(node)">{{ node.name }}</span>
+        <div class="node-title" (dblclick)="startEditing(node)">
+          {{ node.name }}
+        </div>
       } @else {
         <mat-form-field appearance="outline" class="node-edit-field">
           <input
@@ -65,19 +71,36 @@
           <mat-icon>note_add</mat-icon>
         </button>
       }
-      <div
-        class="drag-placeholder"
-        *cdkDragPlaceholder
-        [style.padding-left.px]="node.level * 24 + (node.expandable ? 0 : 24)">
+      <div *cdkDragPreview="{ data: node }" class="drag-preview">
+        <mat-icon>drag_indicator</mat-icon>
+        <div class="node-title">{{ node.name }}</div>
+      </div>
+      <div class="drag-placeholder" *cdkDragPlaceholder>
         @if (node.expandable) {
           <button mat-icon-button type="button" (click)="toggleExpanded(node)">
             <mat-icon>{{
               node.expanded ? 'expand_more' : 'chevron_right'
             }}</mat-icon>
           </button>
+          <mat-icon>folder</mat-icon>
+        } @else {
+          <mat-icon>description</mat-icon>
         }
-        {{ node.name }}
+        <div class="node-title">PL {{ node.name }}</div>
       </div>
     </mat-tree-node>
   </mat-tree>
 </div>
+
+<ng-template #contextMenu let-node="node">
+  <div class="context-menu" cdkMenu>
+    <button class="context-menu-item" cdkMenuItem (click)="onRename(node)">
+      <mat-icon>edit_square</mat-icon>
+      Rename
+    </button>
+    <button class="context-menu-item" cdkMenuItem (click)="onDelete(node)">
+      <mat-icon>delete</mat-icon>
+      Delete
+    </button>
+  </div>
+</ng-template>
