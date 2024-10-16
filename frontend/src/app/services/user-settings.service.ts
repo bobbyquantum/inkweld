@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
@@ -8,7 +8,7 @@ import { UserFilesDialogComponent } from '@dialogs/user-files-dialog/user-files-
   providedIn: 'root',
 })
 export class UserSettingsService {
-  constructor(private dialog: MatDialog) {}
+  dialog = inject(MatDialog);
 
   openSettingsDialog(): Observable<void> {
     console.log('Settings');
