@@ -10,12 +10,15 @@
   justify-content: start;
   padding-left: 16px;
   height: 48px;
-  border: 1px solid blue;
 }
+
 .context-item {
   border: 1px solid var(--sys-secondary-container);
-
   box-sizing: border-box;
+}
+
+.selected-item {
+  background-color: var(--sys-secondary-container);
 }
 
 .cdk-drag-animating {
@@ -26,12 +29,10 @@
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
 
-
 .mat-tree-node {
   display: flex;
   align-items: center;
   justify-content: start;
-  border: 1px solid red;
 }
 
 .add-button {
@@ -52,6 +53,7 @@
   color: var(--sys-on-surface);
   padding: 6px 0;
 }
+
 .context-menu-item {
   background-color: transparent;
   color: var(--sys-on-surface);
@@ -60,22 +62,26 @@
   -webkit-user-select: none;
   user-select: none;
   min-width: 64px;
-  line-height: 36px;
+  line-height: var(--mdc-list-list-item-one-line-container-height);
   padding: 0 16px;
-
+  height: var(--mdc-list-list-item-one-line-container-height);
   display: flex;
   align-items: center;
   flex-direction: row;
   flex: 1;
+  font-family: Roboto, sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.context-menu-item-title {
+  margin-left: 8px;
 }
 
 .context-menu-item:hover {
   background-color: var(--mat-menu-item-hover-state-layer-color);
 }
 
-.context-menu-item:active {
-  background-color: rgb(170, 170, 170);
-}
 .node-title {
   margin-left: 8px;
 }

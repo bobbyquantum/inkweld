@@ -1,22 +1,28 @@
-import { Component, ViewChild, ElementRef, Input, OnInit } from '@angular/core';
-import { MatTree, MatTreeModule } from '@angular/material/tree';
+import { ArrayDataSource } from '@angular/cdk/collections';
 import {
   CdkDragDrop,
   CdkDragMove,
-  CdkDragPreview,
   CdkDragSortEvent,
   CdkDragStart,
+  CdkDropList,
   DragDropModule,
 } from '@angular/cdk/drag-drop';
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
-
-import { MatIconModule } from '@angular/material/icon';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  Input,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { ArrayDataSource } from '@angular/cdk/collections';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInput, MatInputModule } from '@angular/material/input';
-import { ProjectElement } from './ProjectElement';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatTree, MatTreeModule } from '@angular/material/tree';
+import { ProjectElement } from './ProjectElement';
 
 @Component({
   standalone: true,
@@ -29,21 +35,22 @@ import { MatMenuModule } from '@angular/material/menu';
     MatListModule,
     MatMenuModule,
     CdkContextMenuTrigger,
-    CdkDragPreview,
     CdkMenu,
     CdkMenuItem,
+    CdkDropList,
   ],
   selector: 'app-project-tree',
   templateUrl: './project-tree.component.html',
   styleUrls: ['./project-tree.component.scss'],
 })
-export class ProjectTreeComponent implements OnInit {
+export class ProjectTreeComponent implements OnInit, AfterViewInit {
   @Input() treeData: ProjectElement[] = [];
   sourceData: ProjectElement[] = [];
 
   @ViewChild('tree') treeEl!: MatTree<ProjectElement>;
   @ViewChild('treeContainer', { static: true }) treeContainer!: ElementRef;
   @ViewChild('editInput') inputEl!: MatInput;
+  @ViewChild(CdkDropList) dropList!: CdkDropList<ProjectElement>;
   dataSource!: ArrayDataSource<ProjectElement>;
   currentDropLevel = 0;
   draggedNode: ProjectElement | null = null;
@@ -52,12 +59,19 @@ export class ProjectTreeComponent implements OnInit {
   nodeBelow: ProjectElement | null = null;
   nodeAbove: ProjectElement | null = null;
   contextItem: ProjectElement | null = null;
-
+  wasExpandedNodeIds = new Set<string>(); // Added property to track expanded nodes
+  selectedItem: ProjectElement | null = null;
+  collapseTimer: NodeJS.Timeout | null = null;
   ngOnInit() {
     this.sourceData = JSON.parse(JSON.stringify(this.treeData));
     this.updateDataSource();
   }
-
+  ngAfterViewInit() {
+    // Subscribe to beforeStarted event on the DropListRef
+    this.dropList._dropListRef.beforeStarted.subscribe(() => {
+      this.beforeDragStarted();
+    });
+  }
   updateDataSource() {
     this.dataSource = new ArrayDataSource<ProjectElement>(
       this.sourceData.filter(x => x.visible)
@@ -133,13 +147,40 @@ export class ProjectTreeComponent implements OnInit {
     }
     return subtree;
   }
-  onDragPointerDown(node: ProjectElement) {
+
+  // Add mousedown and mouseup handlers
+  onNodeDown(node: ProjectElement) {
+    this.selectedItem = node;
     if (node.type === 'folder' && node.expanded) {
-      this.toggleExpanded(node);
+      // Start a timer to collapse the node after a short delay
+      this.collapseTimer = setTimeout(() => {
+        // Collapse the node
+        this.wasExpandedNodeIds.add(node.id);
+        this.toggleExpanded(node);
+        this.updateVisibility();
+        this.updateDataSource();
+        this.draggedNode = node;
+      }, 950); // Delay slightly less than drag start delay
+    }
+  }
+
+  onNodeUp() {
+    if (this.collapseTimer) {
+      clearTimeout(this.collapseTimer);
+      this.collapseTimer = null;
+    }
+  }
+
+  beforeDragStarted() {
+    if (this.selectedItem?.type === 'folder' && this.selectedItem.expanded) {
+      // Remember that we collapsed this node
+      this.wasExpandedNodeIds.add(this.selectedItem.id);
+      this.toggleExpanded(this.selectedItem);
       this.updateVisibility();
       this.updateDataSource();
     }
   }
+
   dragStarted(
     node: ProjectElement,
     event: CdkDragStart<ArrayDataSource<ProjectElement>>
@@ -150,6 +191,11 @@ export class ProjectTreeComponent implements OnInit {
     this.draggedNode = node;
     this.currentDropLevel = node.level;
     this.validLevelsArray = [node.level];
+
+    if (this.collapseTimer) {
+      clearTimeout(this.collapseTimer);
+      this.collapseTimer = null;
+    }
   }
 
   dragMove(event: CdkDragMove<ArrayDataSource<ProjectElement>>) {
@@ -172,16 +218,17 @@ export class ProjectTreeComponent implements OnInit {
       placeholderElement.style.marginLeft = `${selectedLevel * indentPerLevel}px`;
     }
   }
+
   sorted(event: CdkDragSortEvent<ArrayDataSource<ProjectElement>>) {
-    const { previousIndex, currentIndex, container } = event;
+    const { currentIndex, container } = event;
     const sortedNodes = container
       .getSortedItems()
       .map(dragItem => dragItem.data as ProjectElement)
       .filter(node => node.id !== this.draggedNode?.id);
-    console.log(
-      'Sorted nodes: ' +
-        sortedNodes.map((node, i) => `${i}:${node.id}`).join(',')
-    );
+    // console.log(
+    //   'Sorted nodes: ' +
+    //     sortedNodes.map((node, i) => `${i}:${node.id}`).join(',')
+    // );
     this.nodeAbove = sortedNodes[currentIndex - 1] || null;
     this.nodeBelow = sortedNodes[currentIndex] || null;
     const validLevels = new Set<number>();
@@ -217,10 +264,11 @@ export class ProjectTreeComponent implements OnInit {
 
     this.validLevelsArray = Array.from(validLevels).sort((a, b) => a - b);
     this.currentDropLevel = this.validLevelsArray[0];
-    console.log(
-      `P:${previousIndex} C:${currentIndex} A:${this.nodeAbove?.id},${this.nodeAbove?.level} B:${this.nodeBelow?.id},${this.nodeBelow?.level} L: ${this.validLevelsArray}`
-    );
+    // console.log(
+    //   `P:${previousIndex} C:${currentIndex} A:${this.nodeAbove?.id},${this.nodeAbove?.level} B:${this.nodeBelow?.id},${this.nodeBelow?.level} L: ${this.validLevelsArray}`
+    // );
   }
+
   resetDropState() {
     this.updateVisibility();
     this.updateDataSource();
@@ -228,6 +276,7 @@ export class ProjectTreeComponent implements OnInit {
     this.nodeAbove = null;
     this.nodeBelow = null;
   }
+
   drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {
     const { currentIndex, container, item } = event;
     const sortedNodes = container
@@ -236,69 +285,60 @@ export class ProjectTreeComponent implements OnInit {
       .filter(node => node.id !== this.draggedNode?.id);
     this.nodeAbove = sortedNodes[currentIndex - 1] || null;
     this.nodeBelow = sortedNodes[currentIndex] || null;
-
-    console.log(
-      `Dropping ${this.draggedNode?.id}, nodeAbove:${this.nodeAbove?.id}, nodeBelow:${this.nodeBelow?.id}`
-    );
-
+    // console.log(
+    //   `Dropping ${this.draggedNode?.id}, nodeAbove:${this.nodeAbove?.id}, nodeBelow:${this.nodeBelow?.id}`
+    // );
     const node = item.data as ProjectElement;
     const nodeIndex = this.sourceData.findIndex(n => n.id === node.id);
     if (nodeIndex === -1) {
       console.log('Node not found');
       return;
     }
-
-    // Remove the node subtree from sourceData
     const nodeSubtree = this.getNodeSubtree(nodeIndex);
     const nodeSubtreeLength = nodeSubtree.length;
     this.sourceData.splice(nodeIndex, nodeSubtreeLength);
-
-    // Determine the insertion index in sourceData
     let insertIndex: number;
 
     if (this.nodeAbove) {
-      // Find nodeAbove in sourceData
       const nodeAboveIndex = this.sourceData.findIndex(
         n => n.id === this.nodeAbove?.id
       );
       if (nodeAboveIndex === -1) {
-        console.log('Node above not found');
         return;
       }
 
       if (this.currentDropLevel > this.nodeAbove.level) {
-        // Insert as a child of nodeAbove
         insertIndex = nodeAboveIndex + 1;
       } else {
-        // Insert after nodeAbove and its subtree
         const nodeAboveSubtree = this.getNodeSubtree(nodeAboveIndex);
         insertIndex = nodeAboveIndex + nodeAboveSubtree.length;
       }
     } else if (this.nodeBelow) {
-      // No nodeAbove, insert before nodeBelow
       const nodeBelowIndex = this.sourceData.findIndex(
         n => n.id === this.nodeBelow?.id
       );
       if (nodeBelowIndex === -1) {
-        console.log('Node below not found');
         return;
       }
       insertIndex = nodeBelowIndex;
     } else {
-      // No nodeAbove and no nodeBelow, insert at the end
       insertIndex = this.sourceData.length;
     }
-
-    // Adjust levels of the nodeSubtree
     const levelDifference = this.currentDropLevel - node.level;
     nodeSubtree.forEach(n => {
       n.level += levelDifference;
     });
-
-    // Insert the nodeSubtree into sourceData at insertIndex
     this.sourceData.splice(insertIndex, 0, ...nodeSubtree);
-
     this.resetDropState();
+  }
+
+  dragEnded() {
+    if (this.draggedNode && this.wasExpandedNodeIds.has(this.draggedNode.id)) {
+      this.toggleExpanded(this.draggedNode);
+      this.updateVisibility();
+      this.updateDataSource();
+      this.wasExpandedNodeIds.delete(this.draggedNode.id);
+    }
   }
 
   startEditing(node: ProjectElement) {
@@ -330,12 +370,11 @@ export class ProjectTreeComponent implements OnInit {
       this.updateDataSource();
     }
   }
-  onContextMenuOpen($event: unknown, data: ProjectElement) {
-    console.log('Context menu open', $event, data);
+
+  onContextMenuOpen(data: ProjectElement) {
     this.contextItem = data;
   }
-  onContextMenuClose($event: unknown, data: ProjectElement) {
-    console.log('Context menu close', $event, data);
+  onContextMenuClose() {
     this.contextItem = null;
   }
 }
