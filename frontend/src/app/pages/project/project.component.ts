@@ -1,17 +1,20 @@
+import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTreeModule, MatTreeNestedDataSource } from '@angular/material/tree';
+import { ActivatedRoute } from '@angular/router';
+import { ProjectElement } from '@components/project-tree/ProjectElement';
+import { TREE_DATA } from '@components/project-tree/TREE_DATA';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Editor, NgxEditorModule } from 'ngx-editor';
-import { ActivatedRoute } from '@angular/router';
-import { ProjectAPIService, Project, User } from 'worm-api-client';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { CommonModule } from '@angular/common';
-import { ProjectTreeComponent } from '../../components/project-tree/project-tree.component';
+import { Project, ProjectAPIService, User } from 'worm-api-client';
 import { ProjectMainMenuComponent } from '../../components/project-main-menu/project-main-menu.component';
+import { ProjectTreeComponent } from '../../components/project-tree/project-tree.component';
 
 interface FileNode {
   name: string;
@@ -28,6 +31,7 @@ interface FileNode {
     MatSidenavModule,
     MatToolbarModule,
     MatIconModule,
+    MatTabsModule,
     MatButtonModule,
     MatTreeModule,
     UserMenuComponent,
@@ -43,6 +47,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
   editor!: Editor;
   project: Project | null = null;
   user: User | undefined;
+  zoomLevel = 100;
 
   dataSource = new MatTreeNestedDataSource<FileNode>();
 
@@ -50,9 +55,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
   private projectService = inject(ProjectAPIService);
   private snackBar = inject(MatSnackBar);
 
-  constructor() {
-    this.initializeDummyFileStructure();
-  }
+  treeData: ProjectElement[] = TREE_DATA;
 
   hasChild = (_: number, node: FileNode) =>
     !!node.children && node.children.length > 0;
@@ -60,28 +63,44 @@ export class ProjectComponent implements OnInit, OnDestroy {
   childrenAccessor = (node: FileNode) => node.children ?? [];
 
   ngOnInit(): void {
-    this.editor = new Editor({});
+    this.editor = new Editor({
+      plugins: [],
+    });
 
     this.route.params.subscribe(params => {
       const username = params['username'];
       const slug = params['slug'];
       this.loadProject(username, slug);
     });
-
-    // TODO: Load user data
-    // this.loadUserData();
   }
 
   ngOnDestroy(): void {
     this.editor.destroy();
+  }
+  increaseZoom() {
+    if (this.zoomLevel < 200) {
+      this.zoomLevel += 10;
+      this.updateZoom();
+    }
+  }
+
+  decreaseZoom() {
+    if (this.zoomLevel > 50) {
+      this.zoomLevel -= 10;
+      this.updateZoom();
+    }
+  }
+  updateZoom() {
+    document.documentElement.style.setProperty(
+      '--editor-zoom',
+      (this.zoomLevel / 100).toString()
+    );
   }
 
   private loadProject(username: string, slug: string): void {
     this.projectService.getProjectByUsernameAndSlug(username, slug).subscribe({
       next: (project: Project) => {
         this.project = project;
-        // TODO: Load actual file structure from the project
-        // this.dataSource.data = this.buildFileTree(project.files);
       },
       error: error => {
         console.error('Error loading project:', error);
@@ -91,44 +110,4 @@ export class ProjectComponent implements OnInit, OnDestroy {
       },
     });
   }
-
-  private initializeDummyFileStructure(): void {
-    const TREE_DATA: FileNode[] = [
-      {
-        name: 'Project Files',
-        type: 'folder',
-        children: [
-          {
-            name: 'src',
-            type: 'folder',
-            children: [
-              { name: 'index.html', type: 'file' },
-              { name: 'styles.css', type: 'file' },
-              { name: 'app.js', type: 'file' },
-            ],
-          },
-          {
-            name: 'assets',
-            type: 'folder',
-            children: [
-              { name: 'logo.png', type: 'file' },
-              { name: 'background.jpg', type: 'file' },
-            ],
-          },
-          { name: 'README.md', type: 'file' },
-        ],
-      },
-    ];
-    this.dataSource.data = TREE_DATA;
-  }
-
-  // TODO: Implement this method to build the file tree from project data
-  // private buildFileTree(files: any[]): FileNode[] {
-  //   // Convert the flat file structure to a nested tree structure
-  // }
-
-  // TODO: Implement method to load user data
-  // private loadUserData(): void {
-  //   // Load user data and assign it to this.user
-  // }
 }

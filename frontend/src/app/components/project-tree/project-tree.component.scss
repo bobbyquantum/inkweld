@@ -4,6 +4,7 @@
 
 .drag-placeholder {
   background: var(--sys-secondary-container);
+  opacity: 0.5;
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
   display: flex;
   align-items: center;
@@ -11,7 +12,9 @@
   padding-left: 16px;
   height: 48px;
 }
-
+.drag-preview {
+  background: transparent;
+}
 .context-item {
   border: 1px solid var(--sys-secondary-container);
   box-sizing: border-box;

@@ -1,9 +1,19 @@
+:root {
+  --editor-zoom: 1;
+}
+
 .main-container {
   height: calc(100vh - 64px); // Adjust for toolbar height
+}
+mat-sidenav-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .sidenav-content {
   width: 250px;
+  border-radius: 0;
 }
 
 .sidenav-wrapper {
@@ -11,63 +21,71 @@
   overflow-y: auto;
 }
 
-.toolbar-spacer {
-  flex: 1 1 auto;
+.tab-bars {
+  background-color: var(--sys-surface-container);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
-.file-tree-invisible {
-  display: none;
+/* New editor-container to fill available space */
+.editor-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid blue;
+  box-sizing: border-box;
 }
 
-.mat-tree-node {
+.editor-wrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  background-color: var(--sys-surface-container-lowest);
+  border: 1px solid green;
+}
+
+.editor-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
-  min-height: 48px;
-  padding: 0 12px;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px;
+  background-color:var(--sys-surface-container-high);
+  border: 1px solid red;
 }
 
-.type-icon {
-  margin-right: 8px;
-  font-size: 20px;
-  width: 20px;
-  height: 20px;
-  line-height: 20px;
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
-.node-name {
-  font-size: 14px;
+.editor-content {
+  width: 21cm;
+  background-color: var(--sys-surface-container-high);
+  padding: 2cm;
+  margin-top: 20px;
+  font-size: calc(1rem * var(--editor-zoom));
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  border: 1px solid purple;
 }
 
-button[mat-icon-button] {
-  width: 24px;
-  height: 24px;
-  line-height: 24px;
-  margin-right: 8px;
+/* Adjust height to auto since scrolling is handled by the wrapper */
+.editor-content {
+  min-height: auto;
 }
 
-.mat-icon-rtl-mirror {
-  transform: scaleX(-1);
+.editor-content h1 {
+  font-size: calc(2rem * var(--editor-zoom));
 }
 
-mat-nested-tree-node div[role=group] {
-  padding-left: 24px;
-}
-
-mat-tree-node, mat-nested-tree-node {
-  cursor: pointer;
-}
-
-.editor-container {
-  height: 100%;
-  padding: 16px;
-}
-
-// Ensure the ngx-editor takes up the full height of its container
-::ng-deep .NgxEditor {
-  height: calc(100% - 64px); // Adjust for padding
-}
-
-::ng-deep .NgxEditor__Content {
-  height: calc(100% - 64px); // Adjust for toolbar height
-  overflow-y: auto;
+.editor-content p {
+  font-size: calc(1rem * var(--editor-zoom));
+  line-height: 1.5em;
 }
