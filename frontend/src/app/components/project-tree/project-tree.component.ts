@@ -1,7 +1,10 @@
 import { ArrayDataSource } from '@angular/cdk/collections';
 import {
+  CdkDrag,
   CdkDragDrop,
   CdkDragMove,
+  CdkDragPlaceholder,
+  CdkDragPreview,
   CdkDragSortEvent,
   CdkDragStart,
   CdkDropList,
@@ -28,15 +31,18 @@ import { ProjectElement } from './ProjectElement';
   standalone: true,
   imports: [
     MatTreeModule,
-    DragDropModule,
     MatIconModule,
     MatButtonModule,
     MatInputModule,
     MatListModule,
     MatMenuModule,
+    DragDropModule,
     CdkContextMenuTrigger,
     CdkMenu,
     CdkMenuItem,
+    CdkDrag,
+    CdkDragPreview,
+    CdkDragPlaceholder,
     CdkDropList,
   ],
   selector: 'app-project-tree',
@@ -45,23 +51,29 @@ import { ProjectElement } from './ProjectElement';
 })
 export class ProjectTreeComponent implements OnInit, AfterViewInit {
   @Input() treeData: ProjectElement[] = [];
-  sourceData: ProjectElement[] = [];
 
   @ViewChild('tree') treeEl!: MatTree<ProjectElement>;
   @ViewChild('treeContainer', { static: true }) treeContainer!: ElementRef;
   @ViewChild('editInput') inputEl!: MatInput;
   @ViewChild(CdkDropList) dropList!: CdkDropList<ProjectElement>;
+
   dataSource!: ArrayDataSource<ProjectElement>;
-  currentDropLevel = 0;
-  draggedNode: ProjectElement | null = null;
+  sourceData: ProjectElement[] = [];
+
+  selectedItem: ProjectElement | null = null;
+
   editingNode: string | null = null;
+
+  currentDropLevel = 0;
   validLevelsArray: number[] = [0];
+  draggedNode: ProjectElement | null = null;
+
   nodeBelow: ProjectElement | null = null;
   nodeAbove: ProjectElement | null = null;
   contextItem: ProjectElement | null = null;
-  wasExpandedNodeIds = new Set<string>(); // Added property to track expanded nodes
-  selectedItem: ProjectElement | null = null;
+  wasExpandedNodeIds = new Set<string>();
   collapseTimer: NodeJS.Timeout | null = null;
+
   ngOnInit() {
     this.sourceData = JSON.parse(JSON.stringify(this.treeData));
     this.updateDataSource();

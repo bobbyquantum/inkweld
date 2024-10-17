@@ -168,12 +168,81 @@ $dark-theme: mat.define-theme((
   @include mat.system-level-colors($light-theme);
   @include mat.system-level-typography($dark-theme);
   --card-background-color: var(--sys-secondary-container);
+
+
+  --ngx-editor-border-radius: 4px;
+  --ngx-editor-background-color: #fff;
+  --ngx-editor-text-color: #000;
+  --ngx-editor-placeholder-color: #6c757d;
+  --ngx-editor-border-color: rgba(0, 0, 0, 0.2);
+  --ngx-editor-wrapper-border-color: rgba(0, 0, 0, 0.2);
+
+  --ngx-editor-menubar-bg-color: #fff;
+  --ngx-editor-menubar-padding: 3px;
+  --ngx-editor-menubar-height: 30px;
+
+  --ngx-editor-blockquote-color: #ddd;
+  --ngx-editor-blockquote-border-width: 3px;
+
+  --ngx-editor-icon-size: 30px;
+  --ngx-editor-popup-bg-color: #fff;
+  --ngx-editor-popup-border-radius: 4px;
+  --ngx-editor-popup-shadow: rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
+
+  --ngx-editor-menu-item-border-radius: 2px;
+  --ngx-editor-menu-item-active-color: #1a73e8;
+  --ngx-editor-menu-item-hover-bg-color: #f1f1f1;
+  --ngx-editor-menu-item-active-bg-color: #e8f0fe;
+  --ngx-editor-seperator-color: #ccc;
+
+  --ngx-editor-bubble-bg-color: #000;
+  --ngx-editor-bubble-text-color: #fff;
+  --ngx-editor-bubble-item-hover-color: #636262;
+  --ngx-editor-bubble-seperator-color: #fff;
+
+  --ngx-editor-focus-ring-color: #5e9ed6;
+  --ngx-editor-error-color: red;
+  --ngx-editor-click-pointer: pointer;
 }
 .dark-theme {
   @include mat.all-component-colors($dark-theme);
   @include mat.system-level-colors($dark-theme);
   @include mat.system-level-typography($dark-theme);
   --card-background-color: var(--sys-secondary-container);
+
+  --ngx-editor-border-radius: 0;
+  --ngx-editor-background-color: var(--sys-surface-container-high);
+  --ngx-editor-text-color: --sys-on-surface;
+  --ngx-editor-placeholder-color: #6c757d;
+  --ngx-editor-border-color: rgba(0, 0, 0, 0.0);
+  --ngx-editor-wrapper-border-color: rgba(0, 0, 0, 0.2);
+
+  --ngx-editor-menubar-bg-color: var(--sys-surface-container-highest);
+  --ngx-editor-menubar-padding: 3px;
+  --ngx-editor-menubar-height: 30px;
+
+  --ngx-editor-blockquote-color: #ddd;
+  --ngx-editor-blockquote-border-width: 3px;
+
+  --ngx-editor-icon-size: 30px;
+  --ngx-editor-popup-bg-color: --sys-surface-container;
+  --ngx-editor-popup-border-radius: 4px;
+  --ngx-editor-popup-shadow: rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
+
+  --ngx-editor-menu-item-border-radius: 2px;
+  --ngx-editor-menu-item-active-color: #1a73e8;
+  --ngx-editor-menu-item-hover-bg-color: #f1f1f1;
+  --ngx-editor-menu-item-active-bg-color: #e8f0fe;
+  --ngx-editor-seperator-color: #ccc;
+
+  --ngx-editor-bubble-bg-color: #000;
+  --ngx-editor-bubble-text-color: #fff;
+  --ngx-editor-bubble-item-hover-color: #636262;
+  --ngx-editor-bubble-seperator-color: #fff;
+
+  --ngx-editor-focus-ring-color: #5e9ed6;
+  --ngx-editor-error-color: red;
+  --ngx-editor-click-pointer: pointer;
 }
 body {
   background-color: var(--mat-app-background-color);

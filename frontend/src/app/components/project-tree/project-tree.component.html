@@ -57,10 +57,21 @@
         </mat-form-field>
       }
 
-      <!-- {{ nodeBelow?.id === node.id ? 'BELOW' : '' }}
-      {{ nodeAbove?.id === node.id ? 'ABOVE' : '' }} -->
-
       <div class="drag-placeholder" *cdkDragPlaceholder>
+        @if (node.expandable) {
+          <button mat-icon-button type="button">
+            <mat-icon>{{
+              node.expanded ? 'expand_more' : 'chevron_right'
+            }}</mat-icon>
+          </button>
+          <mat-icon>folder</mat-icon>
+        } @else {
+          <mat-icon>description</mat-icon>
+        }
+        <div class="node-title">AAAAAAA{{ node.name }}</div>
+      </div>
+
+      <div class="drag-preview" *cdkDragPreview>
         @if (node.expandable) {
           <button mat-icon-button type="button" (click)="toggleExpanded(node)">
             <mat-icon>{{
@@ -71,7 +82,7 @@
         } @else {
           <mat-icon>description</mat-icon>
         }
-        <div class="node-title">{{ node.name }}</div>
+        <div class="node-title">AA{{ node.name }}</div>
       </div>
     </mat-tree-node>
   </mat-tree>
@@ -79,11 +90,19 @@
 
 <ng-template #contextMenu let-node="node">
   <div class="context-menu" cdkMenu>
-    <button class="context-menu-item" cdkMenuItem (click)="onRename(node)">
+    <button
+      type="button"
+      class="context-menu-item"
+      cdkMenuItem
+      (click)="onRename(node)">
       <mat-icon>edit_square</mat-icon>
       <span class="context-menu-item-title">Rename</span>
     </button>
-    <button class="context-menu-item" cdkMenuItem (click)="onDelete(node)">
+    <button
+      type="button"
+      class="context-menu-item"
+      cdkMenuItem
+      (click)="onDelete(node)">
       <mat-icon>delete</mat-icon>
       <span class="context-menu-item-title">Delete</span>
     </button>
