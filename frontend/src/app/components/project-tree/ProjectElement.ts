@@ -1,4 +1,3 @@
-
 export interface ProjectElement {
   id: string;
   name: string;
