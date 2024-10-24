@@ -33,7 +33,6 @@ mat-sidenav-content {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  border: 1px solid blue;
   box-sizing: border-box;
 }
 
@@ -44,7 +43,6 @@ mat-sidenav-content {
   align-items: center;
   overflow-y: auto;
   background-color: var(--sys-surface-container-lowest);
-  border: 1px solid green;
 }
 
 .editor-toolbar {
@@ -53,11 +51,8 @@ mat-sidenav-content {
   z-index: 100;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 10px;
+  padding: 0;
   background-color:var(--sys-surface-container-high);
-  border: 1px solid red;
 }
 
 .zoom-controls {
