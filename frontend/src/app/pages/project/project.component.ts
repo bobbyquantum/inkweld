@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -11,10 +11,10 @@ import { ActivatedRoute } from '@angular/router';
 import { ProjectElement } from '@components/project-tree/ProjectElement';
 import { TREE_DATA } from '@components/project-tree/TREE_DATA';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import { Editor, NgxEditorModule } from 'ngx-editor';
 import { Project, ProjectAPIService, User } from 'worm-api-client';
 import { ProjectMainMenuComponent } from '../../components/project-main-menu/project-main-menu.component';
 import { ProjectTreeComponent } from '../../components/project-tree/project-tree.component';
+import { ElementEditorComponent } from '../../components/element-editor/element-editor.component';
 
 interface FileNode {
   name: string;
@@ -35,19 +35,17 @@ interface FileNode {
     MatButtonModule,
     MatTreeModule,
     UserMenuComponent,
-    NgxEditorModule,
     MatSnackBarModule,
     ProjectTreeComponent,
     ProjectMainMenuComponent,
+    ElementEditorComponent,
   ],
   templateUrl: './project.component.html',
   styleUrl: './project.component.scss',
 })
-export class ProjectComponent implements OnInit, OnDestroy {
-  editor!: Editor;
+export class ProjectComponent implements OnInit {
   project: Project | null = null;
   user: User | undefined;
-  zoomLevel = 100;
 
   dataSource = new MatTreeNestedDataSource<FileNode>();
 
@@ -63,38 +61,11 @@ export class ProjectComponent implements OnInit, OnDestroy {
   childrenAccessor = (node: FileNode) => node.children ?? [];
 
   ngOnInit(): void {
-    this.editor = new Editor({
-      plugins: [],
-    });
-
     this.route.params.subscribe(params => {
       const username = params['username'];
       const slug = params['slug'];
       this.loadProject(username, slug);
     });
-  }
-
-  ngOnDestroy(): void {
-    this.editor.destroy();
-  }
-  increaseZoom() {
-    if (this.zoomLevel < 200) {
-      this.zoomLevel += 10;
-      this.updateZoom();
-    }
-  }
-
-  decreaseZoom() {
-    if (this.zoomLevel > 50) {
-      this.zoomLevel -= 10;
-      this.updateZoom();
-    }
-  }
-  updateZoom() {
-    document.documentElement.style.setProperty(
-      '--editor-zoom',
-      (this.zoomLevel / 100).toString()
-    );
   }
 
   private loadProject(username: string, slug: string): void {

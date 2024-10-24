@@ -1,0 +1,55 @@
+:root {
+  --editor-zoom: 1;
+}
+
+.editor-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.editor-wrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  background-color: var(--sys-surface-container-lowest);
+}
+
+.editor-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  background-color: var(--sys-surface-container-high);
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.editor-content {
+  width: 21cm;
+  background-color: var(--sys-surface-container-high);
+  padding: 2cm;
+  margin-top: 20px;
+  font-size: calc(1rem * var(--editor-zoom));
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  border: 1px solid purple;
+  min-height: auto;
+}
+
+.editor-content h1 {
+  font-size: calc(2rem * var(--editor-zoom));
+}
+
+.editor-content p {
+  font-size: calc(1rem * var(--editor-zoom));
+  line-height: 1.5em;
+}

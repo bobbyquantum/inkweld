@@ -1,0 +1,27 @@
+<div class="editor-toolbar">
+  <ngx-editor-menu [editor]="editor"></ngx-editor-menu>
+  <div class="zoom-controls">
+    <button
+      mat-icon-button
+      (click)="decreaseZoom()"
+      [disabled]="zoomLevel <= 50">
+      <mat-icon>remove</mat-icon>
+    </button>
+    <span>{{ zoomLevel }}%</span>
+    <button
+      mat-icon-button
+      (click)="increaseZoom()"
+      [disabled]="zoomLevel >= 200">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+</div>
+<!-- Editor Wrapper -->
+<div class="editor-container">
+  <div class="editor-wrapper">
+    <ngx-editor
+      [editor]="editor"
+      [placeholder]="'Type here...'"
+      class="editor-content"></ngx-editor>
+  </div>
+</div>
