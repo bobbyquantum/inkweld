@@ -1,5 +1,10 @@
 :root {
   --editor-zoom: 1;
+  --page-width: 21cm;
+  --margin-left: 2cm;
+  --margin-right: 2cm;
+  --ruler-size: 20px;
+  --ruler-color: var(--sys-surface-container-high);
 }
 
 .editor-container {
@@ -7,6 +12,18 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  position: relative;
+  align-items: center;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+.scaled-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: top center;
+  transform: scale(var(--editor-zoom));
 }
 
 .editor-wrapper {
@@ -14,8 +31,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow-y: auto;
   background-color: var(--sys-surface-container-lowest);
+  position: relative;
+  overflow: visible;
 }
 
 .editor-toolbar {
@@ -26,6 +44,7 @@
   align-items: center;
   padding: 0;
   background-color: var(--sys-surface-container-high);
+  width: 100%;
 }
 
 .zoom-controls {
@@ -34,22 +53,166 @@
   gap: 5px;
 }
 
+.ruler {
+  background-color: var(--ruler-color);
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.horizontal-ruler {
+  height: var(--ruler-size);
+  position: relative;
+  border-bottom: 1px solid var(--sys-outline-variant);
+  background-image: linear-gradient(90deg,
+    var(--sys-outline-variant) 1px,
+    transparent 1px
+  );
+  background-size: 1cm 100%;
+  margin: 0;
+  width: var(--page-width);
+}
+
+.ruler-measurements {
+  position: absolute;
+  top: 0;
+  left: -5cm;
+  width: calc(var(--page-width) + 10cm);
+  bottom: 0;
+  pointer-events: none;
+}
+
+.ruler-mark {
+  position: absolute;
+
+  &::before {
+    content: '';
+    position: absolute;
+    background-color: var(--sys-outline-variant);
+  }
+
+  .ruler-number {
+    font-size: 10px;
+    color: var(--sys-on-surface-variant);
+    position: absolute;
+  }
+}
+
+.horizontal-ruler .ruler-mark {
+  height: 100%;
+
+  &::before {
+    height: 4px;
+    width: 1px;
+    bottom: 0;
+    left: 0;
+  }
+
+  .ruler-number {
+    top: 2px;
+    left: 2px;
+    transform: translateX(-50%);
+  }
+
+  // Add half-cm marks
+  &::after {
+    content: '';
+    position: absolute;
+    height: 3px;
+    width: 1px;
+    background-color: var(--sys-outline-variant);
+    bottom: 0;
+    left: 0.5cm;
+  }
+}
+
+.page-guide {
+  position: absolute;
+  z-index: 3;
+  cursor: ew-resize;
+  width: 12px;
+  height: 32px;
+  background-color: var(--sys-primary);
+  opacity: 0.7;
+  top: -6px;
+  transition: opacity 0.2s, background-color 0.2s;
+
+  &::after {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: calc(100vh - 64px - var(--ruler-size));
+    background-color: var(--sys-primary);
+    opacity: 0.1;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  &.left {
+    left: -6px;
+    border-radius: 3px 0 0 3px;
+  }
+
+  &.right {
+    right: -6px;
+    border-radius: 0 3px 3px 0;
+  }
+
+  &:hover {
+    opacity: 1;
+    background-color: var(--sys-primary);
+  }
+}
+
+.margin-guide {
+  position: absolute;
+  z-index: 3;
+  cursor: ew-resize;
+  width: 0;
+  height: 0;
+  top: 0;
+}
+
+.horizontal-ruler .margin-guide {
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--sys-primary);
+  transform: translateX(-50%);
+
+  &.left-margin {
+    left: var(--margin-left);
+    border-top-color: var(--sys-primary);
+  }
+
+  &.right-margin {
+    right: var(--margin-right);
+    border-top-color: var(--sys-primary);
+  }
+}
+
 .editor-content {
-  width: 21cm;
+  width: var(--page-width);
   background-color: var(--sys-surface-container-high);
-  padding: 2cm;
+  padding: 1rem var(--margin-right) 1rem var(--margin-left);
   margin-top: 20px;
-  font-size: calc(1rem * var(--editor-zoom));
+  font-size: 1rem;
+  line-height: 1.5;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-  border: 1px solid purple;
+  border: 1px solid var(--sys-outline);
   min-height: auto;
-}
+  box-sizing: border-box;
 
-.editor-content h1 {
-  font-size: calc(2rem * var(--editor-zoom));
-}
+  h1 {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
 
-.editor-content p {
-  font-size: calc(1rem * var(--editor-zoom));
-  line-height: 1.5em;
+  p {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
 }

@@ -16,12 +16,42 @@
     </button>
   </div>
 </div>
-<!-- Editor Wrapper -->
+
 <div class="editor-container">
-  <div class="editor-wrapper">
-    <ngx-editor
-      [editor]="editor"
-      [placeholder]="'Type here...'"
-      class="editor-content"></ngx-editor>
+  <div class="scaled-content">
+    <div class="ruler horizontal-ruler">
+      <div class="ruler-measurements">
+        <ng-container *ngFor="let cm of rulerMeasurements">
+          <div class="ruler-mark" [style.left.cm]="cm">
+            <div class="ruler-number">{{ cm }}</div>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Page width controls -->
+      <div
+        class="page-guide left"
+        (mousedown)="startDragging($event, 'pageLeft')"></div>
+      <div
+        class="page-guide right"
+        (mousedown)="startDragging($event, 'pageRight')"></div>
+
+      <!-- Margin controls -->
+      <div
+        class="margin-guide left-margin"
+        [style.left.cm]="dimensions.leftMargin"
+        (mousedown)="startDragging($event, 'marginLeft')"></div>
+      <div
+        class="margin-guide right-margin"
+        [style.right.cm]="dimensions.rightMargin"
+        (mousedown)="startDragging($event, 'marginRight')"></div>
+    </div>
+
+    <div class="editor-wrapper">
+      <ngx-editor
+        [editor]="editor"
+        [placeholder]="'Type here...'"
+        class="editor-content"></ngx-editor>
+    </div>
   </div>
 </div>
