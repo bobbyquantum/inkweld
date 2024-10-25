@@ -6,11 +6,15 @@ mat-sidenav-content {
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding-top: 48px;
+  overflow-y: auto;
 }
+
 mat-toolbar {
   background-color: var(--sys-surface-container-highest);
   color: var(--sys-on-surface);
 }
+
 .sidenav-content {
   width: 250px;
   border-radius: 0;
@@ -24,7 +28,9 @@ mat-toolbar {
 
 .tab-bars {
   background-color: var(--sys-surface-container);
-  position: sticky;
-  top: 0;
+  position: fixed;
+  top: 48px;
+  left: 250px;
+  right: 0;
   z-index: 10;
 }
