@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
+import { UserMenuComponent } from '../user-menu/user-menu.component';
 
 interface MenuItem {
   label: string;
@@ -11,7 +12,7 @@ interface MenuItem {
 @Component({
   selector: 'app-project-main-menu',
   standalone: true,
-  imports: [CommonModule, MatMenuModule, MatButtonModule],
+  imports: [CommonModule, MatMenuModule, MatButtonModule, UserMenuComponent],
   templateUrl: './project-main-menu.component.html',
   styleUrl: './project-main-menu.component.scss',
 })
