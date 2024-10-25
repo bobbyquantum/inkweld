@@ -31,6 +31,9 @@
     "tslib": "^2.7.0",
     "worm-api-client": "file:../api-client/dist/worm-api-client-0.0.1-SNAPSHOT.tgz",
     "worm-frontend": "file:",
+    "y-prosemirror": "^1.2.12",
+    "y-websocket": "^2.0.4",
+    "yjs": "^13.6.20",
     "zone.js": "~0.14.10"
   },
   "devDependencies": {
