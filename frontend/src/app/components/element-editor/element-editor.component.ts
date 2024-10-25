@@ -1,8 +1,16 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, HostListener } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  OnInit,
+  HostListener,
+  Input,
+  AfterViewInit,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Editor, NgxEditorModule } from 'ngx-editor';
+import { YjsService } from '../../services/yjs.service';
 
 interface EditorDimensions {
   pageWidth: number; // in cm
@@ -19,7 +27,11 @@ type DragPoint = 'pageLeft' | 'pageRight' | 'marginLeft' | 'marginRight';
   templateUrl: './element-editor.component.html',
   styleUrl: './element-editor.component.scss',
 })
-export class ElementEditorComponent implements OnInit, OnDestroy {
+export class ElementEditorComponent
+  implements OnInit, OnDestroy, AfterViewInit
+{
+  @Input() documentId = 'default';
+
   editor!: Editor;
   zoomLevel = 100;
   dimensions: EditorDimensions = {
@@ -34,15 +46,23 @@ export class ElementEditorComponent implements OnInit, OnDestroy {
   private startX = 0;
   private startDimensions: EditorDimensions | null = null;
 
+  constructor(private yjsService: YjsService) {}
+
   ngOnInit(): void {
-    this.editor = new Editor({
-      plugins: [],
-    });
+    this.editor = new Editor();
     this.updateDimensions();
+  }
+
+  ngAfterViewInit(): void {
+    // Setup collaboration after the editor view is initialized
+    setTimeout(() => {
+      this.yjsService.setupCollaboration(this.editor, this.documentId);
+    }, 0);
   }
 
   ngOnDestroy(): void {
     this.editor.destroy();
+    this.yjsService.disconnect();
   }
 
   increaseZoom() {
