@@ -97,9 +97,13 @@ public class YjsWebSocketHandler extends AbstractWebSocketHandler {
         }
     }
 
-    private String getDocumentIdFromSession(WebSocketSession session) {
+    private String getDocumentIdFromSession(@NonNull WebSocketSession session) {
         try {
-            String query = session.getUri().getQuery();
+            var uri = session.getUri();
+            if (uri == null) {
+                throw new IllegalArgumentException("URI is null");
+            }
+            String query = uri.getQuery();
             if (query != null && query.contains("documentId=")) {
                 return query.split("documentId=")[1].split("&")[0];
             }

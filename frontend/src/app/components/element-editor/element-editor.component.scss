@@ -7,35 +7,6 @@
   --ruler-color: var(--sys-surface-container-high);
 }
 
-.editor-container {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  position: relative;
-  align-items: center;
-  overflow-x: hidden;
-  width: 100%;
-}
-
-.scaled-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transform-origin: top center;
-  transform: scale(var(--editor-zoom));
-}
-
-.editor-wrapper {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background-color: var(--sys-surface-container-lowest);
-  position: relative;
-  overflow: visible;
-}
-
 .editor-toolbar {
   position: sticky;
   top: 0;
@@ -53,10 +24,44 @@
   gap: 5px;
 }
 
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  position: relative;
+  align-items: center;
+  overflow-x: hidden;
+  width: 100%;
+  height: calc(100vh - 144px); /* Adjust for top bars */
+}
+
+.scaled-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: top center;
+  transform: scale(var(--editor-zoom));
+  min-height: min-content;
+  width: 100%;
+}
+
+.editor-wrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  position: relative;
+  overflow-y: auto;
+  width: 100%;
+  padding-top: var(--ruler-size);
+}
+
 .ruler {
   background-color: var(--ruler-color);
-  position: relative;
-  z-index: 2;
+  position: sticky;
+  top: 48px; /* Height of toolbar */
+  z-index: 99;
   display: flex;
   justify-content: center;
   width: 100%;
@@ -64,7 +69,8 @@
 
 .horizontal-ruler {
   height: var(--ruler-size);
-  position: relative;
+  position: sticky;
+  top: 0; /* Height of toolbar */
   border-bottom: 1px solid var(--sys-outline-variant);
   background-image: linear-gradient(90deg,
     var(--sys-outline-variant) 1px,
@@ -73,6 +79,7 @@
   background-size: 1cm 100%;
   margin: 0;
   width: var(--page-width);
+  background-color: var(--ruler-color);
 }
 
 .ruler-measurements {
