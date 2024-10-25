@@ -2,6 +2,10 @@
   margin-right: 8px;
 }
 
+mat-tree {
+  background-color: var(--sys-surface-container);
+}
+
 .drag-placeholder {
   background: var(--sys-secondary-container);
   opacity: 0.5;
