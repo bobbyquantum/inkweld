@@ -1,64 +1,93 @@
 package observer.quantum.worm.error;
 
-import observer.quantum.worm.project.ProjectNotFoundException;
-import observer.quantum.worm.user.InvalidInputException;
-import observer.quantum.worm.user.UserAuthInvalidException;
+import jakarta.validation.ConstraintViolationException;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.web.bind.MissingRequestHeaderException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.validation.BindException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@ControllerAdvice
+@Slf4j
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
-  @ExceptionHandler(ProjectNotFoundException.class)
-  public ResponseEntity<ErrorResponse> handleProjectNotFound(ProjectNotFoundException ex) {
-    ErrorResponse error =
-        new ErrorResponse(ex.getMessage(), HttpStatus.NOT_FOUND.value(), "PROJECT_NOT_FOUND");
-    return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
-  }
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        log.error("Resource not found: {}", ex.getMessage());
+        ErrorResponse error = new ErrorResponse(HttpStatus.NOT_FOUND.value(), ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
 
-  @ExceptionHandler(UserAuthInvalidException.class)
-  public ResponseEntity<ErrorResponse> handleUserAuthInvalid(UserAuthInvalidException ex) {
-    ErrorResponse error =
-        new ErrorResponse(ex.getMessage(), HttpStatus.UNAUTHORIZED.value(), "USER_AUTH_INVALID");
-    return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
-  }
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
+        log.error("Access denied: {}", ex.getMessage());
+        ErrorResponse error = new ErrorResponse(HttpStatus.FORBIDDEN.value(), "Access denied");
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
 
-  @ExceptionHandler(AccessDeniedException.class)
-  public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
-    ErrorResponse error =
-        new ErrorResponse("Access denied", HttpStatus.FORBIDDEN.value(), "ACCESS_DENIED");
-    return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
-  }
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
+        List<String> errors = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .collect(Collectors.toList());
+        
+        log.error("Validation error: {}", errors);
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Validation failed",
+                errors
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
 
-  @ExceptionHandler(InvalidInputException.class)
-  public ResponseEntity<ErrorResponse> handleInvalidInput(InvalidInputException ex) {
-    ErrorResponse error =
-        new ErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST.value(), "INVALID_INPUT");
-    return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-  }
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ErrorResponse> handleBindException(BindException ex) {
+        List<String> errors = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .collect(Collectors.toList());
+        
+        log.error("Binding error: {}", errors);
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Invalid request parameters",
+                errors
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
 
-  @ExceptionHandler(Exception.class)
-  public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
-    ErrorResponse error =
-        new ErrorResponse(
-            "An unexpected error occurred: " + ex.getMessage(),
-            HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            "INTERNAL_SERVER_ERROR");
-    return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
-  }
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolationException(
+            ConstraintViolationException ex) {
+        List<String> errors = ex.getConstraintViolations()
+                .stream()
+                .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
+                .collect(Collectors.toList());
+        
+        log.error("Constraint violation: {}", errors);
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Validation failed",
+                errors
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
 
-  @ExceptionHandler(MissingRequestHeaderException.class)
-  public ResponseEntity<ErrorResponse> handleMissingRequestHeaderException(
-      MissingRequestHeaderException ex) {
-    ErrorResponse error =
-        new ErrorResponse(
-            "Missing required header: " + ex.getHeaderName(),
-            HttpStatus.FORBIDDEN.value(),
-            "MISSING_REQUIRED_HEADER");
-    return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
-  }
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+        log.error("Unexpected error occurred", ex);
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "An unexpected error occurred"
+        );
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }
