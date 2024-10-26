@@ -78,7 +78,7 @@ public class UserControllerTest {
     mockMvc
         .perform(get("/api/v1/users/me").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.error").value("Access denied"));
+        .andExpect(jsonPath("$.message").value("Access denied"));
 
     verify(userService, times(1)).getCurrentUser();
   }
@@ -141,7 +141,7 @@ public class UserControllerTest {
     mockMvc
         .perform(delete("/api/v1/users/me").header(XSRF_HEADER, XSRF_TOKEN))
         .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.error").value("Access denied"));
+        .andExpect(jsonPath("$.message").value("Access denied"));
 
     verify(userService, times(1)).deleteAccount();
   }
