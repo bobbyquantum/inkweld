@@ -10,21 +10,10 @@
  */
 
 
-/**
- * Standard error response
- */
 export interface ErrorResponse { 
-    /**
-     * Error message
-     */
-    error?: string;
-    /**
-     * HTTP status code
-     */
+    type?: string;
     status?: number;
-    /**
-     * Error code for client-side error handling
-     */
-    code?: string;
+    message?: string;
+    errors?: Array<string>;
 }
 
