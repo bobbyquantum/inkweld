@@ -1,22 +1,29 @@
 package observer.quantum.worm.error;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Schema(description = "Standard error response")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorResponse {
+    private final String type;
+    private final int status;
+    private final String message;
+    private List<String> errors;
 
-  @Schema(description = "Error message", example = "A description would be here")
-  private String error;
+    public ErrorResponse(String type, int status, String message) {
+        this.type = type;
+        this.status = status;
+        this.message = message;
+    }
 
-  @Schema(description = "HTTP status code", example = "404")
-  private int status;
+    public ErrorResponse(int status, String message) {
+        this("Error", status, message);
+    }
 
-  @Schema(description = "Error code for client-side error handling", example = "SOME_CLIENT_CODE")
-  private String code;
+    public ErrorResponse(int status, String message, List<String> errors) {
+        this("Error", status, message);
+        this.errors = errors;
+    }
 }
