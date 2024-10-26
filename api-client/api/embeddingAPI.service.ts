@@ -31,7 +31,7 @@ import { Configuration }                                     from '../configurat
 })
 export class EmbeddingAPIService {
 
-    protected basePath = 'http://localhost:62743';
+    protected basePath = 'http://localhost:58068';
     public defaultHeaders = new HttpHeaders();
     public configuration = new Configuration();
     public encoder: HttpParameterCodec;

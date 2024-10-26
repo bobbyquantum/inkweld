@@ -4,6 +4,7 @@ api/api.ts
 api/embeddingAPI.service.ts
 api/fileAPI.service.ts
 api/projectAPI.service.ts
+api/projectElementsAPI.service.ts
 api/userAPI.service.ts
 configuration.ts
 encoder.ts
@@ -17,6 +18,7 @@ model/pageFileResponse.ts
 model/pageInfo.ts
 model/pageable.ts
 model/project.ts
+model/projectElementDto.ts
 model/registerUserRequest.ts
 model/updatePasswordRequest.ts
 model/updateUserRequest.ts

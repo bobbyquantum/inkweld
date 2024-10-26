@@ -20,7 +20,7 @@ import { Observable }                                        from 'rxjs';
 // @ts-ignore
 import { ErrorResponse } from '../model/errorResponse';
 // @ts-ignore
-import { Project } from '../model/project';
+import { ProjectElementDto } from '../model/projectElementDto';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -31,7 +31,7 @@ import { Configuration }                                     from '../configurat
 @Injectable({
   providedIn: 'root'
 })
-export class ProjectAPIService {
+export class ProjectElementsAPIService {
 
     protected basePath = 'http://localhost:58068';
     public defaultHeaders = new HttpHeaders();
@@ -94,22 +94,30 @@ export class ProjectAPIService {
     }
 
     /**
-     * Create a new project
-     * Creates a new project for the authenticated user. Requires a valid CSRF token.
+     * Create a new element
+     * Creates a new element in the specified project. Position will be automatically set if not provided.
+     * @param username Username of the project owner
+     * @param projectSlug Slug of the project
      * @param xXSRFTOKEN CSRF token
-     * @param project Project details
+     * @param projectElementDto 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public createProject(xXSRFTOKEN: string, project: Project, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Project>;
-    public createProject(xXSRFTOKEN: string, project: Project, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Project>>;
-    public createProject(xXSRFTOKEN: string, project: Project, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Project>>;
-    public createProject(xXSRFTOKEN: string, project: Project, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
-            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling createProject.');
+    public createElement(username: string, projectSlug: string, xXSRFTOKEN: string, projectElementDto: ProjectElementDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ProjectElementDto>;
+    public createElement(username: string, projectSlug: string, xXSRFTOKEN: string, projectElementDto: ProjectElementDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ProjectElementDto>>;
+    public createElement(username: string, projectSlug: string, xXSRFTOKEN: string, projectElementDto: ProjectElementDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ProjectElementDto>>;
+    public createElement(username: string, projectSlug: string, xXSRFTOKEN: string, projectElementDto: ProjectElementDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (username === null || username === undefined) {
+            throw new Error('Required parameter username was null or undefined when calling createElement.');
         }
-        if (project === null || project === undefined) {
-            throw new Error('Required parameter project was null or undefined when calling createProject.');
+        if (projectSlug === null || projectSlug === undefined) {
+            throw new Error('Required parameter projectSlug was null or undefined when calling createElement.');
+        }
+        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
+            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling createElement.');
+        }
+        if (projectElementDto === null || projectElementDto === undefined) {
+            throw new Error('Required parameter projectElementDto was null or undefined when calling createElement.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -160,11 +168,11 @@ export class ProjectAPIService {
             }
         }
 
-        let localVarPath = `/api/v1/projects`;
-        return this.httpClient.request<Project>('post', `${this.configuration.basePath}${localVarPath}`,
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "projectSlug", value: projectSlug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/elements`;
+        return this.httpClient.request<ProjectElementDto>('post', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
-                body: project,
+                body: projectElementDto,
                 responseType: <any>responseType_,
                 withCredentials: this.configuration.withCredentials,
                 headers: localVarHeaders,
@@ -176,26 +184,30 @@ export class ProjectAPIService {
     }
 
     /**
-     * Delete a project
-     * Removes a project from the system by username and slug for the authenticated user. Requires a valid CSRF token.
+     * Delete an element
+     * Deletes an element and its children from the specified project
      * @param username Username of the project owner
-     * @param slug Slug of the project to be deleted
+     * @param projectSlug Slug of the project
+     * @param elementId ID of the element to delete
      * @param xXSRFTOKEN CSRF token
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public deleteProject(username: string, slug: string, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any>;
-    public deleteProject(username: string, slug: string, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
-    public deleteProject(username: string, slug: string, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
-    public deleteProject(username: string, slug: string, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public deleteElement(username: string, projectSlug: string, elementId: string, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*', context?: HttpContext, transferCache?: boolean}): Observable<any>;
+    public deleteElement(username: string, projectSlug: string, elementId: string, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
+    public deleteElement(username: string, projectSlug: string, elementId: string, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
+    public deleteElement(username: string, projectSlug: string, elementId: string, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: '*/*', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling deleteProject.');
+            throw new Error('Required parameter username was null or undefined when calling deleteElement.');
         }
-        if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling deleteProject.');
+        if (projectSlug === null || projectSlug === undefined) {
+            throw new Error('Required parameter projectSlug was null or undefined when calling deleteElement.');
+        }
+        if (elementId === null || elementId === undefined) {
+            throw new Error('Required parameter elementId was null or undefined when calling deleteElement.');
         }
         if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
-            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling deleteProject.');
+            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling deleteElement.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -207,7 +219,7 @@ export class ProjectAPIService {
         if (localVarHttpHeaderAcceptSelected === undefined) {
             // to determine the Accept header
             const httpHeaderAccepts: string[] = [
-                'application/json'
+                '*/*'
             ];
             localVarHttpHeaderAcceptSelected = this.configuration.selectHeaderAccept(httpHeaderAccepts);
         }
@@ -237,7 +249,7 @@ export class ProjectAPIService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "projectSlug", value: projectSlug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/elements/${this.configuration.encodeParam({name: "elementId", value: elementId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         return this.httpClient.request<any>('delete', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
@@ -252,83 +264,22 @@ export class ProjectAPIService {
     }
 
     /**
-     * Get all projects for the current user
-     * Retrieves a list of all projects belonging to the authenticated user.
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     */
-    public getAllProjects(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<Project>>;
-    public getAllProjects(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<Project>>>;
-    public getAllProjects(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<Project>>>;
-    public getAllProjects(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-
-        let localVarHeaders = this.defaultHeaders;
-
-        let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
-        if (localVarHttpHeaderAcceptSelected === undefined) {
-            // to determine the Accept header
-            const httpHeaderAccepts: string[] = [
-                'application/json'
-            ];
-            localVarHttpHeaderAcceptSelected = this.configuration.selectHeaderAccept(httpHeaderAccepts);
-        }
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        let localVarHttpContext: HttpContext | undefined = options && options.context;
-        if (localVarHttpContext === undefined) {
-            localVarHttpContext = new HttpContext();
-        }
-
-        let localVarTransferCache: boolean | undefined = options && options.transferCache;
-        if (localVarTransferCache === undefined) {
-            localVarTransferCache = true;
-        }
-
-
-        let responseType_: 'text' | 'json' | 'blob' = 'json';
-        if (localVarHttpHeaderAcceptSelected) {
-            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
-                responseType_ = 'text';
-            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
-                responseType_ = 'json';
-            } else {
-                responseType_ = 'blob';
-            }
-        }
-
-        let localVarPath = `/api/v1/projects`;
-        return this.httpClient.request<Array<Project>>('get', `${this.configuration.basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                responseType: <any>responseType_,
-                withCredentials: this.configuration.withCredentials,
-                headers: localVarHeaders,
-                observe: observe,
-                transferCache: localVarTransferCache,
-                reportProgress: reportProgress
-            }
-        );
-    }
-
-    /**
-     * Get project by username and slug
-     * Retrieves a specific project by its username and slug. Only accessible by the project owner.
+     * Get all elements for a project
+     * Retrieves all elements belonging to the specified project in their hierarchical order
      * @param username Username of the project owner
-     * @param slug Slug of the project
+     * @param projectSlug Slug of the project
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getProjectByUsernameAndSlug(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Project>;
-    public getProjectByUsernameAndSlug(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Project>>;
-    public getProjectByUsernameAndSlug(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Project>>;
-    public getProjectByUsernameAndSlug(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public getProjectElements(username: string, projectSlug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<ProjectElementDto>>;
+    public getProjectElements(username: string, projectSlug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<ProjectElementDto>>>;
+    public getProjectElements(username: string, projectSlug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<ProjectElementDto>>>;
+    public getProjectElements(username: string, projectSlug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling getProjectByUsernameAndSlug.');
+            throw new Error('Required parameter username was null or undefined when calling getProjectElements.');
         }
-        if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling getProjectByUsernameAndSlug.');
+        if (projectSlug === null || projectSlug === undefined) {
+            throw new Error('Required parameter projectSlug was null or undefined when calling getProjectElements.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -367,8 +318,8 @@ export class ProjectAPIService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
-        return this.httpClient.request<Project>('get', `${this.configuration.basePath}${localVarPath}`,
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "projectSlug", value: projectSlug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/elements`;
+        return this.httpClient.request<Array<ProjectElementDto>>('get', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -382,30 +333,34 @@ export class ProjectAPIService {
     }
 
     /**
-     * Update an existing project
-     * Updates the details of an existing project for the authenticated user. Requires a valid CSRF token.
+     * Update an element
+     * Updates an existing element in the specified project. Can update name, type, parent, and position.
      * @param username Username of the project owner
-     * @param slug Slug of the project to be updated
+     * @param projectSlug Slug of the project
+     * @param elementId ID of the element to update
      * @param xXSRFTOKEN CSRF token
-     * @param project Updated project details
+     * @param projectElementDto 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public updateProject(username: string, slug: string, xXSRFTOKEN: string, project: Project, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Project>;
-    public updateProject(username: string, slug: string, xXSRFTOKEN: string, project: Project, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Project>>;
-    public updateProject(username: string, slug: string, xXSRFTOKEN: string, project: Project, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Project>>;
-    public updateProject(username: string, slug: string, xXSRFTOKEN: string, project: Project, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public updateElement(username: string, projectSlug: string, elementId: string, xXSRFTOKEN: string, projectElementDto: ProjectElementDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ProjectElementDto>;
+    public updateElement(username: string, projectSlug: string, elementId: string, xXSRFTOKEN: string, projectElementDto: ProjectElementDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ProjectElementDto>>;
+    public updateElement(username: string, projectSlug: string, elementId: string, xXSRFTOKEN: string, projectElementDto: ProjectElementDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ProjectElementDto>>;
+    public updateElement(username: string, projectSlug: string, elementId: string, xXSRFTOKEN: string, projectElementDto: ProjectElementDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling updateProject.');
+            throw new Error('Required parameter username was null or undefined when calling updateElement.');
         }
-        if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling updateProject.');
+        if (projectSlug === null || projectSlug === undefined) {
+            throw new Error('Required parameter projectSlug was null or undefined when calling updateElement.');
+        }
+        if (elementId === null || elementId === undefined) {
+            throw new Error('Required parameter elementId was null or undefined when calling updateElement.');
         }
         if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
-            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling updateProject.');
+            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling updateElement.');
         }
-        if (project === null || project === undefined) {
-            throw new Error('Required parameter project was null or undefined when calling updateProject.');
+        if (projectElementDto === null || projectElementDto === undefined) {
+            throw new Error('Required parameter projectElementDto was null or undefined when calling updateElement.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -456,11 +411,95 @@ export class ProjectAPIService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
-        return this.httpClient.request<Project>('put', `${this.configuration.basePath}${localVarPath}`,
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "projectSlug", value: projectSlug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/elements/${this.configuration.encodeParam({name: "elementId", value: elementId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        return this.httpClient.request<ProjectElementDto>('put', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
-                body: project,
+                body: projectElementDto,
+                responseType: <any>responseType_,
+                withCredentials: this.configuration.withCredentials,
+                headers: localVarHeaders,
+                observe: observe,
+                transferCache: localVarTransferCache,
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Update element position
+     * Updates the position of an element relative to its siblings
+     * @param username Username of the project owner
+     * @param projectSlug Slug of the project
+     * @param elementId ID of the element
+     * @param position New position value
+     * @param xXSRFTOKEN CSRF token
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public updateElementPosition(username: string, projectSlug: string, elementId: string, position: number, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*', context?: HttpContext, transferCache?: boolean}): Observable<ProjectElementDto>;
+    public updateElementPosition(username: string, projectSlug: string, elementId: string, position: number, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ProjectElementDto>>;
+    public updateElementPosition(username: string, projectSlug: string, elementId: string, position: number, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ProjectElementDto>>;
+    public updateElementPosition(username: string, projectSlug: string, elementId: string, position: number, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: '*/*', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (username === null || username === undefined) {
+            throw new Error('Required parameter username was null or undefined when calling updateElementPosition.');
+        }
+        if (projectSlug === null || projectSlug === undefined) {
+            throw new Error('Required parameter projectSlug was null or undefined when calling updateElementPosition.');
+        }
+        if (elementId === null || elementId === undefined) {
+            throw new Error('Required parameter elementId was null or undefined when calling updateElementPosition.');
+        }
+        if (position === null || position === undefined) {
+            throw new Error('Required parameter position was null or undefined when calling updateElementPosition.');
+        }
+        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
+            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling updateElementPosition.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+        if (xXSRFTOKEN !== undefined && xXSRFTOKEN !== null) {
+            localVarHeaders = localVarHeaders.set('X-XSRF-TOKEN', String(xXSRFTOKEN));
+        }
+
+        let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
+        if (localVarHttpHeaderAcceptSelected === undefined) {
+            // to determine the Accept header
+            const httpHeaderAccepts: string[] = [
+                '*/*'
+            ];
+            localVarHttpHeaderAcceptSelected = this.configuration.selectHeaderAccept(httpHeaderAccepts);
+        }
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        let localVarHttpContext: HttpContext | undefined = options && options.context;
+        if (localVarHttpContext === undefined) {
+            localVarHttpContext = new HttpContext();
+        }
+
+        let localVarTransferCache: boolean | undefined = options && options.transferCache;
+        if (localVarTransferCache === undefined) {
+            localVarTransferCache = true;
+        }
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "projectSlug", value: projectSlug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/elements/${this.configuration.encodeParam({name: "elementId", value: elementId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/position/${this.configuration.encodeParam({name: "position", value: position, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "double"})}`;
+        return this.httpClient.request<ProjectElementDto>('patch', `${this.configuration.basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
                 responseType: <any>responseType_,
                 withCredentials: this.configuration.withCredentials,
                 headers: localVarHeaders,
