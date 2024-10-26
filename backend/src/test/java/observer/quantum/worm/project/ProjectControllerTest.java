@@ -164,7 +164,7 @@ public class ProjectControllerTest {
         .andExpect(status().isNotFound())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(
-            jsonPath("$.error")
+            jsonPath("$.message")
                 .value("Project not found with username: testUser and slug: non-existent"));
 
     verify(projectService, times(1)).findByUsernameAndSlug("testUser", "non-existent");
@@ -185,7 +185,7 @@ public class ProjectControllerTest {
         .andExpect(status().isNotFound())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(
-            jsonPath("$.error")
+            jsonPath("$.message")
                 .value("Project not found with username: testUser and slug: non-existent"));
 
     verify(projectService, times(1)).update(eq("testUser"), eq("non-existent"), any(Project.class));
@@ -205,7 +205,7 @@ public class ProjectControllerTest {
         .andExpect(status().isNotFound())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(
-            jsonPath("$.error")
+            jsonPath("$.message")
                 .value("Project not found with username: testUser and slug: non-existent"));
 
     verify(projectService, times(1)).delete("testUser", "non-existent");
@@ -265,7 +265,7 @@ public class ProjectControllerTest {
                 .content(objectMapper.writeValueAsString(project)))
         .andExpect(status().isForbidden())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.error").value("Access denied"));
+        .andExpect(jsonPath("$.message").value("Access denied"));
 
     verify(projectService, times(1)).update(eq("otherUser"), eq("my-project"), any(Project.class));
   }
@@ -283,7 +283,7 @@ public class ProjectControllerTest {
                 .header(XSRF_HEADER, XSRF_TOKEN))
         .andExpect(status().isForbidden())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-        .andExpect(jsonPath("$.error").value("Access denied"));
+        .andExpect(jsonPath("$.message").value("Access denied"));
 
     verify(projectService, times(1)).delete("otherUser", "my-project");
   }
