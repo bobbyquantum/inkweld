@@ -297,9 +297,15 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
       .filter(node => node.id !== this.draggedNode?.id);
     this.nodeAbove = sortedNodes[currentIndex - 1] || null;
     this.nodeBelow = sortedNodes[currentIndex] || null;
-    // console.log(
-    //   `Dropping ${this.draggedNode?.id}, nodeAbove:${this.nodeAbove?.id}, nodeBelow:${this.nodeBelow?.id}`
-    // );
+
+    // Check if trying to drop as child of an item
+    if (
+      this.nodeAbove?.type === 'item' &&
+      this.currentDropLevel > this.nodeAbove.level
+    ) {
+      throw new Error('Cannot drop as child of an item');
+    }
+
     const node = item.data as ProjectElement;
     const nodeIndex = this.sourceData.findIndex(n => n.id === node.id);
     if (nodeIndex === -1) {

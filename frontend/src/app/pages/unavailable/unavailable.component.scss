@@ -1,0 +1,17 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+mat-card {
+  max-width: 400px;
+  margin: 2rem;
+  text-align: center;
+  background-color: var(--card-background-color);
+}
+
+mat-card-content {
+  margin: 1rem 0;
+}
