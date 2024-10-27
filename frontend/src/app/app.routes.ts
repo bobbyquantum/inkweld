@@ -5,6 +5,7 @@ import { RegisterComponent } from './pages/register/register.component';
 import { authGuard } from './guards/auth.guard';
 import { WelcomeComponent } from './pages/welcome/welcome.component';
 import { ProjectComponent } from './pages/project/project.component';
+import { UnavailableComponent } from './pages/unavailable/unavailable.component';
 
 export const routes: Routes = [
   {
@@ -34,5 +35,10 @@ export const routes: Routes = [
     component: ProjectComponent,
     title: 'Project',
     canActivate: [authGuard],
+  },
+  {
+    path: 'unavailable',
+    component: UnavailableComponent,
+    title: 'Service Unavailable',
   },
 ];

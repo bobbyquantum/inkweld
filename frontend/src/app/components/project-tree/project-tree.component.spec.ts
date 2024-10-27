@@ -91,11 +91,14 @@ describe('ProjectTreeComponent', () => {
           ] as CdkDrag<ProjectElement>[];
       }
 
-      component.drop(
-        mockDragEvent as CdkDragDrop<ArrayDataSource<ProjectElement>>
-      );
+      // Should throw error when attempting to drop as child of an item
+      expect(() =>
+        component.drop(
+          mockDragEvent as CdkDragDrop<ArrayDataSource<ProjectElement>>
+        )
+      ).toThrow(Error('Cannot drop as child of an item'));
 
-      // After the drop, the item should remain at level 0 since dropping into an item is invalid
+      // Verify the structure remains unchanged
       expect(component.sourceData[0].id).toBe('1');
       expect(component.sourceData[0].level).toBe(0);
       expect(component.sourceData[1].id).toBe('2');
@@ -139,9 +142,12 @@ describe('ProjectTreeComponent', () => {
       mockDragEvent.currentIndex = 1; // Attempting to drop after the item
       component.currentDropLevel = 1; // Attempting to make it a child of the item
 
-      component.drop(
-        mockDragEvent as CdkDragDrop<ArrayDataSource<ProjectElement>>
-      );
+      // Should throw error when attempting to drop as child of an item
+      expect(() =>
+        component.drop(
+          mockDragEvent as CdkDragDrop<ArrayDataSource<ProjectElement>>
+        )
+      ).toThrow('Cannot drop as child of an item');
 
       // The folder should remain at level 0 since dropping into an item is invalid
       expect(component.sourceData[0].id).toBe('1');
