@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { User, UserAPIService } from 'worm-api-client';
 import { lastValueFrom } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 
 let cachedUser: User | null = null;
 
@@ -15,10 +16,19 @@ export const authGuard: CanActivateFn = async () => {
     }
 
     if (cachedUser) {
+      console.log('Found cache user, allowing activation');
       return true;
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error checking authentication:', error);
+    // Check if the error is a 502 Bad Gateway
+    if (
+      error instanceof HttpErrorResponse &&
+      'status' in error &&
+      (error as HttpErrorResponse).status === 502
+    ) {
+      return router.createUrlTree(['/unavailable']);
+    }
   }
 
   // Redirect to login page if not authenticated
