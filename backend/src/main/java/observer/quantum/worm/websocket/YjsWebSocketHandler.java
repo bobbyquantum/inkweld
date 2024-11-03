@@ -29,7 +29,7 @@ public class YjsWebSocketHandler extends AbstractWebSocketHandler {
         documentId,
         session.getUri());
 
-    documentSessions.computeIfAbsent(documentId, k -> new CopyOnWriteArrayList<>()).add(session);
+    documentSessions.computeIfAbsent(documentId, _ -> new CopyOnWriteArrayList<>()).add(session);
     log.info(
         "Added session to document {} - Total sessions for document: {}",
         documentId,

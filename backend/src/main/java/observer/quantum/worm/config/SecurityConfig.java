@@ -88,12 +88,12 @@ public class SecurityConfig {
                 formLogin
                     .loginProcessingUrl("/login")
                     .successHandler(
-                        (request, response, authentication) -> {
+                        (_, response, _) -> {
                           response.setStatus(HttpServletResponse.SC_OK);
                           response.getWriter().flush();
                         })
                     .failureHandler(
-                        (request, response, exception) -> {
+                        (_, response, _) -> {
                           response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                           response.getWriter().write("{\"error\":\"Invalid credentials\"}");
                           response.getWriter().flush();
@@ -112,7 +112,7 @@ public class SecurityConfig {
             logout
                 .logoutUrl("/logout")
                 .logoutSuccessHandler(
-                    (request, response, authentication) -> {
+                    (_, response, _) -> {
                       response.setStatus(HttpServletResponse.SC_OK);
                       response.setContentType("application/json");
                       response
@@ -127,7 +127,7 @@ public class SecurityConfig {
     http.exceptionHandling(
         exceptionHandling ->
             exceptionHandling.authenticationEntryPoint(
-                (request, response, authException) -> {
+                (_, response, _) -> {
                   response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                   response.setContentType("application/json");
                   response.getWriter().write("{\"error\":\"Unauthorized\"}");

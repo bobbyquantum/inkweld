@@ -31,7 +31,7 @@ public class TestSecurityConfig {
     http.exceptionHandling(
         exceptionHandling ->
             exceptionHandling.defaultAuthenticationEntryPointFor(
-                (request, response, accessDeniedException) -> {
+                (_, response, _) -> {
                   response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                   response.setContentType("application/json");
                   response.getWriter().write("{\"error\":\"Unauthorized\"}");
