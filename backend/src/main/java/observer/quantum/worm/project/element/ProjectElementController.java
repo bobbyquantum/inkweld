@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import observer.quantum.worm.error.ErrorResponse;
@@ -167,5 +168,45 @@ public class ProjectElementController {
     ProjectElementDto dto = new ProjectElementDto();
     dto.setPosition(position);
     return ResponseEntity.ok(elementService.updateElement(username, projectSlug, elementId, dto));
+  }
+
+  @Operation(
+      summary = "Bulk update element positions",
+      description = "Updates the positions of multiple elements in a single request")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Positions updated successfully",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    array =
+                        @ArraySchema(schema = @Schema(implementation = ProjectElementDto.class)))),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Project or one of the elements not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+      })
+  @PatchMapping("/positions")
+  @Secured({"USER", "OAUTH2_USER"})
+  public ResponseEntity<List<ProjectElementDto>> updateElementPositions(
+      @Parameter(description = "Username of the project owner") @PathVariable String username,
+      @Parameter(description = "Slug of the project") @PathVariable String projectSlug,
+      @Parameter(description = "CSRF token", in = ParameterIn.HEADER, required = true)
+          @RequestHeader(name = "X-XSRF-TOKEN")
+          String csrfToken,
+      @Parameter(description = "Map of element IDs to their new positions")
+          @RequestBody Map<String, Double> elementPositions) {
+    List<ProjectElementDto> updatedElements =
+        elementPositions.entrySet().stream()
+            .map(
+                entry -> {
+                  ProjectElementDto dto = new ProjectElementDto();
+                  dto.setPosition(entry.getValue());
+                  return elementService.updateElement(username, projectSlug, entry.getKey(), dto);
+                })
+            .toList();
+    return ResponseEntity.ok(updatedElements);
   }
 }
