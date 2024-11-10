@@ -11,11 +11,8 @@ function runCommand(command, cwd) {
 // Generate API spec and client
 console.log("Generating API spec and client...");
 const backendPath = path.join(__dirname, "backend");
-runCommand(
-  ".\\mvnw clean test -Pgenerate-client -Dtest=observer.quantum.worm.api.GenerateSpecTest",
-  backendPath
-);
-runCommand(".\\mvnw package -Pgenerate-client", backendPath);
+
+runCommand(".\\mvnw package", backendPath);
 
 // Build the dist package for the API client
 console.log("Building dist package for API client...");
