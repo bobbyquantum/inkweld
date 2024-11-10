@@ -3,6 +3,7 @@ package observer.quantum.worm.config;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.SpecVersion;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.tags.Tag;
 import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,10 +44,10 @@ public class OpenAPIConfig {
                     .name("Project API")
                     .description(
                         "The project controller supports various functions relating to projects.")))
-        //                .servers(Arrays.asList(
-        //                        new
-        // Server().url("http://localhost:8333/").description("Development server")
-        //                ))
+                       .servers(Arrays.asList(
+                               new
+        Server().url("http://localhost:8333/").description("Development server")
+                       ))
         //                .security(Arrays.asList(new SecurityRequirement().addList("OAuth2")))
         //                .components(new Components()
         //                        .addSecuritySchemes("OAuth2", new SecurityScheme()
