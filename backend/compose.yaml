@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: 'postgres:13'
+    image: 'postgres:17'
     environment:
       - 'POSTGRES_DB=wormdb'
       - 'POSTGRES_PASSWORD=secret'
