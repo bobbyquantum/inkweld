@@ -45,7 +45,7 @@
     "@compodoc/compodoc": "^1.1.25",
     "@jest/globals": "^29.7.0",
     "@storybook/addon-docs": "^8.3.5",
-    "@storybook/addon-essentials": "^8.3.5",
+    "@storybook/addon-essentials": "^8.4.4",
     "@storybook/addon-interactions": "^8.3.5",
     "@storybook/addon-links": "^8.3.5",
     "@storybook/angular": "^8.3.5",
