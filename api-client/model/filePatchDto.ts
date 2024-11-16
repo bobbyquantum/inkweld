@@ -1,6 +1,5 @@
 /**
  * Worm API
- * Worm tunnel protocol - Secure API for managing projects and user data
  *
  * 
  *

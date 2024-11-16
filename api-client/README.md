@@ -1,5 +1,7 @@
 ## worm-api-client@0.0.1-SNAPSHOT
 
+Worm tunnel protocol - Secure API for managing projects and user data
+
 The version of the OpenAPI document: 0.0.1-SNAPSHOT
 
 ### Building
