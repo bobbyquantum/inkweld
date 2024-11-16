@@ -8,7 +8,7 @@ import {
   Project,
 } from 'worm-api-client';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { Observable, of } from 'rxjs';
+import { of } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   ActivatedRoute,
@@ -18,50 +18,46 @@ import {
 import { provideLocationMocks } from '@angular/common/testing';
 import { HttpClient } from '@angular/common/http';
 
+jest.mock('@themes/theme.service');
+jest.mock('worm-api-client');
+jest.mock('@angular/cdk/layout');
+
 describe('HomeComponent', () => {
   let component: HomeComponent;
   let fixture: ComponentFixture<HomeComponent>;
-  let themeServiceMock: jasmine.SpyObj<ThemeService>;
-  let userServiceMock: jasmine.SpyObj<UserAPIService>;
-  let projectServiceMock: jasmine.SpyObj<ProjectAPIService>;
-  let breakpointObserverMock: jasmine.SpyObj<BreakpointObserver>;
-  let httpClientMock: jasmine.SpyObj<HttpClient>;
+  let themeService: jest.Mocked<ThemeService>;
+  let userService: jest.Mocked<UserAPIService>;
+  let projectService: jest.Mocked<ProjectAPIService>;
+  let breakpointObserver: jest.Mocked<BreakpointObserver>;
+  let httpClient: jest.Mocked<HttpClient>;
 
   beforeEach(async () => {
-    themeServiceMock = jasmine.createSpyObj('ThemeService', [
-      'update',
-      'isDarkMode',
-    ]);
-    breakpointObserverMock = jasmine.createSpyObj('BreakpointObserver', [
-      'observe',
-    ]);
-    breakpointObserverMock.observe.and.returnValue(
-      of({ matches: true, breakpoints: {} })
-    );
+    themeService = {
+      update: jest.fn(),
+      isDarkMode: jest.fn(),
+    } as unknown as jest.Mocked<ThemeService>;
 
-    httpClientMock = jasmine.createSpyObj('HttpClient', [
-      'get',
-      'post',
-      'put',
-      'delete',
-    ]);
+    breakpointObserver = {
+      observe: jest
+        .fn()
+        .mockReturnValue(of({ matches: true, breakpoints: {} })),
+    } as unknown as jest.Mocked<BreakpointObserver>;
 
-    userServiceMock = jasmine.createSpyObj<UserAPIService>('UserAPIService', [
-      'getCurrentUser',
-    ]);
-    const getCurrentUserSpy = userServiceMock.getCurrentUser as jasmine.Spy<
-      (observe: 'body') => Observable<User>
-    >;
-    getCurrentUserSpy.and.returnValue(of({} as User));
+    httpClient = {
+      get: jest.fn(),
+      post: jest.fn(),
+      put: jest.fn(),
+      delete: jest.fn(),
+    } as unknown as jest.Mocked<HttpClient>;
 
-    projectServiceMock = jasmine.createSpyObj<ProjectAPIService>(
-      'ProjectAPIService',
-      ['getAllProjects', 'createProject']
-    );
-    const getAllProjectsSpy = projectServiceMock.getAllProjects as jasmine.Spy<
-      (observe: 'body') => Observable<Project[]>
-    >;
-    getAllProjectsSpy.and.returnValue(of([] as Project[]));
+    userService = {
+      getCurrentUser: jest.fn().mockReturnValue(of({} as User)),
+    } as unknown as jest.Mocked<UserAPIService>;
+
+    projectService = {
+      getAllProjects: jest.fn().mockReturnValue(of([] as Project[])),
+      createProject: jest.fn(),
+    } as unknown as jest.Mocked<ProjectAPIService>;
 
     await TestBed.configureTestingModule({
       imports: [HomeComponent, NoopAnimationsModule],
@@ -71,11 +67,11 @@ describe('HomeComponent', () => {
           { path: 'project/:id', component: HomeComponent },
         ]),
         provideLocationMocks(),
-        { provide: ThemeService, useValue: themeServiceMock },
-        { provide: UserAPIService, useValue: userServiceMock },
-        { provide: ProjectAPIService, useValue: projectServiceMock },
-        { provide: BreakpointObserver, useValue: breakpointObserverMock },
-        { provide: HttpClient, useValue: httpClientMock },
+        { provide: ThemeService, useValue: themeService },
+        { provide: UserAPIService, useValue: userService },
+        { provide: ProjectAPIService, useValue: projectService },
+        { provide: BreakpointObserver, useValue: breakpointObserver },
+        { provide: HttpClient, useValue: httpClient },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -95,17 +91,17 @@ describe('HomeComponent', () => {
 
   it('should fetch current user on init', () => {
     component.ngOnInit();
-    expect(userServiceMock.getCurrentUser).toHaveBeenCalled();
+    expect(userService.getCurrentUser).toHaveBeenCalled();
   });
 
   it('should fetch all projects on init', () => {
     component.ngOnInit();
-    expect(projectServiceMock.getAllProjects).toHaveBeenCalled();
+    expect(projectService.getAllProjects).toHaveBeenCalled();
   });
 
   it('should setup breakpoint observer on init', () => {
     component.ngOnInit();
-    expect(breakpointObserverMock.observe).toHaveBeenCalledWith([
+    expect(breakpointObserver.observe).toHaveBeenCalledWith([
       Breakpoints.XSmall,
       Breakpoints.Small,
     ]);
@@ -123,7 +119,7 @@ describe('HomeComponent', () => {
   });
 
   it('should set isMobile to true when breakpoint matches', () => {
-    breakpointObserverMock.observe.and.returnValue(
+    breakpointObserver.observe.mockReturnValue(
       of({ matches: true, breakpoints: {} })
     );
     component.ngOnInit();
@@ -131,7 +127,7 @@ describe('HomeComponent', () => {
   });
 
   it('should set isMobile to false when breakpoint does not match', () => {
-    breakpointObserverMock.observe.and.returnValue(
+    breakpointObserver.observe.mockReturnValue(
       of({ matches: false, breakpoints: {} })
     );
     component.ngOnInit();

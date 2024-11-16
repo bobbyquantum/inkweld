@@ -3,15 +3,17 @@ import { UserFilesDialogComponent } from './user-files-dialog.component';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { FileAPIService } from 'worm-api-client';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { of } from 'rxjs';
 
 describe('UserFilesDialogComponent', () => {
   let component: UserFilesDialogComponent;
   let fixture: ComponentFixture<UserFilesDialogComponent>;
-  let fileServiceMock: jasmine.SpyObj<FileAPIService>;
+  let fileServiceMock: jest.Mocked<Partial<FileAPIService>>;
+
   beforeEach(async () => {
-    fileServiceMock = jasmine.createSpyObj<FileAPIService>('FileAPIService', [
-      'searchFiles',
-    ]);
+    fileServiceMock = {
+      searchFiles: jest.fn().mockReturnValue(of([])),
+    };
 
     await TestBed.configureTestingModule({
       imports: [UserFilesDialogComponent, NoopAnimationsModule],

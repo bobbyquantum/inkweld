@@ -5,26 +5,32 @@ import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
+jest.mock('@angular/common/http');
+jest.mock('@angular/router');
+
 describe('RegisterComponent', () => {
   let component: RegisterComponent;
   let fixture: ComponentFixture<RegisterComponent>;
-  let httpClientMock: jasmine.SpyObj<HttpClient>;
-  let routerMock: jasmine.SpyObj<Router>;
+  let httpClient: jest.Mocked<HttpClient>;
+  let router: jest.Mocked<Router>;
 
   beforeEach(async () => {
-    httpClientMock = jasmine.createSpyObj('HttpClient', [
-      'get',
-      'post',
-      'put',
-      'delete',
-    ]);
-    routerMock = jasmine.createSpyObj('Router', ['navigate']);
+    httpClient = {
+      get: jest.fn(),
+      post: jest.fn(),
+      put: jest.fn(),
+      delete: jest.fn(),
+    } as unknown as jest.Mocked<HttpClient>;
+
+    router = {
+      navigate: jest.fn(),
+    } as unknown as jest.Mocked<Router>;
 
     await TestBed.configureTestingModule({
       imports: [RegisterComponent, NoopAnimationsModule],
       providers: [
-        { provide: HttpClient, useValue: httpClientMock },
-        { provide: Router, useValue: routerMock },
+        { provide: HttpClient, useValue: httpClient },
+        { provide: Router, useValue: router },
         {
           provide: ActivatedRoute,
           useValue: {
