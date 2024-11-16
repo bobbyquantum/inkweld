@@ -312,6 +312,11 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
       console.log('Node not found');
       return;
     }
+
+    if (this.currentDropLevel < 0) {
+      console.log('Invalid drop level');
+      return;
+    }
     const nodeSubtree = this.getNodeSubtree(nodeIndex);
     const nodeSubtreeLength = nodeSubtree.length;
     this.sourceData.splice(nodeIndex, nodeSubtreeLength);
