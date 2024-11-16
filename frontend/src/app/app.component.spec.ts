@@ -19,9 +19,7 @@ describe('AppComponent', () => {
         {
           provide: UserAPIService,
           useValue: {
-            getCurrentUser: jasmine
-              .createSpy('getCurrentUser')
-              .and.returnValue(of({})),
+            getCurrentUser: jest.fn().mockReturnValue(of({})),
           },
         },
         {
@@ -31,7 +29,7 @@ describe('AppComponent', () => {
         {
           provide: ThemeService,
           useValue: {
-            initTheme: jasmine.createSpy('initTheme'),
+            initTheme: jest.fn(),
           },
         },
       ],
@@ -56,7 +54,7 @@ describe('AppComponent', () => {
 
     const mockUser = { id: 1, name: 'Test User' };
     const userService = TestBed.inject(UserAPIService);
-    (userService.getCurrentUser as jasmine.Spy).and.returnValue(of(mockUser));
+    (userService.getCurrentUser as jest.Mock).mockReturnValue(of(mockUser));
 
     component.ngOnInit();
     tick(); // This simulates the passage of time until all pending asynchronous activities complete
@@ -93,7 +91,7 @@ describe('AppComponent', () => {
     const component = fixture.componentInstance;
     const themeService = TestBed.inject(ThemeService);
 
-    (themeService.initTheme as jasmine.Spy).and.callFake(() => {
+    (themeService.initTheme as jest.Mock).mockImplementation(() => {
       component.className = 'dark-theme';
     });
 

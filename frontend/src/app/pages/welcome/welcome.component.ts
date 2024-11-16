@@ -9,7 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { CommonModule } from '@angular/common';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { firstValueFrom, Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 import { UserAPIService } from 'worm-api-client';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -56,26 +56,35 @@ export class WelcomeComponent implements OnInit, OnDestroy {
   }
 
   async ngOnInit(): Promise<void> {
-    const providers = await firstValueFrom(
-      this.userService.getEnabledOAuth2Providers()
-    );
-    console.log('Enabled OAuth2 providers:', providers);
-    providers.forEach(provider => {
-      if (provider === 'github') {
-        this.githubEnabled = true;
-      }
-      if (provider === 'google') {
-        this.googleEnabled = true;
-      }
-      if (provider === 'facebook') {
-        this.facebookEnabled = true;
-      }
-      if (provider === 'discord') {
-        this.discordEnabled = true;
-      }
-      if (provider === 'apple') {
-        this.appleEnabled = true;
-      }
+    this.userService.getEnabledOAuth2Providers().subscribe({
+      next: providers => {
+        providers.forEach(provider => {
+          if (provider === 'github') {
+            this.githubEnabled = true;
+          }
+          if (provider === 'google') {
+            this.googleEnabled = true;
+          }
+          if (provider === 'facebook') {
+            this.facebookEnabled = true;
+          }
+          if (provider === 'discord') {
+            this.discordEnabled = true;
+          }
+          if (provider === 'apple') {
+            this.appleEnabled = true;
+          }
+        });
+        console.log('Enabled OAuth2 providers:', providers);
+      },
+      error: error => {
+        console.error('Error fetching OAuth2 providers:', error);
+        this.snackBar.open(
+          'Failed to load authentication providers.',
+          'Close',
+          { duration: 5000 }
+        );
+      },
     });
   }
 

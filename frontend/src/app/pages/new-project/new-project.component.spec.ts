@@ -14,28 +14,44 @@ import {
   ProjectAPIService,
   UserAPIService,
   User,
+  Project,
 } from 'worm-api-client';
 import { Observable, of, throwError } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { XsrfService } from '@services/xsrf.service';
 
+jest.mock('worm-api-client');
+jest.mock('@angular/material/snack-bar');
+jest.mock('@services/xsrf.service');
+
 describe('NewProjectComponent', () => {
   let component: NewProjectComponent;
   let fixture: ComponentFixture<NewProjectComponent>;
-  let projectServiceSpy: jasmine.SpyObj<ProjectAPIService>;
-  let userServiceMock: jasmine.SpyObj<UserAPIService>;
-  let snackBarSpy: jasmine.SpyObj<MatSnackBar>;
-  let xsrfServiceSpy: jasmine.SpyObj<XsrfService>;
+  let projectService: jest.Mocked<ProjectAPIService>;
+  let userService: jest.Mocked<UserAPIService>;
+  let snackBar: jest.Mocked<MatSnackBar>;
+  let xsrfService: jest.Mocked<XsrfService>;
 
   beforeEach(async () => {
-    projectServiceSpy = jasmine.createSpyObj('ProjectAPIService', [
-      'createProject',
-    ]);
-    userServiceMock = jasmine.createSpyObj('UserAPIService', [
-      'getCurrentUser',
-    ]);
-    snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
-    xsrfServiceSpy = jasmine.createSpyObj('XsrfService', ['getXsrfToken']);
+    projectService = {
+      createProject: jest
+        .fn()
+        .mockImplementation((token: string, project: Project) => {
+          return of(project as Project);
+        }),
+    } as unknown as jest.Mocked<ProjectAPIService>;
+
+    userService = {
+      getCurrentUser: jest.fn(),
+    } as unknown as jest.Mocked<UserAPIService>;
+
+    snackBar = {
+      open: jest.fn(),
+    } as unknown as jest.Mocked<MatSnackBar>;
+
+    xsrfService = {
+      getXsrfToken: jest.fn(),
+    } as unknown as jest.Mocked<XsrfService>;
 
     await TestBed.configureTestingModule({
       imports: [NewProjectComponent],
@@ -44,10 +60,10 @@ describe('NewProjectComponent', () => {
         provideHttpClientTesting(),
         provideRouter([{ path: '', component: NewProjectComponent }]),
         { provide: ActivatedRoute, useValue: {} },
-        { provide: ProjectAPIService, useValue: projectServiceSpy },
-        { provide: UserAPIService, useValue: userServiceMock },
-        { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: XsrfService, useValue: xsrfServiceSpy },
+        { provide: ProjectAPIService, useValue: projectService },
+        { provide: UserAPIService, useValue: userService },
+        { provide: MatSnackBar, useValue: snackBar },
+        { provide: XsrfService, useValue: xsrfService },
         { provide: Configuration, useValue: {} },
       ],
     }).compileComponents();
@@ -57,10 +73,11 @@ describe('NewProjectComponent', () => {
   });
 
   it('should create', fakeAsync(() => {
-    const getCurrentUserSpy = userServiceMock.getCurrentUser as jasmine.Spy<
-      (observe: 'body') => Observable<User>
-    >;
-    getCurrentUserSpy.and.returnValue(of({ username: 'testuser' } as User));
+    const getCurrentUserMock =
+      userService.getCurrentUser as unknown as jest.MockedFunction<
+        (observe: 'body') => Observable<User>
+      >;
+    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as User));
     fixture.detectChanges();
     tick();
     expect(component).toBeTruthy();
@@ -68,10 +85,11 @@ describe('NewProjectComponent', () => {
   }));
 
   it('should generate slug from title', fakeAsync(() => {
-    const getCurrentUserSpy = userServiceMock.getCurrentUser as jasmine.Spy<
-      (observe: 'body') => Observable<User>
-    >;
-    getCurrentUserSpy.and.returnValue(of({ username: 'testuser' } as User));
+    const getCurrentUserMock =
+      userService.getCurrentUser as unknown as jest.MockedFunction<
+        (observe: 'body') => Observable<User>
+      >;
+    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as User));
     fixture.detectChanges();
     tick();
     const title = 'My Awesome Project';
@@ -83,10 +101,11 @@ describe('NewProjectComponent', () => {
   }));
 
   it('should update project URL when slug changes', fakeAsync(() => {
-    const getCurrentUserSpy = userServiceMock.getCurrentUser as jasmine.Spy<
-      (observe: 'body') => Observable<User>
-    >;
-    getCurrentUserSpy.and.returnValue(of({ username: 'testuser' } as User));
+    const getCurrentUserMock =
+      userService.getCurrentUser as unknown as jest.MockedFunction<
+        (observe: 'body') => Observable<User>
+      >;
+    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as User));
     fixture.detectChanges();
     tick();
     const slug = 'test-project';
@@ -99,10 +118,11 @@ describe('NewProjectComponent', () => {
   }));
 
   it('should create project when form is valid', fakeAsync(() => {
-    const getCurrentUserSpy = userServiceMock.getCurrentUser as jasmine.Spy<
-      (observe: 'body') => Observable<User>
-    >;
-    getCurrentUserSpy.and.returnValue(of({ username: 'testuser' } as User));
+    const getCurrentUserMock =
+      userService.getCurrentUser as unknown as jest.MockedFunction<
+        (observe: 'body') => Observable<User>
+      >;
+    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as User));
     fixture.detectChanges();
     tick();
     const projectData = {
@@ -112,15 +132,22 @@ describe('NewProjectComponent', () => {
     };
     component.projectForm.patchValue(projectData);
     tick();
-    xsrfServiceSpy.getXsrfToken.and.returnValue('test-token');
-    (projectServiceSpy.createProject as jasmine.Spy).and.returnValue(
-      of(projectData)
-    );
+    xsrfService.getXsrfToken.mockReturnValue('test-token');
+
+    (
+      projectService.createProject as unknown as jest.MockedFunction<
+        (
+          token: string,
+          project: Project,
+          observe: 'body'
+        ) => Observable<Project>
+      >
+    ).mockReturnValue(of(projectData as Project));
 
     component.onSubmit();
     tick();
 
-    expect(projectServiceSpy.createProject).toHaveBeenCalledWith(
+    expect(projectService.createProject).toHaveBeenCalledWith(
       'test-token',
       projectData
     );
@@ -128,10 +155,11 @@ describe('NewProjectComponent', () => {
   }));
 
   it('should handle error when project creation fails', fakeAsync(() => {
-    const getCurrentUserSpy = userServiceMock.getCurrentUser as jasmine.Spy<
-      (observe: 'body') => Observable<User>
-    >;
-    getCurrentUserSpy.and.returnValue(of({ username: 'testuser' } as User));
+    const getCurrentUserMock =
+      userService.getCurrentUser as unknown as jest.MockedFunction<
+        (observe: 'body') => Observable<User>
+      >;
+    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as User));
     fixture.detectChanges();
     tick();
     const projectData = {
@@ -141,14 +169,14 @@ describe('NewProjectComponent', () => {
     };
     component.projectForm.patchValue(projectData);
     tick();
-    xsrfServiceSpy.getXsrfToken.and.returnValue('test-token');
-    projectServiceSpy.createProject.and.returnValue(
+    xsrfService.getXsrfToken.mockReturnValue('test-token');
+    projectService.createProject.mockReturnValue(
       throwError(() => new Error('Creation failed'))
     );
 
     component.onSubmit();
     tick();
-    expect(projectServiceSpy.createProject).toHaveBeenCalledWith(
+    expect(projectService.createProject).toHaveBeenCalledWith(
       'test-token',
       projectData
     );
@@ -156,10 +184,11 @@ describe('NewProjectComponent', () => {
   }));
 
   it('should handle error when fetching user fails', fakeAsync(() => {
-    const getCurrentUserSpy = userServiceMock.getCurrentUser as jasmine.Spy<
-      (observe: 'body') => Observable<User>
-    >;
-    getCurrentUserSpy.and.returnValue(
+    const getCurrentUserMock =
+      userService.getCurrentUser as unknown as jest.MockedFunction<
+        (observe: 'body') => Observable<User>
+      >;
+    getCurrentUserMock.mockReturnValue(
       throwError(() => new Error('Failed to fetch user'))
     );
     fixture.detectChanges();

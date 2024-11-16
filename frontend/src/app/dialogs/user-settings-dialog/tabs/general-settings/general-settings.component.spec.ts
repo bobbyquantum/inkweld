@@ -5,23 +5,27 @@ import { ThemeOption, ThemeService } from '@themes/theme.service';
 import { of } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
+jest.mock('@themes/theme.service');
+
 describe('GeneralSettingsComponent', () => {
   let component: GeneralSettingsComponent;
   let fixture: ComponentFixture<GeneralSettingsComponent>;
-  let themeServiceMock: jasmine.SpyObj<ThemeService>;
+  let themeService: jest.Mocked<ThemeService>;
 
   beforeEach(async () => {
-    themeServiceMock = jasmine.createSpyObj('ThemeService', [
-      'getCurrentTheme',
-      'update',
-    ]);
-    themeServiceMock.getCurrentTheme.and.returnValue(
-      of('light-theme' as ThemeOption)
-    );
+    themeService = jest.mocked(
+      ThemeService
+    ) as unknown as jest.Mocked<ThemeService>;
+
+    // Mock the required methods
+    themeService.getCurrentTheme = jest
+      .fn()
+      .mockReturnValue(of('light-theme' as ThemeOption));
+    themeService.update = jest.fn();
 
     await TestBed.configureTestingModule({
       imports: [GeneralSettingsComponent, NoopAnimationsModule],
-      providers: [{ provide: ThemeService, useValue: themeServiceMock }],
+      providers: [{ provide: ThemeService, useValue: themeService }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(GeneralSettingsComponent);

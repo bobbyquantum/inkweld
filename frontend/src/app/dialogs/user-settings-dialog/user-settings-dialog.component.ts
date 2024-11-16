@@ -3,7 +3,6 @@ import { MatButtonModule } from '@angular/material/button';
 import {
   MatDialogContent,
   MatDialogTitle,
-  MatDialogActions,
   MatDialogClose,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -61,7 +60,6 @@ const slideAnimation = trigger('slideAnimation', [
     CommonModule,
     MatDialogTitle,
     MatDialogContent,
-    MatDialogActions,
     MatDialogClose,
     MatListModule,
     MatButtonModule,

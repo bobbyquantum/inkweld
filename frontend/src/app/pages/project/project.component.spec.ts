@@ -9,20 +9,19 @@ import { Observable, of } from 'rxjs';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 
+jest.mock('worm-api-client');
+jest.mock('ngx-editor');
+
 describe('ProjectComponent', () => {
   let component: ProjectComponent;
   let fixture: ComponentFixture<ProjectComponent>;
-  let projectServiceMock: jasmine.SpyObj<ProjectAPIService>;
+  let projectService: jest.Mocked<ProjectAPIService>;
+
   beforeEach(async () => {
-    projectServiceMock = jasmine.createSpyObj<ProjectAPIService>(
-      'ProjectAPIService',
-      ['getProjectByUsernameAndSlug']
-    );
-    const getProjectByUsernameAndSlugSpy =
-      projectServiceMock.getProjectByUsernameAndSlug as jasmine.Spy<
-        (username: string, slug: string, observe: 'body') => Observable<Project>
-      >;
-    getProjectByUsernameAndSlugSpy.and.returnValue(of({} as Project));
+    projectService = {
+      getProjectByUsernameAndSlug: jest.fn().mockReturnValue(of({} as Project)),
+    } as unknown as jest.Mocked<ProjectAPIService>;
+
     await TestBed.configureTestingModule({
       imports: [ProjectComponent, NoopAnimationsModule],
       providers: [
@@ -32,8 +31,8 @@ describe('ProjectComponent', () => {
         {
           provide: Editor,
           useValue: {
-            setContent: jasmine.createSpy('setContent'),
-            destroy: jasmine.createSpy('destroy'),
+            setContent: jest.fn(),
+            destroy: jest.fn(),
           },
         },
       ],
