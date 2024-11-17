@@ -1,18 +1,19 @@
-import {
-  Meta,
-  StoryObj,
-  moduleMetadata,
-  applicationConfig,
-} from '@storybook/angular';
-import { UserSettingsDialogComponent } from './user-settings-dialog.component';
-import { provideAnimations } from '@angular/platform-browser/animations';
-import { MatDialogModule } from '@angular/material/dialog';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
-import { GeneralSettingsComponent } from './tabs/general-settings/general-settings.component';
-import { BreakpointObserver } from '@angular/cdk/layout';
+import { provideAnimations } from '@angular/platform-browser/animations';
+import {
+  applicationConfig,
+  Meta,
+  moduleMetadata,
+  StoryObj,
+} from '@storybook/angular';
 import { BehaviorSubject, Subject } from 'rxjs';
+
+import { GeneralSettingsComponent } from './tabs/general-settings/general-settings.component';
+import { UserSettingsDialogComponent } from './user-settings-dialog.component';
 const mockBreakpointObserver = {
   observe: () => new BehaviorSubject({ matches: false }),
 };

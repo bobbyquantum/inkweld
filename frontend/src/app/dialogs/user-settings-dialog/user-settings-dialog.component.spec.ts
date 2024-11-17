@@ -1,9 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
-import { UserSettingsDialogComponent } from './user-settings-dialog.component';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialogModule } from '@angular/material/dialog';
 import { By } from '@angular/platform-browser';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+
+import { UserSettingsDialogComponent } from './user-settings-dialog.component';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

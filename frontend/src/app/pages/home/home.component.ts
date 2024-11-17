@@ -1,17 +1,17 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import { ProjectCardComponent } from '@components/project-card/project-card.component';
-import { Project, ProjectAPIService, UserAPIService } from 'worm-api-client';
-import { EMPTY, Subject, catchError, takeUntil } from 'rxjs';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule } from '@angular/router';
+import { ProjectCardComponent } from '@components/project-card/project-card.component';
+import { UserMenuComponent } from '@components/user-menu/user-menu.component';
+import { catchError, EMPTY, Subject, takeUntil } from 'rxjs';
+import { Project, ProjectAPIService, UserAPIService } from 'worm-api-client';
 
 @Component({
   selector: 'app-home',

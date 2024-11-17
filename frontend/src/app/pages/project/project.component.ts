@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTreeModule, MatTreeNestedDataSource } from '@angular/material/tree';
 import { ActivatedRoute } from '@angular/router';
@@ -12,9 +12,10 @@ import { ProjectElement } from '@components/project-tree/ProjectElement';
 import { TREE_DATA } from '@components/project-tree/TREE_DATA';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Project, ProjectAPIService, User } from 'worm-api-client';
+
+import { ElementEditorComponent } from '../../components/element-editor/element-editor.component';
 import { ProjectMainMenuComponent } from '../../components/project-main-menu/project-main-menu.component';
 import { ProjectTreeComponent } from '../../components/project-tree/project-tree.component';
-import { ElementEditorComponent } from '../../components/element-editor/element-editor.component';
 
 interface FileNode {
   name: string;

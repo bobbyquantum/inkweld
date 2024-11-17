@@ -1,7 +1,8 @@
-import { Component, HostBinding, NgZone, OnInit, inject } from '@angular/core';
+import { Component, HostBinding, inject, NgZone, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { User, UserAPIService } from 'worm-api-client';
 import { firstValueFrom } from 'rxjs';
+import { User, UserAPIService } from 'worm-api-client';
+
 import { ThemeService } from '../themes/theme.service';
 
 @Component({

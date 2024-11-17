@@ -3,6 +3,8 @@ const eslint = require('@eslint/js');
 const tseslint = require('typescript-eslint');
 const angular = require('angular-eslint');
 const eslintPluginPrettierRecommended = require('eslint-plugin-prettier/recommended');
+const unusedImportsPlugin = require('eslint-plugin-unused-imports');
+const simpleImportSortPlugin = require('eslint-plugin-simple-import-sort');
 
 module.exports = tseslint.config(
   {
@@ -14,6 +16,10 @@ module.exports = tseslint.config(
       ...angular.configs.tsRecommended,
     ],
     processor: angular.processInlineTemplates,
+    plugins: {
+      'unused-imports': unusedImportsPlugin,
+      'simple-import-sort': simpleImportSortPlugin,
+    },
     rules: {
       '@angular-eslint/directive-selector': [
         'error',
@@ -31,6 +37,9 @@ module.exports = tseslint.config(
           style: 'kebab-case',
         },
       ],
+      'unused-imports/no-unused-imports': 'error',
+      'simple-import-sort/imports': 'error',
+      'simple-import-sort/exports': 'error',
     },
   },
   {

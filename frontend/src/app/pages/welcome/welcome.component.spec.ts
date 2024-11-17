@@ -1,19 +1,20 @@
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { HttpClient } from '@angular/common/http';
 import {
   ComponentFixture,
-  TestBed,
   fakeAsync,
-  tick,
   flush,
+  TestBed,
+  tick,
 } from '@angular/core/testing';
-import { WelcomeComponent } from './welcome.component';
-import { HttpClient } from '@angular/common/http';
-import { UserAPIService } from 'worm-api-client';
-import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { XsrfService } from '@services/xsrf.service';
 import { of, throwError } from 'rxjs';
-import { BreakpointObserver } from '@angular/cdk/layout';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { UserAPIService } from 'worm-api-client';
+
+import { WelcomeComponent } from './welcome.component';
 
 jest.mock('worm-api-client');
 jest.mock('@angular/material/snack-bar');

@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import * as Y from 'yjs';
-import { WebsocketProvider } from 'y-websocket';
-import { ySyncPlugin, yCursorPlugin, yUndoPlugin } from 'y-prosemirror';
 import { Editor } from 'ngx-editor';
+import { yCursorPlugin, ySyncPlugin, yUndoPlugin } from 'y-prosemirror';
+import { WebsocketProvider } from 'y-websocket';
+import * as Y from 'yjs';
 
 @Injectable({
   providedIn: 'root',

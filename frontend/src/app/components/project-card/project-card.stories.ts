@@ -1,12 +1,13 @@
-import type { Meta, StoryObj } from '@storybook/angular';
-import { ProjectCardComponent } from './project-card.component';
-import { moduleMetadata } from '@storybook/angular';
-import { ActivatedRoute } from '@angular/router';
-import { of } from 'rxjs';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
-import { RouterTestingModule } from '@angular/router/testing';
+import { MatCardModule } from '@angular/material/card';
 import { provideAnimations } from '@angular/platform-browser/animations';
+import { ActivatedRoute } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
+import type { Meta, StoryObj } from '@storybook/angular';
+import { moduleMetadata } from '@storybook/angular';
+import { of } from 'rxjs';
+
+import { ProjectCardComponent } from './project-card.component';
 
 const meta: Meta<ProjectCardComponent> = {
   title: 'Components/ProjectCard',

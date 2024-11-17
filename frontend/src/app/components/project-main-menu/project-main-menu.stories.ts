@@ -1,9 +1,10 @@
-import type { Meta, StoryObj } from '@storybook/angular';
-import { ProjectMainMenuComponent } from './project-main-menu.component';
-import { moduleMetadata } from '@storybook/angular';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import type { Meta, StoryObj } from '@storybook/angular';
+import { moduleMetadata } from '@storybook/angular';
+
+import { ProjectMainMenuComponent } from './project-main-menu.component';
 
 /**
  * The ProjectMainMenuComponent is a reusable menu bar that provides a typical

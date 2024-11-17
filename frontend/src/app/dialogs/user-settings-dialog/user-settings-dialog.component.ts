@@ -1,25 +1,26 @@
-import { Component, Input, inject, OnInit, OnDestroy } from '@angular/core';
+import {
+  animate,
+  group,
+  query,
+  style,
+  transition,
+  trigger,
+} from '@angular/animations';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { CommonModule } from '@angular/common';
+import { Component, inject, Input, OnDestroy, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
+  MatDialogClose,
   MatDialogContent,
   MatDialogTitle,
-  MatDialogClose,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { GeneralSettingsComponent } from './tabs/general-settings/general-settings.component';
-import {
-  trigger,
-  transition,
-  style,
-  animate,
-  query,
-  group,
-} from '@angular/animations';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Subject, takeUntil } from 'rxjs';
-import { CommonModule } from '@angular/common';
+
+import { GeneralSettingsComponent } from './tabs/general-settings/general-settings.component';
 
 const slideAnimation = trigger('slideAnimation', [
   transition(

@@ -1,11 +1,11 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { provideRouter } from '@angular/router';
+import { Editor } from 'ngx-editor';
 
 import { ProjectComponent } from './project.component';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Editor } from 'ngx-editor';
-import { provideRouter } from '@angular/router';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideHttpClient } from '@angular/common/http';
 
 jest.mock('worm-api-client');
 jest.mock('ngx-editor');
