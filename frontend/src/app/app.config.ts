@@ -1,27 +1,27 @@
 import {
-  ApplicationConfig,
-  Provider,
-  provideZoneChangeDetection,
-} from '@angular/core';
-import { provideRouter } from '@angular/router';
-import { routes } from './app.routes';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import {
   HttpClient,
   provideHttpClient,
   withXsrfConfiguration,
 } from '@angular/common/http';
+import {
+  ApplicationConfig,
+  Provider,
+  provideZoneChangeDetection,
+} from '@angular/core';
+import { isDevMode } from '@angular/core';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { provideRouter } from '@angular/router';
+import { provideServiceWorker } from '@angular/service-worker';
+import { XsrfService } from '@services/xsrf.service';
 import {
   Configuration,
   FileAPIService,
   ProjectAPIService,
   UserAPIService,
 } from 'worm-api-client';
-import { ThemeService } from '../themes/theme.service';
 
-import { isDevMode } from '@angular/core';
-import { provideServiceWorker } from '@angular/service-worker';
-import { XsrfService } from '@services/xsrf.service';
+import { ThemeService } from '../themes/theme.service';
+import { routes } from './app.routes';
 
 export function provideApiConfig(): Provider {
   return {

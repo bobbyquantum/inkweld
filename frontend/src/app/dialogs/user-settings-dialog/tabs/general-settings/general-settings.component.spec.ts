@@ -1,9 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
-import { GeneralSettingsComponent } from './general-settings.component';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ThemeOption, ThemeService } from '@themes/theme.service';
 import { of } from 'rxjs';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+
+import { GeneralSettingsComponent } from './general-settings.component';
 
 jest.mock('@themes/theme.service');
 

@@ -1,14 +1,15 @@
+import { ArrayDataSource } from '@angular/cdk/collections';
+import {
+  CdkDrag,
+  CdkDragDrop,
+  CdkDragSortEvent,
+  CdkDropList,
+} from '@angular/cdk/drag-drop';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+
 import { ProjectTreeComponent } from './project-tree.component';
 import { ProjectElement } from './ProjectElement';
-import {
-  CdkDragDrop,
-  CdkDrag,
-  CdkDropList,
-  CdkDragSortEvent,
-} from '@angular/cdk/drag-drop';
-import { ArrayDataSource } from '@angular/cdk/collections';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('ProjectTreeComponent', () => {
   let component: ProjectTreeComponent;

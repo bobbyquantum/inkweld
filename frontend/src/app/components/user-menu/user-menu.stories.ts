@@ -1,13 +1,14 @@
-import { Meta, StoryObj, moduleMetadata } from '@storybook/angular';
-import { UserMenuComponent } from './user-menu.component';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MatButtonModule } from '@angular/material/button';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { provideAnimations } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { UserSettingsService } from '@services/user-settings.service';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { provideAnimations } from '@angular/platform-browser/animations';
+import { Meta, moduleMetadata, StoryObj } from '@storybook/angular';
+
+import { UserMenuComponent } from './user-menu.component';
 
 const meta: Meta<UserMenuComponent> = {
   title: 'Components/UserMenu',

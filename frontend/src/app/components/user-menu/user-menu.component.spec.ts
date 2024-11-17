@@ -1,6 +1,7 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { UserMenuComponent } from './user-menu.component';
 import { HttpClient } from '@angular/common/http';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { UserMenuComponent } from './user-menu.component';
 
 describe('UserMenuComponent', () => {
   let component: UserMenuComponent;

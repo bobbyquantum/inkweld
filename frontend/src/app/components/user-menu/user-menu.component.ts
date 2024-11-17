@@ -1,13 +1,12 @@
-import { Component, Input, inject } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider';
-import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-
-import { User } from 'worm-api-client';
+import { Component, inject, Input } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { Router } from '@angular/router';
 import { UserSettingsService } from '@services/user-settings.service';
+import { User } from 'worm-api-client';
 
 interface LogoutResponse {
   message: string;

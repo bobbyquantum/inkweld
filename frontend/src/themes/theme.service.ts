@@ -1,14 +1,14 @@
+import { DOCUMENT } from '@angular/common';
 import {
+  inject,
   Injectable,
+  OnDestroy,
   Renderer2,
   RendererFactory2,
-  inject,
-  OnDestroy,
 } from '@angular/core';
-import { DOCUMENT } from '@angular/common';
-import { BehaviorSubject, Observable } from 'rxjs';
 import { MatIconRegistry } from '@angular/material/icon';
 import { DomSanitizer } from '@angular/platform-browser';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 export type ThemeOption = 'light-theme' | 'dark-theme' | 'system';
 

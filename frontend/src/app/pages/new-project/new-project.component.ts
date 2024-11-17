@@ -1,20 +1,20 @@
+import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
-  Validators,
   ReactiveFormsModule,
+  Validators,
 } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
-import { ProjectAPIService, UserAPIService, User } from 'worm-api-client';
-import { XsrfService } from '@services/xsrf.service';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { CommonModule } from '@angular/common';
+import { Router, RouterModule } from '@angular/router';
+import { XsrfService } from '@services/xsrf.service';
+import { ProjectAPIService, User, UserAPIService } from 'worm-api-client';
 
 @Component({
   selector: 'app-new-project',

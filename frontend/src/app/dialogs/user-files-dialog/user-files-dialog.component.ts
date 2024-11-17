@@ -1,10 +1,10 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
-import { FileAPIService, ModelFile, PageInfo } from 'worm-api-client';
+import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit } from '@angular/core';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatDialogModule } from '@angular/material/dialog';
-import { CommonModule } from '@angular/common';
+import { firstValueFrom } from 'rxjs';
+import { FileAPIService, ModelFile, PageInfo } from 'worm-api-client';
 
 @Component({
   selector: 'app-user-files-dialog',

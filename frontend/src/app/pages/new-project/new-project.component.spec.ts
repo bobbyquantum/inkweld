@@ -1,24 +1,25 @@
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import {
   ComponentFixture,
-  TestBed,
   fakeAsync,
-  tick,
   flush,
+  TestBed,
+  tick,
 } from '@angular/core/testing';
-import { NewProjectComponent } from './new-project.component';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { ActivatedRoute, provideRouter } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { ActivatedRoute, provideRouter } from '@angular/router';
+import { XsrfService } from '@services/xsrf.service';
+import { Observable, of, throwError } from 'rxjs';
 import {
   Configuration,
-  ProjectAPIService,
-  UserAPIService,
-  User,
   Project,
+  ProjectAPIService,
+  User,
+  UserAPIService,
 } from 'worm-api-client';
-import { Observable, of, throwError } from 'rxjs';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { XsrfService } from '@services/xsrf.service';
+
+import { NewProjectComponent } from './new-project.component';
 
 jest.mock('worm-api-client');
 jest.mock('@angular/material/snack-bar');

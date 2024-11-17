@@ -1,22 +1,23 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { HomeComponent } from './home.component';
-import { ThemeService } from '@themes/theme.service';
-import {
-  UserAPIService,
-  ProjectAPIService,
-  User,
-  Project,
-} from 'worm-api-client';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { of } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { provideLocationMocks } from '@angular/common/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   ActivatedRoute,
   convertToParamMap,
   provideRouter,
 } from '@angular/router';
-import { provideLocationMocks } from '@angular/common/testing';
-import { HttpClient } from '@angular/common/http';
+import { ThemeService } from '@themes/theme.service';
+import { of } from 'rxjs';
+import {
+  Project,
+  ProjectAPIService,
+  User,
+  UserAPIService,
+} from 'worm-api-client';
+
+import { HomeComponent } from './home.component';
 
 jest.mock('@themes/theme.service');
 jest.mock('worm-api-client');

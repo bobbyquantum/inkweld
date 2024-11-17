@@ -1,15 +1,16 @@
 import { CommonModule } from '@angular/common';
 import {
+  AfterViewInit,
   Component,
-  OnDestroy,
-  OnInit,
   HostListener,
   Input,
-  AfterViewInit,
+  OnDestroy,
+  OnInit,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Editor, NgxEditorModule } from 'ngx-editor';
+
 import { YjsService } from '../../services/yjs.service';
 
 interface EditorDimensions {
