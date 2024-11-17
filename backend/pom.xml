@@ -27,7 +27,7 @@
         <url/>
     </scm>
     <properties>
-        <java.version>22</java.version>
+        <java.version>23</java.version>
         <spring-ai.version>1.0.0-M3-PLATFORM</spring-ai.version>
     </properties>
     <dependencies>
