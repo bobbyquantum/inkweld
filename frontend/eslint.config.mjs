@@ -40,6 +40,7 @@ export default tseslint.config(
       'unused-imports/no-unused-imports': 'error',
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
+      '@typescript-eslint/member-ordering': 'error',
     },
   },
   {
@@ -53,7 +54,7 @@ export default tseslint.config(
     plugins: {
       'unused-imports': unusedImportsPlugin,
       'simple-import-sort': simpleImportSortPlugin,
-      'jest': jest,
+      jest: jest,
     },
     rules: {
       '@angular-eslint/directive-selector': [

@@ -33,16 +33,7 @@ import { UserAPIService } from 'worm-api-client';
   styleUrl: './welcome.component.scss',
 })
 export class WelcomeComponent implements OnInit, OnDestroy {
-  private breakpointObserver = inject(BreakpointObserver);
-  private ngZone = inject(NgZone);
-  private userService = inject(UserAPIService);
-  private http = inject(HttpClient);
-  private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
-  private xsrfService = inject(XsrfService);
   isMobile = false;
-  private destroy$ = new Subject<void>();
-
   username = '';
   password = '';
   githubEnabled = false;
@@ -50,6 +41,16 @@ export class WelcomeComponent implements OnInit, OnDestroy {
   facebookEnabled = false;
   discordEnabled = false;
   appleEnabled = false;
+
+  private breakpointObserver = inject(BreakpointObserver);
+  private ngZone = inject(NgZone);
+  private userService = inject(UserAPIService);
+  private http = inject(HttpClient);
+  private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
+  private xsrfService = inject(XsrfService);
+
+  private destroy$ = new Subject<void>();
 
   constructor() {
     this.setupBreakpointObserver();

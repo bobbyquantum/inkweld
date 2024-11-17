@@ -1,17 +1,43 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 
 import { ProjectTreeComponent } from './project-tree.component';
+import { ProjectElement } from './ProjectElement';
 import { FILE_ONLY_DATA, SINGLE_FOLDER_DATA, TREE_DATA } from './TREE_DATA';
+
+interface ProjectTreeComponentInputs {
+  /**
+   * The data for the tree structure.
+   */
+  treeData: ProjectElement[];
+}
 
 const meta: Meta<ProjectTreeComponent> = {
   title: 'Components/ProjectTree',
   component: ProjectTreeComponent,
   tags: ['autodocs'],
-  render: (args: ProjectTreeComponent) => ({
+  render: (args: ProjectTreeComponentInputs) => ({
     props: {
       ...args,
     },
   }),
+  argTypes: {
+    treeData: {
+      name: 'Tree Data',
+      description: 'The data for the tree structure.',
+      control: 'object',
+      table: {
+        type: { summary: 'ProjectElement[]' },
+        defaultValue: { summary: '[]' },
+      },
+    },
+  },
+  parameters: {
+    docs: {
+      description: {
+        component: 'Component for displaying and managing the project tree.',
+      },
+    },
+  },
 };
 
 export default meta;
@@ -47,7 +73,7 @@ export const FilesOnly: Story = {
   },
 };
 
-export const SIngleFolder: Story = {
+export const SingleFolder: Story = {
   args: {
     treeData: SINGLE_FOLDER_DATA,
   },

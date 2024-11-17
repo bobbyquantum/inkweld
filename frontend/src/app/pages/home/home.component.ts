@@ -31,17 +31,18 @@ import { Project, ProjectAPIService, UserAPIService } from 'worm-api-client';
   styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit, OnDestroy {
-  private userService = inject(UserAPIService);
-  private projectService = inject(ProjectAPIService);
-  private breakpointObserver = inject(BreakpointObserver);
-  protected user = toSignal(
-    this.userService.getCurrentUser('body', true, { transferCache: true })
-  );
   projects: Project[] = [];
   selectedProject: Project | null = null;
   isMobile = false;
-  private destroy$ = new Subject<void>();
 
+  protected userService = inject(UserAPIService);
+  protected projectService = inject(ProjectAPIService);
+  protected breakpointObserver = inject(BreakpointObserver);
+
+  protected destroy$ = new Subject<void>();
+  protected user = toSignal(
+    this.userService.getCurrentUser('body', true, { transferCache: true })
+  );
   ngOnInit() {
     this.loadProjects();
     this.setupBreakpointObserver();

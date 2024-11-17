@@ -49,45 +49,6 @@ export class ElementEditorComponent
 
   constructor(private yjsService: YjsService) {}
 
-  ngOnInit(): void {
-    this.editor = new Editor();
-    this.updateDimensions();
-  }
-
-  ngAfterViewInit(): void {
-    // Setup collaboration after the editor view is initialized
-    setTimeout(() => {
-      this.yjsService.setupCollaboration(this.editor, this.documentId);
-    }, 0);
-  }
-
-  ngOnDestroy(): void {
-    this.editor.destroy();
-    this.yjsService.disconnect();
-  }
-
-  increaseZoom() {
-    if (this.zoomLevel < 200) {
-      this.zoomLevel += 10;
-      this.updateZoom();
-    }
-  }
-
-  decreaseZoom() {
-    if (this.zoomLevel > 50) {
-      this.zoomLevel -= 10;
-      this.updateZoom();
-    }
-  }
-
-  startDragging(event: MouseEvent, dragPoint: DragPoint) {
-    this.isDragging = true;
-    this.currentDragPoint = dragPoint;
-    this.startX = event.clientX;
-    this.startDimensions = { ...this.dimensions };
-    event.preventDefault();
-  }
-
   @HostListener('document:mousemove', ['$event'])
   onMouseMove(event: MouseEvent) {
     if (!this.isDragging || !this.currentDragPoint || !this.startDimensions)
@@ -156,6 +117,45 @@ export class ElementEditorComponent
     this.isDragging = false;
     this.currentDragPoint = null;
     this.startDimensions = null;
+  }
+
+  ngOnInit(): void {
+    this.editor = new Editor();
+    this.updateDimensions();
+  }
+
+  ngAfterViewInit(): void {
+    // Setup collaboration after the editor view is initialized
+    setTimeout(() => {
+      this.yjsService.setupCollaboration(this.editor, this.documentId);
+    }, 0);
+  }
+
+  ngOnDestroy(): void {
+    this.editor.destroy();
+    this.yjsService.disconnect();
+  }
+
+  increaseZoom() {
+    if (this.zoomLevel < 200) {
+      this.zoomLevel += 10;
+      this.updateZoom();
+    }
+  }
+
+  decreaseZoom() {
+    if (this.zoomLevel > 50) {
+      this.zoomLevel -= 10;
+      this.updateZoom();
+    }
+  }
+
+  startDragging(event: MouseEvent, dragPoint: DragPoint) {
+    this.isDragging = true;
+    this.currentDragPoint = dragPoint;
+    this.startX = event.clientX;
+    this.startDimensions = { ...this.dimensions };
+    event.preventDefault();
   }
 
   private updateZoom() {
