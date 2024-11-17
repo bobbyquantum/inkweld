@@ -32,10 +32,10 @@ export class UserMenuComponent {
       .post<LogoutResponse>('/logout', {}, { withCredentials: true })
       .subscribe({
         next: response => {
-          if (response && response.redirectUrl) {
-            this.router.navigateByUrl(response.redirectUrl);
+          if (response?.redirectUrl) {
+            void this.router.navigateByUrl(response.redirectUrl);
           } else {
-            this.router.navigateByUrl('/welcome');
+            void this.router.navigateByUrl('/welcome');
           }
         },
         error: error => {

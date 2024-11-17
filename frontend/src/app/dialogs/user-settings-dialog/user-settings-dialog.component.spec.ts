@@ -87,7 +87,8 @@ describe('UserSettingsDialogComponent', () => {
     fixture.detectChanges();
     expect(fixture.debugElement.query(By.css('p'))).toBeTruthy();
     expect(
-      fixture.debugElement.query(By.css('p')).nativeElement.textContent
+      (fixture.debugElement.query(By.css('p')).nativeElement as HTMLElement)
+        .textContent
     ).toContain('Account settings content goes here');
   });
 
@@ -105,10 +106,10 @@ describe('UserSettingsDialogComponent', () => {
 
   it('should change category when nav item is clicked', () => {
     const navItems = fixture.debugElement.queryAll(By.css('a[mat-list-item]'));
-    navItems[1].nativeElement.click();
+    (navItems[1].nativeElement as HTMLElement).click();
     expect(component.selectedCategory).toBe('account');
 
-    navItems[0].nativeElement.click();
+    (navItems[0].nativeElement as HTMLElement).click();
     expect(component.selectedCategory).toBe('general');
   });
 
@@ -117,6 +118,8 @@ describe('UserSettingsDialogComponent', () => {
       By.css('button[mat-dialog-close]')
     );
     expect(closeButton).toBeTruthy();
-    expect(closeButton.nativeElement.textContent).toContain('close');
+    expect((closeButton.nativeElement as HTMLElement).textContent).toContain(
+      'close'
+    );
   });
 });

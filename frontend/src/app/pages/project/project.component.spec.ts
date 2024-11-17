@@ -3,7 +3,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
-import { Editor } from 'ngx-editor';
+import { Editor, NgxEditorModule } from 'ngx-editor';
 
 import { ProjectComponent } from './project.component';
 
@@ -16,7 +16,7 @@ describe('ProjectComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ProjectComponent, NoopAnimationsModule],
+      imports: [ProjectComponent, NoopAnimationsModule, NgxEditorModule],
       providers: [
         provideRouter([]),
         provideHttpClient(),

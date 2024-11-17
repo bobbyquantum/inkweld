@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit } from '@angular/core';
 import {
   FormBuilder,
+  FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators,
@@ -14,7 +15,12 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterModule } from '@angular/router';
 import { XsrfService } from '@services/xsrf.service';
-import { ProjectAPIService, User, UserAPIService } from 'worm-api-client';
+import {
+  Project,
+  ProjectAPIService,
+  User,
+  UserAPIService,
+} from 'worm-api-client';
 
 @Component({
   selector: 'app-new-project',
@@ -34,7 +40,14 @@ import { ProjectAPIService, User, UserAPIService } from 'worm-api-client';
   styleUrls: ['./new-project.component.scss'],
 })
 export class NewProjectComponent implements OnInit {
-  projectForm: FormGroup;
+  projectForm = new FormGroup({
+    title: new FormControl('', [Validators.required.bind(this)]),
+    slug: new FormControl('', [
+      Validators.required.bind(this),
+      Validators.pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    ]),
+    description: new FormControl(''),
+  });
   projectUrl = '';
   baseUrl: string;
   username = '';
@@ -48,22 +61,16 @@ export class NewProjectComponent implements OnInit {
 
   constructor() {
     this.baseUrl = window.location.origin;
-    this.projectForm = this.fb.group({
-      title: ['', Validators.required],
-      slug: [
-        '',
-        [Validators.required, Validators.pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)],
-      ],
-      description: [''],
-    });
 
-    this.projectForm.get('title')?.valueChanges.subscribe(title => {
-      if (title) {
-        const slug = this.generateSlug(title);
-        this.projectForm.patchValue({ slug }, { emitEvent: false });
-        this.updateProjectUrl();
-      }
-    });
+    this.projectForm
+      .get('title')
+      ?.valueChanges.subscribe((title: string | null) => {
+        if (title) {
+          const slug = this.generateSlug(title);
+          this.projectForm.patchValue({ slug }, { emitEvent: false });
+          this.updateProjectUrl();
+        }
+      });
 
     this.projectForm.get('slug')?.valueChanges.subscribe(() => {
       this.updateProjectUrl();
@@ -83,7 +90,7 @@ export class NewProjectComponent implements OnInit {
           });
         }
       },
-      error: err => {
+      error: (err: unknown) => {
         console.error('Error fetching current user', err);
         this.snackBar.open('Failed to fetch user information.', 'Close', {
           duration: 3000,
@@ -92,21 +99,21 @@ export class NewProjectComponent implements OnInit {
     });
   }
 
-  generateSlug(title: string): string {
+  generateSlug = (title: string): string => {
     return title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
-  }
+  };
 
-  updateProjectUrl() {
+  updateProjectUrl = (): void => {
     const slug = this.projectForm.get('slug')?.value;
     if (this.username && slug) {
       this.projectUrl = `${this.baseUrl}/${this.username}/${slug}`;
     } else {
       this.projectUrl = '';
     }
-  }
+  };
 
   onSubmit() {
     if (this.projectForm.invalid) {
@@ -114,16 +121,16 @@ export class NewProjectComponent implements OnInit {
     }
 
     const xsrfToken = this.xsrfService.getXsrfToken();
-    const projectData = this.projectForm.value;
+    const projectData = this.projectForm.value as Project;
 
     this.projectService.createProject(xsrfToken, projectData).subscribe({
       next: () => {
         this.snackBar.open('Project created successfully!', 'Close', {
           duration: 3000,
         });
-        this.router.navigate(['/']);
+        void this.router.navigate(['/']);
       },
-      error: err => {
+      error: (err: unknown) => {
         console.error('Error creating project', err);
         this.snackBar.open('Failed to create project.', 'Close', {
           duration: 3000,

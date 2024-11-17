@@ -26,8 +26,8 @@ export class UserFilesDialogComponent implements OnInit {
 
   private fileService = inject(FileAPIService);
 
-  async ngOnInit(): Promise<void> {
-    await this.loadFiles(0, this.pageSize);
+  ngOnInit() {
+    void this.loadFiles(0, this.pageSize);
   }
 
   async loadFiles(pageIndex: number, pageSize: number): Promise<void> {
@@ -38,10 +38,10 @@ export class UserFilesDialogComponent implements OnInit {
       })
     );
     this.files = response.content as ModelFile[];
-    this.page = response.page as PageInfo;
+    this.page = response.page!;
   }
 
   onPageChange(event: PageEvent): void {
-    this.loadFiles(event.pageIndex, event.pageSize);
+    void this.loadFiles(event.pageIndex, event.pageSize);
   }
 }

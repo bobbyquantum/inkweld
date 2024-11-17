@@ -22,7 +22,6 @@ export class AppComponent implements OnInit {
   protected themeService = inject(ThemeService);
 
   ngOnInit(): void {
-    console.log('AppComponent ngOnInit');
     this.themeService.initTheme();
     firstValueFrom(this.userService.getCurrentUser())
       .then((user: User) => {

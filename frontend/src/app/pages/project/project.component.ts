@@ -10,7 +10,6 @@ import { MatTreeModule, MatTreeNestedDataSource } from '@angular/material/tree';
 import { ActivatedRoute } from '@angular/router';
 import { ProjectElement } from '@components/project-tree/ProjectElement';
 import { TREE_DATA } from '@components/project-tree/TREE_DATA';
-import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Project, ProjectAPIService, User } from 'worm-api-client';
 
 import { ElementEditorComponent } from '../../components/element-editor/element-editor.component';
@@ -35,7 +34,6 @@ interface FileNode {
     MatTabsModule,
     MatButtonModule,
     MatTreeModule,
-    UserMenuComponent,
     MatSnackBarModule,
     ProjectTreeComponent,
     ProjectMainMenuComponent,
@@ -63,8 +61,8 @@ export class ProjectComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
-      const username = params['username'];
-      const slug = params['slug'];
+      const username = params['username'] as string;
+      const slug = params['slug'] as string;
       this.loadProject(username, slug);
     });
   }

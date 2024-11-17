@@ -38,7 +38,7 @@ describe('NewProjectComponent', () => {
       createProject: jest
         .fn()
         .mockImplementation((token: string, project: Project) => {
-          return of(project as Project);
+          return of(project);
         }),
     } as unknown as jest.Mocked<ProjectAPIService>;
 

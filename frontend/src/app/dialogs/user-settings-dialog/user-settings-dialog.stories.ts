@@ -73,7 +73,7 @@ In this Storybook, the component is rendered directly to simulate its appearance
   render: (args: Partial<UserSettingsDialogComponent>) => ({
     props: {
       ...args,
-      isMobile: args.isMobile || false,
+      isMobile: args.isMobile ?? false,
       destroyed: new Subject<void>(),
       breakpointObserver: args.isMobile
         ? mockMobileBreakpointObserver

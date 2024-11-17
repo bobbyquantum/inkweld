@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Editor } from 'ngx-editor';
+import { Plugin } from 'prosemirror-state';
 import { yCursorPlugin, ySyncPlugin, yUndoPlugin } from 'y-prosemirror';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
@@ -34,8 +35,8 @@ export class YjsService {
 
     // Get the underlying ProseMirror view
     const view = editor.view;
-    if (!view || !this.type || !this.provider) {
-      console.error('Editor view or Yjs not properly initialized');
+    if (!this.type || !this.provider) {
+      console.error('Editor Yjs not properly initialized');
       return;
     }
 
@@ -44,8 +45,7 @@ export class YjsService {
       ySyncPlugin(this.type),
       yCursorPlugin(this.provider.awareness),
       yUndoPlugin(),
-    ];
-
+    ] as Plugin[];
     // Add plugins to the editor's state
     const newState = view.state.reconfigure({
       plugins: [...view.state.plugins, ...plugins],

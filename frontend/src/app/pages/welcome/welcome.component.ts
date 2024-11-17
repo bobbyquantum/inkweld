@@ -55,7 +55,7 @@ export class WelcomeComponent implements OnInit, OnDestroy {
     this.setupBreakpointObserver();
   }
 
-  async ngOnInit(): Promise<void> {
+  ngOnInit(): void {
     this.userService.getEnabledOAuth2Providers().subscribe({
       next: providers => {
         providers.forEach(provider => {
@@ -118,7 +118,7 @@ export class WelcomeComponent implements OnInit, OnDestroy {
         next: response => {
           console.log('Login successful', response);
           this.snackBar.open('Login successful', 'Close', { duration: 3000 });
-          this.router.navigate(['/']);
+          void this.router.navigate(['/']);
         },
         error: error => {
           console.error('Login failed', error);

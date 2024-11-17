@@ -25,7 +25,7 @@ export const authGuard: CanActivateFn = async () => {
     if (
       error instanceof HttpErrorResponse &&
       'status' in error &&
-      (error as HttpErrorResponse).status === 502
+      error.status === 502
     ) {
       return router.createUrlTree(['/unavailable']);
     }
