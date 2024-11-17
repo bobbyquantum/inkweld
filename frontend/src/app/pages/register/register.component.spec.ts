@@ -21,6 +21,7 @@ describe('RegisterComponent', () => {
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
+      request: jest.fn(),
     } as unknown as jest.Mocked<HttpClient>;
 
     router = {

@@ -68,12 +68,9 @@ export class ThemeService implements OnDestroy {
   }
 
   private getColorTheme() {
-    const theme = localStorage.getItem('user-theme') as ThemeOption;
-    if (theme) {
-      this.colorTheme.next(theme);
-    } else {
-      this.colorTheme.next('system');
-    }
+    const theme = (localStorage.getItem('user-theme') ??
+      'system') as ThemeOption;
+    this.colorTheme.next(theme);
   }
 
   private updateBodyClass() {

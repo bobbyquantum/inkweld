@@ -54,7 +54,8 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
   @Input() treeData: ProjectElement[] = [];
 
   @ViewChild('tree') treeEl!: MatTree<ProjectElement>;
-  @ViewChild('treeContainer', { static: true }) treeContainer!: ElementRef;
+  @ViewChild('treeContainer', { static: true })
+  treeContainer!: ElementRef<HTMLElement>;
   @ViewChild('editInput') inputEl!: MatInput;
   @ViewChild(CdkDropList) dropList!: CdkDropList<ProjectElement>;
 
@@ -76,7 +77,9 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
   collapseTimer: NodeJS.Timeout | null = null;
 
   ngOnInit() {
-    this.sourceData = JSON.parse(JSON.stringify(this.treeData));
+    this.sourceData = JSON.parse(
+      JSON.stringify(this.treeData)
+    ) as ProjectElement[];
     this.updateDataSource();
   }
   ngAfterViewInit() {
@@ -213,6 +216,7 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
 
   dragMove(event: CdkDragMove<ArrayDataSource<ProjectElement>>) {
     const pointerX = event.pointerPosition.x;
+
     const treeRect = this.treeContainer.nativeElement.getBoundingClientRect();
     const indentPerLevel = 24;
     const relativeX = pointerX - treeRect.left;
@@ -226,7 +230,7 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     this.currentDropLevel = selectedLevel;
     const placeholderElement = this.treeContainer.nativeElement.querySelector(
       '.cdk-drag-placeholder'
-    );
+    ) as HTMLElement;
     if (placeholderElement) {
       placeholderElement.style.marginLeft = `${selectedLevel * indentPerLevel}px`;
     }
@@ -301,7 +305,8 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
 
     // Check if trying to drop as child of an item
     if (
-      this.nodeAbove?.type === 'item' &&
+      this.nodeAbove &&
+      this.nodeAbove.type === 'item' &&
       this.currentDropLevel > this.nodeAbove.level
     ) {
       throw new Error('Cannot drop as child of an item');
@@ -328,6 +333,7 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
         n => n.id === this.nodeAbove?.id
       );
       if (nodeAboveIndex === -1) {
+        // this.sourceData.splice(0, 0, ...nodeSubtree);
         return;
       }
 
@@ -382,7 +388,7 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
   }
 
   onRename(node: unknown) {
-    console.log('Rename ' + node);
+    console.log(`Rename ${String(node)}`);
     this.startEditing(node as ProjectElement);
   }
 

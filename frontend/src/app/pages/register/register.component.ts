@@ -57,27 +57,26 @@ export class RegisterComponent implements OnInit {
   private router = inject(Router);
   private xsrfService = inject(XsrfService);
 
-  async ngOnInit() {
+  ngOnInit() {
     this.isMobile = window.innerWidth < 768;
 
-    try {
-      const providers = await firstValueFrom(
-        this.userService.getEnabledOAuth2Providers()
-      );
-      console.log('Enabled OAuth2 providers:', providers);
-      providers.forEach(provider => {
-        if (provider === 'github') this.githubEnabled = true;
-        if (provider === 'google') this.googleEnabled = true;
-        if (provider === 'facebook') this.facebookEnabled = true;
-        if (provider === 'discord') this.discordEnabled = true;
-        if (provider === 'apple') this.appleEnabled = true;
+    firstValueFrom(this.userService.getEnabledOAuth2Providers())
+      .then(providers => {
+        console.log('Enabled OAuth2 providers:', providers);
+        providers.forEach(provider => {
+          if (provider === 'github') this.githubEnabled = true;
+          if (provider === 'google') this.googleEnabled = true;
+          if (provider === 'facebook') this.facebookEnabled = true;
+          if (provider === 'discord') this.discordEnabled = true;
+          if (provider === 'apple') this.appleEnabled = true;
+        });
+      })
+      .catch(error => {
+        console.error('Error fetching OAuth2 providers:', error);
+        this.snackBar.open('Failed to load OAuth2 providers', 'Close', {
+          duration: 5000,
+        });
       });
-    } catch (error) {
-      console.error('Error fetching OAuth2 providers:', error);
-      this.snackBar.open('Failed to load OAuth2 providers', 'Close', {
-        duration: 5000,
-      });
-    }
   }
 
   async onRegister() {
@@ -101,7 +100,7 @@ export class RegisterComponent implements OnInit {
       this.snackBar.open('Registration successful!', 'Close', {
         duration: 3000,
       });
-      this.router.navigate(['/home']);
+      void this.router.navigate(['/home']);
     } catch (error: unknown) {
       if (error instanceof HttpErrorResponse) {
         console.error('Error during registration:', error.message);
@@ -150,7 +149,7 @@ export class RegisterComponent implements OnInit {
   selectSuggestion(suggestion: string) {
     this.username = suggestion;
     this.usernameSuggestions = [];
-    this.checkUsernameAvailability();
+    void this.checkUsernameAvailability();
   }
 
   registerWithOAuth(provider: string) {

@@ -16,7 +16,7 @@ export class UserSettingsService {
       .open(UserSettingsDialogComponent, {
         width: '700px',
       })
-      .afterClosed();
+      .afterClosed() as Observable<void>;
   }
 
   openFileDialog(): Observable<void> {
@@ -25,6 +25,6 @@ export class UserSettingsService {
       .open(UserFilesDialogComponent, {
         width: '700px',
       })
-      .afterClosed();
+      .afterClosed() as Observable<void>;
   }
 }

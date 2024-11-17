@@ -93,11 +93,11 @@ describe('ProjectTreeComponent', () => {
       }
 
       // Should throw error when attempting to drop as child of an item
-      expect(() =>
+      expect(() => {
         component.drop(
           mockDragEvent as CdkDragDrop<ArrayDataSource<ProjectElement>>
-        )
-      ).toThrowError('Cannot drop as child of an item');
+        );
+      }).toThrowError('Cannot drop as child of an item');
 
       // Verify the structure remains unchanged
       expect(component.sourceData[0].id).toBe('1');
@@ -119,6 +119,15 @@ describe('ProjectTreeComponent', () => {
       mockDragEvent.previousIndex = 1;
       mockDragEvent.currentIndex = 1; // Dropping after the folder
       component.currentDropLevel = 1; // Dropping as a child of the folder
+
+      // Update getSortedItems to return the sorted list after dragging
+      if (mockDragEvent.container) {
+        mockDragEvent.container.getSortedItems = () =>
+          [
+            { data: component.sourceData[0] }, // Folder
+            { data: component.sourceData[1] }, // Item
+          ] as CdkDrag<ProjectElement>[];
+      }
 
       component.drop(
         mockDragEvent as CdkDragDrop<ArrayDataSource<ProjectElement>>
@@ -152,11 +161,11 @@ describe('ProjectTreeComponent', () => {
       }
 
       // Should throw error when attempting to drop as child of an item
-      expect(() =>
+      expect(() => {
         component.drop(
           mockDragEvent as CdkDragDrop<ArrayDataSource<ProjectElement>>
-        )
-      ).toThrowError('Cannot drop as child of an item');
+        );
+      }).toThrow('Cannot drop as child of an item');
 
       // The folder should remain at level 0 since dropping into an item is invalid
       expect(component.sourceData[0].id).toBe('1');
@@ -167,9 +176,9 @@ describe('ProjectTreeComponent', () => {
 
     it('should maintain the structure of a dragged folder and its contents', () => {
       const testData: ProjectElement[] = [
-        createProjectElement('1', 'Folder 1', 'folder', 0, true),
-        createProjectElement('2', 'Item 1', 'item', 1),
-        createProjectElement('3', 'Folder 2', 'folder', 0, true),
+        createProjectElement('1', 'Folder 1', 'folder', 0, true, false, true),
+        createProjectElement('2', 'Item 1', 'item', 1, false, false, false),
+        createProjectElement('3', 'Folder 2', 'folder', 0, true, false, true),
       ];
       component.treeData = testData;
       component.ngOnInit();
@@ -177,8 +186,15 @@ describe('ProjectTreeComponent', () => {
       const folderToDrag = component.sourceData[0];
       mockDragEvent.item!.data = folderToDrag;
       mockDragEvent.previousIndex = 0;
-      mockDragEvent.currentIndex = 2; // Dropping after 'Folder 2'
+      mockDragEvent.currentIndex = 1; // Dropping after 'Folder 2'
       component.currentDropLevel = 0; // Keeping it at the root level
+
+      mockDragEvent.container!.getSortedItems = () =>
+        [
+          { data: component.sourceData[2] }, // Folder 2
+          { data: component.sourceData[0] }, // Folder 1
+          { data: component.sourceData[1] }, // Item 1
+        ] as CdkDrag<ProjectElement>[];
 
       component.drop(
         mockDragEvent as CdkDragDrop<ArrayDataSource<ProjectElement>>
@@ -197,9 +213,9 @@ describe('ProjectTreeComponent', () => {
 
     it('should update levels correctly when dragging a folder into another folder', () => {
       const testData: ProjectElement[] = [
-        createProjectElement('1', 'Folder 1', 'folder', 0, true),
-        createProjectElement('2', 'Item 1', 'item', 1),
-        createProjectElement('3', 'Folder 2', 'folder', 0, true),
+        createProjectElement('1', 'Folder 1', 'folder', 0, true, false, true),
+        createProjectElement('2', 'Item 1', 'item', 1, false, false, false),
+        createProjectElement('3', 'Folder 2', 'folder', 0, true, false, true),
       ];
       component.treeData = testData;
       component.ngOnInit();
@@ -207,8 +223,15 @@ describe('ProjectTreeComponent', () => {
       const folderToDrag = component.sourceData[0]; // 'Folder 1'
       mockDragEvent.item!.data = folderToDrag;
       mockDragEvent.previousIndex = 0;
-      mockDragEvent.currentIndex = 2; // Dropping after 'Folder 2'
+      mockDragEvent.currentIndex = 1; // Dropping after 'Folder 2'
       component.currentDropLevel = 1; // Making 'Folder 1' a child of 'Folder 2'
+
+      mockDragEvent.container!.getSortedItems = () =>
+        [
+          { data: component.sourceData[2] }, // Folder 2
+          // { data: component.sourceData[1] }, // Item 1
+          { data: component.sourceData[0] }, // Folder 1
+        ] as CdkDrag<ProjectElement>[];
 
       component.drop(
         mockDragEvent as CdkDragDrop<ArrayDataSource<ProjectElement>>
@@ -239,6 +262,12 @@ describe('ProjectTreeComponent', () => {
       mockDragEvent.currentIndex = 1; // Moving to the end
       component.currentDropLevel = 0; // Dropping at root level
 
+      mockDragEvent.container!.getSortedItems = () =>
+        [
+          { data: component.sourceData[0] }, // Folder
+          { data: component.sourceData[1] }, // Item
+        ] as CdkDrag<ProjectElement>[];
+
       component.drop(
         mockDragEvent as CdkDragDrop<ArrayDataSource<ProjectElement>>
       );
@@ -260,6 +289,11 @@ describe('ProjectTreeComponent', () => {
       mockDragEvent.previousIndex = 0;
       mockDragEvent.currentIndex = 0;
       component.currentDropLevel = -1; // Invalid level
+
+      mockDragEvent.container!.getSortedItems = () =>
+        [
+          { data: component.sourceData[0] }, // Item
+        ] as CdkDrag<ProjectElement>[];
 
       component.drop(
         mockDragEvent as CdkDragDrop<ArrayDataSource<ProjectElement>>
@@ -295,6 +329,12 @@ describe('ProjectTreeComponent', () => {
         } as CdkDropList<ArrayDataSource<ProjectElement>>,
       };
 
+      mockSortEvent.container!.getSortedItems = () =>
+        [
+          { data: component.sourceData[1] }, // Item 2
+          { data: component.sourceData[0] }, // Item 1
+        ] as CdkDrag<ProjectElement>[];
+
       component.sorted(
         mockSortEvent as CdkDragSortEvent<ArrayDataSource<ProjectElement>>
       );
@@ -326,6 +366,12 @@ describe('ProjectTreeComponent', () => {
           ],
         } as CdkDropList<ArrayDataSource<ProjectElement>>,
       };
+
+      mockSortEvent.container!.getSortedItems = () =>
+        [
+          { data: component.sourceData[0] }, // Folder
+          { data: component.sourceData[1] }, // Item (dragged node)
+        ] as CdkDrag<ProjectElement>[];
 
       component.sorted(
         mockSortEvent as CdkDragSortEvent<ArrayDataSource<ProjectElement>>
@@ -360,6 +406,13 @@ describe('ProjectTreeComponent', () => {
           ],
         } as CdkDropList<ArrayDataSource<ProjectElement>>,
       };
+
+      mockSortEvent.container!.getSortedItems = () =>
+        [
+          { data: component.sourceData[0] }, // Folder 1
+          { data: component.sourceData[2] }, // Folder 2
+          { data: component.sourceData[1] }, // Item 1 (dragged node)
+        ] as CdkDrag<ProjectElement>[];
 
       component.sorted(
         mockSortEvent as CdkDragSortEvent<ArrayDataSource<ProjectElement>>

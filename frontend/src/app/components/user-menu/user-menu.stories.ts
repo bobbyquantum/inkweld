@@ -29,8 +29,12 @@ const meta: Meta<UserMenuComponent> = {
         {
           provide: UserSettingsService,
           useValue: {
-            openSettingsDialog: () => console.log('Open settings dialog'),
-            openFileDialog: () => console.log('Open file dialog'),
+            openSettingsDialog: () => {
+              console.log('Open settings dialog');
+            },
+            openFileDialog: () => {
+              console.log('Open file dialog');
+            },
           },
         },
       ],
