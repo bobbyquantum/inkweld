@@ -6,7 +6,6 @@ import {
   CdkDragPlaceholder,
   CdkDragPreview,
   CdkDragSortEvent,
-  CdkDragStart,
   CdkDropList,
   DragDropModule,
 } from '@angular/cdk/drag-drop';
@@ -28,6 +27,14 @@ import { MatTree, MatTreeModule } from '@angular/material/tree';
 
 import { ProjectElement } from './ProjectElement';
 
+/**
+ * Component for displaying and managing the project tree.
+ *
+ * @example
+ * ```html
+ * <app-project-tree [treeData]="myTreeData"></app-project-tree>
+ * ```
+ */
 @Component({
   standalone: true,
   imports: [
@@ -51,6 +58,10 @@ import { ProjectElement } from './ProjectElement';
   styleUrls: ['./project-tree.component.scss'],
 })
 export class ProjectTreeComponent implements OnInit, AfterViewInit {
+  /**
+   * The data for the tree structure.
+   * Accepts an array of `ProjectElement` objects.
+   */
   @Input() treeData: ProjectElement[] = [];
 
   @ViewChild('tree') treeEl!: MatTree<ProjectElement>;
@@ -76,28 +87,48 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
   wasExpandedNodeIds = new Set<string>();
   collapseTimer: NodeJS.Timeout | null = null;
 
+  /**
+   * Initializes the component.
+   */
   ngOnInit() {
     this.sourceData = JSON.parse(
       JSON.stringify(this.treeData)
     ) as ProjectElement[];
     this.updateDataSource();
   }
+
+  /**
+   * Lifecycle hook after the view is initialized.
+   */
   ngAfterViewInit() {
     // Subscribe to beforeStarted event on the DropListRef
     this.dropList._dropListRef.beforeStarted.subscribe(() => {
       this.beforeDragStarted();
     });
   }
+
+  /**
+   * Updates the data source based on visibility.
+   */
   updateDataSource() {
     this.dataSource = new ArrayDataSource<ProjectElement>(
       this.sourceData.filter(x => x.visible)
     );
   }
 
+  /**
+   * Accessor for node levels.
+   * @param dataNode The project element node.
+   * @returns The level of the node.
+   */
   levelAccessor(dataNode: ProjectElement): number {
     return dataNode.level;
   }
 
+  /**
+   * Toggles the expanded state of a node.
+   * @param node The project element to toggle.
+   */
   toggleExpanded(node: ProjectElement) {
     const nodeIndex = this.sourceData.indexOf(node);
     this.sourceData[nodeIndex].expanded = !this.sourceData[nodeIndex].expanded;
@@ -112,6 +143,9 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     this.updateDataSource();
   }
 
+  /**
+   * Updates the visibility of nodes in the tree based on their expanded state.
+   */
   updateVisibility() {
     const stack: { level: number; expanded?: boolean }[] = [];
     for (const node of this.sourceData) {
@@ -125,6 +159,10 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     }
   }
 
+  /**
+   * Adds a new item as a child to the specified node.
+   * @param node The parent node to add a new item to.
+   */
   addItem(node: ProjectElement) {
     const nodeIndex = this.sourceData.indexOf(node);
     const newItem: ProjectElement = {
@@ -138,10 +176,14 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     };
     this.sourceData.splice(nodeIndex + 1, 0, newItem);
     this.updateVisibility();
-    // this.updateDataSource();
   }
 
-  getParentNode(node: ProjectElement) {
+  /**
+   * Retrieves the parent node of a given node.
+   * @param node The node to find the parent of.
+   * @returns The parent node, or null if not found.
+   */
+  getParentNode(node: ProjectElement): ProjectElement | null {
     const nodeIndex = this.sourceData.indexOf(node);
     for (let i = nodeIndex - 1; i >= 0; i--) {
       if (this.sourceData[i].level === node.level - 1) {
@@ -151,6 +193,11 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     return null;
   }
 
+  /**
+   * Retrieves the subtree of nodes starting from a given index.
+   * @param nodeIndex The index of the starting node.
+   * @returns An array of nodes in the subtree.
+   */
   getNodeSubtree(nodeIndex: number): ProjectElement[] {
     const subtree = [this.sourceData[nodeIndex]];
     const nodeLevel = this.sourceData[nodeIndex].level;
@@ -164,7 +211,10 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     return subtree;
   }
 
-  // Add mousedown and mouseup handlers
+  /**
+   * Handles the mousedown event on a node.
+   * @param node The node that is being pressed.
+   */
   onNodeDown(node: ProjectElement) {
     this.selectedItem = node;
     if (node.type === 'folder' && node.expanded) {
@@ -180,6 +230,9 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     }
   }
 
+  /**
+   * Handles the mouseup event on a node.
+   */
   onNodeUp() {
     if (this.collapseTimer) {
       clearTimeout(this.collapseTimer);
@@ -187,6 +240,9 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     }
   }
 
+  /**
+   * Prepares for drag start by collapsing expanded nodes if necessary.
+   */
   beforeDragStarted() {
     if (this.selectedItem?.type === 'folder' && this.selectedItem.expanded) {
       // Remember that we collapsed this node
@@ -197,13 +253,12 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     }
   }
 
-  dragStarted(
-    node: ProjectElement,
-    event: CdkDragStart<ArrayDataSource<ProjectElement>>
-  ) {
-    const { source } = event;
-    console.log('Drag started', event);
-    console.log('Source', source);
+  /**
+   * Handles the drag start event.
+   * @param node The node being dragged.
+   * @param event The drag start event.
+   */
+  dragStarted(node: ProjectElement) {
     this.draggedNode = node;
     this.currentDropLevel = node.level;
     this.validLevelsArray = [node.level];
@@ -214,6 +269,10 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     }
   }
 
+  /**
+   * Handles the drag move event to adjust the placeholder position.
+   * @param event The drag move event.
+   */
   dragMove(event: CdkDragMove<ArrayDataSource<ProjectElement>>) {
     const pointerX = event.pointerPosition.x;
 
@@ -236,16 +295,16 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     }
   }
 
+  /**
+   * Handles the sort event during drag and drop.
+   * @param event The drag sort event.
+   */
   sorted(event: CdkDragSortEvent<ArrayDataSource<ProjectElement>>) {
     const { currentIndex, container } = event;
     const sortedNodes = container
       .getSortedItems()
       .map(dragItem => dragItem.data as ProjectElement)
       .filter(node => node.id !== this.draggedNode?.id);
-    // console.log(
-    //   'Sorted nodes: ' +
-    //     sortedNodes.map((node, i) => `${i}:${node.id}`).join(',')
-    // );
     this.nodeAbove = sortedNodes[currentIndex - 1] || null;
     this.nodeBelow = sortedNodes[currentIndex] || null;
     const validLevels = new Set<number>();
@@ -281,11 +340,11 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
 
     this.validLevelsArray = Array.from(validLevels).sort((a, b) => a - b);
     this.currentDropLevel = this.validLevelsArray[0];
-    // console.log(
-    //   `P:${previousIndex} C:${currentIndex} A:${this.nodeAbove?.id},${this.nodeAbove?.level} B:${this.nodeBelow?.id},${this.nodeBelow?.level} L: ${this.validLevelsArray}`
-    // );
   }
 
+  /**
+   * Resets the state after a drop operation.
+   */
   resetDropState() {
     this.updateVisibility();
     this.updateDataSource();
@@ -294,6 +353,10 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     this.nodeBelow = null;
   }
 
+  /**
+   * Handles the drop event to rearrange nodes.
+   * @param event The drag drop event.
+   */
   drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {
     const { currentIndex, container, item } = event;
     const sortedNodes = container
@@ -333,7 +396,6 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
         n => n.id === this.nodeAbove?.id
       );
       if (nodeAboveIndex === -1) {
-        // this.sourceData.splice(0, 0, ...nodeSubtree);
         return;
       }
 
@@ -362,6 +424,9 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     this.resetDropState();
   }
 
+  /**
+   * Handles the drag end event.
+   */
   dragEnded() {
     if (this.draggedNode && this.wasExpandedNodeIds.has(this.draggedNode.id)) {
       this.toggleExpanded(this.draggedNode);
@@ -371,10 +436,19 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     }
   }
 
+  /**
+   * Initiates editing of a node's name.
+   * @param node The node to edit.
+   */
   startEditing(node: ProjectElement) {
     this.editingNode = node.id;
   }
 
+  /**
+   * Completes editing of a node's name.
+   * @param node The node being edited.
+   * @param newName The new name for the node.
+   */
   finishEditing(node: ProjectElement, newName: string) {
     if (newName.trim() !== '') {
       node.name = newName.trim();
@@ -383,15 +457,25 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     this.updateDataSource();
   }
 
+  /**
+   * Cancels editing of a node's name.
+   */
   cancelEditing() {
     this.editingNode = null;
   }
 
-  onRename(node: unknown) {
-    console.log(`Rename ${String(node)}`);
-    this.startEditing(node as ProjectElement);
+  /**
+   * Handles the rename action from the context menu.
+   * @param node The node to rename.
+   */
+  onRename(node: ProjectElement) {
+    this.startEditing(node);
   }
 
+  /**
+   * Handles the delete action from the context menu.
+   * @param node The node to delete.
+   */
   onDelete(node: ProjectElement) {
     const index = this.sourceData.findIndex(n => n.id === node.id);
     if (index !== -1) {
@@ -401,9 +485,17 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     }
   }
 
+  /**
+   * Opens the context menu for a node.
+   * @param data The node for which the context menu is opened.
+   */
   onContextMenuOpen(data: ProjectElement) {
     this.contextItem = data;
   }
+
+  /**
+   * Closes the context menu.
+   */
   onContextMenuClose() {
     this.contextItem = null;
   }

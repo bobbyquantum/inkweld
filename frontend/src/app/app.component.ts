@@ -13,12 +13,12 @@ import { ThemeService } from '../themes/theme.service';
   styleUrl: './app.component.scss',
 })
 export class AppComponent implements OnInit {
+  @HostBinding('class') className = '';
   title = 'worm-frontend';
   user: User | null = null;
-  @HostBinding('class') className = '';
 
-  private userService = inject(UserAPIService);
-  private ngZone = inject(NgZone);
+  protected userService = inject(UserAPIService);
+  protected ngZone = inject(NgZone);
   protected themeService = inject(ThemeService);
 
   ngOnInit(): void {

@@ -14,7 +14,7 @@
       (touchstart)="onNodeDown(node)"
       (mouseup)="onNodeUp()"
       (touchend)="onNodeUp()"
-      (cdkDragStarted)="dragStarted(node, $event)"
+      (cdkDragStarted)="dragStarted(node)"
       (cdkDragMoved)="dragMove($event)"
       (cdkDragEnded)="dragEnded()"
       [cdkDragStartDelay]="node.expandable && node.expanded ? 1000 : 0"

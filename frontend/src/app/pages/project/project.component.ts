@@ -46,13 +46,12 @@ export class ProjectComponent implements OnInit {
   project: Project | null = null;
   user: User | undefined;
 
+  treeData: ProjectElement[] = TREE_DATA;
   dataSource = new MatTreeNestedDataSource<FileNode>();
 
   private route = inject(ActivatedRoute);
   private projectService = inject(ProjectAPIService);
   private snackBar = inject(MatSnackBar);
-
-  treeData: ProjectElement[] = TREE_DATA;
 
   hasChild = (_: number, node: FileNode) =>
     !!node.children && node.children.length > 0;
