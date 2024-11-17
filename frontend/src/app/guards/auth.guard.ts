@@ -20,8 +20,6 @@ export const authGuard: CanActivateFn = async () => {
       return true;
     }
   } catch (error: unknown) {
-    console.error('Error checking authentication:', error);
-    // Check if the error is a 502 Bad Gateway
     if (
       error instanceof HttpErrorResponse &&
       'status' in error &&

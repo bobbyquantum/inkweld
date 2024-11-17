@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NgxEditorModule } from 'ngx-editor';
 
 import { ElementEditorComponent } from './element-editor.component';
 
@@ -8,7 +9,7 @@ describe('ElementEditorComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ElementEditorComponent],
+      imports: [ElementEditorComponent, NgxEditorModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ElementEditorComponent);

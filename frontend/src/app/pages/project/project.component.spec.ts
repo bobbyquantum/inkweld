@@ -8,7 +8,6 @@ import { Editor, NgxEditorModule } from 'ngx-editor';
 import { ProjectComponent } from './project.component';
 
 jest.mock('worm-api-client');
-jest.mock('ngx-editor');
 
 describe('ProjectComponent', () => {
   let component: ProjectComponent;
