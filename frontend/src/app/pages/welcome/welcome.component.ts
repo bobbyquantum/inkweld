@@ -76,10 +76,8 @@ export class WelcomeComponent implements OnInit, OnDestroy {
             this.appleEnabled = true;
           }
         });
-        console.log('Enabled OAuth2 providers:', providers);
       },
-      error: error => {
-        console.error('Error fetching OAuth2 providers:', error);
+      error: () => {
         this.snackBar.open(
           'Failed to load authentication providers.',
           'Close',

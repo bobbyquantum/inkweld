@@ -25,8 +25,8 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 
-import { ProjectElement } from './ProjectElement';
-
+import { ProjectElement } from './project-element';
+import { TreeManipulator } from './tree-manipulator';
 /**
  * Component for displaying and managing the project tree.
  *
@@ -71,18 +71,14 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
   @ViewChild(CdkDropList) dropList!: CdkDropList<ProjectElement>;
 
   dataSource!: ArrayDataSource<ProjectElement>;
-  sourceData: ProjectElement[] = [];
+  treeManipulator!: TreeManipulator;
 
   selectedItem: ProjectElement | null = null;
-
   editingNode: string | null = null;
-
   currentDropLevel = 0;
   validLevelsArray: number[] = [0];
   draggedNode: ProjectElement | null = null;
 
-  nodeBelow: ProjectElement | null = null;
-  nodeAbove: ProjectElement | null = null;
   contextItem: ProjectElement | null = null;
   wasExpandedNodeIds = new Set<string>();
   collapseTimer: NodeJS.Timeout | null = null;
@@ -91,9 +87,7 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
    * Initializes the component.
    */
   ngOnInit() {
-    this.sourceData = JSON.parse(
-      JSON.stringify(this.treeData)
-    ) as ProjectElement[];
+    this.treeManipulator = new TreeManipulator(this.treeData);
     this.updateDataSource();
   }
 
@@ -112,7 +106,7 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
    */
   updateDataSource() {
     this.dataSource = new ArrayDataSource<ProjectElement>(
-      this.sourceData.filter(x => x.visible)
+      this.treeManipulator.getData().filter(x => x.visible)
     );
   }
 
@@ -130,33 +124,8 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
    * @param node The project element to toggle.
    */
   toggleExpanded(node: ProjectElement) {
-    const nodeIndex = this.sourceData.indexOf(node);
-    this.sourceData[nodeIndex].expanded = !this.sourceData[nodeIndex].expanded;
-    for (let i = nodeIndex + 1; i < this.sourceData.length; i++) {
-      if (this.sourceData[i].level > node.level) {
-        this.sourceData[i].visible = this.sourceData[nodeIndex].expanded;
-      } else {
-        break;
-      }
-    }
-    this.updateVisibility();
+    this.treeManipulator.toggleExpanded(node);
     this.updateDataSource();
-  }
-
-  /**
-   * Updates the visibility of nodes in the tree based on their expanded state.
-   */
-  updateVisibility() {
-    const stack: { level: number; expanded?: boolean }[] = [];
-    for (const node of this.sourceData) {
-      while (stack.length > 0 && stack[stack.length - 1].level >= node.level) {
-        stack.pop();
-      }
-      node.visible = stack.every(parent => parent.expanded !== false);
-      if (node.expandable) {
-        stack.push({ level: node.level, expanded: node.expanded });
-      }
-    }
   }
 
   /**
@@ -164,18 +133,8 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
    * @param node The parent node to add a new item to.
    */
   addItem(node: ProjectElement) {
-    const nodeIndex = this.sourceData.indexOf(node);
-    const newItem: ProjectElement = {
-      id: 'new-item-' + Math.random().toString(36).substr(2, 9),
-      name: 'New Item',
-      type: 'item',
-      level: node.level + 1,
-      expandable: false,
-      expanded: true,
-      visible: true,
-    };
-    this.sourceData.splice(nodeIndex + 1, 0, newItem);
-    this.updateVisibility();
+    this.treeManipulator.addItem(node);
+    this.updateDataSource();
   }
 
   /**
@@ -184,31 +143,7 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
    * @returns The parent node, or null if not found.
    */
   getParentNode(node: ProjectElement): ProjectElement | null {
-    const nodeIndex = this.sourceData.indexOf(node);
-    for (let i = nodeIndex - 1; i >= 0; i--) {
-      if (this.sourceData[i].level === node.level - 1) {
-        return this.sourceData[i];
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Retrieves the subtree of nodes starting from a given index.
-   * @param nodeIndex The index of the starting node.
-   * @returns An array of nodes in the subtree.
-   */
-  getNodeSubtree(nodeIndex: number): ProjectElement[] {
-    const subtree = [this.sourceData[nodeIndex]];
-    const nodeLevel = this.sourceData[nodeIndex].level;
-    for (let i = nodeIndex + 1; i < this.sourceData.length; i++) {
-      if (this.sourceData[i].level > nodeLevel) {
-        subtree.push(this.sourceData[i]);
-      } else {
-        break;
-      }
-    }
-    return subtree;
+    return this.treeManipulator.getParentNode(node);
   }
 
   /**
@@ -223,8 +158,6 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
         // Collapse the node
         this.wasExpandedNodeIds.add(node.id);
         this.toggleExpanded(node);
-        this.updateVisibility();
-        this.updateDataSource();
         this.draggedNode = node;
       }, 950); // Delay slightly less than drag start delay
     }
@@ -248,15 +181,12 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
       // Remember that we collapsed this node
       this.wasExpandedNodeIds.add(this.selectedItem.id);
       this.toggleExpanded(this.selectedItem);
-      this.updateVisibility();
-      this.updateDataSource();
     }
   }
 
   /**
    * Handles the drag start event.
    * @param node The node being dragged.
-   * @param event The drag start event.
    */
   dragStarted(node: ProjectElement) {
     this.draggedNode = node;
@@ -305,35 +235,31 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
       .getSortedItems()
       .map(dragItem => dragItem.data as ProjectElement)
       .filter(node => node.id !== this.draggedNode?.id);
-    this.nodeAbove = sortedNodes[currentIndex - 1] || null;
-    this.nodeBelow = sortedNodes[currentIndex] || null;
+    const nodeAbove = sortedNodes[currentIndex - 1] || null;
+    const nodeBelow = sortedNodes[currentIndex] || null;
     const validLevels = new Set<number>();
-    if (this.nodeAbove && this.nodeBelow) {
-      if (this.nodeAbove.level < this.nodeBelow.level) {
-        if (this.nodeAbove.expandable) {
-          validLevels.add(this.nodeAbove.level + 1);
+    if (nodeAbove && nodeBelow) {
+      if (nodeAbove.level < nodeBelow.level) {
+        if (nodeAbove.expandable) {
+          validLevels.add(nodeAbove.level + 1);
         }
-        validLevels.add(this.nodeBelow.level);
-      } else if (this.nodeAbove.level === this.nodeBelow.level) {
-        validLevels.add(this.nodeAbove.level);
+        validLevels.add(nodeBelow.level);
+      } else if (nodeAbove.level === nodeBelow.level) {
+        validLevels.add(nodeAbove.level);
       } else {
-        for (
-          let level = this.nodeBelow.level;
-          level <= this.nodeAbove.level;
-          level++
-        ) {
+        for (let level = nodeBelow.level; level <= nodeAbove.level; level++) {
           validLevels.add(level);
         }
       }
-    } else if (this.nodeAbove && !this.nodeBelow) {
-      for (let level = 0; level <= this.nodeAbove.level; level++) {
+    } else if (nodeAbove && !nodeBelow) {
+      for (let level = 0; level <= nodeAbove.level; level++) {
         validLevels.add(level);
       }
-      if (this.nodeAbove.expandable) {
-        validLevels.add(this.nodeAbove.level + 1);
+      if (nodeAbove.expandable) {
+        validLevels.add(nodeAbove.level + 1);
       }
-    } else if (!this.nodeAbove && this.nodeBelow) {
-      validLevels.add(this.nodeBelow.level);
+    } else if (!nodeAbove && nodeBelow) {
+      validLevels.add(nodeBelow.level);
     } else {
       validLevels.add(0);
     }
@@ -346,11 +272,7 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
    * Resets the state after a drop operation.
    */
   resetDropState() {
-    this.updateVisibility();
-    this.updateDataSource();
     this.draggedNode = null;
-    this.nodeAbove = null;
-    this.nodeBelow = null;
   }
 
   /**
@@ -363,65 +285,56 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
       .getSortedItems()
       .map(dragItem => dragItem.data as ProjectElement)
       .filter(node => node.id !== this.draggedNode?.id);
-    this.nodeAbove = sortedNodes[currentIndex - 1] || null;
-    this.nodeBelow = sortedNodes[currentIndex] || null;
+    const nodeAbove = sortedNodes[currentIndex - 1] || null;
+    const nodeBelow = sortedNodes[currentIndex] || null;
 
     // Check if trying to drop as child of an item
     if (
-      this.nodeAbove &&
-      this.nodeAbove.type === 'item' &&
-      this.currentDropLevel > this.nodeAbove.level
+      nodeAbove &&
+      nodeAbove.type === 'item' &&
+      this.currentDropLevel > nodeAbove.level
     ) {
       throw new Error('Cannot drop as child of an item');
     }
 
     const node = item.data as ProjectElement;
-    const nodeIndex = this.sourceData.findIndex(n => n.id === node.id);
-    if (nodeIndex === -1) {
-      console.log('Node not found');
-      return;
-    }
 
     if (this.currentDropLevel < 0) {
-      console.log('Invalid drop level');
       return;
     }
-    const nodeSubtree = this.getNodeSubtree(nodeIndex);
-    const nodeSubtreeLength = nodeSubtree.length;
-    this.sourceData.splice(nodeIndex, nodeSubtreeLength);
+
     let insertIndex: number;
 
-    if (this.nodeAbove) {
-      const nodeAboveIndex = this.sourceData.findIndex(
-        n => n.id === this.nodeAbove?.id
-      );
+    if (nodeAbove) {
+      const nodeAboveIndex = this.treeManipulator
+        .getData()
+        .findIndex(n => n.id === nodeAbove?.id);
       if (nodeAboveIndex === -1) {
         return;
       }
 
-      if (this.currentDropLevel > this.nodeAbove.level) {
+      if (this.currentDropLevel > nodeAbove.level) {
         insertIndex = nodeAboveIndex + 1;
       } else {
-        const nodeAboveSubtree = this.getNodeSubtree(nodeAboveIndex);
+        const nodeAboveSubtree =
+          this.treeManipulator.getNodeSubtree(nodeAboveIndex);
         insertIndex = nodeAboveIndex + nodeAboveSubtree.length;
       }
-    } else if (this.nodeBelow) {
-      const nodeBelowIndex = this.sourceData.findIndex(
-        n => n.id === this.nodeBelow?.id
-      );
+    } else if (nodeBelow) {
+      const nodeBelowIndex = this.treeManipulator
+        .getData()
+        .findIndex(n => n.id === nodeBelow?.id);
       if (nodeBelowIndex === -1) {
         return;
       }
       insertIndex = nodeBelowIndex;
     } else {
-      insertIndex = this.sourceData.length;
+      insertIndex = this.treeManipulator.getData().length;
     }
-    const levelDifference = this.currentDropLevel - node.level;
-    nodeSubtree.forEach(n => {
-      n.level += levelDifference;
-    });
-    this.sourceData.splice(insertIndex, 0, ...nodeSubtree);
+
+    this.treeManipulator.moveNode(node, insertIndex, this.currentDropLevel);
     this.resetDropState();
+    this.updateDataSource();
   }
 
   /**
@@ -430,8 +343,6 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
   dragEnded() {
     if (this.draggedNode && this.wasExpandedNodeIds.has(this.draggedNode.id)) {
       this.toggleExpanded(this.draggedNode);
-      this.updateVisibility();
-      this.updateDataSource();
       this.wasExpandedNodeIds.delete(this.draggedNode.id);
     }
   }
@@ -451,7 +362,7 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
    */
   finishEditing(node: ProjectElement, newName: string) {
     if (newName.trim() !== '') {
-      node.name = newName.trim();
+      this.treeManipulator.renameNode(node, newName.trim());
     }
     this.editingNode = null;
     this.updateDataSource();
@@ -477,12 +388,8 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
    * @param node The node to delete.
    */
   onDelete(node: ProjectElement) {
-    const index = this.sourceData.findIndex(n => n.id === node.id);
-    if (index !== -1) {
-      this.sourceData.splice(index, 1);
-      this.updateVisibility();
-      this.updateDataSource();
-    }
+    this.treeManipulator.deleteNode(node);
+    this.updateDataSource();
   }
 
   /**

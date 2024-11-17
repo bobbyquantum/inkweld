@@ -84,14 +84,12 @@ export class NewProjectComponent implements OnInit {
           this.username = user.username;
           this.updateProjectUrl();
         } else {
-          console.error('User object does not contain a username');
           this.snackBar.open('Failed to fetch user information.', 'Close', {
             duration: 3000,
           });
         }
       },
-      error: (err: unknown) => {
-        console.error('Error fetching current user', err);
+      error: () => {
         this.snackBar.open('Failed to fetch user information.', 'Close', {
           duration: 3000,
         });
@@ -130,8 +128,7 @@ export class NewProjectComponent implements OnInit {
         });
         void this.router.navigate(['/']);
       },
-      error: (err: unknown) => {
-        console.error('Error creating project', err);
+      error: () => {
         this.snackBar.open('Failed to create project.', 'Close', {
           duration: 3000,
         });

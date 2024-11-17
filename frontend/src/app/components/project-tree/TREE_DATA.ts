@@ -1,4 +1,4 @@
-import { ProjectElement } from './ProjectElement';
+import { ProjectElement } from './project-element';
 
 export const TREE_DATA: ProjectElement[] = [
   {

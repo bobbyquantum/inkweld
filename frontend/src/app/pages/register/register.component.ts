@@ -71,8 +71,7 @@ export class RegisterComponent implements OnInit {
           if (provider === 'apple') this.appleEnabled = true;
         });
       })
-      .catch(error => {
-        console.error('Error fetching OAuth2 providers:', error);
+      .catch(() => {
         this.snackBar.open('Failed to load OAuth2 providers', 'Close', {
           duration: 5000,
         });
@@ -103,12 +102,10 @@ export class RegisterComponent implements OnInit {
       void this.router.navigate(['/home']);
     } catch (error: unknown) {
       if (error instanceof HttpErrorResponse) {
-        console.error('Error during registration:', error.message);
         this.snackBar.open(`Registration failed: ${error.message}`, 'Close', {
           duration: 5000,
         });
       } else {
-        console.error('Unknown error during registration:', error);
         this.snackBar.open(
           'An unknown error occurred during registration. Please try again.',
           'Close',

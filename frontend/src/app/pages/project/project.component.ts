@@ -8,7 +8,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTreeModule, MatTreeNestedDataSource } from '@angular/material/tree';
 import { ActivatedRoute } from '@angular/router';
-import { ProjectElement } from '@components/project-tree/ProjectElement';
+import { ProjectElement } from '@components/project-tree/project-element';
 import { TREE_DATA } from '@components/project-tree/TREE_DATA';
 import { Project, ProjectAPIService, User } from 'worm-api-client';
 
@@ -71,8 +71,7 @@ export class ProjectComponent implements OnInit {
       next: (project: Project) => {
         this.project = project;
       },
-      error: error => {
-        console.error('Error loading project:', error);
+      error: () => {
         this.snackBar.open('Failed to load project.', 'Close', {
           duration: 3000,
         });

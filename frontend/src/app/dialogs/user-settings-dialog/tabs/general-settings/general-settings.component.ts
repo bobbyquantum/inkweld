@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -16,30 +16,23 @@ import { Subscription } from 'rxjs';
 export class GeneralSettingsComponent implements OnInit, OnDestroy {
   selectedTheme!: ThemeOption;
   private themeSubscription!: Subscription;
-
-  constructor(private themeService: ThemeService) {
-    console.log('GeneralSettingsComponent constructed');
-  }
+  private themeService = inject(ThemeService);
 
   ngOnInit() {
-    console.log('GeneralSettingsComponent initialized');
     this.themeSubscription = this.themeService
       .getCurrentTheme()
       .subscribe(theme => {
-        console.log('Current theme:', theme);
         this.selectedTheme = theme;
       });
   }
 
   ngOnDestroy() {
-    console.log('GeneralSettingsComponent destroyed');
     if (this.themeSubscription) {
       this.themeSubscription.unsubscribe();
     }
   }
 
   onThemeChange() {
-    console.log('Theme changed to:', this.selectedTheme);
     this.themeService.update(this.selectedTheme);
   }
 }

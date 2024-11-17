@@ -7,10 +7,12 @@ import {
   TestBed,
   tick,
 } from '@angular/core/testing';
+import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { XsrfService } from '@services/xsrf.service';
+import { ThemeService } from '@themes/theme.service';
 import { of, throwError } from 'rxjs';
 import { UserAPIService } from 'worm-api-client';
 
@@ -19,6 +21,19 @@ import { WelcomeComponent } from './welcome.component';
 jest.mock('worm-api-client');
 jest.mock('@angular/material/snack-bar');
 jest.mock('@services/xsrf.service');
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  }),
+});
 
 describe('WelcomeComponent', () => {
   let component: WelcomeComponent;
@@ -60,7 +75,7 @@ describe('WelcomeComponent', () => {
     } as unknown as jest.Mocked<BreakpointObserver>;
 
     await TestBed.configureTestingModule({
-      imports: [WelcomeComponent, NoopAnimationsModule],
+      imports: [WelcomeComponent, NoopAnimationsModule, MatIconModule],
       providers: [
         { provide: HttpClient, useValue: httpClient },
         { provide: UserAPIService, useValue: userService },
@@ -77,6 +92,10 @@ describe('WelcomeComponent', () => {
 
     fixture = TestBed.createComponent(WelcomeComponent);
     component = fixture.componentInstance;
+
+    // Inject and initialize ThemeService
+    const themeService = TestBed.inject(ThemeService);
+    themeService.initTheme(); // This registers the custom icons
   });
 
   it('should create', fakeAsync(() => {

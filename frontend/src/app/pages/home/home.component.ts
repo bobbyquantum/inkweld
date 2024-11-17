@@ -53,8 +53,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       .getAllProjects('body', true, { transferCache: true })
       .pipe(
         takeUntil(this.destroy$),
-        catchError(error => {
-          console.error('Error loading projects', error);
+        catchError(() => {
           return EMPTY;
         })
       )

@@ -8,8 +8,8 @@ import {
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
+import { ProjectElement } from './project-element';
 import { ProjectTreeComponent } from './project-tree.component';
-import { ProjectElement } from './ProjectElement';
 
 describe('ProjectTreeComponent', () => {
   let component: ProjectTreeComponent;
@@ -78,7 +78,7 @@ describe('ProjectTreeComponent', () => {
       component.treeData = testData;
       component.ngOnInit();
 
-      const itemToDrag = component.sourceData[0];
+      const itemToDrag = component.treeManipulator.sourceData[0];
       mockDragEvent.item!.data = itemToDrag;
       mockDragEvent.previousIndex = 0;
       mockDragEvent.currentIndex = 1;
@@ -88,7 +88,7 @@ describe('ProjectTreeComponent', () => {
       if (mockDragEvent.container) {
         mockDragEvent.container.getSortedItems = () =>
           [
-            { data: component.sourceData[1] }, // Item 2
+            { data: component.treeManipulator.sourceData[1] }, // Item 2
           ] as CdkDrag<ProjectElement>[];
       }
 
@@ -100,10 +100,10 @@ describe('ProjectTreeComponent', () => {
       }).toThrowError('Cannot drop as child of an item');
 
       // Verify the structure remains unchanged
-      expect(component.sourceData[0].id).toBe('1');
-      expect(component.sourceData[0].level).toBe(0);
-      expect(component.sourceData[1].id).toBe('2');
-      expect(component.sourceData[1].level).toBe(0);
+      expect(component.treeManipulator.sourceData[0].id).toBe('1');
+      expect(component.treeManipulator.sourceData[0].level).toBe(0);
+      expect(component.treeManipulator.sourceData[1].id).toBe('2');
+      expect(component.treeManipulator.sourceData[1].level).toBe(0);
     });
 
     it('should allow dropping an item as a child of a folder', () => {
@@ -114,7 +114,7 @@ describe('ProjectTreeComponent', () => {
       component.treeData = testData;
       component.ngOnInit();
 
-      const itemToDrag = component.sourceData[1];
+      const itemToDrag = component.treeManipulator.sourceData[1];
       mockDragEvent.item!.data = itemToDrag;
       mockDragEvent.previousIndex = 1;
       mockDragEvent.currentIndex = 1; // Dropping after the folder
@@ -124,8 +124,8 @@ describe('ProjectTreeComponent', () => {
       if (mockDragEvent.container) {
         mockDragEvent.container.getSortedItems = () =>
           [
-            { data: component.sourceData[0] }, // Folder
-            { data: component.sourceData[1] }, // Item
+            { data: component.treeManipulator.sourceData[0] }, // Folder
+            { data: component.treeManipulator.sourceData[1] }, // Item
           ] as CdkDrag<ProjectElement>[];
       }
 
@@ -134,8 +134,8 @@ describe('ProjectTreeComponent', () => {
       );
 
       // The item should now be a child of the folder
-      expect(component.sourceData[1].id).toBe('2');
-      expect(component.sourceData[1].level).toBe(1);
+      expect(component.treeManipulator.sourceData[1].id).toBe('2');
+      expect(component.treeManipulator.sourceData[1].level).toBe(1);
     });
 
     it('should not allow dropping a folder as a child of an item', () => {
@@ -146,7 +146,7 @@ describe('ProjectTreeComponent', () => {
       component.treeData = testData;
       component.ngOnInit();
 
-      const folderToDrag = component.sourceData[1];
+      const folderToDrag = component.treeManipulator.sourceData[1];
       mockDragEvent.item!.data = folderToDrag;
       mockDragEvent.previousIndex = 1;
       mockDragEvent.currentIndex = 1; // Attempting to drop after the item
@@ -156,7 +156,7 @@ describe('ProjectTreeComponent', () => {
       if (mockDragEvent.container) {
         mockDragEvent.container.getSortedItems = () =>
           [
-            { data: component.sourceData[0] }, // Item that would be above
+            { data: component.treeManipulator.sourceData[0] }, // Item that would be above
           ] as CdkDrag<ProjectElement>[];
       }
 
@@ -168,10 +168,10 @@ describe('ProjectTreeComponent', () => {
       }).toThrow('Cannot drop as child of an item');
 
       // The folder should remain at level 0 since dropping into an item is invalid
-      expect(component.sourceData[0].id).toBe('1');
-      expect(component.sourceData[0].level).toBe(0);
-      expect(component.sourceData[1].id).toBe('2');
-      expect(component.sourceData[1].level).toBe(0);
+      expect(component.treeManipulator.sourceData[0].id).toBe('1');
+      expect(component.treeManipulator.sourceData[0].level).toBe(0);
+      expect(component.treeManipulator.sourceData[1].id).toBe('2');
+      expect(component.treeManipulator.sourceData[1].level).toBe(0);
     });
 
     it('should maintain the structure of a dragged folder and its contents', () => {
@@ -183,7 +183,7 @@ describe('ProjectTreeComponent', () => {
       component.treeData = testData;
       component.ngOnInit();
 
-      const folderToDrag = component.sourceData[0];
+      const folderToDrag = component.treeManipulator.sourceData[0];
       mockDragEvent.item!.data = folderToDrag;
       mockDragEvent.previousIndex = 0;
       mockDragEvent.currentIndex = 1; // Dropping after 'Folder 2'
@@ -191,9 +191,9 @@ describe('ProjectTreeComponent', () => {
 
       mockDragEvent.container!.getSortedItems = () =>
         [
-          { data: component.sourceData[2] }, // Folder 2
-          { data: component.sourceData[0] }, // Folder 1
-          { data: component.sourceData[1] }, // Item 1
+          { data: component.treeManipulator.sourceData[2] }, // Folder 2
+          { data: component.treeManipulator.sourceData[0] }, // Folder 1
+          { data: component.treeManipulator.sourceData[1] }, // Item 1
         ] as CdkDrag<ProjectElement>[];
 
       component.drop(
@@ -201,14 +201,14 @@ describe('ProjectTreeComponent', () => {
       );
 
       // After the drop, Folder 1 and its contents should be moved after Folder 2
-      expect(component.sourceData[0].id).toBe('3'); // Folder 2
-      expect(component.sourceData[0].level).toBe(0);
+      expect(component.treeManipulator.sourceData[0].id).toBe('3'); // Folder 2
+      expect(component.treeManipulator.sourceData[0].level).toBe(0);
 
-      expect(component.sourceData[1].id).toBe('1'); // Folder 1
-      expect(component.sourceData[1].level).toBe(0);
+      expect(component.treeManipulator.sourceData[1].id).toBe('1'); // Folder 1
+      expect(component.treeManipulator.sourceData[1].level).toBe(0);
 
-      expect(component.sourceData[2].id).toBe('2'); // Item 1
-      expect(component.sourceData[2].level).toBe(1);
+      expect(component.treeManipulator.sourceData[2].id).toBe('2'); // Item 1
+      expect(component.treeManipulator.sourceData[2].level).toBe(1);
     });
 
     it('should update levels correctly when dragging a folder into another folder', () => {
@@ -220,7 +220,7 @@ describe('ProjectTreeComponent', () => {
       component.treeData = testData;
       component.ngOnInit();
 
-      const folderToDrag = component.sourceData[0]; // 'Folder 1'
+      const folderToDrag = component.treeManipulator.sourceData[0]; // 'Folder 1'
       mockDragEvent.item!.data = folderToDrag;
       mockDragEvent.previousIndex = 0;
       mockDragEvent.currentIndex = 1; // Dropping after 'Folder 2'
@@ -228,9 +228,9 @@ describe('ProjectTreeComponent', () => {
 
       mockDragEvent.container!.getSortedItems = () =>
         [
-          { data: component.sourceData[2] }, // Folder 2
-          // { data: component.sourceData[1] }, // Item 1
-          { data: component.sourceData[0] }, // Folder 1
+          { data: component.treeManipulator.sourceData[2] }, // Folder 2
+          // { data: component.treeManipulator.sourceData[1] }, // Item 1
+          { data: component.treeManipulator.sourceData[0] }, // Folder 1
         ] as CdkDrag<ProjectElement>[];
 
       component.drop(
@@ -238,14 +238,14 @@ describe('ProjectTreeComponent', () => {
       );
 
       // After the drop, 'Folder 1' should be a child of 'Folder 2', and levels updated accordingly
-      expect(component.sourceData[0].id).toBe('3'); // 'Folder 2'
-      expect(component.sourceData[0].level).toBe(0);
+      expect(component.treeManipulator.sourceData[0].id).toBe('3'); // 'Folder 2'
+      expect(component.treeManipulator.sourceData[0].level).toBe(0);
 
-      expect(component.sourceData[1].id).toBe('1'); // 'Folder 1' now at level 1
-      expect(component.sourceData[1].level).toBe(1);
+      expect(component.treeManipulator.sourceData[1].id).toBe('1'); // 'Folder 1' now at level 1
+      expect(component.treeManipulator.sourceData[1].level).toBe(1);
 
-      expect(component.sourceData[2].id).toBe('2'); // 'Item 1' now at level 2
-      expect(component.sourceData[2].level).toBe(2);
+      expect(component.treeManipulator.sourceData[2].id).toBe('2'); // 'Item 1' now at level 2
+      expect(component.treeManipulator.sourceData[2].level).toBe(2);
     });
 
     it('should allow dropping an item at the root level', () => {
@@ -256,7 +256,7 @@ describe('ProjectTreeComponent', () => {
       component.treeData = testData;
       component.ngOnInit();
 
-      const itemToDrag = component.sourceData[1];
+      const itemToDrag = component.treeManipulator.sourceData[1];
       mockDragEvent.item!.data = itemToDrag;
       mockDragEvent.previousIndex = 1;
       mockDragEvent.currentIndex = 1; // Moving to the end
@@ -264,8 +264,8 @@ describe('ProjectTreeComponent', () => {
 
       mockDragEvent.container!.getSortedItems = () =>
         [
-          { data: component.sourceData[0] }, // Folder
-          { data: component.sourceData[1] }, // Item
+          { data: component.treeManipulator.sourceData[0] }, // Folder
+          { data: component.treeManipulator.sourceData[1] }, // Item
         ] as CdkDrag<ProjectElement>[];
 
       component.drop(
@@ -273,8 +273,8 @@ describe('ProjectTreeComponent', () => {
       );
 
       // The item should now be at the root level
-      expect(component.sourceData[1].id).toBe('2');
-      expect(component.sourceData[1].level).toBe(0);
+      expect(component.treeManipulator.sourceData[1].id).toBe('2');
+      expect(component.treeManipulator.sourceData[1].level).toBe(0);
     });
 
     it('should prevent dropping an item below the root level (negative level)', () => {
@@ -284,7 +284,7 @@ describe('ProjectTreeComponent', () => {
       component.treeData = testData;
       component.ngOnInit();
 
-      const itemToDrag = component.sourceData[0];
+      const itemToDrag = component.treeManipulator.sourceData[0];
       mockDragEvent.item!.data = itemToDrag;
       mockDragEvent.previousIndex = 0;
       mockDragEvent.currentIndex = 0;
@@ -292,7 +292,7 @@ describe('ProjectTreeComponent', () => {
 
       mockDragEvent.container!.getSortedItems = () =>
         [
-          { data: component.sourceData[0] }, // Item
+          { data: component.treeManipulator.sourceData[0] }, // Item
         ] as CdkDrag<ProjectElement>[];
 
       component.drop(
@@ -300,7 +300,7 @@ describe('ProjectTreeComponent', () => {
       );
 
       // The item's level should remain at 0
-      expect(component.sourceData[0].level).toBe(0);
+      expect(component.treeManipulator.sourceData[0].level).toBe(0);
     });
   });
 
@@ -313,7 +313,7 @@ describe('ProjectTreeComponent', () => {
       component.treeData = testData;
       component.ngOnInit();
 
-      component.draggedNode = component.sourceData[0];
+      component.draggedNode = component.treeManipulator.sourceData[0];
 
       // Simulate sorting
       const mockSortEvent: Partial<
@@ -323,16 +323,16 @@ describe('ProjectTreeComponent', () => {
         currentIndex: 1,
         container: {
           getSortedItems: () => [
-            { data: component.sourceData[1] }, // Item 2
-            { data: component.sourceData[0] }, // Item 1 (dragged node)
+            { data: component.treeManipulator.sourceData[1] }, // Item 2
+            { data: component.treeManipulator.sourceData[0] }, // Item 1 (dragged node)
           ],
         } as CdkDropList<ArrayDataSource<ProjectElement>>,
       };
 
       mockSortEvent.container!.getSortedItems = () =>
         [
-          { data: component.sourceData[1] }, // Item 2
-          { data: component.sourceData[0] }, // Item 1
+          { data: component.treeManipulator.sourceData[1] }, // Item 2
+          { data: component.treeManipulator.sourceData[0] }, // Item 1
         ] as CdkDrag<ProjectElement>[];
 
       component.sorted(
@@ -351,7 +351,7 @@ describe('ProjectTreeComponent', () => {
       component.treeData = testData;
       component.ngOnInit();
 
-      component.draggedNode = component.sourceData[1];
+      component.draggedNode = component.treeManipulator.sourceData[1];
 
       // Simulate sorting
       const mockSortEvent: Partial<
@@ -361,16 +361,16 @@ describe('ProjectTreeComponent', () => {
         currentIndex: 1,
         container: {
           getSortedItems: () => [
-            { data: component.sourceData[0] }, // Folder
-            { data: component.sourceData[1] }, // Item (dragged node)
+            { data: component.treeManipulator.sourceData[0] }, // Folder
+            { data: component.treeManipulator.sourceData[1] }, // Item (dragged node)
           ],
         } as CdkDropList<ArrayDataSource<ProjectElement>>,
       };
 
       mockSortEvent.container!.getSortedItems = () =>
         [
-          { data: component.sourceData[0] }, // Folder
-          { data: component.sourceData[1] }, // Item (dragged node)
+          { data: component.treeManipulator.sourceData[0] }, // Folder
+          { data: component.treeManipulator.sourceData[1] }, // Item (dragged node)
         ] as CdkDrag<ProjectElement>[];
 
       component.sorted(
@@ -390,7 +390,7 @@ describe('ProjectTreeComponent', () => {
       component.treeData = testData;
       component.ngOnInit();
 
-      component.draggedNode = component.sourceData[1]; // 'Item 1'
+      component.draggedNode = component.treeManipulator.sourceData[1]; // 'Item 1'
 
       // Simulate sorting
       const mockSortEvent: Partial<
@@ -400,18 +400,18 @@ describe('ProjectTreeComponent', () => {
         currentIndex: 2,
         container: {
           getSortedItems: () => [
-            { data: component.sourceData[0] }, // Folder 1
-            { data: component.sourceData[2] }, // Folder 2
-            { data: component.sourceData[1] }, // Item 1 (dragged node)
+            { data: component.treeManipulator.sourceData[0] }, // Folder 1
+            { data: component.treeManipulator.sourceData[2] }, // Folder 2
+            { data: component.treeManipulator.sourceData[1] }, // Item 1 (dragged node)
           ],
         } as CdkDropList<ArrayDataSource<ProjectElement>>,
       };
 
       mockSortEvent.container!.getSortedItems = () =>
         [
-          { data: component.sourceData[0] }, // Folder 1
-          { data: component.sourceData[2] }, // Folder 2
-          { data: component.sourceData[1] }, // Item 1 (dragged node)
+          { data: component.treeManipulator.sourceData[0] }, // Folder 1
+          { data: component.treeManipulator.sourceData[2] }, // Folder 2
+          { data: component.treeManipulator.sourceData[1] }, // Item 1 (dragged node)
         ] as CdkDrag<ProjectElement>[];
 
       component.sorted(
