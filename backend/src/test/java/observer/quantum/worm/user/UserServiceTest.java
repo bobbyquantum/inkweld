@@ -34,7 +34,7 @@ public class UserServiceTest {
 
   @Test
   public void testUserConstructors() {
-    Long id = 1L;
+    UUID id = UUID.fromString("00000000-0000-0000-0000-000000000001");
     String username = "username";
     String name = "name";
     String email = "email@example.com";

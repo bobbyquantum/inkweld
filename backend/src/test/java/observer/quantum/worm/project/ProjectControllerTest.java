@@ -1,5 +1,8 @@
 package observer.quantum.worm.project;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -11,6 +14,8 @@ import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+
 import lombok.extern.slf4j.Slf4j;
 import observer.quantum.worm.error.GlobalExceptionHandler;
 import observer.quantum.worm.user.User;
@@ -52,12 +57,12 @@ public class ProjectControllerTest {
     objectMapper.registerModule(new JavaTimeModule());
 
     mockUser = new User();
-    mockUser.setId(1L);
+    mockUser.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
     mockUser.setUsername("testUser");
     when(userService.getCurrentUser()).thenReturn(Optional.of(mockUser));
 
     project = new Project();
-    project.setId(1L);
+    project.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
     project.setTitle("My Project");
     project.setDescription("Project Description");
     project.setSlug("my-project");

@@ -1,5 +1,7 @@
 package observer.quantum.worm.user;
 
+import java.util.UUID;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -16,8 +18,8 @@ import lombok.Setter;
     uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "provider_id"}))
 public class UserIdentity {
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
   @Column(nullable = false)
   private String provider;

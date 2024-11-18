@@ -2,6 +2,8 @@ package observer.quantum.worm.project;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
+import java.util.UUID;
+
 import lombok.*;
 import observer.quantum.worm.user.UserDto;
 
@@ -12,7 +14,7 @@ import observer.quantum.worm.user.UserDto;
 @Schema(name = "Project", description = "Project Data")
 public class ProjectDto {
   @Schema(description = "Project ID", example = "1")
-  private Long id;
+  private UUID id;
 
   @Schema(description = "Project slug", example = "project-slug")
   private String slug;

@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import observer.quantum.worm.error.ErrorResponse;
 import org.springframework.core.io.InputStreamResource;
@@ -114,7 +115,7 @@ public class FileContentController {
       })
   @GetMapping("/{fileId}")
   @Secured({"USER", "OAUTH2_USER"})
-  public ResponseEntity<?> fileMeta(@PathVariable String fileId) {
+  public ResponseEntity<?> fileMeta(@PathVariable UUID fileId) {
     return fileService
         .getFile(fileId)
         .map(file -> ResponseEntity.ok().body(new FileDto(file)))
@@ -159,7 +160,7 @@ public class FileContentController {
   @GetMapping("/{fileId}/content")
   @Secured({"USER", "OAUTH2_USER"})
   public ResponseEntity<?> getFile(
-      @PathVariable String fileId,
+      @PathVariable UUID fileId,
       @RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader,
       @RequestParam(value = "download", defaultValue = "false") boolean download) {
 
@@ -258,7 +259,7 @@ public class FileContentController {
   @PatchMapping("/{fileId}")
   @Secured({"USER", "OAUTH2_USER"})
   public ResponseEntity<?> patchFile(
-      @PathVariable String fileId,
+      @PathVariable UUID fileId,
       @RequestBody @Valid FilePatchDto patchDto,
       @RequestHeader(name = "X-XSRF-TOKEN") String csrfToken) {
 
@@ -299,7 +300,7 @@ public class FileContentController {
   @PutMapping(value = "/{fileId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Secured({"USER", "OAUTH2_USER"})
   public ResponseEntity<?> updateFileContent(
-      @PathVariable String fileId,
+      @PathVariable UUID fileId,
       @RequestParam("file") MultipartFile file,
       @Parameter(
               in = ParameterIn.HEADER,
@@ -348,7 +349,7 @@ public class FileContentController {
   @DeleteMapping("/{fileId}")
   @Secured({"USER", "OAUTH2_USER"})
   public ResponseEntity<?> deleteFile(
-      @PathVariable String fileId,
+      @PathVariable UUID fileId,
       @Parameter(
               in = ParameterIn.HEADER,
               name = "X-XSRF-TOKEN",

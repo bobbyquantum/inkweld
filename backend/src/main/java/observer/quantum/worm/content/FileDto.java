@@ -2,6 +2,8 @@ package observer.quantum.worm.content;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.OffsetDateTime;
+import java.util.UUID;
+
 import lombok.*;
 import observer.quantum.worm.user.UserDto;
 
@@ -12,7 +14,7 @@ import observer.quantum.worm.user.UserDto;
 @Schema(name = "File", description = "File Data")
 public class FileDto {
   @Schema(description = "File ID", example = "66c8e88630d2507bab875d28")
-  private Long id;
+  private UUID id;
 
   @Schema(description = "File name", example = "filename.png")
   private String name;
