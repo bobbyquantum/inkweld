@@ -2,9 +2,12 @@ package observer.quantum.worm.content;
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.UUID;
+
 import observer.quantum.worm.user.User;
 import observer.quantum.worm.user.UserAuthInvalidException;
 import observer.quantum.worm.user.UserService;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -41,7 +44,7 @@ public class FileService {
     return newFile;
   }
 
-  public Optional<File> getFile(String fileId) {
+  public Optional<File> getFile(UUID fileId) {
     User currentUser = userService.getCurrentUser().orElseThrow(UserAuthInvalidException::new);
     Optional<File> file = fileRepository.findById(fileId);
     if (file.isPresent() && !file.get().getOwner().getId().equals(currentUser.getId())) {
@@ -51,7 +54,7 @@ public class FileService {
   }
 
   @Transactional
-  public Optional<File> patchFile(String fileId, FilePatchDto patchDto) {
+  public Optional<File> patchFile(UUID fileId, FilePatchDto patchDto) {
     return getFile(fileId)
         .map(
             file -> {
@@ -65,7 +68,7 @@ public class FileService {
             });
   }
 
-  public boolean updateFileContent(String fileId, MultipartFile file) throws IOException {
+  public boolean updateFileContent(UUID fileId, MultipartFile file) throws IOException {
     Optional<File> existingFile = getFile(fileId);
     if (existingFile.isPresent()) {
       File updatedFile = existingFile.get();
@@ -78,7 +81,7 @@ public class FileService {
     return false;
   }
 
-  public boolean deleteFile(String fileId) {
+  public boolean deleteFile(UUID fileId) {
     Optional<File> fileOptional = getFile(fileId);
     if (fileOptional.isPresent()) {
       File file = fileOptional.get();

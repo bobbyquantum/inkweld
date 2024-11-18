@@ -2,6 +2,8 @@ package observer.quantum.worm.project;
 
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
+import java.util.UUID;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import observer.quantum.worm.user.User;
@@ -12,8 +14,8 @@ import observer.quantum.worm.user.User;
 @Table(name = "projects")
 public class Project {
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
   @Column(nullable = false)
   private String slug;

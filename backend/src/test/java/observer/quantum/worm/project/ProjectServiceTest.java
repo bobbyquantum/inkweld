@@ -1,12 +1,15 @@
 package observer.quantum.worm.project;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+
 import observer.quantum.worm.user.User;
 import observer.quantum.worm.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,11 +36,11 @@ public class ProjectServiceTest {
     MockitoAnnotations.openMocks(this);
 
     user = new User();
-    user.setId(1L);
+    user.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
     user.setUsername("testUser");
 
     project = new Project();
-    project.setId(1L);
+    project.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
     project.setTitle("My Project");
     project.setDescription("Project Description");
     project.setSlug("my-project");
@@ -77,7 +80,7 @@ public class ProjectServiceTest {
   @Test
   public void testFindByUsernameAndSlug_AccessDenied() {
     User otherUser = new User();
-    otherUser.setId(2L);
+    otherUser.setId(UUID.fromString("00000000-0000-0000-0000-000000000002"));
     otherUser.setUsername("otherUser");
     project.setUser(otherUser);
 
@@ -102,7 +105,7 @@ public class ProjectServiceTest {
         .thenAnswer(
             invocation -> {
               Project savedProject = invocation.getArgument(0);
-              savedProject.setId(2L);
+              savedProject.setId(UUID.fromString("00000000-0000-0000-0000-000000000002"));
               return savedProject;
             });
 
@@ -169,7 +172,7 @@ public class ProjectServiceTest {
   @Test
   public void testUpdate_AccessDenied() {
     User otherUser = new User();
-    otherUser.setId(2L);
+    otherUser.setId(UUID.fromString("00000000-0000-0000-0000-000000000002"));
     otherUser.setUsername("otherUser");
     project.setUser(otherUser);
 
@@ -198,7 +201,7 @@ public class ProjectServiceTest {
   @Test
   public void testDelete_AccessDenied() {
     User otherUser = new User();
-    otherUser.setId(2L);
+    otherUser.setId(UUID.fromString("00000000-0000-0000-0000-000000000002"));
     otherUser.setUsername("otherUser");
     project.setUser(otherUser);
 
