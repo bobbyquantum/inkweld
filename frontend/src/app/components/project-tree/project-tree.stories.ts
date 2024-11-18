@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/angular';
 
-import { ProjectTreeComponent } from './project-tree.component';
 import { ProjectElement } from './project-element';
+import { ProjectTreeComponent } from './project-tree.component';
 import { FILE_ONLY_DATA, SINGLE_FOLDER_DATA, TREE_DATA } from './TREE_DATA';
 
 interface ProjectTreeComponentInputs {
