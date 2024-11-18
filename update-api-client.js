@@ -8,11 +8,14 @@ function runCommand(command, cwd) {
   execSync(command, { cwd, stdio: "inherit" });
 }
 
+// Get platform-specific mvnw command
+const mvnwCommand = process.platform === 'win32' ? '.\\mvnw' : './mvnw';
+
 // Generate API spec and client
 console.log("Generating API spec and client...");
 const backendPath = path.join(__dirname, "backend");
 
-runCommand(".\\mvnw package", backendPath);
+runCommand(mvnwCommand + " package", backendPath);
 
 // Build the dist package for the API client
 console.log("Building dist package for API client...");
