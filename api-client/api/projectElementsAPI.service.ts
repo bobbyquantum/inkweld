@@ -519,10 +519,10 @@ export class ProjectElementsAPIService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public updateElementPositions(username: string, projectSlug: string, xXSRFTOKEN: string, requestBody: { [key: string]: number; }, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | '*/*', context?: HttpContext, transferCache?: boolean}): Observable<Array<ProjectElementDto>>;
-    public updateElementPositions(username: string, projectSlug: string, xXSRFTOKEN: string, requestBody: { [key: string]: number; }, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | '*/*', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<ProjectElementDto>>>;
-    public updateElementPositions(username: string, projectSlug: string, xXSRFTOKEN: string, requestBody: { [key: string]: number; }, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | '*/*', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<ProjectElementDto>>>;
-    public updateElementPositions(username: string, projectSlug: string, xXSRFTOKEN: string, requestBody: { [key: string]: number; }, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json' | '*/*', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public updateElementPositions(username: string, projectSlug: string, xXSRFTOKEN: string, requestBody: { [key: string]: number; }, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<ProjectElementDto>>;
+    public updateElementPositions(username: string, projectSlug: string, xXSRFTOKEN: string, requestBody: { [key: string]: number; }, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<ProjectElementDto>>>;
+    public updateElementPositions(username: string, projectSlug: string, xXSRFTOKEN: string, requestBody: { [key: string]: number; }, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<ProjectElementDto>>>;
+    public updateElementPositions(username: string, projectSlug: string, xXSRFTOKEN: string, requestBody: { [key: string]: number; }, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: '*/*' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
             throw new Error('Required parameter username was null or undefined when calling updateElementPositions.');
         }
@@ -545,8 +545,8 @@ export class ProjectElementsAPIService {
         if (localVarHttpHeaderAcceptSelected === undefined) {
             // to determine the Accept header
             const httpHeaderAccepts: string[] = [
-                'application/json',
-                '*/*'
+                '*/*',
+                'application/json'
             ];
             localVarHttpHeaderAcceptSelected = this.configuration.selectHeaderAccept(httpHeaderAccepts);
         }
