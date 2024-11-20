@@ -51,8 +51,30 @@
         ]
       },
       {
+        "label": "Start Dev Proxy",
+        "type": "shell",
+        "command": "npm run start-proxy",
+        "isBackground": true,
+        "problemMatcher": [
+          {
+            "pattern": [
+              {
+                "regexp": ".",
+                "file": 1,
+                "location": 2,
+                "message": 3
+              }
+            ],
+            "background": {
+              "activeOnStart": true,
+              "beginsPattern": "^.*Dev proxy server is running on.*",
+            }
+          }
+        ]
+      },
+      {
         "label": "Start Full Stack",
-        "dependsOn": ["Start Backend", "Start Frontend"],
+        "dependsOn": ["Start Backend", "Start Frontend", "Start Dev Proxy"],
         "dependsOrder": "parallel"
       }
     ]

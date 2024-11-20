@@ -10,16 +10,6 @@
     "editor.formatOnSave": false
   },
   "java.compile.nullAnalysis.mode": "automatic",
-  "karmaTestExplorer.karmaConfFilePath": "frontend/karma.conf.js",
-  "karmaTestExplorer.projectWorkspaces": ["frontend"],
-  "eslint.validate": [
-    "javascript",
-    "javascriptreact",
-    "typescript",
-    "typescriptreact",
-    "html"
-  ],
-  "eslint.format.enable": true,
   "[typescript]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
@@ -29,4 +19,5 @@
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "jest.rootPath": "frontend",
 }

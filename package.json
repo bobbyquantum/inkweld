@@ -6,7 +6,8 @@
     "update-api-client": "node update-api-client.js",
     "start-frontend": "cd frontend && npm start",
     "start-backend": "cd backend && npm run mvnw spring-boot:run",
-    "start": "npm-run-all --parallel start-frontend start-backend",
+    "start-proxy": "node dev-proxy.js",
+    "start": "npm-run-all --parallel start-proxy start-frontend start-backend",
     "install-all": "npm install && cd api-client && npm install && npm run build && cd dist && npm pack && cd ../../frontend && npm rebuild worm-api-client && npm install",
     "build": "cd frontend && npm run build && cd .. && cd backend && npm run mvnw clean package",
     "lint:ci": "cd backend && npm run mvnw spotless:check && cd .. && cd frontend && npm run lint",
@@ -15,6 +16,8 @@
     "test-backend": "node run-backend-tests.js"
   },
   "devDependencies": {
+    "express": "^4.21.1",
+    "http-proxy-middleware": "^3.0.3",
     "npm-run-all": "^4.1.5"
   }
 }
