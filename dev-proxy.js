@@ -17,76 +17,29 @@ const logProxyReq = (proxyReq, req, res) => {
 
 // Proxy configuration for API and related routes
 app.use(
-  '/api',
+  '/',
   createProxyMiddleware({
-    target: 'http://localhost:8080/api',
-    changeOrigin: true,
+    target: 'http://localhost:8080',
+    changeOrigin: false,
     logLevel: 'trace',
-    onProxyRes: logProxyReq,
+    on: {
+      proxyReq: logProxyReq,
+    },
+    pathFilter:['/api', '/login', '/logout', '/oauth2', '/api-docs', '/swagger-ui', '/admin']
   })
 );
-app.use(
-  '/login',
-  createProxyMiddleware({
-    target: 'http://localhost:8080/login',
-    changeOrigin: true,
-    logLevel: 'trace',
-    onProxyRes: logProxyReq,
-  })
-);
-app.use(
-  '/logout',
-  createProxyMiddleware({
-    target: 'http://localhost:8080/logout',
-    changeOrigin: true,
-    logLevel: 'trace',
-    onProxyRes: logProxyReq,
-  })
-);
-app.use(
-  '/oauth2',
-  createProxyMiddleware({
-    target: 'http://localhost:8080/oauth2',
-    changeOrigin: true,
-    logLevel: 'trace',
-    onProxyRes: logProxyReq,
-  })
-);
-app.use(
-  '/api-docs',
-  createProxyMiddleware({
-    target: 'http://localhost:8080/api-docs',
-    changeOrigin: true,
-    logLevel: 'trace',
-    onProxyRes: logProxyReq,
-  })
-);
-app.use(
-  '/swagger-ui',
-  createProxyMiddleware({
-    target: 'http://localhost:8080/swagger-ui',
-    changeOrigin: true,
-    logLevel: 'trace',
-    onProxyRes: logProxyReq,
-  })
-);
-app.use(
-  '/admin',
-  createProxyMiddleware({
-    target: 'http://localhost:8080/admin',
-    changeOrigin: true,
-    logLevel: 'trace',
-    onProxyRes: logProxyReq,
-  })
-);
+
 // Proxy configuration for WebSocket
 app.use(
-  '/ws',
   createProxyMiddleware({
-    target: 'http://localhost:8080/ws',
+    target: 'http://localhost:8080/',
     ws: true,
-    changeOrigin: true,
-    onProxyReq: logProxyReq,
+    pathFilter: '/ws',
+    on: {
+      proxyReq: (proxyReq, req, res) => {
+        console.log(`Proxying ws request to: ${proxyReq.protocol}//${proxyReq.host}${proxyReq.path}`);
+      },
+    },
   })
 );
 
@@ -98,7 +51,9 @@ app.use(
     changeOrigin: true,
     ws: true,
     logLevel: 'debug',
-    onProxyReq: logProxyReq,
+    on: {
+      proxyReq: logProxyReq,
+    },
   })
 );
 

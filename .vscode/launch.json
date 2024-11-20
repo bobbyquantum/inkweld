@@ -3,7 +3,7 @@
   "configurations": [
     
     {
-      "name": "Debug Java Backend",
+      "name": "Backend",
       "type": "java",
       "request": "launch",
       "mainClass": "observer.quantum.worm.WormApplication",
@@ -13,9 +13,9 @@
     },
     {
       "type": "chrome",
-      "name": "Debug Angular Frontend",
+      "name": "Frontend",
       "request": "launch",
-      "preLaunchTask": "Start Frontend",
+      "preLaunchTask": "Start Stack",
       "url": "http://localhost:8333",
       "webRoot": "${workspaceFolder}/frontend",
       "sourceMaps": true,
@@ -29,8 +29,8 @@
   ],
   "compounds": [
     {
-      "name": "Debug Full Stack",
-      "configurations": ["Debug Java Backend", "Debug Angular Frontend"]
+      "name": "Full",
+      "configurations": ["Backend", "Frontend"]
     }
   ]
 }
