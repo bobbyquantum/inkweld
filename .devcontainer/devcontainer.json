@@ -1,0 +1,32 @@
+{
+    "name": "Worm Devcontainer",
+    "image": "mcr.microsoft.com/vscode/devcontainers/universal:linux",
+    "postCreateCommand": "npm run install-all",
+    "forwardPorts": [8333],
+    "features": {
+        "ghcr.io/devcontainers/features/java:1": {
+            "version": "23.0.1",
+            "jdkDistro": "graalce"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "jest.rootPath": "frontend",
+                "java.server.launchMode": "Standard"
+            },
+            "extensions": [
+                "redhat.java",
+                "vscjava.vscode-java-debug",
+                "vscjava.vscode-java-dependency",
+                "vscjava.vscode-java-pack",
+                "editorconfig.editorconfig",
+				"angular.ng-template",
+				"orta.vscode-jest",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "ms-azuretools.vscode-docker"
+            ]
+        }
+    }
+}
