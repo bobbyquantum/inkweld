@@ -5,7 +5,7 @@ import jakarta.persistence.PersistenceContext;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Date;
-import observer.quantum.worm.user.UserService;
+import observer.quantum.worm.domain.user.UserService;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.web.authentication.rememberme.PersistentRememberMeToken;
 import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;

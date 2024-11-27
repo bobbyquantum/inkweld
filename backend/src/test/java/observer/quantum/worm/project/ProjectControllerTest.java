@@ -15,11 +15,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
 import lombok.extern.slf4j.Slf4j;
+import observer.quantum.worm.domain.project.Project;
+import observer.quantum.worm.domain.project.ProjectController;
+import observer.quantum.worm.domain.project.ProjectNotFoundException;
+import observer.quantum.worm.domain.project.ProjectService;
+import observer.quantum.worm.domain.user.User;
+import observer.quantum.worm.domain.user.UserService;
 import observer.quantum.worm.error.GlobalExceptionHandler;
-import observer.quantum.worm.user.User;
-import observer.quantum.worm.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,15 +31,15 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
 @Slf4j
 @WebMvcTest(ProjectController.class)
 @Import(GlobalExceptionHandler.class)
 @WithMockUser(username = "testUser", roles = "USER")
 public class ProjectControllerTest {
-  
+
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private ProjectService projectService;

@@ -7,6 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import observer.quantum.worm.domain.user.UpdateUserRequest;
+import observer.quantum.worm.domain.user.User;
+import observer.quantum.worm.domain.user.UserController;
+import observer.quantum.worm.domain.user.UserService;
 import observer.quantum.worm.error.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

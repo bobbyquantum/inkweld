@@ -21,8 +21,7 @@ public class OpenAPIConfig {
                 .title("Worm API")
                 .description(
                     "Worm tunnel protocol - Secure API for managing projects and user data")
-                .version(version)
-            )
+                .version(version))
         .tags(
             Arrays.asList(
                 new Tag()
@@ -33,11 +32,9 @@ public class OpenAPIConfig {
                     .name("Project API")
                     .description(
                         "The project controller supports various functions relating to projects.")))
-                       .servers(Arrays.asList(
-                               new
-        Server().url("http://localhost:8333/").description("Development server")
-                       ))
-
+        .servers(
+            Arrays.asList(
+                new Server().url("http://localhost:8333/").description("Development server")))
         .specVersion(SpecVersion.V31);
   }
 }
