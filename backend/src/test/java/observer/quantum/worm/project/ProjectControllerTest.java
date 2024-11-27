@@ -24,24 +24,24 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @Slf4j
 @WebMvcTest(ProjectController.class)
 @Import(GlobalExceptionHandler.class)
 @WithMockUser(username = "testUser", roles = "USER")
 public class ProjectControllerTest {
-
+  
   @Autowired private MockMvc mockMvc;
 
-  @MockBean private ProjectService projectService;
+  @MockitoBean private ProjectService projectService;
 
-  @MockBean private UserService userService;
+  @MockitoBean private UserService userService;
 
   private Project project;
   private User mockUser;
