@@ -8,12 +8,16 @@ import java.io.ByteArrayInputStream;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
-
 import lombok.extern.slf4j.Slf4j;
+import observer.quantum.worm.domain.content.File;
+import observer.quantum.worm.domain.content.FileContentController;
+import observer.quantum.worm.domain.content.FileContentStore;
+import observer.quantum.worm.domain.content.FilePatchDto;
+import observer.quantum.worm.domain.content.FileService;
+import observer.quantum.worm.domain.user.User;
+import observer.quantum.worm.domain.user.UserService;
 import observer.quantum.worm.error.GlobalExceptionHandler;
 import observer.quantum.worm.global.TestPageableArgumentResolver;
-import observer.quantum.worm.user.User;
-import observer.quantum.worm.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -84,7 +88,8 @@ public class FileContentControllerTest {
 
   @Test
   public void testGetFileMeta() throws Exception {
-    when(fileService.getFile(UUID.fromString("00000000-0000-0000-0000-000000000001"))).thenReturn(Optional.of(file));
+    when(fileService.getFile(UUID.fromString("00000000-0000-0000-0000-000000000001")))
+        .thenReturn(Optional.of(file));
 
     mockMvc
         .perform(get("/api/v1/files/00000000-0000-0000-0000-000000000001"))
@@ -99,7 +104,8 @@ public class FileContentControllerTest {
 
   @Test
   public void testDownloadFile() throws Exception {
-    when(fileService.getFile(UUID.fromString("00000000-0000-0000-0000-000000000001"))).thenReturn(Optional.of(file));
+    when(fileService.getFile(UUID.fromString("00000000-0000-0000-0000-000000000001")))
+        .thenReturn(Optional.of(file));
     when(contentStore.getContent(file))
         .thenReturn(new ByteArrayInputStream("Hello, World!".getBytes()));
 
@@ -117,12 +123,15 @@ public class FileContentControllerTest {
 
   @Test
   public void testDownloadFileInline() throws Exception {
-    when(fileService.getFile(UUID.fromString("00000000-0000-0000-0000-000000000001"))).thenReturn(Optional.of(file));
+    when(fileService.getFile(UUID.fromString("00000000-0000-0000-0000-000000000001")))
+        .thenReturn(Optional.of(file));
     when(contentStore.getContent(file))
         .thenReturn(new ByteArrayInputStream("Hello, World!".getBytes()));
 
     mockMvc
-        .perform(get("/api/v1/files/00000000-0000-0000-0000-000000000001/content").param("download", "false"))
+        .perform(
+            get("/api/v1/files/00000000-0000-0000-0000-000000000001/content")
+                .param("download", "false"))
         .andExpect(status().isOk())
         .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "text/plain"))
         .andExpect(
@@ -166,9 +175,12 @@ public class FileContentControllerTest {
   @Test
   public void testDownloadFileNotFound() throws Exception {
     when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
-    when(fileService.getFile(UUID.fromString("00000000-0000-0000-0000-000000000001"))).thenReturn(Optional.empty());
+    when(fileService.getFile(UUID.fromString("00000000-0000-0000-0000-000000000001")))
+        .thenReturn(Optional.empty());
 
-    mockMvc.perform(get("/api/v1/files/00000000-0000-0000-0000-000000000001")).andExpect(status().isNotFound());
+    mockMvc
+        .perform(get("/api/v1/files/00000000-0000-0000-0000-000000000001"))
+        .andExpect(status().isNotFound());
 
     verify(fileService, times(1)).getFile(UUID.fromString("00000000-0000-0000-0000-000000000001"));
     verify(contentStore, never()).getContent(any());
@@ -177,7 +189,9 @@ public class FileContentControllerTest {
   @Test
   public void testUpdateFileContent() throws Exception {
     when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
-    when(fileService.updateFileContent(eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any())).thenReturn(true);
+    when(fileService.updateFileContent(
+            eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any()))
+        .thenReturn(true);
 
     MockMultipartFile multipartFile =
         new MockMultipartFile("file", "test.txt", "text/plain", "Updated content".getBytes());
@@ -194,13 +208,16 @@ public class FileContentControllerTest {
                     }))
         .andExpect(status().isOk());
 
-    verify(fileService, times(1)).updateFileContent(eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any());
+    verify(fileService, times(1))
+        .updateFileContent(eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any());
   }
 
   @Test
   public void testUpdateFileContentNotFound() throws Exception {
     when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
-    when(fileService.updateFileContent(eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any())).thenReturn(false);
+    when(fileService.updateFileContent(
+            eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any()))
+        .thenReturn(false);
 
     MockMultipartFile multipartFile =
         new MockMultipartFile("file", "test.txt", "text/plain", "Updated content".getBytes());
@@ -217,31 +234,40 @@ public class FileContentControllerTest {
                     }))
         .andExpect(status().isNotFound());
 
-    verify(fileService, times(1)).updateFileContent(eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any());
+    verify(fileService, times(1))
+        .updateFileContent(eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any());
   }
 
   @Test
   public void testDeleteFile() throws Exception {
     when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
-    when(fileService.deleteFile(UUID.fromString("00000000-0000-0000-0000-000000000001"))).thenReturn(true);
+    when(fileService.deleteFile(UUID.fromString("00000000-0000-0000-0000-000000000001")))
+        .thenReturn(true);
 
     mockMvc
-        .perform(delete("/api/v1/files/00000000-0000-0000-0000-000000000001").header("X-XSRF-TOKEN", "test-token"))
+        .perform(
+            delete("/api/v1/files/00000000-0000-0000-0000-000000000001")
+                .header("X-XSRF-TOKEN", "test-token"))
         .andExpect(status().isNoContent());
 
-    verify(fileService, times(1)).deleteFile(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+    verify(fileService, times(1))
+        .deleteFile(UUID.fromString("00000000-0000-0000-0000-000000000001"));
   }
 
   @Test
   public void testDeleteFileNotFound() throws Exception {
     when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
-    when(fileService.deleteFile(UUID.fromString("00000000-0000-0000-0000-000000000001"))).thenReturn(false);
+    when(fileService.deleteFile(UUID.fromString("00000000-0000-0000-0000-000000000001")))
+        .thenReturn(false);
 
     mockMvc
-        .perform(delete("/api/v1/files/00000000-0000-0000-0000-000000000001").header("X-XSRF-TOKEN", "test-token"))
+        .perform(
+            delete("/api/v1/files/00000000-0000-0000-0000-000000000001")
+                .header("X-XSRF-TOKEN", "test-token"))
         .andExpect(status().isNotFound());
 
-    verify(fileService, times(1)).deleteFile(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+    verify(fileService, times(1))
+        .deleteFile(UUID.fromString("00000000-0000-0000-0000-000000000001"));
   }
 
   @Test
@@ -284,7 +310,8 @@ public class FileContentControllerTest {
     updatedFile.setContentLength(100L);
     updatedFile.setOwner(owner);
 
-    when(fileService.patchFile(eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any(FilePatchDto.class)))
+    when(fileService.patchFile(
+            eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any(FilePatchDto.class)))
         .thenReturn(Optional.of(updatedFile));
 
     mockMvc
@@ -297,6 +324,8 @@ public class FileContentControllerTest {
         .andExpect(jsonPath("$.name").value("updated.txt"))
         .andExpect(jsonPath("$.summary").value("Updated summary"));
 
-    verify(fileService, times(1)).patchFile(eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any(FilePatchDto.class));
+    verify(fileService, times(1))
+        .patchFile(
+            eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any(FilePatchDto.class));
   }
 }

@@ -1,6 +1,6 @@
 package observer.quantum.worm.global;
 
-import observer.quantum.worm.user.UserService;
+import observer.quantum.worm.domain.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
