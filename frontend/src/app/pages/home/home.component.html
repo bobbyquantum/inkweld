@@ -13,48 +13,64 @@
 </mat-toolbar>
 
 <div class="content-container" [class.is-mobile]="isMobile">
-  @if (!isMobile || (isMobile && !selectedProject)) {
-    <div class="project-list">
-      <mat-form-field appearance="outline" class="custom-search-field">
-        <input matInput placeholder="Search" />
-        <mat-icon matPrefix>search</mat-icon>
-      </mat-form-field>
+  @if (projects.length === 0) {
+    <div class="empty-state">
+      <mat-icon class="empty-icon">add_circle_outline</mat-icon>
+      <h2>Create Your First Project</h2>
+      <p>Get started by creating a new project</p>
+      <button
+        mat-raised-button
+        color="primary"
+        [routerLink]="['/new-project']"
+        class="create-first-project-btn">
+        Create Project
+      </button>
+    </div>
+  } @else {
+    @if (!isMobile || (isMobile && !selectedProject)) {
+      <div class="project-list">
+        <mat-form-field appearance="outline" class="custom-search-field">
+          <input matInput placeholder="Search" />
+          <mat-icon matPrefix>search</mat-icon>
+        </mat-form-field>
 
-      @for (project of projects; track project.id) {
-        <div
-          (click)="selectProject(project)"
-          (keyup.enter)="selectProject(project)"
-          tabindex="0"
-          role="button"
-          class="project-card-wrapper"
-          title="Select {{ project.title }}">
-          <app-project-card [project]="project" />
+        @for (project of projects; track project.id) {
+          <div
+            (click)="selectProject(project)"
+            (keyup.enter)="selectProject(project)"
+            tabindex="0"
+            role="button"
+            class="project-card-wrapper"
+            title="Select {{ project.title }}">
+            <app-project-card [project]="project" />
+          </div>
+        }
+      </div>
+    }
+
+    @if (!isMobile || (isMobile && selectedProject)) {
+      @if (selectedProject) {
+        <div class="project-detail">
+          <h2>{{ selectedProject.title }}</h2>
+        </div>
+      } @else if (!isMobile) {
+        <div class="project-detail-placeholder">
+          <p>Select a project to view details</p>
         </div>
       }
-    </div>
-  }
-
-  @if (!isMobile || (isMobile && selectedProject)) {
-    @if (selectedProject) {
-      <div class="project-detail">
-        <h2>{{ selectedProject.title }}</h2>
-      </div>
-    } @else if (!isMobile) {
-      <div class="project-detail-placeholder">
-        <p>Select a project to view details</p>
-      </div>
     }
   }
 </div>
 
-<button
-  mat-fab
-  extended
-  color="accent"
-  class="add-project-fab"
-  [routerLink]="['/new-project']"
-  aria-label="Add new project">
-  <mat-icon>add</mat-icon>
-
-  New Project
-</button>
+@if (projects.length > 0) {
+  <button
+    mat-fab
+    extended
+    color="accent"
+    class="add-project-fab"
+    [routerLink]="['/new-project']"
+    aria-label="Add new project">
+    <mat-icon>add</mat-icon>
+    New Project
+  </button>
+}
