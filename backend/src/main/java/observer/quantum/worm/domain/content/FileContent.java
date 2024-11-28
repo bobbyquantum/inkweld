@@ -15,7 +15,7 @@ import org.springframework.content.commons.annotations.ContentLength;
 @Getter
 @Setter
 @NoArgsConstructor
-public class File {
+public class FileContent {
 
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
