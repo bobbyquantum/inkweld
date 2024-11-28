@@ -18,14 +18,16 @@
       (cdkDragMoved)="dragMove($event)"
       (cdkDragEnded)="dragEnded()"
       [cdkDragStartDelay]="node.expandable && node.expanded ? 1000 : 0"
+      [cdkDragDisabled]="node.id === 'root-wrapper'"
       [style.padding-left.px]="node.level * 24 + (node.expandable ? 0 : 16)"
       [class.folder-node]="node.expandable"
       [class.context-item]="node.id === contextItem?.id"
       [class.selected-item]="node.id === selectedItem?.id"
+      [class.root-wrapper]="node.id === 'root-wrapper'"
       [isExpanded]="node.expanded"
       *matTreeNodeDef="let node"
       [cdkContextMenuTriggerFor]="contextMenu"
-      (cdkContextMenuOpened)="onContextMenuOpen(node)"
+      (contextmenu)="onContextMenuOpen(node)"
       (cdkContextMenuClosed)="onContextMenuClose()"
       [cdkContextMenuTriggerData]="{ node: node }">
       @if (node.expandable) {
@@ -94,17 +96,35 @@
       type="button"
       class="context-menu-item"
       cdkMenuItem
-      (click)="onRename(node)">
-      <mat-icon>edit_square</mat-icon>
-      <span class="context-menu-item-title">Rename</span>
+      (click)="onNewItem(node)">
+      <mat-icon>note_add</mat-icon>
+      <span class="context-menu-item-title">New Item</span>
     </button>
     <button
       type="button"
       class="context-menu-item"
       cdkMenuItem
-      (click)="onDelete(node)">
-      <mat-icon>delete</mat-icon>
-      <span class="context-menu-item-title">Delete</span>
+      (click)="onNewFolder(node)">
+      <mat-icon>create_new_folder</mat-icon>
+      <span class="context-menu-item-title">New Folder</span>
     </button>
+    @if (node.id !== 'root-wrapper') {
+      <button
+        type="button"
+        class="context-menu-item"
+        cdkMenuItem
+        (click)="onRename(node)">
+        <mat-icon>edit_square</mat-icon>
+        <span class="context-menu-item-title">Rename</span>
+      </button>
+      <button
+        type="button"
+        class="context-menu-item"
+        cdkMenuItem
+        (click)="onDelete(node)">
+        <mat-icon>delete</mat-icon>
+        <span class="context-menu-item-title">Delete</span>
+      </button>
+    }
   </div>
 </ng-template>
