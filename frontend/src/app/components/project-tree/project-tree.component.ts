@@ -94,7 +94,7 @@ export class ProjectTreeComponent implements AfterViewInit {
   treeManipulator!: TreeManipulator;
 
   selectedItem: ProjectElement | null = null;
-  editingNode: string | null = null;
+  editingNode: string | undefined = undefined;
   currentDropLevel = 0;
   validLevelsArray: number[] = [0];
   draggedNode: ProjectElement | null = null;
@@ -151,6 +151,74 @@ export class ProjectTreeComponent implements AfterViewInit {
   }
 
   /**
+   * Creates a new item as a child of the specified node.
+   * @param node The parent node to add a new item to.
+   */
+  async onNewItem(node: ProjectElement) {
+    const nodeIndex = this.treeManipulator.getData().indexOf(node);
+    if (nodeIndex === -1) return;
+
+    const newItem: ProjectElement = {
+      id: undefined, // Server will generate ID
+      name: 'New Item',
+      type: 'ITEM',
+      level: node.level + 1,
+      position: 0,
+      expandable: false,
+      expanded: false,
+      visible: true,
+    };
+
+    // If adding to a folder, ensure it's expanded
+    if (node.expandable && !node.expanded) {
+      this.toggleExpanded(node);
+    }
+
+    // Insert after parent node
+    this.treeManipulator.getData().splice(nodeIndex + 1, 0, newItem);
+    this.treeManipulator.updateVisibility();
+    this.updateDataSource();
+    await this.saveChanges();
+
+    // Start editing the new item
+    this.startEditing(newItem);
+  }
+
+  /**
+   * Creates a new folder as a child of the specified node.
+   * @param node The parent node to add a new folder to.
+   */
+  async onNewFolder(node: ProjectElement) {
+    const nodeIndex = this.treeManipulator.getData().indexOf(node);
+    if (nodeIndex === -1) return;
+
+    const newFolder: ProjectElement = {
+      id: undefined, // Server will generate ID
+      name: 'New Folder',
+      type: 'FOLDER',
+      level: node.level + 1,
+      position: 0,
+      expandable: true,
+      expanded: false,
+      visible: true,
+    };
+
+    // If adding to a folder, ensure it's expanded
+    if (node.expandable && !node.expanded) {
+      this.toggleExpanded(node);
+    }
+
+    // Insert after parent node
+    this.treeManipulator.getData().splice(nodeIndex + 1, 0, newFolder);
+    this.treeManipulator.updateVisibility();
+    this.updateDataSource();
+    await this.saveChanges();
+
+    // Start editing the new folder
+    this.startEditing(newFolder);
+  }
+
+  /**
    * Adds a new item as a child to the specified node.
    * @param node The parent node to add a new item to.
    */
@@ -183,7 +251,7 @@ export class ProjectTreeComponent implements AfterViewInit {
       // Start a timer to collapse the node after a short delay
       this.collapseTimer = setTimeout(() => {
         // Collapse the node
-        this.wasExpandedNodeIds.add(node.id);
+        if (node.id) this.wasExpandedNodeIds.add(node.id);
         this.toggleExpanded(node);
         this.draggedNode = node;
       }, 950); // Delay slightly less than drag start delay
@@ -206,7 +274,9 @@ export class ProjectTreeComponent implements AfterViewInit {
   beforeDragStarted() {
     if (this.selectedItem?.type === 'FOLDER' && this.selectedItem.expanded) {
       // Remember that we collapsed this node
-      this.wasExpandedNodeIds.add(this.selectedItem.id);
+      if (this.selectedItem.id) {
+        this.wasExpandedNodeIds.add(this.selectedItem.id);
+      }
       this.toggleExpanded(this.selectedItem);
     }
   }
@@ -377,7 +447,10 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Handles the drag end event.
    */
   dragEnded() {
-    if (this.draggedNode && this.wasExpandedNodeIds.has(this.draggedNode.id)) {
+    if (
+      this.draggedNode?.id &&
+      this.wasExpandedNodeIds.has(this.draggedNode.id)
+    ) {
       this.toggleExpanded(this.draggedNode);
       this.wasExpandedNodeIds.delete(this.draggedNode.id);
     }
@@ -408,14 +481,14 @@ export class ProjectTreeComponent implements AfterViewInit {
       // Save changes after rename
       await this.saveChanges();
     }
-    this.editingNode = null;
+    this.editingNode = undefined;
   }
 
   /**
    * Cancels editing of a node's name.
    */
   cancelEditing() {
-    this.editingNode = null;
+    this.editingNode = undefined;
   }
 
   /**
@@ -476,8 +549,8 @@ export class ProjectTreeComponent implements AfterViewInit {
 
     // Get project info from URL or service
     const urlParts = window.location.pathname.split('/');
-    const username = urlParts[1];
-    const slug = urlParts[2];
+    const username = urlParts[2];
+    const slug = urlParts[3];
     await this.treeService.saveProjectElements(username, slug, elements);
   }
 }

@@ -1,7 +1,7 @@
 import { ProjectElementDto } from 'worm-api-client';
 
 export interface ProjectElement {
-  id: string;
+  id: string | undefined;
   name: string;
   type: 'FOLDER' | 'ITEM';
   level: number;
@@ -13,7 +13,7 @@ export interface ProjectElement {
 
 export function mapDtoToProjectElement(dto: ProjectElementDto): ProjectElement {
   return {
-    id: dto.id || '',
+    id: dto.id,
     name: dto.name || '',
     type: dto.type || 'ITEM',
     level: dto.level || 0,
