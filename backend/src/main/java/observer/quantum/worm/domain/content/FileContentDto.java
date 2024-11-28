@@ -11,7 +11,7 @@ import observer.quantum.worm.domain.user.UserDto;
 @Getter
 @Setter
 @Schema(name = "File", description = "File Data")
-public class FileDto {
+public class FileContentDto {
   @Schema(description = "File ID", example = "66c8e88630d2507bab875d28")
   private UUID id;
 
@@ -33,7 +33,7 @@ public class FileDto {
   @Schema(description = "User who owns the file")
   private UserDto owner;
 
-  public FileDto(File file) {
+  public FileContentDto(FileContent file) {
     this.id = file.getId();
     this.name = file.getName();
     this.created = file.getCreated();
@@ -43,8 +43,8 @@ public class FileDto {
     this.owner = new UserDto(file.getOwner());
   }
 
-  public File toFile() {
-    File file = new File();
+  public FileContent toFile() {
+    FileContent file = new FileContent();
     file.setId(this.id);
     file.setName(this.name);
     file.setCreated(this.created);

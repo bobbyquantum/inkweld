@@ -13,7 +13,7 @@ import { User } from './user';
 /**
  * File Data
  */
-export interface ModelFile { 
+export interface FileUpload { 
     /**
      * File ID
      */

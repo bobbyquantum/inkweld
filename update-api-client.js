@@ -16,11 +16,11 @@ console.log("Generating OpenAPI spec...");
 const backendPath = path.join(__dirname, "backend");
 
 // First run verify on default profile to generate OpenAPI spec
-runCommand(mvnwCommand + " verify", backendPath);
+runCommand(mvnwCommand + " clean verify", backendPath);
 
 // Then run verify with generate-api-client profile to create TypeScript client
 console.log("Generating TypeScript client...");
-runCommand(mvnwCommand + " verify -P generate-api-client", backendPath);
+runCommand(mvnwCommand + " clean verify -P generate-api-client", backendPath);
 
 // Build the dist package for the API client
 console.log("Building dist package for API client...");

@@ -8,13 +8,14 @@
  * Do not edit the class manually.
  */
 import { PageInfo } from './pageInfo';
+import { FileUpload } from './fileUpload';
 
 
 export interface PageFileResponse { 
     /**
      * List of files in the current page
      */
-    content?: Array<any>;
+    content?: Array<FileUpload>;
     page?: PageInfo;
 }
 

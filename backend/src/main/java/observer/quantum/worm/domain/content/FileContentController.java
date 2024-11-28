@@ -33,10 +33,10 @@ import org.springframework.web.multipart.MultipartFile;
         "The file controller allows uploading, downloading, and updating files for the current user.")
 public class FileContentController {
 
-  private final FileService fileService;
+  private final FileContentService fileService;
   private final FileContentStore contentStore;
 
-  public FileContentController(FileService fileService, FileContentStore contentStore) {
+  public FileContentController(FileContentService fileService, FileContentStore contentStore) {
     this.fileService = fileService;
     this.contentStore = contentStore;
   }
@@ -64,9 +64,9 @@ public class FileContentController {
       })
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Secured({"USER", "OAUTH2_USER"})
-  public ResponseEntity<FileDto> uploadFile(
-      @Parameter(description = "File to upload", required = true) @RequestParam("file")
-          MultipartFile file,
+  public ResponseEntity<FileContentDto> uploadFile(
+      @Parameter(description = "File to upload", required = true) @RequestParam("fileContent")
+          MultipartFile fileContent,
       @Parameter(
               in = ParameterIn.HEADER,
               name = "X-XSRF-TOKEN",
@@ -75,8 +75,8 @@ public class FileContentController {
           @RequestHeader(name = "X-XSRF-TOKEN")
           String csrfToken)
       throws IOException {
-    File createdFile = fileService.createFile(file);
-    return ResponseEntity.status(HttpStatus.CREATED).body(new FileDto(createdFile));
+    FileContent createdFile = fileService.createFile(fileContent);
+    return ResponseEntity.status(HttpStatus.CREATED).body(new FileContentDto(createdFile));
   }
 
   @Operation(
@@ -90,7 +90,7 @@ public class FileContentController {
             content =
                 @Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = @Schema(implementation = FileDto.class))),
+                    schema = @Schema(implementation = FileContentDto.class))),
         @ApiResponse(
             responseCode = "401",
             description = "User not authenticated",
@@ -118,7 +118,7 @@ public class FileContentController {
   public ResponseEntity<?> fileMeta(@PathVariable UUID fileId) {
     return fileService
         .getFile(fileId)
-        .map(file -> ResponseEntity.ok().body(new FileDto(file)))
+        .map(file -> ResponseEntity.ok().body(new FileContentDto(file)))
         .orElse(ResponseEntity.notFound().build());
   }
 
@@ -159,7 +159,7 @@ public class FileContentController {
       })
   @GetMapping("/{fileId}/content")
   @Secured({"USER", "OAUTH2_USER"})
-  public ResponseEntity<?> getFile(
+  public ResponseEntity<?> getFileContent(
       @PathVariable UUID fileId,
       @RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader,
       @RequestParam(value = "download", defaultValue = "false") boolean download) {
@@ -226,7 +226,7 @@ public class FileContentController {
             content =
                 @Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = @Schema(implementation = FileDto.class))),
+                    schema = @Schema(implementation = FileContentDto.class))),
         @ApiResponse(
             responseCode = "400",
             description = "Invalid input",
@@ -260,12 +260,12 @@ public class FileContentController {
   @Secured({"USER", "OAUTH2_USER"})
   public ResponseEntity<?> patchFile(
       @PathVariable UUID fileId,
-      @RequestBody @Valid FilePatchDto patchDto,
+      @RequestBody @Valid FileContentPatchDto patchDto,
       @RequestHeader(name = "X-XSRF-TOKEN") String csrfToken) {
 
     return fileService
         .patchFile(fileId, patchDto)
-        .map(updatedFile -> ResponseEntity.ok().body(new FileDto(updatedFile)))
+        .map(updatedFile -> ResponseEntity.ok().body(new FileContentDto(updatedFile)))
         .orElse(ResponseEntity.notFound().build());
   }
 
@@ -301,7 +301,7 @@ public class FileContentController {
   @Secured({"USER", "OAUTH2_USER"})
   public ResponseEntity<?> updateFileContent(
       @PathVariable UUID fileId,
-      @RequestParam("file") MultipartFile file,
+      @RequestParam("fileContent") MultipartFile fileContent,
       @Parameter(
               in = ParameterIn.HEADER,
               name = "X-XSRF-TOKEN",
@@ -310,7 +310,7 @@ public class FileContentController {
           @RequestHeader(name = "X-XSRF-TOKEN")
           String csrfToken)
       throws IOException {
-    boolean updated = fileService.updateFileContent(fileId, file);
+    boolean updated = fileService.updateFileContent(fileId, fileContent);
     if (updated) {
       return ResponseEntity.ok().build();
     } else {
@@ -395,16 +395,16 @@ public class FileContentController {
       })
   @GetMapping("/search")
   @Secured({"USER", "OAUTH2_USER"})
-  public ResponseEntity<Page<FileDto>> searchFiles(
+  public ResponseEntity<Page<FileContentDto>> searchFiles(
       @Parameter(description = "Name of the file to search for (case-insensitive, partial match)")
           @RequestParam(required = false, defaultValue = "")
           String name,
       @Parameter(description = "Pageable information for the search results") Pageable pageable) {
-    Page<File> files = fileService.searchFiles(name, pageable);
+    Page<FileContent> files = fileService.searchFiles(name, pageable);
 
-    List<FileDto> fileDtos =
-        files.getContent().stream().map(FileDto::new).collect(Collectors.toList());
-    PageImpl<FileDto> page =
+    List<FileContentDto> fileDtos =
+        files.getContent().stream().map(FileContentDto::new).collect(Collectors.toList());
+    PageImpl<FileContentDto> page =
         new PageImpl<>(fileDtos, files.getPageable(), files.getTotalElements());
     return ResponseEntity.ok(page);
   }

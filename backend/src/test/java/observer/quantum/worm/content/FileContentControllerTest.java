@@ -9,11 +9,11 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import observer.quantum.worm.domain.content.File;
+import observer.quantum.worm.domain.content.FileContent;
 import observer.quantum.worm.domain.content.FileContentController;
 import observer.quantum.worm.domain.content.FileContentStore;
-import observer.quantum.worm.domain.content.FilePatchDto;
-import observer.quantum.worm.domain.content.FileService;
+import observer.quantum.worm.domain.content.FileContentPatchDto;
+import observer.quantum.worm.domain.content.FileContentService;
 import observer.quantum.worm.domain.user.User;
 import observer.quantum.worm.domain.user.UserService;
 import observer.quantum.worm.error.GlobalExceptionHandler;
@@ -34,7 +34,7 @@ public class FileContentControllerTest {
 
   @InjectMocks private FileContentController fileContentController;
 
-  @Mock private FileService fileService;
+  @Mock private FileContentService fileService;
 
   @Mock private FileContentStore contentStore;
 
@@ -42,7 +42,7 @@ public class FileContentControllerTest {
 
   private MockMvc mockMvc;
 
-  private File file;
+  private FileContent file;
   private User owner;
 
   @BeforeEach
@@ -58,7 +58,7 @@ public class FileContentControllerTest {
     owner.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
     owner.setUsername("owner");
 
-    file = new File();
+    file = new FileContent();
     file.setId(UUID.fromString("00000000-0000-0000-0000-000000000001"));
     file.setName("test.txt");
     file.setContentMimeType("text/plain");
@@ -72,7 +72,7 @@ public class FileContentControllerTest {
     when(fileService.createFile(any())).thenReturn(file);
 
     MockMultipartFile multipartFile =
-        new MockMultipartFile("file", "test.txt", "text/plain", "Hello, World!".getBytes());
+        new MockMultipartFile("fileContent", "test.txt", "text/plain", "Hello, World!".getBytes());
 
     mockMvc
         .perform(
@@ -194,7 +194,7 @@ public class FileContentControllerTest {
         .thenReturn(true);
 
     MockMultipartFile multipartFile =
-        new MockMultipartFile("file", "test.txt", "text/plain", "Updated content".getBytes());
+        new MockMultipartFile("fileContent", "test.txt", "text/plain", "Updated content".getBytes());
 
     mockMvc
         .perform(
@@ -220,7 +220,7 @@ public class FileContentControllerTest {
         .thenReturn(false);
 
     MockMultipartFile multipartFile =
-        new MockMultipartFile("file", "test.txt", "text/plain", "Updated content".getBytes());
+        new MockMultipartFile("fileContent", "test.txt", "text/plain", "Updated content".getBytes());
 
     mockMvc
         .perform(
@@ -275,7 +275,7 @@ public class FileContentControllerTest {
     when(userService.getCurrentUser()).thenReturn(Optional.of(owner));
 
     Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "name"));
-    Page<File> filePage = new PageImpl<>(Collections.singletonList(file), pageable, 1);
+    Page<FileContent> filePage = new PageImpl<>(Collections.singletonList(file), pageable, 1);
     when(fileService.searchFiles(eq("test"), any(Pageable.class))).thenReturn(filePage);
 
     mockMvc
@@ -299,11 +299,11 @@ public class FileContentControllerTest {
 
   @Test
   public void testPatchFile() throws Exception {
-    FilePatchDto patchDto = new FilePatchDto();
+    FileContentPatchDto patchDto = new FileContentPatchDto();
     patchDto.setName("updated.txt");
     patchDto.setSummary("Updated summary");
 
-    File updatedFile = new File();
+    FileContent updatedFile = new FileContent();
     updatedFile.setName("updated.txt");
     updatedFile.setSummary("Updated summary");
     updatedFile.setContentMimeType("text/plain");
@@ -311,7 +311,7 @@ public class FileContentControllerTest {
     updatedFile.setOwner(owner);
 
     when(fileService.patchFile(
-            eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any(FilePatchDto.class)))
+            eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any(FileContentPatchDto.class)))
         .thenReturn(Optional.of(updatedFile));
 
     mockMvc
@@ -326,6 +326,6 @@ public class FileContentControllerTest {
 
     verify(fileService, times(1))
         .patchFile(
-            eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any(FilePatchDto.class));
+            eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any(FileContentPatchDto.class));
   }
 }

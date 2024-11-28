@@ -9,7 +9,7 @@
  */
 
 
-export interface FilePatchDto { 
+export interface FileContentPatchDto { 
     /**
      * New name for the file
      */
