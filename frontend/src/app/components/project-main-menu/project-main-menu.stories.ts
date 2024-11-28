@@ -1,8 +1,9 @@
+import { provideHttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { provideAnimations } from '@angular/platform-browser/animations';
 import type { Meta, StoryObj } from '@storybook/angular';
-import { moduleMetadata } from '@storybook/angular';
+import { applicationConfig, moduleMetadata } from '@storybook/angular';
 
 import { ProjectMainMenuComponent } from './project-main-menu.component';
 
@@ -28,7 +29,10 @@ const meta: Meta<ProjectMainMenuComponent> = {
   component: ProjectMainMenuComponent,
   decorators: [
     moduleMetadata({
-      imports: [MatMenuModule, MatButtonModule, BrowserAnimationsModule],
+      imports: [MatMenuModule, MatButtonModule],
+    }),
+    applicationConfig({
+      providers: [provideHttpClient(), provideAnimations()],
     }),
   ],
   parameters: {
