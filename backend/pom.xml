@@ -277,11 +277,21 @@
                                         <prependFormOrBodyParameters>true</prependFormOrBodyParameters>
                                     </configOptions>
                                     <typeMappings>
-                                        <typeMapping>file=Blob</typeMapping>
+                                        <typeMapping>File=FileUpload</typeMapping>
                                     </typeMappings>
+                                    <modelNameMappings>
+                                        <modelNameMapping>File=FileUpload</modelNameMapping>
+                                        <modelNameMapping>updateFileContent_request=UpdateFileContentRequest</modelNameMapping>
+                                        <modelNameMapping>uploadFile_request=UploadFileRequest</modelNameMapping>
+                                    </modelNameMappings>
+                                    <inlineSchemaNameMappings>
+                                        <inlineSchemaNameMapping>updateFileContent_request=UpdateFileContentRequest</inlineSchemaNameMapping>
+                                        <inlineSchemaNameMapping>uploadFile_request=UploadFileRequest</inlineSchemaNameMapping>
+                                    </inlineSchemaNameMappings>
                                     <additionalProperties>
                                         <additionalProperty>sortOperations=true</additionalProperty>
                                         <additionalProperty>sortTags=true</additionalProperty>
+                                        <additionalProperty>ngVersion=18.0.0</additionalProperty>
                                     </additionalProperties>
                                 </configuration>
                             </execution>

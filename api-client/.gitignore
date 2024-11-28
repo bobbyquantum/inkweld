@@ -1,6 +1,4 @@
 wwwroot/*.js
 node_modules
-node
 typings
 dist
-.openapi-generator/

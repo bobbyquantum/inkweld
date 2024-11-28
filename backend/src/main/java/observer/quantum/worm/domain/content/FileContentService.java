@@ -14,23 +14,23 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
-public class FileService {
+public class FileContentService {
 
-  private final FileRepository fileRepository;
+  private final FileContentRepository fileRepository;
   private final FileContentStore contentStore;
   private final UserService userService;
 
-  public FileService(
-      FileRepository fileRepository, FileContentStore contentStore, UserService userService) {
+  public FileContentService(
+      FileContentRepository fileRepository, FileContentStore contentStore, UserService userService) {
     this.fileRepository = fileRepository;
     this.contentStore = contentStore;
     this.userService = userService;
   }
 
-  public File createFile(MultipartFile file) throws IOException {
+  public FileContent createFile(MultipartFile file) throws IOException {
     User currentUser = userService.getCurrentUser().orElseThrow(UserAuthInvalidException::new);
 
-    File newFile = new File();
+    FileContent newFile = new FileContent();
     newFile.setName(file.getOriginalFilename());
     newFile.setContentMimeType(file.getContentType());
     newFile.setContentLength(file.getSize());
@@ -42,9 +42,9 @@ public class FileService {
     return newFile;
   }
 
-  public Optional<File> getFile(UUID fileId) {
+  public Optional<FileContent> getFile(UUID fileId) {
     User currentUser = userService.getCurrentUser().orElseThrow(UserAuthInvalidException::new);
-    Optional<File> file = fileRepository.findById(fileId);
+    Optional<FileContent> file = fileRepository.findById(fileId);
     if (file.isPresent() && !file.get().getOwner().getId().equals(currentUser.getId())) {
       throw new AccessDeniedException("Access denied.");
     }
@@ -52,7 +52,7 @@ public class FileService {
   }
 
   @Transactional
-  public Optional<File> patchFile(UUID fileId, FilePatchDto patchDto) {
+  public Optional<FileContent> patchFile(UUID fileId, FileContentPatchDto patchDto) {
     return getFile(fileId)
         .map(
             file -> {
@@ -67,9 +67,9 @@ public class FileService {
   }
 
   public boolean updateFileContent(UUID fileId, MultipartFile file) throws IOException {
-    Optional<File> existingFile = getFile(fileId);
+    Optional<FileContent> existingFile = getFile(fileId);
     if (existingFile.isPresent()) {
-      File updatedFile = existingFile.get();
+      FileContent updatedFile = existingFile.get();
       updatedFile.setContentMimeType(file.getContentType());
       updatedFile.setContentLength(file.getSize());
       contentStore.setContent(updatedFile, file.getInputStream());
@@ -80,9 +80,9 @@ public class FileService {
   }
 
   public boolean deleteFile(UUID fileId) {
-    Optional<File> fileOptional = getFile(fileId);
+    Optional<FileContent> fileOptional = getFile(fileId);
     if (fileOptional.isPresent()) {
-      File file = fileOptional.get();
+      FileContent file = fileOptional.get();
       contentStore.unsetContent(file);
       fileRepository.delete(file);
       return true;
@@ -90,7 +90,7 @@ public class FileService {
     return false;
   }
 
-  public Page<File> searchFiles(String nameQuery, Pageable pageable) {
+  public Page<FileContent> searchFiles(String nameQuery, Pageable pageable) {
     User currentUser = userService.getCurrentUser().orElseThrow(UserAuthInvalidException::new);
     return fileRepository.findByOwnerAndNameContainingIgnoreCase(currentUser, nameQuery, pageable);
   }

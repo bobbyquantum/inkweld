@@ -10,7 +10,7 @@ import lombok.Setter;
 public class PageFileResponse {
 
   @Schema(description = "List of files in the current page")
-  private List<FileDto> content;
+  private List<FileContentDto> content;
 
   @Schema(description = "Pagination information")
   private PageInfo page;
