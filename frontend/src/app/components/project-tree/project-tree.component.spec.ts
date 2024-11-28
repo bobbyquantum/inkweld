@@ -32,7 +32,7 @@ describe('ProjectTreeComponent', () => {
     // Mock window.location.pathname
     Object.defineProperty(window, 'location', {
       value: {
-        pathname: '/testuser/testproject',
+        pathname: '/project/testuser/testproject',
       },
       writable: true,
     });
@@ -142,17 +142,38 @@ describe('ProjectTreeComponent', () => {
     await component.finishEditing(node, newName);
     fixture.detectChanges();
     expect(component.treeManipulator.getData()[1].name).toBe(newName);
-    expect(component.editingNode).toBeNull();
+    expect(component.editingNode).toBeUndefined();
     expect(treeService.saveProjectElements).toHaveBeenCalled();
   });
 
-  it('should handle adding new items', async () => {
-    // Get the first non-root element
-    const node = component.treeManipulator.getData()[1];
-    await component.addItem(node);
+  it('should handle creating new item from context menu', async () => {
+    const parentNode = component.treeManipulator.getData()[1];
+    await component.onNewItem(parentNode);
     fixture.detectChanges();
+
     // Should have root wrapper + original element + new item
     expect(component.treeManipulator.getData()).toHaveLength(3);
+    const newItem = component.treeManipulator.getData()[2];
+    expect(newItem.type).toBe('ITEM');
+    expect(newItem.level).toBe(parentNode.level + 1);
+    expect(newItem.id).toBeUndefined(); // Empty ID for new items
+    expect(component.editingNode).toBe(undefined);
+    expect(treeService.saveProjectElements).toHaveBeenCalled();
+  });
+
+  it('should handle creating new folder from context menu', async () => {
+    const parentNode = component.treeManipulator.getData()[1];
+    await component.onNewFolder(parentNode);
+    fixture.detectChanges();
+
+    // Should have root wrapper + original element + new folder
+    expect(component.treeManipulator.getData()).toHaveLength(3);
+    const newFolder = component.treeManipulator.getData()[2];
+    expect(newFolder.type).toBe('FOLDER');
+    expect(newFolder.level).toBe(parentNode.level + 1);
+    expect(newFolder.id).toBeUndefined(); // Empty ID for new folders
+    expect(newFolder.expandable).toBe(true);
+    expect(component.editingNode).toBe(undefined);
     expect(treeService.saveProjectElements).toHaveBeenCalled();
   });
 
@@ -191,7 +212,7 @@ describe('ProjectTreeComponent', () => {
   });
 
   it('should extract project info from URL', async () => {
-    // Use first non-root element
+    // Get the first non-root element
     const node = component.treeManipulator.getData()[1];
     await component.onDelete(node);
     expect(treeService.saveProjectElements).toHaveBeenCalledWith(
@@ -207,7 +228,7 @@ describe('ProjectTreeComponent', () => {
 
     // Should not allow editing root
     component.startEditing(rootNode);
-    expect(component.editingNode).toBeNull();
+    expect(component.editingNode).toBeUndefined();
 
     // Should not allow deleting root
     await component.onDelete(rootNode);
@@ -217,7 +238,7 @@ describe('ProjectTreeComponent', () => {
     component.onContextMenuOpen(rootNode);
     expect(component.contextItem).toBe(rootNode);
     component.onRename(rootNode);
-    expect(component.editingNode).toBeNull();
+    expect(component.editingNode).toBeUndefined();
     await component.onDelete(rootNode);
     expect(component.treeManipulator.getData()[0].id).toBe(ROOT_WRAPPER_ID);
   });
