@@ -14,12 +14,12 @@
  */
 export interface UpdateUserRequest { 
     /**
-     * User\'s name
-     */
-    name?: string;
-    /**
      * URL of the user\'s avatar image
      */
     avatarImageUrl?: string;
+    /**
+     * User\'s name
+     */
+    name?: string;
 }
 

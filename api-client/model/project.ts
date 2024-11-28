@@ -15,6 +15,14 @@ import { User } from './user';
  */
 export interface Project { 
     /**
+     * Date when the project was created
+     */
+    createdDate?: string;
+    /**
+     * Project description
+     */
+    description?: string;
+    /**
      * Project ID
      */
     id?: string;
@@ -27,17 +35,9 @@ export interface Project {
      */
     title?: string;
     /**
-     * Project description
-     */
-    description?: string;
-    user?: User;
-    /**
-     * Date when the project was created
-     */
-    createdDate?: string;
-    /**
      * Date when the project was last updated
      */
     updatedDate?: string;
+    user?: User;
 }
 

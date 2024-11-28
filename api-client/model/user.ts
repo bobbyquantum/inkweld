@@ -14,16 +14,16 @@
  */
 export interface User { 
     /**
-     * Username
+     * URL of the user\'s avatar image
      */
-    username?: string;
+    avatarImageUrl?: string;
     /**
      * User\'s name
      */
     name?: string;
     /**
-     * URL of the user\'s avatar image
+     * Username
      */
-    avatarImageUrl?: string;
+    username?: string;
 }
 

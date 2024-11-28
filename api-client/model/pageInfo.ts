@@ -14,13 +14,13 @@
  */
 export interface PageInfo { 
     /**
-     * Number of elements in the current page
-     */
-    size?: number;
-    /**
      * Current page number
      */
     number?: number;
+    /**
+     * Number of elements in the current page
+     */
+    size?: number;
     /**
      * Total number of elements across all pages
      */
