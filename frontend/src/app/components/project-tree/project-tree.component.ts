@@ -30,6 +30,8 @@ import { ProjectTreeService } from '@services/project-tree.service';
 import { mapDtoToProjectElement, ProjectElement } from './project-element';
 import { TreeManipulator } from './tree-manipulator';
 
+const ROOT_WRAPPER_ID = 'root-wrapper';
+
 /**
  * Component for displaying and managing the project tree.
  */
@@ -64,10 +66,24 @@ export class ProjectTreeComponent implements AfterViewInit {
 
   readonly treeService = inject(ProjectTreeService);
 
-  // Map DTOs to internal model
-  readonly treeElements = computed(() =>
-    this.treeService.elements().map(mapDtoToProjectElement)
-  );
+  // Map DTOs to internal model and wrap with root node
+  readonly treeElements = computed(() => {
+    const elements = this.treeService.elements().map(mapDtoToProjectElement);
+    // Increment all elements' levels by 1 to make room for wrapper
+    elements.forEach(el => (el.level += 1));
+    // Add wrapper node
+    const wrapper: ProjectElement = {
+      id: ROOT_WRAPPER_ID,
+      name: 'Project Root',
+      type: 'FOLDER',
+      level: 0,
+      position: 0,
+      expandable: true,
+      expanded: true,
+      visible: true,
+    };
+    return [wrapper, ...elements];
+  });
 
   // Other service signals
   readonly isLoading = this.treeService.isLoading;
@@ -159,6 +175,9 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node that is being pressed.
    */
   onNodeDown(node: ProjectElement) {
+    // Don't allow dragging root wrapper
+    if (node.id === ROOT_WRAPPER_ID) return;
+
     this.selectedItem = node;
     if (node.type === 'FOLDER' && node.expanded) {
       // Start a timer to collapse the node after a short delay
@@ -197,6 +216,9 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node being dragged.
    */
   dragStarted(node: ProjectElement) {
+    // Don't allow dragging root wrapper
+    if (node.id === ROOT_WRAPPER_ID) return;
+
     this.draggedNode = node;
     this.currentDropLevel = node.level;
     this.validLevelsArray = [node.level];
@@ -217,7 +239,7 @@ export class ProjectTreeComponent implements AfterViewInit {
     const treeRect = this.treeContainer.nativeElement.getBoundingClientRect();
     const indentPerLevel = 24;
     const relativeX = pointerX - treeRect.left;
-    const intendedLevel = Math.max(0, Math.floor(relativeX / indentPerLevel));
+    const intendedLevel = Math.max(1, Math.floor(relativeX / indentPerLevel)); // Minimum level 1 to stay under wrapper
     const validLevels = this.validLevelsArray;
     const selectedLevel = validLevels.reduce((prev, curr) =>
       Math.abs(curr - intendedLevel) < Math.abs(prev - intendedLevel)
@@ -246,30 +268,32 @@ export class ProjectTreeComponent implements AfterViewInit {
     const nodeAbove = sortedNodes[currentIndex - 1] || null;
     const nodeBelow = sortedNodes[currentIndex] || null;
     const validLevels = new Set<number>();
+
+    // Ensure minimum level is 1 to stay under wrapper
     if (nodeAbove && nodeBelow) {
       if (nodeAbove.level < nodeBelow.level) {
         if (nodeAbove.expandable) {
-          validLevels.add(nodeAbove.level + 1);
+          validLevels.add(Math.max(1, nodeAbove.level + 1));
         }
-        validLevels.add(nodeBelow.level);
+        validLevels.add(Math.max(1, nodeBelow.level));
       } else if (nodeAbove.level === nodeBelow.level) {
-        validLevels.add(nodeAbove.level);
+        validLevels.add(Math.max(1, nodeAbove.level));
       } else {
         for (let level = nodeBelow.level; level <= nodeAbove.level; level++) {
-          validLevels.add(level);
+          validLevels.add(Math.max(1, level));
         }
       }
     } else if (nodeAbove && !nodeBelow) {
-      for (let level = 0; level <= nodeAbove.level; level++) {
+      for (let level = 1; level <= nodeAbove.level; level++) {
         validLevels.add(level);
       }
       if (nodeAbove.expandable) {
-        validLevels.add(nodeAbove.level + 1);
+        validLevels.add(Math.max(1, nodeAbove.level + 1));
       }
     } else if (!nodeAbove && nodeBelow) {
-      validLevels.add(nodeBelow.level);
+      validLevels.add(Math.max(1, nodeBelow.level));
     } else {
-      validLevels.add(0);
+      validLevels.add(1); // Minimum level 1
     }
 
     this.validLevelsArray = Array.from(validLevels).sort((a, b) => a - b);
@@ -307,7 +331,8 @@ export class ProjectTreeComponent implements AfterViewInit {
 
     const node = item.data as ProjectElement;
 
-    if (this.currentDropLevel < 0) {
+    // Prevent dropping at level 0 (root wrapper level)
+    if (this.currentDropLevel < 1) {
       return;
     }
 
@@ -363,6 +388,8 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node to edit.
    */
   startEditing(node: ProjectElement) {
+    // Don't allow editing root wrapper
+    if (node.id === ROOT_WRAPPER_ID) return;
     this.editingNode = node.id;
   }
 
@@ -372,6 +399,9 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param newName The new name for the node.
    */
   async finishEditing(node: ProjectElement, newName: string) {
+    // Don't allow editing root wrapper
+    if (node.id === ROOT_WRAPPER_ID) return;
+
     if (newName.trim() !== '') {
       this.treeManipulator.renameNode(node, newName.trim());
       this.updateDataSource();
@@ -393,6 +423,8 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node to rename.
    */
   onRename(node: ProjectElement) {
+    // Don't allow renaming root wrapper
+    if (node.id === ROOT_WRAPPER_ID) return;
     this.startEditing(node);
   }
 
@@ -401,6 +433,8 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node to delete.
    */
   async onDelete(node: ProjectElement) {
+    // Don't allow deleting root wrapper
+    if (node.id === ROOT_WRAPPER_ID) return;
     this.treeManipulator.deleteNode(node);
     this.updateDataSource();
     // Save changes after delete
@@ -434,7 +468,12 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Saves the current tree state to the backend.
    */
   private async saveChanges() {
-    const elements = this.treeManipulator.getData();
+    // Get all elements except the root wrapper and decrement their levels
+    const elements = this.treeManipulator
+      .getData()
+      .filter(el => el.id !== ROOT_WRAPPER_ID)
+      .map(el => ({ ...el, level: el.level - 1 }));
+
     // Get project info from URL or service
     const urlParts = window.location.pathname.split('/');
     const username = urlParts[1];
