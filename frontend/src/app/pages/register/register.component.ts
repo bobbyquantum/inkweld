@@ -94,7 +94,7 @@ export class RegisterComponent implements OnInit {
 
       const xsrfToken = this.xsrfService.getXsrfToken();
       await firstValueFrom(
-        this.userService.registerUser(xsrfToken, registerRequest)
+        this.userService.registerUser(registerRequest, xsrfToken)
       );
       this.snackBar.open('Registration successful!', 'Close', {
         duration: 3000,

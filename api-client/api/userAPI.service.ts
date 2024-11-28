@@ -365,20 +365,20 @@ export class UserAPIService {
     /**
      * Register a new user
      * Registers a new user with the provided details. Requires a valid CSRF token.
-     * @param xXSRFTOKEN CSRF token
      * @param registerUserRequest User registration details
+     * @param xXSRFTOKEN CSRF token
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public registerUser(xXSRFTOKEN: string, registerUserRequest: RegisterUserRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<User>;
-    public registerUser(xXSRFTOKEN: string, registerUserRequest: RegisterUserRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<User>>;
-    public registerUser(xXSRFTOKEN: string, registerUserRequest: RegisterUserRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<User>>;
-    public registerUser(xXSRFTOKEN: string, registerUserRequest: RegisterUserRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
-            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling registerUser.');
-        }
+    public registerUser(registerUserRequest: RegisterUserRequest, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<User>;
+    public registerUser(registerUserRequest: RegisterUserRequest, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<User>>;
+    public registerUser(registerUserRequest: RegisterUserRequest, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<User>>;
+    public registerUser(registerUserRequest: RegisterUserRequest, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (registerUserRequest === null || registerUserRequest === undefined) {
             throw new Error('Required parameter registerUserRequest was null or undefined when calling registerUser.');
+        }
+        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
+            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling registerUser.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -447,20 +447,20 @@ export class UserAPIService {
     /**
      * Update user password
      * Updates the password of the currently authenticated user. Requires a valid CSRF token.
-     * @param xXSRFTOKEN CSRF token
      * @param updatePasswordRequest Password update details
+     * @param xXSRFTOKEN CSRF token
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public updatePassword(xXSRFTOKEN: string, updatePasswordRequest: UpdatePasswordRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any>;
-    public updatePassword(xXSRFTOKEN: string, updatePasswordRequest: UpdatePasswordRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
-    public updatePassword(xXSRFTOKEN: string, updatePasswordRequest: UpdatePasswordRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
-    public updatePassword(xXSRFTOKEN: string, updatePasswordRequest: UpdatePasswordRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
-            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling updatePassword.');
-        }
+    public updatePassword(updatePasswordRequest: UpdatePasswordRequest, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any>;
+    public updatePassword(updatePasswordRequest: UpdatePasswordRequest, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
+    public updatePassword(updatePasswordRequest: UpdatePasswordRequest, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
+    public updatePassword(updatePasswordRequest: UpdatePasswordRequest, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (updatePasswordRequest === null || updatePasswordRequest === undefined) {
             throw new Error('Required parameter updatePasswordRequest was null or undefined when calling updatePassword.');
+        }
+        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
+            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling updatePassword.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -529,20 +529,20 @@ export class UserAPIService {
     /**
      * Update user details
      * Updates the details of the currently authenticated user. Requires a valid CSRF token.
-     * @param xXSRFTOKEN CSRF token
      * @param updateUserRequest User details to update
+     * @param xXSRFTOKEN CSRF token
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public updateUserDetails(xXSRFTOKEN: string, updateUserRequest: UpdateUserRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<User>;
-    public updateUserDetails(xXSRFTOKEN: string, updateUserRequest: UpdateUserRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<User>>;
-    public updateUserDetails(xXSRFTOKEN: string, updateUserRequest: UpdateUserRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<User>>;
-    public updateUserDetails(xXSRFTOKEN: string, updateUserRequest: UpdateUserRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
-            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling updateUserDetails.');
-        }
+    public updateUserDetails(updateUserRequest: UpdateUserRequest, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<User>;
+    public updateUserDetails(updateUserRequest: UpdateUserRequest, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<User>>;
+    public updateUserDetails(updateUserRequest: UpdateUserRequest, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<User>>;
+    public updateUserDetails(updateUserRequest: UpdateUserRequest, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (updateUserRequest === null || updateUserRequest === undefined) {
             throw new Error('Required parameter updateUserRequest was null or undefined when calling updateUserDetails.');
+        }
+        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
+            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling updateUserDetails.');
         }
 
         let localVarHeaders = this.defaultHeaders;

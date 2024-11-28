@@ -85,10 +85,10 @@ describe('ProjectTreeService', () => {
     await service.saveProjectElements('user', 'project', mockElements);
 
     expect(elementService.dinsertElements).toHaveBeenCalledWith(
+      mockElements,
       'user',
       'project',
-      'test-token',
-      mockElements
+      'test-token'
     );
     expect(service.elements()).toEqual(mockElements);
     expect(service.isSaving()).toBe(false);
