@@ -10,9 +10,9 @@
 
 
 export interface ErrorResponse { 
-    type?: string;
-    status?: number;
-    message?: string;
     errors?: Array<string>;
+    message?: string;
+    status?: number;
+    type?: string;
 }
 

@@ -15,22 +15,6 @@ import { User } from './user';
  */
 export interface FileUpload { 
     /**
-     * File ID
-     */
-    id?: string;
-    /**
-     * File name
-     */
-    name?: string;
-    /**
-     * Date when the file was created
-     */
-    created?: string;
-    /**
-     * Summary or description of the file
-     */
-    summary?: string;
-    /**
      * Length of the file content in bytes
      */
     contentLength?: number;
@@ -38,6 +22,22 @@ export interface FileUpload {
      * MIME type of the file content
      */
     contentMimeType?: string;
+    /**
+     * Date when the file was created
+     */
+    created?: string;
+    /**
+     * File ID
+     */
+    id?: string;
+    /**
+     * File name
+     */
+    name?: string;
     owner?: User;
+    /**
+     * Summary or description of the file
+     */
+    summary?: string;
 }
 
