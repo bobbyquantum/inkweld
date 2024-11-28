@@ -109,7 +109,7 @@ describe('HomeComponent', () => {
   });
 
   it('should select a project', () => {
-    const project = { id: 123, name: 'Test Project' } as Project;
+    const project = { id: '123', name: 'Test Project' } as unknown as Project;
     component.selectProject(project);
     expect(component.selectedProject).toEqual(project);
   });
