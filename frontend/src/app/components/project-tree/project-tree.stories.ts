@@ -1,36 +1,60 @@
+import { HttpClient } from '@angular/common/http';
+import { ProjectTreeService } from '@services/project-tree.service';
 import type { Meta, StoryObj } from '@storybook/angular';
+import { ProjectElementDto } from 'worm-api-client';
 
-import { ProjectElement } from './project-element';
 import { ProjectTreeComponent } from './project-tree.component';
 import { FILE_ONLY_DATA, SINGLE_FOLDER_DATA, TREE_DATA } from './TREE_DATA';
 
-interface ProjectTreeComponentInputs {
-  /**
-   * The data for the tree structure.
-   */
-  treeData: ProjectElement[];
+// Create a mock service that provides the test data
+class MockProjectTreeService extends ProjectTreeService {
+  constructor(mockData: ProjectElementDto[]) {
+    super();
+    this.updateElements(mockData);
+  }
 }
 
-const meta: Meta<ProjectTreeComponent> = {
+// Convert ProjectElement to ProjectElementDto
+function toDto(element: {
+  id: string;
+  name: string;
+  type: 'FOLDER' | 'ITEM';
+  level: number;
+  position: number;
+}): ProjectElementDto {
+  return {
+    id: element.id,
+    name: element.name,
+    type: element.type,
+    level: element.level,
+    position: element.position,
+  };
+}
+
+// Interface for story args
+interface TreeStoryArgs {
+  initialData: ProjectElementDto[];
+}
+
+const meta: Meta<ProjectTreeComponent & TreeStoryArgs> = {
   title: 'Components/ProjectTree',
   component: ProjectTreeComponent,
   tags: ['autodocs'],
-  render: (args: ProjectTreeComponentInputs) => ({
-    props: {
-      ...args,
-    },
-  }),
-  argTypes: {
-    treeData: {
-      name: 'Tree Data',
-      description: 'The data for the tree structure.',
-      control: 'object',
-      table: {
-        type: { summary: 'ProjectElement[]' },
-        defaultValue: { summary: '[]' },
+  decorators: [
+    (Story, { args }) => ({
+      moduleMetadata: {
+        providers: [
+          {
+            provide: ProjectTreeService,
+            useFactory: () => new MockProjectTreeService(args.initialData),
+          },
+          { provide: HttpClient, useValue: {} },
+        ],
       },
-    },
-  },
+      template: '<story />',
+    }),
+  ],
+  render: () => ({}),
   parameters: {
     docs: {
       description: {
@@ -41,40 +65,40 @@ const meta: Meta<ProjectTreeComponent> = {
 };
 
 export default meta;
-type Story = StoryObj<ProjectTreeComponent>;
+type Story = StoryObj<ProjectTreeComponent & TreeStoryArgs>;
 
 export const Default: Story = {
   args: {
-    treeData: TREE_DATA,
+    initialData: TREE_DATA.map(toDto),
   },
 };
 
 export const EmptyTree: Story = {
   args: {
-    treeData: [],
+    initialData: [],
   },
 };
 
 export const SingleNode: Story = {
   args: {
-    treeData: [TREE_DATA[0]],
+    initialData: [toDto(TREE_DATA[0])],
   },
 };
 
 export const FoldersOnly: Story = {
   args: {
-    treeData: TREE_DATA.filter(node => node.type === 'folder'),
+    initialData: TREE_DATA.filter(node => node.type === 'FOLDER').map(toDto),
   },
 };
 
 export const FilesOnly: Story = {
   args: {
-    treeData: FILE_ONLY_DATA,
+    initialData: FILE_ONLY_DATA.map(toDto),
   },
 };
 
 export const SingleFolder: Story = {
   args: {
-    treeData: SINGLE_FOLDER_DATA,
+    initialData: SINGLE_FOLDER_DATA.map(toDto),
   },
 };

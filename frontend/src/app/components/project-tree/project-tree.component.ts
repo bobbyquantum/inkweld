@@ -24,7 +24,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInput, MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { ProjectTreeService } from '@services/project-tree.service';
 
@@ -43,7 +42,6 @@ import { TreeManipulator } from './tree-manipulator';
     MatInputModule,
     MatListModule,
     MatMenuModule,
-    MatProgressSpinner,
     DragDropModule,
     CdkContextMenuTrigger,
     CdkMenu,
@@ -140,9 +138,11 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Adds a new item as a child to the specified node.
    * @param node The parent node to add a new item to.
    */
-  addItem(node: ProjectElement) {
+  async addItem(node: ProjectElement) {
     this.treeManipulator.addItem(node);
     this.updateDataSource();
+    // Save changes after adding new item
+    await this.saveChanges();
   }
 
   /**
@@ -287,7 +287,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Handles the drop event to rearrange nodes.
    * @param event The drag drop event.
    */
-  drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {
+  async drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {
     const { currentIndex, container, item } = event;
     const sortedNodes = container
       .getSortedItems()
@@ -343,6 +343,9 @@ export class ProjectTreeComponent implements AfterViewInit {
     this.treeManipulator.moveNode(node, insertIndex, this.currentDropLevel);
     this.resetDropState();
     this.updateDataSource();
+
+    // Save changes after drop
+    await this.saveChanges();
   }
 
   /**
@@ -368,12 +371,14 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node being edited.
    * @param newName The new name for the node.
    */
-  finishEditing(node: ProjectElement, newName: string) {
+  async finishEditing(node: ProjectElement, newName: string) {
     if (newName.trim() !== '') {
       this.treeManipulator.renameNode(node, newName.trim());
+      this.updateDataSource();
+      // Save changes after rename
+      await this.saveChanges();
     }
     this.editingNode = null;
-    this.updateDataSource();
   }
 
   /**
@@ -395,9 +400,11 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Handles the delete action from the context menu.
    * @param node The node to delete.
    */
-  onDelete(node: ProjectElement) {
+  async onDelete(node: ProjectElement) {
     this.treeManipulator.deleteNode(node);
     this.updateDataSource();
+    // Save changes after delete
+    await this.saveChanges();
   }
 
   /**
@@ -421,5 +428,17 @@ export class ProjectTreeComponent implements AfterViewInit {
   private initializeTree() {
     this.treeManipulator = new TreeManipulator(this.treeElements());
     this.updateDataSource();
+  }
+
+  /**
+   * Saves the current tree state to the backend.
+   */
+  private async saveChanges() {
+    const elements = this.treeManipulator.getData();
+    // Get project info from URL or service
+    const urlParts = window.location.pathname.split('/');
+    const username = urlParts[1];
+    const slug = urlParts[2];
+    await this.treeService.saveProjectElements(username, slug, elements);
   }
 }
