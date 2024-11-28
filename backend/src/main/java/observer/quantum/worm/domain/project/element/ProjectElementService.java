@@ -1,6 +1,7 @@
 package observer.quantum.worm.domain.project.element;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,100 +19,90 @@ public class ProjectElementService {
   private final ProjectElementRepository elementRepository;
   private final ProjectService projectService;
 
-  private static final double POSITION_GAP = 1000.0;
-
   @Transactional(readOnly = true)
   public List<ProjectElementDto> getProjectElements(String username, String projectSlug) {
     log.debug("Fetching elements for project: {}/{}", username, projectSlug);
     Project project = projectService.findByUsernameAndSlug(username, projectSlug);
     List<ProjectElement> elements = elementRepository.findByProjectOrderByPosition(project);
-    return elements.stream().map(this::enrichDto).collect(Collectors.toList());
+    return elements.stream().map(ProjectElementDto::new).collect(Collectors.toList());
   }
 
   @Transactional
-  public ProjectElementDto createElement(
-      String username, String projectSlug, ProjectElementDto elementDto) {
-    log.debug("Creating new element in project {}/{}: {}", username, projectSlug, elementDto);
+  public List<ProjectElementDto> bulkDinsertElements(
+      String username, String projectSlug, List<ProjectElementDto> elementDtos) {
+    log.debug(
+        "Differential inserting {} elements in project {}/{}",
+        elementDtos.size(),
+        username,
+        projectSlug);
     Project project = projectService.findByUsernameAndSlug(username, projectSlug);
 
-    ProjectElement element = elementDto.toProjectElement();
-    element.setProject(project);
+    // Validate all DTOs before proceeding
+    elementDtos.forEach(this::validateElementDto);
 
-    // If position not specified, append to end
-    if (element.getPosition() == null) {
-      Double maxPosition = elementRepository.findMaxPositionByParentId(element.getParentId());
-      element.setPosition(maxPosition != null ? maxPosition + POSITION_GAP : POSITION_GAP);
-    }
+    // Get all existing elements
+    List<ProjectElement> existingElements = elementRepository.findByProjectOrderByPosition(project);
 
-    return enrichDto(elementRepository.save(element));
+    // Create a map of IDs from the incoming DTOs
+    Set<String> dtoIds =
+        elementDtos.stream()
+            .map(ProjectElementDto::getId)
+            .filter(id -> id != null)
+            .collect(Collectors.toSet());
+
+    // Delete elements that aren't in the incoming list
+    existingElements.stream()
+        .filter(element -> !dtoIds.contains(element.getId()))
+        .forEach(elementRepository::delete);
+
+    // Create/update elements from the DTOs
+    return elementDtos.stream()
+        .map(
+            dto -> {
+              ProjectElement element;
+              if (dto.getId() != null) {
+                // Update existing element
+                element =
+                    elementRepository
+                        .findById(dto.getId())
+                        .orElseThrow(
+                            () ->
+                                new ResourceNotFoundException(
+                                    "Element not found with ID: " + dto.getId()));
+
+                if (!element.getProject().getId().equals(project.getId())) {
+                  throw new ResourceNotFoundException(
+                      "Element " + dto.getId() + " not found in project");
+                }
+              } else {
+                // Create new element
+                element = new ProjectElement();
+                element.setProject(project);
+              }
+
+              // Update all fields
+              element.setName(dto.getName());
+              element.setType(dto.getType());
+              element.setPosition(dto.getPosition());
+              element.setLevel(dto.getLevel());
+
+              return new ProjectElementDto(elementRepository.save(element));
+            })
+        .collect(Collectors.toList());
   }
 
-  @Transactional
-  public ProjectElementDto updateElement(
-      String username, String projectSlug, String elementId, ProjectElementDto elementDto) {
-    log.debug("Updating element {} in project {}/{}", elementId, username, projectSlug);
-    Project project = projectService.findByUsernameAndSlug(username, projectSlug);
-    ProjectElement element =
-        elementRepository
-            .findById(elementId)
-            .orElseThrow(() -> new ResourceNotFoundException("Element not found"));
-
-    if (!element.getProject().getId().equals(project.getId())) {
-      throw new ResourceNotFoundException("Element not found in project");
+  private void validateElementDto(ProjectElementDto dto) {
+    if (dto.getName() == null || dto.getName().trim().isEmpty()) {
+      throw new IllegalArgumentException("Name is required");
     }
-
-    element.setName(elementDto.getName());
-    element.setType(elementDto.getType());
-
-    // Handle position update if specified
-    if (elementDto.getPosition() != null) {
-      element.setPosition(elementDto.getPosition());
+    if (dto.getType() == null) {
+      throw new IllegalArgumentException("Type is required");
     }
-
-    // Handle parent change if specified
-    if (elementDto.getParentId() != null
-        && !elementDto.getParentId().equals(element.getParentId())) {
-      element.setParentId(elementDto.getParentId());
-      if (element.getPosition() == null) {
-        Double maxPosition = elementRepository.findMaxPositionByParentId(element.getParentId());
-        element.setPosition(maxPosition != null ? maxPosition + POSITION_GAP : POSITION_GAP);
-      }
+    if (dto.getPosition() == null) {
+      throw new IllegalArgumentException("Position is required");
     }
-
-    return enrichDto(elementRepository.save(element));
-  }
-
-  @Transactional
-  public void deleteElement(String username, String projectSlug, String elementId) {
-    log.debug("Deleting element {} from project {}/{}", elementId, username, projectSlug);
-    Project project = projectService.findByUsernameAndSlug(username, projectSlug);
-    ProjectElement element =
-        elementRepository
-            .findById(elementId)
-            .orElseThrow(() -> new ResourceNotFoundException("Element not found"));
-
-    if (!element.getProject().getId().equals(project.getId())) {
-      throw new ResourceNotFoundException("Element not found in project");
+    if (dto.getLevel() == null) {
+      throw new IllegalArgumentException("Level is required");
     }
-
-    elementRepository.deleteByParentId(elementId);
-    elementRepository.delete(element);
-  }
-
-  private ProjectElementDto enrichDto(ProjectElement element) {
-    ProjectElementDto dto = new ProjectElementDto(element);
-    dto.setLevel(calculateLevel(element));
-    return dto;
-  }
-
-  private int calculateLevel(ProjectElement element) {
-    int level = 0;
-    String parentId = element.getParentId();
-    while (parentId != null) {
-      level++;
-      ProjectElement parent = elementRepository.findById(parentId).orElse(null);
-      parentId = parent != null ? parent.getParentId() : null;
-    }
-    return level;
   }
 }

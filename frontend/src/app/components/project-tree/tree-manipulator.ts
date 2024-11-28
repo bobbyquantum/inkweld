@@ -6,9 +6,13 @@ import { ProjectElement } from './project-element';
 export class TreeManipulator {
   sourceData: ProjectElement[] = [];
 
-  constructor(treeData: ProjectElement[]) {
-    this.sourceData = JSON.parse(JSON.stringify(treeData)) as ProjectElement[];
-    this.updateVisibility();
+  constructor(treeData?: ProjectElement[]) {
+    if (treeData) {
+      this.sourceData = JSON.parse(
+        JSON.stringify(treeData)
+      ) as ProjectElement[];
+      this.updateVisibility();
+    }
   }
 
   /**
@@ -57,18 +61,19 @@ export class TreeManipulator {
 
   /**
    * Adds a new item as a child to the specified node.
-   * @param parentNode The parent node to add a new item to.
+   * @param node The parent node to add a new item to.
    */
-  addItem(parentNode: ProjectElement) {
-    const nodeIndex = this.sourceData.indexOf(parentNode);
+  addItem(node: ProjectElement) {
+    const nodeIndex = this.sourceData.indexOf(node);
     if (nodeIndex === -1) {
       return;
     }
     const newItem: ProjectElement = {
       id: 'new-item-' + Math.random().toString(36).substr(2, 9),
       name: 'New Item',
-      type: 'item',
-      level: parentNode.level + 1,
+      type: 'ITEM',
+      level: node.level + 1,
+      position: 0,
       expandable: false,
       expanded: true,
       visible: true,

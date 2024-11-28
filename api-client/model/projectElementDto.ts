@@ -26,21 +26,17 @@ export interface ProjectElementDto {
      */
     type: ProjectElementDto.TypeEnum;
     /**
-     * ID of the parent element
+     * Position for ordering elements
      */
-    parentId?: string;
+    position: number;
     /**
-     * Position for ordering siblings
+     * Level in the tree hierarchy
      */
-    position?: number;
+    level: number;
     /**
      * Whether the element can be expanded (computed from type)
      */
     expandable?: boolean;
-    /**
-     * Level in the tree (computed from parent relationships)
-     */
-    level?: number;
 }
 export namespace ProjectElementDto {
     export type TypeEnum = 'FOLDER' | 'ITEM';

@@ -168,7 +168,7 @@ export class FileAPIService {
             }
         }
 
-        let localVarPath = `/api/v1/files/${this.configuration.encodeParam({name: "fileId", value: fileId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/files/${this.configuration.encodeParam({name: "fileId", value: fileId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}`;
         return this.httpClient.request<object>('delete', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
@@ -233,7 +233,7 @@ export class FileAPIService {
             }
         }
 
-        let localVarPath = `/api/v1/files/${this.configuration.encodeParam({name: "fileId", value: fileId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/files/${this.configuration.encodeParam({name: "fileId", value: fileId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}`;
         return this.httpClient.request<any>('get', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
@@ -310,7 +310,7 @@ export class FileAPIService {
             }
         }
 
-        let localVarPath = `/api/v1/files/${this.configuration.encodeParam({name: "fileId", value: fileId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/content`;
+        let localVarPath = `/api/v1/files/${this.configuration.encodeParam({name: "fileId", value: fileId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}/content`;
         return this.httpClient.request<any>('get', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
@@ -396,7 +396,7 @@ export class FileAPIService {
             }
         }
 
-        let localVarPath = `/api/v1/files/${this.configuration.encodeParam({name: "fileId", value: fileId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/files/${this.configuration.encodeParam({name: "fileId", value: fileId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}`;
         return this.httpClient.request<any>('patch', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
@@ -573,7 +573,7 @@ export class FileAPIService {
             }
         }
 
-        let localVarPath = `/api/v1/files/${this.configuration.encodeParam({name: "fileId", value: fileId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/files/${this.configuration.encodeParam({name: "fileId", value: fileId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: "uuid"})}`;
         return this.httpClient.request<object>('put', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,

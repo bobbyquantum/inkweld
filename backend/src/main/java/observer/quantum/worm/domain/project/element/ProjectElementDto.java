@@ -23,25 +23,24 @@ public class ProjectElementDto {
   @Schema(description = "Type of the element (FOLDER/ITEM)", required = true)
   private ElementType type;
 
-  @Schema(description = "ID of the parent element")
-  private String parentId;
+  @Schema(description = "Position for ordering elements")
+  @NotNull(message = "Position is required")
+  private Integer position;
 
-  @Schema(description = "Position for ordering siblings")
-  private Double position;
+  @Schema(description = "Level in the tree hierarchy")
+  @NotNull(message = "Level is required")
+  private Integer level;
 
   // Client-side computed properties
   @Schema(description = "Whether the element can be expanded (computed from type)")
   private Boolean expandable;
 
-  @Schema(description = "Level in the tree (computed from parent relationships)")
-  private Integer level;
-
   public ProjectElementDto(ProjectElement element) {
     this.id = element.getId();
     this.name = element.getName();
     this.type = element.getType();
-    this.parentId = element.getParentId();
     this.position = element.getPosition();
+    this.level = element.getLevel();
     this.expandable = element.getType().isExpandable();
   }
 
@@ -50,8 +49,8 @@ public class ProjectElementDto {
         .id(id)
         .name(name)
         .type(type)
-        .parentId(parentId)
         .position(position)
+        .level(level)
         .build();
   }
 }
