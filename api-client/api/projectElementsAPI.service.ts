@@ -95,17 +95,20 @@ export class ProjectElementsAPIService {
     /**
      * Differential insert elements
      * Updates the project\&#39;s elements to match exactly the provided list. Elements not included in the list will be deleted. Elements with IDs will be updated, elements without IDs will be created. All changes happen in a single transaction.
+     * @param projectElementDto 
      * @param username Username of the project owner
      * @param slug Slug of the project
      * @param xXSRFTOKEN CSRF token
-     * @param projectElementDto 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public dinsertElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<ProjectElementDto>>;
-    public dinsertElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<ProjectElementDto>>>;
-    public dinsertElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<ProjectElementDto>>>;
-    public dinsertElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public dinsertElements(projectElementDto: Array<ProjectElementDto>, username: string, slug: string, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<ProjectElementDto>>;
+    public dinsertElements(projectElementDto: Array<ProjectElementDto>, username: string, slug: string, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<ProjectElementDto>>>;
+    public dinsertElements(projectElementDto: Array<ProjectElementDto>, username: string, slug: string, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<ProjectElementDto>>>;
+    public dinsertElements(projectElementDto: Array<ProjectElementDto>, username: string, slug: string, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (projectElementDto === null || projectElementDto === undefined) {
+            throw new Error('Required parameter projectElementDto was null or undefined when calling dinsertElements.');
+        }
         if (username === null || username === undefined) {
             throw new Error('Required parameter username was null or undefined when calling dinsertElements.');
         }
@@ -114,9 +117,6 @@ export class ProjectElementsAPIService {
         }
         if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
             throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling dinsertElements.');
-        }
-        if (projectElementDto === null || projectElementDto === undefined) {
-            throw new Error('Required parameter projectElementDto was null or undefined when calling dinsertElements.');
         }
 
         let localVarHeaders = this.defaultHeaders;

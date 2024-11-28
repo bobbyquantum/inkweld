@@ -64,10 +64,10 @@ export class ProjectTreeService {
 
       const updatedElements = await this.elementService
         .dinsertElements(
+          elements,
           username,
           slug,
-          this.xsrfService.getXsrfToken(),
-          elements
+          this.xsrfService.getXsrfToken()
         )
         .toPromise();
 

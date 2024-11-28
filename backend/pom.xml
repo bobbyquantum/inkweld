@@ -232,7 +232,7 @@
                 <configuration>
                     <apiDocsUrl>http://localhost:8080/api-docs</apiDocsUrl> 
                     <outputFileName>openapi.json</outputFileName> 
-                    <outputDir>${project.build.directory}</outputDir> 
+                    <outputDir>${project.build.directory}</outputDir>
                 </configuration>
             </plugin>
         </plugins>
@@ -270,7 +270,19 @@
                                     <output>../api-client</output>
                                     <configOptions>
                                         <npmName>worm-api-client</npmName>
+                                        <sortParamsByRequiredFlag>true</sortParamsByRequiredFlag>
+                                        <sortModelsByRequiredFlag>true</sortModelsByRequiredFlag>
+                                        <ensureUniqueParams>true</ensureUniqueParams>
+                                        <legacyDiscriminatorBehavior>false</legacyDiscriminatorBehavior>
+                                        <prependFormOrBodyParameters>true</prependFormOrBodyParameters>
                                     </configOptions>
+                                    <typeMappings>
+                                        <typeMapping>file=Blob</typeMapping>
+                                    </typeMappings>
+                                    <additionalProperties>
+                                        <additionalProperty>sortOperations=true</additionalProperty>
+                                        <additionalProperty>sortTags=true</additionalProperty>
+                                    </additionalProperties>
                                 </configuration>
                             </execution>
                         </executions>
