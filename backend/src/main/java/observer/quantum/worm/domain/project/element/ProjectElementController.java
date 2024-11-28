@@ -9,9 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import observer.quantum.worm.error.ErrorResponse;
@@ -23,8 +21,10 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/projects/{username}/{projectSlug}/elements")
-@Tag(name = "Project Elements API", description = "Operations for managing project elements")
+@RequestMapping("/api/v1/projects/{username}/{slug}/elements")
+@Tag(
+    name = "Project Elements API",
+    description = "Operations for managing project elements")
 public class ProjectElementController {
 
   private final ProjectElementService elementService;
@@ -52,132 +52,22 @@ public class ProjectElementController {
   @Secured({"USER", "OAUTH2_USER"})
   public ResponseEntity<List<ProjectElementDto>> getProjectElements(
       @Parameter(description = "Username of the project owner") @PathVariable String username,
-      @Parameter(description = "Slug of the project") @PathVariable String projectSlug) {
-    return ResponseEntity.ok(elementService.getProjectElements(username, projectSlug));
+      @Parameter(description = "Slug of the project") @PathVariable String slug) {
+    return ResponseEntity.ok(elementService.getProjectElements(username, slug));
   }
 
   @Operation(
-      summary = "Create a new element",
+      summary = "Differential insert elements",
       description =
-          "Creates a new element in the specified project. Position will be automatically set if not provided.")
+          "Updates the project's elements to match exactly the provided list. "
+              + "Elements not included in the list will be deleted. "
+              + "Elements with IDs will be updated, elements without IDs will be created. "
+              + "All changes happen in a single transaction.")
   @ApiResponses(
       value = {
         @ApiResponse(
             responseCode = "200",
-            description = "Element created successfully",
-            content = @Content(schema = @Schema(implementation = ProjectElementDto.class))),
-        @ApiResponse(
-            responseCode = "404",
-            description = "Project not found",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-      })
-  @PostMapping(
-      produces = MediaType.APPLICATION_JSON_VALUE,
-      consumes = MediaType.APPLICATION_JSON_VALUE)
-  @Secured({"USER", "OAUTH2_USER"})
-  public ResponseEntity<ProjectElementDto> createElement(
-      @Parameter(description = "Username of the project owner") @PathVariable String username,
-      @Parameter(description = "Slug of the project") @PathVariable String projectSlug,
-      @Parameter(description = "CSRF token", in = ParameterIn.HEADER, required = true)
-          @RequestHeader(name = "X-XSRF-TOKEN")
-          String csrfToken,
-      @Valid @RequestBody ProjectElementDto elementDto) {
-    return ResponseEntity.ok(elementService.createElement(username, projectSlug, elementDto));
-  }
-
-  @Operation(
-      summary = "Update an element",
-      description =
-          "Updates an existing element in the specified project. Can update name, type, parent, and position.")
-  @ApiResponses(
-      value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "Element updated successfully",
-            content = @Content(schema = @Schema(implementation = ProjectElementDto.class))),
-        @ApiResponse(
-            responseCode = "404",
-            description = "Project or element not found",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-      })
-  @PutMapping(
-      path = "/{elementId}",
-      produces = MediaType.APPLICATION_JSON_VALUE,
-      consumes = MediaType.APPLICATION_JSON_VALUE)
-  @Secured({"USER", "OAUTH2_USER"})
-  public ResponseEntity<ProjectElementDto> updateElement(
-      @Parameter(description = "Username of the project owner") @PathVariable String username,
-      @Parameter(description = "Slug of the project") @PathVariable String projectSlug,
-      @Parameter(description = "ID of the element to update") @PathVariable String elementId,
-      @Parameter(description = "CSRF token", in = ParameterIn.HEADER, required = true)
-          @RequestHeader(name = "X-XSRF-TOKEN")
-          String csrfToken,
-      @Valid @RequestBody ProjectElementDto elementDto) {
-    return ResponseEntity.ok(
-        elementService.updateElement(username, projectSlug, elementId, elementDto));
-  }
-
-  @Operation(
-      summary = "Delete an element",
-      description = "Deletes an element and its children from the specified project")
-  @ApiResponses(
-      value = {
-        @ApiResponse(responseCode = "204", description = "Element deleted successfully"),
-        @ApiResponse(
-            responseCode = "404",
-            description = "Project or element not found",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-      })
-  @DeleteMapping("/{elementId}")
-  @Secured({"USER", "OAUTH2_USER"})
-  public ResponseEntity<Void> deleteElement(
-      @Parameter(description = "Username of the project owner") @PathVariable String username,
-      @Parameter(description = "Slug of the project") @PathVariable String projectSlug,
-      @Parameter(description = "ID of the element to delete") @PathVariable String elementId,
-      @Parameter(description = "CSRF token", in = ParameterIn.HEADER, required = true)
-          @RequestHeader(name = "X-XSRF-TOKEN")
-          String csrfToken) {
-    elementService.deleteElement(username, projectSlug, elementId);
-    return ResponseEntity.noContent().build();
-  }
-
-  @Operation(
-      summary = "Update element position",
-      description = "Updates the position of an element relative to its siblings")
-  @ApiResponses(
-      value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "Position updated successfully",
-            content = @Content(schema = @Schema(implementation = ProjectElementDto.class))),
-        @ApiResponse(
-            responseCode = "404",
-            description = "Project or element not found",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-      })
-  @PatchMapping("/{elementId}/position/{position}")
-  @Secured({"USER", "OAUTH2_USER"})
-  public ResponseEntity<ProjectElementDto> updateElementPosition(
-      @Parameter(description = "Username of the project owner") @PathVariable String username,
-      @Parameter(description = "Slug of the project") @PathVariable String projectSlug,
-      @Parameter(description = "ID of the element") @PathVariable String elementId,
-      @Parameter(description = "New position value") @PathVariable Double position,
-      @Parameter(description = "CSRF token", in = ParameterIn.HEADER, required = true)
-          @RequestHeader(name = "X-XSRF-TOKEN")
-          String csrfToken) {
-    ProjectElementDto dto = new ProjectElementDto();
-    dto.setPosition(position);
-    return ResponseEntity.ok(elementService.updateElement(username, projectSlug, elementId, dto));
-  }
-
-  @Operation(
-      summary = "Bulk update element positions",
-      description = "Updates the positions of multiple elements in a single request")
-  @ApiResponses(
-      value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "Positions updated successfully",
+            description = "Elements successfully synchronized with provided list",
             content =
                 @Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -185,28 +75,22 @@ public class ProjectElementController {
                         @ArraySchema(schema = @Schema(implementation = ProjectElementDto.class)))),
         @ApiResponse(
             responseCode = "404",
-            description = "Project or one of the elements not found",
+            description = "Project not found or element not found during update",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
       })
-  @PatchMapping("/positions")
+  @PutMapping(produces = MediaType.APPLICATION_JSON_VALUE)
   @Secured({"USER", "OAUTH2_USER"})
-  public ResponseEntity<List<ProjectElementDto>> updateElementPositions(
+  public ResponseEntity<List<ProjectElementDto>> dinsertElements(
       @Parameter(description = "Username of the project owner") @PathVariable String username,
-      @Parameter(description = "Slug of the project") @PathVariable String projectSlug,
+      @Parameter(description = "Slug of the project") @PathVariable String slug,
       @Parameter(description = "CSRF token", in = ParameterIn.HEADER, required = true)
           @RequestHeader(name = "X-XSRF-TOKEN")
           String csrfToken,
-      @Parameter(description = "Map of element IDs to their new positions") @RequestBody
-          Map<String, Double> elementPositions) {
-    List<ProjectElementDto> updatedElements =
-        elementPositions.entrySet().stream()
-            .map(
-                entry -> {
-                  ProjectElementDto dto = new ProjectElementDto();
-                  dto.setPosition(entry.getValue());
-                  return elementService.updateElement(username, projectSlug, entry.getKey(), dto);
-                })
-            .toList();
-    return ResponseEntity.ok(updatedElements);
+      @Parameter(
+              description =
+                  "Complete list of desired elements - any existing elements not in this list will be deleted")
+          @RequestBody
+          List<ProjectElementDto> elements) {
+    return ResponseEntity.ok(elementService.bulkDinsertElements(username, slug, elements));
   }
 }

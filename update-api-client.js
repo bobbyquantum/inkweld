@@ -12,10 +12,15 @@ function runCommand(command, cwd) {
 const mvnwCommand = process.platform === 'win32' ? '.\\mvnw' : './mvnw';
 
 // Generate API spec and client
-console.log("Generating API spec and client...");
+console.log("Generating OpenAPI spec...");
 const backendPath = path.join(__dirname, "backend");
 
-runCommand(mvnwCommand + " package", backendPath);
+// First run verify on default profile to generate OpenAPI spec
+runCommand(mvnwCommand + " verify", backendPath);
+
+// Then run verify with generate-api-client profile to create TypeScript client
+console.log("Generating TypeScript client...");
+runCommand(mvnwCommand + " verify -P generate-api-client", backendPath);
 
 // Build the dist package for the API client
 console.log("Building dist package for API client...");

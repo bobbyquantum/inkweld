@@ -27,10 +27,10 @@ public class ProjectElement {
   private ElementType type;
 
   @Column(nullable = false)
-  private Double position;
+  private Integer position;
 
-  @Column(name = "parent_id")
-  private String parentId;
+  @Column(nullable = false)
+  private Integer level;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "project_id", nullable = false)
