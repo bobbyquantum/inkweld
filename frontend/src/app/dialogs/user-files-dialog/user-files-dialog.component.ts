@@ -4,7 +4,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { firstValueFrom } from 'rxjs';
-import { FileAPIService, ModelFile, PageInfo } from 'worm-api-client';
+import { FileAPIService, FileUpload, PageInfo } from 'worm-api-client';
 
 @Component({
   selector: 'app-user-files-dialog',
@@ -20,7 +20,7 @@ import { FileAPIService, ModelFile, PageInfo } from 'worm-api-client';
 })
 export class UserFilesDialogComponent implements OnInit {
   public page?: PageInfo;
-  public files: ModelFile[] = [];
+  public files: FileUpload[] = [];
   public pageSize = 12; // Adjust as needed
   public pageSizeOptions: number[] = [12, 24, 48, 96];
 
@@ -37,7 +37,7 @@ export class UserFilesDialogComponent implements OnInit {
         size: pageSize,
       })
     );
-    this.files = response.content as ModelFile[];
+    this.files = response.content as FileUpload[];
     this.page = response.page!;
   }
 

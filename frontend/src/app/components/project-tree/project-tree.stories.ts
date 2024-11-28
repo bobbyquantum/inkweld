@@ -1,16 +1,34 @@
-import { HttpClient } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
+import { computed, Signal } from '@angular/core';
 import { ProjectTreeService } from '@services/project-tree.service';
-import type { Meta, StoryObj } from '@storybook/angular';
+import {
+  applicationConfig,
+  Meta,
+  moduleMetadata,
+  StoryObj,
+} from '@storybook/angular';
 import { ProjectElementDto } from 'worm-api-client';
 
 import { ProjectTreeComponent } from './project-tree.component';
 import { FILE_ONLY_DATA, SINGLE_FOLDER_DATA, TREE_DATA } from './TREE_DATA';
 
-// Create a mock service that provides the test data
-class MockProjectTreeService extends ProjectTreeService {
+// Create a mock service that implements just what we need for the stories
+class MockProjectTreeService implements Partial<ProjectTreeService> {
+  mockElements: ProjectElementDto[] = [];
+
+  readonly elements: Signal<ProjectElementDto[]> = computed(
+    () => this.mockElements
+  );
+  readonly isLoading: Signal<boolean> = computed(() => false);
+  readonly isSaving: Signal<boolean> = computed(() => false);
+  readonly error: Signal<string | undefined> = computed(() => undefined);
+
   constructor(mockData: ProjectElementDto[]) {
-    super();
     this.updateElements(mockData);
+  }
+
+  updateElements(elements: ProjectElementDto[]): void {
+    this.mockElements = elements;
   }
 }
 
@@ -41,20 +59,18 @@ const meta: Meta<ProjectTreeComponent & TreeStoryArgs> = {
   component: ProjectTreeComponent,
   tags: ['autodocs'],
   decorators: [
-    (Story, { args }) => ({
-      moduleMetadata: {
-        providers: [
-          {
-            provide: ProjectTreeService,
-            useFactory: () => new MockProjectTreeService(args.initialData),
-          },
-          { provide: HttpClient, useValue: {} },
-        ],
-      },
-      template: '<story />',
+    moduleMetadata({
+      providers: [
+        {
+          provide: ProjectTreeService,
+          useValue: new MockProjectTreeService([]),
+        },
+      ],
+    }),
+    applicationConfig({
+      providers: [provideHttpClient()],
     }),
   ],
-  render: () => ({}),
   parameters: {
     docs: {
       description: {
@@ -67,38 +83,33 @@ const meta: Meta<ProjectTreeComponent & TreeStoryArgs> = {
 export default meta;
 type Story = StoryObj<ProjectTreeComponent & TreeStoryArgs>;
 
-export const Default: Story = {
+// Helper function to create story with service
+const createStory = (data: ProjectElementDto[]): Story => ({
+  decorators: [
+    moduleMetadata({
+      providers: [
+        {
+          provide: ProjectTreeService,
+          useValue: new MockProjectTreeService(data),
+        },
+      ],
+    }),
+  ],
   args: {
-    initialData: TREE_DATA.map(toDto),
+    initialData: data,
   },
-};
+});
 
-export const EmptyTree: Story = {
-  args: {
-    initialData: [],
-  },
-};
+export const Default: Story = createStory(TREE_DATA.map(toDto));
 
-export const SingleNode: Story = {
-  args: {
-    initialData: [toDto(TREE_DATA[0])],
-  },
-};
+export const EmptyTree: Story = createStory([]);
 
-export const FoldersOnly: Story = {
-  args: {
-    initialData: TREE_DATA.filter(node => node.type === 'FOLDER').map(toDto),
-  },
-};
+export const SingleNode: Story = createStory([toDto(TREE_DATA[0])]);
 
-export const FilesOnly: Story = {
-  args: {
-    initialData: FILE_ONLY_DATA.map(toDto),
-  },
-};
+export const FoldersOnly: Story = createStory(
+  TREE_DATA.filter(node => node.type === 'FOLDER').map(toDto)
+);
 
-export const SingleFolder: Story = {
-  args: {
-    initialData: SINGLE_FOLDER_DATA.map(toDto),
-  },
-};
+export const FilesOnly: Story = createStory(FILE_ONLY_DATA.map(toDto));
+
+export const SingleFolder: Story = createStory(SINGLE_FOLDER_DATA.map(toDto));
