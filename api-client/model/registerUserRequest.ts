@@ -10,9 +10,9 @@
 
 
 export interface RegisterUserRequest { 
-    username: string;
     email: string;
-    password: string;
     name: string;
+    password: string;
+    username: string;
 }
 

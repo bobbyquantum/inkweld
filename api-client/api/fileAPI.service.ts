@@ -119,10 +119,10 @@ export class FileAPIService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public deleteFile(fileId: string, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | '*/*', context?: HttpContext, transferCache?: boolean}): Observable<object>;
-    public deleteFile(fileId: string, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | '*/*', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<object>>;
-    public deleteFile(fileId: string, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | '*/*', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<object>>;
-    public deleteFile(fileId: string, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json' | '*/*', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public deleteFile(fileId: string, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<object>;
+    public deleteFile(fileId: string, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<object>>;
+    public deleteFile(fileId: string, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<object>>;
+    public deleteFile(fileId: string, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: '*/*' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (fileId === null || fileId === undefined) {
             throw new Error('Required parameter fileId was null or undefined when calling deleteFile.');
         }
@@ -139,8 +139,8 @@ export class FileAPIService {
         if (localVarHttpHeaderAcceptSelected === undefined) {
             // to determine the Accept header
             const httpHeaderAccepts: string[] = [
-                'application/json',
-                '*/*'
+                '*/*',
+                'application/json'
             ];
             localVarHttpHeaderAcceptSelected = this.configuration.selectHeaderAccept(httpHeaderAccepts);
         }
@@ -258,10 +258,10 @@ export class FileAPIService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getFileContent(fileId: string, range?: string, download?: boolean, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | 'application/octet-stream', context?: HttpContext, transferCache?: boolean}): Observable<any>;
-    public getFileContent(fileId: string, range?: string, download?: boolean, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | 'application/octet-stream', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
-    public getFileContent(fileId: string, range?: string, download?: boolean, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | 'application/octet-stream', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
-    public getFileContent(fileId: string, range?: string, download?: boolean, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json' | 'application/octet-stream', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public getFileContent(fileId: string, range?: string, download?: boolean, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any>;
+    public getFileContent(fileId: string, range?: string, download?: boolean, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
+    public getFileContent(fileId: string, range?: string, download?: boolean, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
+    public getFileContent(fileId: string, range?: string, download?: boolean, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (fileId === null || fileId === undefined) {
             throw new Error('Required parameter fileId was null or undefined when calling getFileContent.');
         }
@@ -281,8 +281,8 @@ export class FileAPIService {
         if (localVarHttpHeaderAcceptSelected === undefined) {
             // to determine the Accept header
             const httpHeaderAccepts: string[] = [
-                'application/json',
-                'application/octet-stream'
+                'application/octet-stream',
+                'application/json'
             ];
             localVarHttpHeaderAcceptSelected = this.configuration.selectHeaderAccept(httpHeaderAccepts);
         }
@@ -499,10 +499,10 @@ export class FileAPIService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public updateFileContent(fileContent: Blob, fileId: string, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | '*/*', context?: HttpContext, transferCache?: boolean}): Observable<object>;
-    public updateFileContent(fileContent: Blob, fileId: string, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | '*/*', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<object>>;
-    public updateFileContent(fileContent: Blob, fileId: string, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json' | '*/*', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<object>>;
-    public updateFileContent(fileContent: Blob, fileId: string, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json' | '*/*', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public updateFileContent(fileContent: Blob, fileId: string, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<object>;
+    public updateFileContent(fileContent: Blob, fileId: string, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<object>>;
+    public updateFileContent(fileContent: Blob, fileId: string, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: '*/*' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<object>>;
+    public updateFileContent(fileContent: Blob, fileId: string, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: '*/*' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (fileContent === null || fileContent === undefined) {
             throw new Error('Required parameter fileContent was null or undefined when calling updateFileContent.');
         }
@@ -522,8 +522,8 @@ export class FileAPIService {
         if (localVarHttpHeaderAcceptSelected === undefined) {
             // to determine the Accept header
             const httpHeaderAccepts: string[] = [
-                'application/json',
-                '*/*'
+                '*/*',
+                'application/json'
             ];
             localVarHttpHeaderAcceptSelected = this.configuration.selectHeaderAccept(httpHeaderAccepts);
         }

@@ -14,29 +14,29 @@
  */
 export interface ProjectElementDto { 
     /**
+     * Whether the element can be expanded (computed from type)
+     */
+    expandable?: boolean;
+    /**
      * Unique identifier of the element
      */
     id?: string;
-    /**
-     * Name of the element
-     */
-    name: string;
-    /**
-     * Type of the element (FOLDER/ITEM)
-     */
-    type: ProjectElementDto.TypeEnum;
-    /**
-     * Position for ordering elements
-     */
-    position: number;
     /**
      * Level in the tree hierarchy
      */
     level: number;
     /**
-     * Whether the element can be expanded (computed from type)
+     * Name of the element
      */
-    expandable?: boolean;
+    name: string;
+    /**
+     * Position for ordering elements
+     */
+    position: number;
+    /**
+     * Type of the element (FOLDER/ITEM)
+     */
+    type: ProjectElementDto.TypeEnum;
 }
 export namespace ProjectElementDto {
     export type TypeEnum = 'FOLDER' | 'ITEM';
