@@ -17,7 +17,7 @@ export interface ModelFile {
     /**
      * File ID
      */
-    id?: number;
+    id?: string;
     /**
      * File name
      */

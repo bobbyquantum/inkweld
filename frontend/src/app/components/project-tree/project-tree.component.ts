@@ -13,9 +13,10 @@ import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import {
   AfterViewInit,
   Component,
+  computed,
+  effect,
   ElementRef,
-  Input,
-  OnInit,
+  inject,
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -23,17 +24,15 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInput, MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
+import { ProjectTreeService } from '@services/project-tree.service';
 
-import { ProjectElement } from './project-element';
+import { mapDtoToProjectElement, ProjectElement } from './project-element';
 import { TreeManipulator } from './tree-manipulator';
+
 /**
  * Component for displaying and managing the project tree.
- *
- * @example
- * ```html
- * <app-project-tree [treeData]="myTreeData"></app-project-tree>
- * ```
  */
 @Component({
   standalone: true,
@@ -44,6 +43,7 @@ import { TreeManipulator } from './tree-manipulator';
     MatInputModule,
     MatListModule,
     MatMenuModule,
+    MatProgressSpinner,
     DragDropModule,
     CdkContextMenuTrigger,
     CdkMenu,
@@ -57,18 +57,24 @@ import { TreeManipulator } from './tree-manipulator';
   templateUrl: './project-tree.component.html',
   styleUrls: ['./project-tree.component.scss'],
 })
-export class ProjectTreeComponent implements OnInit, AfterViewInit {
-  /**
-   * The data for the tree structure.
-   * Accepts an array of `ProjectElement` objects.
-   */
-  @Input() treeData: ProjectElement[] = [];
-
+export class ProjectTreeComponent implements AfterViewInit {
   @ViewChild('tree') treeEl!: MatTree<ProjectElement>;
   @ViewChild('treeContainer', { static: true })
   treeContainer!: ElementRef<HTMLElement>;
   @ViewChild('editInput') inputEl!: MatInput;
   @ViewChild(CdkDropList) dropList!: CdkDropList<ProjectElement>;
+
+  readonly treeService = inject(ProjectTreeService);
+
+  // Map DTOs to internal model
+  readonly treeElements = computed(() =>
+    this.treeService.elements().map(mapDtoToProjectElement)
+  );
+
+  // Other service signals
+  readonly isLoading = this.treeService.isLoading;
+  readonly isSaving = this.treeService.isSaving;
+  readonly error = this.treeService.error;
 
   dataSource!: ArrayDataSource<ProjectElement>;
   treeManipulator!: TreeManipulator;
@@ -83,12 +89,14 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
   wasExpandedNodeIds = new Set<string>();
   collapseTimer: NodeJS.Timeout | null = null;
 
-  /**
-   * Initializes the component.
-   */
-  ngOnInit() {
-    this.treeManipulator = new TreeManipulator(this.treeData);
-    this.updateDataSource();
+  constructor() {
+    // Initialize tree with current elements
+    this.initializeTree();
+
+    // Update tree when elements change
+    effect(() => {
+      this.initializeTree();
+    });
   }
 
   /**
@@ -152,7 +160,7 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
    */
   onNodeDown(node: ProjectElement) {
     this.selectedItem = node;
-    if (node.type === 'folder' && node.expanded) {
+    if (node.type === 'FOLDER' && node.expanded) {
       // Start a timer to collapse the node after a short delay
       this.collapseTimer = setTimeout(() => {
         // Collapse the node
@@ -177,7 +185,7 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
    * Prepares for drag start by collapsing expanded nodes if necessary.
    */
   beforeDragStarted() {
-    if (this.selectedItem?.type === 'folder' && this.selectedItem.expanded) {
+    if (this.selectedItem?.type === 'FOLDER' && this.selectedItem.expanded) {
       // Remember that we collapsed this node
       this.wasExpandedNodeIds.add(this.selectedItem.id);
       this.toggleExpanded(this.selectedItem);
@@ -291,7 +299,7 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
     // Check if trying to drop as child of an item
     if (
       nodeAbove &&
-      nodeAbove.type === 'item' &&
+      nodeAbove.type === 'ITEM' &&
       this.currentDropLevel > nodeAbove.level
     ) {
       throw new Error('Cannot drop as child of an item');
@@ -405,5 +413,13 @@ export class ProjectTreeComponent implements OnInit, AfterViewInit {
    */
   onContextMenuClose() {
     this.contextItem = null;
+  }
+
+  /**
+   * Initializes or reinitializes the tree with current data.
+   */
+  private initializeTree() {
+    this.treeManipulator = new TreeManipulator(this.treeElements());
+    this.updateDataSource();
   }
 }

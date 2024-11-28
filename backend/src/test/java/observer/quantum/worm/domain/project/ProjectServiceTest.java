@@ -1,4 +1,4 @@
-package observer.quantum.worm.project;
+package observer.quantum.worm.domain.project;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -9,9 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import observer.quantum.worm.domain.project.Project;
-import observer.quantum.worm.domain.project.ProjectRepository;
-import observer.quantum.worm.domain.project.ProjectService;
 import observer.quantum.worm.domain.user.User;
 import observer.quantum.worm.domain.user.UserService;
 import org.junit.jupiter.api.BeforeEach;

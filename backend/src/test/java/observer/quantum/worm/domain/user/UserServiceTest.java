@@ -1,4 +1,4 @@
-package observer.quantum.worm.user;
+package observer.quantum.worm.domain.user;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -6,14 +6,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import java.util.*;
-import observer.quantum.worm.domain.user.UpdateUserRequest;
-import observer.quantum.worm.domain.user.User;
-import observer.quantum.worm.domain.user.UserAuthInvalidException;
-import observer.quantum.worm.domain.user.UserIdentity;
-import observer.quantum.worm.domain.user.UserIdentityRepository;
-import observer.quantum.worm.domain.user.UserRepository;
-import observer.quantum.worm.domain.user.UserService;
-import observer.quantum.worm.domain.user.UsernameAvailabilityResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

@@ -1,4 +1,4 @@
-package observer.quantum.worm.project;
+package observer.quantum.worm.domain.project;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -16,10 +16,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
-import observer.quantum.worm.domain.project.Project;
-import observer.quantum.worm.domain.project.ProjectController;
-import observer.quantum.worm.domain.project.ProjectNotFoundException;
-import observer.quantum.worm.domain.project.ProjectService;
 import observer.quantum.worm.domain.user.User;
 import observer.quantum.worm.domain.user.UserService;
 import observer.quantum.worm.error.GlobalExceptionHandler;
