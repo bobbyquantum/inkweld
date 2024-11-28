@@ -1,12 +1,17 @@
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { provideAnimations } from '@angular/platform-browser/animations';
-import { RouterTestingModule } from '@angular/router/testing';
+import { provideRouter } from '@angular/router';
 import { UserSettingsService } from '@services/user-settings.service';
-import { Meta, moduleMetadata, StoryObj } from '@storybook/angular';
+import {
+  applicationConfig,
+  Meta,
+  moduleMetadata,
+  StoryObj,
+} from '@storybook/angular';
 
 import { UserMenuComponent } from './user-menu.component';
 
@@ -21,8 +26,6 @@ const meta: Meta<UserMenuComponent> = {
         MatMenuModule,
         MatIconModule,
         MatDividerModule,
-        RouterTestingModule,
-        HttpClientTestingModule,
       ],
       providers: [
         provideAnimations(),
@@ -38,6 +41,9 @@ const meta: Meta<UserMenuComponent> = {
           },
         },
       ],
+    }),
+    applicationConfig({
+      providers: [provideRouter([]), provideHttpClient()],
     }),
   ],
 };

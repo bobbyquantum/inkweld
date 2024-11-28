@@ -2,9 +2,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
+import { provideRouter } from '@angular/router';
 import type { Meta, StoryObj } from '@storybook/angular';
-import { moduleMetadata } from '@storybook/angular';
+import { applicationConfig, moduleMetadata } from '@storybook/angular';
 import { of } from 'rxjs';
 
 import { ProjectCardComponent } from './project-card.component';
@@ -15,7 +15,7 @@ const meta: Meta<ProjectCardComponent> = {
   tags: ['autodocs'],
   decorators: [
     moduleMetadata({
-      imports: [MatCardModule, MatButtonModule, RouterTestingModule],
+      imports: [MatCardModule, MatButtonModule],
       providers: [
         provideAnimations(),
         {
@@ -25,6 +25,9 @@ const meta: Meta<ProjectCardComponent> = {
           },
         },
       ],
+    }),
+    applicationConfig({
+      providers: [provideRouter([])],
     }),
   ],
 };
