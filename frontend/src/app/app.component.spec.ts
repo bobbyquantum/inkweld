@@ -53,7 +53,7 @@ describe('AppComponent', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const component = fixture.componentInstance;
 
-    const mockUser = { id: 1, name: 'Test User' };
+    const mockUser = { id: '1', name: 'Test User' };
     const userService = TestBed.inject(UserAPIService);
     (userService.getCurrentUser as jest.Mock).mockReturnValue(of(mockUser));
 
