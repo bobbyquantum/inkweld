@@ -121,7 +121,7 @@ export class NewProjectComponent implements OnInit {
     const xsrfToken = this.xsrfService.getXsrfToken();
     const projectData = this.projectForm.value as Project;
 
-    this.projectService.createProject(xsrfToken, projectData).subscribe({
+    this.projectService.createProject(projectData, xsrfToken).subscribe({
       next: () => {
         this.snackBar.open('Project created successfully!', 'Close', {
           duration: 3000,

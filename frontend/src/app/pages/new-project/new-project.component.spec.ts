@@ -149,8 +149,8 @@ describe('NewProjectComponent', () => {
     tick();
 
     expect(projectService.createProject).toHaveBeenCalledWith(
-      'test-token',
-      projectData
+      projectData,
+      'test-token'
     );
     flush();
   }));
@@ -178,8 +178,8 @@ describe('NewProjectComponent', () => {
     component.onSubmit();
     tick();
     expect(projectService.createProject).toHaveBeenCalledWith(
-      'test-token',
-      projectData
+      projectData,
+      'test-token'
     );
     flush();
   }));
