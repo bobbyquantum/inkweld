@@ -12,6 +12,7 @@ export class TreeManipulator {
         JSON.stringify(treeData)
       ) as ProjectElement[];
       this.updateVisibility();
+      this.updateGlobalPositions();
     }
   }
 
@@ -69,31 +70,23 @@ export class TreeManipulator {
       return;
     }
 
-    // Find the insertion point - it should be right after the parent node
+    // Insert right after the parent node
     const insertionIndex = nodeIndex + 1;
-
-    // Increment positions of all subsequent items at the new level
-    for (let i = insertionIndex; i < this.sourceData.length; i++) {
-      if (this.sourceData[i].level === node.level + 1) {
-        this.sourceData[i].position++;
-      } else if (this.sourceData[i].level <= node.level) {
-        break;
-      }
-    }
 
     const newItem: ProjectElement = {
       id: 'new-item-' + Math.random().toString(36).substr(2, 9),
       name: 'New Item',
       type: 'ITEM',
       level: node.level + 1,
-      position: 0, // New items always start at position 0
+      position: insertionIndex, // Initial position
       expandable: false,
       expanded: true,
       visible: true,
     };
 
-    // Insert the new item right after its parent
+    // Insert the new item
     this.sourceData.splice(insertionIndex, 0, newItem);
+    this.updateGlobalPositions(); // Update all positions
     this.updateVisibility();
   }
 
@@ -142,13 +135,7 @@ export class TreeManipulator {
     if (nodeIndex !== -1) {
       const nodeSubtree = this.getNodeSubtree(nodeIndex);
       this.sourceData.splice(nodeIndex, nodeSubtree.length);
-
-      // Update positions of remaining siblings
-      const siblings = this.getSiblings(nodeIndex);
-      if (siblings.length > 0) {
-        this.updateSiblingPositions(siblings);
-      }
-
+      this.updateGlobalPositions(); // Update positions after deletion
       this.updateVisibility();
     }
   }
@@ -198,64 +185,17 @@ export class TreeManipulator {
     // Insert the subtree at the new position
     this.sourceData.splice(targetIndex, 0, ...nodeSubtree);
 
-    // Update positions of all siblings at the new location
-    const newSiblings = this.getSiblings(targetIndex);
-    if (newSiblings.length > 0) {
-      this.updateSiblingPositions(newSiblings);
-    }
-
-    // If we moved from a different parent, update positions of old siblings
-    if (nodeIndex < targetIndex) {
-      const oldSiblings = this.getSiblings(nodeIndex);
-      if (oldSiblings.length > 0) {
-        this.updateSiblingPositions(oldSiblings);
-      }
-    }
-
+    // Update all positions after move
+    this.updateGlobalPositions();
     this.updateVisibility();
   }
 
   /**
-   * Gets all siblings of a node at the same level
-   * @param nodeIndex Index of the node
-   * @returns Array of sibling nodes including the target node
+   * Updates global position indices for all nodes
    */
-  private getSiblings(nodeIndex: number): ProjectElement[] {
-    if (nodeIndex < 0 || nodeIndex >= this.sourceData.length) {
-      return [];
-    }
-
-    const node = this.sourceData[nodeIndex];
-    const siblings: ProjectElement[] = [];
-
-    // Look backwards for siblings
-    for (let i = nodeIndex; i >= 0; i--) {
-      if (this.sourceData[i].level === node.level) {
-        siblings.unshift(this.sourceData[i]);
-      } else if (this.sourceData[i].level < node.level) {
-        break;
-      }
-    }
-
-    // Look forwards for siblings
-    for (let i = nodeIndex + 1; i < this.sourceData.length; i++) {
-      if (this.sourceData[i].level === node.level) {
-        siblings.push(this.sourceData[i]);
-      } else if (this.sourceData[i].level < node.level) {
-        break;
-      }
-    }
-
-    return siblings;
-  }
-
-  /**
-   * Updates positions for a group of sibling nodes
-   * @param siblings Array of sibling nodes to update
-   */
-  private updateSiblingPositions(siblings: ProjectElement[]) {
-    siblings.forEach((sibling, index) => {
-      sibling.position = index;
+  private updateGlobalPositions() {
+    this.sourceData.forEach((node, index) => {
+      node.position = index;
     });
   }
 }
