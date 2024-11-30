@@ -2,9 +2,8 @@
 
 <mat-sidenav-container class="main-container">
   <mat-sidenav mode="side" opened class="sidenav-content">
-    <div class="sidenav-wrapper">
-      <app-project-tree></app-project-tree>
-    </div>
+    <app-project-tree></app-project-tree>
+    <div class="resize-handle" (mousedown)="onResizeStart($event)"></div>
   </mat-sidenav>
   <mat-sidenav-content>
     <mat-tab-group fitInkBarToContent mat-stretch-tabs="false" class="tab-bars">

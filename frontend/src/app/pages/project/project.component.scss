@@ -17,20 +17,42 @@ mat-toolbar {
 
 .sidenav-content {
   width: 250px;
+  min-width: 150px;
+  max-width: 600px;
   border-radius: 0;
+  position: relative;
+  height: 100%;
+  background-color: var(--sys-surface-container);
+  border-right: 1px solid var(--sys-outline-variant);
+
+  app-project-tree {
+    height: 100%;
+    display: block;
+    overflow-y: auto;
+  }
 }
 
-.sidenav-wrapper {
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
   height: 100%;
-  overflow-y: auto;
-  background-color: var(--sys-surface-container);
+  cursor: ew-resize;
+  background-color: transparent;
+  transition: background-color 0.2s;
+  z-index: 1;
+
+  &:hover, &:active {
+    background-color: var(--sys-primary);
+  }
 }
 
 .tab-bars {
   background-color: var(--sys-surface-container);
   position: fixed;
   top: 48px;
-  left: 250px;
+  left: var(--sidenav-width, 250px);
   right: 0;
   z-index: 10;
 }
