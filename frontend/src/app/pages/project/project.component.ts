@@ -1,94 +1,94 @@
-import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnDestroy, OnInit } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { Component, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatTabsModule } from '@angular/material/tabs';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatTreeModule } from '@angular/material/tree';
 import { ActivatedRoute } from '@angular/router';
-import { ProjectTreeService } from '@services/project-tree.service';
 import { Subscription } from 'rxjs';
 import { Project, ProjectAPIService } from 'worm-api-client';
 
 import { ElementEditorComponent } from '../../components/element-editor/element-editor.component';
 import { ProjectMainMenuComponent } from '../../components/project-main-menu/project-main-menu.component';
 import { ProjectTreeComponent } from '../../components/project-tree/project-tree.component';
+import { ProjectTreeService } from '../../services/project-tree.service';
 
 @Component({
   selector: 'app-project',
+  templateUrl: './project.component.html',
+  styleUrls: ['./project.component.scss'],
   standalone: true,
   imports: [
-    CommonModule,
     MatSidenavModule,
-    MatToolbarModule,
-    MatIconModule,
     MatTabsModule,
-    MatButtonModule,
-    MatTreeModule,
-    MatSnackBarModule,
-    MatProgressBarModule,
-    ProjectTreeComponent,
     ProjectMainMenuComponent,
+    ProjectTreeComponent,
     ElementEditorComponent,
   ],
-  templateUrl: './project.component.html',
-  styleUrl: './project.component.scss',
 })
 export class ProjectComponent implements OnInit, OnDestroy {
-  // Service injections
-  readonly route = inject(ActivatedRoute);
-  readonly projectService = inject(ProjectAPIService);
-  readonly treeService = inject(ProjectTreeService);
-  readonly snackBar = inject(MatSnackBar);
-
-  // Public state
+  @ViewChild(MatSidenav) sidenav!: MatSidenav;
   project: Project | null = null;
 
-  // Tree service signals
-  readonly treeElements = this.treeService.elements;
-  readonly isLoadingTree = this.treeService.isLoading;
-  readonly isSavingTree = this.treeService.isSaving;
-  readonly treeError = this.treeService.error;
+  private startX = 0;
+  private startWidth = 0;
+  private paramsSubscription?: Subscription;
+  private readonly projectService = inject(ProjectAPIService);
+  private readonly treeService = inject(ProjectTreeService);
+  private readonly route = inject(ActivatedRoute);
 
-  // Computed signals
-  readonly isLoading = computed(() => {
-    return !this.project || this.isLoadingTree();
-  });
-
-  // Subscriptions
-  private routeParamsSub?: Subscription;
-
-  ngOnInit(): void {
-    this.routeParamsSub = this.route.params.subscribe(params => {
+  ngOnInit() {
+    this.paramsSubscription = this.route.params.subscribe(params => {
       const username = params['username'] as string;
       const slug = params['slug'] as string;
-      void this.loadProject(username, slug);
+      if (username && slug) {
+        this.loadProject(username, slug);
+      }
     });
   }
 
-  ngOnDestroy(): void {
-    this.routeParamsSub?.unsubscribe();
+  ngOnDestroy() {
+    this.paramsSubscription?.unsubscribe();
   }
 
-  private async loadProject(username: string, slug: string): Promise<void> {
-    try {
-      // Load project details
-      const project = await this.projectService
-        .getProjectByUsernameAndSlug(username, slug)
-        .toPromise();
+  isLoading = () => this.treeService.isLoading();
 
-      this.project = project ?? null;
+  onResizeStart(e: MouseEvent) {
+    e.preventDefault();
+    const sidenavEl = document.querySelector<HTMLElement>('.sidenav-content');
+    if (!sidenavEl) return;
 
-      // Load project elements
-      await this.treeService.loadProjectElements(username, slug);
-    } catch (err) {
-      console.error('Failed to load project:', err);
-      this.snackBar.open('Failed to load project.', 'Close', {
-        duration: 3000,
+    this.startX = e.clientX;
+    this.startWidth = sidenavEl.offsetWidth;
+
+    document.addEventListener('mousemove', this.onResizeMove);
+    document.addEventListener('mouseup', this.onResizeEnd);
+  }
+
+  private loadProject(username: string, slug: string) {
+    void this.projectService
+      .getProjectByUsernameAndSlug(username, slug)
+      .subscribe(project => {
+        this.project = project;
+        if (project) {
+          void this.treeService.loadProjectElements(username, slug);
+        }
       });
-    }
   }
+
+  private onResizeMove = (e: MouseEvent) => {
+    const diff = e.clientX - this.startX;
+    const newWidth = Math.max(150, Math.min(600, this.startWidth + diff));
+    const sidenavEl = document.querySelector<HTMLElement>('.sidenav-content');
+
+    if (sidenavEl) {
+      sidenavEl.style.width = `${newWidth}px`;
+      document.documentElement.style.setProperty(
+        '--sidenav-width',
+        `${newWidth}px`
+      );
+    }
+  };
+
+  private onResizeEnd = () => {
+    document.removeEventListener('mousemove', this.onResizeMove);
+    document.removeEventListener('mouseup', this.onResizeEnd);
+  };
 }
