@@ -69,11 +69,13 @@ export class TreeManipulator {
       return;
     }
 
-    // Find the last child of the parent node to determine position
-    let lastChildIndex = nodeIndex;
-    for (let i = nodeIndex + 1; i < this.sourceData.length; i++) {
+    // Find the insertion point - it should be right after the parent node
+    const insertionIndex = nodeIndex + 1;
+
+    // Increment positions of all subsequent items at the new level
+    for (let i = insertionIndex; i < this.sourceData.length; i++) {
       if (this.sourceData[i].level === node.level + 1) {
-        lastChildIndex = i;
+        this.sourceData[i].position++;
       } else if (this.sourceData[i].level <= node.level) {
         break;
       }
@@ -84,16 +86,14 @@ export class TreeManipulator {
       name: 'New Item',
       type: 'ITEM',
       level: node.level + 1,
-      position:
-        lastChildIndex === nodeIndex
-          ? 0
-          : this.sourceData[lastChildIndex].position + 1,
+      position: 0, // New items always start at position 0
       expandable: false,
       expanded: true,
       visible: true,
     };
 
-    this.sourceData.splice(lastChildIndex + 1, 0, newItem);
+    // Insert the new item right after its parent
+    this.sourceData.splice(insertionIndex, 0, newItem);
     this.updateVisibility();
   }
 
