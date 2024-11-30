@@ -16,7 +16,6 @@ export class YjsService {
   setupCollaboration(editor: Editor, documentId: string) {
     if (!this.ydoc) {
       this.ydoc = new Y.Doc();
-      console.log(`proto = ${window.location.protocol}`);
       const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
       // Use URL parameters instead of path option
       const wsUrl = new URL(`${wsProto}://${window.location.host}/ws/yjs`);
