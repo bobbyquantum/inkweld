@@ -90,7 +90,7 @@ export class ProjectTreeComponent implements AfterViewInit {
   readonly isSaving = this.treeService.isSaving;
   readonly error = this.treeService.error;
 
-  dataSource!: ArrayDataSource<ProjectElement>;
+  dataSource: ArrayDataSource<ProjectElement>;
   treeManipulator!: TreeManipulator;
 
   selectedItem: ProjectElement | null = null;
@@ -106,6 +106,7 @@ export class ProjectTreeComponent implements AfterViewInit {
   constructor() {
     // Initialize tree with current elements
     this.initializeTree();
+    this.dataSource = new ArrayDataSource<ProjectElement>([]);
 
     // Update tree when elements change
     effect(() => {
@@ -126,7 +127,7 @@ export class ProjectTreeComponent implements AfterViewInit {
   /**
    * Updates the data source based on visibility.
    */
-  updateDataSource() {
+  updateDataSource(): void {
     this.dataSource = new ArrayDataSource<ProjectElement>(
       this.treeManipulator.getData().filter(x => x.visible)
     );
@@ -243,8 +244,8 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node that is being pressed.
    */
   onNodeDown(node: ProjectElement) {
-    // Don't allow dragging root wrapper
-    if (node.id === ROOT_WRAPPER_ID) return;
+    // Don't allow dragging root wrapper or when editing
+    if (node.id === ROOT_WRAPPER_ID || this.editingNode !== undefined) return;
 
     this.selectedItem = node;
     if (node.type === 'FOLDER' && node.expanded) {
@@ -286,8 +287,8 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node being dragged.
    */
   dragStarted(node: ProjectElement) {
-    // Don't allow dragging root wrapper
-    if (node.id === ROOT_WRAPPER_ID) return;
+    // Don't allow dragging root wrapper or when editing
+    if (node.id === ROOT_WRAPPER_ID || this.editingNode !== undefined) return;
 
     this.draggedNode = node;
     this.currentDropLevel = node.level;
