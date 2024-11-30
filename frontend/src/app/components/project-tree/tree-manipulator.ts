@@ -68,17 +68,32 @@ export class TreeManipulator {
     if (nodeIndex === -1) {
       return;
     }
+
+    // Find the last child of the parent node to determine position
+    let lastChildIndex = nodeIndex;
+    for (let i = nodeIndex + 1; i < this.sourceData.length; i++) {
+      if (this.sourceData[i].level === node.level + 1) {
+        lastChildIndex = i;
+      } else if (this.sourceData[i].level <= node.level) {
+        break;
+      }
+    }
+
     const newItem: ProjectElement = {
       id: 'new-item-' + Math.random().toString(36).substr(2, 9),
       name: 'New Item',
       type: 'ITEM',
       level: node.level + 1,
-      position: 0,
+      position:
+        lastChildIndex === nodeIndex
+          ? 0
+          : this.sourceData[lastChildIndex].position + 1,
       expandable: false,
       expanded: true,
       visible: true,
     };
-    this.sourceData.splice(nodeIndex + 1, 0, newItem);
+
+    this.sourceData.splice(lastChildIndex + 1, 0, newItem);
     this.updateVisibility();
   }
 
@@ -103,6 +118,9 @@ export class TreeManipulator {
    * @returns An array of nodes in the subtree.
    */
   getNodeSubtree(nodeIndex: number): ProjectElement[] {
+    if (nodeIndex < 0 || nodeIndex >= this.sourceData.length) {
+      return [];
+    }
     const subtree = [this.sourceData[nodeIndex]];
     const nodeLevel = this.sourceData[nodeIndex].level;
     for (let i = nodeIndex + 1; i < this.sourceData.length; i++) {
@@ -124,6 +142,13 @@ export class TreeManipulator {
     if (nodeIndex !== -1) {
       const nodeSubtree = this.getNodeSubtree(nodeIndex);
       this.sourceData.splice(nodeIndex, nodeSubtree.length);
+
+      // Update positions of remaining siblings
+      const siblings = this.getSiblings(nodeIndex);
+      if (siblings.length > 0) {
+        this.updateSiblingPositions(siblings);
+      }
+
       this.updateVisibility();
     }
   }
@@ -151,17 +176,86 @@ export class TreeManipulator {
     if (nodeIndex === -1) {
       return;
     }
+
+    // Get the subtree before moving
     const nodeSubtree = this.getNodeSubtree(nodeIndex);
     const nodeSubtreeLength = nodeSubtree.length;
+
+    // Remove the subtree from its current position
     this.sourceData.splice(nodeIndex, nodeSubtreeLength);
+
+    // Update the level of all nodes in the subtree
     const levelDifference = newLevel - node.level;
     nodeSubtree.forEach(n => {
       n.level += levelDifference;
     });
+
+    // Adjust target index if needed
     if (targetIndex > nodeIndex) {
       targetIndex -= nodeSubtreeLength;
     }
+
+    // Insert the subtree at the new position
     this.sourceData.splice(targetIndex, 0, ...nodeSubtree);
+
+    // Update positions of all siblings at the new location
+    const newSiblings = this.getSiblings(targetIndex);
+    if (newSiblings.length > 0) {
+      this.updateSiblingPositions(newSiblings);
+    }
+
+    // If we moved from a different parent, update positions of old siblings
+    if (nodeIndex < targetIndex) {
+      const oldSiblings = this.getSiblings(nodeIndex);
+      if (oldSiblings.length > 0) {
+        this.updateSiblingPositions(oldSiblings);
+      }
+    }
+
     this.updateVisibility();
+  }
+
+  /**
+   * Gets all siblings of a node at the same level
+   * @param nodeIndex Index of the node
+   * @returns Array of sibling nodes including the target node
+   */
+  private getSiblings(nodeIndex: number): ProjectElement[] {
+    if (nodeIndex < 0 || nodeIndex >= this.sourceData.length) {
+      return [];
+    }
+
+    const node = this.sourceData[nodeIndex];
+    const siblings: ProjectElement[] = [];
+
+    // Look backwards for siblings
+    for (let i = nodeIndex; i >= 0; i--) {
+      if (this.sourceData[i].level === node.level) {
+        siblings.unshift(this.sourceData[i]);
+      } else if (this.sourceData[i].level < node.level) {
+        break;
+      }
+    }
+
+    // Look forwards for siblings
+    for (let i = nodeIndex + 1; i < this.sourceData.length; i++) {
+      if (this.sourceData[i].level === node.level) {
+        siblings.push(this.sourceData[i]);
+      } else if (this.sourceData[i].level < node.level) {
+        break;
+      }
+    }
+
+    return siblings;
+  }
+
+  /**
+   * Updates positions for a group of sibling nodes
+   * @param siblings Array of sibling nodes to update
+   */
+  private updateSiblingPositions(siblings: ProjectElement[]) {
+    siblings.forEach((sibling, index) => {
+      sibling.position = index;
+    });
   }
 }
