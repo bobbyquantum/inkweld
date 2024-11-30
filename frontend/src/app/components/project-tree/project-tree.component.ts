@@ -103,6 +103,9 @@ export class ProjectTreeComponent implements AfterViewInit {
   wasExpandedNodeIds = new Set<string>();
   collapseTimer: NodeJS.Timeout | null = null;
 
+  // Track expanded nodes to persist state
+  private expandedNodeIds = new Set<string>();
+
   constructor() {
     // Initialize tree with current elements
     this.initializeTree();
@@ -148,6 +151,14 @@ export class ProjectTreeComponent implements AfterViewInit {
    */
   toggleExpanded(node: ProjectElement) {
     this.treeManipulator.toggleExpanded(node);
+    // Track expanded state
+    if (node.id) {
+      if (node.expanded) {
+        this.expandedNodeIds.add(node.id);
+      } else {
+        this.expandedNodeIds.delete(node.id);
+      }
+    }
     this.updateDataSource();
   }
 
@@ -535,6 +546,15 @@ export class ProjectTreeComponent implements AfterViewInit {
    */
   private initializeTree() {
     this.treeManipulator = new TreeManipulator(this.treeElements());
+
+    // Restore expanded state for nodes
+    this.treeManipulator.getData().forEach(node => {
+      if (node.id && this.expandedNodeIds.has(node.id)) {
+        node.expanded = true;
+      }
+    });
+
+    this.treeManipulator.updateVisibility();
     this.updateDataSource();
   }
 
