@@ -15,6 +15,9 @@ public class ProjectElementDto {
   @Schema(description = "Unique identifier of the element")
   private String id;
 
+  @Schema(description = "Version for optimistic locking")
+  private Long version;
+
   @NotBlank(message = "Name is required")
   @Schema(description = "Name of the element", required = true)
   private String name;
@@ -37,6 +40,7 @@ public class ProjectElementDto {
 
   public ProjectElementDto(ProjectElement element) {
     this.id = element.getId();
+    this.version = element.getVersion();
     this.name = element.getName();
     this.type = element.getType();
     this.position = element.getPosition();
@@ -47,6 +51,7 @@ public class ProjectElementDto {
   public ProjectElement toProjectElement() {
     return ProjectElement.builder()
         .id(id)
+        .version(version)
         .name(name)
         .type(type)
         .position(position)

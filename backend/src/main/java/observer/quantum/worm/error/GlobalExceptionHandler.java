@@ -9,6 +9,7 @@ import observer.quantum.worm.domain.user.InvalidInputException;
 import observer.quantum.worm.domain.user.UserAuthInvalidException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -69,6 +70,17 @@ public class GlobalExceptionHandler {
     log.error("Missing request header: {}", ex.getMessage());
     ErrorResponse error = new ErrorResponse(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
     return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+  }
+
+  @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+  public ResponseEntity<ErrorResponse> handleOptimisticLockingFailureException(
+      ObjectOptimisticLockingFailureException ex) {
+    log.error("Optimistic locking failure: {}", ex.getMessage());
+    ErrorResponse error = new ErrorResponse(
+        HttpStatus.CONFLICT.value(),
+        "The data has been modified by another user. Please refresh and try again."
+    );
+    return new ResponseEntity<>(error, HttpStatus.CONFLICT);
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)

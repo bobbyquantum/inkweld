@@ -37,6 +37,10 @@ export interface ProjectElementDto {
      * Type of the element (FOLDER/ITEM)
      */
     type: ProjectElementDto.TypeEnum;
+    /**
+     * Version for optimistic locking
+     */
+    version?: number;
 }
 export namespace ProjectElementDto {
     export type TypeEnum = 'FOLDER' | 'ITEM';
