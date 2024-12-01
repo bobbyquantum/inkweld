@@ -39,5 +39,9 @@ export interface Project {
      */
     updatedDate?: string;
     user?: User;
+    /**
+     * Version for optimistic locking
+     */
+    version?: number;
 }
 

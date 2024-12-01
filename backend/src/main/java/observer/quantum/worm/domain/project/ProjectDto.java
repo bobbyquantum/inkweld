@@ -15,6 +15,9 @@ public class ProjectDto {
   @Schema(description = "Project ID", example = "1")
   private UUID id;
 
+  @Schema(description = "Version for optimistic locking")
+  private Long version;
+
   @Schema(description = "Project slug", example = "project-slug")
   private String slug;
 
@@ -35,6 +38,7 @@ public class ProjectDto {
 
   public ProjectDto(Project project) {
     this.id = project.getId();
+    this.version = project.getVersion();
     this.title = project.getTitle();
     this.description = project.getDescription();
     this.slug = project.getSlug();
@@ -46,6 +50,7 @@ public class ProjectDto {
   public Project toProject() {
     Project project = new Project();
     project.setId(this.id);
+    project.setVersion(this.version);
     project.setSlug(this.slug);
     project.setTitle(this.title);
     project.setDescription(this.description);
