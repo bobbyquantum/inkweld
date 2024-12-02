@@ -1,4 +1,16 @@
 <div #treeContainer class="project-tree-container">
+  @if (isLoading()) {
+    <div class="loading-overlay">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="error-message">
+      {{ error() }}
+    </div>
+  }
+
   <mat-tree
     #tree
     [dataSource]="dataSource"
@@ -19,7 +31,7 @@
       (cdkDragEnded)="dragEnded()"
       [cdkDragStartDelay]="node.expandable && node.expanded ? 1000 : 0"
       [cdkDragDisabled]="
-        node.id === 'root-wrapper' || editingNode !== undefined
+        node.id === 'root-wrapper' || editingNode !== undefined || isLoading()
       "
       [style.padding-left.px]="node.level * 24 + (node.expandable ? 0 : 16)"
       [class.folder-node]="node.expandable"
@@ -33,7 +45,11 @@
       (cdkContextMenuClosed)="onContextMenuClose()"
       [cdkContextMenuTriggerData]="{ node: node }">
       @if (node.expandable) {
-        <button mat-icon-button type="button" (click)="toggleExpanded(node)">
+        <button
+          mat-icon-button
+          type="button"
+          (click)="toggleExpanded(node)"
+          [disabled]="isLoading()">
           <mat-icon>{{
             node.expanded ? 'expand_more' : 'chevron_right'
           }}</mat-icon>
@@ -94,10 +110,22 @@
 
 <ng-template #contextMenu let-node="node">
   <div class="context-menu" cdkMenu>
+    @if (!node.expandable && node.id !== 'root-wrapper') {
+      <button
+        type="button"
+        class="context-menu-item"
+        cdkMenuItem
+        [disabled]="isLoading()"
+        (click)="onOpenFile(node)">
+        <mat-icon>open_in_new</mat-icon>
+        <span class="context-menu-item-title">Open File</span>
+      </button>
+    }
     <button
       type="button"
       class="context-menu-item"
       cdkMenuItem
+      [disabled]="isLoading()"
       (click)="onNewItem(node)">
       <mat-icon>note_add</mat-icon>
       <span class="context-menu-item-title">New Item</span>
@@ -106,6 +134,7 @@
       type="button"
       class="context-menu-item"
       cdkMenuItem
+      [disabled]="isLoading()"
       (click)="onNewFolder(node)">
       <mat-icon>create_new_folder</mat-icon>
       <span class="context-menu-item-title">New Folder</span>
@@ -115,6 +144,7 @@
         type="button"
         class="context-menu-item"
         cdkMenuItem
+        [disabled]="isLoading()"
         (click)="onRename(node)">
         <mat-icon>edit_square</mat-icon>
         <span class="context-menu-item-title">Rename</span>
@@ -123,6 +153,7 @@
         type="button"
         class="context-menu-item"
         cdkMenuItem
+        [disabled]="isLoading()"
         (click)="onDelete(node)">
         <mat-icon>delete</mat-icon>
         <span class="context-menu-item-title">Delete</span>

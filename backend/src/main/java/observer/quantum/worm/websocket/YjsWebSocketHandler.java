@@ -3,6 +3,7 @@ package observer.quantum.worm.websocket;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
@@ -13,12 +14,19 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
+import org.springframework.web.util.UriTemplate;
 
 @Slf4j
 @Component
 public class YjsWebSocketHandler extends AbstractWebSocketHandler {
 
+  private static final UriTemplate DOCUMENT_URI_TEMPLATE = new UriTemplate("/ws/yjs/{documentId}");
+
   private final Map<String, List<WebSocketSession>> documentSessions = new ConcurrentHashMap<>();
+  // Store all updates for each document
+  private final Map<String, List<byte[]>> documentUpdates = new ConcurrentHashMap<>();
+  // Store awareness information for each document
+  private final Map<String, byte[]> documentAwareness = new ConcurrentHashMap<>();
 
   @Override
   public void afterConnectionEstablished(@NonNull WebSocketSession session) {
@@ -34,6 +42,33 @@ public class YjsWebSocketHandler extends AbstractWebSocketHandler {
         "Added session to document {} - Total sessions for document: {}",
         documentId,
         documentSessions.get(documentId).size());
+
+    // Send all updates to the new client
+    List<byte[]> updates = documentUpdates.get(documentId);
+    if (updates != null && !updates.isEmpty()) {
+      try {
+        for (byte[] update : updates) {
+          session.sendMessage(new BinaryMessage(update));
+        }
+        log.info("Sent {} updates to new client for document {}", 
+            updates.size(), documentId);
+      } catch (IOException e) {
+        log.error("Failed to send updates to new client", e);
+      }
+    } else {
+      log.info("No existing updates found for document {}", documentId);
+    }
+
+    // Send current awareness state if it exists
+    byte[] awarenessState = documentAwareness.get(documentId);
+    if (awarenessState != null) {
+      try {
+        session.sendMessage(new BinaryMessage(awarenessState));
+        log.info("Sent awareness state to new client for document {}", documentId);
+      } catch (IOException e) {
+        log.error("Failed to send awareness state to new client", e);
+      }
+    }
   }
 
   @Override
@@ -53,11 +88,36 @@ public class YjsWebSocketHandler extends AbstractWebSocketHandler {
   protected void handleBinaryMessage(
       @NonNull WebSocketSession session, @NonNull BinaryMessage message) throws IOException {
     String documentId = getDocumentIdFromSession(session);
+    byte[] payload = message.getPayload().array();
+    
     log.debug(
-        "Received binary message from session {} for document {} - Message length: {}",
+        "Received binary message from session {} for document {} - Message length: {}, First byte: {}",
         session.getId(),
         documentId,
-        message.getPayloadLength());
+        message.getPayloadLength(),
+        payload.length > 0 ? String.format("%02X", payload[0]) : "N/A");
+
+    // Check message type from Y-protocol
+    if (payload.length > 0) {
+      int messageType = payload[0] & 0xff;
+      // Y-protocol message types:
+      // 0 = sync step 1 (client request)
+      // 1 = sync step 2 (server response with state)
+      // 2 = update
+      // 3 = awareness
+      if (messageType == 2) {
+        // Store update message
+        documentUpdates.computeIfAbsent(documentId, _ -> new ArrayList<>()).add(payload);
+        log.info("Stored update ({} bytes) for document {} - Total updates: {}", 
+            payload.length, documentId, documentUpdates.get(documentId).size());
+      } else if (messageType == 3) {
+        // Store awareness update
+        documentAwareness.put(documentId, payload);
+        log.debug("Stored awareness update for document {}", documentId);
+      } else {
+        log.debug("Received sync message type {} for document {}", messageType, documentId);
+      }
+    }
 
     broadcastMessage(session, message, documentId);
   }
@@ -116,7 +176,7 @@ public class YjsWebSocketHandler extends AbstractWebSocketHandler {
       sessions.remove(session);
       if (sessions.isEmpty()) {
         documentSessions.remove(documentId);
-        log.info("Removed empty document: {}", documentId);
+        log.info("All clients disconnected from document: {} (state preserved)", documentId);
       } else {
         log.info(
             "Removed session from document {} - Remaining sessions: {}",
@@ -132,6 +192,14 @@ public class YjsWebSocketHandler extends AbstractWebSocketHandler {
       if (uri == null) {
         throw new IllegalArgumentException("URI is null");
       }
+
+      // Try to extract documentId from path variables first
+      Map<String, String> pathVariables = DOCUMENT_URI_TEMPLATE.match(uri.getPath());
+      if (pathVariables != null && pathVariables.containsKey("documentId")) {
+        return pathVariables.get("documentId");
+      }
+
+      // Fallback to query parameter
       String query = uri.getQuery();
       if (query != null && query.contains("documentId=")) {
         return query.split("documentId=")[1].split("&")[0];

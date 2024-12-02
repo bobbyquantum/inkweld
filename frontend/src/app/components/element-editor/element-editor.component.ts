@@ -127,13 +127,18 @@ export class ElementEditorComponent
   ngAfterViewInit(): void {
     // Setup collaboration after the editor view is initialized
     setTimeout(() => {
-      this.yjsService.setupCollaboration(this.editor, this.documentId);
+      this.yjsService
+        .setupCollaboration(this.editor, this.documentId)
+        .catch(error => {
+          console.error('Failed to setup collaboration:', error);
+        });
     }, 0);
   }
 
   ngOnDestroy(): void {
     this.editor.destroy();
-    this.yjsService.disconnect();
+    // Only disconnect this specific document
+    this.yjsService.disconnect(this.documentId);
   }
 
   increaseZoom() {
