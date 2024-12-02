@@ -2,14 +2,14 @@ import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { ProjectElementDto, ProjectElementsAPIService } from 'worm-api-client';
 
-import { ProjectTreeService } from './project-tree.service';
+import { ProjectStateService } from './project-state.service';
 import { XsrfService } from './xsrf.service';
 
 jest.mock('worm-api-client');
 jest.mock('./xsrf.service');
 
-describe('ProjectTreeService', () => {
-  let service: ProjectTreeService;
+describe('ProjectStateService', () => {
+  let service: ProjectStateService;
   let elementService: jest.Mocked<ProjectElementsAPIService>;
   let xsrfService: jest.Mocked<XsrfService>;
 
@@ -33,13 +33,13 @@ describe('ProjectTreeService', () => {
 
     TestBed.configureTestingModule({
       providers: [
-        ProjectTreeService,
+        ProjectStateService,
         { provide: ProjectElementsAPIService, useValue: elementService },
         { provide: XsrfService, useValue: xsrfService },
       ],
     });
 
-    service = TestBed.inject(ProjectTreeService);
+    service = TestBed.inject(ProjectStateService);
   });
 
   it('should be created', () => {

@@ -16,6 +16,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
   @Override
   public void registerWebSocketHandlers(@NonNull WebSocketHandlerRegistry registry) {
-    registry.addHandler(yjsWebSocketHandler, "/ws/yjs").setAllowedOrigins("*");
+    registry
+        .addHandler(yjsWebSocketHandler, "/ws/yjs", "/ws/yjs/{documentId}")
+        .setAllowedOrigins("*");
   }
 }

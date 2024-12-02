@@ -1,14 +1,25 @@
-import { Component, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { NgIf } from '@angular/common';
+import {
+  Component,
+  effect,
+  inject,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { Project, ProjectAPIService } from 'worm-api-client';
+import { ProjectElementDto } from 'worm-api-client';
 
 import { ElementEditorComponent } from '../../components/element-editor/element-editor.component';
 import { ProjectMainMenuComponent } from '../../components/project-main-menu/project-main-menu.component';
 import { ProjectTreeComponent } from '../../components/project-tree/project-tree.component';
-import { ProjectTreeService } from '../../services/project-tree.service';
+import { ProjectStateService } from '../../services/project-state.service';
 
 @Component({
   selector: 'app-project',
@@ -16,8 +27,11 @@ import { ProjectTreeService } from '../../services/project-tree.service';
   styleUrls: ['./project.component.scss'],
   standalone: true,
   imports: [
+    NgIf,
     MatSidenavModule,
     MatTabsModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
     ProjectMainMenuComponent,
     ProjectTreeComponent,
     ElementEditorComponent,
@@ -25,66 +39,74 @@ import { ProjectTreeService } from '../../services/project-tree.service';
 })
 export class ProjectComponent implements OnInit, OnDestroy {
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
-  project: Project | null = null;
+  protected readonly projectState = inject(ProjectStateService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly route = inject(ActivatedRoute);
 
   private startX = 0;
   private startWidth = 0;
   private paramsSubscription?: Subscription;
-  private readonly projectService = inject(ProjectAPIService);
-  private readonly treeService = inject(ProjectTreeService);
-  private readonly route = inject(ActivatedRoute);
+  private errorEffect = effect(() => {
+    const error = this.projectState.error();
+    if (error) {
+      this.snackBar.open(error, 'Close', { duration: 5000 });
+    }
+  });
 
   ngOnInit() {
     this.paramsSubscription = this.route.params.subscribe(params => {
       const username = params['username'] as string;
       const slug = params['slug'] as string;
       if (username && slug) {
-        this.loadProject(username, slug);
+        void this.projectState.loadProject(username, slug);
       }
     });
   }
 
   ngOnDestroy() {
     this.paramsSubscription?.unsubscribe();
+    this.errorEffect.destroy();
   }
 
-  isLoading = () => this.treeService.isLoading();
+  isLoading = () => this.projectState.isLoading();
 
   onResizeStart(e: MouseEvent) {
     e.preventDefault();
-    const sidenavEl = document.querySelector<HTMLElement>('.sidenav-content');
-    if (!sidenavEl) return;
-
     this.startX = e.clientX;
-    this.startWidth = sidenavEl.offsetWidth;
+    this.startWidth = this.getSidenavWidth();
 
     document.addEventListener('mousemove', this.onResizeMove);
     document.addEventListener('mouseup', this.onResizeEnd);
   }
 
-  private loadProject(username: string, slug: string) {
-    void this.projectService
-      .getProjectByUsernameAndSlug(username, slug)
-      .subscribe(project => {
-        this.project = project;
-        if (project) {
-          void this.treeService.loadProjectElements(username, slug);
-        }
-      });
+  onFileOpened(element: ProjectElementDto) {
+    this.projectState.openFile(element);
+  }
+
+  closeTab(index: number) {
+    this.projectState.closeFile(index);
+  }
+
+  private getSidenavWidth(): number {
+    const sidenavEl = document.querySelector<HTMLElement>('.sidenav-content');
+    return sidenavEl?.offsetWidth ?? 200;
+  }
+
+  private updateSidenavWidth(width: number): void {
+    const sidenavEl = document.querySelector<HTMLElement>('.sidenav-content');
+    if (sidenavEl) {
+      sidenavEl.style.width = `${width}px`;
+      document.documentElement.style.setProperty(
+        '--sidenav-width',
+        `${width}px`
+      );
+    }
   }
 
   private onResizeMove = (e: MouseEvent) => {
     const diff = e.clientX - this.startX;
     const newWidth = Math.max(150, Math.min(600, this.startWidth + diff));
-    const sidenavEl = document.querySelector<HTMLElement>('.sidenav-content');
-
-    if (sidenavEl) {
-      sidenavEl.style.width = `${newWidth}px`;
-      document.documentElement.style.setProperty(
-        '--sidenav-width',
-        `${newWidth}px`
-      );
-    }
+    this.updateSidenavWidth(newWidth);
   };
 
   private onResizeEnd = () => {
