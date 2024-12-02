@@ -3,7 +3,7 @@ import { CdkDrag, CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
 import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ProjectTreeService } from '@services/project-tree.service';
+import { ProjectStateService } from '@services/project-state.service';
 import { ProjectElementDto } from 'worm-api-client';
 
 import { ProjectElement } from './project-element';
@@ -14,7 +14,7 @@ const ROOT_WRAPPER_ID = 'root-wrapper';
 describe('ProjectTreeComponent', () => {
   let component: ProjectTreeComponent;
   let fixture: ComponentFixture<ProjectTreeComponent>;
-  let treeService: jest.Mocked<ProjectTreeService>;
+  let treeService: jest.Mocked<ProjectStateService>;
   let elementsSignal: WritableSignal<ProjectElementDto[]>;
   let loadingSignal: WritableSignal<boolean>;
   let savingSignal: WritableSignal<boolean>;
@@ -49,11 +49,12 @@ describe('ProjectTreeComponent', () => {
       isSaving: savingSignal,
       error: errorSignal,
       saveProjectElements: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<ProjectTreeService>;
+      openFile: jest.fn(),
+    } as unknown as jest.Mocked<ProjectStateService>;
 
     await TestBed.configureTestingModule({
       imports: [ProjectTreeComponent, NoopAnimationsModule],
-      providers: [{ provide: ProjectTreeService, useValue: treeService }],
+      providers: [{ provide: ProjectStateService, useValue: treeService }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ProjectTreeComponent);
@@ -241,5 +242,34 @@ describe('ProjectTreeComponent', () => {
     expect(component.editingNode).toBeUndefined();
     await component.onDelete(rootNode);
     expect(component.treeManipulator.getData()[0].id).toBe(ROOT_WRAPPER_ID);
+  });
+
+  it('should open file through context menu', () => {
+    // Add a file item to the tree
+    const fileDto: ProjectElementDto = {
+      id: '2',
+      name: 'Test File',
+      type: 'ITEM',
+      position: 1,
+      level: 0,
+    };
+    elementsSignal.update(elements => [...elements, fileDto]);
+    fixture.detectChanges();
+
+    // Get the file node (should be at index 2 after root wrapper and folder)
+    const fileNode = component.treeManipulator.getData()[2];
+    expect(fileNode.type).toBe('ITEM');
+
+    // Open the file
+    component.onOpenFile(fileNode);
+
+    // Verify service was called with correct DTO
+    expect(treeService.openFile).toHaveBeenCalledWith({
+      id: fileNode.id,
+      name: fileNode.name,
+      type: fileNode.type,
+      level: fileNode.level - 1, // Should be decremented
+      position: fileNode.position,
+    });
   });
 });

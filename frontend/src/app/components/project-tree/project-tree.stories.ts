@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
-import { computed, Signal } from '@angular/core';
-import { ProjectTreeService } from '@services/project-tree.service';
+import { signal, WritableSignal } from '@angular/core';
+import { ProjectStateService } from '@services/project-state.service';
 import {
   applicationConfig,
   Meta,
@@ -9,49 +9,42 @@ import {
 } from '@storybook/angular';
 import { ProjectElementDto } from 'worm-api-client';
 
+import { ProjectElement } from './project-element';
 import { ProjectTreeComponent } from './project-tree.component';
 import { FILE_ONLY_DATA, SINGLE_FOLDER_DATA, TREE_DATA } from './TREE_DATA';
 
 // Create a mock service that implements just what we need for the stories
-class MockProjectTreeService implements Partial<ProjectTreeService> {
-  mockElements: ProjectElementDto[] = [];
+class MockProjectTreeService implements Partial<ProjectStateService> {
+  mockElements: WritableSignal<ProjectElementDto[]> = signal([]);
+  mockLoading: WritableSignal<boolean> = signal(false);
+  mockError: WritableSignal<string | undefined> = signal(undefined);
 
-  readonly elements: Signal<ProjectElementDto[]> = computed(
-    () => this.mockElements
-  );
-  readonly isLoading: Signal<boolean> = computed(() => false);
-  readonly isSaving: Signal<boolean> = computed(() => false);
-  readonly error: Signal<string | undefined> = computed(() => undefined);
+  readonly elements = this.mockElements;
+  readonly isLoading = this.mockLoading;
+  readonly isSaving: WritableSignal<boolean> = signal(false);
+  readonly error = this.mockError;
 
-  constructor(mockData: ProjectElementDto[]) {
+  constructor(
+    mockData: ProjectElementDto[],
+    loading = false,
+    errorMessage?: string
+  ) {
     this.updateElements(mockData);
+    this.mockLoading.set(loading);
+    if (errorMessage) {
+      this.mockError.set(errorMessage);
+    }
   }
 
   updateElements(elements: ProjectElementDto[]): void {
-    this.mockElements = elements;
+    this.mockElements.set(elements);
   }
-}
-
-// Convert ProjectElement to ProjectElementDto
-function toDto(element: {
-  id: string;
-  name: string;
-  type: 'FOLDER' | 'ITEM';
-  level: number;
-  position: number;
-}): ProjectElementDto {
-  return {
-    id: element.id,
-    name: element.name,
-    type: element.type,
-    level: element.level,
-    position: element.position,
-  };
 }
 
 // Interface for story args
 interface TreeStoryArgs {
   initialData: ProjectElementDto[];
+  loading?: boolean;
 }
 
 const meta: Meta<ProjectTreeComponent & TreeStoryArgs> = {
@@ -62,7 +55,7 @@ const meta: Meta<ProjectTreeComponent & TreeStoryArgs> = {
     moduleMetadata({
       providers: [
         {
-          provide: ProjectTreeService,
+          provide: ProjectStateService,
           useValue: new MockProjectTreeService([]),
         },
       ],
@@ -84,32 +77,60 @@ export default meta;
 type Story = StoryObj<ProjectTreeComponent & TreeStoryArgs>;
 
 // Helper function to create story with service
-const createStory = (data: ProjectElementDto[]): Story => ({
+const createStory = (
+  data: ProjectElementDto[],
+  loading = false,
+  errorMessage?: string
+): Story => ({
   decorators: [
     moduleMetadata({
       providers: [
         {
-          provide: ProjectTreeService,
-          useValue: new MockProjectTreeService(data),
+          provide: ProjectStateService,
+          useValue: new MockProjectTreeService(data, loading, errorMessage),
         },
       ],
     }),
   ],
   args: {
     initialData: data,
+    loading,
   },
 });
 
-export const Default: Story = createStory(TREE_DATA.map(toDto));
+// Convert mock data to DTOs, ensuring IDs are strings
+const convertData = (data: ProjectElement[]): ProjectElementDto[] =>
+  data.map(element => ({
+    ...element,
+    id: element.id ?? '',
+  }));
+
+export const Default: Story = createStory(convertData(TREE_DATA));
 
 export const EmptyTree: Story = createStory([]);
 
-export const SingleNode: Story = createStory([toDto(TREE_DATA[0])]);
+export const SingleNode: Story = createStory(convertData([TREE_DATA[0]]));
 
 export const FoldersOnly: Story = createStory(
-  TREE_DATA.filter(node => node.type === 'FOLDER').map(toDto)
+  convertData(TREE_DATA.filter(node => node.type === 'FOLDER'))
 );
 
-export const FilesOnly: Story = createStory(FILE_ONLY_DATA.map(toDto));
+export const FilesOnly: Story = createStory(convertData(FILE_ONLY_DATA));
 
-export const SingleFolder: Story = createStory(SINGLE_FOLDER_DATA.map(toDto));
+export const SingleFolder: Story = createStory(convertData(SINGLE_FOLDER_DATA));
+
+export const Loading: Story = createStory(convertData(TREE_DATA), true);
+
+export const LoadingEmpty: Story = createStory([], true);
+
+export const Error: Story = createStory(
+  convertData(TREE_DATA),
+  false,
+  'Failed to load project elements'
+);
+
+export const ErrorEmpty: Story = createStory(
+  [],
+  false,
+  'Failed to load project elements'
+);

@@ -24,8 +24,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInput, MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
-import { ProjectTreeService } from '@services/project-tree.service';
+import { ProjectStateService } from '@services/project-state.service';
+import { ProjectElementDto } from 'worm-api-client';
 
 import { mapDtoToProjectElement, ProjectElement } from './project-element';
 import { TreeManipulator } from './tree-manipulator';
@@ -44,6 +46,7 @@ const ROOT_WRAPPER_ID = 'root-wrapper';
     MatInputModule,
     MatListModule,
     MatMenuModule,
+    MatProgressSpinnerModule,
     DragDropModule,
     CdkContextMenuTrigger,
     CdkMenu,
@@ -64,7 +67,7 @@ export class ProjectTreeComponent implements AfterViewInit {
   @ViewChild('editInput') inputEl!: MatInput;
   @ViewChild(CdkDropList) dropList!: CdkDropList<ProjectElement>;
 
-  readonly treeService = inject(ProjectTreeService);
+  readonly treeService = inject(ProjectStateService);
 
   // Map DTOs to internal model and wrap with root node
   readonly treeElements = computed(() => {
@@ -101,7 +104,7 @@ export class ProjectTreeComponent implements AfterViewInit {
 
   contextItem: ProjectElement | null = null;
   wasExpandedNodeIds = new Set<string>();
-  collapseTimer: NodeJS.Timeout | null = null;
+  private collapseTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Track expanded nodes to persist state
   private expandedNodeIds = new Set<string>();
@@ -166,7 +169,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Creates a new item as a child of the specified node.
    * @param node The parent node to add a new item to.
    */
-  async onNewItem(node: ProjectElement) {
+  public async onNewItem(node: ProjectElement) {
     const nodeIndex = this.treeManipulator.getData().indexOf(node);
     if (nodeIndex === -1) return;
 
@@ -200,7 +203,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Creates a new folder as a child of the specified node.
    * @param node The parent node to add a new folder to.
    */
-  async onNewFolder(node: ProjectElement) {
+  public async onNewFolder(node: ProjectElement) {
     const nodeIndex = this.treeManipulator.getData().indexOf(node);
     if (nodeIndex === -1) return;
 
@@ -234,7 +237,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Adds a new item as a child to the specified node.
    * @param node The parent node to add a new item to.
    */
-  async addItem(node: ProjectElement) {
+  public async addItem(node: ProjectElement) {
     this.treeManipulator.addItem(node);
     this.updateDataSource();
     // Save changes after adding new item
@@ -254,7 +257,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Handles the mousedown event on a node.
    * @param node The node that is being pressed.
    */
-  onNodeDown(node: ProjectElement) {
+  public onNodeDown(node: ProjectElement) {
     // Don't allow dragging root wrapper or when editing
     if (node.id === ROOT_WRAPPER_ID || this.editingNode !== undefined) return;
 
@@ -273,7 +276,7 @@ export class ProjectTreeComponent implements AfterViewInit {
   /**
    * Handles the mouseup event on a node.
    */
-  onNodeUp() {
+  public onNodeUp() {
     if (this.collapseTimer) {
       clearTimeout(this.collapseTimer);
       this.collapseTimer = null;
@@ -283,7 +286,7 @@ export class ProjectTreeComponent implements AfterViewInit {
   /**
    * Prepares for drag start by collapsing expanded nodes if necessary.
    */
-  beforeDragStarted() {
+  public beforeDragStarted() {
     if (this.selectedItem?.type === 'FOLDER' && this.selectedItem.expanded) {
       // Remember that we collapsed this node
       if (this.selectedItem.id) {
@@ -297,7 +300,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Handles the drag start event.
    * @param node The node being dragged.
    */
-  dragStarted(node: ProjectElement) {
+  public dragStarted(node: ProjectElement) {
     // Don't allow dragging root wrapper or when editing
     if (node.id === ROOT_WRAPPER_ID || this.editingNode !== undefined) return;
 
@@ -315,7 +318,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Handles the drag move event to adjust the placeholder position.
    * @param event The drag move event.
    */
-  dragMove(event: CdkDragMove<ArrayDataSource<ProjectElement>>) {
+  public dragMove(event: CdkDragMove<ArrayDataSource<ProjectElement>>) {
     const pointerX = event.pointerPosition.x;
 
     const treeRect = this.treeContainer.nativeElement.getBoundingClientRect();
@@ -341,7 +344,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Handles the sort event during drag and drop.
    * @param event The drag sort event.
    */
-  sorted(event: CdkDragSortEvent<ArrayDataSource<ProjectElement>>) {
+  public sorted(event: CdkDragSortEvent<ArrayDataSource<ProjectElement>>) {
     const { currentIndex, container } = event;
     const sortedNodes = container
       .getSortedItems()
@@ -385,7 +388,7 @@ export class ProjectTreeComponent implements AfterViewInit {
   /**
    * Resets the state after a drop operation.
    */
-  resetDropState() {
+  public resetDropState() {
     this.draggedNode = null;
   }
 
@@ -393,7 +396,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Handles the drop event to rearrange nodes.
    * @param event The drag drop event.
    */
-  async drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {
+  public async drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {
     const { currentIndex, container, item } = event;
     const sortedNodes = container
       .getSortedItems()
@@ -458,7 +461,7 @@ export class ProjectTreeComponent implements AfterViewInit {
   /**
    * Handles the drag end event.
    */
-  dragEnded() {
+  public dragEnded() {
     if (
       this.draggedNode?.id &&
       this.wasExpandedNodeIds.has(this.draggedNode.id)
@@ -472,7 +475,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Initiates editing of a node's name.
    * @param node The node to edit.
    */
-  startEditing(node: ProjectElement) {
+  public startEditing(node: ProjectElement) {
     // Don't allow editing root wrapper
     if (node.id === ROOT_WRAPPER_ID) return;
     this.editingNode = node.id;
@@ -483,7 +486,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node being edited.
    * @param newName The new name for the node.
    */
-  async finishEditing(node: ProjectElement, newName: string) {
+  public async finishEditing(node: ProjectElement, newName: string) {
     // Don't allow editing root wrapper
     if (node.id === ROOT_WRAPPER_ID) return;
 
@@ -499,7 +502,7 @@ export class ProjectTreeComponent implements AfterViewInit {
   /**
    * Cancels editing of a node's name.
    */
-  cancelEditing() {
+  public cancelEditing() {
     this.editingNode = undefined;
   }
 
@@ -507,7 +510,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Handles the rename action from the context menu.
    * @param node The node to rename.
    */
-  onRename(node: ProjectElement) {
+  public onRename(node: ProjectElement) {
     // Don't allow renaming root wrapper
     if (node.id === ROOT_WRAPPER_ID) return;
     this.startEditing(node);
@@ -517,7 +520,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Handles the delete action from the context menu.
    * @param node The node to delete.
    */
-  async onDelete(node: ProjectElement) {
+  public async onDelete(node: ProjectElement) {
     // Don't allow deleting root wrapper
     if (node.id === ROOT_WRAPPER_ID) return;
     this.treeManipulator.deleteNode(node);
@@ -530,15 +533,31 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Opens the context menu for a node.
    * @param data The node for which the context menu is opened.
    */
-  onContextMenuOpen(data: ProjectElement) {
+  public onContextMenuOpen(data: ProjectElement) {
     this.contextItem = data;
   }
 
   /**
    * Closes the context menu.
    */
-  onContextMenuClose() {
+  public onContextMenuClose() {
     this.contextItem = null;
+  }
+
+  /**
+   * Opens a file in the editor.
+   * @param node The node to open.
+   */
+  public onOpenFile(node: ProjectElement) {
+    // Convert ProjectElement back to ProjectElementDto
+    const dto: ProjectElementDto = {
+      id: node.id ?? '',
+      name: node.name,
+      type: node.type,
+      level: node.level - 1, // Decrement level since we incremented it for the tree
+      position: node.position,
+    };
+    this.treeService.openFile(dto);
   }
 
   /**

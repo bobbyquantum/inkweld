@@ -1,17 +1,40 @@
 <app-project-main-menu></app-project-main-menu>
 
+<div *ngIf="projectState.isLoading()" class="loading-indicator">
+  <mat-spinner diameter="40"></mat-spinner>
+</div>
+
 <mat-sidenav-container class="main-container">
   <mat-sidenav mode="side" opened class="sidenav-content">
     <app-project-tree></app-project-tree>
     <div class="resize-handle" (mousedown)="onResizeStart($event)"></div>
   </mat-sidenav>
   <mat-sidenav-content>
-    <mat-tab-group fitInkBarToContent mat-stretch-tabs="false" class="tab-bars">
-      <mat-tab label="Chapter 1">
-        <app-element-editor></app-element-editor>
-      </mat-tab>
-      <mat-tab label="Chapter 2"></mat-tab>
-      <mat-tab label="Chapter 3"></mat-tab>
+    <mat-tab-group
+      [selectedIndex]="projectState.selectedTabIndex()"
+      class="tab-bars"
+      mat-stretch-tabs="false"
+      mat-align-tabs="start">
+      @for (file of projectState.openFiles(); track file.id; let i = $index) {
+        <mat-tab>
+          <ng-template mat-tab-label>
+            {{ file.name }}
+            <button
+              mat-icon-button
+              (click)="closeTab(i); $event.stopPropagation()">
+              <mat-icon>close</mat-icon>
+            </button>
+          </ng-template>
+          <app-element-editor
+            [documentId]="file.id ?? 'default'"></app-element-editor>
+        </mat-tab>
+      } @empty {
+        <!-- Content to display when there are no open files -->
+        <mat-tab>
+          <ng-template mat-tab-label> No files open </ng-template>
+          <p>Please open a file from the project tree.</p>
+        </mat-tab>
+      }
     </mat-tab-group>
   </mat-sidenav-content>
 </mat-sidenav-container>
