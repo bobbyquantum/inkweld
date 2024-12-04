@@ -17,17 +17,17 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
-import { ErrorResponse } from '../model/errorResponse';
+import { ErrorResponse } from '../model/error-response';
 // @ts-ignore
-import { RegisterUserRequest } from '../model/registerUserRequest';
+import { RegisterUserRequest } from '../model/register-user-request';
 // @ts-ignore
-import { UpdatePasswordRequest } from '../model/updatePasswordRequest';
+import { UpdatePasswordRequest } from '../model/update-password-request';
 // @ts-ignore
-import { UpdateUserRequest } from '../model/updateUserRequest';
+import { UpdateUserRequest } from '../model/update-user-request';
 // @ts-ignore
 import { User } from '../model/user';
 // @ts-ignore
-import { UsernameAvailabilityResponse } from '../model/usernameAvailabilityResponse';
+import { UsernameAvailabilityResponse } from '../model/username-availability-response';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';

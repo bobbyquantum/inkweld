@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, NgZone, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
+import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
 import { XsrfService } from '@services/xsrf.service';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -31,6 +32,7 @@ import {
     MatButtonModule,
     MatDividerModule,
     MatIconModule,
+    OAuthProviderListComponent,
   ],
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss',
@@ -45,37 +47,13 @@ export class RegisterComponent implements OnInit {
   usernameSuggestions: string[] | undefined = [];
   usernameAvailability: 'available' | 'unavailable' | 'unknown' = 'unknown';
 
-  githubEnabled = false;
-  googleEnabled = false;
-  facebookEnabled = false;
-  discordEnabled = false;
-  appleEnabled = false;
-
   private userService = inject(UserAPIService);
   private snackBar = inject(MatSnackBar);
-  private ngZone = inject(NgZone);
   private router = inject(Router);
   private xsrfService = inject(XsrfService);
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.isMobile = window.innerWidth < 768;
-
-    firstValueFrom(this.userService.getEnabledOAuth2Providers())
-      .then(providers => {
-        console.log('Enabled OAuth2 providers:', providers);
-        providers.forEach(provider => {
-          if (provider === 'github') this.githubEnabled = true;
-          if (provider === 'google') this.googleEnabled = true;
-          if (provider === 'facebook') this.facebookEnabled = true;
-          if (provider === 'discord') this.discordEnabled = true;
-          if (provider === 'apple') this.appleEnabled = true;
-        });
-      })
-      .catch(() => {
-        this.snackBar.open('Failed to load OAuth2 providers', 'Close', {
-          duration: 5000,
-        });
-      });
   }
 
   async onRegister() {
@@ -147,12 +125,5 @@ export class RegisterComponent implements OnInit {
     this.username = suggestion;
     this.usernameSuggestions = [];
     void this.checkUsernameAvailability();
-  }
-
-  registerWithOAuth(provider: string) {
-    console.log(`Register with ${provider} clicked`);
-    this.ngZone.runOutsideAngular(() => {
-      window.location.href = `/oauth2/authorization/${provider.toLowerCase()}`;
-    });
   }
 }

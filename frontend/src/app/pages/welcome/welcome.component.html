@@ -30,44 +30,13 @@
         <mat-divider></mat-divider>
 
         <div class="oauth-container">
-          <h3 class="mat-subtitle-1">Or login with:</h3>
-          @if (googleEnabled) {
-            <button mat-raised-button type="button" (click)="loginWithGoogle()">
-              <mat-icon svgIcon="google"></mat-icon> Google
-            </button>
-          }
-          @if (facebookEnabled) {
-            <button
-              mat-raised-button
-              type="button"
-              (click)="loginWithFacebook()">
-              <mat-icon svgIcon="facebook"></mat-icon> Facebook
-            </button>
-          }
-          @if (githubEnabled) {
-            <button mat-raised-button type="button" (click)="loginWithGithub()">
-              <mat-icon svgIcon="github"></mat-icon> GitHub
-            </button>
-          }
-          @if (appleEnabled) {
-            <button mat-raised-button type="button" (click)="loginWithApple()">
-              <mat-icon svgIcon="apple"></mat-icon> Apple
-            </button>
-          }
-          @if (discordEnabled) {
-            <button
-              mat-raised-button
-              type="button"
-              (click)="loginWithDiscord()">
-              <mat-icon svgIcon="discord"></mat-icon> Discord
-            </button>
-          }
+          <h3 class="mat-subtitle-1">Or sign in with:</h3>
+          <app-oauth-provider-list></app-oauth-provider-list>
         </div>
       </mat-card-content>
       <mat-card-actions>
-        <button mat-button routerLink="/register">Register here</button>
-        <button mat-button routerLink="/forgot-password">
-          Forgot password?
+        <button mat-button routerLink="/register">
+          Don't have an account? Register here
         </button>
       </mat-card-actions>
     </mat-card>

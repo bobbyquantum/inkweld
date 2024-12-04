@@ -271,6 +271,7 @@
                                         <ensureUniqueParams>true</ensureUniqueParams>
                                         <legacyDiscriminatorBehavior>false</legacyDiscriminatorBehavior>
                                         <prependFormOrBodyParameters>true</prependFormOrBodyParameters>
+                                        <fileNaming>kebab-case</fileNaming>
                                     </configOptions>
                                     <typeMappings>
                                         <typeMapping>File=FileUpload</typeMapping>

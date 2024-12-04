@@ -1,7 +1,7 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Component, inject, NgZone, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -11,9 +11,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
+import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
 import { XsrfService } from '@services/xsrf.service';
 import { Subject, takeUntil } from 'rxjs';
-import { UserAPIService } from 'worm-api-angular-client';
 
 @Component({
   selector: 'app-welcome',
@@ -28,75 +28,33 @@ import { UserAPIService } from 'worm-api-angular-client';
     MatButtonModule,
     MatIconModule,
     MatDividerModule,
+    OAuthProviderListComponent,
   ],
   templateUrl: './welcome.component.html',
   styleUrl: './welcome.component.scss',
 })
-export class WelcomeComponent implements OnInit, OnDestroy {
+export class WelcomeComponent implements OnDestroy {
   isMobile = false;
   username = '';
   password = '';
-  githubEnabled = false;
-  googleEnabled = false;
-  facebookEnabled = false;
-  discordEnabled = false;
-  appleEnabled = false;
 
   private breakpointObserver = inject(BreakpointObserver);
-  private ngZone = inject(NgZone);
-  private userService = inject(UserAPIService);
   private http = inject(HttpClient);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private xsrfService = inject(XsrfService);
-
   private destroy$ = new Subject<void>();
 
   constructor() {
     this.setupBreakpointObserver();
   }
 
-  ngOnInit(): void {
-    this.userService.getEnabledOAuth2Providers().subscribe({
-      next: providers => {
-        providers.forEach(provider => {
-          if (provider === 'github') {
-            this.githubEnabled = true;
-          }
-          if (provider === 'google') {
-            this.googleEnabled = true;
-          }
-          if (provider === 'facebook') {
-            this.facebookEnabled = true;
-          }
-          if (provider === 'discord') {
-            this.discordEnabled = true;
-          }
-          if (provider === 'apple') {
-            this.appleEnabled = true;
-          }
-        });
-      },
-      error: () => {
-        this.snackBar.open(
-          'Failed to load authentication providers.',
-          'Close',
-          { duration: 5000 }
-        );
-      },
-    });
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
-  setupBreakpointObserver() {
-    this.breakpointObserver
-      .observe([Breakpoints.XSmall, Breakpoints.Small])
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(result => {
-        this.isMobile = result.matches;
-      });
-  }
-
-  onLogin() {
+  onLogin(): void {
     const body = new URLSearchParams();
     body.set('username', this.username);
     body.set('password', this.password);
@@ -130,43 +88,12 @@ export class WelcomeComponent implements OnInit, OnDestroy {
       });
   }
 
-  loginWithGoogle() {
-    console.log('Google login attempted');
-    this.ngZone.runOutsideAngular(() => {
-      window.location.href = '/oauth2/authorization/google';
-    });
-  }
-
-  loginWithFacebook() {
-    console.log('Facebook login attempted');
-    this.ngZone.runOutsideAngular(() => {
-      window.location.href = '/oauth2/authorization/facebook';
-    });
-  }
-
-  loginWithGithub() {
-    console.log('GitHub login attempted');
-    this.ngZone.runOutsideAngular(() => {
-      window.location.href = '/oauth2/authorization/github';
-    });
-  }
-
-  loginWithApple() {
-    console.log('Apple login attempted');
-    this.ngZone.runOutsideAngular(() => {
-      window.location.href = '/oauth2/authorization/apple';
-    });
-  }
-
-  loginWithDiscord() {
-    console.log('Discord login attempted');
-    this.ngZone.runOutsideAngular(() => {
-      window.location.href = '/oauth2/authorization/discord';
-    });
-  }
-
-  ngOnDestroy() {
-    this.destroy$.next();
-    this.destroy$.complete();
+  private setupBreakpointObserver(): void {
+    this.breakpointObserver
+      .observe([Breakpoints.XSmall, Breakpoints.Small])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(result => {
+        this.isMobile = result.matches;
+      });
   }
 }
