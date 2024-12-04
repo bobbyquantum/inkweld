@@ -7,7 +7,7 @@ import {
   moduleMetadata,
   StoryObj,
 } from '@storybook/angular';
-import { ProjectElementDto } from 'worm-api-client';
+import { ProjectElementDto } from 'worm-api-angular-client';
 
 import { ProjectElement } from './project-element';
 import { ProjectTreeComponent } from './project-tree.component';

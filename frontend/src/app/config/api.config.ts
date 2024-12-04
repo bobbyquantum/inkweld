@@ -6,7 +6,7 @@ import {
   ProjectAPIService,
   ProjectElementsAPIService,
   UserAPIService,
-} from 'worm-api-client';
+} from 'worm-api-angular-client';
 
 export function provideApiConfig(): Provider {
   return {

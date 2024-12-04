@@ -16,7 +16,7 @@ import {
   RegisterUserRequest,
   UserAPIService,
   UsernameAvailabilityResponse,
-} from 'worm-api-client';
+} from 'worm-api-angular-client';
 
 @Component({
   selector: 'app-register',

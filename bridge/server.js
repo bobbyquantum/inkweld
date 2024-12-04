@@ -149,5 +149,5 @@ server.on('upgrade', (request, socket, head) => {
 
 // Start the server
 server.listen(PORT, () => {
-  console.log(`Dev proxy server is running on http://localhost:${PORT}`);
+  console.log(`Bridge server is running on http://localhost:${PORT}`);
 });

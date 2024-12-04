@@ -21,7 +21,7 @@ runCommand(mvnwCommand + " clean verify -P generate-api-client", backendPath);
 
 // Build the dist package for the API client
 console.log("Building dist package for API client...");
-const apiClientPath = path.join(__dirname, "api-client");
+const apiClientPath = path.join(__dirname, "worm-api-angular-client");
 runCommand("npm install", apiClientPath);
 runCommand("npm run build", apiClientPath);
 
@@ -46,12 +46,12 @@ const frontendPackageJson = JSON.parse(
 
 // Uninstall the old version and install the new one
 console.log("Updating API client in frontend...");
-runCommand("npm uninstall worm-api-client", frontendPath);
+runCommand("npm uninstall worm-api-angular-client", frontendPath);
 
-const tarballName = `worm-api-client-${version}.tgz`;
+const tarballName = `worm-api-angular-client-${version}.tgz`;
 frontendPackageJson.dependencies[
-  "worm-api-client"
-] = `file:../api-client/dist/${tarballName}`;
+  "worm-api-angular-client"
+] = `file:../worm-api-angular-client/dist/${tarballName}`;
 
 fs.writeFileSync(
   frontendPackageJsonPath,
@@ -60,6 +60,4 @@ fs.writeFileSync(
 
 runCommand("npm install", frontendPath);
 
-console.log(`Updated frontend to use worm-api-client version ${version}`);
-console.log("Contents of api-client/dist folder:");
-runCommand("dir", path.join(__dirname, "api-client", "dist"));
+console.log(`Updated frontend to use worm-api-angular-client version ${version}`);

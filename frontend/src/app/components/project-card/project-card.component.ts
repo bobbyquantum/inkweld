@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { RouterModule } from '@angular/router';
-import { Project } from 'worm-api-client';
+import { Project } from 'worm-api-angular-client';
 
 @Component({
   selector: 'app-project-card',

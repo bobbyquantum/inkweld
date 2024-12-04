@@ -1,4 +1,4 @@
-# worm-api-client@0.0.1-SNAPSHOT
+# worm-api-angular-client@0.0.1-SNAPSHOT
 
 Worm tunnel protocol - Secure API for managing projects and user data
 
@@ -24,7 +24,7 @@ Navigate to the folder of your consuming project and run one of next commands.
 _published:_
 
 ```console
-npm install worm-api-client@0.0.1-SNAPSHOT --save
+npm install worm-api-angular-client@0.0.1-SNAPSHOT --save
 ```
 
 _without publishing (not recommended):_
@@ -46,7 +46,7 @@ npm link
 In your project:
 
 ```console
-npm link worm-api-client
+npm link worm-api-angular-client
 ```
 
 __Note for Windows users:__ The Angular CLI has troubles to use linked npm packages.
@@ -59,7 +59,7 @@ In your Angular project:
 
 ```typescript
 // without configuring providers
-import { ApiModule } from 'worm-api-client';
+import { ApiModule } from 'worm-api-angular-client';
 import { HttpClientModule } from '@angular/common/http';
 
 @NgModule({
@@ -78,7 +78,7 @@ export class AppModule {}
 
 ```typescript
 // configuring providers
-import { ApiModule, Configuration, ConfigurationParameters } from 'worm-api-client';
+import { ApiModule, Configuration, ConfigurationParameters } from 'worm-api-angular-client';
 
 export function apiConfigFactory (): Configuration {
   const params: ConfigurationParameters = {
@@ -98,7 +98,7 @@ export class AppModule {}
 
 ```typescript
 // configuring providers with an authentication service that manages your access tokens
-import { ApiModule, Configuration } from 'worm-api-client';
+import { ApiModule, Configuration } from 'worm-api-angular-client';
 
 @NgModule({
     imports: [ ApiModule ],
@@ -122,7 +122,7 @@ export class AppModule {}
 ```
 
 ```typescript
-import { DefaultApi } from 'worm-api-client';
+import { DefaultApi } from 'worm-api-angular-client';
 
 export class AppComponent {
     constructor(private apiGateway: DefaultApi) { }
@@ -162,7 +162,7 @@ export class AppModule {
 If different than the generated base path, during app bootstrap, you can provide the base path to your service.
 
 ```typescript
-import { BASE_PATH } from 'worm-api-client';
+import { BASE_PATH } from 'worm-api-angular-client';
 
 bootstrap(AppComponent, [
     { provide: BASE_PATH, useValue: 'https://your-web-service.com' },
@@ -172,7 +172,7 @@ bootstrap(AppComponent, [
 or
 
 ```typescript
-import { BASE_PATH } from 'worm-api-client';
+import { BASE_PATH } from 'worm-api-angular-client';
 
 @NgModule({
     imports: [],
@@ -197,7 +197,7 @@ export const environment = {
 In the src/app/app.module.ts:
 
 ```typescript
-import { BASE_PATH } from 'worm-api-client';
+import { BASE_PATH } from 'worm-api-angular-client';
 import { environment } from '../environments/environment';
 
 @NgModule({
