@@ -8,7 +8,7 @@
     "start-backend": "cd backend && npm run mvnw spring-boot:run",
     "start-bridge": "cd bridge && npm run dev",
     "start": "npm-run-all --parallel start-bridge start-frontend start-backend",
-    "install-all": "npm install && cd worm-api-angular-client && npm install && npm run build && cd dist && npm pack && cd ../../frontend && npm rebuild worm-api-angular-client && npm install && cd ../../bridge && npm install",
+    "install-all": "npm install && cd worm-api-angular-client && npm install && npm run build && cd dist && npm pack && cd ../../frontend && npm rebuild worm-api-angular-client && npm install && cd ../bridge && npm install",
     "build": "cd frontend && npm run build && cd .. && cd backend && npm run mvnw clean package",
     "lint:ci": "cd backend && npm run mvnw spotless:check && cd .. && cd frontend && npm run lint",
     "lint:fix": "cd backend && npm run mvnw spotless:apply && cd .. && cd frontend && npm run lint -- --fix",
