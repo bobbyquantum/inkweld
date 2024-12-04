@@ -7,8 +7,8 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { PageInfo } from './pageInfo';
-import { FileUpload } from './fileUpload';
+import { PageInfo } from './page-info';
+import { FileUpload } from './file-upload';
 
 
 export interface PageFileResponse { 

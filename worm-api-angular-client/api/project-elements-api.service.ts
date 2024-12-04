@@ -17,9 +17,9 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
-import { ErrorResponse } from '../model/errorResponse';
+import { ErrorResponse } from '../model/error-response';
 // @ts-ignore
-import { ProjectElementDto } from '../model/projectElementDto';
+import { ProjectElementDto } from '../model/project-element-dto';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
