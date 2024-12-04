@@ -21,7 +21,9 @@ public class FileContentService {
   private final UserService userService;
 
   public FileContentService(
-      FileContentRepository fileRepository, FileContentStore contentStore, UserService userService) {
+      FileContentRepository fileRepository,
+      FileContentStore contentStore,
+      UserService userService) {
     this.fileRepository = fileRepository;
     this.contentStore = contentStore;
     this.userService = userService;

@@ -11,9 +11,9 @@ import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import observer.quantum.worm.domain.content.FileContent;
 import observer.quantum.worm.domain.content.FileContentController;
-import observer.quantum.worm.domain.content.FileContentStore;
 import observer.quantum.worm.domain.content.FileContentPatchDto;
 import observer.quantum.worm.domain.content.FileContentService;
+import observer.quantum.worm.domain.content.FileContentStore;
 import observer.quantum.worm.domain.user.User;
 import observer.quantum.worm.domain.user.UserService;
 import observer.quantum.worm.error.GlobalExceptionHandler;
@@ -194,7 +194,8 @@ public class FileContentControllerTest {
         .thenReturn(true);
 
     MockMultipartFile multipartFile =
-        new MockMultipartFile("fileContent", "test.txt", "text/plain", "Updated content".getBytes());
+        new MockMultipartFile(
+            "fileContent", "test.txt", "text/plain", "Updated content".getBytes());
 
     mockMvc
         .perform(
@@ -220,7 +221,8 @@ public class FileContentControllerTest {
         .thenReturn(false);
 
     MockMultipartFile multipartFile =
-        new MockMultipartFile("fileContent", "test.txt", "text/plain", "Updated content".getBytes());
+        new MockMultipartFile(
+            "fileContent", "test.txt", "text/plain", "Updated content".getBytes());
 
     mockMvc
         .perform(
@@ -311,7 +313,8 @@ public class FileContentControllerTest {
     updatedFile.setOwner(owner);
 
     when(fileService.patchFile(
-            eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any(FileContentPatchDto.class)))
+            eq(UUID.fromString("00000000-0000-0000-0000-000000000001")),
+            any(FileContentPatchDto.class)))
         .thenReturn(Optional.of(updatedFile));
 
     mockMvc
@@ -326,6 +329,7 @@ public class FileContentControllerTest {
 
     verify(fileService, times(1))
         .patchFile(
-            eq(UUID.fromString("00000000-0000-0000-0000-000000000001")), any(FileContentPatchDto.class));
+            eq(UUID.fromString("00000000-0000-0000-0000-000000000001")),
+            any(FileContentPatchDto.class));
   }
 }

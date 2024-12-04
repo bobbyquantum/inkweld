@@ -19,8 +19,7 @@ public class ProjectElement {
   @GeneratedValue(strategy = GenerationType.UUID)
   private String id;
 
-  @Version
-  private Long version;
+  @Version private Long version;
 
   @Column(nullable = false)
   private String name;

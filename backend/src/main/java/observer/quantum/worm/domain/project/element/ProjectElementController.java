@@ -22,9 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/projects/{username}/{slug}/elements")
-@Tag(
-    name = "Project Elements API",
-    description = "Operations for managing project elements")
+@Tag(name = "Project Elements API", description = "Operations for managing project elements")
 public class ProjectElementController {
 
   private final ProjectElementService elementService;
