@@ -13,6 +13,5 @@
     "http-proxy-middleware": "3.0.3",
     "ws": "8.18.0",
     "y-websocket": "2.0.4",
-    "worm-api-node-client": "file:../worm-api-node-client/dist/worm-api-node-client-0.0.1-SNAPSHOT.tgz"
   }
 }
