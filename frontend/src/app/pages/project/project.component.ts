@@ -7,6 +7,7 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
@@ -28,6 +29,7 @@ import { ProjectStateService } from '../../services/project-state.service';
   standalone: true,
   imports: [
     NgIf,
+    MatButtonModule,
     MatSidenavModule,
     MatTabsModule,
     MatIconModule,
