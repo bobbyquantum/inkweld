@@ -9,10 +9,10 @@
     "dev": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "http-proxy-middleware": "^3.0.0-beta.1",
-    "ws": "^8.14.2",
-    "y-websocket": "^1.5.0",
-    "yjs": "^13.6.8"
+    "express": "4.21.1",
+    "http-proxy-middleware": "3.0.3",
+    "ws": "8.18.0",
+    "y-websocket": "2.0.4",
+    "worm-api-node-client": "file:../worm-api-node-client/dist/worm-api-node-client-0.0.1-SNAPSHOT.tgz"
   }
 }
