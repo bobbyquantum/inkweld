@@ -5,11 +5,27 @@
 
 version: 2
 updates:
-  - package-ecosystem: "maven" # See documentation for possible values
-    directory: "backend" # Location of package manifests
+  - package-ecosystem: "maven"
+    directory: "/backend"
     schedule:
       interval: "daily"
-  - package-ecosystem: "npm" # See documentation for possible values
-    directory: "frontend" # Location of package manifests
+    
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "daily"
+      
+  - package-ecosystem: "npm"
+    directory: "/bridge"
+    schedule:
+      interval: "daily"
+      
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
       interval: "daily"
