@@ -86,31 +86,7 @@
 
         <div class="oauth-container">
           <h3 class="mat-subtitle-1">Or register with:</h3>
-          @if (googleEnabled) {
-            <button mat-raised-button (click)="registerWithOAuth('google')">
-              <mat-icon svgIcon="google"></mat-icon> Google
-            </button>
-          }
-          @if (facebookEnabled) {
-            <button mat-raised-button (click)="registerWithOAuth('facebook')">
-              <mat-icon svgIcon="facebook"></mat-icon> Facebook
-            </button>
-          }
-          @if (githubEnabled) {
-            <button mat-raised-button (click)="registerWithOAuth('github')">
-              <mat-icon svgIcon="github"></mat-icon> GitHub
-            </button>
-          }
-          @if (appleEnabled) {
-            <button mat-raised-button (click)="registerWithOAuth('apple')">
-              <mat-icon svgIcon="apple"></mat-icon> Apple
-            </button>
-          }
-          @if (discordEnabled) {
-            <button mat-raised-button (click)="registerWithOAuth('discord')">
-              <mat-icon svgIcon="discord"></mat-icon> Discord
-            </button>
-          }
+          <app-oauth-provider-list></app-oauth-provider-list>
         </div>
       </mat-card-content>
       <mat-card-actions>
