@@ -7,5 +7,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface FileContentRepository extends JpaRepository<FileContent, UUID> {
-  Page<FileContent> findByOwnerAndNameContainingIgnoreCase(User owner, String name, Pageable pageable);
+  Page<FileContent> findByOwnerAndNameContainingIgnoreCase(
+      User owner, String name, Pageable pageable);
 }

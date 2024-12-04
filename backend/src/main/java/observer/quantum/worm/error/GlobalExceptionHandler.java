@@ -76,10 +76,10 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleOptimisticLockingFailureException(
       ObjectOptimisticLockingFailureException ex) {
     log.error("Optimistic locking failure: {}", ex.getMessage());
-    ErrorResponse error = new ErrorResponse(
-        HttpStatus.CONFLICT.value(),
-        "The data has been modified by another user. Please refresh and try again."
-    );
+    ErrorResponse error =
+        new ErrorResponse(
+            HttpStatus.CONFLICT.value(),
+            "The data has been modified by another user. Please refresh and try again.");
     return new ResponseEntity<>(error, HttpStatus.CONFLICT);
   }
 

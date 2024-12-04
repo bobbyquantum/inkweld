@@ -16,8 +16,7 @@ public class Project {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @Version
-  private Long version;
+  @Version private Long version;
 
   @Column(nullable = false)
   private String slug;
