@@ -17,13 +17,13 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
-import { ErrorResponse } from '../model/errorResponse';
+import { ErrorResponse } from '../model/error-response';
 // @ts-ignore
-import { FileContentPatchDto } from '../model/fileContentPatchDto';
+import { FileContentPatchDto } from '../model/file-content-patch-dto';
 // @ts-ignore
-import { FileUpload } from '../model/fileUpload';
+import { FileUpload } from '../model/file-upload';
 // @ts-ignore
-import { PageFileResponse } from '../model/pageFileResponse';
+import { PageFileResponse } from '../model/page-file-response';
 // @ts-ignore
 import { Pageable } from '../model/pageable';
 
