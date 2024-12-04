@@ -12,6 +12,6 @@
     "express": "4.21.1",
     "http-proxy-middleware": "3.0.3",
     "ws": "8.18.0",
-    "y-websocket": "2.0.4",
+    "y-websocket": "2.0.4"
   }
 }
