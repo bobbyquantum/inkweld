@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { ProjectElementDto, ProjectElementsAPIService } from 'worm-api-angular-client';
+import {
+  ProjectElementDto,
+  ProjectElementsAPIService,
+} from 'worm-api-angular-client';
 
 import { ProjectStateService } from './project-state.service';
 import { XsrfService } from './xsrf.service';
