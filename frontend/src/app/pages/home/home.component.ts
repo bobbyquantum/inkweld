@@ -11,7 +11,7 @@ import { RouterModule } from '@angular/router';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { catchError, EMPTY, Subject, takeUntil } from 'rxjs';
-import { Project, ProjectAPIService, UserAPIService } from 'worm-api-client';
+import { Project, ProjectAPIService, UserAPIService } from 'worm-api-angular-client';
 
 @Component({
   selector: 'app-home',

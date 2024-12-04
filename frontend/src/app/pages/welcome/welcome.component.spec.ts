@@ -14,11 +14,11 @@ import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { XsrfService } from '@services/xsrf.service';
 import { ThemeService } from '@themes/theme.service';
 import { of, throwError } from 'rxjs';
-import { UserAPIService } from 'worm-api-client';
+import { UserAPIService } from 'worm-api-angular-client';
 
 import { WelcomeComponent } from './welcome.component';
 
-jest.mock('worm-api-client');
+jest.mock('worm-api-angular-client');
 jest.mock('@angular/material/snack-bar');
 jest.mock('@services/xsrf.service');
 Object.defineProperty(window, 'matchMedia', {

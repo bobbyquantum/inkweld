@@ -267,9 +267,9 @@
                                 <configuration>
                                     <inputSpec>${project.build.directory}/openapi.json</inputSpec>
                                     <generatorName>typescript-angular</generatorName>
-                                    <output>../api-client</output>
+                                    <output>../worm-api-angular-client</output>
                                     <configOptions>
-                                        <npmName>worm-api-client</npmName>
+                                        <npmName>worm-api-angular-client</npmName>
                                         <sortParamsByRequiredFlag>true</sortParamsByRequiredFlag>
                                         <sortModelsByRequiredFlag>true</sortModelsByRequiredFlag>
                                         <ensureUniqueParams>true</ensureUniqueParams>

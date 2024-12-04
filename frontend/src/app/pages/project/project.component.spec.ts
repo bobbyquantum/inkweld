@@ -5,7 +5,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
-import { Project, ProjectAPIService, ProjectElementDto } from 'worm-api-client';
+import { Project, ProjectAPIService, ProjectElementDto } from 'worm-api-angular-client';
 
 import { ProjectStateService } from '../../services/project-state.service';
 import { ProjectComponent } from './project.component';

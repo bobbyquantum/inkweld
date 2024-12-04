@@ -5,7 +5,7 @@ import {
   ProjectAPIService,
   ProjectElementDto,
   ProjectElementsAPIService,
-} from 'worm-api-client';
+} from 'worm-api-angular-client';
 
 import { XsrfService } from './xsrf.service';
 
