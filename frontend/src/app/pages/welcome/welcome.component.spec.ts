@@ -1,45 +1,22 @@
-import { BreakpointObserver } from '@angular/cdk/layout';
-import { HttpClient } from '@angular/common/http';
-import {
-  ComponentFixture,
-  fakeAsync,
-  flush,
-  TestBed,
-  tick,
-} from '@angular/core/testing';
-import { MatIconModule } from '@angular/material/icon';
+import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { XsrfService } from '@services/xsrf.service';
-import { ThemeService } from '@themes/theme.service';
 import { of, throwError } from 'rxjs';
-import { UserAPIService } from 'worm-api-angular-client';
 
 import { WelcomeComponent } from './welcome.component';
 
-jest.mock('worm-api-angular-client');
-jest.mock('@angular/material/snack-bar');
+jest.mock('@angular/common/http');
+jest.mock('@angular/router');
 jest.mock('@services/xsrf.service');
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: (query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  }),
-});
 
 describe('WelcomeComponent', () => {
   let component: WelcomeComponent;
   let fixture: ComponentFixture<WelcomeComponent>;
   let httpClient: jest.Mocked<HttpClient>;
-  let userService: jest.Mocked<UserAPIService>;
   let router: jest.Mocked<Router>;
   let snackBar: jest.Mocked<MatSnackBar>;
   let xsrfService: jest.Mocked<XsrfService>;
@@ -50,14 +27,8 @@ describe('WelcomeComponent', () => {
       post: jest.fn(),
     } as unknown as jest.Mocked<HttpClient>;
 
-    userService = {
-      getEnabledOAuth2Providers: jest
-        .fn()
-        .mockReturnValue(of(['github', 'google'])),
-    } as unknown as jest.Mocked<UserAPIService>;
-
     router = {
-      navigate: jest.fn(),
+      navigate: jest.fn().mockResolvedValue(true),
     } as unknown as jest.Mocked<Router>;
 
     snackBar = {
@@ -65,65 +36,114 @@ describe('WelcomeComponent', () => {
     } as unknown as jest.Mocked<MatSnackBar>;
 
     xsrfService = {
-      getXsrfToken: jest.fn().mockReturnValue('test-token'),
+      getXsrfToken: jest.fn().mockReturnValue('mock-xsrf-token'),
     } as unknown as jest.Mocked<XsrfService>;
 
     breakpointObserver = {
-      observe: jest
-        .fn()
-        .mockReturnValue(of({ matches: false, breakpoints: {} })),
+      observe: jest.fn().mockReturnValue(of({ matches: false })),
     } as unknown as jest.Mocked<BreakpointObserver>;
 
     await TestBed.configureTestingModule({
-      imports: [WelcomeComponent, NoopAnimationsModule, MatIconModule],
+      imports: [WelcomeComponent, NoopAnimationsModule],
       providers: [
         { provide: HttpClient, useValue: httpClient },
-        { provide: UserAPIService, useValue: userService },
         { provide: Router, useValue: router },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: XsrfService, useValue: xsrfService },
         { provide: BreakpointObserver, useValue: breakpointObserver },
-        {
-          provide: ActivatedRoute,
-          useValue: { paramMap: of(convertToParamMap({})) },
-        },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(WelcomeComponent);
     component = fixture.componentInstance;
-
-    // Inject and initialize ThemeService
-    const themeService = TestBed.inject(ThemeService);
-    themeService.initTheme(); // This registers the custom icons
+    fixture.detectChanges();
   });
 
-  it('should create', fakeAsync(() => {
-    fixture.detectChanges();
-    tick();
+  it('should create', () => {
     expect(component).toBeTruthy();
-    flush();
-  }));
+  });
 
-  it('should load OAuth providers on init', fakeAsync(() => {
-    fixture.detectChanges();
-    tick();
-    expect(userService.getEnabledOAuth2Providers).toHaveBeenCalled();
-    // expect(component.oauthProviders$).toBeDefined();
-    flush();
-  }));
+  it('should set isMobile based on breakpoint observer', () => {
+    // Initial state from beforeEach setup
+    expect(component.isMobile).toBeFalsy();
 
-  it('should handle OAuth provider error', fakeAsync(() => {
-    userService.getEnabledOAuth2Providers.mockReturnValue(
-      throwError(() => new Error('Test error'))
+    // Create new component with mobile breakpoint
+    breakpointObserver.observe.mockReturnValue(
+      of({ matches: true } as unknown as BreakpointState)
     );
+    fixture = TestBed.createComponent(WelcomeComponent);
+    component = fixture.componentInstance;
     fixture.detectChanges();
-    tick();
-    expect(snackBar.open).toHaveBeenCalledWith(
-      'Failed to load authentication providers.',
-      'Close',
-      expect.any(Object)
-    );
-    flush();
-  }));
+
+    expect(component.isMobile).toBeTruthy();
+  });
+
+  describe('login', () => {
+    beforeEach(() => {
+      component.username = 'testuser';
+      component.password = 'password123';
+    });
+
+    it('should successfully login', () => {
+      const mockResponse = { status: 200 };
+      httpClient.post.mockReturnValue(of(mockResponse));
+
+      component.onLogin();
+
+      // First verify the call was made
+      expect(httpClient.post).toHaveBeenCalled();
+      const callArgs = httpClient.post.mock.calls[0];
+
+      // Verify URL and body
+      expect(callArgs[0]).toBe('/login');
+      expect(callArgs[1]).toBe('username=testuser&password=password123');
+
+      // Verify options
+      const options = callArgs[2];
+      expect(options).toEqual(
+        expect.objectContaining({
+          observe: 'response',
+          withCredentials: true,
+        })
+      );
+
+      // Create expected headers for comparison
+      const expectedHeaders = new HttpHeaders({
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-XSRF-TOKEN': 'mock-xsrf-token',
+      });
+
+      // Get actual header values
+      const headers = options!.headers as HttpHeaders;
+      const contentType = headers.get('Content-Type');
+      const xsrfToken = headers.get('X-XSRF-TOKEN');
+
+      // Compare with expected values
+      expect(contentType).toBe(expectedHeaders.get('Content-Type'));
+      expect(xsrfToken).toBe(expectedHeaders.get('X-XSRF-TOKEN'));
+
+      // Verify success handling
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Login successful',
+        'Close',
+        expect.any(Object)
+      );
+      expect(router.navigate).toHaveBeenCalledWith(['/']);
+    });
+
+    it('should handle login error', () => {
+      httpClient.post.mockReturnValue(
+        throwError(() => new Error('Login failed'))
+      );
+
+      component.onLogin();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Login failed. Please check your credentials.',
+        'Close',
+        expect.any(Object)
+      );
+      expect(router.navigate).not.toHaveBeenCalled();
+    });
+  });
 });

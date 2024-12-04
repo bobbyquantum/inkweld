@@ -42,6 +42,23 @@ form {
       margin-right: 8px;
     }
   }
+
+  .loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 0;
+    color: var(--mdc-theme-text-secondary-on-background);
+
+    mat-progress-spinner {
+      margin-bottom: 4px;
+    }
+
+    span {
+      font-size: 0.9em;
+    }
+  }
 }
 
 mat-divider {
