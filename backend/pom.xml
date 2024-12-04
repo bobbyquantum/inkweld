@@ -295,6 +295,43 @@
                                     </additionalProperties>
                                 </configuration>
                             </execution>
+                            <execution>
+                                <id>generate-typescript-node-client</id>
+                                <phase>integration-test</phase>
+                                <goals>
+                                    <goal>generate</goal>
+                                </goals>
+                                <configuration>
+                                    <inputSpec>${project.build.directory}/openapi.json</inputSpec>
+                                    <generatorName>typescript-node</generatorName>
+                                    <output>../worm-api-node-client</output>
+                                    <configOptions>
+                                        <npmName>worm-api-node-client</npmName>
+                                        <sortParamsByRequiredFlag>true</sortParamsByRequiredFlag>
+                                        <sortModelsByRequiredFlag>true</sortModelsByRequiredFlag>
+                                        <ensureUniqueParams>true</ensureUniqueParams>
+                                        <legacyDiscriminatorBehavior>false</legacyDiscriminatorBehavior>
+                                        <prependFormOrBodyParameters>true</prependFormOrBodyParameters>
+                                    </configOptions>
+                                    <typeMappings>
+                                        <typeMapping>File=FileUpload</typeMapping>
+                                    </typeMappings>
+                                    <modelNameMappings>
+                                        <modelNameMapping>File=FileUpload</modelNameMapping>
+                                        <modelNameMapping>updateFileContent_request=UpdateFileContentRequest</modelNameMapping>
+                                        <modelNameMapping>uploadFile_request=UploadFileRequest</modelNameMapping>
+                                    </modelNameMappings>
+                                    <inlineSchemaNameMappings>
+                                        <inlineSchemaNameMapping>updateFileContent_request=UpdateFileContentRequest</inlineSchemaNameMapping>
+                                        <inlineSchemaNameMapping>uploadFile_request=UploadFileRequest</inlineSchemaNameMapping>
+                                    </inlineSchemaNameMappings>
+                                    <additionalProperties>
+                                        <additionalProperty>sortOperations=true</additionalProperty>
+                                        <additionalProperty>sortTags=true</additionalProperty>
+                                        <additionalProperty>supportsES6=true</additionalProperty>
+                                    </additionalProperties>
+                                </configuration>
+                            </execution>
                         </executions>
                     </plugin>
                 </plugins>
