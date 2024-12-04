@@ -17,11 +17,11 @@ import {
   ProjectAPIService,
   User,
   UserAPIService,
-} from 'worm-api-client';
+} from 'worm-api-angular-client';
 
 import { NewProjectComponent } from './new-project.component';
 
-jest.mock('worm-api-client');
+jest.mock('worm-api-angular-client');
 jest.mock('@angular/material/snack-bar');
 jest.mock('@services/xsrf.service');
 

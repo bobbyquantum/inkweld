@@ -2,7 +2,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
-import { FileAPIService } from 'worm-api-client';
+import { FileAPIService } from 'worm-api-angular-client';
 
 import { UserFilesDialogComponent } from './user-files-dialog.component';
 

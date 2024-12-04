@@ -1,0 +1,18 @@
+{
+  "name": "worm-bridge",
+  "version": "1.0.0",
+  "description": "Bridge server for Worm - handles YJS collaboration and proxying between frontend and backend",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "http-proxy-middleware": "^3.0.0-beta.1",
+    "ws": "^8.14.2",
+    "y-websocket": "^1.5.0",
+    "yjs": "^13.6.8"
+  }
+}

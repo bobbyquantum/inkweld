@@ -4,7 +4,7 @@ import {
 } from '@angular/common/http/testing';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { of } from 'rxjs';
-import { Configuration, UserAPIService } from 'worm-api-client';
+import { Configuration, UserAPIService } from 'worm-api-angular-client';
 
 import { ThemeService } from '../themes/theme.service';
 import { AppComponent } from './app.component';

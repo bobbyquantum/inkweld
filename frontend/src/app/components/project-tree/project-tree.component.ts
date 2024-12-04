@@ -27,7 +27,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { ProjectStateService } from '@services/project-state.service';
-import { ProjectElementDto } from 'worm-api-client';
+import { ProjectElementDto } from 'worm-api-angular-client';
 
 import { mapDtoToProjectElement, ProjectElement } from './project-element';
 import { TreeManipulator } from './tree-manipulator';

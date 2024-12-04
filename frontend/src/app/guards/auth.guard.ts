@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { lastValueFrom } from 'rxjs';
-import { User, UserAPIService } from 'worm-api-client';
+import { User, UserAPIService } from 'worm-api-angular-client';
 
 let cachedUser: User | null = null;
 

@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { Router } from '@angular/router';
 import { UserSettingsService } from '@services/user-settings.service';
-import { User } from 'worm-api-client';
+import { User } from 'worm-api-angular-client';
 
 interface LogoutResponse {
   message: string;

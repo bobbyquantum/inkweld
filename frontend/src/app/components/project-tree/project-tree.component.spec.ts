@@ -4,7 +4,7 @@ import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ProjectStateService } from '@services/project-state.service';
-import { ProjectElementDto } from 'worm-api-client';
+import { ProjectElementDto } from 'worm-api-angular-client';
 
 import { ProjectElement } from './project-element';
 import { ProjectTreeComponent } from './project-tree.component';

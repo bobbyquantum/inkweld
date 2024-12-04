@@ -4,7 +4,7 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { firstValueFrom } from 'rxjs';
-import { FileAPIService, FileUpload, PageInfo } from 'worm-api-client';
+import { FileAPIService, FileUpload, PageInfo } from 'worm-api-angular-client';
 
 @Component({
   selector: 'app-user-files-dialog',

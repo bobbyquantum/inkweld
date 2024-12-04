@@ -15,12 +15,12 @@ import {
   ProjectAPIService,
   User,
   UserAPIService,
-} from 'worm-api-client';
+} from 'worm-api-angular-client';
 
 import { HomeComponent } from './home.component';
 
 jest.mock('@themes/theme.service');
-jest.mock('worm-api-client');
+jest.mock('worm-api-angular-client');
 jest.mock('@angular/cdk/layout');
 
 describe('HomeComponent', () => {

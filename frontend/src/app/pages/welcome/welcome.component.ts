@@ -13,7 +13,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
 import { XsrfService } from '@services/xsrf.service';
 import { Subject, takeUntil } from 'rxjs';
-import { UserAPIService } from 'worm-api-client';
+import { UserAPIService } from 'worm-api-angular-client';
 
 @Component({
   selector: 'app-welcome',

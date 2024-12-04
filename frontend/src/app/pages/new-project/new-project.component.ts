@@ -20,7 +20,7 @@ import {
   ProjectAPIService,
   User,
   UserAPIService,
-} from 'worm-api-client';
+} from 'worm-api-angular-client';
 
 @Component({
   selector: 'app-new-project',

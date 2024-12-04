@@ -1,7 +1,7 @@
 {
-  "name": "worm-api-client",
+  "name": "worm-api-angular-client",
   "version": "0.0.1-SNAPSHOT",
-  "description": "OpenAPI client for worm-api-client",
+  "description": "OpenAPI client for worm-api-angular-client",
   "author": "OpenAPI-Generator Contributors",
   "repository": {
     "type": "git",

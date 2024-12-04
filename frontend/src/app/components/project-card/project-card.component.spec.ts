@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { Project } from 'worm-api-client';
+import { Project } from 'worm-api-angular-client';
 
 import { ProjectCardComponent } from './project-card.component';
 
