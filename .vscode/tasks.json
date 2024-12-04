@@ -25,9 +25,9 @@
         ]
       },
       {
-        "label": "Proxy",
+        "label": "Bridge",
         "type": "shell",
-        "command": "npm run start-proxy",
+        "command": "cd bridge && npm run dev",
         "isBackground": true,
         "problemMatcher": [
           {
@@ -47,7 +47,7 @@
       },
       {
         "label": "Start Stack",
-        "dependsOn": ["Frontend", "Proxy"],
+        "dependsOn": ["Frontend", "Bridge"],
         "dependsOrder": "parallel"
       }
     ]
