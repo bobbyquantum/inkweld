@@ -1,9 +1,8 @@
-import express from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
-import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
-import { createRequire } from 'module';
-import { setupWSConnection, setPersistence } from 'y-websocket/bin/utils';
+import express, { NextFunction, Request, Response } from 'express';
+import { createServer, IncomingMessage } from 'http';
+import { createProxyMiddleware, Options } from 'http-proxy-middleware';
+import { WebSocket, WebSocketServer } from 'ws';
+import { setPersistence, setupWSConnection } from 'y-websocket/bin/utils';
 import * as Y from 'yjs';
 
 const app = express();
@@ -16,17 +15,17 @@ const server = createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
 // In-memory store for document states
-const documentStates = new Map();
+const documentStates = new Map<string, Uint8Array>();
 
 // Configure y-websocket persistence
 setPersistence({
-  bindState: (docName, ydoc) => {
+  bindState: (docName: string, ydoc: Y.Doc) => {
     console.log(`[DUMMY] Binding state for document: ${docName}`);
-    
+
     // Simple validation with just the document ID
     console.log('[DUMMY] Validating access for:', {
       id: docName,
-      type: "DOCUMENT"
+      type: 'DOCUMENT',
     });
 
     // Set initial content if document is new
@@ -34,7 +33,7 @@ setPersistence({
       // Create initial content using YJS types
       const ytext = ydoc.getText('content');
       ytext.insert(0, 'Welcome to your new document!\n\nStart typing here...');
-      
+
       // Store the initial state
       const initialState = Y.encodeStateAsUpdate(ydoc);
       documentStates.set(docName, initialState);
@@ -53,99 +52,136 @@ setPersistence({
     }
 
     // Listen to document updates
-    ydoc.on('update', (update) => {
+    ydoc.on('update', (update: Uint8Array) => {
       // Store the update in memory
       documentStates.set(docName, update);
       console.log(`[DUMMY] Stored update for ${docName}`, {
         updateLength: update.length,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     });
   },
-  writeState: (docName, ydoc) => {
-    return new Promise((resolve) => {
+  writeState: (docName: string, ydoc: Y.Doc) => {
+    return new Promise<void>(resolve => {
       console.log(`[DUMMY] Writing final state for document: ${docName}`);
-      
+
       // Get the final state using Y.encodeStateAsUpdate
       const finalState = Y.encodeStateAsUpdate(ydoc);
       documentStates.set(docName, finalState);
-      
+
       console.log('[DUMMY] Saved final state:', {
         docName,
         stateSize: finalState.length,
         timestamp: new Date().toISOString(),
-        status: "saved"
+        status: 'saved',
       });
 
       resolve();
     });
-  }
+  },
 });
 
 // Middleware to log incoming requests
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   console.log(`Received request for: ${req.originalUrl}`);
   next();
 });
 
 // Function to log the proxied request URL
-const logProxyReq = (proxyReq, req, res) => {
+import { ClientRequest } from 'http';
+import { Duplex } from 'stream';
+
+const logProxyReq = (
+  proxyReq: ClientRequest,
+  _req: Request,
+  _res: Response
+) => {
   console.log(
     `Proxying request to: ${proxyReq.protocol}//${proxyReq.host}${proxyReq.path}`
   );
 };
 
+// Create proxy middleware wrappers that return void
+const createApiProxy = () => {
+  const proxy = createProxyMiddleware({
+    target: 'http://localhost:8080',
+    changeOrigin: false,
+    onProxyReq: logProxyReq,
+  } as Options);
+
+  return (req: Request, res: Response, next: NextFunction) => {
+    return proxy(req, res, next);
+  };
+};
+
+const createFrontendProxy = () => {
+  const proxy = createProxyMiddleware({
+    target: 'http://localhost:4200',
+    changeOrigin: true,
+    ws: true,
+    onProxyReq: logProxyReq,
+  } as Options);
+
+  return (req: Request, res: Response, next: NextFunction) => {
+    return proxy(req, res, next);
+  };
+};
+
 // Proxy configuration for API and related routes
 app.use(
-  ['/api', '/login', '/logout', '/oauth2', '/api-docs', '/swagger-ui', '/admin'],
-  (req, res, next) => {
+  [
+    '/api',
+    '/login',
+    '/logout',
+    '/oauth2',
+    '/api-docs',
+    '/swagger-ui',
+    '/admin',
+  ],
+  (req: Request, res: Response, next: NextFunction) => {
     req.url = req.originalUrl; // Preserve the original URL
     next();
   },
-  createProxyMiddleware({
-    target: 'http://localhost:8080',
-    changeOrigin: false,
-    logLevel: 'trace',
-    onProxyReq: logProxyReq,
-  })
+  () => createApiProxy()
 );
 
 // Proxy configuration for frontend (Angular app)
 app.use(
-  (req, res, next) => {
+  (req: Request, res: Response, next: NextFunction) => {
     if (req.url.startsWith('/ws')) {
       next('route'); // Skip proxying for these paths
     } else {
       next();
     }
   },
-  createProxyMiddleware({
-    target: 'http://localhost:4200',
-    changeOrigin: true,
-    ws: true,
-    logLevel: 'debug',
-    onProxyReq: logProxyReq,
-  })
+  () => createFrontendProxy()
 );
 
-server.on('upgrade', (request, socket, head) => {
-  const pathname = request.url;
+interface UpgradeRequest extends IncomingMessage {
+  url: string;
+}
 
-  console.log(`Received upgrade request for: ${pathname}`);
-  if (pathname.startsWith('/ws/yjs')) {
-    let docName = pathname.slice(8); // Remove '/ws/yjs'
-    
-    // Simulate cookie validation
-    console.log(`[DUMMY] Validating cookie for document: ${docName}`);
-    
-    // Set up websocket connection
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      setupWSConnection(ws, request, { docName, gc: true });
-    });
-  } else {
-    // Let Express handle other upgrade requests
+server.on(
+  'upgrade',
+  (request: UpgradeRequest, socket: Duplex, head: Buffer) => {
+    const pathname = request.url;
+
+    console.log(`Received upgrade request for: ${pathname}`);
+    if (pathname.startsWith('/ws/yjs')) {
+      const docName = pathname.slice(8); // Remove '/ws/yjs'
+
+      // Simulate cookie validation
+      console.log(`[DUMMY] Validating cookie for document: ${docName}`);
+
+      // Set up websocket connection
+      wss.handleUpgrade(request, socket, head, (ws: WebSocket) => {
+        setupWSConnection(ws, request, { docName, gc: true });
+      });
+    } else {
+      // Let Express handle other upgrade requests
+    }
   }
-});
+);
 
 // Start the server
 server.listen(PORT, () => {
