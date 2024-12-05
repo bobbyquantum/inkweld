@@ -17,7 +17,10 @@
   "dependencies": {
     "express": "4.21.1",
     "http-proxy-middleware": "3.0.3",
+    "prosemirror-model": "1.24.0",
+    "prosemirror-schema-basic": "1.2.3",
     "ws": "8.18.0",
+    "y-prosemirror": "1.2.15",
     "y-websocket": "2.0.4"
   },
   "devDependencies": {
@@ -25,10 +28,10 @@
     "@types/node": "^20.11.24",
     "@types/ws": "8.5.13",
     "eslint": "9.16.0",
-    "eslint-plugin-prettier": "5.2.1",
     "eslint-config-prettier": "9.1.0",
-    "eslint-plugin-unused-imports": "4.1.4",
+    "eslint-plugin-prettier": "5.2.1",
     "eslint-plugin-simple-import-sort": "12.1.1",
+    "eslint-plugin-unused-imports": "4.1.4",
     "prettier": "3.3.3",
     "prettier-eslint": "16.3.0",
     "typescript": "5.5.4",
