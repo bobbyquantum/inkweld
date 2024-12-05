@@ -16,22 +16,21 @@ import { XsrfService } from '@services/xsrf.service';
 import { Subject, takeUntil } from 'rxjs';
 
 @Component({
-  selector: 'app-welcome',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    RouterLink,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatDividerModule,
-    OAuthProviderListComponent,
-  ],
-  templateUrl: './welcome.component.html',
-  styleUrl: './welcome.component.scss',
+    selector: 'app-welcome',
+    imports: [
+        CommonModule,
+        FormsModule,
+        RouterLink,
+        MatCardModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatButtonModule,
+        MatIconModule,
+        MatDividerModule,
+        OAuthProviderListComponent,
+    ],
+    templateUrl: './welcome.component.html',
+    styleUrl: './welcome.component.scss'
 })
 export class WelcomeComponent implements OnDestroy {
   isMobile = false;

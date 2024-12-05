@@ -5,11 +5,10 @@ import { RouterModule } from '@angular/router';
 import { Project } from 'worm-api-angular-client';
 
 @Component({
-  selector: 'app-project-card',
-  standalone: true,
-  imports: [MatCardModule, MatButtonModule, RouterModule],
-  templateUrl: './project-card.component.html',
-  styleUrl: './project-card.component.scss',
+    selector: 'app-project-card',
+    imports: [MatCardModule, MatButtonModule, RouterModule],
+    templateUrl: './project-card.component.html',
+    styleUrl: './project-card.component.scss'
 })
 export class ProjectCardComponent {
   @Input()
