@@ -38,27 +38,26 @@ const ROOT_WRAPPER_ID = 'root-wrapper';
  * Component for displaying and managing the project tree.
  */
 @Component({
-  standalone: true,
-  imports: [
-    MatTreeModule,
-    MatIconModule,
-    MatButtonModule,
-    MatInputModule,
-    MatListModule,
-    MatMenuModule,
-    MatProgressSpinnerModule,
-    DragDropModule,
-    CdkContextMenuTrigger,
-    CdkMenu,
-    CdkMenuItem,
-    CdkDrag,
-    CdkDragPreview,
-    CdkDragPlaceholder,
-    CdkDropList,
-  ],
-  selector: 'app-project-tree',
-  templateUrl: './project-tree.component.html',
-  styleUrls: ['./project-tree.component.scss'],
+    imports: [
+        MatTreeModule,
+        MatIconModule,
+        MatButtonModule,
+        MatInputModule,
+        MatListModule,
+        MatMenuModule,
+        MatProgressSpinnerModule,
+        DragDropModule,
+        CdkContextMenuTrigger,
+        CdkMenu,
+        CdkMenuItem,
+        CdkDrag,
+        CdkDragPreview,
+        CdkDragPlaceholder,
+        CdkDropList,
+    ],
+    selector: 'app-project-tree',
+    templateUrl: './project-tree.component.html',
+    styleUrls: ['./project-tree.component.scss']
 })
 export class ProjectTreeComponent implements AfterViewInit {
   @ViewChild('tree') treeEl!: MatTree<ProjectElement>;

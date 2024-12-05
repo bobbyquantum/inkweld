@@ -22,11 +22,10 @@ interface EditorDimensions {
 type DragPoint = 'pageLeft' | 'pageRight' | 'marginLeft' | 'marginRight';
 
 @Component({
-  selector: 'app-element-editor',
-  standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, NgxEditorModule],
-  templateUrl: './element-editor.component.html',
-  styleUrl: './element-editor.component.scss',
+    selector: 'app-element-editor',
+    imports: [CommonModule, MatButtonModule, MatIconModule, NgxEditorModule],
+    templateUrl: './element-editor.component.html',
+    styleUrl: './element-editor.component.scss'
 })
 export class ElementEditorComponent
   implements OnInit, OnDestroy, AfterViewInit

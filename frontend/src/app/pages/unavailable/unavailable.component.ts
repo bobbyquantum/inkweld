@@ -4,10 +4,9 @@ import { MatCardModule } from '@angular/material/card';
 import { RouterLink } from '@angular/router';
 
 @Component({
-  selector: 'app-unavailable',
-  templateUrl: './unavailable.component.html',
-  styleUrls: ['./unavailable.component.scss'],
-  standalone: true,
-  imports: [MatCardModule, MatButtonModule, RouterLink],
+    selector: 'app-unavailable',
+    templateUrl: './unavailable.component.html',
+    styleUrls: ['./unavailable.component.scss'],
+    imports: [MatCardModule, MatButtonModule, RouterLink]
 })
 export class UnavailableComponent {}

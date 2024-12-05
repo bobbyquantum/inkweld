@@ -11,11 +11,10 @@ interface MenuItem {
 }
 
 @Component({
-  selector: 'app-project-main-menu',
-  standalone: true,
-  imports: [CommonModule, MatMenuModule, MatButtonModule, UserMenuComponent],
-  templateUrl: './project-main-menu.component.html',
-  styleUrl: './project-main-menu.component.scss',
+    selector: 'app-project-main-menu',
+    imports: [CommonModule, MatMenuModule, MatButtonModule, UserMenuComponent],
+    templateUrl: './project-main-menu.component.html',
+    styleUrl: './project-main-menu.component.scss'
 })
 export class ProjectMainMenuComponent {
   menuItems: MenuItem[] = [

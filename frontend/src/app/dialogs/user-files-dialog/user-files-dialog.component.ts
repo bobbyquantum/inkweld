@@ -7,16 +7,15 @@ import { firstValueFrom } from 'rxjs';
 import { FileAPIService, FileUpload, PageInfo } from 'worm-api-angular-client';
 
 @Component({
-  selector: 'app-user-files-dialog',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatGridListModule,
-    MatPaginatorModule,
-    MatDialogModule,
-  ],
-  templateUrl: './user-files-dialog.component.html',
-  styleUrls: ['./user-files-dialog.component.scss'],
+    selector: 'app-user-files-dialog',
+    imports: [
+        CommonModule,
+        MatGridListModule,
+        MatPaginatorModule,
+        MatDialogModule,
+    ],
+    templateUrl: './user-files-dialog.component.html',
+    styleUrls: ['./user-files-dialog.component.scss']
 })
 export class UserFilesDialogComponent implements OnInit {
   public page?: PageInfo;

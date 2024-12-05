@@ -55,22 +55,21 @@ const slideAnimation = trigger('slideAnimation', [
 ]);
 
 @Component({
-  selector: 'app-user-settings-dialog',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatDialogTitle,
-    MatDialogContent,
-    MatDialogClose,
-    MatListModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule,
-    GeneralSettingsComponent,
-  ],
-  animations: [slideAnimation],
-  templateUrl: './user-settings-dialog.component.html',
-  styleUrl: './user-settings-dialog.component.scss',
+    selector: 'app-user-settings-dialog',
+    imports: [
+        CommonModule,
+        MatDialogTitle,
+        MatDialogContent,
+        MatDialogClose,
+        MatListModule,
+        MatButtonModule,
+        MatIconModule,
+        MatTooltipModule,
+        GeneralSettingsComponent,
+    ],
+    animations: [slideAnimation],
+    templateUrl: './user-settings-dialog.component.html',
+    styleUrl: './user-settings-dialog.component.scss'
 })
 export class UserSettingsDialogComponent implements OnInit, OnDestroy {
   @Input() selectedCategory: 'general' | 'account' = 'general';
