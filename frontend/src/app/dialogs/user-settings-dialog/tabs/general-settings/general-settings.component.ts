@@ -7,10 +7,10 @@ import { ThemeOption, ThemeService } from '@themes/theme.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-    selector: 'app-general-settings',
-    imports: [MatFormFieldModule, MatSelectModule, MatInputModule, FormsModule],
-    templateUrl: './general-settings.component.html',
-    styleUrl: './general-settings.component.scss'
+  selector: 'app-general-settings',
+  imports: [MatFormFieldModule, MatSelectModule, MatInputModule, FormsModule],
+  templateUrl: './general-settings.component.html',
+  styleUrl: './general-settings.component.scss',
 })
 export class GeneralSettingsComponent implements OnInit, OnDestroy {
   selectedTheme!: ThemeOption;

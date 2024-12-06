@@ -23,20 +23,20 @@ import { ProjectTreeComponent } from '../../components/project-tree/project-tree
 import { ProjectStateService } from '../../services/project-state.service';
 
 @Component({
-    selector: 'app-project',
-    templateUrl: './project.component.html',
-    styleUrls: ['./project.component.scss'],
-    imports: [
-        NgIf,
-        MatButtonModule,
-        MatSidenavModule,
-        MatTabsModule,
-        MatIconModule,
-        MatProgressSpinnerModule,
-        ProjectMainMenuComponent,
-        ProjectTreeComponent,
-        ElementEditorComponent,
-    ]
+  selector: 'app-project',
+  templateUrl: './project.component.html',
+  styleUrls: ['./project.component.scss'],
+  imports: [
+    NgIf,
+    MatButtonModule,
+    MatSidenavModule,
+    MatTabsModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    ProjectMainMenuComponent,
+    ProjectTreeComponent,
+    ElementEditorComponent,
+  ],
 })
 export class ProjectComponent implements OnInit, OnDestroy {
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
