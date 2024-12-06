@@ -15,7 +15,7 @@
     "check": "npm run lint && npm run build"
   },
   "dependencies": {
-    "express": "4.21.1",
+    "express": "4.21.2",
     "http-proxy-middleware": "3.0.3",
     "prosemirror-model": "1.24.0",
     "prosemirror-schema-basic": "1.2.3",
