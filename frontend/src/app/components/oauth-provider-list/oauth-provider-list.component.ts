@@ -8,14 +8,14 @@ import { firstValueFrom } from 'rxjs';
 import { UserAPIService } from 'worm-api-angular-client';
 
 @Component({
-    selector: 'app-oauth-provider-list',
-    imports: [
-        CommonModule,
-        MatButtonModule,
-        MatIconModule,
-        MatProgressSpinnerModule,
-    ],
-    template: `
+  selector: 'app-oauth-provider-list',
+  imports: [
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+  ],
+  template: `
     @if (isLoadingProviders()) {
       <div class="loading-spinner">
         <mat-progress-spinner
@@ -51,8 +51,8 @@ import { UserAPIService } from 'worm-api-angular-client';
       }
     }
   `,
-    styles: [
-        `
+  styles: [
+    `
       :host {
         display: block;
       }
@@ -83,7 +83,7 @@ import { UserAPIService } from 'worm-api-angular-client';
         }
       }
     `,
-    ]
+  ],
 })
 export class OAuthProviderListComponent implements OnInit {
   isLoadingProviders = signal(false);

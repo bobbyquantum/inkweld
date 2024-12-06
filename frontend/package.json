@@ -75,7 +75,7 @@
     "storybook-dark-mode": "4.0.2",
     "ts-jest": "29.2.5",
     "typescript": "5.5.4",
-    "typescript-eslint": "8.15.0"
+    "typescript-eslint": "8.17.0"
   },
   "eslintConfig": {
     "extends": [

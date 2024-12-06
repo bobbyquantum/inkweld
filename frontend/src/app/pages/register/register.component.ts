@@ -20,21 +20,21 @@ import {
 } from 'worm-api-angular-client';
 
 @Component({
-    selector: 'app-register',
-    imports: [
-        CommonModule,
-        FormsModule,
-        RouterModule,
-        MatCardModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatDividerModule,
-        MatIconModule,
-        OAuthProviderListComponent,
-    ],
-    templateUrl: './register.component.html',
-    styleUrl: './register.component.scss'
+  selector: 'app-register',
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatDividerModule,
+    MatIconModule,
+    OAuthProviderListComponent,
+  ],
+  templateUrl: './register.component.html',
+  styleUrl: './register.component.scss',
 })
 export class RegisterComponent implements OnInit {
   username = '';

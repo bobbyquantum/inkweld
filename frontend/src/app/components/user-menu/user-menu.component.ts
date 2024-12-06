@@ -14,10 +14,10 @@ interface LogoutResponse {
 }
 
 @Component({
-    selector: 'app-user-menu',
-    imports: [MatButtonModule, MatMenuModule, MatIconModule, MatDividerModule],
-    templateUrl: './user-menu.component.html',
-    styleUrl: './user-menu.component.scss'
+  selector: 'app-user-menu',
+  imports: [MatButtonModule, MatMenuModule, MatIconModule, MatDividerModule],
+  templateUrl: './user-menu.component.html',
+  styleUrl: './user-menu.component.scss',
 })
 export class UserMenuComponent {
   @Input() user: User | undefined = undefined;

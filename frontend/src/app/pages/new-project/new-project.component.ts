@@ -23,20 +23,20 @@ import {
 } from 'worm-api-angular-client';
 
 @Component({
-    selector: 'app-new-project',
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        MatToolbarModule,
-        MatButtonModule,
-        MatIconModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatSnackBarModule,
-        RouterModule,
-    ],
-    templateUrl: './new-project.component.html',
-    styleUrls: ['./new-project.component.scss']
+  selector: 'app-new-project',
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatToolbarModule,
+    MatButtonModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSnackBarModule,
+    RouterModule,
+  ],
+  templateUrl: './new-project.component.html',
+  styleUrls: ['./new-project.component.scss'],
 })
 export class NewProjectComponent implements OnInit {
   projectForm = new FormGroup({

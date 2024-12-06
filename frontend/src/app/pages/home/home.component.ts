@@ -18,20 +18,20 @@ import {
 } from 'worm-api-angular-client';
 
 @Component({
-    selector: 'app-home',
-    imports: [
-        CommonModule,
-        UserMenuComponent,
-        ProjectCardComponent,
-        MatToolbarModule,
-        MatIconModule,
-        MatButtonModule,
-        MatFormFieldModule,
-        MatInputModule,
-        RouterModule,
-    ],
-    templateUrl: './home.component.html',
-    styleUrls: ['./home.component.scss']
+  selector: 'app-home',
+  imports: [
+    CommonModule,
+    UserMenuComponent,
+    ProjectCardComponent,
+    MatToolbarModule,
+    MatIconModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    RouterModule,
+  ],
+  templateUrl: './home.component.html',
+  styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit, OnDestroy {
   projects: Project[] = [];
