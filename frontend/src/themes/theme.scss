@@ -167,7 +167,7 @@ $dark-theme: mat.define-theme((
   @include mat.all-component-themes($light-theme);
   @include mat.system-level-colors($light-theme);
   @include mat.system-level-typography($dark-theme);
-  --card-background-color: var(--sys-secondary-container);
+  --card-background-color: var(--mat-sys-secondary-container);
 
 
   --ngx-editor-border-radius: 4px;
@@ -189,7 +189,7 @@ $dark-theme: mat.define-theme((
   --ngx-editor-popup-border-radius: 4px;
   --ngx-editor-popup-shadow: rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
 
-  --ngx-editor-menu-item-border-radius: 2px;
+  --ngx-editor-menu-item-border-radius: 50%;
   --ngx-editor-menu-item-active-color: #1a73e8;
   --ngx-editor-menu-item-hover-bg-color: #f1f1f1;
   --ngx-editor-menu-item-active-bg-color: #e8f0fe;
@@ -208,17 +208,17 @@ $dark-theme: mat.define-theme((
   @include mat.all-component-colors($dark-theme);
   @include mat.system-level-colors($dark-theme);
   @include mat.system-level-typography($dark-theme);
-  --card-background-color: var(--sys-secondary-container);
+  --card-background-color: var(--mat-sys-secondary-container);
 
   --ngx-editor-border-radius: 0;
-  --ngx-editor-background-color: var(--sys-surface-container-high);
-  --ngx-editor-text-color: --sys-on-surface;
+  --ngx-editor-background-color: var(--mat-sys-surface-container-high);
+  --ngx-editor-text-color: --mat-sys-on-surface;
   --ngx-editor-placeholder-color: #6c757d;
   --ngx-editor-border-color: rgba(0, 0, 0, 0.0);
   --ngx-editor-wrapper-border-color: rgba(0, 0, 0, 0.2);
-
-  --ngx-editor-menubar-bg-color: var(--sys-surface-container-highest);
-  --ngx-editor-menu-item-hover-bg-color: var(--sys-surface-container-highest);
+  --ngx-editor-menu-item-border-radius: 50%;
+  --ngx-editor-menubar-bg-color: var(--mat-sys-surface-container-high);
+  --ngx-editor-menu-item-hover-bg-color: var(--mat-sys-surface-container-highest);
   --ngx-editor-menubar-padding: 3px;
   --ngx-editor-menubar-height: 30px;
 
@@ -226,13 +226,11 @@ $dark-theme: mat.define-theme((
   --ngx-editor-blockquote-border-width: 3px;
 
   --ngx-editor-icon-size: 30px;
-  --ngx-editor-popup-bg-color: --sys-surface-container;
+  --ngx-editor-popup-bg-color: var(--mat-sys-surface-container);
   --ngx-editor-popup-border-radius: 4px;
   --ngx-editor-popup-shadow: rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
 
-  --ngx-editor-menu-item-border-radius: 2px;
   --ngx-editor-menu-item-active-color: #1a73e8;
-  --ngx-editor-menu-item-hover-bg-color: #f1f1f1;
   --ngx-editor-menu-item-active-bg-color: #e8f0fe;
   --ngx-editor-seperator-color: #ccc;
 
