@@ -4,7 +4,7 @@
   --margin-left: 2cm;
   --margin-right: 2cm;
   --ruler-size: 20px;
-  --ruler-color: var(--sys-surface-container-high);
+  --ruler-color: var(--mat-sys-surface-container-high);
 }
 
 .editor-toolbar {
@@ -71,9 +71,9 @@
   height: var(--ruler-size);
   position: sticky;
   top: 0; /* Height of toolbar */
-  border-bottom: 1px solid var(--sys-outline-variant);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
   background-image: linear-gradient(90deg,
-    var(--sys-outline-variant) 1px,
+    var(--mat-sys-outline-variant) 1px,
     transparent 1px
   );
   background-size: 1cm 100%;
@@ -97,12 +97,12 @@
   &::before {
     content: '';
     position: absolute;
-    background-color: var(--sys-outline-variant);
+    background-color: var(--mat-sys-outline-variant);
   }
 
   .ruler-number {
     font-size: 10px;
-    color: var(--sys-on-surface-variant);
+    color: var(--mat-sys-on-surface-variant);
     position: absolute;
   }
 }
@@ -129,7 +129,7 @@
     position: absolute;
     height: 3px;
     width: 1px;
-    background-color: var(--sys-outline-variant);
+    background-color: var(--mat-sys-outline-variant);
     bottom: 0;
     left: 0.5cm;
   }
@@ -141,7 +141,7 @@
   cursor: ew-resize;
   width: 12px;
   height: 32px;
-  background-color: var(--sys-primary);
+  background-color: var(--mat-sys-primary);
   opacity: 0.7;
   top: -6px;
   transition: opacity 0.2s, background-color 0.2s;
@@ -151,7 +151,7 @@
     position: absolute;
     width: 2px;
     height: calc(100vh - 64px - var(--ruler-size));
-    background-color: var(--sys-primary);
+    background-color: var(--mat-sys-primary);
     opacity: 0.1;
     top: 0;
     left: 50%;
@@ -171,7 +171,7 @@
 
   &:hover {
     opacity: 1;
-    background-color: var(--sys-primary);
+    background-color: var(--mat-sys-primary);
   }
 }
 
@@ -187,29 +187,29 @@
 .horizontal-ruler .margin-guide {
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
-  border-top: 8px solid var(--sys-primary);
+  border-top: 8px solid var(--mat-sys-primary);
   transform: translateX(-50%);
 
   &.left-margin {
     left: var(--margin-left);
-    border-top-color: var(--sys-primary);
+    border-top-color: var(--mat-sys-primary);
   }
 
   &.right-margin {
     right: var(--margin-right);
-    border-top-color: var(--sys-primary);
+    border-top-color: var(--mat-sys-primary);
   }
 }
 
 .editor-content {
   width: var(--page-width);
-  background-color: var(--sys-surface-container-high);
+  background-color: var(--mat-sys-surface-container-high);
   padding: 1rem var(--margin-right) 1rem var(--margin-left);
   margin-top: 20px;
   font-size: 1rem;
   line-height: 1.5;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--sys-outline);
+  border: 1px solid var(--mat-sys-outline);
   min-height: 0;
   box-sizing: border-box;
 
