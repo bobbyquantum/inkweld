@@ -203,7 +203,51 @@ $dark-theme: mat.define-theme((
   --ngx-editor-focus-ring-color: #5e9ed6;
   --ngx-editor-error-color: red;
   --ngx-editor-click-pointer: pointer;
+
+  /* ProseMirror-yjs cursor styles for light theme */
+  .ProseMirror > .ProseMirror-yjs-cursor:first-child {
+    margin-top: 16px;
+  }
+
+  .ProseMirror p:first-child,
+  .ProseMirror h1:first-child,
+  .ProseMirror h2:first-child,
+  .ProseMirror h3:first-child,
+  .ProseMirror h4:first-child,
+  .ProseMirror h5:first-child,
+  .ProseMirror h6:first-child {
+    margin-top: 16px;
+  }
+
+  .ProseMirror-yjs-cursor {
+    position: relative;
+    margin-left: -1px;
+    margin-right: -1px;
+    border-left: 2px solid var(--mat-sys-tertiary);
+    border-right: 2px solid var(--mat-sys-tertiary);
+    word-break: normal;
+    pointer-events: none;
+
+    > div {
+      position: absolute;
+      top: -1.4em;
+      left: -1px;
+      font-size: 12px;
+      background-color: var(--mat-sys-tertiary);
+      font-family: var(--mat-ref-typeface-plain);
+      font-style: normal;
+      font-weight: normal;
+      line-height: normal;
+      user-select: none;
+      color: var(--mat-sys-on-tertiary);
+      padding: 2px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+      opacity: 0.9;
+    }
+  }
 }
+
 .dark-theme {
   @include mat.all-component-colors($dark-theme);
   @include mat.system-level-colors($dark-theme);
@@ -242,7 +286,19 @@ $dark-theme: mat.define-theme((
   --ngx-editor-focus-ring-color: #5e9ed6;
   --ngx-editor-error-color: red;
   --ngx-editor-click-pointer: pointer;
+
+  /* ProseMirror-yjs cursor styles for dark theme */
+  .ProseMirror-yjs-cursor {
+    border-left-color: var(--mat-sys-tertiary);
+    border-right-color: var(--mat-sys-tertiary);
+
+    > div {
+      background-color: var(--mat-sys-tertiary);
+      color: var(--mat-sys-on-tertiary);
+    }
+  }
 }
+
 body {
   background-color: var(--mat-app-background-color);
   color: var(--mat-app-text-color);
