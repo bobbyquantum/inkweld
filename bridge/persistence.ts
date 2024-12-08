@@ -105,7 +105,6 @@ export const createPersistenceAdapter = (): PersistenceAdapter => ({
           throw new Error('No prosemirror content found in document');
         }
 
-        // Get the final state using Y.encodeStateAsUpdate
         const finalState = Y.encodeStateAsUpdate(ydoc);
 
         // Verify we have valid state data
