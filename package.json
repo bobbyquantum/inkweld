@@ -6,7 +6,7 @@
     "update-api-client": "node update-api-client.js",
     "start-frontend": "cd frontend && npm start",
     "start-backend": "cd backend && npm run mvnw spring-boot:run",
-    "start-bridge": "cd bridge && npm run dev",
+    "start-bridge": "cd bridge && bun run dev",
     "start": "npm-run-all --parallel start-bridge start-frontend start-backend",
     "install-all": "npm install && cd worm-api-angular-client && npm install && npm run build && cd dist && npm pack && cd ../../frontend && npm rebuild worm-api-angular-client && npm install && cd ../bridge && npm install",
     "build": "cd frontend && npm run build && cd .. && cd backend && npm run mvnw clean package",

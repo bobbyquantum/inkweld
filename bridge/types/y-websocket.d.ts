@@ -2,7 +2,7 @@ declare module 'y-websocket/bin/utils' {
   import { IncomingMessage } from 'http';
   import { WebSocket } from 'ws';
   import { Awareness } from 'y-protocols/awareness';
-  import * as Y from 'yjs';
+  // import * as Y from 'yjs';
 
   export interface WSSharedDoc extends Y.Doc {
     name: string;
