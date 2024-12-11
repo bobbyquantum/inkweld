@@ -25,11 +25,14 @@ const preview: Preview = {
         localStorage.getItem('theme') === 'dark' ? themes.dark : themes.light,
     },
   },
+
   decorators: [
     applicationConfig({
       providers: [provideAnimations()],
     }),
   ],
+
+  tags: ['autodocs', 'autodocs']
 };
 
 addons.getChannel().on(DARK_MODE_EVENT_NAME, (isDark: boolean) => {

@@ -26,7 +26,6 @@ import { ProjectStateService } from '../../services/project-state.service';
   selector: 'app-project',
   templateUrl: './project.component.html',
   styleUrls: ['./project.component.scss'],
-  standalone: true,
   imports: [
     NgIf,
     MatButtonModule,

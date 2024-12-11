@@ -7,7 +7,6 @@ import { ThemeService } from '../themes/theme.service';
 
 @Component({
   selector: 'app-root',
-  standalone: true,
   imports: [RouterOutlet],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',

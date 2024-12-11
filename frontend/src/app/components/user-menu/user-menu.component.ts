@@ -15,7 +15,6 @@ interface LogoutResponse {
 
 @Component({
   selector: 'app-user-menu',
-  standalone: true,
   imports: [MatButtonModule, MatMenuModule, MatIconModule, MatDividerModule],
   templateUrl: './user-menu.component.html',
   styleUrl: './user-menu.component.scss',

@@ -24,7 +24,6 @@ import {
 
 @Component({
   selector: 'app-new-project',
-  standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,

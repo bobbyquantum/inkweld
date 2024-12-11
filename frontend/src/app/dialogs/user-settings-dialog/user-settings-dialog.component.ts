@@ -56,7 +56,6 @@ const slideAnimation = trigger('slideAnimation', [
 
 @Component({
   selector: 'app-user-settings-dialog',
-  standalone: true,
   imports: [
     CommonModule,
     MatDialogTitle,

@@ -1,7 +1,6 @@
 import express from 'express';
 import { createServer, IncomingMessage } from 'http';
 import { Duplex } from 'stream';
-import { setPersistence } from 'y-websocket/bin/utils';
 
 import { createPersistenceAdapter } from './persistence.js';
 import {
@@ -10,6 +9,7 @@ import {
   preserveOriginalUrl,
   skipWebSocketPaths,
 } from './proxy-middleware.js';
+import { setPersistence } from './utils';
 import { WebSocketHandler } from './websocket-handler.js';
 
 const app = express();
@@ -26,7 +26,7 @@ const persistence = createPersistenceAdapter();
 setPersistence(persistence);
 
 // Middleware to log incoming requests
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
   console.log(`Received request for: ${req.originalUrl}`);
   next();
 });
@@ -47,7 +47,7 @@ app.use(
   (req, res, next) => apiProxy(req, res, next)
 );
 
-// Proxy configuration for frontend (Angular app)
+// Proxy configuration for frontend (e.g. Angular app)
 const frontendProxy = createFrontendProxy();
 app.use(skipWebSocketPaths, (req, res, next) => frontendProxy(req, res, next));
 

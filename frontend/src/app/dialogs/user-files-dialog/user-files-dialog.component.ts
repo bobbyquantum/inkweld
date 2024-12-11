@@ -8,7 +8,6 @@ import { FileAPIService, FileUpload, PageInfo } from 'worm-api-angular-client';
 
 @Component({
   selector: 'app-user-files-dialog',
-  standalone: true,
   imports: [
     CommonModule,
     MatGridListModule,
