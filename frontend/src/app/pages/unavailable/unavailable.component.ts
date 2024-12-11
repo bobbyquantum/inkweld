@@ -7,7 +7,6 @@ import { RouterLink } from '@angular/router';
   selector: 'app-unavailable',
   templateUrl: './unavailable.component.html',
   styleUrls: ['./unavailable.component.scss'],
-  standalone: true,
   imports: [MatCardModule, MatButtonModule, RouterLink],
 })
 export class UnavailableComponent {}

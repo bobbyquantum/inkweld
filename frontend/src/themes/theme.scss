@@ -167,7 +167,7 @@ $dark-theme: mat.define-theme((
   @include mat.all-component-themes($light-theme);
   @include mat.system-level-colors($light-theme);
   @include mat.system-level-typography($dark-theme);
-  --card-background-color: var(--sys-secondary-container);
+  --card-background-color: var(--mat-sys-secondary-container);
 
 
   --ngx-editor-border-radius: 4px;
@@ -189,7 +189,7 @@ $dark-theme: mat.define-theme((
   --ngx-editor-popup-border-radius: 4px;
   --ngx-editor-popup-shadow: rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
 
-  --ngx-editor-menu-item-border-radius: 2px;
+  --ngx-editor-menu-item-border-radius: 50%;
   --ngx-editor-menu-item-active-color: #1a73e8;
   --ngx-editor-menu-item-hover-bg-color: #f1f1f1;
   --ngx-editor-menu-item-active-bg-color: #e8f0fe;
@@ -203,22 +203,66 @@ $dark-theme: mat.define-theme((
   --ngx-editor-focus-ring-color: #5e9ed6;
   --ngx-editor-error-color: red;
   --ngx-editor-click-pointer: pointer;
+
+  /* ProseMirror-yjs cursor styles for light theme */
+  .ProseMirror > .ProseMirror-yjs-cursor:first-child {
+    margin-top: 16px;
+  }
+
+  .ProseMirror p:first-child,
+  .ProseMirror h1:first-child,
+  .ProseMirror h2:first-child,
+  .ProseMirror h3:first-child,
+  .ProseMirror h4:first-child,
+  .ProseMirror h5:first-child,
+  .ProseMirror h6:first-child {
+    margin-top: 16px;
+  }
+
+  .ProseMirror-yjs-cursor {
+    position: relative;
+    margin-left: -1px;
+    margin-right: -1px;
+    border-left: 2px solid var(--mat-sys-tertiary);
+    border-right: 2px solid var(--mat-sys-tertiary);
+    word-break: normal;
+    pointer-events: none;
+
+    > div {
+      position: absolute;
+      top: -1.4em;
+      left: -1px;
+      font-size: 12px;
+      background-color: var(--mat-sys-tertiary);
+      font-family: var(--mat-ref-typeface-plain);
+      font-style: normal;
+      font-weight: normal;
+      line-height: normal;
+      user-select: none;
+      color: var(--mat-sys-on-tertiary);
+      padding: 2px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+      opacity: 0.9;
+    }
+  }
 }
+
 .dark-theme {
   @include mat.all-component-colors($dark-theme);
   @include mat.system-level-colors($dark-theme);
   @include mat.system-level-typography($dark-theme);
-  --card-background-color: var(--sys-secondary-container);
+  --card-background-color: var(--mat-sys-secondary-container);
 
   --ngx-editor-border-radius: 0;
-  --ngx-editor-background-color: var(--sys-surface-container-high);
-  --ngx-editor-text-color: --sys-on-surface;
+  --ngx-editor-background-color: var(--mat-sys-surface-container-high);
+  --ngx-editor-text-color: --mat-sys-on-surface;
   --ngx-editor-placeholder-color: #6c757d;
   --ngx-editor-border-color: rgba(0, 0, 0, 0.0);
   --ngx-editor-wrapper-border-color: rgba(0, 0, 0, 0.2);
-
-  --ngx-editor-menubar-bg-color: var(--sys-surface-container-highest);
-  --ngx-editor-menu-item-hover-bg-color: var(--sys-surface-container-highest);
+  --ngx-editor-menu-item-border-radius: 50%;
+  --ngx-editor-menubar-bg-color: var(--mat-sys-surface-container-high);
+  --ngx-editor-menu-item-hover-bg-color: var(--mat-sys-surface-container-highest);
   --ngx-editor-menubar-padding: 3px;
   --ngx-editor-menubar-height: 30px;
 
@@ -226,13 +270,11 @@ $dark-theme: mat.define-theme((
   --ngx-editor-blockquote-border-width: 3px;
 
   --ngx-editor-icon-size: 30px;
-  --ngx-editor-popup-bg-color: --sys-surface-container;
+  --ngx-editor-popup-bg-color: var(--mat-sys-surface-container);
   --ngx-editor-popup-border-radius: 4px;
   --ngx-editor-popup-shadow: rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
 
-  --ngx-editor-menu-item-border-radius: 2px;
   --ngx-editor-menu-item-active-color: #1a73e8;
-  --ngx-editor-menu-item-hover-bg-color: #f1f1f1;
   --ngx-editor-menu-item-active-bg-color: #e8f0fe;
   --ngx-editor-seperator-color: #ccc;
 
@@ -244,7 +286,19 @@ $dark-theme: mat.define-theme((
   --ngx-editor-focus-ring-color: #5e9ed6;
   --ngx-editor-error-color: red;
   --ngx-editor-click-pointer: pointer;
+
+  /* ProseMirror-yjs cursor styles for dark theme */
+  .ProseMirror-yjs-cursor {
+    border-left-color: var(--mat-sys-tertiary);
+    border-right-color: var(--mat-sys-tertiary);
+
+    > div {
+      background-color: var(--mat-sys-tertiary);
+      color: var(--mat-sys-on-tertiary);
+    }
+  }
 }
+
 body {
   background-color: var(--mat-app-background-color);
   color: var(--mat-app-text-color);

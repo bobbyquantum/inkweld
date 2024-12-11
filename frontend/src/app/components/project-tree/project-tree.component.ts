@@ -38,7 +38,6 @@ const ROOT_WRAPPER_ID = 'root-wrapper';
  * Component for displaying and managing the project tree.
  */
 @Component({
-  standalone: true,
   imports: [
     MatTreeModule,
     MatIconModule,

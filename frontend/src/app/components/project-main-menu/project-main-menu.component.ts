@@ -12,7 +12,6 @@ interface MenuItem {
 
 @Component({
   selector: 'app-project-main-menu',
-  standalone: true,
   imports: [CommonModule, MatMenuModule, MatButtonModule, UserMenuComponent],
   templateUrl: './project-main-menu.component.html',
   styleUrl: './project-main-menu.component.scss',

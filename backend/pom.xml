@@ -272,6 +272,7 @@
                                         <legacyDiscriminatorBehavior>false</legacyDiscriminatorBehavior>
                                         <prependFormOrBodyParameters>true</prependFormOrBodyParameters>
                                         <fileNaming>kebab-case</fileNaming>
+                                        <zonejsVersion>0.15.0</zonejsVersion>
                                     </configOptions>
                                     <typeMappings>
                                         <typeMapping>File=FileUpload</typeMapping>
@@ -288,7 +289,9 @@
                                     <additionalProperties>
                                         <additionalProperty>sortOperations=true</additionalProperty>
                                         <additionalProperty>sortTags=true</additionalProperty>
-                                        <additionalProperty>ngVersion=18.0.0</additionalProperty>
+                                        <additionalProperty>ngVersion=19.0.3</additionalProperty>
+                                        <additionalProperty>zonejsVersion=0.15.0</additionalProperty>
+                                        <additionalProperty>ngPackagrVersion=19.0.0</additionalProperty>
                                     </additionalProperties>
                                 </configuration>
                             </execution>

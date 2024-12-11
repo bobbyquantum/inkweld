@@ -17,7 +17,6 @@ import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-welcome',
-  standalone: true,
   imports: [
     CommonModule,
     FormsModule,

@@ -8,7 +8,6 @@ import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-general-settings',
-  standalone: true,
   imports: [MatFormFieldModule, MatSelectModule, MatInputModule, FormsModule],
   templateUrl: './general-settings.component.html',
   styleUrl: './general-settings.component.scss',

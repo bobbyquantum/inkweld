@@ -9,7 +9,6 @@ import { UserAPIService } from 'worm-api-angular-client';
 
 @Component({
   selector: 'app-oauth-provider-list',
-  standalone: true,
   imports: [
     CommonModule,
     MatButtonModule,

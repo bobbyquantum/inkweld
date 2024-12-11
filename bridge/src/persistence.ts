@@ -1,28 +1,27 @@
 import { Node as ProseMirrorNode } from 'prosemirror-model';
 import { schema } from 'prosemirror-schema-basic';
 import { yXmlFragmentToProseMirrorRootNode } from 'y-prosemirror';
-import { PersistenceAdapter } from 'y-websocket/bin/utils';
 import * as Y from 'yjs';
+
+import { PersistenceAdapter } from './utils';
 
 // In-memory store for document states
 const documentStates = new Map<string, Uint8Array>();
 
-// Helper function to convert Uint8Array to hex string with spacing for readability
-const toHexString = (bytes: Uint8Array): string => {
-  return Array.from(bytes)
+const toHexString = (bytes: Uint8Array): string =>
+  Array.from(bytes)
     .map(b => b.toString(16).padStart(2, '0'))
     .join(' ');
-};
 
-// Helper function to safely get prosemirror content
-const getProsemirrorContent = (ydoc: Y.Doc): Record<string, unknown> => {
+const getProsemirrorContent = (
+  ydoc: Y.Doc
+): { content?: string; error?: string } => {
   try {
     const xmlFragment = ydoc.get('prosemirror', Y.XmlFragment);
     if (!xmlFragment) {
       return { error: 'No prosemirror content found' };
     }
 
-    // Type assertion since we know the schema produces a valid Node
     const node: ProseMirrorNode = yXmlFragmentToProseMirrorRootNode(
       xmlFragment,
       schema
@@ -41,7 +40,6 @@ const getProsemirrorContent = (ydoc: Y.Doc): Record<string, unknown> => {
   }
 };
 
-// Helper function to dump the full state of a document
 const dumpDocumentState = (docName: string, ydoc: Y.Doc): void => {
   const fullState = Y.encodeStateAsUpdate(ydoc);
   const { content, error } = getProsemirrorContent(ydoc);
@@ -76,7 +74,6 @@ export const createPersistenceAdapter = (): PersistenceAdapter => ({
     // Listen to document updates
     ydoc.on('update', (update: Uint8Array) => {
       try {
-        // Store the update in memory
         documentStates.set(docName, update);
         console.log(`[DUMMY] Received update for ${docName}:`, {
           updateSize: update.length,
@@ -84,7 +81,6 @@ export const createPersistenceAdapter = (): PersistenceAdapter => ({
           update: toHexString(update),
         });
 
-        // Dump full state after applying update
         dumpDocumentState(docName, ydoc);
       } catch (error) {
         console.error(
@@ -98,27 +94,18 @@ export const createPersistenceAdapter = (): PersistenceAdapter => ({
     return new Promise<void>((resolve, reject) => {
       try {
         console.log(`[DUMMY] Writing final state for document: ${docName}`);
-
-        // Verify prosemirror content exists
         const type = ydoc.get('prosemirror', Y.XmlFragment);
         if (!type) {
           throw new Error('No prosemirror content found in document');
         }
 
-        // Get the final state using Y.encodeStateAsUpdate
         const finalState = Y.encodeStateAsUpdate(ydoc);
-
-        // Verify we have valid state data
         if (!finalState || finalState.length === 0) {
           throw new Error('Invalid document state');
         }
 
-        // Store the state
         documentStates.set(docName, finalState);
-
-        // Dump final state
         dumpDocumentState(docName, ydoc);
-
         resolve();
       } catch (error) {
         const errorMessage =

@@ -15,10 +15,10 @@ The bridge server acts as a middleware component between the frontend and backen
 
 ```bash
 # Install dependencies
-npm install
+bun install
 
 # Start the server
-npm run dev
+bun run dev
 ```
 
 ## Architecture
