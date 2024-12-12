@@ -1,0 +1,67 @@
+{
+  "folders": [
+    {
+      "name": "✨ Root",
+      "path": ".."
+    },
+    {
+      "name": "🎨 Frontend",
+      "path": "../frontend"
+    },
+    {
+      "name": "⚙️ Backend",
+      "path": "../backend"
+    },
+    {
+      "name": "🌉 Bridge",
+      "path": "../bridge"
+    },
+    {
+      "name": "📦 API Client (Angular)",
+      "path": "../worm-api-angular-client"
+    },
+    {
+      "name": "📦 API Client (Node)",
+      "path": "../worm-api-node-client"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "frontend/": true,
+      "backend/": true,
+      "bridge/": true,
+      "worm-api-angular-client/": true,
+      "worm-api-node-client/": true
+    },
+    "typescript.tsdk": "Frontend/node_modules/typescript/lib",
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.format.settings.url": ".vscode/java-formatter.xml",
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },
+    "[java]": {
+      "editor.formatOnSave": true
+    },
+    "jest.disabledWorkspaceFolders": [
+      "✨ Root",
+      "⚙️ Backend",
+      "📦 API Client (Angular)",
+      "📦 API Client (Node)"
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "angular.ng-template",
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "vscjava.vscode-java-pack",
+      "orta.vscode-jest"
+    ]
+  }
+}
