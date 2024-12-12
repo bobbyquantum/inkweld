@@ -1,11 +1,12 @@
-import request from 'supertest';
 import { createServer } from 'http';
+import request from 'supertest';
 import { WebSocketServer } from 'ws';
-import { createApiProxy, createFrontendProxy } from './proxy-middleware';
-import { WebSocketHandler } from './websocket-handler';
-import { setPersistence } from './utils';
+
 import { createPersistenceAdapter } from './persistence';
+import { createApiProxy, createFrontendProxy } from './proxy-middleware';
 import app from './server';
+import { setPersistence } from './utils';
+import { WebSocketHandler } from './websocket-handler';
 
 jest.mock('./proxy-middleware');
 jest.mock('./websocket-handler');
