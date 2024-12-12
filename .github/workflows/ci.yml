@@ -44,6 +44,11 @@ jobs:
     - name: Run frontend tests
       run: cd frontend && npm test -- --watch=false --browsers=ChromeHeadless
 
+    - name: Run bridge tests
+      run: cd bridge && bun run test
+
+    - name: Run ESLint for bridge
+      run: cd bridge && bun run lint
     # - name: Build project
     #   run: npm run build
 

@@ -37,3 +37,13 @@ The server includes dummy/development implementations for:
 - Initial content creation
 
 These will be replaced with actual implementations when moving to production.
+
+## Test Coverage
+
+The bridge server uses Jest for testing. To run the tests, use the following command:
+
+```bash
+bun run test
+```
+
+Ensure that you have the necessary dependencies installed before running the tests.
