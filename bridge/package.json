@@ -13,7 +13,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,json}\"",
     "check": "npm run lint && npm run build",
-    "test": "bun run jest",
+    "test": "jest",
     "lint:ci": "eslint ."
   },
   "dependencies": {
@@ -40,8 +40,7 @@
     "prettier-eslint": "16.3.0",
     "typescript": "5.5.4",
     "typescript-eslint": "8.17.0",
-    "jest": "29.7.0",
-    "jest-preset-angular": "^14.4.2"
+    "jest": "29.7.0"
   },
   "engines": {
     "bun": ">=1.0.0"
