@@ -8,10 +8,10 @@
     "start-backend": "cd backend && npm run mvnw spring-boot:run",
     "start-bridge": "cd bridge && bun run dev",
     "start": "npm-run-all --parallel start-bridge start-frontend start-backend",
-    "install-all": "npm install && cd worm-api-angular-client && npm install && npm run build && cd dist && npm pack && cd ../../frontend && npm rebuild worm-api-angular-client && npm install && cd ../bridge && npm install",
+    "install-all": "npm install && cd worm-api-angular-client && npm install && npm run build && cd dist && npm pack && cd ../../frontend && npm rebuild worm-api-angular-client && npm install && cd ../bridge && bun install",
     "build": "cd frontend && npm run build && cd .. && cd backend && npm run mvnw clean package",
-    "lint:ci": "cd backend && npm run mvnw spotless:check && cd .. && cd frontend && npm run lint && cd .. && cd bridge && eslint .",
-    "lint:fix": "cd backend && npm run mvnw spotless:apply && cd .. && cd frontend && npm run lint -- --fix",
+    "lint:ci": "cd backend && npm run mvnw spotless:check && cd .. && cd frontend && npm run lint && cd .. && cd bridge && bun run lint",
+    "lint:fix": "cd backend && npm run mvnw spotless:apply && cd .. && cd frontend && npm run lint -- --fix && cd .. && cd bridge && bun run lint -- --fix",
     "mvnw": "node -e \"process.exit(require('child_process').spawnSync(process.platform === 'win32' ? 'mvnw.cmd' : './mvnw', process.argv.slice(2), {stdio:'inherit'}).status)\" --",
     "test-backend": "node run-backend-tests.js"
   },
