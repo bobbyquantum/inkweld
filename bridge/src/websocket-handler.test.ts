@@ -1,7 +1,8 @@
+import { IncomingMessage, ServerResponse } from 'http';
 import { Duplex } from 'stream';
-
+import { WebSocket, WebSocketServer } from 'ws';
+import { WebSocketHandler, UpgradeRequest } from './websocket-handler';
 import { setupWSConnection } from './utils';
-import { UpgradeRequest, WebSocketHandler } from './websocket-handler';
 
 jest.mock('./utils');
 
@@ -37,18 +38,14 @@ describe('WebSocketHandler', () => {
     const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
     mockRequest.url = '/not/yjs';
     handler.handleUpgrade(mockRequest, mockSocket, mockHead);
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      'Not a y-websocket upgrade request'
-    );
+    expect(consoleLogSpy).toHaveBeenCalledWith('Not a y-websocket upgrade request');
     consoleLogSpy.mockRestore();
   });
 
   it('should validate cookie for y-websocket upgrade requests', () => {
     const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
     handler.handleUpgrade(mockRequest, mockSocket, mockHead);
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      '[DUMMY] Validating cookie for document: /test'
-    );
+    expect(consoleLogSpy).toHaveBeenCalledWith('[DUMMY] Validating cookie for document: /test');
     consoleLogSpy.mockRestore();
   });
 });
