@@ -1,5 +1,3 @@
-// src/utils.ts
-
 import { IncomingMessage } from 'http';
 import * as decoding from 'lib0/decoding';
 import * as encoding from 'lib0/encoding';
@@ -352,3 +350,31 @@ export function getYDocSharedObjectContent(
       return {};
   }
 }
+
+// Debounced save function
+const debouncedSave = debounce(
+  async (doc: WSSharedDoc) => {
+    try {
+      const response = await fetch(`/api/v1/files/${doc.name}/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-XSRF-TOKEN': 'your-csrf-token-here', // Replace with actual CSRF token
+        },
+        body: JSON.stringify({ content: getYDocSharedObjectContent(doc, 'prosemirror', 'XmlFragment') }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save document: ${response.statusText}`);
+      }
+
+      console.log(`Document ${doc.name} saved successfully.`);
+    } catch (error) {
+      console.error(`Error saving document ${doc.name}:`, error);
+    }
+  },
+  CALLBACK_DEBOUNCE_WAIT,
+  { maxWait: CALLBACK_DEBOUNCE_MAXWAIT }
+);
+
+export { debouncedSave };

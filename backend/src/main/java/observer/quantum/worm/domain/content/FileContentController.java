@@ -408,4 +408,53 @@ public class FileContentController {
         new PageImpl<>(fileDtos, files.getPageable(), files.getTotalElements());
     return ResponseEntity.ok(page);
   }
+
+  @Operation(
+      summary = "Save file content",
+      description = "Saves the content of a file owned by the currently authenticated user.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(responseCode = "200", description = "File content saved successfully"),
+        @ApiResponse(
+            responseCode = "401",
+            description = "User not authenticated",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(
+            responseCode = "403",
+            description = "User does not own the file or invalid CSRF token",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(
+            responseCode = "404",
+            description = "File not found",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class)))
+      })
+  @PostMapping(value = "/{fileId}/save", consumes = MediaType.APPLICATION_JSON_VALUE)
+  @Secured({"USER", "OAUTH2_USER"})
+  public ResponseEntity<?> saveFileContent(
+      @PathVariable UUID fileId,
+      @RequestBody String content,
+      @Parameter(
+              in = ParameterIn.HEADER,
+              name = "X-XSRF-TOKEN",
+              description = "CSRF token",
+              required = true)
+          @RequestHeader(name = "X-XSRF-TOKEN")
+          String csrfToken)
+      throws IOException {
+    boolean saved = fileService.saveFileContent(fileId, content);
+    if (saved) {
+      return ResponseEntity.ok().build();
+    } else {
+      return ResponseEntity.notFound().build();
+    }
+  }
 }
