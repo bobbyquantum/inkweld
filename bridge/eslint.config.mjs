@@ -14,7 +14,7 @@ export default tseslint.config(
     ],
     languageOptions: {
       parserOptions: {
-        project: './tsconfig.json',
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -26,6 +26,7 @@ export default tseslint.config(
       'unused-imports/no-unused-imports': 'error',
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
+      '@typescript-eslint/member-ordering': 'error',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',

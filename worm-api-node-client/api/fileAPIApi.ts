@@ -394,6 +394,89 @@ export class FileAPIApi {
         });
     }
     /**
+     * Saves the content of a file owned by the currently authenticated user.
+     * @summary Save file content
+     * @param body 
+     * @param fileId 
+     * @param xXSRFTOKEN CSRF token
+     */
+    public async saveFileContent (body: string, fileId: string, xXSRFTOKEN: string, options: {headers: {[name: string]: string}} = {headers: {}}) : Promise<{ response: http.IncomingMessage; body: object;  }> {
+        const localVarPath = this.basePath + '/api/v1/files/{fileId}/save'
+            .replace('{' + 'fileId' + '}', encodeURIComponent(String(fileId)));
+        let localVarQueryParameters: any = {};
+        let localVarHeaderParams: any = (<any>Object).assign({}, this._defaultHeaders);
+        const produces = ['*/*', 'application/json'];
+        // give precedence to 'application/json'
+        if (produces.indexOf('application/json') >= 0) {
+            localVarHeaderParams.Accept = 'application/json';
+        } else {
+            localVarHeaderParams.Accept = produces.join(',');
+        }
+        let localVarFormParams: any = {};
+
+        // verify required parameter 'body' is not null or undefined
+        if (body === null || body === undefined) {
+            throw new Error('Required parameter body was null or undefined when calling saveFileContent.');
+        }
+
+        // verify required parameter 'fileId' is not null or undefined
+        if (fileId === null || fileId === undefined) {
+            throw new Error('Required parameter fileId was null or undefined when calling saveFileContent.');
+        }
+
+        // verify required parameter 'xXSRFTOKEN' is not null or undefined
+        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
+            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling saveFileContent.');
+        }
+
+        localVarHeaderParams['X-XSRF-TOKEN'] = ObjectSerializer.serialize(xXSRFTOKEN, "string");
+        (<any>Object).assign(localVarHeaderParams, options.headers);
+
+        let localVarUseFormData = false;
+
+        let localVarRequestOptions: localVarRequest.Options = {
+            method: 'POST',
+            qs: localVarQueryParameters,
+            headers: localVarHeaderParams,
+            uri: localVarPath,
+            useQuerystring: this._useQuerystring,
+            json: true,
+            body: ObjectSerializer.serialize(body, "string")
+        };
+
+        let authenticationPromise = Promise.resolve();
+        authenticationPromise = authenticationPromise.then(() => this.authentications.default.applyToRequest(localVarRequestOptions));
+
+        let interceptorPromise = authenticationPromise;
+        for (const interceptor of this.interceptors) {
+            interceptorPromise = interceptorPromise.then(() => interceptor(localVarRequestOptions));
+        }
+
+        return interceptorPromise.then(() => {
+            if (Object.keys(localVarFormParams).length) {
+                if (localVarUseFormData) {
+                    (<any>localVarRequestOptions).formData = localVarFormParams;
+                } else {
+                    localVarRequestOptions.form = localVarFormParams;
+                }
+            }
+            return new Promise<{ response: http.IncomingMessage; body: object;  }>((resolve, reject) => {
+                localVarRequest(localVarRequestOptions, (error, response, body) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        if (response.statusCode && response.statusCode >= 200 && response.statusCode <= 299) {
+                            body = ObjectSerializer.deserialize(body, "object");
+                            resolve({ response: response, body: body });
+                        } else {
+                            reject(new HttpError(response, body, response.statusCode));
+                        }
+                    }
+                });
+            });
+        });
+    }
+    /**
      * Searches for files owned by the currently authenticated user based on the provided criteria.
      * @summary Search files
      * @param pageable Pageable information for the search results

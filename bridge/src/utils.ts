@@ -361,7 +361,13 @@ const debouncedSave = debounce(
           'Content-Type': 'application/json',
           'X-XSRF-TOKEN': 'your-csrf-token-here', // Replace with actual CSRF token
         },
-        body: JSON.stringify({ content: getYDocSharedObjectContent(doc, 'prosemirror', 'XmlFragment') }),
+        body: JSON.stringify({
+          content: getYDocSharedObjectContent(
+            doc,
+            'prosemirror',
+            'XmlFragment'
+          ),
+        }),
       });
 
       if (!response.ok) {
