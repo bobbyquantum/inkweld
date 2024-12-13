@@ -96,4 +96,15 @@ public class FileContentService {
     User currentUser = userService.getCurrentUser().orElseThrow(UserAuthInvalidException::new);
     return fileRepository.findByOwnerAndNameContainingIgnoreCase(currentUser, nameQuery, pageable);
   }
+
+  public boolean saveFileContent(UUID fileId, String content) throws IOException {
+    Optional<FileContent> existingFile = getFile(fileId);
+    if (existingFile.isPresent()) {
+      FileContent file = existingFile.get();
+      contentStore.setContent(file, content.getBytes());
+      fileRepository.save(file);
+      return true;
+    }
+    return false;
+  }
 }
