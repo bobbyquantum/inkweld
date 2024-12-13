@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
 
 import type { PersistenceAdapter } from '../utils.js';
 import {
@@ -31,6 +31,10 @@ describe('utils', () => {
 
     beforeEach(() => {
       doc = new WSSharedDoc('test-doc');
+    });
+
+    afterEach(() => {
+      doc.destroy(); // Clean up the doc and its awareness instance
     });
 
     test('should return array content', () => {
