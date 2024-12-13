@@ -1,9 +1,8 @@
 {
   "version": "0.2.0",
   "configurations": [
-    
     {
-      "name": "Backend",
+      "name": "⚡ Backend",
       "type": "java",
       "request": "launch",
       "mainClass": "observer.quantum.worm.WormApplication",
@@ -12,10 +11,20 @@
       "console": "integratedTerminal"
     },
     {
-      "type": "chrome",
-      "name": "Frontend",
+      "name": "🌉 Bridge",
+      "type": "node",
       "request": "launch",
-      "preLaunchTask": "Start Stack",
+      "preLaunchTask": "🔨 Build Bridge",
+      "runtimeExecutable": "bun",
+      "program": "${workspaceFolder}/bridge/dist/server.js",
+      "cwd": "${workspaceFolder}/bridge",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "chrome",
+      "name": "🎨 Frontend",
+      "request": "launch",
+      "preLaunchTask": "🎯 Start Stack",
       "url": "http://localhost:8333",
       "webRoot": "${workspaceFolder}/frontend",
       "sourceMaps": true,
@@ -29,8 +38,8 @@
   ],
   "compounds": [
     {
-      "name": "Full",
-      "configurations": ["Backend", "Frontend"]
+      "name": "✨ Full Stack",
+      "configurations": ["⚡ Backend", "🌉 Bridge", "🎨 Frontend"]
     }
   ]
 }

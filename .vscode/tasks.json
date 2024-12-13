@@ -1,54 +1,36 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-      {
-        "label": "Frontend",
-        "type": "shell",
-        "command": "cd frontend && npm start",
-        "isBackground": true,
-        "problemMatcher": [
-          {
-            "pattern": [
-              {
-                "regexp": ".",
-                "file": 1,
-                "location": 2,
-                "message": 3
-              }
-            ],
-            "background": {
-              "activeOnStart": true,
-              "beginsPattern": "^.*Initial chunk files.*$",
-              "endsPattern": "^.*Application bundle generation complete.*$"
-            }
-          }
-        ]
-      },
-      {
-        "label": "Bridge",
-        "type": "shell",
-        "command": "cd bridge && npm run dev",
-        "isBackground": true,
-        "problemMatcher": [
-          {
-            "pattern": [
-              {
-                "regexp": ".",
-                "file": 1,
-                "location": 2,
-                "message": 3
-              }
-            ],
-            "background": {
-              "activeOnStart": true,
-            }
-          }
-        ]
-      },
-      {
-        "label": "Start Stack",
-        "dependsOn": ["Frontend", "Bridge"],
-        "dependsOrder": "parallel"
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🔨 Build Bridge",
+      "type": "shell",
+      "command": "cd bridge && bun run tsc",
+      "group": {
+        "kind": "build",
+        "isDefault": true
       }
-    ]
-  }
+    },
+    {
+      "label": "🚀 Start Frontend Dev Server",
+      "type": "shell",
+      "command": "cd frontend && npm run start",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "typescript",
+        "pattern": "$tsc",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "bundle generation complete"
+        }
+      }
+    },
+    {
+      "label": "🎯 Start Stack",
+      "type": "shell",
+      "command": "echo '🚀 Stack dependencies started and ready!'",
+      "dependsOn": ["🔨 Build Bridge", "🚀 Start Frontend Dev Server"],
+      "dependsOrder": "sequence"
+    }
+  ]
+}
