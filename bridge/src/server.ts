@@ -1,5 +1,6 @@
 import express from 'express';
-import { createServer, IncomingMessage } from 'http';
+import { createServer, IncomingMessage, ServerResponse } from 'http';
+import httpProxy from 'http-proxy';
 import { Duplex } from 'stream';
 
 import { createPersistenceAdapter } from './persistence.js';
@@ -18,7 +19,6 @@ const PORT = 8333;
 // Create HTTP server
 const server = createServer(app);
 
-// Set up WebSocket handler
 const wsHandler = new WebSocketHandler();
 
 // Configure y-websocket persistence
@@ -47,15 +47,42 @@ app.use(
   (req, res, next) => apiProxy(req, res, next)
 );
 
-// Proxy configuration for frontend (e.g. Angular app)
 const frontendProxy = createFrontendProxy();
 app.use(skipWebSocketPaths, (req, res, next) => frontendProxy(req, res, next));
+
+const viteHmrProxy = httpProxy.createProxyServer({
+  target: 'http://localhost:4200',
+  ws: true,
+});
+
+viteHmrProxy.on('error', (err, req, res) => {
+  console.error('Vite HMR Proxy Error:', err);
+
+  if (res instanceof ServerResponse && !res.headersSent) {
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('Proxy error');
+  } else if ('end' in res && typeof res.end === 'function') {
+    res.end();
+  } else {
+    console.error('Unknown response type in proxy error handler.');
+  }
+});
 
 // Handle WebSocket upgrade requests
 server.on(
   'upgrade',
   (request: IncomingMessage, socket: Duplex, head: Buffer) => {
-    wsHandler.handleUpgrade(request, socket, head);
+    const url = request.url || '';
+
+    if (url.startsWith('/ws')) {
+      wsHandler.handleUpgrade(request, socket, head);
+    } else if (url.startsWith('/@vite/client')) {
+      viteHmrProxy.ws(request, socket, head);
+    } else {
+      console.log(`Rejecting WebSocket upgrade for: ${url}`);
+      socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
+      socket.destroy();
+    }
   }
 );
 

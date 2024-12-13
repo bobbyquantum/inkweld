@@ -32,7 +32,6 @@ export const createFrontendProxy = () => {
   const proxy = createProxyMiddleware({
     target: 'http://localhost:4200',
     changeOrigin: true,
-    ws: false,
     onProxyReq: logProxyReq,
   } as Options);
 
