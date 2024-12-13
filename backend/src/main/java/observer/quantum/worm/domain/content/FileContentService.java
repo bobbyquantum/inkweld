@@ -1,6 +1,8 @@
 package observer.quantum.worm.domain.content;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Optional;
 import java.util.UUID;
 import observer.quantum.worm.domain.user.User;
@@ -101,7 +103,8 @@ public class FileContentService {
     Optional<FileContent> existingFile = getFile(fileId);
     if (existingFile.isPresent()) {
       FileContent file = existingFile.get();
-      contentStore.setContent(file, content.getBytes());
+      InputStream contentStream = new ByteArrayInputStream(content.getBytes());
+      contentStore.setContent(file, contentStream);
       fileRepository.save(file);
       return true;
     }
