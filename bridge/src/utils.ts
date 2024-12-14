@@ -141,6 +141,7 @@ function updateHandler(
   syncProtocol.writeUpdate(encoder, update);
   const message = encoding.toUint8Array(encoder);
   doc.conns.forEach((_, conn) => send(doc, conn, message));
+  debouncedSave(doc); // Call debouncedSave function
 }
 
 /**
