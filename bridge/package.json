@@ -25,7 +25,7 @@
     "prosemirror-schema-basic": "1.2.3",
     "ws": "8.18.0",
     "y-prosemirror": "1.2.15",
-    "y-websocket": "2.0.4"
+    "y-websocket": "2.1.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
