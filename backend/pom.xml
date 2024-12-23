@@ -152,7 +152,7 @@
             <dependency>
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-bom</artifactId>
-                <version>1.0.0-M4</version>
+                <version>1.0.0-M5</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
