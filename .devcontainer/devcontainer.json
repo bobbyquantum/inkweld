@@ -7,7 +7,8 @@
         "ghcr.io/devcontainers/features/java:1": {
             "version": "23.0.1",
             "jdkDistro": "graalce"
-        }
+        },
+        "ghcr.io/lumenpink/devcontainer-features/bun:0": {}
     },
     "customizations": {
         "vscode": {
