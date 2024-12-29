@@ -18,6 +18,9 @@ const CALLBACK_DEBOUNCE_MAXWAIT = parseInt(
   process.env.CALLBACK_DEBOUNCE_MAXWAIT || '10000'
 );
 
+const INTERNAL_SERVER_URL =
+  process.env.INTERNAL_SERVER_URL || 'http://localhost:8080';
+
 // GC Enabled?
 const gcEnabled = process.env.GC !== 'false' && process.env.GC !== '0';
 
@@ -141,7 +144,7 @@ function updateHandler(
   syncProtocol.writeUpdate(encoder, update);
   const message = encoding.toUint8Array(encoder);
   doc.conns.forEach((_, conn) => send(doc, conn, message));
-  debouncedSave(doc); // Call debouncedSave function
+  void debouncedSave(doc); // Call debouncedSave function
 }
 
 /**
@@ -356,20 +359,23 @@ export function getYDocSharedObjectContent(
 const debouncedSave = debounce(
   async (doc: WSSharedDoc) => {
     try {
-      const response = await fetch(`/api/v1/files/${doc.name}/save`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-XSRF-TOKEN': 'your-csrf-token-here', // Replace with actual CSRF token
-        },
-        body: JSON.stringify({
-          content: getYDocSharedObjectContent(
-            doc,
-            'prosemirror',
-            'XmlFragment'
-          ),
-        }),
-      });
+      const response = await fetch(
+        INTERNAL_SERVER_URL + `/api/v1/files/${doc.name}/save`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-XSRF-TOKEN': 'your-csrf-token-here', // Replace with actual CSRF token
+          },
+          body: JSON.stringify({
+            content: getYDocSharedObjectContent(
+              doc,
+              'prosemirror',
+              'XmlFragment'
+            ),
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to save document: ${response.statusText}`);
