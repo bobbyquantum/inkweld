@@ -13,7 +13,7 @@ const toHexString = (bytes: Uint8Array): string =>
     .map(b => b.toString(16).padStart(2, '0'))
     .join(' ');
 
-const getProsemirrorContent = (
+export const getProsemirrorContent = (
   ydoc: Y.Doc
 ): { content?: string; error?: string } => {
   try {

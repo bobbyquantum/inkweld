@@ -3,12 +3,23 @@ import * as decoding from 'lib0/decoding';
 import * as encoding from 'lib0/encoding';
 import * as map from 'lib0/map';
 import debounce from 'lodash.debounce';
+import { Pool } from 'pg';
 import { RawData, WebSocket } from 'ws';
 import * as awarenessProtocol from 'y-protocols/awareness';
 import * as syncProtocol from 'y-protocols/sync';
 import * as Y from 'yjs';
 
 import { callbackHandler, isCallbackSet } from './callback.js';
+import { getProsemirrorContent } from './persistence.js';
+
+// PostgreSQL connection configuration
+const pool: Pool = new Pool({
+  user: process.env.POSTGRES_USER || 'wormuser',
+  host: process.env.POSTGRES_HOST || 'localhost',
+  database: process.env.POSTGRES_DB || 'wormdb',
+  password: process.env.POSTGRES_PASSWORD || 'secret',
+  port: parseInt(process.env.POSTGRES_PORT || '5432'),
+});
 
 // Some environment vars
 const CALLBACK_DEBOUNCE_WAIT = parseInt(
@@ -17,9 +28,6 @@ const CALLBACK_DEBOUNCE_WAIT = parseInt(
 const CALLBACK_DEBOUNCE_MAXWAIT = parseInt(
   process.env.CALLBACK_DEBOUNCE_MAXWAIT || '10000'
 );
-
-const INTERNAL_SERVER_URL =
-  process.env.INTERNAL_SERVER_URL || 'http://localhost:8080';
 
 // GC Enabled?
 const gcEnabled = process.env.GC !== 'false' && process.env.GC !== '0';
@@ -357,30 +365,49 @@ export function getYDocSharedObjectContent(
 
 // Debounced save function
 const debouncedSave = debounce(
-  async (doc: WSSharedDoc) => {
+  (doc: WSSharedDoc) => {
     try {
-      const response = await fetch(
-        INTERNAL_SERVER_URL + `/api/v1/files/${doc.name}/save`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-XSRF-TOKEN': 'your-csrf-token-here', // Replace with actual CSRF token
-          },
-          body: JSON.stringify({
-            content: getYDocSharedObjectContent(
-              doc,
-              'prosemirror',
-              'XmlFragment'
-            ),
-          }),
+      pool.connect((err, client, done) => {
+        if (!client) {
+          console.error('Error connecting to the database:', err);
+          return;
         }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to save document: ${response.statusText}`);
-      }
-
+        const { content, error } = getProsemirrorContent(doc);
+        if (error) {
+          console.error(
+            `Error getting ProseMirror content for ${doc.name}:`,
+            error
+          );
+        }
+        // now find the project_element with the correct id (doc.name)
+        client.query(
+          'SELECT * FROM project_elements WHERE id = $1',
+          [doc.name],
+          (err, res) => {
+            done();
+            if (err) {
+              console.error('Error fetching project_element:', err);
+            } else {
+              if (res.rows.length === 0) {
+                console.error("Document doesn't exist in the database.");
+              } else {
+                // If the project_element exists, update it
+                client.query(
+                  'UPDATE project_elements SET content = $2 WHERE id = $1',
+                  [doc.name, content],
+                  (err, _res) => {
+                    if (err) {
+                      console.error('Error updating project_element:', err);
+                    } else {
+                      console.log(`Document ${doc.name} saved successfully.`);
+                    }
+                  }
+                );
+              }
+            }
+          }
+        );
+      });
       console.log(`Document ${doc.name} saved successfully.`);
     } catch (error) {
       console.error(`Error saving document ${doc.name}:`, error);
