@@ -3,55 +3,36 @@ import { schema } from 'prosemirror-schema-basic';
 import { yXmlFragmentToProseMirrorRootNode } from 'y-prosemirror';
 import * as Y from 'yjs';
 
-import { PersistenceAdapter } from './utils';
-
+import { PersistenceAdapter } from './data/websocket-handler';
+import { toHexString } from './util/to-hex-string';
 // In-memory store for document states
 const documentStates = new Map<string, Uint8Array>();
 
-const toHexString = (bytes: Uint8Array): string =>
-  Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join(' ');
+export function dumpDocumentState(docName: string, ydoc: Y.Doc): void {
+  const fullState = Y.encodeStateAsUpdate(ydoc);
+  const { content, error } = getProsemirrorContent(ydoc);
+  console.log(`[DUMMY] Document state for ${docName}:`, {
+    state: toHexString(fullState),
+    ...(error ? { error } : { content }),
+  });
+}
 
-export const getProsemirrorContent = (
-  ydoc: Y.Doc
-): { content?: string; error?: string } => {
+export function getProsemirrorContent(ydoc: Y.Doc): {
+  content?: string;
+  error?: string;
+} {
   try {
     const xmlFragment = ydoc.get('prosemirror', Y.XmlFragment);
-    if (!xmlFragment) {
-      return { error: 'No prosemirror content found' };
-    }
-
     const node: ProseMirrorNode = yXmlFragmentToProseMirrorRootNode(
       xmlFragment,
       schema
     );
-    if (!node) {
-      return { error: 'Invalid ProseMirror node' };
-    }
-
     return { content: JSON.stringify(node) };
   } catch (error) {
-    console.error(
-      'Error converting document to ProseMirror node:',
-      error instanceof Error ? error.message : String(error)
-    );
+    console.error(error);
     return { error: 'Failed to convert document content' };
   }
-};
-
-const dumpDocumentState = (docName: string, ydoc: Y.Doc): void => {
-  const fullState = Y.encodeStateAsUpdate(ydoc);
-  const { content, error } = getProsemirrorContent(ydoc);
-
-  console.log(`[DUMMY] Document state for ${docName}:`, {
-    stateSize: fullState.length,
-    timestamp: new Date().toISOString(),
-    state: toHexString(fullState),
-    ...(error ? { error } : { content }),
-  });
-};
-
+}
 export const createPersistenceAdapter = (): PersistenceAdapter => ({
   bindState: (docName: string, ydoc: Y.Doc) => {
     console.log(`[DUMMY] Binding state for document: ${docName}`);

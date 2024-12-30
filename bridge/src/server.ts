@@ -3,15 +3,14 @@ import { createServer, IncomingMessage, ServerResponse } from 'http';
 import httpProxy from 'http-proxy';
 import { Duplex } from 'stream';
 
+import { setPersistence, WebSocketHandler } from './data/websocket-handler.js';
 import { createPersistenceAdapter } from './persistence.js';
 import {
   createApiProxy,
   createFrontendProxy,
   preserveOriginalUrl,
   skipWebSocketPaths,
-} from './proxy-middleware.js';
-import { setPersistence } from './utils';
-import { WebSocketHandler } from './websocket-handler.js';
+} from './proxy/proxy-middleware.js';
 
 const app = express();
 const PORT = 8333;
