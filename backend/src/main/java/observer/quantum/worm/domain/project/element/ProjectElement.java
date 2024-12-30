@@ -19,7 +19,8 @@ public class ProjectElement {
   @GeneratedValue(strategy = GenerationType.UUID)
   private String id;
 
-  @Version private Long version;
+  @Version
+  private Long version;
 
   @Column(nullable = false)
   private String name;
@@ -43,6 +44,12 @@ public class ProjectElement {
 
   @Column(name = "updated_at", nullable = false)
   private LocalDateTime updatedAt;
+
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
+
+  @Column(name = "content", columnDefinition = "jsonb")
+  private String content;
 
   @PrePersist
   protected void onCreate() {
