@@ -14,6 +14,8 @@ import { UserSessionEntity } from './auth/session.entity';
 import { PassportModule } from '@nestjs/passport';
 import { ProjectModule } from './project/project.module';
 import { ProjectEntity } from './project/project.entity';
+import { ProjectElementModule } from './project/element/project-element.module';
+import { ProjectElementEntity } from './project/element/project-element.entity';
 
 @Module({
   imports: [
@@ -24,12 +26,18 @@ import { ProjectEntity } from './project/project.entity';
       username: 'wormuser',
       password: 'secret',
       database: 'wormdb',
-      entities: [UserEntity, UserSessionEntity, ProjectEntity],
+      entities: [
+        UserEntity,
+        UserSessionEntity,
+        ProjectEntity,
+        ProjectElementEntity,
+      ],
       synchronize: true, // auto-create DB schema in dev (turn off in production!)
     }),
     PassportModule.register({ session: true }),
     UserModule,
     ProjectModule,
+    ProjectElementModule,
     AuthModule,
   ],
   controllers: [],

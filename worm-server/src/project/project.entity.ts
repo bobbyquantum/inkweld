@@ -27,7 +27,7 @@ export class ProjectEntity {
   @Column({ length: 1000, nullable: true })
   description: string;
 
-  @ManyToOne(() => UserEntity, (user) => user.id, { eager: false })
+  @ManyToOne(() => UserEntity, (user) => user.id, { eager: true })
   @JoinColumn({ name: 'user_id' })
   user: UserEntity;
 

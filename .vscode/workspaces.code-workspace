@@ -34,6 +34,7 @@
       "frontend/": true,
       "backend/": true,
       "bridge/": true,
+      "worm-server/": true,
       "worm-api-angular-client/": true,
       "worm-api-node-client/": true
     },
