@@ -51,6 +51,9 @@ public class ProjectElement {
   @Column(name = "content", columnDefinition = "jsonb")
   private String content;
 
+  @Lob
+  private byte[] value;
+
   @PrePersist
   protected void onCreate() {
     createdAt = LocalDateTime.now();

@@ -3,13 +3,13 @@ import { WebSocket } from 'ws';
 import * as awarenessProtocol from 'y-protocols/awareness';
 import * as Y from 'yjs';
 
-import { messageAwareness, send, updateHandler } from './websocket-handler';
+import { MessageType, send, updateHandler } from './websocket-handler';
 export interface AwarenessChanges {
   added: number[];
   updated: number[];
   removed: number[];
 }
-// GC Enabled?
+
 export const gcEnabled = process.env.GC !== 'false' && process.env.GC !== '0';
 
 export class WSSharedDoc extends Y.Doc {
@@ -25,14 +25,12 @@ export class WSSharedDoc extends Y.Doc {
     this.awareness = new awarenessProtocol.Awareness(this);
     this.awareness.setLocalState(null);
 
-    // Awareness change handler
     this.awareness.on('update', (changes: AwarenessChanges, conn: unknown) => {
       const changedClients = changes.added.concat(
         changes.updated,
         changes.removed
       );
 
-      // 'conn' here is the origin. In practice, it can be the WebSocket connection or null
       if (conn != null && this.conns.has(conn as WebSocket)) {
         const connControlledIDs = this.conns.get(conn as WebSocket);
         if (connControlledIDs) {
@@ -47,7 +45,7 @@ export class WSSharedDoc extends Y.Doc {
 
       // Broadcast awareness update
       const encoder = encoding.createEncoder();
-      encoding.writeVarUint(encoder, messageAwareness);
+      encoding.writeVarUint(encoder, MessageType.Awareness);
       encoding.writeVarUint8Array(
         encoder,
         awarenessProtocol.encodeAwarenessUpdate(this.awareness, changedClients)

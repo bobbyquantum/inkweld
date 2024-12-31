@@ -3,7 +3,7 @@ import { schema } from 'prosemirror-schema-basic';
 import { yXmlFragmentToProseMirrorRootNode } from 'y-prosemirror';
 import * as Y from 'yjs';
 
-import { PersistenceAdapter } from './data/websocket-handler';
+import { IPersistenceAdapter } from './data/websocket-handler';
 import { toHexString } from './util/to-hex-string';
 // In-memory store for document states
 const documentStates = new Map<string, Uint8Array>();
@@ -33,7 +33,7 @@ export function getProsemirrorContent(ydoc: Y.Doc): {
     return { error: 'Failed to convert document content' };
   }
 }
-export const createPersistenceAdapter = (): PersistenceAdapter => ({
+export const createPersistenceAdapter = (): IPersistenceAdapter => ({
   bindState: (docName: string, ydoc: Y.Doc) => {
     console.log(`[DUMMY] Binding state for document: ${docName}`);
 

@@ -17,6 +17,10 @@
       "path": "../bridge"
     },
     {
+      "name": "⚙️ Server",
+      "path": "../worm-server"
+    },
+    {
       "name": "📦 API Client (Angular)",
       "path": "../worm-api-angular-client"
     },
