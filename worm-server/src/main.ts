@@ -5,6 +5,7 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as session from 'express-session';
 import { TypeOrmSessionStore } from './auth/session.store';
+import { WsAdapter } from '@nestjs/platform-ws';
 
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
@@ -35,7 +36,7 @@ async function bootstrap() {
       },
     }),
   );
-
+  app.useWebSocketAdapter(new WsAdapter(app));
   const config = new DocumentBuilder()
     .setTitle('My API')
     .setDescription('API description')

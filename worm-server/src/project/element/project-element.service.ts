@@ -80,7 +80,11 @@ export class ProjectElementService {
       let entity: ProjectElementEntity;
       if (dto.id) {
         // Update
-        entity = await this.elementRepo.findOne({ where: { id: dto.id } });
+        entity = await this.elementRepo.findOne({
+          where: { id: dto.id },
+          relationLoadStrategy: 'join',
+          relations: ['project'],
+        });
         if (!entity) {
           throw new NotFoundException(`Element not found with ID: ${dto.id}`);
         }
@@ -96,7 +100,7 @@ export class ProjectElementService {
         entity.level = dto.level;
       } else {
         // Create new
-        entity = dto.toEntity();
+        entity = new ProjectElementDto(dto).toEntity();
         entity.project = project; // link to project
       }
       const saved = await this.elementRepo.save(entity);

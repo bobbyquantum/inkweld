@@ -55,7 +55,7 @@ export class ProjectElementDto {
   })
   expandable?: boolean;
 
-  constructor(entity?: ProjectElementEntity) {
+  constructor(entity?: ProjectElementEntity | ProjectElementDto) {
     if (entity) {
       this.id = entity.id;
       this.version = entity.version;

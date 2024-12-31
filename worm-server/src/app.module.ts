@@ -16,6 +16,7 @@ import { ProjectModule } from './project/project.module';
 import { ProjectEntity } from './project/project.entity';
 import { ProjectElementModule } from './project/element/project-element.module';
 import { ProjectElementEntity } from './project/element/project-element.entity';
+import { YjsGateway } from './ws/yjs-gateway';
 
 @Module({
   imports: [
@@ -41,7 +42,7 @@ import { ProjectElementEntity } from './project/element/project-element.entity';
     AuthModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [YjsGateway],
 })
 export class AppModule implements NestModule {
   private readonly logger = new Logger(AppModule.name);
@@ -52,13 +53,14 @@ export class AppModule implements NestModule {
         createProxyMiddleware({
           target: 'http://localhost:4200',
           changeOrigin: true,
-          // logger: console,
+          logger: console,
           ws: true,
         }),
       )
       .exclude({ path: 'api/(.*)', method: RequestMethod.ALL })
       .exclude({ path: 'login/(.*)', method: RequestMethod.ALL })
       .exclude({ path: 'oauth2/(.*)', method: RequestMethod.ALL })
+      .exclude({ path: 'ws/yjs/(.*)', method: RequestMethod.ALL })
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }
