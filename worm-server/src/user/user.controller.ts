@@ -15,8 +15,8 @@ import { ApiTags } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { UserDto } from './user.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { GithubAuthGuard } from 'src/auth/github-auth.guard';
-import { SessionAuthGuard } from 'src/auth/session-auth.guard';
+import { GithubAuthGuard } from '../auth/github-auth.guard';
+import { SessionAuthGuard } from '../auth/session-auth.guard';
 
 @ApiTags('User API')
 @Controller('api/v1/users')

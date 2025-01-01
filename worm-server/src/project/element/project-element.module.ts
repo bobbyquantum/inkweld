@@ -5,7 +5,7 @@ import { ProjectElementEntity } from './project-element.entity';
 import { ProjectElementService } from './project-element.service';
 import { ProjectElementController } from './project-element.controller';
 import { ProjectModule } from '../project.module';
-import { UserModule } from 'src/user/user.module';
+import { UserModule } from '../../user/user.module';
 
 @Module({
   imports: [

@@ -1,6 +1,6 @@
 import { ApiProperty, ApiSchema } from '@nestjs/swagger';
 import { ProjectEntity } from './project.entity';
-import { UserDto } from 'src/user/user.dto';
+import { UserDto } from '../user/user.dto';
 
 @ApiSchema({ name: 'Project' })
 export class ProjectDto {
