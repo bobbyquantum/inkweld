@@ -6,6 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './user/user.module';
 import { UserEntity } from './user/user.entity';
 import { AuthModule } from './auth/auth.module';
@@ -16,10 +17,19 @@ import { ProjectModule } from './project/project.module';
 import { ProjectEntity } from './project/project.entity';
 import { ProjectElementModule } from './project/element/project-element.module';
 import { ProjectElementEntity } from './project/element/project-element.entity';
-import { YjsGateway } from './ws/yjs-gateway';
+import { WsModule } from './ws/ws.module';
+import * as path from 'path';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [
+        path.resolve(process.cwd(), '.env.local'),
+        path.resolve(process.cwd(), '.env'),
+      ],
+      cache: true,
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
@@ -40,9 +50,9 @@ import { YjsGateway } from './ws/yjs-gateway';
     ProjectModule,
     ProjectElementModule,
     AuthModule,
+    WsModule,
   ],
   controllers: [],
-  providers: [YjsGateway],
 })
 export class AppModule implements NestModule {
   private readonly logger = new Logger(AppModule.name);
@@ -53,7 +63,7 @@ export class AppModule implements NestModule {
         createProxyMiddleware({
           target: 'http://localhost:4200',
           changeOrigin: true,
-          logger: console,
+          // logger: console,
           ws: true,
         }),
       )
