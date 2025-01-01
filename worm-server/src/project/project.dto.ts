@@ -1,7 +1,8 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiSchema } from '@nestjs/swagger';
 import { ProjectEntity } from './project.entity';
 import { UserDto } from 'src/user/user.dto';
 
+@ApiSchema({ name: 'Project' })
 export class ProjectDto {
   @ApiProperty({ example: 'my-project-slug' })
   slug: string;

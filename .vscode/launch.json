@@ -2,25 +2,6 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "⚡ Backend",
-      "type": "java",
-      "request": "launch",
-      "mainClass": "observer.quantum.worm.WormApplication",
-      "cwd": "${workspaceFolder}/backend",
-      "envFile": "${workspaceFolder}/.env",
-      "console": "integratedTerminal"
-    },
-    {
-      "name": "🌉 Bridge",
-      "type": "node",
-      "request": "launch",
-      "preLaunchTask": "🔨 Build Bridge",
-      "runtimeExecutable": "bun",
-      "program": "${workspaceFolder}/bridge/dist/server.js",
-      "cwd": "${workspaceFolder}/bridge",
-      "console": "integratedTerminal"
-    },
-    {
       "type": "chrome",
       "name": "🎨 Frontend",
       "request": "launch",
@@ -34,12 +15,26 @@
         "webpack:///*": "*",
         "/*": "${webRoot}/*"
       }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "🚀 NestJS Server",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start:dev"],
+      "cwd": "${workspaceFolder}/worm-server",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverClose",
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/worm-server/**/*.ts"
+      ]
     }
   ],
   "compounds": [
     {
-      "name": "✨ Full Stack",
-      "configurations": ["⚡ Backend", "🌉 Bridge", "🎨 Frontend"]
+      "name": "🌐 Full",
+      "configurations": ["🎨 Frontend", "🚀 NestJS Server"]
     }
   ]
 }

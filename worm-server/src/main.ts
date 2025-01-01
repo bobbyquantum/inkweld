@@ -38,9 +38,19 @@ async function bootstrap() {
   );
   app.useWebSocketAdapter(new WsAdapter(app));
   const config = new DocumentBuilder()
-    .setTitle('My API')
-    .setDescription('API description')
-    .setVersion('1.0')
+    .setTitle('Worm API')
+    .setDescription(
+      'Worm tunnel protocol - Secure API for managing projects and user data',
+    )
+    .setVersion(process.env.WORM_VERSION || '1.0')
+    .addTag(
+      'User API',
+      'The user controller allows accessing and updating details for the current user.',
+    )
+    .addTag(
+      'Project API',
+      'The project controller supports various functions relating to projects.',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

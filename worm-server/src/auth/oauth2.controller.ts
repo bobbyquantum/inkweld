@@ -2,7 +2,9 @@ import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { GithubAuthGuard } from './github-auth.guard';
 import { AuthService } from './auth.service';
+import { ApiExcludeController } from '@nestjs/swagger';
 
+@ApiExcludeController()
 @Controller('oauth2')
 export class OAuth2Controller {
   constructor(private readonly authService: AuthService) {}
@@ -35,19 +37,5 @@ export class OAuth2Controller {
       // Handle any errors during login process
       res.redirect('http://localhost:8333/login?error=server_error');
     }
-  }
-
-  // Method to add more OAuth providers in the future
-  @Get('/providers')
-  getOAuthProviders() {
-    return {
-      providers: [
-        {
-          name: 'GitHub',
-          authorizationUrl: '/oauth2/github',
-        },
-        // Add more providers as needed
-      ],
-    };
   }
 }

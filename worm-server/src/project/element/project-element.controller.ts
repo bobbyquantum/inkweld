@@ -24,7 +24,7 @@ import { ProjectElementService } from './project-element.service';
 import { ProjectElementDto } from './project-element.dto';
 import { SessionAuthGuard } from '../../auth/session-auth.guard'; // or your own guard
 
-@ApiTags('Project Elements API')
+@ApiTags('Project API')
 @Controller('api/v1/projects/:username/:slug/elements')
 @UseGuards(SessionAuthGuard) // ensuring only logged-in users
 export class ProjectElementController {

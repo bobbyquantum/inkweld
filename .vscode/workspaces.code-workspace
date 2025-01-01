@@ -1,20 +1,8 @@
 {
   "folders": [
     {
-      "name": "✨ Root",
-      "path": ".."
-    },
-    {
       "name": "🎨 Frontend",
       "path": "../frontend"
-    },
-    {
-      "name": "⚙️ Backend",
-      "path": "../backend"
-    },
-    {
-      "name": "🌉 Bridge",
-      "path": "../bridge"
     },
     {
       "name": "⚙️ Server",
@@ -27,13 +15,15 @@
     {
       "name": "📦 API Client (Node)",
       "path": "../worm-api-node-client"
-    }
+    },
+    {
+      "name": "✨ Root",
+      "path": ".."
+    },
   ],
   "settings": {
     "files.exclude": {
       "frontend/": true,
-      "backend/": true,
-      "bridge/": true,
       "worm-server/": true,
       "worm-api-angular-client/": true,
       "worm-api-node-client/": true

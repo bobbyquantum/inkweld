@@ -18,7 +18,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { GithubAuthGuard } from 'src/auth/github-auth.guard';
 import { SessionAuthGuard } from 'src/auth/session-auth.guard';
 
-@ApiTags('Users')
+@ApiTags('User API')
 @Controller('api/v1/users')
 export class UserController {
   private readonly logger = new Logger(UserController.name);
