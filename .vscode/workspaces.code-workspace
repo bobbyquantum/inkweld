@@ -1,6 +1,10 @@
 {
   "folders": [
     {
+      "name": "✨ Root",
+      "path": ".."
+    },
+    {
       "name": "🎨 Frontend",
       "path": "../frontend"
     },
@@ -15,11 +19,7 @@
     {
       "name": "📦 API Client (Node)",
       "path": "../worm-api-node-client"
-    },
-    {
-      "name": "✨ Root",
-      "path": ".."
-    },
+    }
   ],
   "settings": {
     "files.exclude": {
