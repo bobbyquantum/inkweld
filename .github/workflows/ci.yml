@@ -16,51 +16,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup GraalVM CE
-      uses: graalvm/setup-graalvm@v1
-      with:
-        java-version: '23'
-        distribution: 'graalvm-community'
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-
     - name: Setup Bun
       uses: oven-sh/setup-bun@v1
       with:
         bun-version: latest
 
     - name: Install dependencies
-      run: npm run install-all
+      run: bun run install-all
 
     - name: Check code formatting
-      run: npm run lint:ci
+      run: bun run lint:ci
 
-    - name: Set execute permissions on mvnw (Unix-like systems only)
-      if: runner.os == 'Linux' || runner.os == 'macOS'
-      run: chmod +x backend/mvnw
-
-    - name: Run backend tests
-      run: npm run test-backend
-
-    - name: Run frontend tests
-      run: cd frontend && npm test -- --watch=false --browsers=ChromeHeadless
-
-    - name: Run bridge tests
-      run: cd bridge && bun run test
-
-    - name: Run ESLint for bridge
-      run: cd bridge && bun run lint
-    # - name: Build project
-    #   run: npm run build
-
-    # - name: Archive production artifacts
-    #   uses: actions/upload-artifact@v4
-    #   with:
-    #     name: dist-${{ matrix.os }}
-    #     path: |
-    #       frontend/dist
-    #       backend/target/*.jar
+    - name: Run tests
+      run: bun run test
