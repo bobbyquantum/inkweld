@@ -25,7 +25,7 @@ jobs:
       run: bun run install-all
 
     - name: Check code formatting
-      run: bun run lint:ci
+      run: bun run lint
 
     - name: Run tests
       run: bun run test
