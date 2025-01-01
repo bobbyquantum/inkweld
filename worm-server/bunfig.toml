@@ -1,0 +1,11 @@
+[install]
+# Prefer Bun's native package manager
+prefer = "online"
+
+[runtime]
+# Enable TypeScript support
+typescript = true
+
+[test]
+# Configure test runner
+runner = "jest"

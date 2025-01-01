@@ -3,9 +3,6 @@ import {
   Get,
   Post,
   Body,
-  Patch,
-  Delete,
-  Param,
   BadRequestException,
   UseGuards,
   Request,
@@ -13,9 +10,6 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { UserService } from './user.service';
-import { UserDto } from './user.dto';
-import { AuthGuard } from '@nestjs/passport';
-import { GithubAuthGuard } from '../auth/github-auth.guard';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
 
 @ApiTags('User API')

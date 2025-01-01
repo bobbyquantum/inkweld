@@ -6,11 +6,12 @@ import * as path from 'path';
 import * as session from 'express-session';
 import { TypeOrmSessionStore } from './auth/session.store';
 import { WsAdapter } from '@nestjs/platform-ws';
+import { ExpressAdapter } from '@nestjs/platform-express';
 
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, new ExpressAdapter());
 
   // Enable CORS for Angular frontend
   app.enableCors({

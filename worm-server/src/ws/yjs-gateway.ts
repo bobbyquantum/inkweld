@@ -6,13 +6,11 @@ import {
   OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, WebSocket } from 'ws';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { setupWSConnection } from 'y-websocket/bin/utils.cjs';
 import {
   Logger,
   Injectable,
-  Inject,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { TypeOrmSessionStore } from '../auth/session.store';
 import { ConfigService } from '@nestjs/config';
@@ -38,7 +36,7 @@ export class YjsGateway
       .filter(Boolean);
   }
 
-  afterInit(server: Server) {
+  afterInit(_server: Server) {
     this.logger.log('YjsGateway initialized');
   }
 
@@ -93,7 +91,7 @@ export class YjsGateway
     }
   }
 
-  handleDisconnect(client: WebSocket): void {
+  handleDisconnect(_client: WebSocket): void {
     this.logger.log('Yjs client disconnected');
   }
 
@@ -188,7 +186,7 @@ export class YjsGateway
   }
 
   private async validateSession(sessionId: string): Promise<any | null> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       this.sessionStore.get(sessionId, (err, session) => {
         if (err) {
           this.logger.error('Session validation error', err);

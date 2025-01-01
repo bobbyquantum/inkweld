@@ -63,18 +63,18 @@ export class TypeOrmSessionStore extends Store {
         expiredAt: expiredAt,
       });
 
-      callback && callback(null);
+      if (callback) callback(null);
     } catch (err) {
-      callback && callback(err);
+      if (callback) callback(err);
     }
   }
 
   async destroy(sid: string, callback?: (err?: any) => void) {
     try {
       await this.sessionRepository.delete({ id: sid });
-      callback && callback(null);
+      if (callback) callback(null);
     } catch (err) {
-      callback && callback(err);
+      if (callback) callback(err);
     }
   }
 
@@ -90,9 +90,9 @@ export class TypeOrmSessionStore extends Store {
         { expiredAt: expiredAt },
       );
 
-      callback && callback(null);
+      if (callback) callback(null);
     } catch (err) {
-      callback && callback(err);
+      if (callback) callback(err);
     }
   }
 

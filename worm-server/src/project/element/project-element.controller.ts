@@ -5,7 +5,6 @@ import {
   Put,
   Param,
   Body,
-  Request,
   Headers,
   UseGuards,
   Logger,
@@ -13,7 +12,6 @@ import {
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
   ApiNotFoundResponse,
   ApiHeader,
   ApiBadRequestResponse,

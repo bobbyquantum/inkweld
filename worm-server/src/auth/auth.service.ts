@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import { UserEntity } from '../user/user.entity';
 import * as bcrypt from 'bcrypt';
 import { TypeOrmSessionStore } from './session.store';
-import { Request } from 'express';
+import type { Request } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -37,7 +37,7 @@ export class AuthService {
     }
 
     // Remove password from returned user object
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const { password: _, ...result } = user;
     return result;
   }

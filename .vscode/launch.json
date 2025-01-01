@@ -20,11 +20,10 @@
       "type": "node",
       "request": "launch",
       "name": "🚀 NestJS Server",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "start:dev"],
       "cwd": "${workspaceFolder}/worm-server",
       "console": "integratedTerminal",
-      "internalConsoleOptions": "neverClose",
       "sourceMaps": true,
       "resolveSourceMapLocations": [
         "${workspaceFolder}/worm-server/**/*.ts"

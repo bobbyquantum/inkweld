@@ -1,9 +1,10 @@
 {
   "name": "worm-project",
   "version": "1.0.0",
-  "description": "Worm project with frontend, backend, and worm-api-angular-client",
+  "description": "Worm project",
   "scripts": {
   },
   "devDependencies": {
-  }
+  },
+  "packageManager": "bun@1.1.42"
 }

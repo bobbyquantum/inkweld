@@ -1,5 +1,5 @@
 import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { GithubAuthGuard } from './github-auth.guard';
 import { AuthService } from './auth.service';
 import { ApiExcludeController } from '@nestjs/swagger';
@@ -33,7 +33,7 @@ export class OAuth2Controller {
         // Handle authentication failure
         res.redirect('http://localhost:8333/login?error=authentication_failed');
       }
-    } catch (error) {
+    } catch (_error) {
       // Handle any errors during login process
       res.redirect('http://localhost:8333/login?error=server_error');
     }

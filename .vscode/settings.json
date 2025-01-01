@@ -5,12 +5,6 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
-  "java.configuration.updateBuildConfiguration": "automatic",
-  "[java]": {
-    "editor.formatOnSave": false,
-    "editor.defaultFormatter": "josevseb.google-java-format-for-vs-code"
-  },
-  "java.compile.nullAnalysis.mode": "automatic",
   "[typescript]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
