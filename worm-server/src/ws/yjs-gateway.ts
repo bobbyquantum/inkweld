@@ -41,7 +41,12 @@ export class YjsGateway
 
   afterInit(_server: Server) {
     this.logger.log('YjsGateway initialized');
-    const ldb = new LeveldbPersistence(process.env.YPERSISTENCE);
+    const ldb = new LeveldbPersistence(process.env.YPERSISTENCE, {
+      levelOptions: {
+        createIfMissing: true,
+        errorIfExists: false,
+      },
+    });
     setPersistence({
       provider: ldb,
       bindState: async (docName, ydoc) => {
