@@ -54,7 +54,7 @@
     "swagger-ui-express": "5.0.1",
     "typeorm": "0.3.20",
     "ws": "8.18.0",
-    "y-protocols": "1.0.5",
+    "y-protocols": "1.0.6",
     "y-websocket": "2.1.0"
   },
   "devDependencies": {
