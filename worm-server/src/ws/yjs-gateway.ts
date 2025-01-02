@@ -31,7 +31,7 @@ export class YjsGateway
     private readonly sessionStore: TypeOrmSessionStore,
     private readonly configService: ConfigService,
   ) {
-    // Get allowed origins from configuration
+    // Get allowed origins from config
     this.allowedOrigins = this.configService
       .get<string>('ALLOWED_ORIGINS', '')
       .split(',')
@@ -39,34 +39,67 @@ export class YjsGateway
       .filter(Boolean);
   }
 
+  /**
+   * Called once the gateway is initialized. Here we set up the LevelDB persistence
+   * so that any docs loaded via `setupWSConnection` get automatically persisted.
+   */
   afterInit(_server: Server) {
     this.logger.log('YjsGateway initialized');
+
+    // Initialize LevelDBPersistence
     const ldb = new LeveldbPersistence(process.env.YPERSISTENCE, {
+      // You can pass level options here if desired
       levelOptions: {
         createIfMissing: true,
         errorIfExists: false,
       },
     });
+
+    // Inform y-websocket about our persistence instance
     setPersistence({
       provider: ldb,
+
+      /**
+       * bindState is called whenever y-websocket needs to “attach” an incoming doc.
+       * We load the persisted doc, apply any changes to the new in-memory doc, and
+       * persist new updates as they come in.
+       */
       bindState: async (docName, ydoc) => {
+        // Get doc from DB and apply its state to the new in-memory Y.Doc
         const persistedYdoc = await ldb.getYDoc(docName);
+
+        // Always store an initial update so the DB knows this doc name exists
         const newUpdates = Y.encodeStateAsUpdate(ydoc);
-        ldb.storeUpdate(docName, newUpdates);
+        await ldb.storeUpdate(docName, newUpdates);
+
+        // Apply persisted state onto our fresh doc
         Y.applyUpdate(ydoc, Y.encodeStateAsUpdate(persistedYdoc));
-        ydoc.on('update', (update) => {
-          ldb.storeUpdate(docName, update);
+
+        // Listen for any doc updates and write them out
+        ydoc.on('update', async (update) => {
+          await ldb.storeUpdate(docName, update);
         });
       },
-      writeState: async (_docName, _ydoc) => {},
+
+      // (Optionally implement if you want a "cleanup" phase)
+      writeState: async (_docName, _ydoc) => {
+        // Example: flush or merge incremental updates
+      },
     });
   }
 
   @WebSocketServer()
   server: Server;
 
+  /**
+   * Called every time a new WebSocket connection is established. We:
+   *  - Validate the user session
+   *  - Check doc ownership
+   *  - Attach the user to the doc via setupWSConnection
+   */
   async handleConnection(connection: WebSocket, req: Request): Promise<void> {
-    this.logger.log(`New Yjs WebSocket connection for doc`);
+    this.logger.log(`New Yjs WebSocket connection requested..`);
+
     try {
       // Validate origin
       const origin = req.headers.origin || '';
@@ -78,9 +111,8 @@ export class YjsGateway
         return;
       }
 
-      // Extract session token from query or headers
+      // Extract session token
       const sessionToken = this.extractSessionToken(req);
-
       if (!sessionToken) {
         this.logger.warn('No session token provided');
         connection.close(1008, 'No session token');
@@ -94,26 +126,52 @@ export class YjsGateway
         connection.close(1008, 'Invalid session');
         return;
       }
-
-      // Parse URL and extract document ID
+      // Determine doc name (e.g. from ?documentId=xyz)
       const url = new URL(`http://localhost${req.url}`);
       const docId = url.searchParams.get('documentId') || 'default';
 
-      // Attach user info to the connection if needed
+      // Check & enforce doc ownership
+      const ldb = getPersistence()?.provider as LeveldbPersistence;
+      if (!ldb) {
+        this.logger.error('No LevelDB persistence found!');
+        connection.close(1011, 'Server Error');
+        return;
+      }
+
+      // Retrieve existing owner
+      const docOwner = await ldb.getMeta(docId, 'ownerId');
+      this.logger.log('session', session);
+      // If no owner is set, the first user to open the doc becomes the owner
+      if (!docOwner) {
+        await ldb.setMeta(docId, 'ownerId', session.userId);
+        this.logger.log(
+          `Doc "${docId}" had no owner; set owner to user ${session.userId}`,
+        );
+      } else if (docOwner !== session.userId) {
+        // If the doc is owned by someone else, deny
+        this.logger.warn(
+          `User ${session.userId} tried to open doc "${docId}", but it belongs to ${docOwner}`,
+        );
+        connection.close(1008, 'You do not have permission for this doc');
+        return;
+      }
+
+      // // Attach user info if desired
       const connectionOptions = {
         docName: docId,
-        user: session.user, // Attach user info from session
+        user: session.userId,
       };
 
+      // Create the Yjs connection
       setupWSConnection(connection, req, connectionOptions);
 
       this.logger.log(
-        `New Yjs WebSocket connection for doc: "${docId}" with persistence "${process.env.YPERSISTENCE}"`,
-        getPersistence(),
+        `New Yjs WebSocket connection for doc: "${docId}" with persistence "${process.env.YPERSISTENCE}" (Owner: ${
+          docOwner || session.userId
+        })`,
       );
     } catch (error) {
       this.logger.error('WebSocket connection error', error);
-
       connection.close(1011, 'Internal server error');
     }
   }
@@ -122,8 +180,10 @@ export class YjsGateway
     this.logger.log('Yjs client disconnected');
   }
 
+  /**
+   * Helper: check whether the incoming Origin is permitted.
+   */
   private isOriginAllowed(origin: string): boolean {
-    // If no allowed origins are configured, allow all
     if (this.allowedOrigins.length === 0) {
       this.logger.debug('No origin restrictions configured');
       return true;
@@ -142,7 +202,7 @@ export class YjsGateway
               (!originUrl.port && allowedUrl.port === '80'))
           );
         } catch {
-          // Fallback to simple string matching if URL parsing fails
+          // Fallback to string matching if parse fails
           return origin.startsWith(allowedOrigin);
         }
       });
@@ -157,8 +217,11 @@ export class YjsGateway
     }
   }
 
+  /**
+   * Helper: tries to extract a session token from query params, cookies,
+   * or Authorization headers.
+   */
   private extractSessionToken(req: Request): string | null {
-    // Logging for debugging token extraction
     this.logger.debug('Attempting to extract session token', {
       testHeaders: Object.keys(req.headers || {}),
       cookiesHeader: req.headers?.cookie ?? 'missing',
@@ -167,7 +230,7 @@ export class YjsGateway
       authHeader: req.headers.authorization ? 'Present' : 'Missing',
     });
 
-    // Try to get session token from query parameters
+    // Query param
     const urlToken = new URL(`http://localhost${req.url}`).searchParams.get(
       'sessionToken',
     );
@@ -176,14 +239,12 @@ export class YjsGateway
       return urlToken;
     }
 
-    // Try to get session token from cookie header
+    // Cookie header
     const cookieHeader = req.headers.cookie;
     if (cookieHeader) {
       const parsedCookies = cookie.parse(cookieHeader);
       const connectSid = parsedCookies['connect.sid'];
-
       if (connectSid) {
-        // Remove 's:' prefix and everything after the '.'
         const cleanedToken = connectSid.replace(/^s:/, '').split('.')[0];
         this.logger.verbose('Session token found in connect.sid cookie', {
           originalToken: connectSid,
@@ -193,7 +254,7 @@ export class YjsGateway
       }
     }
 
-    // Try to get session token from cookies object
+    // Cookies object
     const cookieToken =
       req.cookies?.sessionToken || req.cookies?.['connect.sid'];
     if (cookieToken) {
@@ -201,7 +262,7 @@ export class YjsGateway
       return cookieToken;
     }
 
-    // Try to get session token from authorization header
+    // Authorization header
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       this.logger.verbose('Session token found in Authorization header');
@@ -212,8 +273,11 @@ export class YjsGateway
     return null;
   }
 
+  /**
+   * Helper: verifies that the session token is valid by checking your session store.
+   */
   private async validateSession(sessionId: string): Promise<any | null> {
-    return new Promise((resolve, _reject) => {
+    return new Promise((resolve) => {
       this.sessionStore.get(sessionId, (err, session) => {
         if (err) {
           this.logger.error('Session validation error', err);
@@ -227,21 +291,17 @@ export class YjsGateway
           return;
         }
 
-        // Additional session validation checks
+        // Check for expiration
         const now = Date.now();
-        if (
-          session.cookie &&
-          session.cookie.expires &&
-          now > session.cookie.expires
-        ) {
+        if (session.cookie?.expires && now > session.cookie.expires) {
           this.logger.warn(`Session expired for token: ${sessionId}`);
           resolve(null);
           return;
         }
 
-        // Log successful session validation
         this.logger.verbose(
-          `Session validated successfully for token: ${sessionId}`,
+          `Session validated for token: ${sessionId}`,
+          session,
         );
         resolve(session);
       });
