@@ -10,18 +10,17 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ActivatedRoute, provideRouter } from '@angular/router';
 import { XsrfService } from '@services/xsrf.service';
-import { Observable, of, throwError } from 'rxjs';
 import {
   Configuration,
-  Project,
   ProjectAPIService,
-  User,
+  ProjectDto,
   UserAPIService,
-} from 'worm-api-angular-client';
+  UserDto,
+} from '@worm/index';
+import { Observable, of, throwError } from 'rxjs';
 
 import { NewProjectComponent } from './new-project.component';
 
-jest.mock('worm-api-angular-client');
 jest.mock('@angular/material/snack-bar');
 jest.mock('@services/xsrf.service');
 
@@ -35,15 +34,15 @@ describe('NewProjectComponent', () => {
 
   beforeEach(async () => {
     projectService = {
-      createProject: jest
+      projectControllerCreateProject: jest
         .fn()
-        .mockImplementation((token: string, project: Project) => {
+        .mockImplementation((token: string, project: ProjectDto) => {
           return of(project);
         }),
     } as unknown as jest.Mocked<ProjectAPIService>;
 
     userService = {
-      getCurrentUser: jest.fn(),
+      userControllerGetMe: jest.fn(),
     } as unknown as jest.Mocked<UserAPIService>;
 
     snackBar = {
@@ -75,10 +74,10 @@ describe('NewProjectComponent', () => {
 
   it('should create', fakeAsync(() => {
     const getCurrentUserMock =
-      userService.getCurrentUser as unknown as jest.MockedFunction<
-        (observe: 'body') => Observable<User>
+      userService.userControllerGetMe as unknown as jest.MockedFunction<
+        (observe: 'body') => Observable<UserDto>
       >;
-    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as User));
+    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as UserDto));
     fixture.detectChanges();
     tick();
     expect(component).toBeTruthy();
@@ -87,10 +86,10 @@ describe('NewProjectComponent', () => {
 
   it('should generate slug from title', fakeAsync(() => {
     const getCurrentUserMock =
-      userService.getCurrentUser as unknown as jest.MockedFunction<
-        (observe: 'body') => Observable<User>
+      userService.userControllerGetMe as unknown as jest.MockedFunction<
+        (observe: 'body') => Observable<UserDto>
       >;
-    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as User));
+    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as UserDto));
     fixture.detectChanges();
     tick();
     const title = 'My Awesome Project';
@@ -103,10 +102,10 @@ describe('NewProjectComponent', () => {
 
   it('should update project URL when slug changes', fakeAsync(() => {
     const getCurrentUserMock =
-      userService.getCurrentUser as unknown as jest.MockedFunction<
-        (observe: 'body') => Observable<User>
+      userService.userControllerGetMe as unknown as jest.MockedFunction<
+        (observe: 'body') => Observable<UserDto>
       >;
-    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as User));
+    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as UserDto));
     fixture.detectChanges();
     tick();
     const slug = 'test-project';
@@ -120,10 +119,10 @@ describe('NewProjectComponent', () => {
 
   it('should create project when form is valid', fakeAsync(() => {
     const getCurrentUserMock =
-      userService.getCurrentUser as unknown as jest.MockedFunction<
-        (observe: 'body') => Observable<User>
+      userService.userControllerGetMe as unknown as jest.MockedFunction<
+        (observe: 'body') => Observable<UserDto>
       >;
-    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as User));
+    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as UserDto));
     fixture.detectChanges();
     tick();
     const projectData = {
@@ -136,31 +135,31 @@ describe('NewProjectComponent', () => {
     xsrfService.getXsrfToken.mockReturnValue('test-token');
 
     (
-      projectService.createProject as unknown as jest.MockedFunction<
+      projectService.projectControllerCreateProject as unknown as jest.MockedFunction<
         (
           token: string,
-          project: Project,
+          project: ProjectDto,
           observe: 'body'
-        ) => Observable<Project>
+        ) => Observable<ProjectDto>
       >
-    ).mockReturnValue(of(projectData as Project));
+    ).mockReturnValue(of(projectData as ProjectDto));
 
     component.onSubmit();
     tick();
 
-    expect(projectService.createProject).toHaveBeenCalledWith(
-      projectData,
-      'test-token'
+    expect(projectService.projectControllerCreateProject).toHaveBeenCalledWith(
+      'test-token',
+      projectData
     );
     flush();
   }));
 
   it('should handle error when project creation fails', fakeAsync(() => {
     const getCurrentUserMock =
-      userService.getCurrentUser as unknown as jest.MockedFunction<
-        (observe: 'body') => Observable<User>
+      userService.userControllerGetMe as unknown as jest.MockedFunction<
+        (observe: 'body') => Observable<UserDto>
       >;
-    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as User));
+    getCurrentUserMock.mockReturnValue(of({ username: 'testuser' } as UserDto));
     fixture.detectChanges();
     tick();
     const projectData = {
@@ -171,23 +170,23 @@ describe('NewProjectComponent', () => {
     component.projectForm.patchValue(projectData);
     tick();
     xsrfService.getXsrfToken.mockReturnValue('test-token');
-    projectService.createProject.mockReturnValue(
+    projectService.projectControllerCreateProject.mockReturnValue(
       throwError(() => new Error('Creation failed'))
     );
 
     component.onSubmit();
     tick();
-    expect(projectService.createProject).toHaveBeenCalledWith(
-      projectData,
-      'test-token'
+    expect(projectService.projectControllerCreateProject).toHaveBeenCalledWith(
+      'test-token',
+      projectData
     );
     flush();
   }));
 
   it('should handle error when fetching user fails', fakeAsync(() => {
     const getCurrentUserMock =
-      userService.getCurrentUser as unknown as jest.MockedFunction<
-        (observe: 'body') => Observable<User>
+      userService.userControllerGetMe as unknown as jest.MockedFunction<
+        (observe: 'body') => Observable<UserDto>
       >;
     getCurrentUserMock.mockReturnValue(
       throwError(() => new Error('Failed to fetch user'))

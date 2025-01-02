@@ -1,8 +1,8 @@
 import { Component, HostBinding, inject, NgZone, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { User, UserAPIService } from 'worm-api-angular-client';
 
+import { UserAPIService, UserDto } from '../api-client';
 import { ThemeService } from '../themes/theme.service';
 
 @Component({
@@ -14,7 +14,7 @@ import { ThemeService } from '../themes/theme.service';
 export class AppComponent implements OnInit {
   @HostBinding('class') className = '';
   title = 'worm-frontend';
-  user: User | null = null;
+  user: UserDto | null = null;
 
   protected userService = inject(UserAPIService);
   protected ngZone = inject(NgZone);
@@ -22,8 +22,8 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.themeService.initTheme();
-    firstValueFrom(this.userService.getCurrentUser())
-      .then((user: User) => {
+    firstValueFrom(this.userService.userControllerGetMe())
+      .then((user: UserDto) => {
         this.user = user;
       })
       .catch(error => {

@@ -1,19 +1,15 @@
 import { TestBed } from '@angular/core/testing';
+import { ProjectAPIService, ProjectElementDto } from '@worm/index';
 import { of, throwError } from 'rxjs';
-import {
-  ProjectElementDto,
-  ProjectElementsAPIService,
-} from 'worm-api-angular-client';
 
 import { ProjectStateService } from './project-state.service';
 import { XsrfService } from './xsrf.service';
 
-jest.mock('worm-api-angular-client');
 jest.mock('./xsrf.service');
 
 describe('ProjectStateService', () => {
   let service: ProjectStateService;
-  let elementService: jest.Mocked<ProjectElementsAPIService>;
+  let elementService: jest.Mocked<ProjectAPIService>;
   let xsrfService: jest.Mocked<XsrfService>;
 
   const mockElement: ProjectElementDto = {
@@ -26,9 +22,9 @@ describe('ProjectStateService', () => {
 
   beforeEach(() => {
     elementService = {
-      getProjectElements: jest.fn(),
-      dinsertElements: jest.fn(),
-    } as unknown as jest.Mocked<ProjectElementsAPIService>;
+      projectElementControllerGetProjectElements: jest.fn(),
+      projectElementControllerDinsertElements: jest.fn(),
+    } as unknown as jest.Mocked<ProjectAPIService>;
 
     xsrfService = {
       getXsrfToken: jest.fn(),
@@ -37,7 +33,7 @@ describe('ProjectStateService', () => {
     TestBed.configureTestingModule({
       providers: [
         ProjectStateService,
-        { provide: ProjectElementsAPIService, useValue: elementService },
+        { provide: ProjectAPIService, useValue: elementService },
         { provide: XsrfService, useValue: xsrfService },
       ],
     });
@@ -51,25 +47,24 @@ describe('ProjectStateService', () => {
 
   it('should handle successful element loading', async () => {
     const mockElements = [mockElement];
-    (elementService.getProjectElements as jest.Mock).mockReturnValue(
-      of(mockElements)
-    );
+    (
+      elementService.projectElementControllerGetProjectElements as jest.Mock
+    ).mockReturnValue(of(mockElements));
 
     await service.loadProjectElements('user', 'project');
 
-    expect(elementService.getProjectElements).toHaveBeenCalledWith(
-      'user',
-      'project'
-    );
+    expect(
+      elementService.projectElementControllerGetProjectElements
+    ).toHaveBeenCalledWith('user', 'project');
     expect(service.elements()).toEqual(mockElements);
     expect(service.isLoading()).toBe(false);
     expect(service.error()).toBeUndefined();
   });
 
   it('should handle loading error', async () => {
-    (elementService.getProjectElements as jest.Mock).mockReturnValue(
-      throwError(() => new Error('API Error'))
-    );
+    (
+      elementService.projectElementControllerGetProjectElements as jest.Mock
+    ).mockReturnValue(throwError(() => new Error('API Error')));
 
     await service.loadProjectElements('user', 'project');
 
@@ -81,18 +76,15 @@ describe('ProjectStateService', () => {
     const mockElements = [mockElement];
     xsrfService.getXsrfToken.mockReturnValue('test-token');
 
-    (elementService.dinsertElements as jest.Mock).mockReturnValue(
-      of(mockElements)
-    );
+    (
+      elementService.projectElementControllerDinsertElements as jest.Mock
+    ).mockReturnValue(of(mockElements));
 
     await service.saveProjectElements('user', 'project', mockElements);
 
-    expect(elementService.dinsertElements).toHaveBeenCalledWith(
-      mockElements,
-      'user',
-      'project',
-      'test-token'
-    );
+    expect(
+      elementService.projectElementControllerDinsertElements
+    ).toHaveBeenCalledWith('user', 'project', 'test-token', mockElements);
     expect(service.elements()).toEqual(mockElements);
     expect(service.isSaving()).toBe(false);
     expect(service.error()).toBeUndefined();
@@ -102,9 +94,9 @@ describe('ProjectStateService', () => {
     const mockElements = [mockElement];
     xsrfService.getXsrfToken.mockReturnValue('test-token');
 
-    (elementService.dinsertElements as jest.Mock).mockReturnValue(
-      throwError(() => new Error('API Error'))
-    );
+    (
+      elementService.projectElementControllerDinsertElements as jest.Mock
+    ).mockReturnValue(throwError(() => new Error('API Error')));
 
     await service.saveProjectElements('user', 'project', mockElements);
 

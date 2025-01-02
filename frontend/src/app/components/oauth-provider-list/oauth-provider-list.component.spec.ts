@@ -1,12 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { UserAPIService } from '@worm/index';
 import { Observable, of, throwError } from 'rxjs';
-import { UserAPIService } from 'worm-api-angular-client';
 
 import { OAuthProviderListComponent } from './oauth-provider-list.component';
-
-jest.mock('worm-api-angular-client');
 
 describe('OAuthProviderListComponent', () => {
   let component: OAuthProviderListComponent;
@@ -16,7 +14,7 @@ describe('OAuthProviderListComponent', () => {
 
   beforeEach(async () => {
     userService = {
-      getEnabledOAuth2Providers: jest.fn(),
+      userControllerGetOAuthProviders: jest.fn(),
     } as unknown as jest.Mocked<UserAPIService>;
 
     snackBar = {
@@ -43,7 +41,7 @@ describe('OAuthProviderListComponent', () => {
   describe('initialization', () => {
     it('should load OAuth2 providers on init', async () => {
       const getEnabledOAuth2ProvidersMock =
-        userService.getEnabledOAuth2Providers as unknown as jest.MockedFunction<
+        userService.userControllerGetOAuthProviders as unknown as jest.MockedFunction<
           (observe: 'body') => Observable<string[]>
         >;
       getEnabledOAuth2ProvidersMock.mockReturnValue(of(['github', 'google']));
@@ -62,7 +60,7 @@ describe('OAuthProviderListComponent', () => {
       await Promise.resolve();
 
       // After loading completes
-      expect(userService.getEnabledOAuth2Providers).toHaveBeenCalled();
+      expect(userService.userControllerGetOAuthProviders).toHaveBeenCalled();
       expect(component.enabledProviders()).toEqual(['github', 'google']);
       expect(component.isLoadingProviders()).toBeFalsy();
       expect(component.githubEnabled()).toBeTruthy();
@@ -72,7 +70,7 @@ describe('OAuthProviderListComponent', () => {
 
     it('should handle OAuth2 providers loading error', async () => {
       const getEnabledOAuth2ProvidersMock =
-        userService.getEnabledOAuth2Providers as unknown as jest.MockedFunction<
+        userService.userControllerGetOAuthProviders as unknown as jest.MockedFunction<
           (observe: 'body') => Observable<string[]>
         >;
       getEnabledOAuth2ProvidersMock.mockReturnValue(

@@ -4,8 +4,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { UserAPIService } from '@worm/index';
 import { firstValueFrom } from 'rxjs';
-import { UserAPIService } from 'worm-api-angular-client';
 
 @Component({
   selector: 'app-oauth-provider-list',
@@ -114,8 +114,8 @@ export class OAuthProviderListComponent implements OnInit {
     this.isLoadingProviders.set(true);
 
     try {
-      const providers = await firstValueFrom(
-        this.userService.getEnabledOAuth2Providers()
+      const providers: string[] = await firstValueFrom(
+        this.userService.userControllerGetOAuthProviders()
       );
       this.enabledProviders.set(providers);
 

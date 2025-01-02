@@ -9,7 +9,7 @@ import jest from 'eslint-plugin-jest';
 
 export default tseslint.config(
   {
-    files: ['**/*.ts'],
+    files: ['src/app/**/*.ts', 'src/themes/**/*.ts'],
     extends: [
       eslint.configs.recommended,
       ...tseslint.configs.recommendedTypeChecked,

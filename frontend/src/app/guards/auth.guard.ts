@@ -1,13 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { UserAPIService, UserDto } from '@worm/index';
 import { lastValueFrom } from 'rxjs';
-import { User, UserAPIService } from 'worm-api-angular-client';
 
 // Move cache to a service pattern for better testability
 class AuthState {
   private static instance: AuthState;
-  private cachedUser: User | null = null;
+  private cachedUser: UserDto | null = null;
 
   private constructor() {}
 
@@ -18,11 +18,11 @@ class AuthState {
     return AuthState.instance;
   }
 
-  getUser(): User | null {
+  getUser(): UserDto | null {
     return this.cachedUser;
   }
 
-  setUser(user: User | null): void {
+  setUser(user: UserDto | null): void {
     this.cachedUser = user;
   }
 
@@ -38,7 +38,7 @@ export const authGuard: CanActivateFn = async () => {
 
   try {
     if (!authState.getUser()) {
-      const user = await lastValueFrom(userService.getCurrentUser());
+      const user = await lastValueFrom(userService.userControllerGetMe());
       authState.setUser(user);
     }
 

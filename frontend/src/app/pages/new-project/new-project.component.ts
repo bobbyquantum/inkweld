@@ -16,11 +16,11 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterModule } from '@angular/router';
 import { XsrfService } from '@services/xsrf.service';
 import {
-  Project,
   ProjectAPIService,
-  User,
+  ProjectDto,
   UserAPIService,
-} from 'worm-api-angular-client';
+  UserDto,
+} from '@worm/index';
 
 @Component({
   selector: 'app-new-project',
@@ -77,8 +77,8 @@ export class NewProjectComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.userService.getCurrentUser().subscribe({
-      next: (user: User) => {
+    this.userService.userControllerGetMe().subscribe({
+      next: (user: UserDto) => {
         if (user.username) {
           this.username = user.username;
           this.updateProjectUrl();
@@ -118,20 +118,22 @@ export class NewProjectComponent implements OnInit {
     }
 
     const xsrfToken = this.xsrfService.getXsrfToken();
-    const projectData = this.projectForm.value as Project;
+    const projectData = this.projectForm.value as ProjectDto;
 
-    this.projectService.createProject(projectData, xsrfToken).subscribe({
-      next: () => {
-        this.snackBar.open('Project created successfully!', 'Close', {
-          duration: 3000,
-        });
-        void this.router.navigate(['/']);
-      },
-      error: () => {
-        this.snackBar.open('Failed to create project.', 'Close', {
-          duration: 3000,
-        });
-      },
-    });
+    this.projectService
+      .projectControllerCreateProject(xsrfToken, projectData)
+      .subscribe({
+        next: () => {
+          this.snackBar.open('Project created successfully!', 'Close', {
+            duration: 3000,
+          });
+          void this.router.navigate(['/']);
+        },
+        error: () => {
+          this.snackBar.open('Failed to create project.', 'Close', {
+            duration: 3000,
+          });
+        },
+      });
   }
 }

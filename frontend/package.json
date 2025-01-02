@@ -32,8 +32,6 @@
     "ngx-editor": "18.0.0",
     "rxjs": "7.8.1",
     "tslib": "2.8.1",
-    "worm-api-angular-client": "file:../worm-api-angular-client/dist/worm-api-angular-client-0.0.1-SNAPSHOT.tgz",
-    "worm-frontend": "file:",
     "y-prosemirror": "1.2.15",
     "y-websocket": "2.0.4",
     "yjs": "13.6.20",
@@ -59,7 +57,7 @@
     "@storybook/theming": "8.4.7",
     "@types/jest": "29.5.14",
     "angular-eslint": "19.0.2",
-    "esbuild": "0.24.0",
+    "esbuild": "0.24.2",
     "esbuild-visualizer": "0.6.0",
     "eslint": "9.16.0",
     "eslint-config-prettier": "9.1.0",
@@ -82,5 +80,6 @@
     "extends": [
       "plugin:storybook/recommended"
     ]
-  }
+  },
+  "packageManager": "bun@1.1.42"
 }

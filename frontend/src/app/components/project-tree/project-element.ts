@@ -1,4 +1,4 @@
-import { ProjectElementDto } from 'worm-api-angular-client';
+import { ProjectElementDto } from '@worm/index';
 
 export interface ProjectElement {
   id: string | undefined;

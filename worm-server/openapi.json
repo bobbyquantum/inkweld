@@ -1,0 +1,643 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/users/me": {
+      "get": {
+        "description": "Retrieves the profile information of the authenticated user.",
+        "operationId": "UserController_getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved user profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current user profile",
+        "tags": [
+          "User API"
+        ]
+      }
+    },
+    "/api/v1/users/register": {
+      "post": {
+        "description": "Creates a new user account with the provided registration details.",
+        "operationId": "UserController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User successfully registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid registration data provided"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register a new user",
+        "tags": [
+          "User API"
+        ]
+      }
+    },
+    "/api/v1/users/oauth2-providers": {
+      "get": {
+        "description": "Retrieves a list of available OAuth2 authentication providers.",
+        "operationId": "UserController_getOAuthProviders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved OAuth2 providers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get available OAuth2 providers",
+        "tags": [
+          "User API"
+        ]
+      }
+    },
+    "/api/v1/projects": {
+      "get": {
+        "description": "Retrieves a list of all projects belonging to the authenticated user.",
+        "operationId": "ProjectController_getAllProjects",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of projects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all projects for the current user",
+        "tags": [
+          "Project API"
+        ]
+      },
+      "post": {
+        "description": "Creates a new project for the authenticated user. Requires a valid CSRF token.",
+        "operationId": "ProjectController_createProject",
+        "parameters": [
+          {
+            "name": "X-XSRF-TOKEN",
+            "required": true,
+            "in": "header",
+            "description": "CSRF token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid project data provided"
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "403": {
+            "description": "Invalid CSRF token"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new project",
+        "tags": [
+          "Project API"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{slug}": {
+      "get": {
+        "description": "Retrieves a specific project by its username and slug. Only accessible by the owner.",
+        "operationId": "ProjectController_getProjectByUsernameAndSlug",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "403": {
+            "description": "User does not have permission to access this project"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get project by username and slug",
+        "tags": [
+          "Project API"
+        ]
+      },
+      "put": {
+        "description": "Updates details of an existing project for the authenticated user. Requires CSRF.",
+        "operationId": "ProjectController_updateProject",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-XSRF-TOKEN",
+            "required": true,
+            "in": "header",
+            "description": "CSRF token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid project data provided"
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "403": {
+            "description": "Invalid CSRF token or user does not have permission to update this project"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an existing project",
+        "tags": [
+          "Project API"
+        ]
+      },
+      "delete": {
+        "description": "Removes a project by username and slug for the authenticated user. Requires CSRF.",
+        "operationId": "ProjectController_deleteProject",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-XSRF-TOKEN",
+            "required": true,
+            "in": "header",
+            "description": "CSRF token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Project successfully deleted"
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "403": {
+            "description": "Invalid CSRF token or user does not have permission to delete this project"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a project",
+        "tags": [
+          "Project API"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/elements": {
+      "get": {
+        "description": "Retrieves all elements belonging to the specified project in their hierarchical order",
+        "operationId": "ProjectElementController_getProjectElements",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved elements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectElementDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "summary": "Get all elements for a project",
+        "tags": [
+          "Project API"
+        ]
+      },
+      "put": {
+        "description": "Updates the project's elements to match exactly the provided list. Elements not included in the list will be deleted. Elements with IDs will be updated, elements without IDs will be created. All changes happen in a single transaction.",
+        "operationId": "ProjectElementController_dinsertElements",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-XSRF-TOKEN",
+            "required": true,
+            "in": "header",
+            "description": "CSRF token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "List of project elements to synchronize",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProjectElementDto"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Elements successfully synchronized with provided list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectElementDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation errors (missing fields, etc.)"
+          },
+          "403": {
+            "description": "Invalid CSRF token or user not permitted (if enforced by guard)"
+          },
+          "404": {
+            "description": "Project not found or element not found during update"
+          }
+        },
+        "summary": "Differential insert elements",
+        "tags": [
+          "Project API"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Worm API",
+    "description": "Worm tunnel protocol - Secure API for managing projects and user data",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "User API",
+      "description": "The user controller allows accessing and updating details for the current user."
+    },
+    {
+      "name": "Project API",
+      "description": "The project controller supports various functions relating to projects."
+    }
+  ],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "UserDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "johnDoe"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "avatarImageUrl": {
+            "type": "string",
+            "example": "https://example.com/avatar.jpg"
+          }
+        },
+        "required": [
+          "username",
+          "name",
+          "avatarImageUrl"
+        ]
+      },
+      "UserRegisterDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Username for the new user",
+            "example": "johndoe"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address for the new user",
+            "example": "john.doe@example.com"
+          },
+          "password": {
+            "type": "string",
+            "description": "Password for the new user",
+            "example": "StrongPassword123!"
+          },
+          "name": {
+            "type": "string",
+            "description": "Optional display name for the user",
+            "example": "John Doe"
+          }
+        },
+        "required": [
+          "username",
+          "email",
+          "password"
+        ]
+      },
+      "ProjectDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "example": "my-project-slug"
+          },
+          "title": {
+            "type": "string",
+            "example": "My Awesome Project"
+          },
+          "description": {
+            "type": "string",
+            "example": "This is a cool project."
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserDto"
+          }
+        },
+        "required": [
+          "slug",
+          "title"
+        ]
+      },
+      "ProjectElementDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the element",
+            "example": "d42200be-2a40-4c3e-9c35-47c8f641c8ea"
+          },
+          "version": {
+            "type": "number",
+            "description": "Version for optimistic locking"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the element",
+            "example": "Chapter 1"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of the element (FOLDER/ITEM)",
+            "enum": [
+              "FOLDER",
+              "ITEM"
+            ],
+            "example": "FOLDER"
+          },
+          "position": {
+            "type": "number",
+            "description": "Position for ordering elements",
+            "example": 1
+          },
+          "level": {
+            "type": "number",
+            "description": "Level in the tree hierarchy",
+            "example": 0
+          },
+          "expandable": {
+            "type": "boolean",
+            "description": "Whether the element can be expanded (computed from type)"
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "position",
+          "level"
+        ]
+      }
+    }
+  }
+}

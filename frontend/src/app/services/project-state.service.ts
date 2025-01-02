@@ -1,11 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
+import { ProjectAPIService, ProjectDto, ProjectElementDto } from '@worm/index';
 import { firstValueFrom } from 'rxjs';
-import {
-  Project,
-  ProjectAPIService,
-  ProjectElementDto,
-  ProjectElementsAPIService,
-} from 'worm-api-angular-client';
 
 import { XsrfService } from './xsrf.service';
 
@@ -14,7 +9,7 @@ import { XsrfService } from './xsrf.service';
 })
 export class ProjectStateService {
   // Public signals
-  readonly project = signal<Project | null>(null);
+  readonly project = signal<ProjectDto>({} as ProjectDto);
   readonly elements = signal<ProjectElementDto[]>([]);
   readonly openFiles = signal<ProjectElementDto[]>([]);
   readonly selectedTabIndex = signal<number>(0);
@@ -24,7 +19,6 @@ export class ProjectStateService {
 
   // Private injected services (private members come after public members)
   private readonly projectService = inject(ProjectAPIService);
-  private readonly elementService = inject(ProjectElementsAPIService);
   private readonly xsrfService = inject(XsrfService);
 
   // Methods to load project data
@@ -34,7 +28,10 @@ export class ProjectStateService {
 
     try {
       const project = await firstValueFrom(
-        this.projectService.getProjectByUsernameAndSlug(username, slug)
+        this.projectService.projectControllerGetProjectByUsernameAndSlug(
+          username,
+          slug
+        )
       );
 
       this.project.set(project || null);
@@ -56,7 +53,10 @@ export class ProjectStateService {
 
     try {
       const elements = await firstValueFrom(
-        this.elementService.getProjectElements(username, slug)
+        this.projectService.projectElementControllerGetProjectElements(
+          username,
+          slug
+        )
       );
 
       this.elements.set(elements || []);
@@ -102,11 +102,11 @@ export class ProjectStateService {
 
     try {
       const updatedElements = await firstValueFrom(
-        this.elementService.dinsertElements(
-          elements,
+        this.projectService.projectElementControllerDinsertElements(
           username,
           slug,
-          this.xsrfService.getXsrfToken()
+          this.xsrfService.getXsrfToken(),
+          elements
         )
       );
 

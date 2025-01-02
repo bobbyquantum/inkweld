@@ -7,8 +7,8 @@ import {
   RouterStateSnapshot,
   UrlTree,
 } from '@angular/router';
+import { UserAPIService } from '@worm/index';
 import { of, throwError } from 'rxjs';
-import { UserAPIService } from 'worm-api-angular-client';
 
 import { authGuard, resetAuthState } from './auth.guard';
 
@@ -34,11 +34,11 @@ describe('authGuard', () => {
     } as unknown as Router;
 
     userService = {
-      getCurrentUser: jest.fn(),
+      userControllerGetMe: jest.fn(),
     } as unknown as UserAPIService;
 
     createUrlTreeSpy = jest.spyOn(router, 'createUrlTree');
-    getCurrentUserSpy = jest.spyOn(userService, 'getCurrentUser');
+    getCurrentUserSpy = jest.spyOn(userService, 'userControllerGetMe');
 
     TestBed.configureTestingModule({
       providers: [

@@ -4,7 +4,6 @@ import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ProjectStateService } from '@services/project-state.service';
-import { ProjectElementDto } from 'worm-api-angular-client';
 
 import { ProjectElement } from './project-element';
 import { ProjectTreeComponent } from './project-tree.component';
@@ -15,12 +14,12 @@ describe('ProjectTreeComponent', () => {
   let component: ProjectTreeComponent;
   let fixture: ComponentFixture<ProjectTreeComponent>;
   let treeService: jest.Mocked<ProjectStateService>;
-  let elementsSignal: WritableSignal<ProjectElementDto[]>;
+  let elementsSignal: WritableSignal<ProjectElement[]>;
   let loadingSignal: WritableSignal<boolean>;
   let savingSignal: WritableSignal<boolean>;
   let errorSignal: WritableSignal<string | undefined>;
 
-  const mockDto: ProjectElementDto = {
+  const mockDto: ProjectElement = {
     id: '1',
     name: 'Test Element',
     type: 'FOLDER',
@@ -38,7 +37,7 @@ describe('ProjectTreeComponent', () => {
     });
 
     // Create writable signals
-    elementsSignal = signal<ProjectElementDto[]>([mockDto]);
+    elementsSignal = signal<ProjectElement[]>([mockDto]);
     loadingSignal = signal(false);
     savingSignal = signal(false);
     errorSignal = signal<string | undefined>(undefined);
@@ -96,7 +95,7 @@ describe('ProjectTreeComponent', () => {
   });
 
   it('should update tree when elements change', () => {
-    const newElement: ProjectElementDto = {
+    const newElement: ProjectElement = {
       id: '2',
       name: 'New Element',
       type: 'ITEM',
@@ -246,7 +245,7 @@ describe('ProjectTreeComponent', () => {
 
   it('should open file through context menu', () => {
     // Add a file item to the tree
-    const fileDto: ProjectElementDto = {
+    const fileDto: ProjectElement = {
       id: '2',
       name: 'Test File',
       type: 'ITEM',

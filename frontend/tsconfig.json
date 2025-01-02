@@ -23,10 +23,10 @@
     ],
     "baseUrl": "src",
     "paths": {
+      "@worm/*": ["api-client/*"],
       "@components/*": ["app/components/*"],
       "@dialogs/*": ["app/dialogs/*"],
       "@services/*": ["app/services/*"],
-
       "@themes/*": ["themes/*"]
     }
   },

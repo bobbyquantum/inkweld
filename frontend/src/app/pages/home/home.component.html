@@ -34,7 +34,7 @@
           <mat-icon matPrefix>search</mat-icon>
         </mat-form-field>
 
-        @for (project of projects; track project.id) {
+        @for (project of projects; track project.slug) {
           <div
             (click)="selectProject(project)"
             (keyup.enter)="selectProject(project)"

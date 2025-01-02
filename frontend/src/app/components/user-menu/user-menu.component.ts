@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { Router } from '@angular/router';
 import { UserSettingsService } from '@services/user-settings.service';
-import { User } from 'worm-api-angular-client';
+import { UserDto } from '@worm/index';
 
 interface LogoutResponse {
   message: string;
@@ -20,7 +20,7 @@ interface LogoutResponse {
   styleUrl: './user-menu.component.scss',
 })
 export class UserMenuComponent {
-  @Input() user: User | undefined = undefined;
+  @Input() user: UserDto | undefined = undefined;
 
   private userSettings = inject(UserSettingsService);
   private router = inject(Router);
@@ -45,9 +45,5 @@ export class UserMenuComponent {
 
   onSettings() {
     this.userSettings.openSettingsDialog();
-  }
-
-  onFiles() {
-    this.userSettings.openFileDialog();
   }
 }
