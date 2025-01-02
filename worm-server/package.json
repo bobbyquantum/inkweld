@@ -63,7 +63,7 @@
     "@nestjs/testing": "10.4.15",
     "@openapitools/openapi-generator-cli":"2.15.3",
     "@types/bcrypt": "^5.0.2",
-    "@types/cookie": "^0.6.0",
+    "@types/cookie": "^1.0.0",
     "@types/express": "5.0.0",
     "@types/express-session": "1.18.1",
     "@types/jest": "29.5.14",
