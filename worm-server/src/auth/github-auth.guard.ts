@@ -18,7 +18,7 @@ export class GithubAuthGuard extends AuthGuard('github') {
     const request = context.switchToHttp().getRequest();
 
     // Extensive logging for debugging
-    this.logger.log('GithubAuthGuard - Request Details', {
+    this.logger.verbose('GithubAuthGuard - Request Details', {
       method: request.method,
       url: request.url,
       headers: request.headers,
