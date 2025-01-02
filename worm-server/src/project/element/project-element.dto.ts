@@ -1,10 +1,9 @@
 // project-element.dto.ts
-import { ApiProperty, ApiSchema } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsEnum, IsNumber } from 'class-validator';
 import { ElementType, isExpandable } from './element-type.enum';
 import { ProjectElementEntity } from './project-element.entity';
 
-@ApiSchema({ name: 'ProjectElement' })
 export class ProjectElementDto {
   @ApiProperty({
     description: 'Unique identifier of the element',

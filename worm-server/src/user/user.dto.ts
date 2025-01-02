@@ -1,6 +1,5 @@
-import { ApiProperty, ApiSchema } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
-@ApiSchema({ name: 'User' })
 export class UserDto {
   @ApiProperty({ example: 'johnDoe' })
   username: string;

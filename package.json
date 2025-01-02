@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Worm project",
   "scripts": {
-    "install-all": "bun install && cd frontend && bun install && cd ../worm-server && bun install",
-    "lint": "bun --cwd frontend lint && bun --cwd worm-server lint",
-    "test": "bun --cwd frontend test && bun --cwd worm-server test"
+    "install-all": "bun install && bun --cwd frontend install && bun --cwd worm-server install",
+    "lint:ci": "bun --cwd frontend run lint && bun --cwd worm-server run lint",
+    "testTool": "bun --cwd frontend run test && bun --cwd worm-server run test"
   },
   "devDependencies": {
   },

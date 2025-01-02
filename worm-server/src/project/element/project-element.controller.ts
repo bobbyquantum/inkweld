@@ -17,6 +17,7 @@ import {
   ApiBadRequestResponse,
   ApiForbiddenResponse,
   ApiOkResponse,
+  ApiBody,
 } from '@nestjs/swagger';
 import { ProjectElementService } from './project-element.service';
 import { ProjectElementDto } from './project-element.dto';
@@ -55,10 +56,15 @@ export class ProjectElementController {
   @ApiOperation({
     summary: 'Differential insert elements',
     description:
-      'Updates the project’s elements to match exactly the provided list. ' +
+      "Updates the project's elements to match exactly the provided list. " +
       'Elements not included in the list will be deleted. ' +
       'Elements with IDs will be updated, elements without IDs will be created. ' +
       'All changes happen in a single transaction.',
+  })
+  @ApiBody({
+    type: ProjectElementDto,
+    isArray: true,
+    description: 'List of project elements to synchronize',
   })
   @ApiOkResponse({
     description: 'Elements successfully synchronized with provided list',

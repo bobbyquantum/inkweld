@@ -12,21 +12,11 @@
       "name": "⚙️ Server",
       "path": "../worm-server"
     },
-    {
-      "name": "📦 API Client (Angular)",
-      "path": "../worm-api-angular-client"
-    },
-    {
-      "name": "📦 API Client (Node)",
-      "path": "../worm-api-node-client"
-    }
   ],
   "settings": {
     "files.exclude": {
       "frontend/": true,
       "worm-server/": true,
-      "worm-api-angular-client/": true,
-      "worm-api-node-client/": true
     },
     "typescript.tsdk": "Frontend/node_modules/typescript/lib",
     "java.configuration.updateBuildConfiguration": "automatic",
@@ -45,9 +35,6 @@
     },
     "jest.disabledWorkspaceFolders": [
       "✨ Root",
-      "⚙️ Backend",
-      "📦 API Client (Angular)",
-      "📦 API Client (Node)"
     ]
   },
   "extensions": {

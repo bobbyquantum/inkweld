@@ -4,12 +4,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
+import { ProjectAPIService, ProjectDto, ProjectElementDto } from '@worm/index';
 import { BehaviorSubject } from 'rxjs';
-import {
-  Project,
-  ProjectAPIService,
-  ProjectElementDto,
-} from 'worm-api-angular-client';
 
 import { ProjectStateService } from '../../services/project-state.service';
 import { ProjectComponent } from './project.component';
@@ -23,13 +19,13 @@ describe('ProjectComponent', () => {
   let httpClientMock: jest.Mocked<HttpClient>;
   let routeParams: BehaviorSubject<{ username: string; slug: string }>;
 
-  const mockProject: Project = {
-    id: '1',
+  const mockProject: ProjectDto = {
+    // id: '1',
     title: 'Test Project',
     description: 'A test project',
     slug: 'test-project',
-    createdDate: new Date().toISOString(),
-    updatedDate: new Date().toISOString(),
+    // createdDate: new Date().toISOString(),
+    // updatedDate: new Date().toISOString(),
   };
 
   const mockElements: ProjectElementDto[] = [
@@ -40,7 +36,7 @@ describe('ProjectComponent', () => {
   beforeEach(async () => {
     // Mock ProjectAPIService
     projectServiceMock = {
-      getProjectByUsernameAndSlug: jest.fn(),
+      projectControllerGetProjectByUsernameAndSlug: jest.fn(),
     } as unknown as jest.Mocked<ProjectAPIService>;
 
     // Mock HttpClient
@@ -52,7 +48,7 @@ describe('ProjectComponent', () => {
     } as unknown as jest.Mocked<HttpClient>;
 
     // Mock signals in ProjectStateService
-    const projectSignal = signal<Project | null>(null);
+    const projectSignal = signal<ProjectDto>({} as ProjectDto);
     const elementsSignal = signal<ProjectElementDto[]>([]);
     const openFilesSignal = signal<ProjectElementDto[]>([]);
     const selectedTabIndexSignal = signal<number>(0);

@@ -12,12 +12,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
 import { XsrfService } from '@services/xsrf.service';
+import { UserAPIService, UserRegisterDto } from '@worm/index';
 import { firstValueFrom } from 'rxjs';
-import {
-  RegisterUserRequest,
-  UserAPIService,
-  UsernameAvailabilityResponse,
-} from 'worm-api-angular-client';
 
 @Component({
   selector: 'app-register',
@@ -62,16 +58,15 @@ export class RegisterComponent implements OnInit {
     }
 
     try {
-      const registerRequest: RegisterUserRequest = {
+      const registerRequest: UserRegisterDto = {
         username: this.username,
         name: this.name,
         email: this.email,
         password: this.password,
       };
 
-      const xsrfToken = this.xsrfService.getXsrfToken();
       await firstValueFrom(
-        this.userService.registerUser(registerRequest, xsrfToken)
+        this.userService.userControllerRegister(registerRequest)
       );
       this.snackBar.open('Registration successful!', 'Close', {
         duration: 3000,
@@ -92,32 +87,32 @@ export class RegisterComponent implements OnInit {
     }
   }
 
-  async checkUsernameAvailability() {
+  checkUsernameAvailability() {
     if (this.username.length < 3) {
       this.usernameAvailability = 'unknown';
       return;
     }
 
-    try {
-      const response: UsernameAvailabilityResponse = await firstValueFrom(
-        this.userService.checkUsernameAvailability(this.username)
-      );
+    // try {
+    //   const response = await firstValueFrom(
+    //     this.userService.checkUsernameAvailability(this.username)
+    //   );
 
-      if (response.available) {
-        this.usernameAvailability = 'available';
-        this.usernameSuggestions = [];
-      } else {
-        this.usernameAvailability = 'unavailable';
-        this.usernameSuggestions = response.suggestions;
-      }
-    } catch (error: unknown) {
-      this.usernameAvailability = 'unknown';
-      if (error instanceof HttpErrorResponse) {
-        console.error('Error checking username availability:', error.message);
-      } else {
-        console.error('Unknown error checking username availability:', error);
-      }
-    }
+    //   if (response.available) {
+    //     this.usernameAvailability = 'available';
+    //     this.usernameSuggestions = [];
+    //   } else {
+    //     this.usernameAvailability = 'unavailable';
+    //     this.usernameSuggestions = response.suggestions;
+    //   }
+    // } catch (error: unknown) {
+    //   this.usernameAvailability = 'unknown';
+    //   if (error instanceof HttpErrorResponse) {
+    //     console.error('Error checking username availability:', error.message);
+    //   } else {
+    //     console.error('Unknown error checking username availability:', error);
+    //   }
+    // }
   }
 
   selectSuggestion(suggestion: string) {

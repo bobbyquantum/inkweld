@@ -3,8 +3,8 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { Configuration, UserAPIService } from '@worm/index';
 import { of } from 'rxjs';
-import { Configuration, UserAPIService } from 'worm-api-angular-client';
 
 import { ThemeService } from '../themes/theme.service';
 import { AppComponent } from './app.component';
@@ -20,7 +20,7 @@ describe('AppComponent', () => {
         {
           provide: UserAPIService,
           useValue: {
-            getCurrentUser: jest.fn().mockReturnValue(of({})),
+            userControllerGetMe: jest.fn().mockReturnValue(of({})),
           },
         },
         {
@@ -55,13 +55,15 @@ describe('AppComponent', () => {
 
     const mockUser = { id: '1', name: 'Test User' };
     const userService = TestBed.inject(UserAPIService);
-    (userService.getCurrentUser as jest.Mock).mockReturnValue(of(mockUser));
+    (userService.userControllerGetMe as jest.Mock).mockReturnValue(
+      of(mockUser)
+    );
 
     component.ngOnInit();
     tick(); // This simulates the passage of time until all pending asynchronous activities complete
 
     expect(component.user).toEqual(mockUser);
-    expect(userService.getCurrentUser).toHaveBeenCalled();
+    expect(userService.userControllerGetMe).toHaveBeenCalled();
   }));
 
   it('should initialize theme on init', () => {

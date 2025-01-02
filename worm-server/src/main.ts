@@ -7,8 +7,34 @@ import * as session from 'express-session';
 import { TypeOrmSessionStore } from './auth/session.store';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { ExpressAdapter } from '@nestjs/platform-express';
+import { INestApplication } from '@nestjs/common';
 
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
+
+export function createOpenAPIConfig() {
+  return new DocumentBuilder()
+    .setTitle('Worm API')
+    .setDescription(
+      'Worm tunnel protocol - Secure API for managing projects and user data',
+    )
+    .setVersion(process.env.WORM_VERSION || '1.0')
+    .addTag(
+      'User API',
+      'The user controller allows accessing and updating details for the current user.',
+    )
+    .addTag(
+      'Project API',
+      'The project controller supports various functions relating to projects.',
+    )
+    .build();
+}
+
+export async function setupSwagger(app: INestApplication) {
+  const config = createOpenAPIConfig();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+  return document;
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, new ExpressAdapter());
@@ -38,24 +64,8 @@ async function bootstrap() {
     }),
   );
   app.useWebSocketAdapter(new WsAdapter(app));
-  const config = new DocumentBuilder()
-    .setTitle('Worm API')
-    .setDescription(
-      'Worm tunnel protocol - Secure API for managing projects and user data',
-    )
-    .setVersion(process.env.WORM_VERSION || '1.0')
-    .addTag(
-      'User API',
-      'The user controller allows accessing and updating details for the current user.',
-    )
-    .addTag(
-      'Project API',
-      'The project controller supports various functions relating to projects.',
-    )
-    .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  await setupSwagger(app);
   await app.listen(process.env.PORT ?? 8333);
 }
 bootstrap();

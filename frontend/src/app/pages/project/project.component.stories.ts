@@ -11,8 +11,8 @@ import { ActivatedRoute } from '@angular/router';
 import { provideRouter } from '@angular/router';
 import type { Meta, StoryObj } from '@storybook/angular';
 import { applicationConfig, moduleMetadata } from '@storybook/angular';
+import { ProjectDto, ProjectElementDto } from '@worm/index';
 import { of } from 'rxjs';
-import { Project, ProjectElementDto } from 'worm-api-angular-client';
 
 import { ElementEditorComponent } from '../../components/element-editor/element-editor.component';
 import { ProjectMainMenuComponent } from '../../components/project-main-menu/project-main-menu.component';
@@ -22,7 +22,7 @@ import { ProjectComponent } from './project.component';
 
 // Mock ProjectStateService
 class MockProjectStateService implements Partial<ProjectStateService> {
-  project = signal<Project | null>(null);
+  project = signal<ProjectDto | null>(null);
   elements = signal<ProjectElementDto[]>([]);
   openFiles = signal<ProjectElementDto[]>([]);
   selectedTabIndex = signal(0);
