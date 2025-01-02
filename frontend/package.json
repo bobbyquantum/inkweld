@@ -80,6 +80,5 @@
     "extends": [
       "plugin:storybook/recommended"
     ]
-  },
-  "packageManager": "bun@1.1.42"
+  }
 }
