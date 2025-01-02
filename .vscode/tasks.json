@@ -7,6 +7,9 @@
       "command": "docker compose up -d",
       "isBackground": true,
       "problemMatcher": {
+        "pattern": {
+          "regexp": ".*"
+        },
         "background": {
           "activeOnStart": true,
           "beginsPattern": "Creating",
