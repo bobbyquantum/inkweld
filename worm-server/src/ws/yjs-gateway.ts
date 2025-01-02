@@ -8,10 +8,7 @@ import {
 import { Server, WebSocket } from 'ws';
 import type { Request } from 'express';
 import { setupWSConnection } from 'y-websocket/bin/utils.cjs';
-import {
-  Logger,
-  Injectable,
-} from '@nestjs/common';
+import { Logger, Injectable } from '@nestjs/common';
 import { TypeOrmSessionStore } from '../auth/session.store';
 import { ConfigService } from '@nestjs/config';
 import * as cookie from 'cookie';
@@ -145,7 +142,7 @@ export class YjsGateway
       'sessionToken',
     );
     if (urlToken) {
-      this.logger.debug('Session token found in query parameters');
+      this.logger.verbose('Session token found in query parameters');
       return urlToken;
     }
 
@@ -158,7 +155,7 @@ export class YjsGateway
       if (connectSid) {
         // Remove 's:' prefix and everything after the '.'
         const cleanedToken = connectSid.replace(/^s:/, '').split('.')[0];
-        this.logger.debug('Session token found in connect.sid cookie', {
+        this.logger.verbose('Session token found in connect.sid cookie', {
           originalToken: connectSid,
           cleanedToken,
         });
@@ -170,14 +167,14 @@ export class YjsGateway
     const cookieToken =
       req.cookies?.sessionToken || req.cookies?.['connect.sid'];
     if (cookieToken) {
-      this.logger.debug('Session token found in cookies object');
+      this.logger.verbose('Session token found in cookies object');
       return cookieToken;
     }
 
     // Try to get session token from authorization header
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      this.logger.debug('Session token found in Authorization header');
+      this.logger.verbose('Session token found in Authorization header');
       return authHeader.substring(7);
     }
 
@@ -213,7 +210,7 @@ export class YjsGateway
         }
 
         // Log successful session validation
-        this.logger.debug(
+        this.logger.verbose(
           `Session validated successfully for token: ${sessionId}`,
         );
         resolve(session);
