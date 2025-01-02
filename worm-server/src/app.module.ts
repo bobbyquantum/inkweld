@@ -25,8 +25,8 @@ import * as path from 'path';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [
-        path.resolve(process.cwd(), '.env.local'),
-        path.resolve(process.cwd(), '.env'),
+        path.resolve(process.cwd(), '../.env.local'),
+        path.resolve(process.cwd(), '../.env'),
       ],
       cache: true,
     }),

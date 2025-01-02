@@ -7,11 +7,17 @@ import {
 } from '@nestjs/websockets';
 import { Server, WebSocket } from 'ws';
 import type { Request } from 'express';
-import { setupWSConnection } from 'y-websocket/bin/utils.cjs';
+import {
+  setupWSConnection,
+  setPersistence,
+  getPersistence,
+} from 'y-websocket/bin/utils.cjs';
+import { LeveldbPersistence } from 'y-leveldb';
 import { Logger, Injectable } from '@nestjs/common';
 import { TypeOrmSessionStore } from '../auth/session.store';
 import { ConfigService } from '@nestjs/config';
 import * as cookie from 'cookie';
+import * as Y from 'yjs';
 
 @WebSocketGateway({ path: '/ws/yjs' })
 @Injectable()
@@ -35,6 +41,20 @@ export class YjsGateway
 
   afterInit(_server: Server) {
     this.logger.log('YjsGateway initialized');
+    const ldb = new LeveldbPersistence(process.env.YPERSISTENCE);
+    setPersistence({
+      provider: ldb,
+      bindState: async (docName, ydoc) => {
+        const persistedYdoc = await ldb.getYDoc(docName);
+        const newUpdates = Y.encodeStateAsUpdate(ydoc);
+        ldb.storeUpdate(docName, newUpdates);
+        Y.applyUpdate(ydoc, Y.encodeStateAsUpdate(persistedYdoc));
+        ydoc.on('update', (update) => {
+          ldb.storeUpdate(docName, update);
+        });
+      },
+      writeState: async (_docName, _ydoc) => {},
+    });
   }
 
   @WebSocketServer()
@@ -55,6 +75,7 @@ export class YjsGateway
 
       // Extract session token from query or headers
       const sessionToken = this.extractSessionToken(req);
+
       if (!sessionToken) {
         this.logger.warn('No session token provided');
         connection.close(1008, 'No session token');
@@ -75,15 +96,19 @@ export class YjsGateway
 
       // Attach user info to the connection if needed
       const connectionOptions = {
-        docId,
+        docName: docId,
         user: session.user, // Attach user info from session
       };
 
       setupWSConnection(connection, req, connectionOptions);
 
-      this.logger.log(`New Yjs WebSocket connection for doc: "${docId}"`);
+      this.logger.log(
+        `New Yjs WebSocket connection for doc: "${docId}" with persistence "${process.env.YPERSISTENCE}"`,
+        getPersistence(),
+      );
     } catch (error) {
       this.logger.error('WebSocket connection error', error);
+
       connection.close(1011, 'Internal server error');
     }
   }
