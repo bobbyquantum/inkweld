@@ -4,8 +4,8 @@
   "description": "Worm project",
   "scripts": {
     "install-all": "bun install && cd frontend && npm install && cd ../worm-server && bun install",
-    "lint:ci": "bun --cwd frontend run lint && bun --cwd worm-server run lint",
-    "testTool": "bun --cwd frontend run test && bun --cwd worm-server run test"
+    "lint": "cd frontend && npm run lint && cd ../worm-server && bun run lint",
+    "test": "cd frontend && npm test && cd ../worm-server && bun run test"
   },
   "devDependencies": {
   },
