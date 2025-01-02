@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { Project } from 'worm-api-angular-client';
+import { ProjectDto } from '@worm/index';
 
 import { ProjectCardComponent } from './project-card.component';
 
@@ -23,7 +23,7 @@ describe('ProjectCardComponent', () => {
       createdDate: new Date().toISOString(),
       user: { name: 'test', username: 'testuser' },
       slug: 'test-project',
-    } as unknown as Project;
+    } as unknown as ProjectDto;
 
     fixture.detectChanges();
   });

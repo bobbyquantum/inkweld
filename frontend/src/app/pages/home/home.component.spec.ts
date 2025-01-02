@@ -9,18 +9,17 @@ import {
   provideRouter,
 } from '@angular/router';
 import { ThemeService } from '@themes/theme.service';
-import { of } from 'rxjs';
 import {
-  Project,
   ProjectAPIService,
-  User,
+  ProjectDto,
   UserAPIService,
-} from 'worm-api-angular-client';
+  UserDto,
+} from '@worm/index';
+import { of } from 'rxjs';
 
 import { HomeComponent } from './home.component';
 
 jest.mock('@themes/theme.service');
-jest.mock('worm-api-angular-client');
 jest.mock('@angular/cdk/layout');
 
 describe('HomeComponent', () => {
@@ -52,12 +51,14 @@ describe('HomeComponent', () => {
     } as unknown as jest.Mocked<HttpClient>;
 
     userService = {
-      getCurrentUser: jest.fn().mockReturnValue(of({} as User)),
+      userControllerGetMe: jest.fn().mockReturnValue(of({} as UserDto)),
     } as unknown as jest.Mocked<UserAPIService>;
 
     projectService = {
-      getAllProjects: jest.fn().mockReturnValue(of([] as Project[])),
-      createProject: jest.fn(),
+      projectControllerGetAllProjects: jest
+        .fn()
+        .mockReturnValue(of([] as ProjectDto[])),
+      projectControllerCreateProject: jest.fn(),
     } as unknown as jest.Mocked<ProjectAPIService>;
 
     await TestBed.configureTestingModule({
@@ -92,12 +93,12 @@ describe('HomeComponent', () => {
 
   it('should fetch current user on init', () => {
     component.ngOnInit();
-    expect(userService.getCurrentUser).toHaveBeenCalled();
+    expect(userService.userControllerGetMe).toHaveBeenCalled();
   });
 
   it('should fetch all projects on init', () => {
     component.ngOnInit();
-    expect(projectService.getAllProjects).toHaveBeenCalled();
+    expect(projectService.projectControllerGetAllProjects).toHaveBeenCalled();
   });
 
   it('should setup breakpoint observer on init', () => {
@@ -109,7 +110,10 @@ describe('HomeComponent', () => {
   });
 
   it('should select a project', () => {
-    const project = { id: '123', name: 'Test Project' } as unknown as Project;
+    const project = {
+      id: '123',
+      name: 'Test Project',
+    } as unknown as ProjectDto;
     component.selectProject(project);
     expect(component.selectedProject).toEqual(project);
   });

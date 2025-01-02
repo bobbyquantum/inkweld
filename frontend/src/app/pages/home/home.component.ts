@@ -10,12 +10,8 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule } from '@angular/router';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
+import { ProjectAPIService, ProjectDto, UserAPIService } from '@worm/index';
 import { catchError, EMPTY, Subject, takeUntil } from 'rxjs';
-import {
-  Project,
-  ProjectAPIService,
-  UserAPIService,
-} from 'worm-api-angular-client';
 
 @Component({
   selector: 'app-home',
@@ -34,8 +30,8 @@ import {
   styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit, OnDestroy {
-  projects: Project[] = [];
-  selectedProject: Project | null = null;
+  projects: ProjectDto[] = [];
+  selectedProject: ProjectDto | null = null;
   isMobile = false;
 
   protected userService = inject(UserAPIService);
@@ -44,7 +40,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   protected destroy$ = new Subject<void>();
   protected user = toSignal(
-    this.userService.getCurrentUser('body', true, { transferCache: true })
+    this.userService.userControllerGetMe('body', true, { transferCache: true })
   );
   ngOnInit() {
     this.loadProjects();
@@ -53,7 +49,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   loadProjects() {
     this.projectService
-      .getAllProjects('body', true, { transferCache: true })
+      .projectControllerGetAllProjects('body', true, { transferCache: true })
       .pipe(
         takeUntil(this.destroy$),
         catchError(() => {
@@ -74,7 +70,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       });
   }
 
-  selectProject(project: Project) {
+  selectProject(project: ProjectDto) {
     this.selectedProject = project;
   }
 

@@ -5,18 +5,13 @@
 
 version: 2
 updates:
-  - package-ecosystem: "maven"
-    directory: "/backend"
-    schedule:
-      interval: "daily"
-    
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
       interval: "daily"
       
   - package-ecosystem: "npm"
-    directory: "/bridge"
+    directory: "/worm-server"
     schedule:
       interval: "daily"
       

@@ -25,7 +25,7 @@ export class YjsService {
       // Create new connection if one doesn't exist
       const ydoc = new Y.Doc();
       const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      const wsUrl = `${wsProto}://${window.location.host}/ws/yjs`;
+      const wsUrl = `${wsProto}://${window.location.host}/ws/yjs?documentId=`;
 
       // Let WebsocketProvider handle the room name
       const provider = new WebsocketProvider(wsUrl, documentId, ydoc);

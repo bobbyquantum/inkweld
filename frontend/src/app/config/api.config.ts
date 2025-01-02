@@ -1,12 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Provider } from '@angular/core';
-import {
-  Configuration,
-  FileAPIService,
-  ProjectAPIService,
-  ProjectElementsAPIService,
-  UserAPIService,
-} from 'worm-api-angular-client';
+import { Configuration, ProjectAPIService, UserAPIService } from '@worm/index';
 
 export function provideApiConfig(): Provider {
   return {
@@ -39,6 +33,5 @@ export const API_PROVIDERS: Provider[] = [
   provideApiConfig(),
   createApiServiceProvider(UserAPIService),
   createApiServiceProvider(ProjectAPIService),
-  createApiServiceProvider(ProjectElementsAPIService),
-  createApiServiceProvider(FileAPIService),
+  createApiServiceProvider(ProjectAPIService),
 ];
