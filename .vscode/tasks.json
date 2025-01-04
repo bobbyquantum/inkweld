@@ -18,7 +18,7 @@
       }
     },
     {
-      "label": "🚀 Start Frontend Dev Server",
+      "label": "🚀 Frontend Server",
       "type": "shell",
       "command": "cd frontend && bun run start",
       "isBackground": true,
@@ -33,7 +33,7 @@
       }
     },
     {
-      "label": "🚀 Start NestJS Server",
+      "label": "🚀 NestJS Server",
       "type": "shell",
       "command": "cd worm-server && bun run start:dev",
       "isBackground": true,
@@ -51,8 +51,8 @@
       "label": "🎯 Start Stack",
       "type": "shell",
       "command": "echo '🚀 Stack dependencies started and ready!'",
-      "dependsOn": ["🐳 Start Docker Services", "🚀 Start Frontend Dev Server", "🚀 Start NestJS Server"],
-      "dependsOrder": "sequence"
+      "dependsOn": ["🐳 Start Docker Services", "🚀 Frontend Server"],
+      "dependsOrder": "sequence",
     }
   ]
 }
