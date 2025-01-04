@@ -3,48 +3,29 @@ import {
   Get,
   Post,
   Body,
+  BadRequestException,
   UseGuards,
   Request,
   Logger,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiOkResponse,
-  ApiCreatedResponse,
-  ApiUnauthorizedResponse,
-  ApiBadRequestResponse,
-  ApiBearerAuth,
-  ApiBody,
-} from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { UserService } from './user.service';
-import { SessionAuthGuard } from '../auth/session-auth.guard';
-import { UserDto } from './user.dto';
-import { UserRegisterDto } from './user-register.dto';
+import { AuthGuard } from '@nestjs/passport';
 
-@ApiTags('User API')
-@ApiBearerAuth()
+@ApiTags('api/v1/users')
 @Controller('api/v1/users')
 export class UserController {
   private readonly logger = new Logger(UserController.name);
 
   constructor(private readonly userService: UserService) {}
 
+  // For demonstration, we’re skipping real auth. Typically you’d use @UseGuards(JwtAuthGuard) etc.
+
   @Get('me')
-  @UseGuards(SessionAuthGuard)
-  @ApiOperation({
-    summary: 'Get current user profile',
-    description: 'Retrieves the profile information of the authenticated user.',
-  })
-  @ApiOkResponse({
-    description: 'Successfully retrieved user profile',
-    type: UserDto,
-  })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication' })
+  @UseGuards(AuthGuard('github'))
+  @UseGuards(AuthGuard('local'))
   async getMe(@Request() req) {
-    this.logger.log('getMe', req.user);
+    this.logger.debug('getMe', req.user);
     const user = await this.userService.getCurrentUser(req.user.id);
     return {
       id: user.id,
@@ -55,21 +36,25 @@ export class UserController {
     };
   }
 
+  // @Get(':id')
+  // async getUser(@Param('id') userId: string) {
+  //   // In a real scenario, you might only let the user fetch themselves or be admin
+  //   const user = await this.userService.getCurrentUser(userId);
+  //   return {
+  //     id: user.id,
+  //     username: user.username,
+  //     name: user.name,
+  //     avatarImageUrl: user.avatarImageUrl,
+  //     enabled: user.enabled,
+  //   };
+  // }
+
   @Post('register')
-  @UsePipes(new ValidationPipe())
-  @ApiOperation({
-    summary: 'Register a new user',
-    description:
-      'Creates a new user account with the provided registration details.',
-  })
-  @ApiCreatedResponse({
-    description: 'User successfully registered',
-    type: UserDto,
-  })
-  @ApiBadRequestResponse({ description: 'Invalid registration data provided' })
-  @ApiBody({ type: UserRegisterDto })
-  async register(@Body() body: UserRegisterDto) {
+  async register(@Body() body: any) {
     const { username, email, password, name } = body;
+    if (!username || !email || !password) {
+      throw new BadRequestException('Missing required fields');
+    }
     const user = await this.userService.registerUser(
       username,
       email,
@@ -79,17 +64,33 @@ export class UserController {
     return { message: 'User registered', userId: user.id };
   }
 
+  // @Patch(':id')
+  // async updateUser(@Param('id') userId: string, @Body() dto: Partial<UserDto>) {
+  //   const updatedUser = await this.userService.updateUserDetails(userId, dto);
+  //   return { message: 'User updated', user: updatedUser };
+  // }
+
+  // @Post(':id/change-password')
+  // async changePassword(
+  //   @Param('id') userId: string,
+  //   @Body() body: { oldPassword: string; newPassword: string },
+  // ) {
+  //   await this.userService.updatePassword(
+  //     userId,
+  //     body.oldPassword,
+  //     body.newPassword,
+  //   );
+  //   return { message: 'Password updated' };
+  // }
+
+  // @Delete(':id')
+  // async deleteUser(@Param('id') userId: string) {
+  //   await this.userService.deleteAccount(userId);
+  //   return { message: 'User deleted' };
+  // }
+
   @Get('oauth2-providers')
-  @ApiOperation({
-    summary: 'Get available OAuth2 providers',
-    description:
-      'Retrieves a list of available OAuth2 authentication providers.',
-  })
-  @ApiOkResponse({
-    description: 'Successfully retrieved OAuth2 providers',
-    type: [String],
-  })
-  getOAuthProviders(): string[] {
+  getOAuthProviders() {
     return ['github'];
   }
 }
