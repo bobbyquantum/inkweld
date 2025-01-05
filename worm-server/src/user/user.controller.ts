@@ -61,7 +61,13 @@ export class UserController {
   }
 
   @Post('register')
-  @UsePipes(new ValidationPipe())
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  )
   @ApiOperation({
     summary: 'Register a new user',
     description:
