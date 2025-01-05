@@ -10,7 +10,7 @@ import { XsrfService } from './xsrf.service';
 })
 export class ProjectStateService {
   // Public signals
-  readonly project = signal<ProjectDto>({} as ProjectDto);
+  readonly project = signal<ProjectDto>(undefined as unknown as ProjectDto);
   readonly elements = signal<ProjectElementDto[]>([]);
   readonly openFiles = signal<ProjectElementDto[]>([]);
   readonly selectedTabIndex = signal<number>(0);
@@ -20,10 +20,7 @@ export class ProjectStateService {
 
   // Computed signal to get sync state for a document
   readonly getSyncState = computed(() => (documentId: string) => {
-    return (
-      this.documentSyncStates()?.get(documentId) ??
-      DocumentSyncState.Unavailable
-    );
+    return this.documentSyncStates()?.get(documentId);
   });
   private readonly documentSyncStates = signal<Map<string, DocumentSyncState>>(
     new Map()
@@ -44,7 +41,6 @@ export class ProjectStateService {
           slug
         )
       );
-
       this.project.set(project || null);
 
       if (project) {
@@ -69,7 +65,6 @@ export class ProjectStateService {
           slug
         )
       );
-
       this.elements.set(elements || []);
     } catch (err: unknown) {
       this.error.set('Failed to load project elements');
@@ -79,16 +74,15 @@ export class ProjectStateService {
     }
   }
 
-  openFile(element: ProjectElementDto): void {
+  openFile(element: ProjectElementDto | null): void {
+    if (!element?.id) return;
+
     const files = this.openFiles();
     const alreadyOpen = files.some(f => f.id === element.id);
     if (!alreadyOpen) {
       this.openFiles.update(files => [...files, element]);
       // Set initial sync state to Unavailable
-      this.updateSyncState(
-        element.id ?? 'default',
-        DocumentSyncState.Unavailable
-      );
+      this.updateSyncState(element.id, DocumentSyncState.Unavailable);
     }
     const index = this.openFiles().findIndex(f => f.id === element.id);
     this.selectedTabIndex.set(index);
@@ -97,13 +91,9 @@ export class ProjectStateService {
   closeFile(index: number): void {
     const files = this.openFiles();
     const file = files[index];
-    if (file) {
-      // Remove sync state when closing file
-      this.documentSyncStates.update(states => {
-        const newStates = new Map(states);
-        newStates.delete(file.id ?? 'default');
-        return newStates;
-      });
+    if (file?.id) {
+      // Set sync state to unavailable when closing file
+      this.updateSyncState(file.id, DocumentSyncState.Unavailable);
     }
     this.openFiles.update(files => files.filter((_, i) => i !== index));
     const filesLength = this.openFiles().length;
@@ -112,10 +102,24 @@ export class ProjectStateService {
     }
   }
 
-  updateSyncState(documentId: string, state: DocumentSyncState): void {
+  updateSyncState(
+    documentId: string,
+    state: DocumentSyncState | undefined
+  ): void {
+    if (!documentId) return;
+
     this.documentSyncStates.update(states => {
       const newStates = new Map(states);
-      newStates.set(documentId, state);
+      if (state === undefined) {
+        newStates.delete(documentId);
+        return newStates;
+      }
+
+      // Only update state if document exists in open files
+      const fileExists = this.openFiles().some(f => f.id === documentId);
+      if (fileExists) {
+        newStates.set(documentId, state);
+      }
       return newStates;
     });
   }
@@ -143,7 +147,6 @@ export class ProjectStateService {
           elements
         )
       );
-
       this.elements.set(updatedElements || []);
     } catch (err: unknown) {
       this.error.set('Failed to save project elements');
