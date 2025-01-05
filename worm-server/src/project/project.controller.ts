@@ -12,6 +12,7 @@ import {
   HttpStatus,
   UseGuards,
   Logger,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -117,6 +118,9 @@ export class ProjectController {
     @Headers('X-XSRF-TOKEN') csrfToken: string,
   ): Promise<ProjectDto> {
     // In a real app, you'd validate the CSRF token with a guard or middleware
+    if (!csrfToken) {
+      throw new ForbiddenException('Missing CSRF token');
+    }
     this.logger.log(`CSRF Token received: ${csrfToken}`);
 
     // Convert plain object to ProjectDto instance
@@ -163,6 +167,9 @@ export class ProjectController {
     @Body() projectDto: ProjectDto,
     @Headers('X-XSRF-TOKEN') csrfToken: string,
   ): Promise<ProjectDto> {
+    if (!csrfToken) {
+      throw new ForbiddenException('Missing CSRF token');
+    }
     this.logger.log(`CSRF Token received: ${csrfToken}`);
     const updated = await this.projectService.update(
       username,
@@ -197,6 +204,9 @@ export class ProjectController {
     @Param('slug') slug: string,
     @Headers('X-XSRF-TOKEN') csrfToken: string,
   ): Promise<void> {
+    if (!csrfToken) {
+      throw new ForbiddenException('Missing CSRF token');
+    }
     this.logger.log(`CSRF Token received: ${csrfToken}`);
     await this.projectService.delete(username, slug);
   }
