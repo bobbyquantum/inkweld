@@ -1,14 +1,19 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Editor } from 'ngx-editor';
 import { Plugin } from 'prosemirror-state';
+import { IndexeddbPersistence } from 'y-indexeddb';
 import { yCursorPlugin, ySyncPlugin, yUndoPlugin } from 'y-prosemirror';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
+
+import { DocumentSyncState } from '../models/document-sync-state';
+import { ProjectStateService } from './project-state.service';
 
 interface DocumentConnection {
   ydoc: Y.Doc;
   provider: WebsocketProvider;
   type: Y.XmlFragment;
+  indexeddbProvider: IndexeddbPersistence;
 }
 
 @Injectable({
@@ -16,6 +21,7 @@ interface DocumentConnection {
 })
 export class YjsService {
   private connections: Map<string, DocumentConnection> = new Map();
+  private readonly projectState = inject(ProjectStateService);
 
   async setupCollaboration(editor: Editor, documentId: string): Promise<void> {
     // Check if we already have a connection for this document
@@ -24,26 +30,56 @@ export class YjsService {
     if (!connection) {
       // Create new connection if one doesn't exist
       const ydoc = new Y.Doc();
+      const type = ydoc.getXmlFragment('prosemirror');
+      // Initialize IndexedDB provider first
+      const indexeddbProvider = new IndexeddbPersistence(documentId, ydoc);
+      console.log('Waiting for IndexedDB sync...');
+
+      // Set state to Offline while waiting for IndexedDB
+      this.projectState.updateSyncState(documentId, DocumentSyncState.Offline);
+
+      // Wait for initial IndexedDB sync
+      await indexeddbProvider.whenSynced;
+      console.log('IndexedDB sync complete');
+
+      // Update state to Syncing while establishing WebSocket connection
+      this.projectState.updateSyncState(documentId, DocumentSyncState.Syncing);
+
+      // Setup WebSocket provider
       const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
       const wsUrl = `${wsProto}://${window.location.host}/ws/yjs?documentId=`;
-
-      // Let WebsocketProvider handle the room name
-      const provider = new WebsocketProvider(wsUrl, documentId, ydoc);
-
-      // Wait for the connection to be established
-      await new Promise<void>(resolve => {
-        const onStatus = ({ status }: { status: string }) => {
-          console.log(`WebSocket status for document ${documentId}:`, status);
-          if (status === 'connected') {
-            provider.off('status', onStatus);
-            resolve();
-          }
-        };
-        provider.on('status', onStatus);
+      const provider = new WebsocketProvider(wsUrl, documentId, ydoc, {
+        connect: true,
+        resyncInterval: 10000, // Attempt to resync every 10 seconds when offline
       });
 
-      const type = ydoc.getXmlFragment('prosemirror');
-      connection = { ydoc, provider, type };
+      // Handle connection status
+      provider.on('status', ({ status }: { status: string }) => {
+        console.log(`WebSocket status for document ${documentId}:`, status);
+        this.projectState.updateSyncState(
+          documentId,
+          status === 'connected'
+            ? DocumentSyncState.Synced
+            : DocumentSyncState.Offline
+        );
+      });
+
+      // Handle connection errors gracefully
+      provider.on('connection-error', (error: Event) => {
+        console.warn('WebSocket connection error:', error);
+        this.projectState.updateSyncState(
+          documentId,
+          DocumentSyncState.Offline
+        );
+      });
+
+      // Setup automatic reconnection when online
+      window.addEventListener('online', () => {
+        console.log('Network connection restored, attempting to reconnect...');
+        provider.connect();
+      });
+
+      connection = { ydoc, provider, type, indexeddbProvider };
       this.connections.set(documentId, connection);
     }
 
@@ -77,6 +113,7 @@ export class YjsService {
       const connection = this.connections.get(documentId);
       if (connection) {
         connection.provider.destroy();
+        void connection.indexeddbProvider.destroy();
         connection.ydoc.destroy();
         this.connections.delete(documentId);
       }
@@ -84,6 +121,7 @@ export class YjsService {
       // Disconnect all documents
       for (const connection of this.connections.values()) {
         connection.provider.destroy();
+        void connection.indexeddbProvider.destroy();
         connection.ydoc.destroy();
       }
       this.connections.clear();

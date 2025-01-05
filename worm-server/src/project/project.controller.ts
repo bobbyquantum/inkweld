@@ -14,7 +14,6 @@ import {
   Logger,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiTags,
   ApiOperation,
   ApiOkResponse,
@@ -26,6 +25,7 @@ import {
   ApiBadRequestResponse,
   ApiBody,
   ApiHeader,
+  ApiCookieAuth,
 } from '@nestjs/swagger';
 import { SessionAuthGuard } from '../auth/session-auth.guard'; // or your own guard
 import { ProjectService } from './project.service';
@@ -33,8 +33,8 @@ import { ProjectDto } from './project.dto';
 import { ProjectEntity } from './project.entity';
 
 @ApiTags('Project API')
-@ApiBearerAuth() // If you use bearer tokens or session tokens
-@Controller('api/v1/projects') // This roughly corresponds to "/api/v1/projects" in Spring
+@ApiCookieAuth()
+@Controller('api/v1/projects')
 export class ProjectController {
   private readonly logger = new Logger(ProjectController.name);
 

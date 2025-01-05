@@ -1,7 +1,8 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { ProjectAPIService, ProjectDto, ProjectElementDto } from '@worm/index';
 import { firstValueFrom } from 'rxjs';
 
+import { DocumentSyncState } from '../models/document-sync-state';
 import { XsrfService } from './xsrf.service';
 
 @Injectable({
@@ -17,6 +18,16 @@ export class ProjectStateService {
   readonly isSaving = signal<boolean>(false);
   readonly error = signal<string | undefined>(undefined);
 
+  // Computed signal to get sync state for a document
+  readonly getSyncState = computed(() => (documentId: string) => {
+    return (
+      this.documentSyncStates()?.get(documentId) ??
+      DocumentSyncState.Unavailable
+    );
+  });
+  private readonly documentSyncStates = signal<Map<string, DocumentSyncState>>(
+    new Map()
+  );
   // Private injected services (private members come after public members)
   private readonly projectService = inject(ProjectAPIService);
   private readonly xsrfService = inject(XsrfService);
@@ -73,17 +84,40 @@ export class ProjectStateService {
     const alreadyOpen = files.some(f => f.id === element.id);
     if (!alreadyOpen) {
       this.openFiles.update(files => [...files, element]);
+      // Set initial sync state to Unavailable
+      this.updateSyncState(
+        element.id ?? 'default',
+        DocumentSyncState.Unavailable
+      );
     }
     const index = this.openFiles().findIndex(f => f.id === element.id);
     this.selectedTabIndex.set(index);
   }
 
   closeFile(index: number): void {
+    const files = this.openFiles();
+    const file = files[index];
+    if (file) {
+      // Remove sync state when closing file
+      this.documentSyncStates.update(states => {
+        const newStates = new Map(states);
+        newStates.delete(file.id ?? 'default');
+        return newStates;
+      });
+    }
     this.openFiles.update(files => files.filter((_, i) => i !== index));
     const filesLength = this.openFiles().length;
     if (this.selectedTabIndex() >= filesLength) {
       this.selectedTabIndex.set(filesLength - 1);
     }
+  }
+
+  updateSyncState(documentId: string, state: DocumentSyncState): void {
+    this.documentSyncStates.update(states => {
+      const newStates = new Map(states);
+      newStates.set(documentId, state);
+      return newStates;
+    });
   }
 
   // Method to update elements locally (e.g., for drag-and-drop operations)

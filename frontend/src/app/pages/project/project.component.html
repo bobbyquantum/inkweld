@@ -1,8 +1,10 @@
 <app-project-main-menu></app-project-main-menu>
 
-<div *ngIf="projectState.isLoading()" class="loading-indicator">
-  <mat-spinner diameter="40"></mat-spinner>
-</div>
+@if (projectState.isLoading()) {
+  <div class="loading-indicator">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+}
 
 <mat-sidenav-container class="main-container">
   <mat-sidenav mode="side" opened class="sidenav-content">
@@ -18,12 +20,36 @@
       @for (file of projectState.openFiles(); track file.id; let i = $index) {
         <mat-tab>
           <ng-template mat-tab-label>
-            {{ file.name }}
-            <button
-              mat-icon-button
-              (click)="closeTab(i); $event.stopPropagation()">
-              <mat-icon>close</mat-icon>
-            </button>
+            <div class="tab-label">
+              {{ file.name }}
+              @switch (projectState.getSyncState()(file.id ?? 'default')) {
+                @case (DocumentSyncState.Unavailable) {
+                  <div
+                    class="connection-status unavailable"
+                    title="Document not found locally"></div>
+                }
+                @case (DocumentSyncState.Offline) {
+                  <div
+                    class="connection-status offline"
+                    title="Document available offline"></div>
+                }
+                @case (DocumentSyncState.Syncing) {
+                  <div
+                    class="connection-status syncing"
+                    title="Syncing with server..."></div>
+                }
+                @case (DocumentSyncState.Synced) {
+                  <div
+                    class="connection-status synced"
+                    title="Connected and synced"></div>
+                }
+              }
+              <button
+                mat-icon-button
+                (click)="closeTab(i); $event.stopPropagation()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
           </ng-template>
           <app-element-editor
             [documentId]="file.id ?? 'default'"></app-element-editor>
