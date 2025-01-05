@@ -5,12 +5,12 @@
       "path": ".."
     },
     {
-      "name": "🎨 Frontend",
-      "path": "../frontend"
-    },
-    {
       "name": "⚙️ Server",
       "path": "../worm-server"
+    },
+    {
+      "name": "🎨 Frontend",
+      "path": "../frontend"
     },
   ],
   "settings": {
