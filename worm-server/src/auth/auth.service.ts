@@ -37,7 +37,7 @@ export class AuthService {
     }
 
     // Remove password from returned user object
-     
+
     const { password: _, ...result } = user;
     return result;
   }
@@ -105,7 +105,7 @@ export class AuthService {
       user = this.userRepo.create({
         username: username,
         email: emails && emails.length > 0 ? emails[0].value : null,
-        name: displayName,
+        name: displayName ?? null,
         githubId: id.toString(),
         avatarImageUrl: photos && photos.length > 0 ? photos[0].value : null,
         enabled: true,
