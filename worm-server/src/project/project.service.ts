@@ -51,6 +51,12 @@ export class ProjectService {
       throw new ForbiddenException('User not found');
     }
 
+    const existing = await this.projectRepo.findOne({
+      where: { user: user, slug: project.slug },
+    });
+    if (existing) {
+      throw new ForbiddenException('Project already exists');
+    }
     // Assign the user relationship
     project.user = user;
     return this.projectRepo.save(project);

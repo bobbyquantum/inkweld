@@ -1,4 +1,3 @@
-import { NgIf } from '@angular/common';
 import {
   Component,
   effect,
@@ -20,14 +19,15 @@ import { Subscription } from 'rxjs';
 import { ElementEditorComponent } from '../../components/element-editor/element-editor.component';
 import { ProjectMainMenuComponent } from '../../components/project-main-menu/project-main-menu.component';
 import { ProjectTreeComponent } from '../../components/project-tree/project-tree.component';
+import { DocumentSyncState } from '../../models/document-sync-state';
 import { ProjectStateService } from '../../services/project-state.service';
 
 @Component({
   selector: 'app-project',
   templateUrl: './project.component.html',
   styleUrls: ['./project.component.scss'],
+
   imports: [
-    NgIf,
     MatButtonModule,
     MatSidenavModule,
     MatTabsModule,
@@ -41,6 +41,7 @@ import { ProjectStateService } from '../../services/project-state.service';
 export class ProjectComponent implements OnInit, OnDestroy {
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
   protected readonly projectState = inject(ProjectStateService);
+  protected readonly DocumentSyncState = DocumentSyncState;
   private readonly snackBar = inject(MatSnackBar);
   private readonly route = inject(ActivatedRoute);
 

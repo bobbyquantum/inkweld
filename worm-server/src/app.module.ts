@@ -8,7 +8,6 @@ import {
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { UserModule } from './user/user.module';
 import { UserEntity } from './user/user.entity';
 import { AuthModule } from './auth/auth.module';
 import { createProxyMiddleware } from 'http-proxy-middleware';
@@ -67,7 +66,6 @@ import * as path from 'path';
       synchronize: true, // auto-create DB schema in dev (turn off in production!)
     }),
     PassportModule.register({ session: true }),
-    UserModule,
     ProjectModule,
     ProjectElementModule,
     AuthModule,
