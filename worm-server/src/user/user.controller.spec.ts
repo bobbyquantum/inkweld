@@ -70,11 +70,11 @@ describe('UserController', () => {
   });
 
   describe('POST /api/v1/users/register', () => {
-    it('should register a new user', async () => {
+    it('should register a new user with all valid fields', async () => {
       const registerDto: UserRegisterDto = {
         username: 'newuser',
         email: 'new@example.com',
-        password: 'password',
+        password: 'password123',
         name: 'New User',
       };
       const mockRegisteredUser: UserEntity = {
@@ -82,7 +82,7 @@ describe('UserController', () => {
         username: 'newuser',
         name: 'New User',
         email: 'new@example.com',
-        password: 'password',
+        password: 'password123',
         githubId: null,
         enabled: true,
         avatarImageUrl: null,
@@ -97,8 +97,126 @@ describe('UserController', () => {
       expect(userService.registerUser).toHaveBeenCalledWith(
         'newuser',
         'new@example.com',
-        'password',
+        'password123',
         'New User',
+      );
+    });
+
+    it('should register a new user without optional name field', async () => {
+      const registerDto: UserRegisterDto = {
+        username: 'newuser',
+        email: 'new@example.com',
+        password: 'password123',
+      };
+      const mockRegisteredUser: UserEntity = {
+        id: '2',
+        username: 'newuser',
+        name: null,
+        email: 'new@example.com',
+        password: 'password123',
+        githubId: null,
+        enabled: true,
+        avatarImageUrl: null,
+      };
+      jest
+        .spyOn(userService, 'registerUser')
+        .mockResolvedValue(mockRegisteredUser);
+
+      const result = await controller.register(registerDto);
+
+      expect(result).toEqual({ message: 'User registered', userId: '2' });
+      expect(userService.registerUser).toHaveBeenCalledWith(
+        'newuser',
+        'new@example.com',
+        'password123',
+        undefined,
+      );
+    });
+
+    it('should throw validation error for empty username', async () => {
+      const registerDto = {
+        username: '',
+        email: 'new@example.com',
+        password: 'password123',
+      };
+
+      jest
+        .spyOn(userService, 'registerUser')
+        .mockRejectedValue(new Error('Username is required'));
+
+      await expect(
+        controller.register(registerDto as UserRegisterDto),
+      ).rejects.toThrow('Username is required');
+
+      expect(userService.registerUser).toHaveBeenCalledWith(
+        '',
+        'new@example.com',
+        'password123',
+        undefined,
+      );
+    });
+
+    it('should throw validation error for invalid email format', async () => {
+      const registerDto = {
+        username: 'newuser',
+        email: 'invalid-email',
+        password: 'password123',
+      };
+
+      jest
+        .spyOn(userService, 'registerUser')
+        .mockRejectedValue(new Error('Invalid email format'));
+
+      await expect(
+        controller.register(registerDto as UserRegisterDto),
+      ).rejects.toThrow('Invalid email format');
+
+      expect(userService.registerUser).toHaveBeenCalledWith(
+        'newuser',
+        'invalid-email',
+        'password123',
+        undefined,
+      );
+    });
+
+    it('should throw validation error for short password', async () => {
+      const registerDto = {
+        username: 'newuser',
+        email: 'new@example.com',
+        password: 'short',
+      };
+
+      jest
+        .spyOn(userService, 'registerUser')
+        .mockRejectedValue(
+          new Error('Password must be at least 8 characters long'),
+        );
+
+      await expect(
+        controller.register(registerDto as UserRegisterDto),
+      ).rejects.toThrow('Password must be at least 8 characters long');
+
+      expect(userService.registerUser).toHaveBeenCalledWith(
+        'newuser',
+        'new@example.com',
+        'short',
+        undefined,
+      );
+    });
+
+    it('should throw error when user service fails', async () => {
+      const registerDto: UserRegisterDto = {
+        username: 'newuser',
+        email: 'new@example.com',
+        password: 'password123',
+      };
+
+      jest
+        .spyOn(userService, 'registerUser')
+        .mockRejectedValue(new Error('Registration failed'));
+
+      await expect(controller.register(registerDto)).rejects.toThrow(
+        'Registration failed',
       );
     });
   });
