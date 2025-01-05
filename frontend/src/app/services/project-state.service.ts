@@ -41,7 +41,7 @@ export class ProjectStateService {
           slug
         )
       );
-      this.project.set(project || null);
+      this.project.set(project);
 
       if (project) {
         await this.loadProjectElements(username, slug);
@@ -65,7 +65,7 @@ export class ProjectStateService {
           slug
         )
       );
-      this.elements.set(elements || []);
+      this.elements.set(elements);
     } catch (err: unknown) {
       this.error.set('Failed to load project elements');
       console.error('Error loading project elements:', err);
@@ -147,7 +147,7 @@ export class ProjectStateService {
           elements
         )
       );
-      this.elements.set(updatedElements || []);
+      this.elements.set(updatedElements);
     } catch (err: unknown) {
       this.error.set('Failed to save project elements');
       console.error('Error saving project elements:', err);

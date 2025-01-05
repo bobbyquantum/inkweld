@@ -157,6 +157,39 @@ describe('ProjectStateService', () => {
     expect(service.isSaving()).toBe(false);
   });
 
+  it('should handle empty project elements array', async () => {
+    saveElementsSpy.mockImplementation(() => of([]));
+    await service.saveProjectElements('user', 'project', []);
+
+    expect(service.elements()).toEqual([]);
+    expect(service.isSaving()).toBe(false);
+    expect(service.error()).toBeUndefined();
+  });
+
+  it('should handle null project elements', async () => {
+    await service.saveProjectElements(
+      'user',
+      'project',
+      null as unknown as ProjectElementDto[]
+    );
+
+    expect(service.elements()).toEqual([]);
+    expect(service.isSaving()).toBe(false);
+    expect(service.error()).toBe('Failed to save project elements');
+  });
+
+  it('should handle undefined project elements', async () => {
+    await service.saveProjectElements(
+      'user',
+      'project',
+      undefined as unknown as ProjectElementDto[]
+    );
+
+    expect(service.elements()).toEqual([]);
+    expect(service.isSaving()).toBe(false);
+    expect(service.error()).toBe('Failed to save project elements');
+  });
+
   it('should update elements locally', () => {
     service.updateElements(mockElements);
     expect(service.elements()).toEqual(mockElements);
@@ -197,6 +230,14 @@ describe('ProjectStateService', () => {
 
     it('should not update sync state for non-existent file', () => {
       service.updateSyncState('non-existent', DocumentSyncState.Synced);
+      expect(service.getSyncState()('non-existent')).toBeUndefined();
+    });
+
+    it('should not update sync state for a null document id', () => {
+      service.updateSyncState(
+        null as unknown as string,
+        DocumentSyncState.Synced
+      );
       expect(service.getSyncState()('non-existent')).toBeUndefined();
     });
 
