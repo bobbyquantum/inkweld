@@ -45,14 +45,19 @@ export class UserController {
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication' })
   async getMe(@Request() req) {
     this.logger.log('getMe', req.user);
-    const user = await this.userService.getCurrentUser(req.user.id);
-    return {
-      id: user.id,
-      username: user.username,
-      name: user.name,
-      avatarImageUrl: user.avatarImageUrl,
-      enabled: user.enabled,
-    };
+    try {
+      const user = await this.userService.getCurrentUser(req.user.id);
+      return {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        avatarImageUrl: user.avatarImageUrl,
+        enabled: user.enabled,
+      };
+    } catch (error) {
+      this.logger.error('Error getting user', error);
+      throw error;
+    }
   }
 
   @Post('register')
