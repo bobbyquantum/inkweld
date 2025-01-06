@@ -1,7 +1,7 @@
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { UserService } from '../user/user.service.js';
-import { SessionAuthGuard } from './session-auth.guard.js';
+import { UserService } from '../user/user.service';
+import { SessionAuthGuard } from './session-auth.guard';
 
 describe('SessionAuthGuard', () => {
   let guard: SessionAuthGuard;

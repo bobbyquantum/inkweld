@@ -8,17 +8,16 @@ import {
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { UserEntity } from './user/user.entity.js';
-import { AuthModule } from './auth/auth.module.js';
+import { UserEntity } from './user/user.entity';
+import { AuthModule } from './auth/auth.module';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import { UserSessionEntity } from './auth/session.entity.js';
+import { UserSessionEntity } from './auth/session.entity';
 import { PassportModule } from '@nestjs/passport';
-import { ProjectModule } from './project/project.module.js';
-import { ProjectEntity } from './project/project.entity.js';
-import { ProjectElementModule } from './project/element/project-element.module.js';
-import { ProjectElementEntity } from './project/element/project-element.entity.js';
-import { WsModule } from './ws/ws.module.js';
-import { McpModule } from './mcp/mcp.module.js';
+import { ProjectModule } from './project/project.module';
+import { ProjectEntity } from './project/project.entity';
+import { ProjectElementModule } from './project/element/project-element.module';
+import { ProjectElementEntity } from './project/element/project-element.entity';
+import { WsModule } from './ws/ws.module';
 import * as path from 'path';
 
 @Module({
@@ -71,7 +70,6 @@ import * as path from 'path';
     ProjectElementModule,
     AuthModule,
     WsModule,
-    McpModule,
   ],
   controllers: [],
 })
@@ -95,7 +93,6 @@ export class AppModule implements NestModule {
         .exclude({ path: 'api/(.*)', method: RequestMethod.ALL })
         .exclude({ path: 'login/(.*)', method: RequestMethod.ALL })
         .exclude({ path: 'oauth2/(.*)', method: RequestMethod.ALL })
-        .exclude({ path: 'mcp/(.*)', method: RequestMethod.ALL })
         .exclude({ path: 'ws/yjs/(.*)', method: RequestMethod.ALL })
         .forRoutes({ path: '*', method: RequestMethod.ALL });
     } else {
@@ -106,7 +103,6 @@ export class AppModule implements NestModule {
             !req.url.startsWith('/api/') &&
             !req.url.startsWith('/login/') &&
             !req.url.startsWith('/oauth2/') &&
-            !req.url.startsWith('/mcp/') &&
             !req.url.startsWith('/ws/') &&
             !req.url.match(/\.(js|css|ico|png|jpg|jpeg|gif|svg|json)$/)
           ) {

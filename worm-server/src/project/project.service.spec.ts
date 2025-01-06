@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ProjectService } from './project.service.js';
-import { ProjectEntity } from './project.entity.js';
-import { UserEntity } from '../user/user.entity.js';
+import { ProjectService } from './project.service';
+import { ProjectEntity } from './project.entity';
+import { UserEntity } from '../user/user.entity';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 
 describe('ProjectService', () => {

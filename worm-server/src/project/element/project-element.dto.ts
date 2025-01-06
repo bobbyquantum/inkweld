@@ -1,8 +1,8 @@
 // project-element.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsEnum, IsNumber } from 'class-validator';
-import { ElementType, isExpandable } from './element-type.enum.js';
-import { ProjectElementEntity } from './project-element.entity.js';
+import { ElementType, isExpandable } from './element-type.enum';
+import { ProjectElementEntity } from './project-element.entity';
 
 export class ProjectElementDto {
   @ApiProperty({

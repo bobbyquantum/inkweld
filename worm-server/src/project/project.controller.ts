@@ -28,10 +28,10 @@ import {
   ApiHeader,
   ApiCookieAuth,
 } from '@nestjs/swagger';
-import { SessionAuthGuard } from '../auth/session-auth.guard.js'; // or your own guard
-import { ProjectService } from './project.service.js';
-import { ProjectDto } from './project.dto.js';
-import { ProjectEntity } from './project.entity.js';
+import { SessionAuthGuard } from '../auth/session-auth.guard'; // or your own guard
+import { ProjectService } from './project.service';
+import { ProjectDto } from './project.dto';
+import { ProjectEntity } from './project.entity';
 
 @ApiTags('Project API')
 @ApiCookieAuth()

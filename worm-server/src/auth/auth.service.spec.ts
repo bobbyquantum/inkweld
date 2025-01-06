@@ -3,10 +3,10 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Request } from 'express';
 import { Session } from 'express-session';
-import { AuthService } from './auth.service.js';
-import { UserService } from '../user/user.service.js';
-import { UserEntity } from '../user/user.entity.js';
-import { TypeOrmSessionStore } from './session.store.js';
+import { AuthService } from './auth.service';
+import { UserService } from '../user/user.service';
+import { UserEntity } from '../user/user.entity';
+import { TypeOrmSessionStore } from './session.store';
 import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 

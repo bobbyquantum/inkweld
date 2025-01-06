@@ -1,10 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { UserService } from '../user/user.service.js';
+import { UserService } from '../user/user.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserEntity } from '../user/user.entity.js';
+import { UserEntity } from '../user/user.entity';
 import * as bcrypt from 'bcrypt';
-import { TypeOrmSessionStore } from './session.store.js';
+import { TypeOrmSessionStore } from './session.store';
 import type { Request } from 'express';
 
 @Injectable()

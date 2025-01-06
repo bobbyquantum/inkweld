@@ -19,9 +19,9 @@ import {
   ApiOkResponse,
   ApiBody,
 } from '@nestjs/swagger';
-import { ProjectElementService } from './project-element.service.js';
-import { ProjectElementDto } from './project-element.dto.js';
-import { SessionAuthGuard } from '../../auth/session-auth.guard.js'; // or your own guard
+import { ProjectElementService } from './project-element.service';
+import { ProjectElementDto } from './project-element.dto';
+import { SessionAuthGuard } from '../../auth/session-auth.guard'; // or your own guard
 
 @ApiTags('Project API')
 @Controller('api/v1/projects/:username/:slug/elements')
