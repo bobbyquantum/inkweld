@@ -1,7 +1,7 @@
 import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { GithubAuthGuard } from './github-auth.guard';
-import { AuthService } from './auth.service';
+import { GithubAuthGuard } from './github-auth.guard.js';
+import { AuthService } from './auth.service.js';
 import { ApiExcludeController } from '@nestjs/swagger';
 
 @ApiExcludeController()

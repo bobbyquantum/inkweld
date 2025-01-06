@@ -1,10 +1,10 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { AppModule } from './app.module.js';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
-import * as session from 'express-session';
-import { TypeOrmSessionStore } from './auth/session.store';
+import session from 'express-session';
+import { TypeOrmSessionStore } from './auth/session.store.js';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { INestApplication } from '@nestjs/common';

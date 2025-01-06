@@ -1,6 +1,6 @@
 import { EntityManager, QueryRunner, Repository } from 'typeorm';
-import { UserSessionEntity } from './session.entity';
-import { TypeOrmSessionStore } from './session.store';
+import { UserSessionEntity } from './session.entity.js';
+import { TypeOrmSessionStore } from './session.store.js';
 
 describe('TypeOrmSessionStore', () => {
   let store: TypeOrmSessionStore;
