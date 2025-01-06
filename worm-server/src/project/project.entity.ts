@@ -8,7 +8,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { UserEntity } from '../user/user.entity';
+import { UserEntity } from '../user/user.entity.js';
 
 @Entity('projects')
 export class ProjectEntity {

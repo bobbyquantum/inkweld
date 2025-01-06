@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { YjsGateway } from './yjs-gateway';
+import { YjsGateway } from './yjs-gateway.js';
 import { ConfigModule } from '@nestjs/config';
-import { AuthModule } from '../auth/auth.module';
-import { UserSessionEntity } from '../auth/session.entity';
+import { AuthModule } from '../auth/auth.module.js';
+import { UserSessionEntity } from '../auth/session.entity.js';
 
 @Module({
   imports: [

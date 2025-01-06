@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ProjectElementService } from './project-element.service';
-import { ProjectElementEntity } from './project-element.entity';
-import { ProjectService } from '../project.service';
-import { ProjectEntity } from '../project.entity';
-import { ElementType } from './element-type.enum';
-import { ProjectElementDto } from './project-element.dto';
+import { ProjectElementService } from './project-element.service.js';
+import { ProjectElementEntity } from './project-element.entity.js';
+import { ProjectService } from '../project.service.js';
+import { ProjectEntity } from '../project.entity.js';
+import { ElementType } from './element-type.enum.js';
+import { ProjectElementDto } from './project-element.dto.js';
 import { NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 
 describe('ProjectElementService', () => {

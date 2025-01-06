@@ -7,10 +7,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ProjectElementEntity } from './project-element.entity';
-import { ProjectElementDto } from './project-element.dto';
-import { ProjectService } from '../project.service';
-import { ProjectEntity } from '../project.entity';
+import { ProjectElementEntity } from './project-element.entity.js';
+import { ProjectElementDto } from './project-element.dto.js';
+import { ProjectService } from '../project.service.js';
+import { ProjectEntity } from '../project.entity.js';
 
 @Injectable()
 export class ProjectElementService {
