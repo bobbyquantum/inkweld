@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Store } from 'express-session';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserSessionEntity } from './session.entity';
+import { UserSessionEntity } from './session.entity.js';
 
 interface SessionStoreOptions {
   /**

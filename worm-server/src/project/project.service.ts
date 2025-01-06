@@ -5,8 +5,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ProjectEntity } from './project.entity';
-import { UserEntity } from '../user/user.entity';
+import { ProjectEntity } from './project.entity.js';
+import { UserEntity } from '../user/user.entity.js';
 
 @Injectable()
 export class ProjectService {
@@ -26,7 +26,9 @@ export class ProjectService {
       order: { createdDate: 'DESC' },
     });
   }
-
+  async findAll() {
+    return await this.projectRepo.find();
+  }
   async findByUsernameAndSlug(
     username: string,
     slug: string,

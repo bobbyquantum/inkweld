@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { OAuth2Controller } from './oauth2.controller';
-import { AuthService } from './auth.service';
-import { GithubAuthGuard } from './github-auth.guard';
+import { OAuth2Controller } from './oauth2.controller.js';
+import { AuthService } from './auth.service.js';
+import { GithubAuthGuard } from './github-auth.guard.js';
 
 describe('OAuth2Controller', () => {
   let controller: OAuth2Controller;

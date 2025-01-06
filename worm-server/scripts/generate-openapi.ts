@@ -1,9 +1,9 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from '../src/app.module';
-import { createOpenAPIConfig } from '../src/main';
 import { SwaggerModule } from '@nestjs/swagger';
 import { writeFile } from 'fs/promises';
 import * as path from 'path';
+import { AppModule } from 'src/app.module.js';
+import { createOpenAPIConfig } from 'src/main.js';
 
 async function generateOpenAPIJson() {
   const app = await NestFactory.create(AppModule, { preview: true });

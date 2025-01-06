@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { GithubStrategy } from './github.strategy';
-import { UserService } from '../user/user.service';
+import { GithubStrategy } from './github.strategy.js';
+import { UserService } from '../user/user.service.js';
 
 describe('GithubStrategy', () => {
   let strategy: GithubStrategy;
