@@ -5,7 +5,7 @@ import {
   OnGatewayDisconnect,
   OnGatewayInit,
 } from '@nestjs/websockets';
-import Server from 'ws';
+import { Server, WebSocket } from 'ws';
 import type { Request } from 'express';
 import {
   setupWSConnection,
@@ -14,7 +14,7 @@ import {
 } from 'y-websocket/bin/utils.cjs';
 import { LeveldbPersistence } from 'y-leveldb';
 import { Logger, Injectable } from '@nestjs/common';
-import { TypeOrmSessionStore } from '../auth/session.store.js';
+import { TypeOrmSessionStore } from '../auth/session.store';
 import { ConfigService } from '@nestjs/config';
 import * as cookie from 'cookie';
 import * as Y from 'yjs';
@@ -24,45 +24,6 @@ import * as Y from 'yjs';
 export class YjsGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
 {
-  async updateDocument(documentId: string, content: string): Promise<void> {
-    // Get the Y.Doc for this document
-    const doc = await this.getDocument(documentId);
-
-    // Get the root text type
-    const text = doc.getText('content');
-
-    // Apply the update
-    doc.transact(() => {
-      text.delete(0, text.length); // Clear existing content
-      text.insert(0, content); // Insert new content
-    });
-
-    // Persist changes
-    await this.persistDocument(doc);
-  }
-
-  private async getDocument(documentId: string): Promise<Y.Doc> {
-    const ldb = getPersistence()?.provider as LeveldbPersistence;
-    if (!ldb) {
-      throw new Error('No LevelDB persistence found');
-    }
-
-    // Get or create document
-    const doc = await ldb.getYDoc(documentId);
-    return doc;
-  }
-
-  private async persistDocument(doc: Y.Doc): Promise<void> {
-    const ldb = getPersistence()?.provider as LeveldbPersistence;
-    if (!ldb) {
-      throw new Error('No LevelDB persistence found');
-    }
-
-    // Store the final state
-    const update = Y.encodeStateAsUpdate(doc);
-    await ldb.storeUpdate(doc.guid, update);
-  }
-
   private readonly logger = new Logger(YjsGateway.name);
   private readonly allowedOrigins: string[];
 

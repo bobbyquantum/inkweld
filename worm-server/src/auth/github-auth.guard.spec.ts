@@ -1,7 +1,7 @@
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { GithubAuthGuard } from './github-auth.guard';
 import { Test } from '@nestjs/testing';
 import { AuthGuard } from '@nestjs/passport';
-import { GithubAuthGuard } from './github-auth.guard.js';
 
 describe('GithubAuthGuard', () => {
   let guard: GithubAuthGuard;

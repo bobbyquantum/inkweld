@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ProjectElementController } from './project-element.controller.js';
-import { ProjectElementService } from './project-element.service.js';
-import { ProjectElementDto } from './project-element.dto.js';
-import { ElementType } from './element-type.enum.js';
-import { ProjectElementEntity } from './project-element.entity.js';
+import { ProjectElementController } from './project-element.controller';
+import { ProjectElementService } from './project-element.service';
+import { ProjectElementDto } from './project-element.dto';
+import { ElementType } from './element-type.enum';
+import { ProjectElementEntity } from './project-element.entity';
 import { NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { SessionAuthGuard } from '../../auth/session-auth.guard.js';
+import { SessionAuthGuard } from '../../auth/session-auth.guard';
 
 describe('ProjectElementController', () => {
   const mockGuard = { canActivate: () => true };

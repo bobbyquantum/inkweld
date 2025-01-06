@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ProjectController } from './project.controller.js';
-import { ProjectService } from './project.service.js';
-import { ProjectDto } from './project.dto.js';
-import { ProjectEntity } from './project.entity.js';
+import { ProjectController } from './project.controller';
+import { ProjectService } from './project.service';
+import { ProjectDto } from './project.dto';
+import { ProjectEntity } from './project.entity';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
-import { UserEntity } from '../user/user.entity.js';
-import { UserService } from '../user/user.service.js';
-import { SessionAuthGuard } from '../auth/session-auth.guard.js';
+import { UserEntity } from '../user/user.entity';
+import { UserService } from '../user/user.service';
+import { SessionAuthGuard } from '../auth/session-auth.guard';
 
 describe('ProjectController', () => {
   const mockUserService = {

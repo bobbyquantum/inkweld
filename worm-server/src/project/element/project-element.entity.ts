@@ -9,8 +9,8 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { ElementType } from './element-type.enum.js';
-import { ProjectEntity } from '../project.entity.js';
+import { ElementType } from './element-type.enum';
+import { ProjectEntity } from '../project.entity';
 
 @Entity('project_elements')
 export class ProjectElementEntity {
