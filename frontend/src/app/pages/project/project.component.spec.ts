@@ -24,8 +24,8 @@ describe('ProjectComponent', () => {
     title: 'Test Project',
     description: 'A test project',
     slug: 'test-project',
-    // createdDate: new Date().toISOString(),
-    // updatedDate: new Date().toISOString(),
+    createdDate: new Date().toISOString(),
+    updatedDate: new Date().toISOString(),
   };
 
   const mockElements: ProjectElementDto[] = [

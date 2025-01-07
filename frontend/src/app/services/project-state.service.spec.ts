@@ -30,6 +30,8 @@ describe('ProjectStateService', () => {
     slug: 'test-project',
     title: 'Test Project',
     description: undefined,
+    createdDate: new Date().toISOString(),
+    updatedDate: new Date().toISOString(),
   };
 
   const mockElements: ProjectElementDto[] = [mockElement];

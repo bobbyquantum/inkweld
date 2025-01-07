@@ -22,7 +22,7 @@ import { ProjectComponent } from './project.component';
 
 // Mock ProjectStateService
 class MockProjectStateService implements Partial<ProjectStateService> {
-  project = signal<ProjectDto | null>(null);
+  project = signal<ProjectDto>(null as unknown as ProjectDto);
   elements = signal<ProjectElementDto[]>([]);
   openFiles = signal<ProjectElementDto[]>([]);
   selectedTabIndex = signal(0);
@@ -128,8 +128,7 @@ export const Empty: Story = {
       ...args,
       projectState: {
         ...new MockProjectStateService(),
-        project: signal<Project>({
-          id: '1',
+        project: signal<ProjectDto>({
           title: 'Test Project',
           slug: 'test-project',
           description: 'A test project',
@@ -149,8 +148,7 @@ export const WithOpenFiles: Story = {
       ...args,
       projectState: {
         ...new MockProjectStateService(),
-        project: signal<Project>({
-          id: '1',
+        project: signal<ProjectDto>({
           title: 'Test Project',
           slug: 'test-project',
           description: 'A test project',
