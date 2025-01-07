@@ -1,8 +1,8 @@
 .gitignore
-.openapi-generator-ignore
 README.md
 api.module.ts
 api/api.ts
+api/mcp.service.ts
 api/project-api.service.ts
 api/user-api.service.ts
 configuration.ts
