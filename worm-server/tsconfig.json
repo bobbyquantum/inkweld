@@ -19,5 +19,8 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "yjs": ["node_modules/yjs/dist/yjs.mjs"]
+    }
   }
 }
