@@ -38,7 +38,6 @@ type Story = StoryObj<ProjectCardComponent>;
 export const Default: Story = {
   args: {
     project: {
-      id: '1',
       title: 'Sample Project',
       slug: 'sample-project',
       description: 'This is a sample project description.',
@@ -51,7 +50,6 @@ export const Default: Story = {
 export const LongDescription: Story = {
   args: {
     project: {
-      id: '2',
       title: 'Project with Long Title',
       slug: 'project-with-long-title',
       description:

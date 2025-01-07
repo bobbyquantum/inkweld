@@ -15,11 +15,19 @@ export class ProjectDto {
   @ApiProperty({ type: UserDto, required: false })
   user?: UserDto;
 
+  @ApiProperty({ type: Date, example: '2023-01-01T00:00:00.000Z' })
+  createdDate: Date;
+
+  @ApiProperty({ type: Date, example: '2023-01-01T00:00:00.000Z' })
+  updatedDate: Date;
+
   constructor(entity?: ProjectEntity) {
     if (entity) {
       this.slug = entity.slug;
       this.title = entity.title;
       this.description = entity.description;
+      this.createdDate = entity.createdDate;
+      this.updatedDate = entity.updatedDate;
       if (entity.user) {
         this.user = {
           username: entity.user.username,
@@ -34,6 +42,8 @@ export class ProjectDto {
     project.slug = this.slug;
     project.title = this.title;
     project.description = this.description;
+    project.createdDate = this.createdDate;
+    project.updatedDate = this.updatedDate;
     return project;
   }
 }

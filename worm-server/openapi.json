@@ -1,6 +1,277 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/projects": {
+      "get": {
+        "description": "Retrieves a list of all projects belonging to the authenticated user.",
+        "operationId": "ProjectController_getAllProjects",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of projects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get all projects for the current user",
+        "tags": [
+          "Project API"
+        ]
+      },
+      "post": {
+        "description": "Creates a new project for the authenticated user. Requires a valid CSRF token.",
+        "operationId": "ProjectController_createProject",
+        "parameters": [
+          {
+            "name": "X-XSRF-TOKEN",
+            "required": true,
+            "in": "header",
+            "description": "CSRF token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid project data provided"
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "403": {
+            "description": "Invalid CSRF token"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Create a new project",
+        "tags": [
+          "Project API"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{slug}": {
+      "get": {
+        "description": "Retrieves a specific project by its username and slug. Only accessible by the owner.",
+        "operationId": "ProjectController_getProjectByUsernameAndSlug",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "403": {
+            "description": "User does not have permission to access this project"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get project by username and slug",
+        "tags": [
+          "Project API"
+        ]
+      },
+      "put": {
+        "description": "Updates details of an existing project for the authenticated user. Requires CSRF.",
+        "operationId": "ProjectController_updateProject",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-XSRF-TOKEN",
+            "required": true,
+            "in": "header",
+            "description": "CSRF token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid project data provided"
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "403": {
+            "description": "Invalid CSRF token or user does not have permission to update this project"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Update an existing project",
+        "tags": [
+          "Project API"
+        ]
+      },
+      "delete": {
+        "description": "Removes a project by username and slug for the authenticated user. Requires CSRF.",
+        "operationId": "ProjectController_deleteProject",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-XSRF-TOKEN",
+            "required": true,
+            "in": "header",
+            "description": "CSRF token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Project successfully deleted"
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "403": {
+            "description": "Invalid CSRF token or user does not have permission to delete this project"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Delete a project",
+        "tags": [
+          "Project API"
+        ]
+      }
+    },
     "/api/v1/users/me": {
       "get": {
         "description": "Retrieves the profile information of the authenticated user.",
@@ -101,277 +372,6 @@
         "summary": "Get available OAuth2 providers",
         "tags": [
           "User API"
-        ]
-      }
-    },
-    "/api/v1/projects": {
-      "get": {
-        "description": "Retrieves a list of all projects belonging to the authenticated user.",
-        "operationId": "ProjectController_getAllProjects",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved the list of projects",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ProjectDto"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing authentication"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get all projects for the current user",
-        "tags": [
-          "Project API"
-        ]
-      },
-      "post": {
-        "description": "Creates a new project for the authenticated user. Requires a valid CSRF token.",
-        "operationId": "ProjectController_createProject",
-        "parameters": [
-          {
-            "name": "X-XSRF-TOKEN",
-            "required": true,
-            "in": "header",
-            "description": "CSRF token",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProjectDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Project successfully created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid project data provided"
-          },
-          "401": {
-            "description": "Invalid or missing authentication"
-          },
-          "403": {
-            "description": "Invalid CSRF token"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create a new project",
-        "tags": [
-          "Project API"
-        ]
-      }
-    },
-    "/api/v1/projects/{username}/{slug}": {
-      "get": {
-        "description": "Retrieves a specific project by its username and slug. Only accessible by the owner.",
-        "operationId": "ProjectController_getProjectByUsernameAndSlug",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved the project",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing authentication"
-          },
-          "403": {
-            "description": "User does not have permission to access this project"
-          },
-          "404": {
-            "description": "Project not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get project by username and slug",
-        "tags": [
-          "Project API"
-        ]
-      },
-      "put": {
-        "description": "Updates details of an existing project for the authenticated user. Requires CSRF.",
-        "operationId": "ProjectController_updateProject",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "X-XSRF-TOKEN",
-            "required": true,
-            "in": "header",
-            "description": "CSRF token",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProjectDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Project successfully updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid project data provided"
-          },
-          "401": {
-            "description": "Invalid or missing authentication"
-          },
-          "403": {
-            "description": "Invalid CSRF token or user does not have permission to update this project"
-          },
-          "404": {
-            "description": "Project not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update an existing project",
-        "tags": [
-          "Project API"
-        ]
-      },
-      "delete": {
-        "description": "Removes a project by username and slug for the authenticated user. Requires CSRF.",
-        "operationId": "ProjectController_deleteProject",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "X-XSRF-TOKEN",
-            "required": true,
-            "in": "header",
-            "description": "CSRF token",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Project successfully deleted"
-          },
-          "401": {
-            "description": "Invalid or missing authentication"
-          },
-          "403": {
-            "description": "Invalid CSRF token or user does not have permission to delete this project"
-          },
-          "404": {
-            "description": "Project not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Delete a project",
-        "tags": [
-          "Project API"
         ]
       }
     },
@@ -493,6 +493,32 @@
           "Project API"
         ]
       }
+    },
+    "/mcp/sse": {
+      "get": {
+        "operationId": "McpController_getSse",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Mcp"
+        ]
+      },
+      "post": {
+        "operationId": "McpController_postSse",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Mcp"
+        ]
+      }
     }
   },
   "info": {
@@ -536,6 +562,42 @@
           "avatarImageUrl"
         ]
       },
+      "ProjectDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "example": "my-project-slug"
+          },
+          "title": {
+            "type": "string",
+            "example": "My Awesome Project"
+          },
+          "description": {
+            "type": "string",
+            "example": "This is a cool project."
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserDto"
+          },
+          "createdDate": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2023-01-01T00:00:00.000Z"
+          },
+          "updatedDate": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2023-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "slug",
+          "title",
+          "createdDate",
+          "updatedDate"
+        ]
+      },
       "UserRegisterDto": {
         "type": "object",
         "properties": {
@@ -564,30 +626,6 @@
           "username",
           "email",
           "password"
-        ]
-      },
-      "ProjectDto": {
-        "type": "object",
-        "properties": {
-          "slug": {
-            "type": "string",
-            "example": "my-project-slug"
-          },
-          "title": {
-            "type": "string",
-            "example": "My Awesome Project"
-          },
-          "description": {
-            "type": "string",
-            "example": "This is a cool project."
-          },
-          "user": {
-            "$ref": "#/components/schemas/UserDto"
-          }
-        },
-        "required": [
-          "slug",
-          "title"
         ]
       },
       "ProjectElementDto": {

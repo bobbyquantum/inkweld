@@ -15,5 +15,7 @@ export interface ProjectDto {
     title: string;
     description?: string;
     user?: UserDto;
+    createdDate: string;
+    updatedDate: string;
 }
 
