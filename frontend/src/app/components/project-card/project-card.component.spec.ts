@@ -19,10 +19,12 @@ describe('ProjectCardComponent', () => {
 
     component.project = {
       id: '1',
-      title: 'Test Project',
-      createdDate: new Date().toISOString(),
-      user: { name: 'test', username: 'testuser' },
       slug: 'test-project',
+      title: 'Test Project',
+      description: undefined,
+      createdDate: new Date().toISOString(),
+      updatedDate: new Date().toISOString(),
+      user: { name: 'test', username: 'testuser' },
     } as unknown as ProjectDto;
 
     fixture.detectChanges();
