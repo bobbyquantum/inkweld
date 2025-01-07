@@ -1,7 +1,7 @@
 import { EntityManager, QueryRunner, Repository } from 'typeorm';
 import { UserSessionEntity } from './session.entity.js';
 import { TypeOrmSessionStore } from './session.store.js';
-
+import { jest } from '@jest/globals';
 describe('TypeOrmSessionStore', () => {
   let store: TypeOrmSessionStore;
   let repository: jest.Mocked<Repository<UserSessionEntity>>;
@@ -267,7 +267,7 @@ describe('TypeOrmSessionStore', () => {
       const mockQueryBuilder = {
         delete: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
-        execute: jest.fn().mockResolvedValue({ affected: 1 }),
+        execute: jest.fn<() => any>().mockResolvedValue({ affected: 1 }),
       };
       repository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 

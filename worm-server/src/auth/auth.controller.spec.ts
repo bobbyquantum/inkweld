@@ -3,7 +3,7 @@ import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { AuthGuard } from '@nestjs/passport';
 import { UnauthorizedException } from '@nestjs/common';
-
+import { jest } from '@jest/globals';
 describe('AuthController', () => {
   let controller: AuthController;
   let authService: jest.Mocked<AuthService>;
@@ -22,7 +22,7 @@ describe('AuthController', () => {
 
     // Create mock AuthGuard
     const mockAuthGuard = jest.fn().mockImplementation(() => ({
-      canActivate: jest.fn().mockResolvedValue(true),
+      canActivate: jest.fn<() => any>().mockResolvedValue(true),
     }));
 
     const module: TestingModule = await Test.createTestingModule({

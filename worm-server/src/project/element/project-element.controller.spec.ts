@@ -6,7 +6,7 @@ import { ElementType } from './element-type.enum.js';
 import { ProjectElementEntity } from './project-element.entity.js';
 import { NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { SessionAuthGuard } from '../../auth/session-auth.guard.js';
-
+import { jest } from '@jest/globals';
 describe('ProjectElementController', () => {
   const mockGuard = { canActivate: () => true };
   let controller: ProjectElementController;

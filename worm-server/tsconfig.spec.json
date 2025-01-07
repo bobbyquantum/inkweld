@@ -1,4 +1,5 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
     "esModuleInterop": true,
     "declaration": true,
@@ -7,7 +8,7 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "module": "NodeNext",
-    "moduleResolution": "nodenext",
+    "moduleResolution": "NodeNext",
     "target": "ESNext",
     "sourceMap": true,
     "outDir": "./dist",
@@ -19,5 +20,13 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
+    "resolvePackageJsonExports": false,
+
+    "include": [
+      "src/**/*.spec.ts",
+      "src/**/*.test.ts",
+      "test/**/*.spec.ts",
+      "test/**/*.test.ts"
+    ]
   }
 }

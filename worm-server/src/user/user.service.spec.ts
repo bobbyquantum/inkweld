@@ -3,17 +3,17 @@ import { UserService } from './user.service.js';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserEntity } from './user.entity.js';
 import { Repository } from 'typeorm';
-
+import { jest } from '@jest/globals';
 describe('UserService', () => {
   let userService: UserService;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let userRepository: Repository<UserEntity>;
 
   const mockUserRepository = {
-    findOne: jest.fn(),
-    create: jest.fn(),
-    save: jest.fn(),
-    remove: jest.fn(),
+    findOne: jest.fn<() => any>(),
+    create: jest.fn<() => any>(),
+    save: jest.fn<() => any>(),
+    remove: jest.fn<() => any>(),
   };
 
   beforeEach(async () => {

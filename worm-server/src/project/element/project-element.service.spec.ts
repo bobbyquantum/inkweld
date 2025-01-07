@@ -8,7 +8,7 @@ import { ProjectEntity } from '../project.entity.js';
 import { ElementType } from './element-type.enum.js';
 import { ProjectElementDto } from './project-element.dto.js';
 import { NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-
+import { jest } from '@jest/globals';
 describe('ProjectElementService', () => {
   let service: ProjectElementService;
   let elementRepository: Repository<ProjectElementEntity>;
