@@ -8,7 +8,6 @@ import { UserService } from '../user/user.service.js';
 import { UserEntity } from '../user/user.entity.js';
 import { TypeOrmSessionStore } from './session.store.js';
 import { UnauthorizedException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
 import { jest } from '@jest/globals';
 jest.mock('bcrypt');
 

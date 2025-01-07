@@ -11,13 +11,13 @@ import {
   setupWSConnection,
   setPersistence,
   getPersistence,
-} from 'y-websocket/bin/utils';
+} from './y-websocket-utils.js';
 import { LeveldbPersistence } from 'y-leveldb';
 import { Logger, Injectable } from '@nestjs/common';
 import { TypeOrmSessionStore } from '../auth/session.store.js';
 import { ConfigService } from '@nestjs/config';
 import * as cookie from 'cookie';
-import * as Y from 'yjs';
+import { Doc, encodeStateAsUpdate, applyUpdate } from 'yjs';
 
 @WebSocketGateway({ path: '/ws/yjs' })
 @Injectable()
@@ -41,7 +41,7 @@ export class YjsGateway
     await this.persistDocument(doc);
   }
 
-  private async getDocument(documentId: string): Promise<Y.Doc> {
+  private async getDocument(documentId: string): Promise<Doc> {
     const ldb = getPersistence()?.provider as LeveldbPersistence;
     if (!ldb) {
       throw new Error('No LevelDB persistence found');
@@ -52,14 +52,14 @@ export class YjsGateway
     return doc;
   }
 
-  private async persistDocument(doc: Y.Doc): Promise<void> {
+  private async persistDocument(doc: Doc): Promise<void> {
     const ldb = getPersistence()?.provider as LeveldbPersistence;
     if (!ldb) {
       throw new Error('No LevelDB persistence found');
     }
 
     // Store the final state
-    const update = Y.encodeStateAsUpdate(doc);
+    const update = encodeStateAsUpdate(doc);
     await ldb.storeUpdate(doc.guid, update);
   }
 
@@ -108,11 +108,11 @@ export class YjsGateway
         const persistedYdoc = await ldb.getYDoc(docName);
 
         // Always store an initial update so the DB knows this doc name exists
-        const newUpdates = Y.encodeStateAsUpdate(ydoc);
+        const newUpdates = encodeStateAsUpdate(ydoc);
         await ldb.storeUpdate(docName, newUpdates);
 
         // Apply persisted state onto our fresh doc
-        Y.applyUpdate(ydoc, Y.encodeStateAsUpdate(persistedYdoc));
+        applyUpdate(ydoc, encodeStateAsUpdate(persistedYdoc));
 
         // Listen for any doc updates and write them out
         ydoc.on('update', async (update) => {
