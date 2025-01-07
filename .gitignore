@@ -4,4 +4,3 @@ frontend/stats.html
 frontend/node_modules
 api-client/node_modules
 /frontend/documentation.json
-frontend/storybook-static
