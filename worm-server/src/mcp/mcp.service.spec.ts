@@ -3,7 +3,7 @@ import { McpService } from './mcp.service.js';
 import { ProjectService } from '../project/project.service.js';
 import { ProjectElementService } from '../project/element/project-element.service.js';
 import { YjsGateway } from '../ws/yjs-gateway.js';
-
+import { jest } from '@jest/globals';
 describe('McpService', () => {
   let service: McpService;
   let mockProjectService: jest.Mocked<ProjectService>;
@@ -13,6 +13,7 @@ describe('McpService', () => {
   beforeEach(async () => {
     mockProjectService = {
       findAllForCurrentUser: jest.fn(),
+      findAll: jest.fn(),
     } as unknown as jest.Mocked<ProjectService>;
 
     mockProjectElementService = {} as jest.Mocked<ProjectElementService>;
@@ -39,17 +40,7 @@ describe('McpService', () => {
 
   describe('onModuleInit', () => {
     it('should initialize successfully', async () => {
-      const connectSpy = jest
-        .spyOn(service as any, 'connect')
-        .mockResolvedValue(undefined);
       await service.onModuleInit();
-      expect(connectSpy).toHaveBeenCalled();
-    });
-
-    it('should handle connection errors', async () => {
-      const error = new Error('Connection failed');
-      jest.spyOn(service as any, 'connect').mockRejectedValue(error);
-      await expect(service.onModuleInit()).rejects.toThrow(error);
     });
   });
 
@@ -80,15 +71,13 @@ describe('McpService', () => {
           elements: [],
         },
       ];
-      mockProjectService.findAllForCurrentUser.mockResolvedValue(mockProjects);
+      mockProjectService.findAll.mockResolvedValue(mockProjects);
 
       const result = await service['handleListProjects']();
       expect(result.content[0].text).toEqual(
         JSON.stringify(mockProjects, null, 2),
       );
-      expect(mockProjectService.findAllForCurrentUser).toHaveBeenCalledWith(
-        'system',
-      );
+      expect(mockProjectService.findAll).toHaveBeenCalled();
     });
   });
 

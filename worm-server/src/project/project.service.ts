@@ -26,7 +26,7 @@ export class ProjectService {
       order: { createdDate: 'DESC' },
     });
   }
-  async findAll() {
+  async findAll(): Promise<ProjectEntity[]> {
     return await this.projectRepo.find();
   }
   async findByUsernameAndSlug(

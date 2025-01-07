@@ -7,15 +7,24 @@ import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { UserEntity } from '../user/user.entity.js';
 import { UserService } from '../user/user.service.js';
 import { SessionAuthGuard } from '../auth/session-auth.guard.js';
-
+import { jest } from '@jest/globals';
 describe('ProjectController', () => {
   const mockUserService = {
-    getCurrentUser: jest.fn(),
+    getCurrentUser: jest.fn<() => Promise<UserEntity>>(),
   };
   let controller: ProjectController;
   let projectService: jest.Mocked<ProjectService>;
 
-  const mockUser = { id: 'user-1', username: 'testuser', name: 'Test User' };
+  const mockUser: UserEntity = {
+    id: 'user-1',
+    username: 'testuser',
+    name: 'Test User',
+    email: '',
+    password: '',
+    githubId: '',
+    enabled: false,
+    avatarImageUrl: '',
+  };
   const mockProject: ProjectEntity = {
     id: 'project-1',
     version: 1,

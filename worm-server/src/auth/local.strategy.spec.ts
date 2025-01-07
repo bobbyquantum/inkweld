@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { LocalStrategy } from './local.strategy.js';
 import { AuthService } from './auth.service.js';
 import { UnauthorizedException } from '@nestjs/common';
-
+import { jest } from '@jest/globals';
 describe('LocalStrategy', () => {
   let strategy: LocalStrategy;
   let authService: jest.Mocked<AuthService>;

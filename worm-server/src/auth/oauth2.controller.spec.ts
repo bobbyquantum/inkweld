@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OAuth2Controller } from './oauth2.controller.js';
 import { AuthService } from './auth.service.js';
 import { GithubAuthGuard } from './github-auth.guard.js';
-
+import { jest } from '@jest/globals';
 describe('OAuth2Controller', () => {
   let controller: OAuth2Controller;
   let authService: jest.Mocked<AuthService>;
@@ -20,7 +20,7 @@ describe('OAuth2Controller', () => {
 
     // Create mock GithubAuthGuard
     const mockGithubAuthGuard = jest.fn().mockImplementation(() => ({
-      canActivate: jest.fn().mockResolvedValue(true),
+      canActivate: jest.fn<() => any>().mockResolvedValue(true),
     }));
 
     const module: TestingModule = await Test.createTestingModule({

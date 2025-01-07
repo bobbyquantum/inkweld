@@ -11,7 +11,7 @@ import {
   setupWSConnection,
   setPersistence,
   getPersistence,
-} from 'y-websocket/bin/utils.cjs';
+} from 'y-websocket/bin/utils';
 import { LeveldbPersistence } from 'y-leveldb';
 import { Logger, Injectable } from '@nestjs/common';
 import { TypeOrmSessionStore } from '../auth/session.store.js';
