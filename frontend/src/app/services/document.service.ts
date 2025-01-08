@@ -64,6 +64,11 @@ export class DocumentService {
    * @returns Promise that resolves when collaboration is set up
    */
   async setupCollaboration(editor: Editor, documentId: string): Promise<void> {
+    // Check if editor is properly initialized
+    if (!editor || !editor.view) {
+      throw new Error('Editor Yjs not properly initialized');
+    }
+
     // Check if we already have a connection for this document
     let connection = this.connections.get(documentId);
 
@@ -123,11 +128,7 @@ export class DocumentService {
     // Get the underlying ProseMirror view
     const view = editor.view;
     if (!connection.type || !connection.provider) {
-      console.error(
-        'Editor Yjs not properly initialized for document:',
-        documentId
-      );
-      return;
+      throw new Error('Editor Yjs not properly initialized');
     }
 
     // Add collaboration plugins to the existing editor
