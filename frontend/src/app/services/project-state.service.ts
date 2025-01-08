@@ -125,6 +125,7 @@ export class ProjectStateService {
    */
   // eslint-disable-next-line @typescript-eslint/require-await
   async loadProjectElements(username: string, slug: string): Promise<void> {
+    console.log('Loading project elements:', username, slug);
     this.isLoading.set(true);
     this.error.set(undefined);
 

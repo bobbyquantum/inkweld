@@ -25,7 +25,7 @@ const config = {
       },
     ],
   },
-  transformIgnorePatterns: ['node_modules/(?!.*\\.mjs$)'],
+  transformIgnorePatterns: ['node_modules/(?!(.*\\.mjs$))'],
   moduleDirectories: ['node_modules', '<rootDir>'],
 };
 

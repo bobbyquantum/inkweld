@@ -3,7 +3,7 @@ import { UserController } from './user.controller.js';
 import { UserService } from './user.service.js';
 import { UserRegisterDto } from './user-register.dto.js';
 import { UserEntity } from './user.entity.js';
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 describe('UserController', () => {
   let controller: UserController;
   let userService: UserService;

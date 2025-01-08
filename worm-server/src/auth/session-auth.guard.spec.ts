@@ -2,7 +2,7 @@ import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from '../user/user.service.js';
 import { SessionAuthGuard } from './session-auth.guard.js';
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 describe('SessionAuthGuard', () => {
   let guard: SessionAuthGuard;
   let userService: jest.Mocked<UserService>;

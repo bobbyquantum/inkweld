@@ -1,264 +1,189 @@
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { ProjectAPIService, ProjectDto, ProjectElementDto } from '@worm/index';
-import { of, throwError } from 'rxjs';
+import { ProjectElementDto } from '@worm/index';
+import { IndexeddbPersistence } from 'y-indexeddb';
+import { WebsocketProvider } from 'y-websocket';
+import * as Y from 'yjs';
 
 import { DocumentSyncState } from '../models/document-sync-state';
 import { ProjectStateService } from './project-state.service';
-import { XsrfService } from './xsrf.service';
 
-jest.mock('./xsrf.service');
+// Mock dependencies
+jest.mock('yjs', () => ({
+  Doc: jest.fn(() => ({
+    getMap: jest.fn(() => ({
+      get: jest.fn(),
+      set: jest.fn(),
+      has: jest.fn(),
+      observe: jest.fn(),
+    })),
+    transact: jest.fn((fn: () => void) => fn()),
+  })),
+  Array: jest.fn(() => ({
+    push: jest.fn(),
+    delete: jest.fn(),
+    toArray: jest.fn(() => []),
+    observeDeep: jest.fn(),
+  })),
+  Map: jest.fn(),
+}));
+jest.mock('y-indexeddb');
+jest.mock('y-websocket');
+jest.mock('nanoid', () => ({
+  nanoid: jest.fn(() => 'test-id'),
+}));
 
 describe('ProjectStateService', () => {
   let service: ProjectStateService;
-  let elementService: ProjectAPIService;
-  let xsrfService: XsrfService;
-  let getProjectSpy: jest.SpyInstance;
-  let getElementsSpy: jest.SpyInstance;
-  let saveElementsSpy: jest.SpyInstance;
+  let mockDoc: jest.Mocked<Y.Doc>;
+  let mockWebSocketProvider: jest.Mocked<WebsocketProvider>;
+  let mockIndexedDbProvider: jest.Mocked<IndexeddbPersistence>;
 
-  const mockElement: ProjectElementDto = {
+  const mockProjectElement: ProjectElementDto = {
     id: '1',
-    type: 'FOLDER',
+    type: ProjectElementDto.TypeEnum.Folder,
     position: 0,
     level: 0,
     name: 'Test Folder',
   };
 
-  const mockProject: ProjectDto = {
-    slug: 'test-project',
-    title: 'Test Project',
-    description: undefined,
-    createdDate: new Date().toISOString(),
-    updatedDate: new Date().toISOString(),
-  };
-
-  const mockElements: ProjectElementDto[] = [mockElement];
-
   beforeEach(() => {
-    elementService = {
-      projectControllerGetProjectByUsernameAndSlug: jest.fn(),
-      projectElementControllerGetProjectElements: jest.fn(),
-      projectElementControllerDinsertElements: jest.fn(),
-    } as unknown as ProjectAPIService;
-    xsrfService = {
-      getXsrfToken: jest.fn(),
-    } as unknown as XsrfService;
+    // Reset mocks before each test
+    jest.clearAllMocks();
 
-    getProjectSpy = jest.spyOn(
-      elementService,
-      'projectControllerGetProjectByUsernameAndSlug'
-    );
+    // Set up mock instances
+    mockDoc = new Y.Doc() as jest.Mocked<Y.Doc>;
+    (Y.Doc as jest.Mock).mockImplementation(() => mockDoc);
+    mockWebSocketProvider = {
+      on: jest.fn(),
+      connect: jest.fn(),
+      disconnect: jest.fn(),
+      destroy: jest.fn(),
+    } as unknown as jest.Mocked<WebsocketProvider>;
+    mockIndexedDbProvider = {
+      whenSynced: Promise.resolve(),
+      destroy: jest.fn(),
+    } as unknown as jest.Mocked<IndexeddbPersistence>;
 
-    getElementsSpy = jest.spyOn(
-      elementService,
-      'projectElementControllerGetProjectElements'
-    );
+    // Mock constructors
+    (WebsocketProvider as jest.Mock).mockImplementation(() => {
+      return mockWebSocketProvider;
+    });
+    (IndexeddbPersistence as jest.Mock).mockImplementation(() => {
+      return mockIndexedDbProvider;
+    });
 
-    saveElementsSpy = jest.spyOn(
-      elementService,
-      'projectElementControllerDinsertElements'
-    );
-    jest.spyOn(xsrfService, 'getXsrfToken').mockReturnValue('test-token');
-
+    // Configure TestBed
     TestBed.configureTestingModule({
-      providers: [
-        ProjectStateService,
-        { provide: ProjectAPIService, useValue: elementService },
-        { provide: XsrfService, useValue: xsrfService },
-        provideHttpClient(),
-        provideHttpClientTesting(),
-      ],
+      providers: [ProjectStateService],
     });
 
+    // Inject service
     service = TestBed.inject(ProjectStateService);
+
+    // Mock global window object for WebSocket URL
+    Object.defineProperty(window, 'location', {
+      value: {
+        protocol: 'http:',
+        host: 'localhost:4200',
+      },
+      writable: true,
+    });
   });
 
-  it('should be created', () => {
-    expect(service).toBeTruthy();
-  });
+  describe('Project Loading', () => {
+    it('should load project successfully', async () => {
+      // Mock WebSocket provider to emit connected status
+      mockWebSocketProvider.on.mockImplementation((name, callback) => {
+        if (name === 'status') {
+          const mockStatusEvent: CloseEvent & {
+            status: 'connected' | 'disconnected' | 'connecting';
+          } & Event &
+            boolean = new CloseEvent('connected') as CloseEvent & {
+            status: 'connected' | 'disconnected' | 'connecting';
+          } & Event &
+            boolean;
+          callback(mockStatusEvent, mockWebSocketProvider);
+        }
+        return () => {};
+      });
 
-  it('should handle successful project load', async () => {
-    getProjectSpy.mockReturnValue(of(mockProject));
-    getElementsSpy.mockReturnValue(of(mockElements));
+      await service.loadProject('testuser', 'test-project');
 
-    await service.loadProject('user', 'project');
-    expect(service.project()).toEqual(mockProject);
-    expect(service.isLoading()).toBe(false);
-    expect(service.error()).toBeUndefined();
-    expect(getProjectSpy).toHaveBeenCalledWith('user', 'project');
-  });
-
-  it('should handle project load error', async () => {
-    const error = new Error('API Error');
-    getProjectSpy.mockReturnValue(throwError(() => error));
-
-    await service.loadProject('user', 'project');
-
-    expect(service.project()).toBeUndefined();
-    expect(service.isLoading()).toBe(false);
-    expect(service.error()).toBe('Failed to load project');
-  });
-
-  it('should handle successful element loading', async () => {
-    getElementsSpy.mockReturnValue(of(mockElements));
-
-    await service.loadProjectElements('user', 'project');
-
-    expect(service.elements()).toEqual(mockElements);
-    expect(service.isLoading()).toBe(false);
-    expect(service.error()).toBeUndefined();
-    expect(getElementsSpy).toHaveBeenCalledWith('user', 'project');
-  });
-
-  it('should handle element loading error', async () => {
-    const error = new Error('API Error');
-    getElementsSpy.mockReturnValue(throwError(() => error));
-
-    await service.loadProjectElements('user', 'project');
-
-    expect(service.elements()).toEqual([]);
-    expect(service.isLoading()).toBe(false);
-    expect(service.error()).toBe('Failed to load project elements');
-  });
-
-  it('should handle empty element loading response', async () => {
-    getElementsSpy.mockReturnValue(of([]));
-    await service.loadProjectElements('user', 'project');
-
-    expect(service.elements()).toEqual([]);
-    expect(service.isLoading()).toBe(false);
-    expect(service.error()).toBeUndefined();
-  });
-
-  it('should handle successful element saving', async () => {
-    jest.spyOn(xsrfService, 'getXsrfToken').mockReturnValue('test-token');
-    saveElementsSpy.mockImplementation(() => of(mockElements));
-
-    await service.saveProjectElements('user', 'project', mockElements);
-
-    expect(service.elements()).toEqual(mockElements);
-    expect(service.isSaving()).toBe(false);
-    expect(service.error()).toBeUndefined();
-    expect(saveElementsSpy).toHaveBeenCalledWith(
-      'user',
-      'project',
-      'test-token',
-      mockElements
-    );
-  });
-
-  it('should handle element saving error', async () => {
-    const error = new Error('API Error');
-    saveElementsSpy.mockReturnValue(throwError(() => error));
-
-    await service.saveProjectElements('user', 'project', mockElements);
-
-    expect(service.error()).toBe('Failed to save project elements');
-    expect(service.isSaving()).toBe(false);
-  });
-
-  it('should handle empty project elements array', async () => {
-    saveElementsSpy.mockImplementation(() => of([]));
-    await service.saveProjectElements('user', 'project', []);
-
-    expect(service.elements()).toEqual([]);
-    expect(service.isSaving()).toBe(false);
-    expect(service.error()).toBeUndefined();
-  });
-
-  it('should handle null project elements', async () => {
-    await service.saveProjectElements(
-      'user',
-      'project',
-      null as unknown as ProjectElementDto[]
-    );
-
-    expect(service.elements()).toEqual([]);
-    expect(service.isSaving()).toBe(false);
-    expect(service.error()).toBe('Failed to save project elements');
-  });
-
-  it('should handle undefined project elements', async () => {
-    await service.saveProjectElements(
-      'user',
-      'project',
-      undefined as unknown as ProjectElementDto[]
-    );
-
-    expect(service.elements()).toEqual([]);
-    expect(service.isSaving()).toBe(false);
-    expect(service.error()).toBe('Failed to save project elements');
-  });
-
-  it('should update elements locally', () => {
-    service.updateElements(mockElements);
-    expect(service.elements()).toEqual(mockElements);
-  });
-
-  describe('File Operations', () => {
-    it('should open file and set initial sync state', () => {
-      service.openFile(mockElement);
-      expect(service.openFiles()).toContainEqual(mockElement);
-      expect(service.getSyncState()('1')).toBe('unavailable');
+      expect(service.isLoading()).toBe(false);
+      expect(service.error()).toBeUndefined();
+      expect(service.getSyncState()).toBe(DocumentSyncState.Synced);
     });
 
-    it('should not open invalid file', () => {
-      service.openFile(null);
-      expect(service.openFiles()).toEqual([]);
+    it('should handle project loading errors', async () => {
+      // Simulate IndexedDB sync failure
+      mockIndexedDbProvider.whenSynced = Promise.reject(
+        new Error('Sync failed')
+      );
+
+      await service.loadProject('testuser', 'test-project');
+
+      expect(service.isLoading()).toBe(false);
+      expect(service.error()).toBe('Failed to load project');
+      expect(service.getSyncState()).toBe(DocumentSyncState.Unavailable);
+    });
+  });
+
+  describe('Project Elements Management', () => {
+    beforeEach(async () => {
+      // Prepare a mock doc with elements
+      await service.loadProject('testuser', 'test-project');
     });
 
-    it('should close file and update sync state', () => {
-      service.openFile(mockElement);
+    it('should update elements', () => {
+      const elements: ProjectElementDto[] = [mockProjectElement];
+
+      service.updateElements(elements);
+
+      expect(service.elements()).toEqual(elements);
+    });
+
+    it('should save project elements', async () => {
+      const elements: ProjectElementDto[] = [mockProjectElement];
+
+      await service.saveProjectElements('testuser', 'test-project', elements);
+
+      expect(service.elements()).toEqual(elements);
+      expect(service.isSaving()).toBe(false);
+      expect(service.error()).toBeUndefined();
+    });
+  });
+
+  describe('File Management', () => {
+    const mockFile: ProjectElementDto = {
+      ...mockProjectElement,
+      type: ProjectElementDto.TypeEnum.Item,
+      name: 'test-file.txt',
+    };
+
+    it('should open a file', () => {
+      service.openFile(mockFile);
+
+      expect(service.openFiles()).toContain(mockFile);
+      expect(service.selectedTabIndex()).toBe(0);
+    });
+
+    it('should close a file', () => {
+      // Open multiple files first
+      service.openFile(mockFile);
+      service.openFile({ ...mockFile, id: '2', name: 'another-file.txt' });
+
       service.closeFile(0);
-      expect(service.openFiles()).toEqual([]);
-      expect(service.getSyncState()('1')).toBe('unavailable');
-    });
 
-    it('should handle closing invalid index', () => {
-      service.openFile(mockElement);
-      service.closeFile(999);
-      expect(service.openFiles()).toContainEqual(mockElement);
+      expect(service.openFiles().length).toBe(1);
+      expect(service.selectedTabIndex()).toBe(0);
     });
   });
 
   describe('Sync State Management', () => {
-    it('should update sync state for existing file', () => {
-      service.openFile(mockElement);
-      service.updateSyncState('1', DocumentSyncState.Synced);
-      expect(service.getSyncState()('1')).toBe('synced');
-    });
+    it('should update sync state', () => {
+      service.updateSyncState('test-doc', DocumentSyncState.Synced);
 
-    it('should not update sync state for non-existent file', () => {
-      service.updateSyncState('non-existent', DocumentSyncState.Synced);
-      expect(service.getSyncState()('non-existent')).toBeUndefined();
-    });
-
-    it('should not update sync state for a null document id', () => {
-      service.updateSyncState(
-        null as unknown as string,
-        DocumentSyncState.Synced
-      );
-      expect(service.getSyncState()('non-existent')).toBeUndefined();
-    });
-
-    it('should clear sync state when setting to undefined', () => {
-      service.openFile(mockElement);
-      service.updateSyncState('1', undefined);
-      expect(service.getSyncState()('1')).toBeUndefined();
-    });
-
-    it('should handle multiple sync states', () => {
-      const mockElement2 = { ...mockElement, id: '2' };
-      service.openFile(mockElement);
-      service.openFile(mockElement2);
-
-      service.updateSyncState('1', DocumentSyncState.Synced);
-      service.updateSyncState('2', DocumentSyncState.Syncing);
-
-      expect(service.getSyncState()('1')).toBe('synced');
-      expect(service.getSyncState()('2')).toBe('syncing');
+      expect(service.getSyncState()).toBe(DocumentSyncState.Synced);
     });
   });
 });

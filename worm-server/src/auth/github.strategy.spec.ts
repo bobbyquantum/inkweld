@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GithubStrategy } from './github.strategy.js';
 import { UserService } from '../user/user.service.js';
-import { jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 describe('GithubStrategy', () => {
   let strategy: GithubStrategy;
   let userService: jest.Mocked<UserService>;
