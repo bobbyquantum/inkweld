@@ -16,7 +16,6 @@ import { PassportModule } from '@nestjs/passport';
 import { ProjectModule } from './project/project.module.js';
 import { ProjectEntity } from './project/project.entity.js';
 import { ProjectElementModule } from './project/element/project-element.module.js';
-import { ProjectElementEntity } from './project/element/project-element.entity.js';
 import { WsModule } from './ws/ws.module.js';
 import { McpModule } from './mcp/mcp.module.js';
 import * as path from 'path';
@@ -58,12 +57,7 @@ import * as path from 'path';
       username: 'wormuser',
       password: 'secret',
       database: 'wormdb',
-      entities: [
-        UserEntity,
-        UserSessionEntity,
-        ProjectEntity,
-        ProjectElementEntity,
-      ],
+      entities: [UserEntity, UserSessionEntity, ProjectEntity],
       synchronize: true, // auto-create DB schema in dev (turn off in production!)
     }),
     PassportModule.register({ session: true }),
