@@ -20,7 +20,7 @@ describe('ProjectComponent', () => {
   let routeParams: BehaviorSubject<{ username: string; slug: string }>;
 
   const mockProject: ProjectDto = {
-    // id: '1',
+    id: '1',
     title: 'Test Project',
     description: 'A test project',
     slug: 'test-project',

@@ -2,7 +2,7 @@ import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { AuthGuard } from '@nestjs/passport';
 import { GithubAuthGuard } from './github-auth.guard.js';
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 describe('GithubAuthGuard', () => {
   let guard: GithubAuthGuard;
   let mockContext: ExecutionContext;

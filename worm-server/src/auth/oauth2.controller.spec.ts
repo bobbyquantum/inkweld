@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OAuth2Controller } from './oauth2.controller.js';
 import { AuthService } from './auth.service.js';
 import { GithubAuthGuard } from './github-auth.guard.js';
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 describe('OAuth2Controller', () => {
   let controller: OAuth2Controller;
   let authService: jest.Mocked<AuthService>;
