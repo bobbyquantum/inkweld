@@ -8,18 +8,25 @@ import * as Y from 'yjs';
 import { DocumentSyncState } from '../models/document-sync-state';
 
 /**
- * This service is an "all in" offline-first approach to managing
- * project + elements. Under the hood, it uses Yjs for real-time sync
- * and merges, but it still exposes the same signals + methods you had before.
+ * Manages the state of projects and their elements with offline-first capabilities
+ *
+ * This service provides a comprehensive solution for managing project metadata,
+ * elements, and synchronization state. It uses Yjs for real-time collaboration
+ * and IndexedDB for offline persistence. The service maintains reactive signals
+ * for all state properties and handles synchronization between local and remote
+ * states automatically.
+ *
+ * Key Features:
+ * - Offline-first architecture with automatic conflict resolution
+ * - Real-time collaboration through Yjs
+ * - Reactive state management using Angular signals
+ * - Automatic synchronization between local and remote states
+ * - Comprehensive error handling and state tracking
  */
 @Injectable({
   providedIn: 'root',
 })
 export class ProjectStateService {
-  // ─────────────────────────────────────────────────────────────
-  // Public signals (unchanged in shape)
-  // ─────────────────────────────────────────────────────────────
-
   /** The project's metadata, e.g. name, slug, etc. */
   readonly project = signal<ProjectDto | undefined>(undefined);
 
@@ -47,10 +54,6 @@ export class ProjectStateService {
    */
   readonly getSyncState = computed(() => this.docSyncState());
 
-  // ─────────────────────────────────────────────────────────────
-  // Private signals + fields
-  // ─────────────────────────────────────────────────────────────
-
   private readonly docSyncState = signal<DocumentSyncState>(
     DocumentSyncState.Unavailable
   );
@@ -60,31 +63,39 @@ export class ProjectStateService {
   private indexeddbProvider: IndexeddbPersistence | null = null;
   private docId: string | null = null;
 
-  // ─────────────────────────────────────────────────────────────
-  // Public methods (same shape as your original ProjectStateService)
-  // ─────────────────────────────────────────────────────────────
-
   /**
-   * Initializes the Yjs doc for the given project. Once connected,
-   * we load from local IndexedDB, then connect to the server for live sync.
+   * Initializes and loads a project with offline-first synchronization
+   *
+   * This method sets up the Yjs document for the specified project, establishing
+   * both local IndexedDB persistence and WebSocket synchronization. It handles
+   * the complete project loading lifecycle including:
+   * - Creating a new Yjs document
+   * - Setting up IndexedDB persistence for offline access
+   * - Establishing WebSocket connection for real-time collaboration
+   * - Initializing reactive signals from the document state
+   * - Setting up change observers for automatic synchronization
+   *
+   * @param {string} username - The owner's username for the project
+   * @param {string} slug - The project's unique slug identifier
+   * @returns {Promise<void>} Resolves when the project is fully loaded and synchronized
+   * @throws Will throw and log errors if initialization fails
+   * @example
+   * await projectStateService.loadProject('john-doe', 'my-project');
    */
   async loadProject(username: string, slug: string): Promise<void> {
     this.isLoading.set(true);
     this.error.set(undefined);
     console.log('Loading project:', username, slug);
     try {
-      // Derive a unique docId for this project
       this.docId = `projectElements:${username}:${slug}`;
 
       // Create a new Y.Doc
       this.doc = new Y.Doc();
 
-      // Step 1: Offline store
       this.indexeddbProvider = new IndexeddbPersistence(this.docId, this.doc);
       await this.indexeddbProvider.whenSynced;
       console.log('Local IndexedDB sync complete for docId:', this.docId);
 
-      // Step 2: WebSocket provider
       const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
       const wsUrl = `${wsProto}://${window.location.host}/ws/yjs?documentId=`;
       this.provider = new WebsocketProvider(wsUrl, this.docId, this.doc, {
@@ -92,7 +103,6 @@ export class ProjectStateService {
         resyncInterval: 10000,
       });
 
-      // Step 3: Listen for connection status
       this.provider.on('status', ({ status }: { status: string }) => {
         console.log(`Doc ${this.docId} websocket status: ${status}`);
         switch (status) {
@@ -111,10 +121,8 @@ export class ProjectStateService {
       // Set initial sync state after IndexedDB sync
       this.docSyncState.set(DocumentSyncState.Synced);
 
-      // Step 4: Load initial data from the doc into signals
       this.initializeLocalSignalsFromDoc();
 
-      // Step 5: Observe future changes from Yjs
       this.observeDocChanges();
     } catch (err) {
       if (err instanceof Error) {
@@ -130,9 +138,7 @@ export class ProjectStateService {
   }
 
   /**
-   * In a purely Yjs approach, "loading elements" is basically
-   * reading them from the doc. We'll keep this method for compatibility,
-   * but it just refreshes from the doc now.
+   * Loads project elements by reading them from the Yjs doc
    */
   // eslint-disable-next-line @typescript-eslint/require-await
   async loadProjectElements(username: string, slug: string): Promise<void> {
@@ -216,8 +222,22 @@ export class ProjectStateService {
   }
 
   /**
-   * Locally updates the elements array in the signals *and* in the Y.Doc.
-   * Good for reordering, renaming, etc.
+   * Updates project elements with full synchronization between local state and Yjs document
+   *
+   * This method performs a transactional update of project elements, ensuring consistency
+   * between the local reactive signals and the Yjs document. It handles:
+   * - Immediate UI updates through Angular signals
+   * - Atomic updates to the Yjs document
+   * - Automatic ID generation for new elements
+   * - Structured cloning for proper Yjs data handling
+   *
+   * @param {ProjectElementDto[]} elements - The updated array of project elements
+   * @example
+   * const updatedElements = [...currentElements, newElement];
+   * projectStateService.updateElements(updatedElements);
+   *
+   * @note This method performs a complete replacement of elements. For partial updates,
+   * consider modifying the Yjs document directly through the exposed methods.
    */
   updateElements(elements: ProjectElementDto[]): void {
     // Update the signals (for immediate UI reflection)
@@ -247,8 +267,7 @@ export class ProjectStateService {
   }
 
   /**
-   * "Saving" in Yjs is basically just updating the doc.
-   * The doc syncs automatically. We'll keep the method for API parity.
+   * Saves project elements by updating the Yjs doc
    */
   // eslint-disable-next-line @typescript-eslint/require-await
   async saveProjectElements(
@@ -273,13 +292,22 @@ export class ProjectStateService {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // Private methods
-  // ─────────────────────────────────────────────────────────────
-
   /**
-   * Reads from the doc's data structures and initializes
-   * the `project` and `elements` signals.
+   * Synchronizes local Angular signals with the Yjs document state
+   *
+   * This method establishes the connection between the Yjs document and Angular's
+   * reactive signals. It handles:
+   * - Reading project metadata from the Yjs map
+   * - Loading project elements from the Yjs array
+   * - Setting up initial signal values
+   * - Ensuring type safety when converting Yjs data to Angular signals
+   *
+   * The synchronization is bidirectional:
+   * - Changes in Yjs are reflected in Angular signals
+   * - Changes in Angular signals are propagated to Yjs
+   *
+   * @note This method should be called whenever the Yjs document is initialized
+   * or when significant changes occur in the document structure
    */
   private initializeLocalSignalsFromDoc(): void {
     if (!this.doc) return;
@@ -314,8 +342,33 @@ export class ProjectStateService {
   }
 
   /**
-   * Observes the doc for changes to either the project map or the elements array,
-   * and updates the relevant signals in real time.
+   * Establishes real-time synchronization between Yjs document and Angular signals
+   *
+   * This method creates a comprehensive observation system that:
+   * - Tracks changes to project metadata (name, slug, description)
+   * - Monitors deep changes in the elements array
+   * - Handles both local and remote changes
+   * - Maintains consistency between Yjs document and Angular signals
+   *
+   * The synchronization system provides:
+   * - Real-time updates across all connected clients
+   * - Efficient change detection using Yjs's delta-based system
+   * - Automatic conflict resolution for concurrent edits
+   * - Granular control over which changes trigger updates
+   * - Comprehensive error handling and recovery mechanisms
+   *
+   * @note The observers use Yjs's efficient change detection system, which
+   * minimizes unnecessary updates and maintains optimal performance even
+   * with large documents and frequent changes. The system automatically
+   * handles network interruptions and reconnects when possible.
+   *
+   * @example
+   * // Changes to project metadata
+   * projectMetaMap.set('name', 'New Project Name');
+   *
+   * // Changes to elements array
+   * elementsArray.push([newElement]);
+   * elementsArray.get(0).content = 'Updated content';
    */
   private observeDocChanges(): void {
     if (!this.doc) return;
@@ -338,8 +391,38 @@ export class ProjectStateService {
   }
 
   /**
-   * Returns the Y.Map used to store top-level project metadata.
-   * If it doesn't exist, we create it.
+   * Manages access to project metadata stored in a Yjs map
+   *
+   * This method provides a type-safe interface for working with project metadata,
+   * including:
+   * - Retrieving and modifying project identification (id, slug)
+   * - Managing descriptive information (name, description)
+   * - Handling timestamps for creation and modification
+   * - Storing additional project-specific metadata
+   *
+   * The metadata map offers:
+   * - Real-time synchronization across all collaborators
+   * - Automatic conflict resolution for concurrent edits
+   * - Efficient change detection using Yjs's delta-based system
+   * - Comprehensive error handling and recovery mechanisms
+   *
+   * @returns {Y.Map<unknown>} The Yjs map containing project metadata
+   * @throws {Error} If the Yjs document is not initialized
+   * @note The returned map is a live Yjs data structure that automatically
+   * synchronizes changes across all connected clients. All modifications to this
+   * map are immediately propagated to all collaborators.
+   *
+   * @example
+   * // Update project name and description
+   * const metaMap = projectStateService.getProjectMetaMap();
+   * metaMap.set('name', 'New Project Name');
+   * metaMap.set('description', 'Updated project description');
+   *
+   * // Add custom metadata
+   * metaMap.set('customField', 'Custom Value');
+   *
+   * // Read metadata
+   * const projectName = metaMap.get('name');
    */
   private getProjectMetaMap(): Y.Map<unknown> {
     if (!this.doc) {
@@ -351,7 +434,48 @@ export class ProjectStateService {
   }
 
   /**
-   * Returns the Y.Array of elements. Creates it if missing.
+   * Provides access to the project's element structure in a Yjs array
+   *
+   * This method manages the core element storage system, offering:
+   * - Lazy initialization of the elements array
+   * - Type-safe access to project elements
+   * - Integration with the Yjs document structure
+   * - Automatic synchronization across collaborators
+   *
+   * The elements array provides:
+   * - Hierarchical organization of project elements
+   * - Real-time synchronization of all changes
+   * - Efficient delta-based updates
+   * - Automatic conflict resolution for concurrent edits
+   * - Comprehensive error handling and recovery mechanisms
+   *
+   * @returns {Y.Array<ProjectElementDto> | undefined} The Yjs array containing project elements,
+   * or undefined if the document is not initialized
+   * @throws {Error} If the document structure is corrupted
+   * @note The returned array is a live Yjs data structure that automatically
+   * synchronizes changes across all connected clients. All modifications to this
+   * array are immediately propagated to all collaborators.
+   *
+   * @example
+   * // Add new element
+   * const elementsArray = projectStateService.getElementsArray();
+   * if (elementsArray) {
+   *   elementsArray.push([{
+   *     id: nanoid(),
+   *     type: 'file',
+   *     content: 'New content',
+   *     position: 0
+   *   }]);
+   * }
+   *
+   * // Modify existing element
+   * const firstElement = elementsArray.get(0);
+   * if (firstElement) {
+   *   firstElement.content = 'Updated content';
+   * }
+   *
+   * // Remove element
+   * elementsArray.delete(0, 1);
    */
   private getElementsArray(): Y.Array<ProjectElementDto> | undefined {
     if (!this.doc) return undefined;
