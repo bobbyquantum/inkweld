@@ -47,6 +47,7 @@ describe('ProjectTreeComponent', () => {
       isLoading: loadingSignal,
       isSaving: savingSignal,
       error: errorSignal,
+      project: signal({ title: 'Test Project' }),
       saveProjectElements: jest.fn().mockResolvedValue(undefined),
       openFile: jest.fn(),
     } as unknown as jest.Mocked<ProjectStateService>;

@@ -13,8 +13,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
-import { ProjectElementDto } from '@worm/index';
+import { ProjectDto, ProjectElementDto } from '@worm/index';
 import { Subscription } from 'rxjs';
 
 import { ElementEditorComponent } from '../../components/element-editor/element-editor.component';
@@ -48,6 +49,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
   protected readonly documentService = inject(DocumentService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly route = inject(ActivatedRoute);
+  private readonly title = inject(Title);
 
   private startX = 0;
   private startWidth = 0;
@@ -58,6 +60,15 @@ export class ProjectComponent implements OnInit, OnDestroy {
       this.snackBar.open(error, 'Close', { duration: 5000 });
     }
   });
+
+  constructor() {
+    effect(() => {
+      const project = this.projectState.project() as ProjectDto | null;
+      if (project) {
+        this.title.setTitle(`${project.title} - Worm`);
+      }
+    });
+  }
 
   ngOnInit() {
     console.log('ProjectComponent init');
