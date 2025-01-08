@@ -56,10 +56,12 @@ export class ProjectComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit() {
+    console.log('ProjectComponent init');
     this.paramsSubscription = this.route.params.subscribe(params => {
       const username = params['username'] as string;
       const slug = params['slug'] as string;
       if (username && slug) {
+        console.log(`Loading project ${username}/${slug}`);
         void this.projectState.loadProject(username, slug);
       }
     });
