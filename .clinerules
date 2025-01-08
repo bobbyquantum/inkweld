@@ -1,0 +1,4 @@
+- Always run jest tests with CI=true in env to minimize unnecessary output and token usage.
+- Always run the jest tests for the code file after updating the code.  If there is not a test, flag this to the user.  If the request introduces new functionality, then add a test if appropriate.
+- If a task resulted in code changes, in the final task complete message, include a suggested git commit in conventional commit format.
+- If you aren't sure, or there are options, feel free to ask! :)
