@@ -78,7 +78,7 @@ export class ProjectTreeComponent implements AfterViewInit {
     // Add wrapper node
     const wrapper: ProjectElement = {
       id: ROOT_WRAPPER_ID,
-      name: 'Project Root',
+      name: this.projectStateService.project()?.title || 'Project',
       type: 'FOLDER',
       level: 0,
       position: 0,
