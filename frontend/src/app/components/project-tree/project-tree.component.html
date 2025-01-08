@@ -59,11 +59,7 @@
         <mat-icon>description</mat-icon>
       }
 
-      @if (editingNode !== node.id) {
-        <div class="node-title" (dblclick)="startEditing(node)">
-          {{ node.name }}
-        </div>
-      } @else {
+      @if (editingNode === node.id) {
         <mat-form-field appearance="outline" class="node-edit-field">
           <input
             matInput
@@ -75,6 +71,10 @@
             [attr.aria-label]="'Edit ' + node.name"
             placeholder="Edit node name" />
         </mat-form-field>
+      } @else {
+        <div class="node-title" (dblclick)="startEditing(node)">
+          {{ node.name }}
+        </div>
       }
 
       <div class="drag-placeholder" *cdkDragPlaceholder>

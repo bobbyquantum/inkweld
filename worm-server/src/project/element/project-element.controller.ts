@@ -1,4 +1,3 @@
-// project-element.controller.ts
 import {
   Controller,
   Get,
@@ -19,82 +18,63 @@ import {
   ApiOkResponse,
   ApiBody,
 } from '@nestjs/swagger';
-import { ProjectElementService } from './project-element.service.js';
+import { SessionAuthGuard } from '../../auth/session-auth.guard.js';
 import { ProjectElementDto } from './project-element.dto.js';
-import { SessionAuthGuard } from '../../auth/session-auth.guard.js'; // or your own guard
+import { ProjectElementService } from './project-element.service.js';
+// e.g. a service that deals with doc reading/writing
 
-@ApiTags('Project API')
+@ApiTags('Project API (YJS Replacements)')
 @Controller('api/v1/projects/:username/:slug/elements')
-@UseGuards(SessionAuthGuard) // ensuring only logged-in users
+@UseGuards(SessionAuthGuard)
 export class ProjectElementController {
   private readonly logger = new Logger(ProjectElementController.name);
 
-  constructor(private readonly elementService: ProjectElementService) {}
+  constructor(private readonly yjsService: ProjectElementService) {}
 
   @Get()
   @ApiOperation({
-    summary: 'Get all elements for a project',
-    description:
-      'Retrieves all elements belonging to the specified project in their hierarchical order',
+    summary: 'Get all elements for a project (from Yjs doc)',
   })
   @ApiOkResponse({
     description: 'Successfully retrieved elements',
     type: ProjectElementDto,
     isArray: true,
   })
-  @ApiNotFoundResponse({
-    description: 'Project not found',
-  })
+  @ApiNotFoundResponse({ description: 'Doc not found (unlikely with Yjs)' })
   async getProjectElements(
     @Param('username') username: string,
     @Param('slug') slug: string,
   ): Promise<ProjectElementDto[]> {
-    return this.elementService.getProjectElements(username, slug);
+    return this.yjsService.getProjectElements(username, slug);
   }
 
   @Put()
   @ApiOperation({
-    summary: 'Differential insert elements',
-    description:
-      "Updates the project's elements to match exactly the provided list. " +
-      'Elements not included in the list will be deleted. ' +
-      'Elements with IDs will be updated, elements without IDs will be created. ' +
-      'All changes happen in a single transaction.',
+    summary: 'Replace the entire elements array in the Yjs doc',
   })
-  @ApiBody({
-    type: ProjectElementDto,
-    isArray: true,
-    description: 'List of project elements to synchronize',
-  })
+  @ApiBody({ type: ProjectElementDto, isArray: true })
   @ApiOkResponse({
-    description: 'Elements successfully synchronized with provided list',
+    description: 'Elements replaced in the Y.Doc',
     type: ProjectElementDto,
     isArray: true,
   })
-  @ApiNotFoundResponse({
-    description: 'Project not found or element not found during update',
-  })
-  @ApiBadRequestResponse({
-    description: 'Validation errors (missing fields, etc.)',
-  })
-  @ApiForbiddenResponse({
-    description:
-      'Invalid CSRF token or user not permitted (if enforced by guard)',
-  })
+  @ApiNotFoundResponse({ description: 'Doc not found' })
+  @ApiBadRequestResponse({ description: 'Validation errors' })
+  @ApiForbiddenResponse({ description: 'User not permitted' })
   @ApiHeader({
     name: 'X-XSRF-TOKEN',
     description: 'CSRF token',
     required: true,
   })
-  async dinsertElements(
+  async replaceProjectElements(
     @Param('username') username: string,
     @Param('slug') slug: string,
     @Headers('X-XSRF-TOKEN') csrfToken: string,
     @Body() elements: ProjectElementDto[],
   ): Promise<ProjectElementDto[]> {
     this.logger.log(
-      `dinsertElements -> username=${username} slug=${slug}, got CSRF=${csrfToken}`,
+      `Replacing entire element list in Yjs doc for project ${username}/${slug}, CSRF=${csrfToken}`,
     );
-    return this.elementService.bulkDinsertElements(username, slug, elements);
+    return this.yjsService.replaceProjectElements(username, slug, elements);
   }
 }

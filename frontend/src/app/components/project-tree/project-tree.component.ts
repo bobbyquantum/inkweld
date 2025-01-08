@@ -66,11 +66,13 @@ export class ProjectTreeComponent implements AfterViewInit {
   @ViewChild('editInput') inputEl!: MatInput;
   @ViewChild(CdkDropList) dropList!: CdkDropList<ProjectElement>;
 
-  readonly treeService = inject(ProjectStateService);
+  readonly projectStateService = inject(ProjectStateService);
 
   // Map DTOs to internal model and wrap with root node
   readonly treeElements = computed(() => {
-    const elements = this.treeService.elements().map(mapDtoToProjectElement);
+    const elements = this.projectStateService
+      .elements()
+      .map(mapDtoToProjectElement);
     // Increment all elements' levels by 1 to make room for wrapper
     elements.forEach(el => (el.level += 1));
     // Add wrapper node
@@ -88,9 +90,9 @@ export class ProjectTreeComponent implements AfterViewInit {
   });
 
   // Other service signals
-  readonly isLoading = this.treeService.isLoading;
-  readonly isSaving = this.treeService.isSaving;
-  readonly error = this.treeService.error;
+  readonly isLoading = this.projectStateService.isLoading;
+  readonly isSaving = this.projectStateService.isSaving;
+  readonly error = this.projectStateService.error;
 
   dataSource: ArrayDataSource<ProjectElement>;
   treeManipulator!: TreeManipulator;
@@ -556,7 +558,7 @@ export class ProjectTreeComponent implements AfterViewInit {
       level: node.level - 1, // Decrement level since we incremented it for the tree
       position: node.position,
     };
-    this.treeService.openFile(dto);
+    this.projectStateService.openFile(dto);
   }
 
   /**
@@ -590,6 +592,11 @@ export class ProjectTreeComponent implements AfterViewInit {
     const urlParts = window.location.pathname.split('/');
     const username = urlParts[2];
     const slug = urlParts[3];
-    await this.treeService.saveProjectElements(username, slug, elements);
+    await this.projectStateService.saveProjectElements(
+      username,
+      slug,
+      elements
+    );
+    console.log('Changes saved');
   }
 }

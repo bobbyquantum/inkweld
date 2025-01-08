@@ -21,7 +21,10 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "resolvePackageJsonExports": false,
-
+    "types": [
+      "node",
+      "jest"
+    ],
     "include": [
       "src/**/*.spec.ts",
       "src/**/*.test.ts",

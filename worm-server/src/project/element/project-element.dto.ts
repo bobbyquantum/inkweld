@@ -2,7 +2,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsEnum, IsNumber } from 'class-validator';
 import { ElementType, isExpandable } from './element-type.enum.js';
-import { ProjectElementEntity } from './project-element.entity.js';
 
 export class ProjectElementDto {
   @ApiProperty({
@@ -55,7 +54,7 @@ export class ProjectElementDto {
   })
   expandable?: boolean;
 
-  constructor(entity?: ProjectElementEntity | ProjectElementDto) {
+  constructor(entity?: ProjectElementDto) {
     if (entity) {
       this.id = entity.id;
       this.version = entity.version;
@@ -65,17 +64,5 @@ export class ProjectElementDto {
       this.level = entity.level;
       this.expandable = isExpandable(entity.type);
     }
-  }
-
-  toEntity(): ProjectElementEntity {
-    const element = new ProjectElementEntity();
-    element.id = this.id; // If provided, used for updates
-    element.version = this.version;
-    element.name = this.name;
-    element.type = this.type;
-    element.position = this.position;
-    element.level = this.level;
-    // We'll not set project or other fields here; the service will handle that
-    return element;
   }
 }

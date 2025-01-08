@@ -22,7 +22,7 @@
           <ng-template mat-tab-label>
             <div class="tab-label">
               {{ file.name }}
-              @switch (projectState.getSyncState()(file.id ?? 'default')) {
+              <!-- @switch (projectState.getSyncState()(file.id ?? 'default')) {
                 @case (DocumentSyncState.Unavailable) {
                   <div
                     class="connection-status unavailable"
@@ -43,7 +43,7 @@
                     class="connection-status synced"
                     title="Connected and synced"></div>
                 }
-              }
+              } -->
               <button
                 mat-icon-button
                 (click)="closeTab(i); $event.stopPropagation()">

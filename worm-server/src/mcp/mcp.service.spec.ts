@@ -1,13 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { McpService } from './mcp.service.js';
 import { ProjectService } from '../project/project.service.js';
-import { ProjectElementService } from '../project/element/project-element.service.js';
 import { YjsGateway } from '../ws/yjs-gateway.js';
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 describe('McpService', () => {
   let service: McpService;
   let mockProjectService: jest.Mocked<ProjectService>;
-  let mockProjectElementService: jest.Mocked<ProjectElementService>;
   let mockYjsGateway: jest.Mocked<YjsGateway>;
 
   beforeEach(async () => {
@@ -15,8 +13,6 @@ describe('McpService', () => {
       findAllForCurrentUser: jest.fn(),
       findAll: jest.fn(),
     } as unknown as jest.Mocked<ProjectService>;
-
-    mockProjectElementService = {} as jest.Mocked<ProjectElementService>;
 
     mockYjsGateway = {
       updateDocument: jest.fn(),
@@ -26,7 +22,6 @@ describe('McpService', () => {
       providers: [
         McpService,
         { provide: ProjectService, useValue: mockProjectService },
-        { provide: ProjectElementService, useValue: mockProjectElementService },
         { provide: YjsGateway, useValue: mockYjsGateway },
       ],
     }).compile();

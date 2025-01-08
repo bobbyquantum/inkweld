@@ -1,127 +1,99 @@
-// project-element.service.ts
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ProjectElementEntity } from './project-element.entity.js';
-import { ProjectElementDto } from './project-element.dto.js';
-import { ProjectService } from '../project.service.js';
-import { ProjectEntity } from '../project.entity.js';
+// project-element-yjs.service.ts
+
+import { Injectable, Logger } from '@nestjs/common';
+import { getPersistence } from '../../ws/y-websocket-utils.js'; // your existing y-websocket-utils
+import { LeveldbPersistence } from 'y-leveldb';
+import * as Y from 'yjs';
 
 @Injectable()
 export class ProjectElementService {
   private readonly logger = new Logger(ProjectElementService.name);
 
-  constructor(
-    @InjectRepository(ProjectElementEntity)
-    private readonly elementRepo: Repository<ProjectElementEntity>,
-    private readonly projectService: ProjectService,
-  ) {}
+  /**
+   * Load the Y.Doc for the given project.
+   * If it doesn't exist, it is implicitly created by leveldb when we store an update.
+   */
+  private async loadDoc(docId: string): Promise<Y.Doc> {
+    const ldb = getPersistence()?.provider as LeveldbPersistence;
+    if (!ldb) {
+      throw new Error('No LevelDB persistence found for Yjs project elements');
+    }
 
-  async getProjectElements(
-    username: string,
-    slug: string,
-  ): Promise<ProjectElementDto[]> {
-    this.logger.debug(`Fetching elements for project: ${username}/${slug}`);
-    const project: ProjectEntity =
-      await this.projectService.findByUsernameAndSlug(username, slug);
-
-    const elements = await this.elementRepo.find({
-      where: { project: { id: project.id } },
-      order: { position: 'ASC' }, // or whatever ordering you want
-    });
-    return elements.map((e) => new ProjectElementDto(e));
+    // Get or create the Y.Doc from the database
+    return await ldb.getYDoc(docId);
   }
 
   /**
-   * The "dinsert" approach:
-   * - Elements not in the new list: delete
-   * - Elements with IDs: update
-   * - Elements without IDs: create
-   * - Return the new full list
+   * Save a given doc's current state back to LevelDB.
    */
-  async bulkDinsertElements(
-    username: string,
-    slug: string,
-    dtos: ProjectElementDto[],
-  ): Promise<ProjectElementDto[]> {
-    this.logger.debug(
-      `Differential inserting ${dtos.length} elements in project ${username}/${slug}`,
-    );
-
-    const project: ProjectEntity =
-      await this.projectService.findByUsernameAndSlug(username, slug);
-
-    // Validate all DTOs before proceeding
-    dtos.forEach((dto) => this.validateElementDto(dto));
-
-    // Fetch existing
-    const existing = await this.elementRepo.find({
-      where: { project: { id: project.id } },
-      order: { position: 'ASC' },
-    });
-
-    // Gather all incoming IDs (non-null)
-    const dtoIds = new Set(dtos.filter((d) => d.id).map((d) => d.id));
-
-    // Delete any existing not in incoming
-    const toDelete = existing.filter((el) => !dtoIds.has(el.id));
-    if (toDelete.length) {
-      await this.elementRepo.remove(toDelete);
+  private async persistDoc(doc: Y.Doc): Promise<void> {
+    const ldb = getPersistence()?.provider as LeveldbPersistence;
+    if (!ldb) {
+      throw new Error('No LevelDB persistence found for Yjs project elements');
     }
 
-    // Upsert each DTO
-    const results: ProjectElementDto[] = [];
-    for (const dto of dtos) {
-      let entity: ProjectElementEntity;
-      if (dto.id) {
-        // Update
-        entity = await this.elementRepo.findOne({
-          where: { id: dto.id },
-          relationLoadStrategy: 'join',
-          relations: ['project'],
-        });
-        if (!entity) {
-          throw new NotFoundException(`Element not found with ID: ${dto.id}`);
-        }
-        if (entity.project.id !== project.id) {
-          throw new NotFoundException(
-            `Element ${dto.id} not found in this project`,
-          );
-        }
-        // Overwrite relevant fields
-        entity.name = dto.name;
-        entity.type = dto.type;
-        entity.position = dto.position;
-        entity.level = dto.level;
-      } else {
-        // Create new
-        entity = new ProjectElementDto(dto).toEntity();
-        entity.project = project; // link to project
-      }
-      const saved = await this.elementRepo.save(entity);
-      results.push(new ProjectElementDto(saved));
-    }
-
-    return results;
+    const update = Y.encodeStateAsUpdate(doc);
+    await ldb.storeUpdate(doc.guid, update);
   }
 
-  private validateElementDto(dto: ProjectElementDto) {
-    if (!dto.name?.trim()) {
-      throw new BadRequestException('Name is required');
+  /**
+   * Get the elements from the Y.Doc as a JSON array.
+   * We assume we've stored them in a Y.Map called "data",
+   * which has a field "elements" that is a Y.Array<json>.
+   */
+  async getProjectElements(username: string, slug: string) {
+    const docId = this.getDocId(username, slug);
+    const doc = await this.loadDoc(docId);
+
+    // "data" is a Y.Map
+    const dataMap = doc.getMap<any>('data');
+    // If empty, initialize it
+    if (!dataMap.has('elements')) {
+      dataMap.set('elements', new Y.Array());
     }
-    if (!dto.type) {
-      throw new BadRequestException('Type is required');
-    }
-    if (dto.position === null || dto.position === undefined) {
-      throw new BadRequestException('Position is required');
-    }
-    if (dto.level === null || dto.level === undefined) {
-      throw new BadRequestException('Level is required');
-    }
+    const elementsArray = dataMap.get('elements') as Y.Array<any>;
+
+    // Convert the Y.Array back to JSON
+    return elementsArray.toArray();
+  }
+
+  /**
+   * Overwrite the entire array of elements in the doc with the provided new array.
+   * This is conceptually similar to your "dinsert" approach.
+   * Here, we just replace everything with the new data in a single transaction.
+   */
+  async replaceProjectElements(
+    username: string,
+    slug: string,
+    incomingElements: any[],
+  ) {
+    const docId = this.getDocId(username, slug);
+    const doc = await this.loadDoc(docId);
+
+    doc.transact(() => {
+      const dataMap = doc.getMap<any>('data');
+      if (!dataMap.has('elements')) {
+        dataMap.set('elements', new Y.Array());
+      }
+      const elementsArray = dataMap.get('elements') as Y.Array<any>;
+
+      // Clear existing
+      elementsArray.delete(0, elementsArray.length);
+
+      // Insert incoming
+      for (const elem of incomingElements) {
+        elementsArray.push([elem]);
+      }
+    });
+
+    await this.persistDoc(doc);
+
+    // Return updated data
+    return incomingElements;
+  }
+
+  private getDocId(username: string, slug: string): string {
+    // e.g. "projectElements:bob:my-first-project"
+    return `projectElements:${username}:${slug}`;
   }
 }
