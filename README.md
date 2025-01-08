@@ -1,6 +1,23 @@
 # Worm Project
 
-Worm is a full-stack application that includes both a frontend and a backend component. The frontend is built with Angular, and the backend is built with NestJS. This project aims to provide a secure and efficient platform for managing projects and user data.
+Worm is a collaborative document editing platform designed for creative writing, worldbuilding, and technical documentation. Built with Angular (frontend) and NestJS (backend), Worm provides real-time collaboration features similar to Google Docs, but with enhanced organization capabilities tailored for complex projects.
+
+## About
+
+Worm is ideal for:
+- **Creative Writing**: Collaborate on novels, short stories, and screenplays with real-time editing and version control
+- **Worldbuilding**: Organize and develop fictional worlds with hierarchical document structures
+- **Technical Documentation**: Maintain up-to-date documentation with multiple contributors
+- **Research Projects**: Collaborate on academic papers and research notes
+
+Key Features:
+- Real-time collaborative editing
+- Hierarchical project organization
+- Offline editing with automatic sync
+- Rich text formatting and styling
+- Version history and change tracking
+- User permissions and access control
+- Extensible through MCP integrations
 
 ## Project Setup
 
