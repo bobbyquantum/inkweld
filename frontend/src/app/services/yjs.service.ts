@@ -9,13 +9,27 @@ import * as Y from 'yjs';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { ProjectStateService } from './project-state.service';
 
+/**
+ * Represents an active Yjs document connection
+ */
 interface DocumentConnection {
+  /** The Yjs document instance */
   ydoc: Y.Doc;
+  /** WebSocket provider for real-time sync */
   provider: WebsocketProvider;
+  /** XML fragment used for ProseMirror content */
   type: Y.XmlFragment;
+  /** IndexedDB provider for offline persistence */
   indexeddbProvider: IndexeddbPersistence;
 }
 
+/**
+ * Manages Yjs document connections for collaborative editing
+ *
+ * Handles WebSocket connections, IndexedDB persistence, and ProseMirror integration
+ * for real-time collaborative document editing. Maintains connections to multiple
+ * documents and provides synchronization status updates.
+ */
 @Injectable({
   providedIn: 'root',
 })
@@ -23,6 +37,12 @@ export class YjsService {
   private connections: Map<string, DocumentConnection> = new Map();
   private readonly projectState = inject(ProjectStateService);
 
+  /**
+   * Sets up collaborative editing for a document
+   * @param editor - The editor instance to enable collaboration on
+   * @param documentId - Unique identifier for the document
+   * @returns Promise that resolves when collaboration is set up
+   */
   async setupCollaboration(editor: Editor, documentId: string): Promise<void> {
     // Check if we already have a connection for this document
     let connection = this.connections.get(documentId);
@@ -107,6 +127,11 @@ export class YjsService {
     view.updateState(newState);
   }
 
+  /**
+   * Disconnects from a specific document or all documents
+   * @param documentId - Optional document ID to disconnect from. If not provided,
+   * disconnects from all documents
+   */
   disconnect(documentId?: string) {
     if (documentId) {
       // Disconnect specific document
@@ -128,6 +153,11 @@ export class YjsService {
     }
   }
 
+  /**
+   * Checks if a document is currently connected
+   * @param documentId - The document ID to check
+   * @returns True if the document has an active connection, false otherwise
+   */
   isConnected(documentId: string): boolean {
     return this.connections.has(documentId);
   }
