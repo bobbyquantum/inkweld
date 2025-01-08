@@ -2,11 +2,11 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "chrome",
+      "type": "msedge",
       "name": "🎨 Frontend",
       "request": "launch",
       "preLaunchTask": "🎯 Start Stack",
-      "url": "http://localhost:8333",
+      "url": "http://localhost:4200",
       "webRoot": "${workspaceFolder}/frontend",
       "sourceMaps": true,
       "sourceMapPathOverrides": {

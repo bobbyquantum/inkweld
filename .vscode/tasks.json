@@ -20,15 +20,15 @@
     {
       "label": "🚀 Start Frontend Dev Server",
       "type": "shell",
-      "command": "cd frontend && bun run start",
+      "command": "cd frontend && npm run start",
       "isBackground": true,
       "problemMatcher": {
         "owner": "typescript",
         "pattern": "$tsc",
         "background": {
           "activeOnStart": true,
-          "beginsPattern": ".",
-          "endsPattern": "bundle generation complete"
+          "beginsPattern": "Application bundle generation complete",
+          "endsPattern": "Watch mode enabled. Watching for file changes..."
         }
       }
     },
@@ -51,8 +51,8 @@
       "label": "🎯 Start Stack",
       "type": "shell",
       "command": "echo '🚀 Stack dependencies started and ready!'",
-      "dependsOn": ["🐳 Start Docker Services", "🚀 Start Frontend Dev Server", "🚀 Start NestJS Server"],
-      "dependsOrder": "sequence"
+      "dependsOn": ["🐳 Start Docker Services", "🚀 Start Frontend Dev Server"],
+      "dependsOrder": "sequence",
     }
   ]
 }
