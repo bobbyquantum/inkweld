@@ -5,6 +5,14 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
+  "eslint.ignoreUntitled": true,
+  "eslint.format.enable": true,
+  "eslint.run": "onSave",
+  "eslint.lintTask.enable": true,
+  "eslint.validate": [
+    "json",
+    "typescript",
+  ],
   "[typescript]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
@@ -15,4 +23,5 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "jest.rootPath": "frontend",
+
 }

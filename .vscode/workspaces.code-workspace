@@ -18,19 +18,13 @@
       "frontend/": true,
       "worm-server/": true,
     },
-    "typescript.tsdk": "Frontend/node_modules/typescript/lib",
-    "java.configuration.updateBuildConfiguration": "automatic",
-    "java.compile.nullAnalysis.mode": "automatic",
-    "java.format.settings.url": ".vscode/java-formatter.xml",
+    "typescript.tsdk": "🎨 Frontend/frontend/node_modules/typescript/lib",
     "[typescript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.defaultFormatter": "dbaeumer.vscode-eslint",
       "editor.formatOnSave": true
     },
     "[javascript]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode",
-      "editor.formatOnSave": true
-    },
-    "[java]": {
       "editor.formatOnSave": true
     },
     "jest.disabledWorkspaceFolders": [
@@ -42,7 +36,6 @@
       "angular.ng-template",
       "dbaeumer.vscode-eslint",
       "esbenp.prettier-vscode",
-      "vscjava.vscode-java-pack",
       "orta.vscode-jest"
     ]
   }
