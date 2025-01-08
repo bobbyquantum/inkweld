@@ -3,6 +3,7 @@ import {
   AfterViewInit,
   Component,
   HostListener,
+  inject,
   Input,
   OnDestroy,
   OnInit,
@@ -46,7 +47,7 @@ export class ElementEditorComponent
   private startX = 0;
   private startDimensions: EditorDimensions | null = null;
 
-  constructor(private documentService: DocumentService) {}
+  private documentService = inject(DocumentService);
 
   @HostListener('document:mousemove', ['$event'])
   onMouseMove(event: MouseEvent) {
