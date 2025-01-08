@@ -11,7 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Editor, NgxEditorModule } from 'ngx-editor';
 
-import { YjsService } from '../../services/yjs.service';
+import { DocumentService } from '../../services/yjs.service';
 
 interface EditorDimensions {
   pageWidth: number; // in cm
@@ -46,7 +46,7 @@ export class ElementEditorComponent
   private startX = 0;
   private startDimensions: EditorDimensions | null = null;
 
-  constructor(private yjsService: YjsService) {}
+  constructor(private documentService: DocumentService) {}
 
   @HostListener('document:mousemove', ['$event'])
   onMouseMove(event: MouseEvent) {
@@ -126,7 +126,7 @@ export class ElementEditorComponent
   ngAfterViewInit(): void {
     // Setup collaboration after the editor view is initialized
     setTimeout(() => {
-      this.yjsService
+      this.documentService
         .setupCollaboration(this.editor, this.documentId)
         .catch(error => {
           console.error('Failed to setup collaboration:', error);
@@ -137,7 +137,7 @@ export class ElementEditorComponent
   ngOnDestroy(): void {
     this.editor.destroy();
     // Only disconnect this specific document
-    this.yjsService.disconnect(this.documentId);
+    this.documentService.disconnect(this.documentId);
   }
 
   increaseZoom() {

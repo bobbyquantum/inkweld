@@ -33,7 +33,7 @@ interface DocumentConnection {
 @Injectable({
   providedIn: 'root',
 })
-export class YjsService {
+export class DocumentService {
   private connections: Map<string, DocumentConnection> = new Map();
   private readonly projectState = inject(ProjectStateService);
 
