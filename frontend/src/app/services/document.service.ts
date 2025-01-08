@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Editor } from 'ngx-editor';
 import { Plugin } from 'prosemirror-state';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { yCursorPlugin, ySyncPlugin, yUndoPlugin } from 'y-prosemirror';
 import { WebsocketProvider } from 'y-websocket';
@@ -36,6 +37,25 @@ interface DocumentConnection {
 export class DocumentService {
   private connections: Map<string, DocumentConnection> = new Map();
   private readonly projectState = inject(ProjectStateService);
+  private syncStatusSubjects = new Map<
+    string,
+    BehaviorSubject<DocumentSyncState>
+  >();
+
+  /**
+   * Gets the current sync status for a document
+   * @param documentId - The document ID to check
+   * @returns Observable that emits the current sync status and updates when it changes
+   */
+  getSyncStatus(documentId: string): Observable<DocumentSyncState> {
+    if (!this.syncStatusSubjects.has(documentId)) {
+      this.syncStatusSubjects.set(
+        documentId,
+        new BehaviorSubject<DocumentSyncState>(DocumentSyncState.Offline)
+      );
+    }
+    return this.syncStatusSubjects.get(documentId)!.asObservable();
+  }
 
   /**
    * Sets up collaborative editing for a document
@@ -56,14 +76,14 @@ export class DocumentService {
       console.log('Waiting for IndexedDB sync...');
 
       // Set state to Offline while waiting for IndexedDB
-      this.projectState.updateSyncState(documentId, DocumentSyncState.Offline);
+      this.updateSyncStatus(documentId, DocumentSyncState.Offline);
 
       // Wait for initial IndexedDB sync
       await indexeddbProvider.whenSynced;
       console.log('IndexedDB sync complete');
 
       // Update state to Syncing while establishing WebSocket connection
-      this.projectState.updateSyncState(documentId, DocumentSyncState.Syncing);
+      this.updateSyncStatus(documentId, DocumentSyncState.Syncing);
 
       // Setup WebSocket provider
       const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
@@ -76,7 +96,7 @@ export class DocumentService {
       // Handle connection status
       provider.on('status', ({ status }: { status: string }) => {
         console.log(`WebSocket status for document ${documentId}:`, status);
-        this.projectState.updateSyncState(
+        this.updateSyncStatus(
           documentId,
           status === 'connected'
             ? DocumentSyncState.Synced
@@ -87,10 +107,7 @@ export class DocumentService {
       // Handle connection errors gracefully
       provider.on('connection-error', (error: Event) => {
         console.warn('WebSocket connection error:', error);
-        this.projectState.updateSyncState(
-          documentId,
-          DocumentSyncState.Offline
-        );
+        this.updateSyncStatus(documentId, DocumentSyncState.Offline);
       });
 
       // Setup automatic reconnection when online
@@ -160,5 +177,22 @@ export class DocumentService {
    */
   isConnected(documentId: string): boolean {
     return this.connections.has(documentId);
+  }
+
+  /**
+   * Updates the sync status for a document
+   * @param documentId - The document ID to update
+   * @param state - The new sync state
+   */
+  private updateSyncStatus(documentId: string, state: DocumentSyncState): void {
+    if (!this.syncStatusSubjects.has(documentId)) {
+      this.syncStatusSubjects.set(
+        documentId,
+        new BehaviorSubject<DocumentSyncState>(state)
+      );
+    } else {
+      this.syncStatusSubjects.get(documentId)!.next(state);
+    }
+    this.projectState.updateSyncState(documentId, state);
   }
 }
