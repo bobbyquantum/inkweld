@@ -12,7 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Editor, NgxEditorModule } from 'ngx-editor';
 
-import { DocumentService } from '../../services/yjs.service';
+import { DocumentService } from '../../services/document.service';
 
 interface EditorDimensions {
   pageWidth: number; // in cm
