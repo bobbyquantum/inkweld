@@ -45,9 +45,7 @@ export class ProjectStateService {
    * For a single doc approach, we store just one `DocumentSyncState`.
    * If you had multiple docs, you'd store a Map<string, DocumentSyncState>.
    */
-  readonly getSyncState = computed(() => (): DocumentSyncState => {
-    return this.docSyncState();
-  });
+  readonly getSyncState = computed(() => this.docSyncState());
 
   // ─────────────────────────────────────────────────────────────
   // Private signals + fields
@@ -97,12 +95,21 @@ export class ProjectStateService {
       // Step 3: Listen for connection status
       this.provider.on('status', ({ status }: { status: string }) => {
         console.log(`Doc ${this.docId} websocket status: ${status}`);
-        if (status === 'connected') {
-          this.docSyncState.set(DocumentSyncState.Synced);
-        } else {
-          this.docSyncState.set(DocumentSyncState.Offline);
+        switch (status) {
+          case 'connected':
+            this.docSyncState.set(DocumentSyncState.Synced);
+            break;
+          case 'disconnected':
+            this.docSyncState.set(DocumentSyncState.Offline);
+            break;
+          default:
+            // For initial connection, set to synced once IndexedDB is ready
+            this.docSyncState.set(DocumentSyncState.Synced);
         }
       });
+
+      // Set initial sync state after IndexedDB sync
+      this.docSyncState.set(DocumentSyncState.Synced);
 
       // Step 4: Load initial data from the doc into signals
       this.initializeLocalSignalsFromDoc();
@@ -110,7 +117,11 @@ export class ProjectStateService {
       // Step 5: Observe future changes from Yjs
       this.observeDocChanges();
     } catch (err) {
-      console.error('Failed to load project doc via Yjs:', err);
+      if (err instanceof Error) {
+        console.error('Failed to load project doc via Yjs:', err.message);
+      } else {
+        console.error('Failed to load project doc via Yjs:', String(err));
+      }
       this.error.set('Failed to load project');
       this.docSyncState.set(DocumentSyncState.Unavailable);
     } finally {
@@ -185,10 +196,23 @@ export class ProjectStateService {
     documentId: string,
     state: DocumentSyncState | undefined
   ): void {
-    // If we only ever have one doc, we can ignore the docId
-    if (state !== undefined) {
-      this.docSyncState.set(state);
+    if (!documentId || !state) return;
+
+    // Update sync state
+    this.docSyncState.set(state);
+
+    // If we're going offline, disconnect providers
+    if (state === DocumentSyncState.Offline) {
+      this.provider?.disconnect();
     }
+
+    // If we're coming back online, reconnect
+    if (state === DocumentSyncState.Synced) {
+      this.provider?.connect();
+    }
+
+    // Trigger change detection
+    this.getSyncState();
   }
 
   /**
