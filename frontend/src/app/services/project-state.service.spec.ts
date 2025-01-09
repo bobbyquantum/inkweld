@@ -1,9 +1,11 @@
 import { TestBed } from '@angular/core/testing';
-import { ProjectElementDto } from '@worm/index';
+import { ProjectAPIService, ProjectElementDto } from '@worm/index';
+import { of } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
+import { projectServiceMock } from '../../testing/project-api.mock';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { ProjectStateService } from './project-state.service';
 
@@ -74,7 +76,10 @@ describe('ProjectStateService', () => {
 
     // Configure TestBed
     TestBed.configureTestingModule({
-      providers: [ProjectStateService],
+      providers: [
+        ProjectStateService,
+        { provide: ProjectAPIService, useValue: projectServiceMock },
+      ],
     });
 
     // Inject service
@@ -107,6 +112,23 @@ describe('ProjectStateService', () => {
         return () => {};
       });
 
+      projectServiceMock.projectControllerGetProjectByUsernameAndSlug = jest
+        .fn()
+        .mockReturnValue(
+          of({
+            id: '1',
+            slug: 'test-project',
+            title: 'Test Project',
+            description: 'Test Description',
+            createdDate: new Date().toISOString(),
+            updatedDate: new Date().toISOString(),
+            user: {
+              username: 'testuser',
+              name: 'Test User',
+              avatarImageUrl: 'https://example.com/avatar.jpg',
+            },
+          })
+        );
       await service.loadProject('testuser', 'test-project');
 
       expect(service.isLoading()).toBe(false);

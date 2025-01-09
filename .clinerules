@@ -2,3 +2,5 @@
 - Always run the jest tests for the code file after updating the code.  If there is not a test, flag this to the user.  If the request introduces new functionality, then add a test if appropriate.
 - If a task resulted in code changes, in the final task complete message, include a suggested git commit in conventional commit format.
 - If you aren't sure, or there are options, feel free to ask! :)
+- The frontend is Angular 19.  Preference is to use inject() syntax rather than constructor injection.  Everything is standalone, no modules.  The dev server is run on node.  All tests are jest.
+- The worm-server is NestJS 20.  This project runs on bun rather than node.  Tests are jest.

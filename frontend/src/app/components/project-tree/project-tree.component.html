@@ -110,6 +110,17 @@
 
 <ng-template #contextMenu let-node="node">
   <div class="context-menu" cdkMenu>
+    @if (node.id === 'root-wrapper') {
+      <button
+        type="button"
+        class="context-menu-item"
+        cdkMenuItem
+        [disabled]="isLoading()"
+        (click)="editProject()">
+        <mat-icon>create_new_folder</mat-icon>
+        <span class="context-menu-item-title">Edit Project</span>
+      </button>
+    }
     @if (!node.expandable && node.id !== 'root-wrapper') {
       <button
         type="button"

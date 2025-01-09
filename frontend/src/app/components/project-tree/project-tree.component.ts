@@ -20,6 +20,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInput, MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
@@ -27,8 +28,9 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { ProjectStateService } from '@services/project-state.service';
-import { ProjectElementDto } from '@worm/index';
+import { ProjectDto, ProjectElementDto } from '@worm/index';
 
+import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { mapDtoToProjectElement, ProjectElement } from './project-element';
 import { TreeManipulator } from './tree-manipulator';
 
@@ -109,6 +111,7 @@ export class ProjectTreeComponent implements AfterViewInit {
 
   // Track expanded nodes to persist state
   private expandedNodeIds = new Set<string>();
+  private dialog = inject(MatDialog);
 
   constructor() {
     // Initialize tree with current elements
@@ -543,6 +546,19 @@ export class ProjectTreeComponent implements AfterViewInit {
    */
   public onContextMenuClose() {
     this.contextItem = null;
+  }
+
+  public editProject() {
+    console.log('Edit project', this.projectStateService.project());
+    const dialogRef = this.dialog.open(EditProjectDialogComponent, {
+      data: { project: this.projectStateService.project() },
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        void this.projectStateService.updateProject(result as ProjectDto);
+      }
+    });
   }
 
   /**

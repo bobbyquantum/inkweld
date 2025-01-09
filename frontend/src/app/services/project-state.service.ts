@@ -1,6 +1,7 @@
-import { computed, Injectable, signal } from '@angular/core';
-import { ProjectDto, ProjectElementDto } from '@worm/index';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { ProjectAPIService, ProjectDto, ProjectElementDto } from '@worm/index';
 import { nanoid } from 'nanoid';
+import { firstValueFrom } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
@@ -63,6 +64,7 @@ export class ProjectStateService {
   private indexeddbProvider: IndexeddbPersistence | null = null;
   private docId: string | null = null;
 
+  private projectService = inject(ProjectAPIService);
   /**
    * Initializes and loads a project with offline-first synchronization
    *
@@ -85,7 +87,17 @@ export class ProjectStateService {
   async loadProject(username: string, slug: string): Promise<void> {
     this.isLoading.set(true);
     this.error.set(undefined);
+
     console.log('Loading project:', username, slug);
+    const projectDto = await firstValueFrom(
+      this.projectService.projectControllerGetProjectByUsernameAndSlug(
+        username,
+        slug
+      )
+    );
+    console.log('Project loaded:', projectDto);
+    this.project.set(projectDto);
+
     try {
       this.docId = `projectElements:${username}:${slug}`;
 
@@ -124,6 +136,8 @@ export class ProjectStateService {
       this.initializeLocalSignalsFromDoc();
 
       this.observeDocChanges();
+
+      void this.updateProject(projectDto);
     } catch (err) {
       if (err instanceof Error) {
         console.error('Failed to load project doc via Yjs:', err.message);
@@ -287,6 +301,35 @@ export class ProjectStateService {
     } catch (err) {
       console.error('Error saving project elements (Yjs):', err);
       this.error.set('Failed to save project elements');
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  async updateProject(project: ProjectDto): Promise<void> {
+    this.isSaving.set(true);
+    this.error.set(undefined);
+
+    try {
+      if (this.doc) {
+        // Wrap transaction in Promise to properly await it
+        await new Promise<void>((resolve, reject) => {
+          try {
+            this.doc!.transact(() => {
+              const projectMap = this.getProjectMetaMap();
+              projectMap.set('title', project.title);
+              projectMap.set('description', project.description);
+            });
+            resolve();
+          } catch (err) {
+            reject(err instanceof Error ? err : new Error(String(err)));
+          }
+        });
+        this.project.set(project);
+      }
+    } catch (err) {
+      console.error('Error updating project:', err);
+      this.error.set('Failed to update project');
     } finally {
       this.isSaving.set(false);
     }

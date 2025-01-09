@@ -1,10 +1,13 @@
 import { ArrayDataSource } from '@angular/cdk/collections';
 import { CdkDrag, CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
+import { provideHttpClient } from '@angular/common/http';
 import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ProjectStateService } from '@services/project-state.service';
+import { ProjectAPIService } from '@worm/index';
 
+import { projectServiceMock } from '../../../testing/project-api.mock';
 import { ProjectElement } from './project-element';
 import { ProjectTreeComponent } from './project-tree.component';
 
@@ -54,7 +57,11 @@ describe('ProjectTreeComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [ProjectTreeComponent, NoopAnimationsModule],
-      providers: [{ provide: ProjectStateService, useValue: treeService }],
+      providers: [
+        { provide: ProjectStateService, useValue: treeService },
+        { provide: ProjectAPIService, useValue: projectServiceMock },
+        provideHttpClient(),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ProjectTreeComponent);
