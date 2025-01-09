@@ -72,7 +72,12 @@
             placeholder="Edit node name" />
         </mat-form-field>
       } @else {
-        <div class="node-title" (dblclick)="startEditing(node)">
+        <div
+          class="node-title"
+          tabindex="0"
+          (click)="onOpenFile(node)"
+          (keyup.enter)="onOpenFile(node)"
+          (dblclick)="onOpenFile(node)">
           {{ node.name }}
         </div>
       }
