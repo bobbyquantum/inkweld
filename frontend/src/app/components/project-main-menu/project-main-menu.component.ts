@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
+import { Router } from '@angular/router';
 
 import { UserMenuComponent } from '../user-menu/user-menu.component';
 
@@ -36,8 +37,14 @@ export class ProjectMainMenuComponent {
     },
   ];
 
+  private readonly router = inject(Router);
+
   onMenuItemClick(item: string): void {
     console.log(`Clicked: ${item}`);
     // Implement the actual functionality for each menu item here
+  }
+
+  onExitClick(): void {
+    void this.router.navigate(['/']);
   }
 }
