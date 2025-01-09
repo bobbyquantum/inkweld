@@ -105,6 +105,17 @@
               "src/**/*.html"
             ]
           }
+        },
+        "e2e": {
+          "builder": "playwright-ng-schematics:playwright",
+          "options": {
+            "devServerTarget": "worm-frontend:serve"
+          },
+          "configurations": {
+            "production": {
+              "devServerTarget": "worm-frontend:serve:production"
+            }
+          }
         }
       }
     }

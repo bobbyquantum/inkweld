@@ -12,7 +12,8 @@
     "lint": "ng lint",
     "lint:fix": "ng lint --fix",
     "analyze": "ng build --stats-json && esbuild-visualizer --metadata dist/worm-frontend/stats.json",
-    "upgrade-angular": "ng update @angular/core@19 @angular/cli@19 @angular/material@19 @angular/cdk@19 --allow-dirty"
+    "upgrade-angular": "ng update @angular/core@19 @angular/cli@19 @angular/material@19 @angular/cdk@19 --allow-dirty",
+    "e2e": "ng e2e"
   },
   "private": true,
   "dependencies": {
@@ -43,6 +44,7 @@
     "@angular/cli": "19.0.6",
     "@angular/compiler-cli": "19.0.5",
     "@jest/globals": "29.7.0",
+    "@playwright/test": "1.49.1",
     "@types/jest": "29.5.14",
     "angular-eslint": "19.0.2",
     "esbuild": "0.24.2",
@@ -55,6 +57,7 @@
     "eslint-plugin-unused-imports": "4.1.4",
     "jest": "29.7.0",
     "jest-preset-angular": "^14.4.2",
+    "playwright-ng-schematics": "^1.2.2",
     "prettier": "3.4.2",
     "ts-jest": "29.2.5",
     "typescript": "5.6.3",
