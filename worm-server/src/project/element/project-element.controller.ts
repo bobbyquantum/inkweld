@@ -23,7 +23,7 @@ import { ProjectElementDto } from './project-element.dto.js';
 import { ProjectElementService } from './project-element.service.js';
 // e.g. a service that deals with doc reading/writing
 
-@ApiTags('Project API (YJS Replacements)')
+@ApiTags('Project API')
 @Controller('api/v1/projects/:username/:slug/elements')
 @UseGuards(SessionAuthGuard)
 export class ProjectElementController {

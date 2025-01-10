@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Req, Res, Body, Logger } from '@nestjs/common';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { McpService } from './mcp.service.js';
 
 @Controller('mcp')
