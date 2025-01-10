@@ -32,7 +32,7 @@
     class="menu-popover"
     backdropClass="menu-popover">
     <div class="user-info" mat-menu-item disabled>
-      <span>{{ user?.name }}</span>
+      <span>{{ userService.currentUser()?.name }}</span>
     </div>
     <mat-divider></mat-divider>
     <button mat-menu-item (click)="onSettings()">

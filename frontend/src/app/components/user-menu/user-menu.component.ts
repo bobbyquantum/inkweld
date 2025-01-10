@@ -22,7 +22,7 @@ interface LogoutResponse {
 export class UserMenuComponent {
   @Input() user: UserDto | undefined = undefined;
 
-  private userService = inject(UserService);
+  protected userService = inject(UserService);
   private router = inject(Router);
   private http = inject(HttpClient);
 
