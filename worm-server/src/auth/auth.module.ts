@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { UserModule } from '../user/user.module.js';
@@ -13,7 +13,7 @@ import { OAuth2Controller } from './oauth2.controller.js';
 
 @Module({
   imports: [
-    UserModule,
+    forwardRef(() => UserModule),
     PassportModule,
     TypeOrmModule.forFeature([UserEntity, UserSessionEntity]),
   ],
