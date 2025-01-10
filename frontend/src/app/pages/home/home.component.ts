@@ -1,7 +1,6 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,8 +9,10 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule } from '@angular/router';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import { ProjectAPIService, ProjectDto, UserAPIService } from '@worm/index';
+import { ProjectAPIService, ProjectDto } from '@worm/index';
 import { catchError, EMPTY, Subject, takeUntil } from 'rxjs';
+
+import { UserService } from '../../services/user.service';
 
 @Component({
   selector: 'app-home',
@@ -34,14 +35,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   selectedProject: ProjectDto | null = null;
   isMobile = false;
 
-  protected userService = inject(UserAPIService);
+  protected userService = inject(UserService);
   protected projectService = inject(ProjectAPIService);
   protected breakpointObserver = inject(BreakpointObserver);
+  protected user = this.userService.currentUser;
 
   protected destroy$ = new Subject<void>();
-  protected user = toSignal(
-    this.userService.userControllerGetMe('body', true, { transferCache: true })
-  );
   ngOnInit() {
     this.loadProjects();
     this.setupBreakpointObserver();

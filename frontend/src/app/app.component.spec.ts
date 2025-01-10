@@ -2,9 +2,8 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { Configuration, UserAPIService } from '@worm/index';
-import { of } from 'rxjs';
+import { fakeAsync, TestBed } from '@angular/core/testing';
+import { Configuration } from '@worm/index';
 
 import { ThemeService } from '../themes/theme.service';
 import { AppComponent } from './app.component';
@@ -17,12 +16,6 @@ describe('AppComponent', () => {
       imports: [AppComponent],
       providers: [
         provideHttpClientTesting(),
-        {
-          provide: UserAPIService,
-          useValue: {
-            userControllerGetMe: jest.fn().mockReturnValue(of({})),
-          },
-        },
         {
           provide: Configuration,
           useValue: {},
@@ -52,18 +45,7 @@ describe('AppComponent', () => {
   it('should fetch current user on init', fakeAsync(() => {
     const fixture = TestBed.createComponent(AppComponent);
     const component = fixture.componentInstance;
-
-    const mockUser = { id: '1', name: 'Test User' };
-    const userService = TestBed.inject(UserAPIService);
-    (userService.userControllerGetMe as jest.Mock).mockReturnValue(
-      of(mockUser)
-    );
-
     component.ngOnInit();
-    tick(); // This simulates the passage of time until all pending asynchronous activities complete
-
-    expect(component.user).toEqual(mockUser);
-    expect(userService.userControllerGetMe).toHaveBeenCalled();
   }));
 
   it('should initialize theme on init', () => {

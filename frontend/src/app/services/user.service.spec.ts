@@ -2,6 +2,10 @@ import 'fake-indexeddb/auto';
 
 import { TestBed } from '@angular/core/testing';
 import { UserDto } from '@worm/index';
+import { UserAPIService } from '@worm/index';
+
+import { userServiceMock } from '../../testing/user-api.mock';
+import { UserService } from './user.service';
 
 async function insertTestUser(user: UserDto): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -22,14 +26,11 @@ async function insertTestUser(user: UserDto): Promise<void> {
   });
 }
 
-import { UserAPIService } from '@worm/index';
-import { firstValueFrom, of } from 'rxjs';
-
-import { userServiceMock } from '../../testing/user-api.mock';
-import { UserService } from './user.service';
 global.structuredClone = val => JSON.parse(JSON.stringify(val));
+
 describe('UserService', () => {
   let service: UserService;
+
   beforeEach(async () => {
     TestBed.configureTestingModule({
       providers: [
@@ -45,7 +46,7 @@ describe('UserService', () => {
 
     // Initialize fake-indexeddb
     await new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open('worm', 2); // Incremented version
+      const request = indexedDB.open('worm', 2);
 
       request.onupgradeneeded = event => {
         const db = (event.target as IDBOpenDBRequest).result;
@@ -72,22 +73,23 @@ describe('UserService', () => {
     expect(service).toBeTruthy();
   });
 
-  describe('getCurrentUser', () => {
+  describe('currentUser signal', () => {
     it('should return cached user if available', async () => {
-      userServiceMock.userControllerGetMe.mockReturnValue(
-        of({
-          username: 'testuser',
-          name: 'Test User',
-          avatarImageUrl: 'https://example.com/avatar.png',
-        } as UserDto)
-      );
-      const user = await firstValueFrom(service.getCurrentUser());
-      expect(user).toEqual({
+      const testUser = {
+        username: 'testuser',
+        name: 'Test User',
+        avatarImageUrl: 'https://example.com/avatar.png',
+      };
+      await insertTestUser(testUser);
+      await service.setCurrentUser(testUser);
+      const user = service.currentUser;
+      expect(user()).toEqual({
         username: 'testuser',
         name: 'Test User',
         avatarImageUrl: 'https://example.com/avatar.png',
       });
-      expect(userServiceMock.userControllerGetMe).not.toHaveBeenCalled();
+      // The API should not be called since we set the user in beforeEach
+      expect(userServiceMock.userControllerGetMe).toHaveBeenCalledTimes(0);
     });
 
     it('should fetch from API if no cached user', async () => {
@@ -105,17 +107,17 @@ describe('UserService', () => {
       });
       service = TestBed.inject(UserService);
 
-      // Mock API response
-      userServiceMock.userControllerGetMe.mockReturnValue(
-        of({
-          username: 'testuser',
-          name: 'Test User',
-          avatarImageUrl: 'https://example.com/avatar.png',
-        } as UserDto)
-      );
+      const user = service.currentUser;
+      // Initialize signal with null
+      expect(user()).toBeUndefined();
 
-      const user = await firstValueFrom(service.getCurrentUser());
-      expect(user).toEqual({
+      // Trigger API fetch
+      await service.loadCurrentUser();
+
+      // Wait for signal update
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(user()).toEqual({
         username: 'testuser',
         name: 'Test User',
         avatarImageUrl: 'https://example.com/avatar.png',

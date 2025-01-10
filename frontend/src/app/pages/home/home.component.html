@@ -9,7 +9,7 @@
   }
   <span>{{ 'Projects' }}</span>
   <span class="toolbar-spacer"></span>
-  <app-user-menu [user]="user()" />
+  <app-user-menu [user]="userService.currentUser()" />
 </mat-toolbar>
 
 <div class="content-container" [class.is-mobile]="isMobile">

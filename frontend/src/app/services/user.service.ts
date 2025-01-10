@@ -1,8 +1,7 @@
-import { inject, Injectable } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
-import { from, Observable, of } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
 
 import { UserAPIService } from '../../api-client/api/user-api.service';
 import { UserDto } from '../../api-client/model/user-dto';
@@ -35,6 +34,18 @@ const CACHE_KEY = 'currentUser';
   providedIn: 'root',
 })
 export class UserService {
+  /** The current user data */
+  readonly currentUser = signal<UserDto | undefined>(undefined);
+
+  /** Whether user data is being loaded */
+  readonly isLoading = signal(false);
+
+  /** Error message if user loading fails */
+  readonly error = signal<string | undefined>(undefined);
+
+  /** Computed property for user authentication state */
+  readonly isAuthenticated = computed(() => !!this.currentUser());
+
   private dialog = inject(MatDialog);
   private userApi = inject(UserAPIService);
   private dbPromise: Promise<IDBDatabase>;
@@ -45,84 +56,84 @@ export class UserService {
 
   /**
    * Opens the user settings dialog
-   * @returns Observable that emits when the dialog is closed
    */
-  openSettingsDialog(): Observable<void> {
-    return this.dialog
-      .open(UserSettingsDialogComponent, {
-        width: '700px',
-      })
-      .afterClosed() as Observable<void>;
+  async openSettingsDialog(): Promise<void> {
+    await firstValueFrom(
+      this.dialog
+        .open(UserSettingsDialogComponent, {
+          width: '700px',
+        })
+        .afterClosed()
+    );
   }
 
   /**
-   * Gets the current user, first checking the local cache and falling back to the API
-   * if no cached data is available
-   * @returns Observable that emits the current user data
+   * Loads the current user from cache or API
    */
-  getCurrentUser(): Observable<UserDto> {
-    return from(this.getDB()).pipe(
-      switchMap(db => {
-        return new Promise<UserDto | null>(resolve => {
-          // Create a read-only transaction and access the object store
-          const transaction = db.transaction(STORE_NAME, 'readonly');
-          const store = transaction.objectStore(STORE_NAME);
-          // Get the cached user data
-          const request = store.get(CACHE_KEY);
+  async loadCurrentUser(): Promise<void> {
+    this.isLoading.set(true);
+    this.error.set(undefined);
 
-          // Handle successful data retrieval
-          request.onsuccess = () => {
-            if (request.result) {
-              resolve(request.result as UserDto);
-            } else {
-              resolve(null);
-            }
-          };
-          request.onerror = () => resolve(null);
-        });
-      }),
-      switchMap(cachedUser => {
-        if (cachedUser) {
-          return of(cachedUser);
-        }
-        return this.userApi.userControllerGetMe().pipe(
-          switchMap(user => {
-            if (user) {
-              void this.setCurrentUser(user);
-            }
-            return of(user);
-          })
-        );
-      })
-    );
+    try {
+      // Try to load from cache first
+      const cachedUser = await this.getCachedUser();
+      if (cachedUser) {
+        this.currentUser.set(cachedUser);
+        return;
+      }
+
+      // Fall back to API if no cached user
+      const user = await firstValueFrom(this.userApi.userControllerGetMe());
+      if (user) {
+        this.currentUser.set(user);
+        await this.setCurrentUser(user);
+      }
+    } catch (err) {
+      this.error.set('Failed to load user data');
+      console.error('Error loading user:', err);
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
   /**
    * Sets the current user in the local cache
    * @param user - The user data to cache
-   * @returns Promise that resolves when the user data is successfully cached
    */
   async setCurrentUser(user: UserDto): Promise<void> {
     const db = await this.getDB();
     const transaction = db.transaction(STORE_NAME, 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
     store.put(user, CACHE_KEY);
+    this.currentUser.set(user);
   }
 
   /**
    * Clears the current user from the local cache
-   * @returns Promise that resolves when the user data is successfully cleared
    */
   async clearCurrentUser(): Promise<void> {
     const db = await this.getDB();
     const transaction = db.transaction(STORE_NAME, 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
     store.delete(CACHE_KEY);
+    this.currentUser.set(undefined);
   }
+  /**
+   * Gets the cached user from IndexedDB
+   */
+  private async getCachedUser(): Promise<UserDto | undefined> {
+    const db = await this.getDB();
+    return new Promise<UserDto | undefined>(resolve => {
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.get(CACHE_KEY);
 
+      request.onsuccess = () => resolve(request.result as UserDto);
+      request.onerror = () => resolve(undefined);
+    });
+  }
   /**
    * Initializes the IndexedDB database
-   * @returns Promise that resolves with the database instance
    */
   private initDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
@@ -139,9 +150,9 @@ export class UserService {
       request.onerror = () => reject(request.error as Error);
     });
   }
+
   /**
    * Gets the initialized IndexedDB database instance
-   * @returns Promise that resolves with the database instance
    */
   private getDB(): Promise<IDBDatabase> {
     return this.dbPromise;

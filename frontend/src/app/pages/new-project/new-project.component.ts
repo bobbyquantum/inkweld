@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import {
   FormBuilder,
   FormControl,
@@ -15,12 +15,9 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterModule } from '@angular/router';
 import { XsrfService } from '@services/xsrf.service';
-import {
-  ProjectAPIService,
-  ProjectDto,
-  UserAPIService,
-  UserDto,
-} from '@worm/index';
+import { ProjectAPIService, ProjectDto } from '@worm/index';
+
+import { UserService } from '../../services/user.service';
 
 @Component({
   selector: 'app-new-project',
@@ -38,7 +35,7 @@ import {
   templateUrl: './new-project.component.html',
   styleUrls: ['./new-project.component.scss'],
 })
-export class NewProjectComponent implements OnInit {
+export class NewProjectComponent {
   projectForm = new FormGroup({
     title: new FormControl('', [Validators.required.bind(this)]),
     slug: new FormControl('', [
@@ -53,7 +50,7 @@ export class NewProjectComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private projectService = inject(ProjectAPIService);
-  private userService = inject(UserAPIService);
+  private userService = inject(UserService);
   private xsrfService = inject(XsrfService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
@@ -74,12 +71,10 @@ export class NewProjectComponent implements OnInit {
     this.projectForm.get('slug')?.valueChanges.subscribe(() => {
       this.updateProjectUrl();
     });
-  }
-
-  ngOnInit() {
-    this.userService.userControllerGetMe().subscribe({
-      next: (user: UserDto) => {
-        if (user.username) {
+    effect(
+      () => {
+        const user = this.userService.currentUser();
+        if (user?.username) {
           this.username = user.username;
           this.updateProjectUrl();
         } else {
@@ -88,12 +83,8 @@ export class NewProjectComponent implements OnInit {
           });
         }
       },
-      error: () => {
-        this.snackBar.open('Failed to fetch user information.', 'Close', {
-          duration: 3000,
-        });
-      },
-    });
+      { allowSignalWrites: false }
+    );
   }
 
   generateSlug = (title: string): string => {

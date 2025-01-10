@@ -71,14 +71,12 @@ describe('EditProjectDialogComponent', () => {
       title: 'Updated Title',
       description: 'Updated Description',
     };
-    projectServiceMock.projectControllerUpdateProject = jest
-      .fn()
-      .mockReturnValue(
-        of({
-          ...mockProject,
-          ...updatedProject,
-        })
-      );
+    projectServiceMock.projectControllerUpdateProject.mockReturnValue(
+      of({
+        ...mockProject,
+        ...updatedProject,
+      } as unknown as ProjectDto)
+    );
     const updateSpy = jest.spyOn(
       component['projectApi'],
       'projectControllerUpdateProject'
@@ -112,9 +110,9 @@ describe('EditProjectDialogComponent', () => {
       error: 'Test error',
       status: 500,
     });
-    projectServiceMock.projectControllerUpdateProject = jest
-      .fn()
-      .mockReturnValue(throwError(() => errorResponse));
+    projectServiceMock.projectControllerUpdateProject.mockReturnValue(
+      throwError(() => errorResponse)
+    );
     jest.spyOn(component['projectApi'], 'projectControllerUpdateProject');
     jest.spyOn(console, 'error');
 

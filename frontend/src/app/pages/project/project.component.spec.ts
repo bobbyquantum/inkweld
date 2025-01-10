@@ -1,4 +1,3 @@
-
 import { HttpClient } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -23,19 +22,19 @@ const mockIndexedDB = {
         transaction: {
           objectStore: jest.fn().mockReturnValue({
             get: jest.fn(),
-            put: jest.fn()
-          })
-        }
-      }
+            put: jest.fn(),
+          }),
+        },
+      },
     };
   }),
-  deleteDatabase: jest.fn()
+  deleteDatabase: jest.fn(),
 };
 
 // Mock global indexedDB
 Object.defineProperty(window, 'indexedDB', {
   value: mockIndexedDB,
-  writable: true
+  writable: true,
 });
 
 describe('ProjectComponent', () => {
@@ -65,7 +64,7 @@ describe('ProjectComponent', () => {
     // Mock global indexedDB
     Object.defineProperty(window, 'indexedDB', {
       value: mockIndexedDB,
-      writable: true
+      writable: true,
     });
 
     // Mock ProjectAPIService

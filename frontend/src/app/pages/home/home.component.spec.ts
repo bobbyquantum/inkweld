@@ -91,11 +91,6 @@ describe('HomeComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should fetch current user on init', () => {
-    component.ngOnInit();
-    expect(userService.userControllerGetMe).toHaveBeenCalled();
-  });
-
   it('should fetch all projects on init', () => {
     component.ngOnInit();
     expect(projectService.projectControllerGetAllProjects).toHaveBeenCalled();
