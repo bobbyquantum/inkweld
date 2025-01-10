@@ -1,7 +1,6 @@
 import {
   Injectable,
   BadRequestException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -50,12 +49,12 @@ export class UserService {
     return this.userRepo.save(user);
   }
 
-  async getCurrentUser(userId: string): Promise<UserEntity> {
+  async getCurrentUser(userId: string): Promise<UserEntity | null> {
     const user = await this.userRepo.findOne({
       where: { id: userId },
     });
     if (!user) {
-      throw new UnauthorizedException('No current user found');
+      return null;
     }
     return user;
   }

@@ -44,6 +44,6 @@ export class UserMenuComponent {
   }
 
   onSettings() {
-    this.userService.openSettingsDialog();
+    void this.userService.openSettingsDialog();
   }
 }

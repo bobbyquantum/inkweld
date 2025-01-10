@@ -112,23 +112,21 @@ describe('ProjectStateService', () => {
         return () => {};
       });
 
-      projectServiceMock.projectControllerGetProjectByUsernameAndSlug = jest
-        .fn()
-        .mockReturnValue(
-          of({
-            id: '1',
-            slug: 'test-project',
-            title: 'Test Project',
-            description: 'Test Description',
-            createdDate: new Date().toISOString(),
-            updatedDate: new Date().toISOString(),
-            user: {
-              username: 'testuser',
-              name: 'Test User',
-              avatarImageUrl: 'https://example.com/avatar.jpg',
-            },
-          })
-        );
+      projectServiceMock.projectControllerGetProjectByUsernameAndSlug.mockReturnValue(
+        of({
+          id: '1',
+          slug: 'test-project',
+          title: 'Test Project',
+          description: 'Test Description',
+          createdDate: new Date().toISOString(),
+          updatedDate: new Date().toISOString(),
+          user: {
+            username: 'testuser',
+            name: 'Test User',
+            avatarImageUrl: 'https://example.com/avatar.jpg',
+          },
+        })
+      );
       await service.loadProject('testuser', 'test-project');
 
       expect(service.isLoading()).toBe(false);

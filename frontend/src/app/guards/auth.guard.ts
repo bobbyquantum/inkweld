@@ -1,8 +1,9 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { UserAPIService, UserDto } from '@worm/index';
-import { lastValueFrom } from 'rxjs';
+import { UserDto } from '@worm/index';
+
+import { UserService } from '../services/user.service';
 
 // Move cache to a service pattern for better testability
 class AuthState {
@@ -33,13 +34,16 @@ class AuthState {
 
 export const authGuard: CanActivateFn = async () => {
   const router = inject(Router);
-  const userService: UserAPIService = inject(UserAPIService);
+  const userService = inject(UserService);
   const authState = AuthState.getInstance();
 
   try {
     if (!authState.getUser()) {
-      const user = await lastValueFrom(userService.userControllerGetMe());
-      authState.setUser(user);
+      await userService.loadCurrentUser();
+      const user = userService.currentUser();
+      if (user) {
+        authState.setUser(user);
+      }
     }
 
     if (authState.getUser()) {
