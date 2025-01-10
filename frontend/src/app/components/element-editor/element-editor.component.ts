@@ -9,7 +9,9 @@ import {
   OnInit,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
 import { Editor, NgxEditorModule } from 'ngx-editor';
 
 import { DocumentService } from '../../services/document.service';
@@ -24,17 +26,26 @@ type DragPoint = 'pageLeft' | 'pageRight' | 'marginLeft' | 'marginRight';
 
 @Component({
   selector: 'app-element-editor',
-  imports: [CommonModule, MatButtonModule, MatIconModule, NgxEditorModule],
+  imports: [
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    NgxEditorModule,
+    MatSelectModule,
+    MatOptionModule,
+  ],
   templateUrl: './element-editor.component.html',
   styleUrl: './element-editor.component.scss',
 })
 export class ElementEditorComponent
   implements OnInit, OnDestroy, AfterViewInit
 {
+  // Component properties
   @Input() documentId = 'default';
-
   editor!: Editor;
   zoomLevel = 100;
+  viewMode: 'page' | 'fitWidth' = 'page';
+  showViewModeDropdown = false;
   dimensions: EditorDimensions = {
     pageWidth: 21,
     leftMargin: 2,
@@ -163,6 +174,25 @@ export class ElementEditorComponent
     event.preventDefault();
   }
 
+  setViewMode(mode: 'page' | 'fitWidth') {
+    this.viewMode = mode;
+    if (mode === 'fitWidth') {
+      this.zoomLevel = 100;
+      this.updateZoom();
+      // Remove margin guides
+      const marginGuides = document.querySelectorAll('.margin-guide');
+      marginGuides.forEach(guide => guide.remove());
+    } else {
+      // Restore margin guides
+      this.updateDimensions();
+    }
+    this.updateDimensions();
+  }
+
+  toggleViewModeDropdown() {
+    this.showViewModeDropdown = !this.showViewModeDropdown;
+  }
+
   private updateZoom() {
     document.documentElement.style.setProperty(
       '--editor-zoom',
@@ -171,17 +201,25 @@ export class ElementEditorComponent
   }
 
   private updateDimensions() {
-    document.documentElement.style.setProperty(
-      '--page-width',
-      `${this.dimensions.pageWidth}cm`
-    );
-    document.documentElement.style.setProperty(
-      '--margin-left',
-      `${this.dimensions.leftMargin}cm`
-    );
-    document.documentElement.style.setProperty(
-      '--margin-right',
-      `${this.dimensions.rightMargin}cm`
-    );
+    if (this.viewMode === 'page') {
+      document.documentElement.style.setProperty(
+        '--page-width',
+        `${this.dimensions.pageWidth}cm`
+      );
+      document.documentElement.style.setProperty(
+        '--margin-left',
+        `${this.dimensions.leftMargin}cm`
+      );
+      document.documentElement.style.setProperty(
+        '--margin-right',
+        `${this.dimensions.rightMargin}cm`
+      );
+      document.documentElement.style.setProperty('--editor-max-width', 'none');
+    } else {
+      document.documentElement.style.removeProperty('--page-width');
+      document.documentElement.style.removeProperty('--margin-left');
+      document.documentElement.style.removeProperty('--margin-right');
+      document.documentElement.style.setProperty('--editor-max-width', '100%');
+    }
   }
 }
