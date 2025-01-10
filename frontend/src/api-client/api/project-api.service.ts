@@ -470,98 +470,7 @@ export class ProjectAPIService {
     }
 
     /**
-     * Differential insert elements
-     * Updates the project\&#39;s elements to match exactly the provided list. Elements not included in the list will be deleted. Elements with IDs will be updated, elements without IDs will be created. All changes happen in a single transaction.
-     * @param username 
-     * @param slug 
-     * @param xXSRFTOKEN CSRF token
-     * @param projectElementDto List of project elements to synchronize
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     */
-    public projectElementControllerDinsertElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<ProjectElementDto>>;
-    public projectElementControllerDinsertElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<ProjectElementDto>>>;
-    public projectElementControllerDinsertElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<ProjectElementDto>>>;
-    public projectElementControllerDinsertElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling projectElementControllerDinsertElements.');
-        }
-        if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling projectElementControllerDinsertElements.');
-        }
-        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
-            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling projectElementControllerDinsertElements.');
-        }
-        if (projectElementDto === null || projectElementDto === undefined) {
-            throw new Error('Required parameter projectElementDto was null or undefined when calling projectElementControllerDinsertElements.');
-        }
-
-        let localVarHeaders = this.defaultHeaders;
-        if (xXSRFTOKEN !== undefined && xXSRFTOKEN !== null) {
-            localVarHeaders = localVarHeaders.set('X-XSRF-TOKEN', String(xXSRFTOKEN));
-        }
-
-        let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
-        if (localVarHttpHeaderAcceptSelected === undefined) {
-            // to determine the Accept header
-            const httpHeaderAccepts: string[] = [
-                'application/json'
-            ];
-            localVarHttpHeaderAcceptSelected = this.configuration.selectHeaderAccept(httpHeaderAccepts);
-        }
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        let localVarHttpContext: HttpContext | undefined = options && options.context;
-        if (localVarHttpContext === undefined) {
-            localVarHttpContext = new HttpContext();
-        }
-
-        let localVarTransferCache: boolean | undefined = options && options.transferCache;
-        if (localVarTransferCache === undefined) {
-            localVarTransferCache = true;
-        }
-
-
-        // to determine the Content-Type header
-        const consumes: string[] = [
-            'application/json'
-        ];
-        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
-        if (httpContentTypeSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
-        }
-
-        let responseType_: 'text' | 'json' | 'blob' = 'json';
-        if (localVarHttpHeaderAcceptSelected) {
-            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
-                responseType_ = 'text';
-            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
-                responseType_ = 'json';
-            } else {
-                responseType_ = 'blob';
-            }
-        }
-
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/elements`;
-        return this.httpClient.request<Array<ProjectElementDto>>('put', `${this.configuration.basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                body: projectElementDto,
-                responseType: <any>responseType_,
-                withCredentials: this.configuration.withCredentials,
-                headers: localVarHeaders,
-                observe: observe,
-                transferCache: localVarTransferCache,
-                reportProgress: reportProgress
-            }
-        );
-    }
-
-    /**
-     * Get all elements for a project
-     * Retrieves all elements belonging to the specified project in their hierarchical order
+     * Get all elements for a project (from Yjs doc)
      * @param username 
      * @param slug 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -618,6 +527,95 @@ export class ProjectAPIService {
         return this.httpClient.request<Array<ProjectElementDto>>('get', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
+                responseType: <any>responseType_,
+                withCredentials: this.configuration.withCredentials,
+                headers: localVarHeaders,
+                observe: observe,
+                transferCache: localVarTransferCache,
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Replace the entire elements array in the Yjs doc
+     * @param username 
+     * @param slug 
+     * @param xXSRFTOKEN CSRF token
+     * @param projectElementDto 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public projectElementControllerReplaceProjectElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<ProjectElementDto>>;
+    public projectElementControllerReplaceProjectElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<ProjectElementDto>>>;
+    public projectElementControllerReplaceProjectElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<ProjectElementDto>>>;
+    public projectElementControllerReplaceProjectElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (username === null || username === undefined) {
+            throw new Error('Required parameter username was null or undefined when calling projectElementControllerReplaceProjectElements.');
+        }
+        if (slug === null || slug === undefined) {
+            throw new Error('Required parameter slug was null or undefined when calling projectElementControllerReplaceProjectElements.');
+        }
+        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
+            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling projectElementControllerReplaceProjectElements.');
+        }
+        if (projectElementDto === null || projectElementDto === undefined) {
+            throw new Error('Required parameter projectElementDto was null or undefined when calling projectElementControllerReplaceProjectElements.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+        if (xXSRFTOKEN !== undefined && xXSRFTOKEN !== null) {
+            localVarHeaders = localVarHeaders.set('X-XSRF-TOKEN', String(xXSRFTOKEN));
+        }
+
+        let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
+        if (localVarHttpHeaderAcceptSelected === undefined) {
+            // to determine the Accept header
+            const httpHeaderAccepts: string[] = [
+                'application/json'
+            ];
+            localVarHttpHeaderAcceptSelected = this.configuration.selectHeaderAccept(httpHeaderAccepts);
+        }
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        let localVarHttpContext: HttpContext | undefined = options && options.context;
+        if (localVarHttpContext === undefined) {
+            localVarHttpContext = new HttpContext();
+        }
+
+        let localVarTransferCache: boolean | undefined = options && options.transferCache;
+        if (localVarTransferCache === undefined) {
+            localVarTransferCache = true;
+        }
+
+
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/elements`;
+        return this.httpClient.request<Array<ProjectElementDto>>('put', `${this.configuration.basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                body: projectElementDto,
                 responseType: <any>responseType_,
                 withCredentials: this.configuration.withCredentials,
                 headers: localVarHeaders,

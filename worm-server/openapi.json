@@ -377,7 +377,6 @@
     },
     "/api/v1/projects/{username}/{slug}/elements": {
       "get": {
-        "description": "Retrieves all elements belonging to the specified project in their hierarchical order",
         "operationId": "ProjectElementController_getProjectElements",
         "parameters": [
           {
@@ -412,17 +411,16 @@
             }
           },
           "404": {
-            "description": "Project not found"
+            "description": "Doc not found (unlikely with Yjs)"
           }
         },
-        "summary": "Get all elements for a project",
+        "summary": "Get all elements for a project (from Yjs doc)",
         "tags": [
           "Project API"
         ]
       },
       "put": {
-        "description": "Updates the project's elements to match exactly the provided list. Elements not included in the list will be deleted. Elements with IDs will be updated, elements without IDs will be created. All changes happen in a single transaction.",
-        "operationId": "ProjectElementController_dinsertElements",
+        "operationId": "ProjectElementController_replaceProjectElements",
         "parameters": [
           {
             "name": "username",
@@ -452,7 +450,6 @@
         ],
         "requestBody": {
           "required": true,
-          "description": "List of project elements to synchronize",
           "content": {
             "application/json": {
               "schema": {
@@ -466,7 +463,7 @@
         },
         "responses": {
           "200": {
-            "description": "Elements successfully synchronized with provided list",
+            "description": "Elements replaced in the Y.Doc",
             "content": {
               "application/json": {
                 "schema": {
@@ -479,16 +476,16 @@
             }
           },
           "400": {
-            "description": "Validation errors (missing fields, etc.)"
+            "description": "Validation errors"
           },
           "403": {
-            "description": "Invalid CSRF token or user not permitted (if enforced by guard)"
+            "description": "User not permitted"
           },
           "404": {
-            "description": "Project not found or element not found during update"
+            "description": "Doc not found"
           }
         },
-        "summary": "Differential insert elements",
+        "summary": "Replace the entire elements array in the Yjs doc",
         "tags": [
           "Project API"
         ]
@@ -565,6 +562,10 @@
       "ProjectDto": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "example": "my-project-id"
+          },
           "slug": {
             "type": "string",
             "example": "my-project-slug"
