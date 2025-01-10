@@ -2,10 +2,12 @@ import { HttpClient } from '@angular/common/http';
 import { Provider } from '@angular/core';
 import { Configuration, ProjectAPIService, UserAPIService } from '@worm/index';
 
+import { environment } from '../../environments/environment';
+
 export function provideApiConfig(): Provider {
   return {
     provide: Configuration,
-    useFactory: () => new Configuration({ basePath: '' }),
+    useFactory: () => new Configuration({ basePath: environment.apiUrl }),
     deps: [],
     multi: false,
   };
@@ -22,7 +24,7 @@ function createApiServiceProvider<T>(
   return {
     provide: serviceClass,
     useFactory: (httpClient: HttpClient, configuration: Configuration) => {
-      return new serviceClass(httpClient, '', configuration);
+      return new serviceClass(httpClient, environment.apiUrl, configuration);
     },
     deps: [HttpClient, Configuration],
   };
