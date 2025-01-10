@@ -11,6 +11,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
+import { UserService } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
 import { UserAPIService, UserRegisterDto } from '@worm/index';
 import { firstValueFrom } from 'rxjs';
@@ -46,6 +47,7 @@ export class RegisterComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private xsrfService = inject(XsrfService);
+  private authService = inject(UserService);
 
   ngOnInit(): void {
     this.isMobile = window.innerWidth < 768;
@@ -68,10 +70,14 @@ export class RegisterComponent implements OnInit {
       await firstValueFrom(
         this.userService.userControllerRegister(registerRequest)
       );
+
+      // Automatically log in after successful registration
+      await this.authService.loadCurrentUser();
+
       this.snackBar.open('Registration successful!', 'Close', {
         duration: 3000,
       });
-      void this.router.navigate(['/home']);
+      void this.router.navigate(['/']);
     } catch (error: unknown) {
       if (error instanceof HttpErrorResponse) {
         this.snackBar.open(`Registration failed: ${error.message}`, 'Close', {

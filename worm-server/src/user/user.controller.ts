@@ -8,7 +8,9 @@ import {
   Logger,
   UsePipes,
   ValidationPipe,
+  Req,
 } from '@nestjs/common';
+import { AuthService } from '../auth/auth.service.js';
 import {
   ApiTags,
   ApiOperation,
@@ -30,7 +32,10 @@ import { UserRegisterDto } from './user-register.dto.js';
 export class UserController {
   private readonly logger = new Logger(UserController.name);
 
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Get('me')
   @UseGuards(SessionAuthGuard)
@@ -79,7 +84,7 @@ export class UserController {
   })
   @ApiBadRequestResponse({ description: 'Invalid registration data provided' })
   @ApiBody({ type: UserRegisterDto })
-  async register(@Body() body: UserRegisterDto) {
+  async register(@Body() body: UserRegisterDto, @Req() req) {
     const { username, email, password, name } = body;
     const user = await this.userService.registerUser(
       username,
@@ -87,7 +92,16 @@ export class UserController {
       password,
       name,
     );
-    return { message: 'User registered', userId: user.id };
+
+    // Automatically log in the user after registration
+    await this.authService.login(req, user);
+
+    return {
+      message: 'User registered and logged in',
+      userId: user.id,
+      username: user.username,
+      name: user.name
+    };
   }
 
   @Get('oauth2-providers')
