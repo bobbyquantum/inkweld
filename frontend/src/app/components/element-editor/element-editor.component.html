@@ -1,5 +1,34 @@
 <div class="editor-toolbar">
   <ngx-editor-menu [editor]="editor"></ngx-editor-menu>
+  <div class="NgxEditor__Dropdown">
+    <button
+      type="button"
+      class="NgxEditor__Dropdown--Text"
+      (click)="toggleViewModeDropdown()"
+      (keydown.enter)="toggleViewModeDropdown()"
+      [attr.aria-expanded]="showViewModeDropdown"
+      tabindex="0">
+      {{ viewMode === 'page' ? 'Page' : 'Fit Width' }}
+    </button>
+    <div class="NgxEditor__Dropdown--Items" *ngIf="showViewModeDropdown">
+      <button
+        type="button"
+        class="NgxEditor__Dropdown--Item"
+        (click)="setViewMode('page')"
+        (keydown.enter)="setViewMode('page')"
+        tabindex="0">
+        Page
+      </button>
+      <button
+        type="button"
+        class="NgxEditor__Dropdown--Item"
+        (click)="setViewMode('fitWidth')"
+        (keydown.enter)="setViewMode('fitWidth')"
+        tabindex="0">
+        Fit Width
+      </button>
+    </div>
+  </div>
   <div class="zoom-controls">
     <button
       mat-icon-button
@@ -17,7 +46,7 @@
   </div>
 </div>
 
-<div class="editor-container">
+<div class="editor-container" [class.fit-width]="viewMode === 'fitWidth'">
   <div class="scaled-content">
     <div class="ruler horizontal-ruler">
       <div class="ruler-measurements">
@@ -38,10 +67,12 @@
 
       <!-- Margin controls -->
       <div
+        *ngIf="viewMode === 'page'"
         class="margin-guide left-margin"
         [style.left.cm]="dimensions.leftMargin"
         (mousedown)="startDragging($event, 'marginLeft')"></div>
       <div
+        *ngIf="viewMode === 'page'"
         class="margin-guide right-margin"
         [style.right.cm]="dimensions.rightMargin"
         (mousedown)="startDragging($event, 'marginRight')"></div>

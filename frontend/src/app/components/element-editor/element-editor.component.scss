@@ -13,9 +13,66 @@
   z-index: 100;
   display: flex;
   align-items: center;
-  padding: 0;
+  gap: 16px;
+  padding: 8px 16px;
   background-color: var(--ngx-editor-menubar-bg-color);
   width: 100%;
+
+.NgxEditor__Dropdown {
+  position: relative;
+  margin-left: 1rem;
+
+  &--Text {
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+  }
+
+  &--Items {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    min-width: 120px;
+  }
+
+  &--Item {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    color: #333;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+
+    &:hover {
+      background: #f5f5f5;
+    }
+  }
+}
+
+.editor-container.fit-width {
+  .page-guide,
+  .margin-guide {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
 }
 
 .zoom-controls {
@@ -33,6 +90,79 @@
   overflow-x: hidden;
   width: 100%;
   height: calc(100vh - 139px); /* Adjust for top bars */
+
+  &.fit-width {
+    .scaled-content {
+      width: 100%;
+      max-width: 100%;
+      transform: none;
+    }
+
+    .editor-wrapper {
+      width: 100%;
+      max-width: 100%;
+      padding: 0;
+    }
+
+    .ruler,
+    .horizontal-ruler,
+    .ruler-measurements,
+    .page-guide,
+    .margin-guide,
+    .ruler-mark,
+    .ruler-number,
+    .scaled-content .ruler,
+    .scaled-content .horizontal-ruler,
+    .scaled-content .ruler-measurements,
+    .scaled-content .page-guide,
+    .scaled-content .margin-guide,
+    .scaled-content .ruler-mark,
+    .scaled-content .ruler-number,
+    .editor-wrapper .ruler,
+    .editor-wrapper .horizontal-ruler,
+    .editor-wrapper .ruler-measurements,
+    .editor-wrapper .page-guide,
+    .editor-wrapper .margin-guide,
+    .editor-wrapper .ruler-mark,
+    .editor-wrapper .ruler-number,
+    [class*="ruler"],
+    [class*="guide"],
+    [class*="ruler"][_ngcontent],
+    [class*="guide"][_ngcontent] {
+      &, & * {
+        display: none !important;
+        flex: none !important;
+        flex-direction: none !important;
+        flex-wrap: none !important;
+        flex-flow: none !important;
+        justify-content: none !important;
+        align-items: none !important;
+        align-content: none !important;
+        order: none !important;
+      }
+      visibility: hidden !important;
+      pointer-events: none !important;
+      opacity: 0 !important;
+      height: 0 !important;
+      width: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+      background: none !important;
+      box-shadow: none !important;
+    }
+
+    .editor-content {
+      width: 100%;
+      max-width: 100%;
+      padding: 1rem 16px;
+      margin: 8px 16px 0;
+      border: none;
+      box-shadow: none;
+      background-color: var(--mat-sys-surface-container);
+      border-radius: 12px;
+    }
+  }
 }
 
 .scaled-content {
@@ -203,8 +333,9 @@
 
 .editor-content {
   width: var(--page-width);
+  max-width: var(--editor-max-width, none);
   background-color: var(--mat-sys-surface-container-high);
-  padding: 1rem var(--margin-right) 1rem var(--margin-left);
+  padding: 1rem;
   margin-top: 20px;
   font-size: 1rem;
   line-height: 1.5;
@@ -212,6 +343,7 @@
   border: 1px solid var(--mat-sys-outline);
   min-height: 0;
   box-sizing: border-box;
+
 
   h1 {
     font-size: 2rem;
