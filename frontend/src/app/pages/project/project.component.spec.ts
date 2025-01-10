@@ -1,3 +1,4 @@
+
 import { HttpClient } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -9,6 +10,33 @@ import { BehaviorSubject } from 'rxjs';
 
 import { ProjectStateService } from '../../services/project-state.service';
 import { ProjectComponent } from './project.component';
+
+// Mock IndexedDB
+const mockIndexedDB = {
+  open: jest.fn().mockImplementation(() => {
+    return {
+      onupgradeneeded: jest.fn(),
+      onsuccess: jest.fn(),
+      onerror: jest.fn(),
+      result: {
+        createObjectStore: jest.fn(),
+        transaction: {
+          objectStore: jest.fn().mockReturnValue({
+            get: jest.fn(),
+            put: jest.fn()
+          })
+        }
+      }
+    };
+  }),
+  deleteDatabase: jest.fn()
+};
+
+// Mock global indexedDB
+Object.defineProperty(window, 'indexedDB', {
+  value: mockIndexedDB,
+  writable: true
+});
 
 describe('ProjectComponent', () => {
   let component: ProjectComponent;
@@ -34,6 +62,12 @@ describe('ProjectComponent', () => {
   ];
 
   beforeEach(async () => {
+    // Mock global indexedDB
+    Object.defineProperty(window, 'indexedDB', {
+      value: mockIndexedDB,
+      writable: true
+    });
+
     // Mock ProjectAPIService
     projectServiceMock = {
       projectControllerGetProjectByUsernameAndSlug: jest.fn(),
