@@ -5,7 +5,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { Router } from '@angular/router';
-import { UserSettingsService } from '@services/user-settings.service';
+import { UserService } from '@services/user.service';
 import { UserDto } from '@worm/index';
 
 interface LogoutResponse {
@@ -22,7 +22,7 @@ interface LogoutResponse {
 export class UserMenuComponent {
   @Input() user: UserDto | undefined = undefined;
 
-  private userSettings = inject(UserSettingsService);
+  private userService = inject(UserService);
   private router = inject(Router);
   private http = inject(HttpClient);
 
@@ -44,6 +44,6 @@ export class UserMenuComponent {
   }
 
   onSettings() {
-    this.userSettings.openSettingsDialog();
+    this.userService.openSettingsDialog();
   }
 }
