@@ -1,12 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Request } from 'express';
+import { Session } from 'express-session';
 import { UserController } from './user.controller.js';
 import { UserService } from './user.service.js';
 import { UserRegisterDto } from './user-register.dto.js';
 import { UserEntity } from './user.entity.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { AuthService } from '../auth/auth.service.js';
+
+interface _MockRequest extends Request {
+  session: Session & {
+    user?: any;
+  };
+}
+
 describe('UserController', () => {
   let controller: UserController;
   let userService: UserService;
+  let authService: AuthService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -19,11 +30,20 @@ describe('UserController', () => {
             registerUser: jest.fn(),
           },
         },
+        {
+          provide: AuthService,
+          useValue: {
+            login: jest.fn().mockImplementation((req: _MockRequest, user) => {
+              req.session.user = user;
+            }),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get<UserController>(UserController);
     userService = module.get<UserService>(UserService);
+    authService = module.get<AuthService>(AuthService);
   });
 
   it('should be defined', () => {
@@ -91,15 +111,22 @@ describe('UserController', () => {
         .spyOn(userService, 'registerUser')
         .mockResolvedValue(mockRegisteredUser);
 
-      const result = await controller.register(registerDto);
+      const mockReq = { session: {} } as _MockRequest;
+      const result = await controller.register(registerDto, mockReq);
 
-      expect(result).toEqual({ message: 'User registered', userId: '2' });
+      expect(result).toEqual({
+        message: 'User registered and logged in',
+        userId: '2',
+        username: 'newuser',
+        name: 'New User'
+      });
       expect(userService.registerUser).toHaveBeenCalledWith(
         'newuser',
         'new@example.com',
         'password123',
         'New User',
       );
+      expect(authService.login).toHaveBeenCalledWith(mockReq, mockRegisteredUser);
     });
 
     it('should register a new user without optional name field', async () => {
@@ -122,15 +149,22 @@ describe('UserController', () => {
         .spyOn(userService, 'registerUser')
         .mockResolvedValue(mockRegisteredUser);
 
-      const result = await controller.register(registerDto);
+      const mockReq = { session: {} } as _MockRequest;
+      const result = await controller.register(registerDto, mockReq);
 
-      expect(result).toEqual({ message: 'User registered', userId: '2' });
+      expect(result).toEqual({
+        message: 'User registered and logged in',
+        userId: '2',
+        username: 'newuser',
+        name: null
+      });
       expect(userService.registerUser).toHaveBeenCalledWith(
         'newuser',
         'new@example.com',
         'password123',
         undefined,
       );
+      expect(authService.login).toHaveBeenCalledWith(mockReq, mockRegisteredUser);
     });
 
     it('should throw validation error for empty username', async () => {
@@ -140,12 +174,13 @@ describe('UserController', () => {
         password: 'password123',
       };
 
+      const mockReq = { session: {} } as _MockRequest;
       jest
         .spyOn(userService, 'registerUser')
         .mockRejectedValue(new Error('Username is required'));
 
       await expect(
-        controller.register(registerDto as UserRegisterDto),
+        controller.register(registerDto as UserRegisterDto, mockReq),
       ).rejects.toThrow('Username is required');
 
       expect(userService.registerUser).toHaveBeenCalledWith(
@@ -163,12 +198,13 @@ describe('UserController', () => {
         password: 'password123',
       };
 
+      const mockReq = { session: {} } as _MockRequest;
       jest
         .spyOn(userService, 'registerUser')
         .mockRejectedValue(new Error('Invalid email format'));
 
       await expect(
-        controller.register(registerDto as UserRegisterDto),
+        controller.register(registerDto as UserRegisterDto, mockReq),
       ).rejects.toThrow('Invalid email format');
 
       expect(userService.registerUser).toHaveBeenCalledWith(
@@ -186,6 +222,7 @@ describe('UserController', () => {
         password: 'short',
       };
 
+      const mockReq = { session: {} } as _MockRequest;
       jest
         .spyOn(userService, 'registerUser')
         .mockRejectedValue(
@@ -193,7 +230,7 @@ describe('UserController', () => {
         );
 
       await expect(
-        controller.register(registerDto as UserRegisterDto),
+        controller.register(registerDto as UserRegisterDto, mockReq),
       ).rejects.toThrow('Password must be at least 8 characters long');
 
       expect(userService.registerUser).toHaveBeenCalledWith(
@@ -211,11 +248,12 @@ describe('UserController', () => {
         password: 'password123',
       };
 
+      const mockReq = { session: {} } as _MockRequest;
       jest
         .spyOn(userService, 'registerUser')
         .mockRejectedValue(new Error('Registration failed'));
 
-      await expect(controller.register(registerDto)).rejects.toThrow(
+      await expect(controller.register(registerDto, mockReq)).rejects.toThrow(
         'Registration failed',
       );
     });
