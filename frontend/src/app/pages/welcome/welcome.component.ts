@@ -1,6 +1,6 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Component, inject, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,6 +14,8 @@ import { Router, RouterLink } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
 import { XsrfService } from '@services/xsrf.service';
 import { Subject, takeUntil } from 'rxjs';
+
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-welcome',
@@ -54,37 +56,7 @@ export class WelcomeComponent implements OnDestroy {
   }
 
   onLogin(): void {
-    const body = new URLSearchParams();
-    body.set('username', this.username);
-    body.set('password', this.password);
-
-    const xsrfToken = this.xsrfService.getXsrfToken();
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'X-XSRF-TOKEN': xsrfToken,
-    });
-
-    this.http
-      .post('/login', body.toString(), {
-        headers,
-        observe: 'response',
-        withCredentials: true,
-      })
-      .subscribe({
-        next: response => {
-          console.log('Login successful', response);
-          this.snackBar.open('Login successful', 'Close', { duration: 3000 });
-          void this.router.navigate(['/']);
-        },
-        error: error => {
-          console.error('Login failed', error);
-          this.snackBar.open(
-            'Login failed. Please check your credentials.',
-            'Close',
-            { duration: 5000 }
-          );
-        },
-      });
+    window.location.href = `${environment.apiUrl}/login`;
   }
 
   private setupBreakpointObserver(): void {

@@ -2,12 +2,16 @@ import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { GithubAuthGuard } from './github-auth.guard.js';
 import { AuthService } from './auth.service.js';
+import { ConfigService } from '@nestjs/config';
 import { ApiExcludeController } from '@nestjs/swagger';
 
 @ApiExcludeController()
 @Controller('oauth2')
 export class OAuth2Controller {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService
+  ) {}
 
   @Get('authorization/github')
   @UseGuards(GithubAuthGuard)
@@ -23,19 +27,24 @@ export class OAuth2Controller {
       // The user is already authenticated by the GithubAuthGuard
       const user = req.user;
 
+      // Get client URL first
+      const clientUrl = this.configService.get('CLIENT_URL');
+      if (!clientUrl) {
+        throw new Error('Client URL not configured');
+      }
+
       // If user is found or created, log them in
       if (user) {
         await this.authService.login(req, user);
-
-        // Redirect to frontend after successful login
-        res.redirect('http://localhost:8333/');
+        res.redirect(clientUrl);
       } else {
         // Handle authentication failure
-        res.redirect('http://localhost:8333/login?error=authentication_failed');
+        res.redirect(`${clientUrl}/login?error=authentication_failed`);
       }
     } catch (_error) {
       // Handle any errors during login process
-      res.redirect('http://localhost:8333/login?error=server_error');
+      const clientUrl = this.configService.get('CLIENT_URL') || 'http://localhost:4200';
+      res.redirect(`${clientUrl}/login?error=server_error`);
     }
   }
 }

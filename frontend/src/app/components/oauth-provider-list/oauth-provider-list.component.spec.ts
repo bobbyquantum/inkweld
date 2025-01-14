@@ -128,7 +128,9 @@ describe('OAuthProviderListComponent', () => {
 
     it('should redirect to OAuth provider', () => {
       component.signInWithProvider('github');
-      expect(mockLocation.href).toBe('/oauth2/authorization/github');
+      expect(mockLocation.href).toBe(
+        'http://localhost:8333/oauth2/authorization/github'
+      );
     });
 
     it('should handle different OAuth providers', () => {
@@ -136,7 +138,9 @@ describe('OAuthProviderListComponent', () => {
 
       providers.forEach(provider => {
         component.signInWithProvider(provider);
-        expect(mockLocation.href).toBe(`/oauth2/authorization/${provider}`);
+        expect(mockLocation.href).toBe(
+          `http://localhost:8333/oauth2/authorization/${provider}`
+        );
       });
     });
   });
