@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OAuth2Controller } from './oauth2.controller.js';
 import { AuthService } from './auth.service.js';
 import { GithubAuthGuard } from './github-auth.guard.js';
+import { ConfigService } from '@nestjs/config';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 describe('OAuth2Controller', () => {
   let controller: OAuth2Controller;
@@ -18,6 +19,17 @@ describe('OAuth2Controller', () => {
       login: jest.fn(),
     };
 
+    const mockConfigService = {
+      get: jest.fn().mockImplementation((key: string) => {
+        switch (key) {
+          case 'CLIENT_URL':
+            return 'http://localhost:4200';
+          default:
+            return null;
+        }
+      }),
+    };
+
     // Create mock GithubAuthGuard
     const mockGithubAuthGuard = jest.fn().mockImplementation(() => ({
       canActivate: jest.fn<() => any>().mockResolvedValue(true),
@@ -29,6 +41,10 @@ describe('OAuth2Controller', () => {
         {
           provide: AuthService,
           useValue: mockAuthService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     })
@@ -68,7 +84,7 @@ describe('OAuth2Controller', () => {
 
       expect(authService.login).toHaveBeenCalledWith(mockRequest, mockUser);
       expect(mockResponse.redirect).toHaveBeenCalledWith(
-        'http://localhost:8333/',
+        'http://localhost:4200',
       );
     });
 
@@ -79,7 +95,7 @@ describe('OAuth2Controller', () => {
 
       expect(authService.login).not.toHaveBeenCalled();
       expect(mockResponse.redirect).toHaveBeenCalledWith(
-        'http://localhost:8333/login?error=authentication_failed',
+        'http://localhost:4200/login?error=authentication_failed',
       );
     });
 
@@ -90,7 +106,7 @@ describe('OAuth2Controller', () => {
 
       expect(authService.login).toHaveBeenCalledWith(mockRequest, mockUser);
       expect(mockResponse.redirect).toHaveBeenCalledWith(
-        'http://localhost:8333/login?error=server_error',
+        'http://localhost:4200/login?error=server_error',
       );
     });
   });

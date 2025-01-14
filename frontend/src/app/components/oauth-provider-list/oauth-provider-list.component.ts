@@ -7,6 +7,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { UserAPIService } from '@worm/index';
 import { firstValueFrom } from 'rxjs';
 
+import { environment } from '../../../environments/environment';
+
 @Component({
   selector: 'app-oauth-provider-list',
   imports: [
@@ -106,7 +108,7 @@ export class OAuthProviderListComponent implements OnInit {
   signInWithProvider(provider: string): void {
     console.log(`Sign in with ${provider} clicked`);
     this.ngZone.runOutsideAngular(() => {
-      window.location.href = `/oauth2/authorization/${provider.toLowerCase()}`;
+      window.location.href = `${environment.apiUrl}/oauth2/authorization/${provider.toLowerCase()}`;
     });
   }
 

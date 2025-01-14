@@ -1,11 +1,11 @@
 import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { XsrfService } from '@services/xsrf.service';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 
 import { WelcomeComponent } from './welcome.component';
 
@@ -80,70 +80,16 @@ describe('WelcomeComponent', () => {
 
   describe('login', () => {
     beforeEach(() => {
-      component.username = 'testuser';
-      component.password = 'password123';
-    });
-
-    it('should successfully login', () => {
-      const mockResponse = { status: 200 };
-      httpClient.post.mockReturnValue(of(mockResponse));
-
-      component.onLogin();
-
-      // First verify the call was made
-      expect(httpClient.post).toHaveBeenCalled();
-      const callArgs = httpClient.post.mock.calls[0];
-
-      // Verify URL and body
-      expect(callArgs[0]).toBe('/login');
-      expect(callArgs[1]).toBe('username=testuser&password=password123');
-
-      // Verify options
-      const options = callArgs[2];
-      expect(options).toEqual(
-        expect.objectContaining({
-          observe: 'response',
-          withCredentials: true,
-        })
-      );
-
-      // Create expected headers for comparison
-      const expectedHeaders = new HttpHeaders({
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-XSRF-TOKEN': 'mock-xsrf-token',
+      // Mock window.location
+      Object.defineProperty(window, 'location', {
+        value: { href: '' },
+        writable: true,
       });
-
-      // Get actual header values
-      const headers = options!.headers as HttpHeaders;
-      const contentType = headers.get('Content-Type');
-      const xsrfToken = headers.get('X-XSRF-TOKEN');
-
-      // Compare with expected values
-      expect(contentType).toBe(expectedHeaders.get('Content-Type'));
-      expect(xsrfToken).toBe(expectedHeaders.get('X-XSRF-TOKEN'));
-
-      // Verify success handling
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Login successful',
-        'Close',
-        expect.any(Object)
-      );
-      expect(router.navigate).toHaveBeenCalledWith(['/']);
     });
 
-    it('should handle login error', () => {
-      httpClient.post.mockReturnValue(
-        throwError(() => new Error('Login failed'))
-      );
-
+    it('should redirect to login endpoint', () => {
       component.onLogin();
-
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Login failed. Please check your credentials.',
-        'Close',
-        expect.any(Object)
-      );
-      expect(router.navigate).not.toHaveBeenCalled();
+      expect(window.location.href).toBe('http://localhost:8333/login');
     });
   });
 });
