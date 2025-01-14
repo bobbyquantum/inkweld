@@ -62,30 +62,7 @@ describe('AuthController', () => {
     it('should handle authentication failure', async () => {
       // Mock request object without user (authentication failed)
       const mockRequest = {};
-
-      const mockResponse = {
-        redirect: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn().mockReturnThis(),
-        send: jest.fn().mockReturnThis(),
-        cookie: jest.fn().mockReturnThis(),
-        clearCookie: jest.fn().mockReturnThis(),
-        end: jest.fn().mockReturnThis(),
-        setHeader: jest.fn().mockReturnThis(),
-        getHeader: jest.fn(),
-        getHeaders: jest.fn(),
-        header: jest.fn().mockReturnThis(),
-        type: jest.fn().mockReturnThis(),
-        sendStatus: jest.fn().mockReturnThis(),
-        links: jest.fn().mockReturnThis(),
-        location: jest.fn().mockReturnThis(),
-        render: jest.fn().mockReturnThis(),
-        format: jest.fn().mockReturnThis(),
-        attachment: jest.fn().mockReturnThis(),
-        append: jest.fn().mockReturnThis(),
-        vary: jest.fn().mockReturnThis(),
-        locals: {}
-      };
+      const mockResponse = {};
       await expect(controller.login(mockRequest, mockResponse as any)).rejects.toThrow(
         UnauthorizedException,
       );
@@ -100,29 +77,7 @@ describe('AuthController', () => {
       const error = new Error('Login failed');
       authService.login.mockRejectedValue(error);
 
-      const mockResponse = {
-        redirect: jest.fn(),
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn().mockReturnThis(),
-        send: jest.fn().mockReturnThis(),
-        cookie: jest.fn().mockReturnThis(),
-        clearCookie: jest.fn().mockReturnThis(),
-        end: jest.fn().mockReturnThis(),
-        setHeader: jest.fn().mockReturnThis(),
-        getHeader: jest.fn(),
-        getHeaders: jest.fn(),
-        header: jest.fn().mockReturnThis(),
-        type: jest.fn().mockReturnThis(),
-        sendStatus: jest.fn().mockReturnThis(),
-        links: jest.fn().mockReturnThis(),
-        location: jest.fn().mockReturnThis(),
-        render: jest.fn().mockReturnThis(),
-        format: jest.fn().mockReturnThis(),
-        attachment: jest.fn().mockReturnThis(),
-        append: jest.fn().mockReturnThis(),
-        vary: jest.fn().mockReturnThis(),
-        locals: {}
-      };
+      const mockResponse = {};
       await expect(controller.login(mockRequest, mockResponse as any)).rejects.toThrow(error);
       expect(authService.login).toHaveBeenCalledWith(mockRequest, mockUser);
     });
