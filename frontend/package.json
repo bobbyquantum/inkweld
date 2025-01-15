@@ -26,7 +26,7 @@
     "@angular/material": "19.0.5",
     "@angular/platform-browser": "19.0.6",
     "@angular/platform-browser-dynamic": "19.0.6",
-    "@angular/router": "19.0.6",
+    "@angular/router": "19.1.0",
     "@angular/service-worker": "19.0.6",
     "nanoid": "5.0.9",
     "ngx-editor": "18.0.0",
