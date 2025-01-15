@@ -306,8 +306,18 @@ export class ProjectStateService {
     this.error.set(undefined);
 
     try {
-      // Just call updateElements for now
+      // Preserve current project title
+      const currentProject = this.project();
+      const currentTitle = currentProject?.title || 'Project';
+
+      // Update elements
       this.updateElements(elements);
+
+      // Restore project title if it was changed
+      if (currentProject) {
+        this.project.set({ ...currentProject, title: currentTitle });
+      }
+
       console.log(
         'Elements saved to the Y.Doc - remote sync will happen automatically!'
       );
