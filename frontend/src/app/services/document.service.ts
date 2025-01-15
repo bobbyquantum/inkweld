@@ -7,6 +7,7 @@ import { yCursorPlugin, ySyncPlugin, yUndoPlugin } from 'y-prosemirror';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
+import { environment } from '../../environments/environment';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { ProjectStateService } from './project-state.service';
 
@@ -91,12 +92,18 @@ export class DocumentService {
       this.updateSyncStatus(documentId, DocumentSyncState.Syncing);
 
       // Setup WebSocket provider
-      const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      const wsUrl = `${wsProto}://${window.location.host}/ws/yjs?documentId=`;
-      const provider = new WebsocketProvider(wsUrl, documentId, ydoc, {
-        connect: true,
-        resyncInterval: 10000, // Attempt to resync every 10 seconds when offline
-      });
+      if (!environment.wssUrl) {
+        throw new Error('WebSocket URL is not configured in environment');
+      }
+      const provider = new WebsocketProvider(
+        environment.wssUrl + '/ws/yjs?documentId=',
+        documentId,
+        ydoc,
+        {
+          connect: true,
+          resyncInterval: 10000, // Attempt to resync every 10 seconds when offline
+        }
+      );
 
       // Handle connection status
       provider.on('status', ({ status }: { status: string }) => {
@@ -110,8 +117,14 @@ export class DocumentService {
       });
 
       // Handle connection errors gracefully
-      provider.on('connection-error', (error: Event) => {
-        console.warn('WebSocket connection error:', error);
+      provider.on('connection-error', (error: Error | string | Event) => {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : typeof error === 'string'
+              ? error
+              : error.type;
+        console.warn('WebSocket connection error:', errorMessage);
         this.updateSyncStatus(documentId, DocumentSyncState.Offline);
       });
 
