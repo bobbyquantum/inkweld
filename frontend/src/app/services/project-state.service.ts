@@ -6,6 +6,7 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
+import { environment } from '../../environments/environment';
 import { DocumentSyncState } from '../models/document-sync-state';
 
 /**
@@ -108,12 +109,24 @@ export class ProjectStateService {
       await this.indexeddbProvider.whenSynced;
       console.log('Local IndexedDB sync complete for docId:', this.docId);
 
+      if (!environment.wssUrl) {
+        throw new Error('WebSocket URL is not configured in environment');
+      }
       const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
       const wsUrl = `${wsProto}://${window.location.host}/ws/yjs?documentId=`;
       this.provider = new WebsocketProvider(wsUrl, this.docId, this.doc, {
         connect: true,
         resyncInterval: 10000,
       });
+      this.provider = new WebsocketProvider(
+        environment.wssUrl + '/ws/yjs?documentId=',
+        this.docId,
+        this.doc,
+        {
+          connect: true,
+          resyncInterval: 10000,
+        }
+      );
 
       this.provider.on('status', ({ status }: { status: string }) => {
         console.log(`Doc ${this.docId} websocket status: ${status}`);
