@@ -43,7 +43,7 @@
 }
 
 .main-container {
-  height: calc(100vh - 50px); // Adjust for toolbar height
+  height: calc(100vh); // Adjust for toolbar height
 }
 
 .loading-indicator {
@@ -81,7 +81,7 @@ mat-toolbar {
   border-right: 1px solid var(--mat-sys-outline-variant);
 
   app-project-tree {
-    height: 100%;
+    height:calc(100vh - 64px);
     display: block;
     overflow-y: auto;
   }
@@ -106,7 +106,7 @@ mat-toolbar {
 .tab-bars {
   background-color: var(--mat-sys-surface-container);
   position: fixed;
-  top: 48px;
+  top: 0;
   left: var(--sidenav-width, 250px);
   right: 0;
   z-index: 10;
@@ -114,4 +114,9 @@ mat-toolbar {
 
 .empty-container {
   padding: 20px;
+  position: fixed;
+  top: 0;
+  left: var(--sidenav-width, 250px);
+  right: 0;
+  z-index: 10;
 }

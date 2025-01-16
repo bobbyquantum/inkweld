@@ -15,11 +15,11 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
+import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
 import { Subscription } from 'rxjs';
 
 import { ElementEditorComponent } from '../../components/element-editor/element-editor.component';
-import { ProjectMainMenuComponent } from '../../components/project-main-menu/project-main-menu.component';
 import { ProjectTreeComponent } from '../../components/project-tree/project-tree.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { DocumentService } from '../../services/document.service';
@@ -36,10 +36,10 @@ import { ProjectStateService } from '../../services/project-state.service';
     MatTabsModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    ProjectMainMenuComponent,
     ProjectTreeComponent,
     ElementEditorComponent,
     CommonModule,
+    UserMenuComponent,
   ],
 })
 export class ProjectComponent implements OnInit, OnDestroy {

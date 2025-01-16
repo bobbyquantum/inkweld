@@ -1,5 +1,3 @@
-<app-project-main-menu></app-project-main-menu>
-
 @if (projectState.isLoading()) {
   <div class="loading-indicator">
     <mat-spinner diameter="40"></mat-spinner>
@@ -9,62 +7,62 @@
 <mat-sidenav-container class="main-container">
   <mat-sidenav mode="side" disableClose opened class="sidenav-content">
     <app-project-tree></app-project-tree>
+    <app-user-menu></app-user-menu>
     <div class="resize-handle" (mousedown)="onResizeStart($event)"></div>
   </mat-sidenav>
   <mat-sidenav-content>
-    <mat-tab-group
-      [selectedIndex]="projectState.selectedTabIndex()"
-      class="tab-bars"
-      mat-stretch-tabs="false"
-      mat-align-tabs="start">
-      @for (file of projectState.openFiles(); track file.id; let i = $index) {
-        <mat-tab>
-          <ng-template mat-tab-label>
-            <div class="tab-label">
-              {{ file.name }}
-              @switch (
-                documentService.getSyncStatus(file.id ?? 'default') | async
-              ) {
-                @case (DocumentSyncState.Unavailable) {
-                  <div
-                    class="connection-status unavailable"
-                    title="Document not found locally"></div>
+    @if (projectState.openFiles().length === 0) {
+      <div class="empty-container">
+        <mat-icon>add</mat-icon>
+        <span>Open a file to start editing</span>
+      </div>
+    } @else {
+      <mat-tab-group
+        [selectedIndex]="projectState.selectedTabIndex()"
+        class="tab-bars"
+        mat-stretch-tabs="false"
+        mat-align-tabs="start">
+        @for (file of projectState.openFiles(); track file.id; let i = $index) {
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <div class="tab-label">
+                {{ file.name }}
+                @switch (
+                  documentService.getSyncStatus(file.id ?? 'default') | async
+                ) {
+                  @case (DocumentSyncState.Unavailable) {
+                    <div
+                      class="connection-status unavailable"
+                      title="Document not found locally"></div>
+                  }
+                  @case (DocumentSyncState.Offline) {
+                    <div
+                      class="connection-status offline"
+                      title="Document available offline"></div>
+                  }
+                  @case (DocumentSyncState.Syncing) {
+                    <div
+                      class="connection-status syncing"
+                      title="Syncing with server..."></div>
+                  }
+                  @case (DocumentSyncState.Synced) {
+                    <div
+                      class="connection-status synced"
+                      title="Connected and synced"></div>
+                  }
                 }
-                @case (DocumentSyncState.Offline) {
-                  <div
-                    class="connection-status offline"
-                    title="Document available offline"></div>
-                }
-                @case (DocumentSyncState.Syncing) {
-                  <div
-                    class="connection-status syncing"
-                    title="Syncing with server..."></div>
-                }
-                @case (DocumentSyncState.Synced) {
-                  <div
-                    class="connection-status synced"
-                    title="Connected and synced"></div>
-                }
-              }
-              <button
-                mat-icon-button
-                (click)="closeTab(i); $event.stopPropagation()">
-                <mat-icon>close</mat-icon>
-              </button>
-            </div>
-          </ng-template>
-          <app-element-editor
-            [documentId]="file.id ?? 'default'"></app-element-editor>
-        </mat-tab>
-      } @empty {
-        <!-- Content to display when there are no open files -->
-        <mat-tab>
-          <ng-template mat-tab-label> No files open </ng-template>
-          <div class="empty-container">
-            Please open a file from the project tree.
-          </div>
-        </mat-tab>
-      }
-    </mat-tab-group>
+                <button
+                  mat-icon-button
+                  (click)="closeTab(i); $event.stopPropagation()">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            </ng-template>
+            <app-element-editor
+              [documentId]="file.id ?? 'default'"></app-element-editor>
+          </mat-tab>
+        }
+      </mat-tab-group>
+    }
   </mat-sidenav-content>
 </mat-sidenav-container>
