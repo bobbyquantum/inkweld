@@ -15,6 +15,7 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
         process.env.GITHUB_CALLBACK_URL ||
         'http://localhost:8333/oauth2/code/github',
       scope: ['user:email'],
+      passReqToCallback: true,
     });
   }
 
