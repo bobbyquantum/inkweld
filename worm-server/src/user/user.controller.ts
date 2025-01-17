@@ -9,6 +9,8 @@ import {
   UsePipes,
   ValidationPipe,
   Req,
+  Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service.js';
 import {
@@ -116,5 +118,39 @@ export class UserController {
   })
   getOAuthProviders(): string[] {
     return ['github'];
+  }
+
+  @Get('check-username')
+  @ApiOperation({
+    summary: 'Check username availability',
+    description: 'Checks if a username is available for registration.',
+  })
+  @ApiOkResponse({
+    description: 'Username availability status',
+    schema: {
+      type: 'object',
+      properties: {
+        available: { type: 'boolean' },
+        suggestions: {
+          type: 'array',
+          items: { type: 'string' }
+        }
+      }
+    }
+  })
+  @ApiBadRequestResponse({ description: 'Invalid username format' })
+  async checkUsernameAvailability(
+    @Query('username') username: string
+  ) {
+    if (!username || username.length < 3) {
+      throw new BadRequestException('Username must be at least 3 characters');
+    }
+
+    const { available, suggestions } = await this.userService.checkUsernameAvailability(username);
+
+    return {
+      available,
+      suggestions: available ? [] : suggestions
+    };
   }
 }

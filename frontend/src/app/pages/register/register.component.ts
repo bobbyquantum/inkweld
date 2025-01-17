@@ -93,32 +93,40 @@ export class RegisterComponent implements OnInit {
     }
   }
 
-  checkUsernameAvailability() {
+  async checkUsernameAvailability() {
     if (this.username.length < 3) {
       this.usernameAvailability = 'unknown';
+      this.usernameSuggestions = [];
       return;
     }
 
-    // try {
-    //   const response = await firstValueFrom(
-    //     this.userService.checkUsernameAvailability(this.username)
-    //   );
+    try {
+      const response = await firstValueFrom(
+        this.userService.userControllerCheckUsernameAvailability(this.username)
+      );
 
-    //   if (response.available) {
-    //     this.usernameAvailability = 'available';
-    //     this.usernameSuggestions = [];
-    //   } else {
-    //     this.usernameAvailability = 'unavailable';
-    //     this.usernameSuggestions = response.suggestions;
-    //   }
-    // } catch (error: unknown) {
-    //   this.usernameAvailability = 'unknown';
-    //   if (error instanceof HttpErrorResponse) {
-    //     console.error('Error checking username availability:', error.message);
-    //   } else {
-    //     console.error('Unknown error checking username availability:', error);
-    //   }
-    // }
+      if (response.available) {
+        this.usernameAvailability = 'available';
+        this.usernameSuggestions = [];
+      } else {
+        this.usernameAvailability = 'unavailable';
+        this.usernameSuggestions = response.suggestions || [];
+      }
+    } catch (error: unknown) {
+      this.usernameAvailability = 'unknown';
+      this.usernameSuggestions = [];
+      if (error instanceof HttpErrorResponse) {
+        this.snackBar.open(
+          `Error checking username: ${error.message}`,
+          'Close',
+          { duration: 3000 }
+        );
+      } else {
+        this.snackBar.open('Error checking username availability', 'Close', {
+          duration: 3000,
+        });
+      }
+    }
   }
 
   selectSuggestion(suggestion: string) {
