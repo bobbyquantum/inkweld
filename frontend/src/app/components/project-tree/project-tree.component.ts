@@ -104,14 +104,14 @@ export class ProjectTreeComponent implements AfterViewInit {
   currentDropLevel = 0;
   validLevelsArray: number[] = [0];
   draggedNode: ProjectElement | null = null;
+  levelWidth = 24; // Width in pixels for each level of indentation
 
+  dialog = inject(MatDialog);
   contextItem: ProjectElement | null = null;
   wasExpandedNodeIds = new Set<string>();
   private collapseTimer: ReturnType<typeof setTimeout> | null = null;
-
   // Track expanded nodes to persist state
   private expandedNodeIds = new Set<string>();
-  private dialog = inject(MatDialog);
 
   constructor() {
     // Initialize tree with current elements
@@ -326,7 +326,7 @@ export class ProjectTreeComponent implements AfterViewInit {
     const pointerX = event.pointerPosition.x;
 
     const treeRect = this.treeContainer.nativeElement.getBoundingClientRect();
-    const indentPerLevel = 24;
+    const indentPerLevel = this.levelWidth;
     const relativeX = pointerX - treeRect.left;
     const intendedLevel = Math.max(1, Math.floor(relativeX / indentPerLevel)); // Minimum level 1 to stay under wrapper
     const validLevels = this.validLevelsArray;
