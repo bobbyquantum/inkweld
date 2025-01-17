@@ -1,7 +1,23 @@
-- Always run jest tests with CI=true in env to minimize unnecessary output and token usage.
-- Always run the jest tests for the code file after updating the code.  If there is not a test, flag this to the user.  If the request introduces new functionality, then add a test if appropriate.
-- If a task resulted in code changes, in the final task complete message, include a suggested git commit in conventional commit format.
-- If you aren't sure, or there are options, feel free to ask! :)
-- The frontend is Angular 19.  Preference is to use inject() syntax rather than constructor injection.  Everything is standalone, no modules.  The dev server is run on node.  All tests are jest based.  Do not use jasmine.
-- The worm-server is NestJS 20.  This project runs on bun rather than node.  Tests are run with jest.  If you need Request or Response from type, import it with "import type" not regular import.
-- If there are issues encountered, summarise the lessons learned and suggest new instructions to avoid the same issues in the future.
+# Code Quality Rules
+
+1. Test Coverage:
+   - Before attempting completion, always make sure that any code changes have test coverage
+   - Ensure all tests pass before submitting changes
+   - Always run jest tests with CI=true in env to minimize unnecessary output and token usage.
+
+2. Lint Rules:
+   - Never disable any lint rules without explicit user approval
+   - If a lint rule needs to be disabled, ask the user first and explain why
+   - Prefer fixing the underlying issue over disabling the lint rule
+   - Document any approved lint rule disabling with a comment explaining the reason
+
+# Project Information
+
+  1. /frontend:
+   - The frontend is Angular 19.  Preference is to use inject() syntax rather than constructor injection.  Everything is standalone, no modules.  The dev server is run on node.  All tests are jest based.  Do not use jasmine.
+  2. /worm-server:
+   - The worm-server is NestJS 10.  This project runs on bun rather than node.  Tests are run with jest.  If you need Request or Response from type, import it with "import type" not regular import.
+
+# General Requests
+
+- If there are issues, loops, or problems requiring user intervention encountered, which could have been prevented by a new rule, then summarise the lessons learned and suggest new rules to remedy.
