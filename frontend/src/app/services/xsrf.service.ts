@@ -8,9 +8,11 @@ export class XsrfService {
 
   getXsrfToken(): string {
     const cookies = this.document.cookie.split(';');
-    const xsrfCookie = cookies.find(cookie =>
-      cookie.trim().startsWith('XSRF-TOKEN=')
-    );
-    return xsrfCookie ? xsrfCookie.split('=')[1] : '';
+    const xsrfCookie = cookies.find(cookie => {
+      return /^\s*XSRF-TOKEN\s*=/.test(cookie);
+    });
+    if (!xsrfCookie) return '';
+    const equalsIndex = xsrfCookie.indexOf('=');
+    return xsrfCookie.slice(equalsIndex + 1).trim();
   }
 }
