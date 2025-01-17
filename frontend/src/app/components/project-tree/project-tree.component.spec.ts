@@ -1,13 +1,22 @@
 import { ArrayDataSource } from '@angular/cdk/collections';
-import { CdkDrag, CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop';
+import {
+  CdkDrag,
+  CdkDragDrop,
+  CdkDragMove,
+  CdkDragSortEvent,
+  CdkDropList,
+} from '@angular/cdk/drag-drop';
 import { provideHttpClient } from '@angular/common/http';
 import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ProjectStateService } from '@services/project-state.service';
 import { ProjectAPIService } from '@worm/index';
+import { of } from 'rxjs';
 
 import { projectServiceMock } from '../../../testing/project-api.mock';
+import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { ProjectElement } from './project-element';
 import { ProjectTreeComponent } from './project-tree.component';
 
@@ -99,7 +108,10 @@ describe('ProjectTreeComponent', () => {
     const errorMessage = 'Test error';
     errorSignal.set(errorMessage);
     fixture.detectChanges();
-    expect(component.error()).toBe(errorMessage);
+
+    const error = component.error();
+    expect(typeof error).toBe('string');
+    expect(error).toBe(errorMessage);
   });
 
   it('should update tree when elements change', () => {
@@ -185,38 +197,76 @@ describe('ProjectTreeComponent', () => {
     expect(treeService.saveProjectElements).toHaveBeenCalled();
   });
 
-  it('should save changes after drag and drop', async () => {
-    const dataSource = new ArrayDataSource<ProjectElement>([]);
-    // Use first non-root element
-    const node = component.treeManipulator.getData()[1];
-    const mockDrag = {
-      data: node,
-    } as CdkDrag<ProjectElement>;
+  describe('Drag and Drop', () => {
+    let mockDrag: CdkDrag<ProjectElement>;
+    let mockDropList: CdkDropList<ArrayDataSource<ProjectElement>>;
+    let mockEvent: Partial<CdkDragDrop<ArrayDataSource<ProjectElement>>>;
+    let node: ProjectElement;
 
-    const mockDropList = {
-      data: dataSource,
-      getSortedItems: () => [mockDrag],
-    } as CdkDropList<ArrayDataSource<ProjectElement>>;
+    beforeEach(() => {
+      const dataSource = new ArrayDataSource<ProjectElement>([]);
+      node = component.treeManipulator.getData()[1];
+      mockDrag = {
+        data: node,
+      } as CdkDrag<ProjectElement>;
 
-    // Create a partial mock that satisfies the type requirements
-    const mockEvent: Partial<CdkDragDrop<ArrayDataSource<ProjectElement>>> = {
-      previousIndex: 1, // Account for root wrapper
-      currentIndex: 1,
-      item: mockDrag,
-      container: mockDropList,
-      previousContainer: mockDropList,
-      isPointerOverContainer: true,
-      distance: { x: 0, y: 0 },
-    };
+      mockDropList = {
+        data: dataSource,
+        getSortedItems: () => [mockDrag],
+      } as CdkDropList<ArrayDataSource<ProjectElement>>;
 
-    // Set valid drop level to ensure drop is processed
-    component.currentDropLevel = 1;
+      mockEvent = {
+        previousIndex: 1,
+        currentIndex: 1,
+        item: mockDrag,
+        container: mockDropList,
+        previousContainer: mockDropList,
+        isPointerOverContainer: true,
+        distance: { x: 0, y: 0 },
+      };
+    });
 
-    await component.drop(
-      mockEvent as CdkDragDrop<ArrayDataSource<ProjectElement>>
-    );
+    it('should save changes after drag and drop', async () => {
+      component.currentDropLevel = 1;
+      await component.drop(
+        mockEvent as CdkDragDrop<ArrayDataSource<ProjectElement>>
+      );
+      expect(treeService.saveProjectElements).toHaveBeenCalled();
+    });
 
-    expect(treeService.saveProjectElements).toHaveBeenCalled();
+    it('should handle drag start', () => {
+      component.dragStarted(node);
+      expect(component.draggedNode).toBe(node);
+      expect(component.currentDropLevel).toBe(node.level);
+      expect(component.validLevelsArray).toEqual([node.level]);
+    });
+
+    it('should handle sorted event', () => {
+      const mockSortEvent = {
+        currentIndex: 1,
+        container: mockDropList,
+      } as CdkDragSortEvent<ArrayDataSource<ProjectElement>>;
+
+      // Add additional nodes for testing
+      const nodeAbove: ProjectElement = {
+        id: '2',
+        name: 'Node Above',
+        type: 'FOLDER',
+        level: 1,
+        position: 0,
+      };
+      const nodeBelow: ProjectElement = {
+        id: '3',
+        name: 'Node Below',
+        type: 'FOLDER',
+        level: 2,
+        position: 1,
+      };
+      component.treeManipulator.getData().push(nodeAbove, nodeBelow);
+
+      component.sorted(mockSortEvent);
+      expect(component.validLevelsArray).toEqual([1, 2]);
+    });
   });
 
   it('should extract project info from URL', async () => {
@@ -230,53 +280,157 @@ describe('ProjectTreeComponent', () => {
     );
   });
 
-  it('should prevent root wrapper modification', async () => {
-    const rootNode = component.treeManipulator.getData()[0];
-    expect(rootNode.id).toBe(ROOT_WRAPPER_ID);
+  it('should handle drag move with invalid container dimensions', () => {
+    const mockMoveEvent = {
+      pointerPosition: { x: 100, y: 0 },
+    } as CdkDragMove<ArrayDataSource<ProjectElement>>;
 
-    // Should not allow editing root
-    component.startEditing(rootNode);
-    expect(component.editingNode).toBeUndefined();
+    // Mock invalid container dimensions
+    jest
+      .spyOn(component.treeContainer.nativeElement, 'getBoundingClientRect')
+      .mockReturnValue({ left: NaN, width: NaN } as DOMRect);
 
-    // Should not allow deleting root
-    await component.onDelete(rootNode);
-    expect(component.treeManipulator.getData()[0].id).toBe(ROOT_WRAPPER_ID);
-
-    // Should allow context menu on root but prevent actions
-    component.onContextMenuOpen(rootNode);
-    expect(component.contextItem).toBe(rootNode);
-    component.onRename(rootNode);
-    expect(component.editingNode).toBeUndefined();
-    await component.onDelete(rootNode);
-    expect(component.treeManipulator.getData()[0].id).toBe(ROOT_WRAPPER_ID);
+    component.dragMove(mockMoveEvent);
+    expect(component.currentDropLevel).toBe(0); // Should default to minimum level
   });
 
-  it('should open file through context menu', () => {
-    // Add a file item to the tree
-    const fileDto: ProjectElement = {
-      id: '2',
-      name: 'Test File',
-      type: 'ITEM',
-      position: 1,
-      level: 0,
-    };
-    elementsSignal.update(elements => [...elements, fileDto]);
+  it('should handle empty tree state', () => {
+    elementsSignal.set([]);
     fixture.detectChanges();
 
-    // Get the file node (should be at index 2 after root wrapper and folder)
-    const fileNode = component.treeManipulator.getData()[2];
-    expect(fileNode.type).toBe('ITEM');
+    expect(component.treeElements()).toHaveLength(1); // Just root wrapper
+    expect(component.treeManipulator.getData()).toHaveLength(1);
+  });
 
-    // Open the file
-    component.onOpenFile(fileNode);
+  it('should handle undefined error state', () => {
+    errorSignal.set(undefined);
+    fixture.detectChanges();
+    expect(component.error()).toBeUndefined();
+  });
 
-    // Verify service was called with correct DTO
-    expect(treeService.openFile).toHaveBeenCalledWith({
-      id: fileNode.id,
-      name: fileNode.name,
-      type: fileNode.type,
-      level: fileNode.level - 1, // Should be decremented
-      position: fileNode.position,
+  describe('Project Editing', () => {
+    it('should open edit project dialog', () => {
+      const dialogSpy = jest.spyOn(component.dialog, 'open');
+      component.editProject();
+      expect(dialogSpy).toHaveBeenCalledWith(EditProjectDialogComponent, {
+        data: { project: component.projectStateService.project() },
+      });
+    });
+
+    it('should handle dialog result', () => {
+      treeService.updateProject = jest.fn();
+      const updateSpy = jest.spyOn(treeService, 'updateProject');
+      const mockDialogRef = {
+        afterClosed: jest
+          .fn()
+          .mockReturnValue(of({ title: 'Updated Project' })),
+        close: jest.fn(),
+        componentInstance: {},
+        _containerInstance: {},
+        _ref: {},
+        id: 'mock-dialog',
+        backdropClick: of(),
+        keydownEvents: of(),
+        updatePosition: jest.fn(),
+        updateSize: jest.fn(),
+        addPanelClass: jest.fn(),
+        removePanelClass: jest.fn(),
+        getState: jest.fn(),
+      } as unknown as MatDialogRef<unknown, unknown>;
+
+      jest.spyOn(component.dialog, 'open').mockReturnValue(mockDialogRef);
+
+      component.editProject();
+      expect(updateSpy).toHaveBeenCalledWith({ title: 'Updated Project' });
+    });
+
+    it('should handle dialog errors', () => {
+      const mockDialogRef = {
+        afterClosed: jest.fn().mockReturnValue(of(null)),
+        close: jest.fn(),
+        componentInstance: {},
+        _containerInstance: {},
+        _ref: {},
+        id: 'mock-dialog',
+        backdropClick: of(),
+        keydownEvents: of(),
+        updatePosition: jest.fn(),
+        updateSize: jest.fn(),
+        addPanelClass: jest.fn(),
+        removePanelClass: jest.fn(),
+        getState: jest.fn(),
+      } as unknown as MatDialogRef<unknown, unknown>;
+
+      jest.spyOn(component.dialog, 'open').mockReturnValue(mockDialogRef);
+
+      component.editProject();
+      expect(component.error()).toBeUndefined();
+    });
+  });
+
+  describe('Context Menu', () => {
+    let node: ProjectElement;
+
+    beforeEach(() => {
+      node = component.treeManipulator.getData()[1];
+    });
+
+    it('should open and close context menu', () => {
+      component.onContextMenuOpen(node);
+      expect(component.contextItem).toBe(node);
+
+      component.onContextMenuClose();
+      expect(component.contextItem).toBeNull();
+    });
+
+    it('should prevent root wrapper modification', async () => {
+      const rootNode = component.treeManipulator.getData()[0];
+      expect(rootNode.id).toBe(ROOT_WRAPPER_ID);
+
+      // Should not allow editing root
+      component.startEditing(rootNode);
+      expect(component.editingNode).toBeUndefined();
+
+      // Should not allow deleting root
+      await component.onDelete(rootNode);
+      expect(component.treeManipulator.getData()[0].id).toBe(ROOT_WRAPPER_ID);
+
+      // Should allow context menu on root but prevent actions
+      component.onContextMenuOpen(rootNode);
+      expect(component.contextItem).toBe(rootNode);
+      component.onRename(rootNode);
+      expect(component.editingNode).toBeUndefined();
+      await component.onDelete(rootNode);
+      expect(component.treeManipulator.getData()[0].id).toBe(ROOT_WRAPPER_ID);
+    });
+
+    it('should open file through context menu', () => {
+      // Add a file item to the tree
+      const fileDto: ProjectElement = {
+        id: '2',
+        name: 'Test File',
+        type: 'ITEM',
+        position: 1,
+        level: 0,
+      };
+      elementsSignal.update(elements => [...elements, fileDto]);
+      fixture.detectChanges();
+
+      // Get the file node (should be at index 2 after root wrapper and folder)
+      const fileNode = component.treeManipulator.getData()[2];
+      expect(fileNode.type).toBe('ITEM');
+
+      // Open the file
+      component.onOpenFile(fileNode);
+
+      // Verify service was called with correct DTO
+      expect(treeService.openFile).toHaveBeenCalledWith({
+        id: fileNode.id,
+        name: fileNode.name,
+        type: fileNode.type,
+        level: fileNode.level - 1, // Should be decremented
+        position: fileNode.position,
+      });
     });
   });
 });

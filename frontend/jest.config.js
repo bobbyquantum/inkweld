@@ -15,6 +15,7 @@ const config = {
   collectCoverage: true,
   coverageDirectory: 'coverage',
   coverageReporters: ['html', 'lcov', 'text'],
+  coveragePathIgnorePatterns: ['/node_modules/', '/src/api-client'],
   coverageThreshold: {
     global: {
       statements: 80,
