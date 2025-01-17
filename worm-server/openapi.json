@@ -375,6 +375,57 @@
         ]
       }
     },
+    "/api/v1/users/check-username": {
+      "get": {
+        "description": "Checks if a username is available for registration.",
+        "operationId": "UserController_checkUsernameAvailability",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Username availability status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "available": {
+                      "type": "boolean"
+                    },
+                    "suggestions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid username format"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check username availability",
+        "tags": [
+          "User API"
+        ]
+      }
+    },
     "/api/v1/projects/{username}/{slug}/elements": {
       "get": {
         "operationId": "ProjectElementController_getProjectElements",

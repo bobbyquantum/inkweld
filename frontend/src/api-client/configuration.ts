@@ -72,7 +72,7 @@ export class Configuration {
         this.password = configurationParameters.password;
         this.accessToken = configurationParameters.accessToken;
         this.basePath = configurationParameters.basePath;
-        this.withCredentials = configurationParameters.withCredentials ?? true;
+        this.withCredentials = configurationParameters.withCredentials;
         this.encoder = configurationParameters.encoder;
         if (configurationParameters.encodeParam) {
             this.encodeParam = configurationParameters.encodeParam;

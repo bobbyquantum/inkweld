@@ -140,4 +140,30 @@ export class UserService {
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
     return passwordRegex.test(password);
   }
+
+  async checkUsernameAvailability(username: string): Promise<{
+    available: boolean;
+    suggestions: string[];
+  }> {
+    const existing = await this.userRepo.findOne({
+      where: { username: username },
+    });
+
+    if (!existing) {
+      return {
+        available: true,
+        suggestions: []
+      };
+    }
+
+    // Generate suggestions by appending numbers
+    const suggestions = Array.from({ length: 3 }, (_, i) =>
+      `${username}${i + 1}`
+    );
+
+    return {
+      available: false,
+      suggestions
+    };
+  }
 }

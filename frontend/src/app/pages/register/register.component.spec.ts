@@ -5,7 +5,12 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { UserService } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
-import { UserAPIService, UserDto, UserRegisterDto } from '@worm/index';
+import {
+  UserAPIService,
+  UserControllerCheckUsernameAvailability200Response,
+  UserDto,
+  UserRegisterDto,
+} from '@worm/index';
 import { Observable, of, throwError } from 'rxjs';
 
 import { RegisterComponent } from './register.component';
@@ -42,7 +47,7 @@ describe('RegisterComponent', () => {
 
     userService = {
       userControllerRegister: jest.fn(),
-      checkUsernameAvailability: jest.fn(),
+      userControllerCheckUsernameAvailability: jest.fn(),
     } as unknown as jest.Mocked<UserAPIService>;
 
     xsrfService = {
@@ -116,78 +121,80 @@ describe('RegisterComponent', () => {
     });
   });
 
-  // describe('username availability', () => {
-  //   it('should check username availability when username length >= 3', async () => {
-  //     const checkUsernameAvailabilityMock =
-  //       userService.checkUsernameAvailability as unknown as jest.MockedFunction<
-  //         (
-  //           username: string,
-  //           observe: 'body'
-  //         ) => Observable<UsernameAvailabilityResponse>
-  //       >;
-  //     const mockResponse: UsernameAvailabilityResponse = {
-  //       available: true,
-  //       suggestions: [],
-  //     };
-  //     checkUsernameAvailabilityMock.mockReturnValue(of(mockResponse));
+  describe('username availability', () => {
+    it('should check username availability when username length >= 3', async () => {
+      const checkUsernameAvailabilityMock =
+        userService.userControllerCheckUsernameAvailability as unknown as jest.MockedFunction<
+          (
+            username: string,
+            observe: 'body'
+          ) => Observable<UserControllerCheckUsernameAvailability200Response>
+        >;
+      const mockResponse: UserControllerCheckUsernameAvailability200Response = {
+        available: true,
+        suggestions: [],
+      };
+      checkUsernameAvailabilityMock.mockReturnValue(of(mockResponse));
 
-  //     component.username = 'testuser';
-  //     await component.checkUsernameAvailability();
+      component.username = 'testuser';
+      await component.checkUsernameAvailability();
 
-  //     expect(userService.checkUsernameAvailability).toHaveBeenCalledWith(
-  //       'testuser'
-  //     );
-  //     expect(component.usernameAvailability).toBe('available');
-  //     expect(component.usernameSuggestions).toEqual([]);
-  //   });
+      expect(
+        userService.userControllerCheckUsernameAvailability
+      ).toHaveBeenCalledWith('testuser');
+      expect(component.usernameAvailability).toBe('available');
+      expect(component.usernameSuggestions).toEqual([]);
+    });
 
-  //   it('should handle unavailable username', async () => {
-  //     const checkUsernameAvailabilityMock =
-  //       userService.checkUsernameAvailability as unknown as jest.MockedFunction<
-  //         (
-  //           username: string,
-  //           observe: 'body'
-  //         ) => Observable<UsernameAvailabilityResponse>
-  //       >;
-  //     const mockResponse: UsernameAvailabilityResponse = {
-  //       available: false,
-  //       suggestions: ['testuser1', 'testuser2'],
-  //     };
-  //     checkUsernameAvailabilityMock.mockReturnValue(of(mockResponse));
+    it('should handle unavailable username', async () => {
+      const checkUsernameAvailabilityMock =
+        userService.userControllerCheckUsernameAvailability as unknown as jest.MockedFunction<
+          (
+            username: string,
+            observe: 'body'
+          ) => Observable<UserControllerCheckUsernameAvailability200Response>
+        >;
+      const mockResponse: UserControllerCheckUsernameAvailability200Response = {
+        available: false,
+        suggestions: ['testuser1', 'testuser2'],
+      };
+      checkUsernameAvailabilityMock.mockReturnValue(of(mockResponse));
 
-  //     component.username = 'testuser';
-  //     await component.checkUsernameAvailability();
+      component.username = 'testuser';
+      await component.checkUsernameAvailability();
 
-  //     expect(component.usernameAvailability).toBe('unavailable');
-  //     expect(component.usernameSuggestions).toEqual(['testuser1', 'testuser2']);
-  //   });
+      expect(component.usernameAvailability).toBe('unavailable');
+      expect(component.usernameSuggestions).toEqual(['testuser1', 'testuser2']);
+    });
 
-  //   it('should not check availability for username shorter than 3 characters', () => {
-  //     component.username = 'te';
-  //     void component.checkUsernameAvailability();
+    it('should not check availability for username shorter than 3 characters', () => {
+      component.username = 'te';
+      void component.checkUsernameAvailability();
 
-  //     expect(userService.checkUsernameAvailability).not.toHaveBeenCalled();
-  //     expect(component.usernameAvailability).toBe('unknown');
-  //   });
+      expect(
+        userService.userControllerCheckUsernameAvailability
+      ).not.toHaveBeenCalled();
+      expect(component.usernameAvailability).toBe('unknown');
+    });
 
-  //   it('should handle username availability check error', async () => {
-  //     const checkUsernameAvailabilityMock =
-  //       userService.checkUsernameAvailability as unknown as jest.MockedFunction<
-  //         (
-  //           username: string,
-  //           observe: 'body'
-  //         ) => Observable<UsernameAvailabilityResponse>
-  //       >;
-  //     checkUsernameAvailabilityMock.mockReturnValue(
-  //       throwError(() => new Error('Network error'))
-  //     );
+    it('should handle username availability check error', async () => {
+      const checkUsernameAvailabilityMock =
+        userService.userControllerCheckUsernameAvailability as unknown as jest.MockedFunction<
+          (
+            username: string,
+            observe: 'body'
+          ) => Observable<UserControllerCheckUsernameAvailability200Response>
+        >;
+      checkUsernameAvailabilityMock.mockReturnValue(
+        throwError(() => new Error('Network error'))
+      );
 
-  //     component.username = 'testuser';
-  //     await component.checkUsernameAvailability();
+      component.username = 'testuser';
+      await component.checkUsernameAvailability();
 
-  //     expect(component.usernameAvailability).toBe('unknown');
-  //   });
-  // });
+      expect(component.usernameAvailability).toBe('unknown');
+    });
+  });
 
   describe('registration', () => {
     beforeEach(() => {

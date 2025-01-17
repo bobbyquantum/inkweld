@@ -23,8 +23,8 @@
     "bun:start": "bun run dist/main.js",
     "bun:dev": "bun --watch src/main.ts",
     "bun:build": "bun build src/main.ts --target=node --outfile=dist/main.js",
-    "generate:openapi": "bun scripts/generate-openapi.ts",
-    "generate:angular-client": "bun scripts/generate-angular-client.ts"
+    "generate:openapi": "bun run build && bun dist/scripts/generate-openapi.js",
+    "generate:angular-client": "bun run build && bun dist/scripts/generate-angular-client.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.1.1",
