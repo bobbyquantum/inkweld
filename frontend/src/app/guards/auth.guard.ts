@@ -1,4 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { UserDto } from '@worm/index';
@@ -37,30 +36,19 @@ export const authGuard: CanActivateFn = async () => {
   const userService = inject(UserService);
   const authState = AuthState.getInstance();
 
-  try {
-    if (!authState.getUser()) {
-      await userService.loadCurrentUser();
-      const user = userService.currentUser();
-      if (user) {
-        authState.setUser(user);
-      }
+  if (!authState.getUser()) {
+    await userService.loadCurrentUser();
+    const user = userService.currentUser();
+    if (user) {
+      authState.setUser(user);
     }
-
-    if (authState.getUser()) {
-      return true;
-    }
-
-    return router.createUrlTree(['/welcome']);
-  } catch (error: unknown) {
-    if (
-      error instanceof HttpErrorResponse &&
-      'status' in error &&
-      error.status === 502
-    ) {
-      return router.createUrlTree(['/unavailable']);
-    }
-    return router.createUrlTree(['/welcome']);
   }
+
+  if (authState.getUser()) {
+    return true;
+  }
+
+  return router.createUrlTree(['/welcome']);
 };
 
 // Export for testing

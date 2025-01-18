@@ -81,10 +81,6 @@ export class EditProjectDialogComponent implements OnInit {
         description: formValues.description,
       };
 
-      if (!updatedProject.user?.username) {
-        throw new Error('Project username is required');
-      }
-
       if (!updatedProject.slug) {
         throw new Error('Project slug is required');
       }
@@ -98,7 +94,7 @@ export class EditProjectDialogComponent implements OnInit {
 
       const response = await firstValueFrom(
         this.projectApi.projectControllerUpdateProject(
-          updatedProject.user.username,
+          updatedProject.user!.username,
           updatedProject.slug,
           xsrfToken,
           {
