@@ -15,12 +15,12 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
         process.env.GITHUB_CALLBACK_URL ||
         'http://localhost:8333/oauth2/code/github',
       scope: ['user:email'],
-      passReqToCallback: true,
-    });
+      passReqToCallback: false,
+    } as any);
   }
 
   async validate(_accessToken: string, _refreshToken: string, profile: any) {
-    this.logger.log('GitHub profile validation', profile.username);
+    this.logger.log('GitHub profile validation', profile?.username);
     const { id, username, emails, photos } = profile;
 
     try {
