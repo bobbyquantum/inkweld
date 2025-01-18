@@ -86,11 +86,11 @@ export class AppModule implements NestModule {
             ws: true,
           }),
         )
-        .exclude({ path: 'api/(.*)', method: RequestMethod.ALL })
-        .exclude({ path: 'login/(.*)', method: RequestMethod.ALL })
-        .exclude({ path: 'oauth2/(.*)', method: RequestMethod.ALL })
-        .exclude({ path: 'mcp/(.*)', method: RequestMethod.ALL })
-        .exclude({ path: 'ws/yjs/(.*)', method: RequestMethod.ALL })
+        .exclude({ path: 'api/*path', method: RequestMethod.ALL })
+        .exclude({ path: 'login/*path', method: RequestMethod.ALL })
+        .exclude({ path: 'oauth2/*path', method: RequestMethod.ALL })
+        .exclude({ path: 'mcp/*path', method: RequestMethod.ALL })
+        .exclude({ path: 'ws/yjs/*path', method: RequestMethod.ALL })
         .forRoutes({ path: '*', method: RequestMethod.ALL });
     } else {
       // Production mode: serve index.html for client-side routing
