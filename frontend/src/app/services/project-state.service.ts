@@ -112,12 +112,6 @@ export class ProjectStateService {
       if (!environment.wssUrl) {
         throw new Error('WebSocket URL is not configured in environment');
       }
-      const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      const wsUrl = `${wsProto}://${window.location.host}/ws/yjs?documentId=`;
-      this.provider = new WebsocketProvider(wsUrl, this.docId, this.doc, {
-        connect: true,
-        resyncInterval: 10000,
-      });
       this.provider = new WebsocketProvider(
         environment.wssUrl + '/ws/yjs?documentId=',
         this.docId,
