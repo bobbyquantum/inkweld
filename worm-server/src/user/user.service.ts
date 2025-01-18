@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
 } from '@nestjs/common';
+import { ValidationException } from '../common/exceptions/validation.exception.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -17,24 +18,42 @@ export class UserService {
     private readonly userRepo: Repository<UserEntity>,
   ) {}
 
+  private async validateUserInput(
+    username: string,
+    password: string,
+  ): Promise<void> {
+    const errors: Record<string, string[]> = {};
+
+    const existing = await this.userRepo.findOne({
+      where: { username: username },
+    });
+    if (existing) {
+      errors['username'] = ['Username already exists'];
+    }
+
+    if (!this.isPasswordStrong(password)) {
+      errors['password'] = [
+        'Password must contain at least 8 characters',
+        'Password must contain at least one uppercase letter',
+        'Password must contain at least one lowercase letter',
+        'Password must contain at least one number',
+        'Password must contain at least one special character',
+      ];
+    }
+
+
+    if (Object.keys(errors).length > 0) {
+      throw new ValidationException(errors);
+    }
+  }
+
   async registerUser(
     username: string,
     email: string,
     password: string,
     name?: string,
   ): Promise<UserEntity> {
-    const existing = await this.userRepo.findOne({
-      where: { username: username },
-    });
-    if (existing) {
-      throw new BadRequestException('Username already exists');
-    }
-
-    if (!this.isPasswordStrong(password)) {
-      throw new BadRequestException(
-        'Password does not meet strength requirements',
-      );
-    }
+    await this.validateUserInput(username, password);
 
     const hashedPassword = await bcrypt.hash(password, this.SALT_ROUNDS);
 
@@ -85,9 +104,15 @@ export class UserService {
     }
 
     if (!this.isPasswordStrong(newPassword)) {
-      throw new BadRequestException(
-        'New password does not meet strength requirements',
-      );
+      throw new ValidationException({
+        newPassword: [
+          'Password must contain at least 8 characters',
+          'Password must contain at least one uppercase letter',
+          'Password must contain at least one lowercase letter',
+          'Password must contain at least one number',
+          'Password must contain at least one special character',
+        ],
+      });
     }
 
     user.password = await bcrypt.hash(newPassword, this.SALT_ROUNDS);

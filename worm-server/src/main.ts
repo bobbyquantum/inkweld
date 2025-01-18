@@ -8,6 +8,7 @@ import { TypeOrmSessionStore } from './auth/session.store.js';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { INestApplication } from '@nestjs/common';
+import { ValidationFilter } from './common/filters/validation.filter.js';
 
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
@@ -71,6 +72,8 @@ async function bootstrap() {
     }),
   );
   app.useWebSocketAdapter(new WsAdapter(app));
+
+  app.useGlobalFilters(new ValidationFilter());
 
   await setupSwagger(app);
   await app.listen(process.env.PORT ?? 8333);
