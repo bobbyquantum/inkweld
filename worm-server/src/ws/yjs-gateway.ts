@@ -19,7 +19,7 @@ import { ConfigService } from '@nestjs/config';
 import * as cookie from 'cookie';
 import { Doc, encodeStateAsUpdate, applyUpdate } from 'yjs';
 
-@WebSocketGateway({ path: '/ws/yjs/*splat' })
+@WebSocketGateway({ path: '/ws/yjs' })
 @Injectable()
 export class YjsGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
