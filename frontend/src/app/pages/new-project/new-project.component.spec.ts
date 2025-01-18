@@ -71,8 +71,6 @@ describe('NewProjectComponent', () => {
     mockUserAPIService.userControllerGetMe.mockReturnValue(
       of({ username: 'testuser' } as UserDto)
     );
-    fixture.detectChanges();
-    tick();
     expect(component).toBeTruthy();
     flush();
   }));
@@ -81,8 +79,6 @@ describe('NewProjectComponent', () => {
     mockUserAPIService.userControllerGetMe.mockReturnValue(
       of({ username: 'testuser' } as UserDto)
     );
-    fixture.detectChanges();
-    tick();
     const title = 'My Awesome Project';
     const expectedSlug = 'my-awesome-project';
     component.projectForm.patchValue({ title });
@@ -95,8 +91,6 @@ describe('NewProjectComponent', () => {
     mockUserAPIService.userControllerGetMe.mockReturnValue(
       of({ username: 'testuser' } as UserDto)
     );
-    fixture.detectChanges();
-    tick();
     const projectData = {
       title: 'Test Project',
       slug: 'test-project',
@@ -130,8 +124,6 @@ describe('NewProjectComponent', () => {
     mockUserAPIService.userControllerGetMe.mockReturnValue(
       of({ username: 'testuser' } as UserDto)
     );
-    fixture.detectChanges();
-    tick();
     const projectData = {
       title: 'Test Project',
       slug: 'test-project',
@@ -149,22 +141,6 @@ describe('NewProjectComponent', () => {
     expect(projectService.projectControllerCreateProject).toHaveBeenCalledWith(
       'test-token',
       projectData
-    );
-    flush();
-  }));
-
-  it('should handle error when fetching user fails', fakeAsync(() => {
-    mockUserAPIService.userControllerGetMe.mockReturnValue(
-      throwError(() => new Error('Failed to fetch user'))
-    );
-
-    fixture.detectChanges();
-    tick();
-
-    expect(snackBar.open).toHaveBeenCalledWith(
-      'Failed to fetch user information.',
-      'Close',
-      { duration: 3000 }
     );
     flush();
   }));

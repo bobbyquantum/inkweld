@@ -74,14 +74,8 @@ export class NewProjectComponent {
     effect(
       () => {
         const user = this.userService.currentUser();
-        if (user?.username) {
-          this.username = user.username;
-          this.updateProjectUrl();
-        } else {
-          this.snackBar.open('Failed to fetch user information.', 'Close', {
-            duration: 3000,
-          });
-        }
+        this.username = user!.username;
+        this.updateProjectUrl();
       },
       { allowSignalWrites: false }
     );

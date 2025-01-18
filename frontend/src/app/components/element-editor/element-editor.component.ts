@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   Component,
-  HostListener,
   inject,
   Input,
   OnDestroy,
@@ -13,8 +12,15 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { Editor, NgxEditorModule } from 'ngx-editor';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
+import { CssVariableService } from '../../services/css-variable.service';
 import { DocumentService } from '../../services/document.service';
+import {
+  MouseDragEvent,
+  MouseDragService,
+} from '../../services/mouse-drag.service';
 
 interface EditorDimensions {
   pageWidth: number; // in cm
@@ -40,7 +46,6 @@ type DragPoint = 'pageLeft' | 'pageRight' | 'marginLeft' | 'marginRight';
 export class ElementEditorComponent
   implements OnInit, OnDestroy, AfterViewInit
 {
-  // Component properties
   @Input() documentId = 'default';
   editor!: Editor;
   zoomLevel = 100;
@@ -53,82 +58,10 @@ export class ElementEditorComponent
   };
   rulerMeasurements = Array.from({ length: 35 }, (_, i) => i - 5);
 
-  private isDragging = false;
-  private currentDragPoint: DragPoint | null = null;
-  private startX = 0;
-  private startDimensions: EditorDimensions | null = null;
-
+  private destroy$ = new Subject<void>();
   private documentService = inject(DocumentService);
-
-  @HostListener('document:mousemove', ['$event'])
-  onMouseMove(event: MouseEvent) {
-    if (!this.isDragging || !this.currentDragPoint || !this.startDimensions)
-      return;
-
-    const pixelsPerCm = 37.795275591 * (this.zoomLevel / 100); // Scale with zoom
-    const delta = (event.clientX - this.startX) / pixelsPerCm;
-    let newWidth: number;
-
-    switch (this.currentDragPoint) {
-      case 'pageLeft':
-        newWidth = this.startDimensions.pageWidth - delta;
-        if (newWidth >= 10 && newWidth <= 29.7) {
-          this.dimensions.pageWidth = Math.round(newWidth * 2) / 2;
-          if (
-            this.dimensions.leftMargin + this.dimensions.rightMargin >
-            this.dimensions.pageWidth - 5
-          ) {
-            this.dimensions.leftMargin = Math.max(
-              0.5,
-              this.dimensions.pageWidth - this.dimensions.rightMargin - 5
-            );
-          }
-        }
-        break;
-      case 'pageRight':
-        newWidth = this.startDimensions.pageWidth + delta;
-        if (newWidth >= 10 && newWidth <= 29.7) {
-          this.dimensions.pageWidth = Math.round(newWidth * 2) / 2;
-          if (
-            this.dimensions.leftMargin + this.dimensions.rightMargin >
-            this.dimensions.pageWidth - 5
-          ) {
-            this.dimensions.rightMargin = Math.max(
-              0.5,
-              this.dimensions.pageWidth - this.dimensions.leftMargin - 5
-            );
-          }
-        }
-        break;
-      case 'marginLeft':
-        this.dimensions.leftMargin = Math.max(
-          0.5,
-          Math.min(
-            this.dimensions.pageWidth - this.dimensions.rightMargin - 5,
-            Math.round((this.startDimensions.leftMargin + delta) * 2) / 2
-          )
-        );
-        break;
-      case 'marginRight':
-        this.dimensions.rightMargin = Math.max(
-          0.5,
-          Math.min(
-            this.dimensions.pageWidth - this.dimensions.leftMargin - 5,
-            Math.round((this.startDimensions.rightMargin - delta) * 2) / 2
-          )
-        );
-        break;
-    }
-
-    this.updateDimensions();
-  }
-
-  @HostListener('document:mouseup')
-  onMouseUp() {
-    this.isDragging = false;
-    this.currentDragPoint = null;
-    this.startDimensions = null;
-  }
+  private cssVariableService = inject(CssVariableService);
+  private mouseDragService = inject(MouseDragService);
 
   ngOnInit(): void {
     this.editor = new Editor();
@@ -136,7 +69,54 @@ export class ElementEditorComponent
   }
 
   ngAfterViewInit(): void {
-    // Setup collaboration after the editor view is initialized
+    this.setupCollaboration();
+    this.setupDragHandlers();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.editor.destroy();
+    this.documentService.disconnect(this.documentId);
+  }
+
+  increaseZoom(): void {
+    if (this.zoomLevel < 200) {
+      this.zoomLevel += 10;
+      this.updateZoom();
+    }
+  }
+
+  decreaseZoom(): void {
+    if (this.zoomLevel > 50) {
+      this.zoomLevel -= 10;
+      this.updateZoom();
+    }
+  }
+
+  startDragging(event: MouseEvent, dragPoint: DragPoint): void {
+    this.mouseDragService.startDrag(event);
+    this.mouseDragService.dragMoveEvents$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(dragEvent => this.handleDrag(dragEvent, dragPoint));
+  }
+
+  setViewMode(mode: 'page' | 'fitWidth'): void {
+    this.viewMode = mode;
+    if (mode === 'fitWidth') {
+      this.zoomLevel = 100;
+      this.updateZoom();
+      this.cssVariableService.setFitWidthMode();
+    } else {
+      this.updateDimensions();
+    }
+  }
+
+  toggleViewModeDropdown(): void {
+    this.showViewModeDropdown = !this.showViewModeDropdown;
+  }
+
+  private setupCollaboration(): void {
     setTimeout(() => {
       this.documentService
         .setupCollaboration(this.editor, this.documentId)
@@ -146,80 +126,87 @@ export class ElementEditorComponent
     }, 0);
   }
 
-  ngOnDestroy(): void {
-    this.editor.destroy();
-    // Only disconnect this specific document
-    this.documentService.disconnect(this.documentId);
+  private setupDragHandlers(): void {
+    this.mouseDragService.dragEndEvents$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.updateDimensions());
   }
 
-  increaseZoom() {
-    if (this.zoomLevel < 200) {
-      this.zoomLevel += 10;
-      this.updateZoom();
+  private handleDrag(dragEvent: MouseDragEvent, dragPoint: DragPoint): void {
+    const pixelsPerCm = 37.795275591 * (this.zoomLevel / 100);
+    const delta = dragEvent.deltaX / pixelsPerCm;
+
+    switch (dragPoint) {
+      case 'pageLeft':
+        this.adjustPageWidth(-delta);
+        break;
+      case 'pageRight':
+        this.adjustPageWidth(delta);
+        break;
+      case 'marginLeft':
+        this.adjustLeftMargin(delta);
+        break;
+      case 'marginRight':
+        this.adjustRightMargin(-delta);
+        break;
     }
   }
 
-  decreaseZoom() {
-    if (this.zoomLevel > 50) {
-      this.zoomLevel -= 10;
-      this.updateZoom();
+  private adjustPageWidth(delta: number): void {
+    const newWidth = this.dimensions.pageWidth + delta;
+    if (newWidth >= 10 && newWidth <= 29.7) {
+      this.dimensions.pageWidth = Math.round(newWidth * 2) / 2;
+      this.adjustMarginsForNewWidth();
     }
   }
 
-  startDragging(event: MouseEvent, dragPoint: DragPoint) {
-    this.isDragging = true;
-    this.currentDragPoint = dragPoint;
-    this.startX = event.clientX;
-    this.startDimensions = { ...this.dimensions };
-    event.preventDefault();
-  }
-
-  setViewMode(mode: 'page' | 'fitWidth') {
-    this.viewMode = mode;
-    if (mode === 'fitWidth') {
-      this.zoomLevel = 100;
-      this.updateZoom();
-      // Remove margin guides
-      const marginGuides = document.querySelectorAll('.margin-guide');
-      marginGuides.forEach(guide => guide.remove());
-    } else {
-      // Restore margin guides
-      this.updateDimensions();
-    }
-    this.updateDimensions();
-  }
-
-  toggleViewModeDropdown() {
-    this.showViewModeDropdown = !this.showViewModeDropdown;
-  }
-
-  private updateZoom() {
-    document.documentElement.style.setProperty(
-      '--editor-zoom',
-      (this.zoomLevel / 100).toString()
+  private adjustLeftMargin(delta: number): void {
+    this.dimensions.leftMargin = Math.max(
+      0.5,
+      Math.min(
+        this.dimensions.pageWidth - this.dimensions.rightMargin - 5,
+        Math.round((this.dimensions.leftMargin + delta) * 2) / 2
+      )
     );
   }
 
-  private updateDimensions() {
+  private adjustRightMargin(delta: number): void {
+    this.dimensions.rightMargin = Math.max(
+      0.5,
+      Math.min(
+        this.dimensions.pageWidth - this.dimensions.leftMargin - 5,
+        Math.round((this.dimensions.rightMargin + delta) * 2) / 2
+      )
+    );
+  }
+
+  private adjustMarginsForNewWidth(): void {
+    if (
+      this.dimensions.leftMargin + this.dimensions.rightMargin >
+      this.dimensions.pageWidth - 5
+    ) {
+      this.dimensions.leftMargin = Math.max(
+        0.5,
+        this.dimensions.pageWidth - this.dimensions.rightMargin - 5
+      );
+      this.dimensions.rightMargin = Math.max(
+        0.5,
+        this.dimensions.pageWidth - this.dimensions.leftMargin - 5
+      );
+    }
+  }
+
+  private updateZoom(): void {
+    this.cssVariableService.setZoomLevel(this.zoomLevel);
+  }
+
+  private updateDimensions(): void {
     if (this.viewMode === 'page') {
-      document.documentElement.style.setProperty(
-        '--page-width',
-        `${this.dimensions.pageWidth}cm`
-      );
-      document.documentElement.style.setProperty(
-        '--margin-left',
-        `${this.dimensions.leftMargin}cm`
-      );
-      document.documentElement.style.setProperty(
-        '--margin-right',
-        `${this.dimensions.rightMargin}cm`
-      );
-      document.documentElement.style.setProperty('--editor-max-width', 'none');
-    } else {
-      document.documentElement.style.removeProperty('--page-width');
-      document.documentElement.style.removeProperty('--margin-left');
-      document.documentElement.style.removeProperty('--margin-right');
-      document.documentElement.style.setProperty('--editor-max-width', '100%');
+      this.cssVariableService.setPageDimensions({
+        pageWidth: `${this.dimensions.pageWidth}cm`,
+        leftMargin: `${this.dimensions.leftMargin}cm`,
+        rightMargin: `${this.dimensions.rightMargin}cm`,
+      });
     }
   }
 }
