@@ -12,6 +12,7 @@ import {
   Query,
   BadRequestException,
 } from '@nestjs/common';
+import { ValidationException } from '../common/exceptions/validation.exception.js';
 import { AuthService } from '../auth/auth.service.js';
 import {
   ApiTags,
@@ -73,6 +74,13 @@ export class UserController {
       transform: true,
       whitelist: true,
       forbidNonWhitelisted: true,
+      exceptionFactory: (errors) => {
+        const mappedErrors = errors.reduce((acc, err) => {
+          acc[err.property] = Object.values(err.constraints || {});
+          return acc;
+        }, {});
+        return new ValidationException(mappedErrors);
+      },
     }),
   )
   @ApiOperation({
@@ -87,6 +95,7 @@ export class UserController {
   @ApiBadRequestResponse({ description: 'Invalid registration data provided' })
   @ApiBody({ type: UserRegisterDto })
   async register(@Body() body: UserRegisterDto, @Req() req) {
+    this.logger.log('register', body);
     const { username, email, password, name } = body;
     const user = await this.userService.registerUser(
       username,
@@ -100,9 +109,9 @@ export class UserController {
 
     return {
       message: 'User registered and logged in',
-      userId: user.id,
-      username: user.username,
-      name: user.name
+      userId: user?.id,
+      username: user?.username,
+      name: user?.name
     };
   }
 

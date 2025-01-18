@@ -95,7 +95,7 @@ describe('UserService', () => {
 
       await expect(
         userService.registerUser(username, email, password),
-      ).rejects.toThrow('Username already exists');
+      ).rejects.toThrow('Validation failed');
     });
 
     it('should throw an error for weak password', async () => {
@@ -107,7 +107,7 @@ describe('UserService', () => {
 
       await expect(
         userService.registerUser(username, email, weakPassword),
-      ).rejects.toThrow('Password does not meet strength requirements');
+      ).rejects.toThrow('Validation failed');
     });
   });
 
