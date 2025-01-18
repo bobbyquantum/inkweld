@@ -7,7 +7,11 @@ import { environment } from '../../environments/environment';
 export function provideApiConfig(): Provider {
   return {
     provide: Configuration,
-    useFactory: () => new Configuration({ basePath: environment.apiUrl }),
+    useFactory: () =>
+      new Configuration({
+        basePath: environment.apiUrl,
+        withCredentials: true,
+      }),
     deps: [],
     multi: false,
   };
