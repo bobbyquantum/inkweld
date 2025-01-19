@@ -3,11 +3,10 @@
   "version": "1.0.0",
   "description": "Worm project",
   "scripts": {
-    "install-all": "bun install && cd frontend && npm install && cd ../worm-server && bun install",
+    "install-all": "cd frontend && npm install && cd ../worm-server && bun install --save-text-lockfile",
     "lint": "cd frontend && npm run lint && cd ../worm-server && bun run lint",
     "test": "cd frontend && npm test && cd ../worm-server && bun test"
   },
   "devDependencies": {
-  },
-  "packageManager": "bun@1.1.42"
+  }
 }
