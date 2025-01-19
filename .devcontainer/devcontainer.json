@@ -15,7 +15,8 @@
                 "esbenp.prettier-vscode",
                 "ms-azuretools.vscode-docker",
                 "saoudrizwan.claude-dev",
-                "github.copilot"
+                "github.copilot",
+                "rooveterinaryinc.roo-cline"
             ]
         }
     }
