@@ -1,7 +1,7 @@
 {
     "name": "Worm Devcontainer",
     "image": "mcr.microsoft.com/vscode/devcontainers/universal:linux",
-    "forwardPorts": [8333],
+    "forwardPorts": [4200,8333],
     "features": {
         "ghcr.io/lumenpink/devcontainer-features/bun:0": {}
     },

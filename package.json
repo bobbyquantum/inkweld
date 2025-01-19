@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Worm project",
   "scripts": {
-    "install-all": "cd frontend && npm install && cd ../worm-server && bun install --save-text-lockfile",
+    "install-all": "cd frontend && bun install --save-text-lockfile && cd ../worm-server && bun install --save-text-lockfile",
     "lint": "cd frontend && npm run lint && cd ../worm-server && bun run lint",
     "test": "cd frontend && npm test && cd ../worm-server && bun test"
   },
