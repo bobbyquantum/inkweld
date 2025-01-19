@@ -2,15 +2,15 @@
   "folders": [
     {
       "name": "✨ Root",
-      "path": ".."
+      "path": "."
     },
     {
       "name": "⚙️ Server",
-      "path": "../worm-server"
+      "path": "worm-server"
     },
     {
       "name": "🎨 Frontend",
-      "path": "../frontend"
+      "path": "frontend"
     },
   ],
   "settings": {
@@ -29,14 +29,6 @@
     },
     "jest.disabledWorkspaceFolders": [
       "✨ Root",
-    ]
-  },
-  "extensions": {
-    "recommendations": [
-      "angular.ng-template",
-      "dbaeumer.vscode-eslint",
-      "esbenp.prettier-vscode",
-      "orta.vscode-jest"
     ]
   }
 }
