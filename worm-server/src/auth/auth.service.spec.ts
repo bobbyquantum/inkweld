@@ -9,7 +9,6 @@ import { UserEntity } from '../user/user.entity.js';
 import { TypeOrmSessionStore } from './session.store.js';
 import { UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-jest.mock('bcrypt');
 
 describe('AuthService', () => {
   let service: AuthService;

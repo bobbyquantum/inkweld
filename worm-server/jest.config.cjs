@@ -16,7 +16,16 @@ module.exports = {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 
-  // The rest of your coverage, etc., can live here...
+  // Coverage configuration
   collectCoverageFrom: ['src/**/*.ts'],
   coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'clover'],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
 };

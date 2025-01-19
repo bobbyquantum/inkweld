@@ -75,7 +75,6 @@ describe('ProjectTreeComponent', () => {
 
     fixture = TestBed.createComponent(ProjectTreeComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
   it('should create', () => {
@@ -144,6 +143,7 @@ describe('ProjectTreeComponent', () => {
 
   it('should handle node deletion', async () => {
     // Get the first non-root element
+    fixture.detectChanges();
     const node = component.treeManipulator.getData()[1];
     await component.onDelete(node);
     fixture.detectChanges();
@@ -155,6 +155,7 @@ describe('ProjectTreeComponent', () => {
 
   it('should handle node renaming', async () => {
     // Get the first non-root element
+    fixture.detectChanges();
     const node = component.treeManipulator.getData()[1];
     const newName = 'Renamed Element';
     component.startEditing(node);
@@ -167,6 +168,7 @@ describe('ProjectTreeComponent', () => {
   });
 
   it('should handle creating new item from context menu', async () => {
+    fixture.detectChanges();
     const parentNode = component.treeManipulator.getData()[1];
     await component.onNewItem(parentNode);
     fixture.detectChanges();
@@ -182,6 +184,7 @@ describe('ProjectTreeComponent', () => {
   });
 
   it('should handle creating new folder from context menu', async () => {
+    fixture.detectChanges();
     const parentNode = component.treeManipulator.getData()[1];
     await component.onNewFolder(parentNode);
     fixture.detectChanges();

@@ -6,7 +6,6 @@ import {
   UnauthorizedException,
   Res,
 } from '@nestjs/common';
-import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service.js';
@@ -21,7 +20,7 @@ export class AuthController {
   ) {}
   @Post('login')
   @UseGuards(AuthGuard('local'))
-  async login(@Request() req, @Res() res: Response) {
+  async login(@Request() req, @Res() res: any) {
     if (!req.user) {
       throw new UnauthorizedException('Authentication failed');
     }
