@@ -104,54 +104,6 @@
       padding: 0;
     }
 
-    .ruler,
-    .horizontal-ruler,
-    .ruler-measurements,
-    .page-guide,
-    .margin-guide,
-    .ruler-mark,
-    .ruler-number,
-    .scaled-content .ruler,
-    .scaled-content .horizontal-ruler,
-    .scaled-content .ruler-measurements,
-    .scaled-content .page-guide,
-    .scaled-content .margin-guide,
-    .scaled-content .ruler-mark,
-    .scaled-content .ruler-number,
-    .editor-wrapper .ruler,
-    .editor-wrapper .horizontal-ruler,
-    .editor-wrapper .ruler-measurements,
-    .editor-wrapper .page-guide,
-    .editor-wrapper .margin-guide,
-    .editor-wrapper .ruler-mark,
-    .editor-wrapper .ruler-number,
-    [class*="ruler"],
-    [class*="guide"],
-    [class*="ruler"][_ngcontent],
-    [class*="guide"][_ngcontent] {
-      &, & * {
-        display: none !important;
-        flex: none !important;
-        flex-direction: none !important;
-        flex-wrap: none !important;
-        flex-flow: none !important;
-        justify-content: none !important;
-        align-items: none !important;
-        align-content: none !important;
-        order: none !important;
-      }
-      visibility: hidden !important;
-      pointer-events: none !important;
-      opacity: 0 !important;
-      height: 0 !important;
-      width: 0 !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      border: none !important;
-      background: none !important;
-      box-shadow: none !important;
-    }
-
     .editor-content {
       width: 100%;
       max-width: 100%;
