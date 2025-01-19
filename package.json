@@ -5,7 +5,7 @@
   "scripts": {
     "install-all": "bun install && cd frontend && npm install && cd ../worm-server && bun install",
     "lint": "cd frontend && npm run lint && cd ../worm-server && bun run lint",
-    "test": "cd frontend && npm test && cd ../worm-server && bun run test"
+    "test": "cd frontend && npm test && cd ../worm-server && bun test"
   },
   "devDependencies": {
   },
