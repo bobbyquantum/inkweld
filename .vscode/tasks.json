@@ -20,7 +20,7 @@
     {
       "label": "🚀 Start Frontend Dev Server",
       "type": "shell",
-      "command": "cd frontend && npm run start",
+      "command": "cd frontend && bun run start",
       "isBackground": true,
       "problemMatcher": {
         "owner": "typescript",
