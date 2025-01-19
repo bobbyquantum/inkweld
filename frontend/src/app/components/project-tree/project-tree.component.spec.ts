@@ -30,6 +30,7 @@ describe('ProjectTreeComponent', () => {
   let loadingSignal: WritableSignal<boolean>;
   let savingSignal: WritableSignal<boolean>;
   let errorSignal: WritableSignal<string | undefined>;
+  let mockDialogRef: MatDialogRef<unknown, unknown>;
 
   const mockDto: ProjectElement = {
     id: '1',
@@ -39,7 +40,24 @@ describe('ProjectTreeComponent', () => {
     level: 0,
   };
 
-  beforeEach(async () => {
+  const createMockDialogRef = () =>
+    ({
+      afterClosed: jest.fn(),
+      close: jest.fn(),
+      componentInstance: {},
+      _containerInstance: {},
+      _ref: {},
+      id: 'mock-dialog',
+      backdropClick: of(),
+      keydownEvents: of(),
+      updatePosition: jest.fn(),
+      updateSize: jest.fn(),
+      addPanelClass: jest.fn(),
+      removePanelClass: jest.fn(),
+      getState: jest.fn(),
+    }) as unknown as MatDialogRef<unknown, unknown>;
+
+  const setupTestBed = async () => {
     // Mock window.location.pathname
     Object.defineProperty(window, 'location', {
       value: {
@@ -62,6 +80,7 @@ describe('ProjectTreeComponent', () => {
       project: signal({ title: 'Test Project' }),
       saveProjectElements: jest.fn().mockResolvedValue(undefined),
       openFile: jest.fn(),
+      updateProject: jest.fn(),
     } as unknown as jest.Mocked<ProjectStateService>;
 
     await TestBed.configureTestingModule({
@@ -75,6 +94,13 @@ describe('ProjectTreeComponent', () => {
 
     fixture = TestBed.createComponent(ProjectTreeComponent);
     component = fixture.componentInstance;
+    mockDialogRef = createMockDialogRef();
+    jest.spyOn(component.dialog, 'open').mockReturnValue(mockDialogRef);
+    // fixture.detectChanges();
+  };
+
+  beforeEach(async () => {
+    await setupTestBed();
   });
 
   it('should create', () => {
@@ -91,113 +117,104 @@ describe('ProjectTreeComponent', () => {
     expect(component.treeElements()[1].level).toBe(1);
   });
 
-  it('should show loading state', () => {
-    loadingSignal.set(true);
-    fixture.detectChanges();
-    expect(component.isLoading()).toBe(true);
+  describe('State Management', () => {
+    it('should handle loading, saving and error states', () => {
+      loadingSignal.set(true);
+      expect(component.isLoading()).toBe(true);
+
+      savingSignal.set(true);
+      expect(component.isSaving()).toBe(true);
+
+      const errorMessage = 'Test error';
+      errorSignal.set(errorMessage);
+      expect(component.error()).toBe(errorMessage);
+
+      errorSignal.set(undefined);
+      expect(component.error()).toBeUndefined();
+    });
+
+    it('should update tree when elements change', () => {
+      const newElement: ProjectElement = {
+        id: '2',
+        name: 'New Element',
+        type: 'ITEM',
+        position: 1,
+        level: 0,
+      };
+
+      elementsSignal.set([mockDto, newElement]);
+
+      expect(component.treeElements()).toHaveLength(3);
+      const lastElement = component.treeElements()[2];
+      expect(lastElement.type).toBe('ITEM');
+      expect(lastElement.level).toBe(1);
+    });
   });
 
-  it('should show saving state', () => {
-    savingSignal.set(true);
-    fixture.detectChanges();
-    expect(component.isSaving()).toBe(true);
-  });
+  describe('Tree Manipulation', () => {
+    let testNode: ProjectElement;
 
-  it('should show error state', () => {
-    const errorMessage = 'Test error';
-    errorSignal.set(errorMessage);
-    fixture.detectChanges();
+    beforeEach(() => {
+      testNode = component.treeManipulator.getData()[1];
+    });
 
-    const error = component.error();
-    expect(typeof error).toBe('string');
-    expect(error).toBe(errorMessage);
-  });
+    it('should toggle node expansion', () => {
+      const initialState = testNode.expanded;
+      component.toggleExpanded(testNode);
+      expect(testNode.expanded).toBe(!initialState);
+    });
 
-  it('should update tree when elements change', () => {
-    const newElement: ProjectElement = {
-      id: '2',
-      name: 'New Element',
-      type: 'ITEM',
-      position: 1,
-      level: 0,
-    };
+    it('should handle node deletion', async () => {
+      await component.onDelete(testNode);
 
-    elementsSignal.set([mockDto, newElement]);
-    fixture.detectChanges();
+      const treeData = component.treeManipulator.getData();
+      expect(treeData).toHaveLength(1);
+      expect(treeData[0].id).toBe(ROOT_WRAPPER_ID);
+      expect(treeService.saveProjectElements).toHaveBeenCalled();
+    });
 
-    // Account for root wrapper + 2 elements
-    expect(component.treeElements()).toHaveLength(3);
-    // Check second element (index 1) since root wrapper is first
-    expect(component.treeElements()[2].type).toBe('ITEM');
-    expect(component.treeElements()[2].level).toBe(1);
-  });
+    it('should handle node renaming', async () => {
+      const newName = 'Renamed Element';
 
-  it('should toggle node expansion', () => {
-    // Get the first non-root element
-    const node = component.treeManipulator.getData()[1];
-    const initialState = node.expanded;
-    component.toggleExpanded(node);
-    fixture.detectChanges();
-    expect(node.expanded).toBe(!initialState);
-  });
+      component.startEditing(testNode);
+      expect(component.editingNode).toBe(testNode.id);
 
-  it('should handle node deletion', async () => {
-    // Get the first non-root element
-    fixture.detectChanges();
-    const node = component.treeManipulator.getData()[1];
-    await component.onDelete(node);
-    fixture.detectChanges();
-    // Should only have root wrapper left
-    expect(component.treeManipulator.getData()).toHaveLength(1);
-    expect(component.treeManipulator.getData()[0].id).toBe(ROOT_WRAPPER_ID);
-    expect(treeService.saveProjectElements).toHaveBeenCalled();
-  });
+      await component.finishEditing(testNode, newName);
+      expect(component.treeManipulator.getData()[1].name).toBe(newName);
+      expect(component.editingNode).toBeUndefined();
+      expect(treeService.saveProjectElements).toHaveBeenCalled();
+    });
 
-  it('should handle node renaming', async () => {
-    // Get the first non-root element
-    fixture.detectChanges();
-    const node = component.treeManipulator.getData()[1];
-    const newName = 'Renamed Element';
-    component.startEditing(node);
-    expect(component.editingNode).toBe(node.id);
-    await component.finishEditing(node, newName);
-    fixture.detectChanges();
-    expect(component.treeManipulator.getData()[1].name).toBe(newName);
-    expect(component.editingNode).toBeUndefined();
-    expect(treeService.saveProjectElements).toHaveBeenCalled();
-  });
+    describe('Node Creation', () => {
+      it('should create new item', async () => {
+        await component.onNewItem(testNode);
 
-  it('should handle creating new item from context menu', async () => {
-    fixture.detectChanges();
-    const parentNode = component.treeManipulator.getData()[1];
-    await component.onNewItem(parentNode);
-    fixture.detectChanges();
+        const treeData = component.treeManipulator.getData();
+        const newItem = treeData[2];
 
-    // Should have root wrapper + original element + new item
-    expect(component.treeManipulator.getData()).toHaveLength(3);
-    const newItem = component.treeManipulator.getData()[2];
-    expect(newItem.type).toBe('ITEM');
-    expect(newItem.level).toBe(parentNode.level + 1);
-    expect(newItem.id).toBeUndefined(); // Empty ID for new items
-    expect(component.editingNode).toBe(undefined);
-    expect(treeService.saveProjectElements).toHaveBeenCalled();
-  });
+        expect(treeData).toHaveLength(3);
+        expect(newItem.type).toBe('ITEM');
+        expect(newItem.level).toBe(testNode.level + 1);
+        expect(newItem.id).toBeUndefined();
+        expect(component.editingNode).toBe(undefined);
+        expect(treeService.saveProjectElements).toHaveBeenCalled();
+      });
 
-  it('should handle creating new folder from context menu', async () => {
-    fixture.detectChanges();
-    const parentNode = component.treeManipulator.getData()[1];
-    await component.onNewFolder(parentNode);
-    fixture.detectChanges();
+      it('should create new folder', async () => {
+        await component.onNewFolder(testNode);
 
-    // Should have root wrapper + original element + new folder
-    expect(component.treeManipulator.getData()).toHaveLength(3);
-    const newFolder = component.treeManipulator.getData()[2];
-    expect(newFolder.type).toBe('FOLDER');
-    expect(newFolder.level).toBe(parentNode.level + 1);
-    expect(newFolder.id).toBeUndefined(); // Empty ID for new folders
-    expect(newFolder.expandable).toBe(true);
-    expect(component.editingNode).toBe(undefined);
-    expect(treeService.saveProjectElements).toHaveBeenCalled();
+        const treeData = component.treeManipulator.getData();
+        const newFolder = treeData[2];
+
+        expect(treeData).toHaveLength(3);
+        expect(newFolder.type).toBe('FOLDER');
+        expect(newFolder.level).toBe(testNode.level + 1);
+        expect(newFolder.id).toBeUndefined();
+        expect(newFolder.expandable).toBe(true);
+        expect(component.editingNode).toBe(undefined);
+        expect(treeService.saveProjectElements).toHaveBeenCalled();
+      });
+    });
   });
 
   describe('Drag and Drop', () => {
@@ -205,28 +222,39 @@ describe('ProjectTreeComponent', () => {
     let mockDropList: CdkDropList<ArrayDataSource<ProjectElement>>;
     let mockEvent: Partial<CdkDragDrop<ArrayDataSource<ProjectElement>>>;
     let node: ProjectElement;
+    let dataSource: ArrayDataSource<ProjectElement>;
+
+    const createMockDragEvent = () => ({
+      previousIndex: 1,
+      currentIndex: 1,
+      item: mockDrag,
+      container: mockDropList,
+      previousContainer: mockDropList,
+      isPointerOverContainer: true,
+      distance: { x: 0, y: 0 },
+    });
+
+    const createTestNode = (
+      id: string,
+      level: number,
+      position: number
+    ): ProjectElement => ({
+      id,
+      name: `Test Node ${id}`,
+      type: 'FOLDER',
+      level,
+      position,
+    });
 
     beforeEach(() => {
-      const dataSource = new ArrayDataSource<ProjectElement>([]);
+      dataSource = new ArrayDataSource<ProjectElement>([]);
       node = component.treeManipulator.getData()[1];
-      mockDrag = {
-        data: node,
-      } as CdkDrag<ProjectElement>;
-
+      mockDrag = { data: node } as CdkDrag<ProjectElement>;
       mockDropList = {
         data: dataSource,
         getSortedItems: () => [mockDrag],
       } as CdkDropList<ArrayDataSource<ProjectElement>>;
-
-      mockEvent = {
-        previousIndex: 1,
-        currentIndex: 1,
-        item: mockDrag,
-        container: mockDropList,
-        previousContainer: mockDropList,
-        isPointerOverContainer: true,
-        distance: { x: 0, y: 0 },
-      };
+      mockEvent = createMockDragEvent();
     });
 
     it('should save changes after drag and drop', async () => {
@@ -250,21 +278,10 @@ describe('ProjectTreeComponent', () => {
         container: mockDropList,
       } as CdkDragSortEvent<ArrayDataSource<ProjectElement>>;
 
-      // Add additional nodes for testing
-      const nodeAbove: ProjectElement = {
-        id: '2',
-        name: 'Node Above',
-        type: 'FOLDER',
-        level: 1,
-        position: 0,
-      };
-      const nodeBelow: ProjectElement = {
-        id: '3',
-        name: 'Node Below',
-        type: 'FOLDER',
-        level: 2,
-        position: 1,
-      };
+      const [nodeAbove, nodeBelow] = [
+        createTestNode('2', 1, 0),
+        createTestNode('3', 2, 1),
+      ];
       component.treeManipulator.getData().push(nodeAbove, nodeBelow);
 
       component.sorted(mockSortEvent);
@@ -312,127 +329,105 @@ describe('ProjectTreeComponent', () => {
   });
 
   describe('Project Editing', () => {
+    beforeEach(() => {
+      mockDialogRef.afterClosed = jest.fn().mockReturnValue(of(null));
+    });
+
     it('should open edit project dialog', () => {
-      const dialogSpy = jest.spyOn(component.dialog, 'open');
       component.editProject();
-      expect(dialogSpy).toHaveBeenCalledWith(EditProjectDialogComponent, {
-        data: { project: component.projectStateService.project() },
-      });
+      expect(component.dialog.open).toHaveBeenCalledWith(
+        EditProjectDialogComponent,
+        {
+          data: { project: component.projectStateService.project() },
+        }
+      );
     });
 
-    it('should handle dialog result', () => {
-      treeService.updateProject = jest.fn();
-      const updateSpy = jest.spyOn(treeService, 'updateProject');
-      const mockDialogRef = {
-        afterClosed: jest
-          .fn()
-          .mockReturnValue(of({ title: 'Updated Project' })),
-        close: jest.fn(),
-        componentInstance: {},
-        _containerInstance: {},
-        _ref: {},
-        id: 'mock-dialog',
-        backdropClick: of(),
-        keydownEvents: of(),
-        updatePosition: jest.fn(),
-        updateSize: jest.fn(),
-        addPanelClass: jest.fn(),
-        removePanelClass: jest.fn(),
-        getState: jest.fn(),
-      } as unknown as MatDialogRef<unknown, unknown>;
-
-      jest.spyOn(component.dialog, 'open').mockReturnValue(mockDialogRef);
+    it('should handle successful dialog result', () => {
+      const updatedProject = { title: 'Updated Project' };
+      mockDialogRef.afterClosed = jest.fn().mockReturnValue(of(updatedProject));
 
       component.editProject();
-      expect(updateSpy).toHaveBeenCalledWith({ title: 'Updated Project' });
+      expect(treeService.updateProject).toHaveBeenCalledWith(updatedProject);
     });
 
-    it('should handle dialog errors', () => {
-      const mockDialogRef = {
-        afterClosed: jest.fn().mockReturnValue(of(null)),
-        close: jest.fn(),
-        componentInstance: {},
-        _containerInstance: {},
-        _ref: {},
-        id: 'mock-dialog',
-        backdropClick: of(),
-        keydownEvents: of(),
-        updatePosition: jest.fn(),
-        updateSize: jest.fn(),
-        addPanelClass: jest.fn(),
-        removePanelClass: jest.fn(),
-        getState: jest.fn(),
-      } as unknown as MatDialogRef<unknown, unknown>;
-
-      jest.spyOn(component.dialog, 'open').mockReturnValue(mockDialogRef);
-
+    it('should handle dialog cancellation', () => {
       component.editProject();
       expect(component.error()).toBeUndefined();
+      expect(treeService.updateProject).not.toHaveBeenCalled();
     });
   });
 
   describe('Context Menu', () => {
-    let node: ProjectElement;
+    let regularNode: ProjectElement;
+    let rootNode: ProjectElement;
+    let fileNode: ProjectElement;
+
+    const createFileNode = (): ProjectElement => ({
+      id: '2',
+      name: 'Test File',
+      type: 'ITEM',
+      position: 1,
+      level: 0,
+    });
 
     beforeEach(() => {
-      node = component.treeManipulator.getData()[1];
-    });
-
-    it('should open and close context menu', () => {
-      component.onContextMenuOpen(node);
-      expect(component.contextItem).toBe(node);
-
-      component.onContextMenuClose();
-      expect(component.contextItem).toBeNull();
-    });
-
-    it('should prevent root wrapper modification', async () => {
-      const rootNode = component.treeManipulator.getData()[0];
-      expect(rootNode.id).toBe(ROOT_WRAPPER_ID);
-
-      // Should not allow editing root
-      component.startEditing(rootNode);
-      expect(component.editingNode).toBeUndefined();
-
-      // Should not allow deleting root
-      await component.onDelete(rootNode);
-      expect(component.treeManipulator.getData()[0].id).toBe(ROOT_WRAPPER_ID);
-
-      // Should allow context menu on root but prevent actions
-      component.onContextMenuOpen(rootNode);
-      expect(component.contextItem).toBe(rootNode);
-      component.onRename(rootNode);
-      expect(component.editingNode).toBeUndefined();
-      await component.onDelete(rootNode);
-      expect(component.treeManipulator.getData()[0].id).toBe(ROOT_WRAPPER_ID);
-    });
-
-    it('should open file through context menu', () => {
-      // Add a file item to the tree
-      const fileDto: ProjectElement = {
-        id: '2',
-        name: 'Test File',
-        type: 'ITEM',
-        position: 1,
-        level: 0,
-      };
-      elementsSignal.update(elements => [...elements, fileDto]);
+      regularNode = component.treeManipulator.getData()[1];
+      rootNode = component.treeManipulator.getData()[0];
+      fileNode = createFileNode();
+      elementsSignal.update(elements => [...elements, fileNode]);
       fixture.detectChanges();
+    });
 
-      // Get the file node (should be at index 2 after root wrapper and folder)
-      const fileNode = component.treeManipulator.getData()[2];
-      expect(fileNode.type).toBe('ITEM');
+    describe('Basic Menu Operations', () => {
+      it('should open and close context menu', () => {
+        component.onContextMenuOpen(regularNode);
+        expect(component.contextItem).toBe(regularNode);
 
-      // Open the file
-      component.onOpenFile(fileNode);
+        component.onContextMenuClose();
+        expect(component.contextItem).toBeNull();
+      });
 
-      // Verify service was called with correct DTO
-      expect(treeService.openFile).toHaveBeenCalledWith({
-        id: fileNode.id,
-        name: fileNode.name,
-        type: fileNode.type,
-        level: fileNode.level - 1, // Should be decremented
-        position: fileNode.position,
+      it('should open file through context menu', () => {
+        const node = component.treeManipulator.getData()[2];
+        expect(node.type).toBe('ITEM');
+
+        component.onOpenFile(node);
+
+        expect(treeService.openFile).toHaveBeenCalledWith({
+          ...node,
+          expandable: undefined,
+          expanded: undefined,
+          level: node.level - 1,
+          visible: undefined,
+        });
+      });
+    });
+
+    describe('Root Node Protection', () => {
+      beforeEach(() => {
+        expect(rootNode.id).toBe(ROOT_WRAPPER_ID);
+      });
+
+      it('should prevent root node editing', () => {
+        component.startEditing(rootNode);
+        expect(component.editingNode).toBeUndefined();
+      });
+
+      it('should prevent root node deletion', async () => {
+        await component.onDelete(rootNode);
+        expect(component.treeManipulator.getData()[0].id).toBe(ROOT_WRAPPER_ID);
+      });
+
+      it('should allow context menu but prevent actions on root', async () => {
+        component.onContextMenuOpen(rootNode);
+        expect(component.contextItem).toBe(rootNode);
+
+        component.onRename(rootNode);
+        expect(component.editingNode).toBeUndefined();
+
+        await component.onDelete(rootNode);
+        expect(component.treeManipulator.getData()[0].id).toBe(ROOT_WRAPPER_ID);
       });
     });
   });
