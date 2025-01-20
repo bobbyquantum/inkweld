@@ -1,10 +1,17 @@
+import { nanoid } from 'nanoid';
+
 import { ProjectElement } from './project-element';
+export interface ValidDropLevels {
+  levels: number[];
+  defaultLevel: number;
+}
 
 /**
- * Class for manipulating the tree structure.
+ * Class for manipulating and validating tree operations.
  */
 export class TreeManipulator {
-  sourceData: ProjectElement[] = [];
+  private sourceData: ProjectElement[] = [];
+  private readonly ROOT_LEVEL = 1;
 
   constructor(treeData?: ProjectElement[]) {
     if (treeData) {
@@ -16,85 +23,12 @@ export class TreeManipulator {
     }
   }
 
-  /**
-   * Retrieves the manipulated tree data.
-   * @returns The array of ProjectElements.
-   */
+  // QUERYING METHODS
+
   getData(): ProjectElement[] {
     return this.sourceData;
   }
 
-  /**
-   * Toggles the expanded state of a node.
-   * @param node The project element to toggle.
-   */
-  toggleExpanded(node: ProjectElement) {
-    const nodeIndex = this.sourceData.indexOf(node);
-    if (nodeIndex === -1) {
-      return;
-    }
-    this.sourceData[nodeIndex].expanded = !this.sourceData[nodeIndex].expanded;
-    for (let i = nodeIndex + 1; i < this.sourceData.length; i++) {
-      if (this.sourceData[i].level > node.level) {
-        this.sourceData[i].visible = this.sourceData[nodeIndex].expanded;
-      } else {
-        break;
-      }
-    }
-    this.updateVisibility();
-  }
-
-  /**
-   * Updates the visibility of nodes based on their expanded state.
-   */
-  updateVisibility() {
-    const stack: { level: number; expanded?: boolean }[] = [];
-    for (const node of this.sourceData) {
-      while (stack.length > 0 && stack[stack.length - 1].level >= node.level) {
-        stack.pop();
-      }
-      node.visible = stack.every(parent => parent.expanded !== false);
-      if (node.expandable) {
-        stack.push({ level: node.level, expanded: node.expanded });
-      }
-    }
-  }
-
-  /**
-   * Adds a new item as a child to the specified node.
-   * @param node The parent node to add a new item to.
-   */
-  addItem(node: ProjectElement) {
-    const nodeIndex = this.sourceData.indexOf(node);
-    if (nodeIndex === -1) {
-      return;
-    }
-
-    // Insert right after the parent node
-    const insertionIndex = nodeIndex + 1;
-
-    const newItem: ProjectElement = {
-      id: 'new-item-' + Math.random().toString(36).substr(2, 9),
-      name: 'New Item',
-      type: 'ITEM',
-      level: node.level + 1,
-      position: insertionIndex, // Initial position
-      expandable: false,
-      expanded: true,
-      visible: true,
-    };
-
-    // Insert the new item
-    this.sourceData.splice(insertionIndex, 0, newItem);
-    this.updateGlobalPositions(); // Update all positions
-    this.updateVisibility();
-  }
-
-  /**
-   * Retrieves the parent node of a given node.
-   * @param node The node to find the parent of.
-   * @returns The parent node, or null if not found.
-   */
   getParentNode(node: ProjectElement): ProjectElement | null {
     const nodeIndex = this.sourceData.indexOf(node);
     for (let i = nodeIndex - 1; i >= 0; i--) {
@@ -105,11 +39,6 @@ export class TreeManipulator {
     return null;
   }
 
-  /**
-   * Retrieves the subtree of nodes starting from a given index.
-   * @param nodeIndex The index of the starting node.
-   * @returns An array of nodes in the subtree.
-   */
   getNodeSubtree(nodeIndex: number): ProjectElement[] {
     if (nodeIndex < 0 || nodeIndex >= this.sourceData.length) {
       return [];
@@ -126,25 +55,59 @@ export class TreeManipulator {
     return subtree;
   }
 
-  /**
-   * Deletes a node and its subtree.
-   * @param node The node to delete.
-   */
-  deleteNode(node: ProjectElement) {
-    const nodeIndex = this.sourceData.findIndex(n => n.id === node.id);
-    if (nodeIndex !== -1) {
-      const nodeSubtree = this.getNodeSubtree(nodeIndex);
-      this.sourceData.splice(nodeIndex, nodeSubtree.length);
-      this.updateGlobalPositions(); // Update positions after deletion
-      this.updateVisibility();
-    }
+  // NODE CREATION METHODS
+
+  createNode(
+    type: 'ITEM' | 'FOLDER',
+    parentNode: ProjectElement,
+    name?: string
+  ): ProjectElement {
+    return {
+      id: nanoid(),
+      name: name || (type === 'ITEM' ? 'New Item' : 'New Folder'),
+      type,
+      level: parentNode.level + 1,
+      position: 0,
+      expandable: type === 'FOLDER',
+      expanded: false,
+      visible: true,
+    };
   }
 
-  /**
-   * Renames a node.
-   * @param node The node to rename.
-   * @param newName The new name for the node.
-   */
+  addNode(
+    type: 'ITEM' | 'FOLDER',
+    parentNode: ProjectElement,
+    name?: string
+  ): ProjectElement {
+    const nodeIndex = this.sourceData.indexOf(parentNode);
+    if (nodeIndex === -1) return null!;
+
+    const newNode = this.createNode(type, parentNode, name);
+
+    // If adding to a folder, ensure it's expanded
+    if (parentNode.expandable && !parentNode.expanded) {
+      this.toggleExpanded(parentNode);
+    }
+
+    // Insert after parent node
+    this.sourceData.splice(nodeIndex + 1, 0, newNode);
+    this.updateVisibility();
+    this.updateGlobalPositions();
+
+    return newNode;
+  }
+
+  // NODE MODIFICATION METHODS
+
+  toggleExpanded(node: ProjectElement) {
+    const nodeIndex = this.sourceData.indexOf(node);
+    if (nodeIndex === -1) return;
+
+    this.sourceData[nodeIndex].expanded = !this.sourceData[nodeIndex].expanded;
+    this.updateSubtreeVisibility(nodeIndex, node.level);
+    this.updateVisibility();
+  }
+
   renameNode(node: ProjectElement, newName: string) {
     const nodeIndex = this.sourceData.findIndex(n => n.id === node.id);
     if (nodeIndex !== -1) {
@@ -152,26 +115,94 @@ export class TreeManipulator {
     }
   }
 
-  /**
-   * Moves a node to a new position and level.
-   * @param node The node to move.
-   * @param targetIndex The index to move the node to.
-   * @param newLevel The new level of the node.
-   */
-  moveNode(node: ProjectElement, targetIndex: number, newLevel: number) {
+  deleteNode(node: ProjectElement) {
     const nodeIndex = this.sourceData.findIndex(n => n.id === node.id);
-    if (nodeIndex === -1) {
-      return;
+    if (nodeIndex !== -1) {
+      const nodeSubtree = this.getNodeSubtree(nodeIndex);
+      this.sourceData.splice(nodeIndex, nodeSubtree.length);
+      this.updateGlobalPositions();
+      this.updateVisibility();
+    }
+  }
+
+  // DRAG & DROP OPERATIONS
+
+  getValidDropLevels(
+    nodeAbove: ProjectElement | null,
+    nodeBelow: ProjectElement | null
+  ): ValidDropLevels {
+    const validLevels = new Set<number>();
+
+    if (nodeAbove && nodeBelow) {
+      if (nodeAbove.level < nodeBelow.level) {
+        if (nodeAbove.expandable) {
+          validLevels.add(Math.max(this.ROOT_LEVEL, nodeAbove.level + 1));
+        }
+        validLevels.add(Math.max(this.ROOT_LEVEL, nodeBelow.level));
+      } else if (nodeAbove.level === nodeBelow.level) {
+        validLevels.add(Math.max(this.ROOT_LEVEL, nodeAbove.level));
+      } else {
+        for (let level = nodeBelow.level; level <= nodeAbove.level; level++) {
+          validLevels.add(Math.max(this.ROOT_LEVEL, level));
+        }
+      }
+    } else if (nodeAbove && !nodeBelow) {
+      for (let level = this.ROOT_LEVEL; level <= nodeAbove.level; level++) {
+        validLevels.add(level);
+      }
+      if (nodeAbove.expandable) {
+        validLevels.add(Math.max(this.ROOT_LEVEL, nodeAbove.level + 1));
+      }
+    } else if (!nodeAbove && nodeBelow) {
+      validLevels.add(Math.max(this.ROOT_LEVEL, nodeBelow.level));
+    } else {
+      validLevels.add(this.ROOT_LEVEL);
     }
 
-    // Get the subtree before moving
+    const levels = Array.from(validLevels).sort((a, b) => a - b);
+    return {
+      levels,
+      defaultLevel: levels[0],
+    };
+  }
+
+  getDropInsertIndex(
+    nodeAbove: ProjectElement | null,
+    currentLevel: number
+  ): number {
+    if (!nodeAbove) return 0;
+
+    const nodeAboveIndex = this.sourceData.findIndex(
+      n => n.id === nodeAbove.id
+    );
+    if (nodeAboveIndex === -1) return this.sourceData.length;
+
+    if (currentLevel > nodeAbove.level) {
+      return nodeAboveIndex + 1;
+    }
+
+    return nodeAboveIndex + this.getNodeSubtree(nodeAboveIndex).length;
+  }
+
+  isValidDrop(nodeAbove: ProjectElement | null, targetLevel: number): boolean {
+    if (!nodeAbove) return targetLevel === this.ROOT_LEVEL;
+    if (nodeAbove.type === 'ITEM' && targetLevel > nodeAbove.level) {
+      return false;
+    }
+    return true;
+  }
+
+  moveNode(node: ProjectElement, targetIndex: number, newLevel: number) {
+    const nodeIndex = this.sourceData.findIndex(n => n.id === node.id);
+    if (nodeIndex === -1) return;
+
     const nodeSubtree = this.getNodeSubtree(nodeIndex);
     const nodeSubtreeLength = nodeSubtree.length;
 
-    // Remove the subtree from its current position
+    // Remove the subtree
     this.sourceData.splice(nodeIndex, nodeSubtreeLength);
 
-    // Update the level of all nodes in the subtree
+    // Update levels
     const levelDifference = newLevel - node.level;
     nodeSubtree.forEach(n => {
       n.level += levelDifference;
@@ -182,17 +213,38 @@ export class TreeManipulator {
       targetIndex -= nodeSubtreeLength;
     }
 
-    // Insert the subtree at the new position
+    // Insert the subtree
     this.sourceData.splice(targetIndex, 0, ...nodeSubtree);
 
-    // Update all positions after move
     this.updateGlobalPositions();
     this.updateVisibility();
   }
 
-  /**
-   * Updates global position indices for all nodes
-   */
+  // VISIBILITY & POSITION UPDATES
+
+  updateVisibility() {
+    const stack: { level: number; expanded?: boolean }[] = [];
+    for (const node of this.sourceData) {
+      while (stack.length > 0 && stack[stack.length - 1].level >= node.level) {
+        stack.pop();
+      }
+      node.visible = stack.every(parent => parent.expanded !== false);
+      if (node.expandable) {
+        stack.push({ level: node.level, expanded: node.expanded });
+      }
+    }
+  }
+
+  private updateSubtreeVisibility(nodeIndex: number, nodeLevel: number) {
+    for (let i = nodeIndex + 1; i < this.sourceData.length; i++) {
+      if (this.sourceData[i].level > nodeLevel) {
+        this.sourceData[i].visible = this.sourceData[nodeIndex].expanded;
+      } else {
+        break;
+      }
+    }
+  }
+
   private updateGlobalPositions() {
     this.sourceData.forEach((node, index) => {
       node.position = index;
