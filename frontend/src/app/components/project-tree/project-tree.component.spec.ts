@@ -1,12 +1,14 @@
 import { ArrayDataSource } from '@angular/cdk/collections';
 import {
   CdkDrag,
+  CdkDragDrop,
   CdkDragMove,
   CdkDragSortEvent,
   CdkDropList,
 } from '@angular/cdk/drag-drop';
 import { provideHttpClient } from '@angular/common/http';
 import { signal, WritableSignal } from '@angular/core';
+import { fakeAsync, tick } from '@angular/core/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -178,6 +180,50 @@ describe('ProjectTreeComponent', () => {
     let mockDropList: CdkDropList<ArrayDataSource<ProjectElement>>;
     let node: ProjectElement;
     let dataSource: ArrayDataSource<ProjectElement>;
+    const createTestDragEvent = (
+      invalid = false
+    ): CdkDragDrop<ArrayDataSource<ProjectElement>> => ({
+      previousIndex: 0,
+      currentIndex: 1,
+      item: {
+        data: invalid
+          ? { ...mockDto, id: undefined, position: undefined }
+          : mockDto,
+      } as CdkDrag<ProjectElement>,
+      container: {
+        data: new ArrayDataSource([mockDto]),
+        getSortedItems: () => [{ data: mockDto } as CdkDrag<ProjectElement>],
+      } as CdkDropList<ArrayDataSource<ProjectElement>>,
+      previousContainer: {
+        data: new ArrayDataSource([mockDto]),
+        getSortedItems: () => [{ data: mockDto } as CdkDrag<ProjectElement>],
+      } as CdkDropList<ArrayDataSource<ProjectElement>>,
+      isPointerOverContainer: true,
+      distance: { x: 0, y: 0 },
+      event: new MouseEvent('mouseup'),
+      dropPoint: { x: 0, y: 0 },
+    });
+
+    it('should handle valid drops', fakeAsync(() => {
+      const event = createTestDragEvent();
+      void component.drop(event);
+      tick();
+      expect(treeService.saveProjectElements).toHaveBeenCalled();
+    }));
+    it('should handle valid drops', fakeAsync(() => {
+      const event = createTestDragEvent();
+      void component.drop(event);
+      tick();
+      expect(treeService.saveProjectElements).toHaveBeenCalled();
+    }));
+
+    it('should prevent invalid drops', fakeAsync(() => {
+      const event = createTestDragEvent(true);
+      component.currentDropLevel = 3;
+      void component.drop(event);
+      tick();
+      expect(treeService.saveProjectElements).not.toHaveBeenCalled();
+    }));
 
     const createTestNode = (
       id: string,
