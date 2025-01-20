@@ -35,7 +35,7 @@
     "@nestjs/platform-express": "11.0.3",
     "@nestjs/platform-fastify": "11.0.3",
     "@nestjs/platform-ws": "11.0.3",
-    "@nestjs/serve-static": "4.0.2",
+    "@nestjs/serve-static": "5.0.1",
     "@nestjs/swagger": "11.0.2",
     "@nestjs/typeorm": "11.0.0",
     "@nestjs/websockets": "11.0.3",
