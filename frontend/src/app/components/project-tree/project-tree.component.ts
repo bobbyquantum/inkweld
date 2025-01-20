@@ -174,28 +174,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The parent node to add a new item to.
    */
   public async onNewItem(node: ProjectElement) {
-    const nodeIndex = this.treeManipulator.getData().indexOf(node);
-    if (nodeIndex === -1) return;
-
-    const newItem: ProjectElement = {
-      id: undefined, // Server will generate ID
-      name: 'New Item',
-      type: 'ITEM',
-      level: node.level + 1,
-      position: 0,
-      expandable: false,
-      expanded: false,
-      visible: true,
-    };
-
-    // If adding to a folder, ensure it's expanded
-    if (node.expandable && !node.expanded) {
-      this.toggleExpanded(node);
-    }
-
-    // Insert after parent node
-    this.treeManipulator.getData().splice(nodeIndex + 1, 0, newItem);
-    this.treeManipulator.updateVisibility();
+    const newItem = this.treeManipulator.addNode('ITEM', node);
     this.updateDataSource();
     await this.saveChanges();
 
@@ -208,53 +187,12 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The parent node to add a new folder to.
    */
   public async onNewFolder(node: ProjectElement) {
-    const nodeIndex = this.treeManipulator.getData().indexOf(node);
-    if (nodeIndex === -1) return;
-
-    const newFolder: ProjectElement = {
-      id: undefined, // Server will generate ID
-      name: 'New Folder',
-      type: 'FOLDER',
-      level: node.level + 1,
-      position: 0,
-      expandable: true,
-      expanded: false,
-      visible: true,
-    };
-
-    // If adding to a folder, ensure it's expanded
-    if (node.expandable && !node.expanded) {
-      this.toggleExpanded(node);
-    }
-
-    // Insert after parent node
-    this.treeManipulator.getData().splice(nodeIndex + 1, 0, newFolder);
-    this.treeManipulator.updateVisibility();
+    const newFolder = this.treeManipulator.addNode('FOLDER', node);
     this.updateDataSource();
     await this.saveChanges();
 
     // Start editing the new folder
     this.startEditing(newFolder);
-  }
-
-  /**
-   * Adds a new item as a child to the specified node.
-   * @param node The parent node to add a new item to.
-   */
-  public async addItem(node: ProjectElement) {
-    this.treeManipulator.addItem(node);
-    this.updateDataSource();
-    // Save changes after adding new item
-    await this.saveChanges();
-  }
-
-  /**
-   * Retrieves the parent node of a given node.
-   * @param node The node to find the parent of.
-   * @returns The parent node, or null if not found.
-   */
-  getParentNode(node: ProjectElement): ProjectElement | null {
-    return this.treeManipulator.getParentNode(node);
   }
 
   /**
@@ -348,52 +286,22 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Handles the sort event during drag and drop.
    * @param event The drag sort event.
    */
-  public sorted(event: CdkDragSortEvent<ArrayDataSource<ProjectElement>>) {
+  sorted(event: CdkDragSortEvent<ArrayDataSource<ProjectElement>>) {
     const { currentIndex, container } = event;
     const sortedNodes = container
       .getSortedItems()
       .map(dragItem => dragItem.data as ProjectElement)
       .filter(node => node.id !== this.draggedNode?.id);
+
     const nodeAbove = sortedNodes[currentIndex - 1] || null;
     const nodeBelow = sortedNodes[currentIndex] || null;
-    const validLevels = new Set<number>();
 
-    // Ensure minimum level is 1 to stay under wrapper
-    if (nodeAbove && nodeBelow) {
-      if (nodeAbove.level < nodeBelow.level) {
-        if (nodeAbove.expandable) {
-          validLevels.add(Math.max(1, nodeAbove.level + 1));
-        }
-        validLevels.add(Math.max(1, nodeBelow.level));
-      } else if (nodeAbove.level === nodeBelow.level) {
-        validLevels.add(Math.max(1, nodeAbove.level));
-      } else {
-        for (let level = nodeBelow.level; level <= nodeAbove.level; level++) {
-          validLevels.add(Math.max(1, level));
-        }
-      }
-    } else if (nodeAbove && !nodeBelow) {
-      for (let level = 1; level <= nodeAbove.level; level++) {
-        validLevels.add(level);
-      }
-      if (nodeAbove.expandable) {
-        validLevels.add(Math.max(1, nodeAbove.level + 1));
-      }
-    } else if (!nodeAbove && nodeBelow) {
-      validLevels.add(Math.max(1, nodeBelow.level));
-    } else {
-      validLevels.add(1); // Minimum level 1
-    }
-
-    this.validLevelsArray = Array.from(validLevels).sort((a, b) => a - b);
-    this.currentDropLevel = this.validLevelsArray[0];
-  }
-
-  /**
-   * Resets the state after a drop operation.
-   */
-  public resetDropState() {
-    this.draggedNode = null;
+    const { levels, defaultLevel } = this.treeManipulator.getValidDropLevels(
+      nodeAbove,
+      nodeBelow
+    );
+    this.validLevelsArray = levels;
+    this.currentDropLevel = defaultLevel;
   }
 
   /**
@@ -407,58 +315,20 @@ export class ProjectTreeComponent implements AfterViewInit {
       .map(dragItem => dragItem.data as ProjectElement)
       .filter(node => node.id !== this.draggedNode?.id);
     const nodeAbove = sortedNodes[currentIndex - 1] || null;
-    const nodeBelow = sortedNodes[currentIndex] || null;
-
-    // Check if trying to drop as child of an item
-    if (
-      nodeAbove &&
-      nodeAbove.type === 'ITEM' &&
-      this.currentDropLevel > nodeAbove.level
-    ) {
-      throw new Error('Cannot drop as child of an item');
-    }
-
     const node = item.data as ProjectElement;
 
-    // Prevent dropping at level 0 (root wrapper level)
-    if (this.currentDropLevel < 1) {
+    if (!this.treeManipulator.isValidDrop(nodeAbove, this.currentDropLevel)) {
       return;
     }
 
-    let insertIndex: number;
-
-    if (nodeAbove) {
-      const nodeAboveIndex = this.treeManipulator
-        .getData()
-        .findIndex(n => n.id === nodeAbove?.id);
-      if (nodeAboveIndex === -1) {
-        return;
-      }
-
-      if (this.currentDropLevel > nodeAbove.level) {
-        insertIndex = nodeAboveIndex + 1;
-      } else {
-        const nodeAboveSubtree =
-          this.treeManipulator.getNodeSubtree(nodeAboveIndex);
-        insertIndex = nodeAboveIndex + nodeAboveSubtree.length;
-      }
-    } else if (nodeBelow) {
-      const nodeBelowIndex = this.treeManipulator
-        .getData()
-        .findIndex(n => n.id === nodeBelow?.id);
-      if (nodeBelowIndex === -1) {
-        return;
-      }
-      insertIndex = nodeBelowIndex;
-    } else {
-      insertIndex = this.treeManipulator.getData().length;
-    }
+    const insertIndex = this.treeManipulator.getDropInsertIndex(
+      nodeAbove,
+      this.currentDropLevel
+    );
 
     this.treeManipulator.moveNode(node, insertIndex, this.currentDropLevel);
-    this.resetDropState();
+    this.draggedNode = null;
     this.updateDataSource();
-
-    // Save changes after drop
     await this.saveChanges();
   }
 
