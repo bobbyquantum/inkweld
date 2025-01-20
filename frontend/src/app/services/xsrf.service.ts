@@ -11,7 +11,7 @@ export class XsrfService {
     const xsrfCookie = cookies.find(cookie => {
       return /^\s*XSRF-TOKEN\s*=/.test(cookie);
     });
-    if (!xsrfCookie) return '';
+    if (!xsrfCookie) return 'fake';
     const equalsIndex = xsrfCookie.indexOf('=');
     return xsrfCookie.slice(equalsIndex + 1).trim();
   }

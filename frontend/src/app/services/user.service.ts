@@ -71,22 +71,28 @@ export class UserService {
    * Loads the current user from cache or API
    */
   async loadCurrentUser(): Promise<void> {
+    console.log('Load current user called');
     this.isLoading.set(true);
     this.error.set(undefined);
 
     try {
-      // Try to load from cache first
-      const cachedUser = await this.getCachedUser();
+      const cachedUser = await this.getCachedUser().catch(() => undefined); // Handle IndexedDB failure
       if (cachedUser) {
         this.currentUser.set(cachedUser);
         return;
       }
 
-      // Fall back to API if no cached user
+      console.log('No cached user or IndexedDB failed, loading from API');
       const user = await firstValueFrom(this.userApi.userControllerGetMe());
       if (user) {
         this.currentUser.set(user);
-        await this.setCurrentUser(user);
+
+        // Only cache if IndexedDB is available
+        try {
+          await this.setCurrentUser(user);
+        } catch {
+          console.warn('Skipping cache as IndexedDB is unavailable.');
+        }
       }
     } catch (err) {
       this.error.set('Failed to load user data');
@@ -122,7 +128,9 @@ export class UserService {
    * Gets the cached user from IndexedDB
    */
   private async getCachedUser(): Promise<UserDto | undefined> {
+    console.log('Getting DB');
     const db = await this.getDB();
+    console.log('Got DB');
     return new Promise<UserDto | undefined>(resolve => {
       const transaction = db.transaction(STORE_NAME, 'readonly');
       const store = transaction.objectStore(STORE_NAME);
@@ -136,9 +144,16 @@ export class UserService {
    * Initializes the IndexedDB database
    */
   private initDB(): Promise<IDBDatabase> {
+    // Check if `indexedDB` is available
+    console.log('Init User DB');
+    if (!indexedDB) {
+      console.error('IndexedDB is not available in this environment.');
+      return Promise.reject(new Error('IndexedDB is not available.'));
+    }
+
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, 1);
-
+      console.log('Opened User DB');
       request.onupgradeneeded = event => {
         const db = (event.target as IDBOpenDBRequest).result;
         if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -146,15 +161,29 @@ export class UserService {
         }
       };
 
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error as Error);
+      request.onsuccess = () => {
+        console.log('Database loaded', request.result);
+        resolve(request.result);
+      };
+      request.onerror = () => {
+        console.error('Error opening IndexedDB:', request.error);
+        reject(request.error as Error);
+      };
     });
   }
 
   /**
    * Gets the initialized IndexedDB database instance
    */
-  private getDB(): Promise<IDBDatabase> {
-    return this.dbPromise;
+  private async getDB(): Promise<IDBDatabase> {
+    try {
+      return await this.dbPromise;
+    } catch (error) {
+      console.error(
+        'Failed to initialize IndexedDB. Falling back to API-only mode.',
+        error
+      );
+      throw error; // Rethrow or handle fallback logic as needed.
+    }
   }
 }
