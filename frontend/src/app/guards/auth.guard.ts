@@ -34,20 +34,26 @@ class AuthState {
 export const authGuard: CanActivateFn = async () => {
   const router = inject(Router);
   const userService = inject(UserService);
+  console.log('Checking auth guard');
   const authState = AuthState.getInstance();
 
   if (!authState.getUser()) {
+    console.log('No user found, attempting to retrieve');
     await userService.loadCurrentUser();
+    console.log('User load complete');
     const user = userService.currentUser();
+    console.log('Current user');
     if (user) {
       authState.setUser(user);
+      console.log('User stored');
     }
   }
 
   if (authState.getUser()) {
+    console.log('User found, continuing');
     return true;
   }
-
+  console.log('Directing to welcome page');
   return router.createUrlTree(['/welcome']);
 };
 
