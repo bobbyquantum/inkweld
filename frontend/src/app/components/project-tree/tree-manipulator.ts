@@ -189,6 +189,9 @@ export class TreeManipulator {
     if (nodeAbove.type === 'ITEM' && targetLevel > nodeAbove.level) {
       return false;
     }
+    if (nodeAbove.type === 'FOLDER' && targetLevel > nodeAbove.level + 1) {
+      return false;
+    }
     return true;
   }
 
