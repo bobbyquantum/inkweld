@@ -38,7 +38,7 @@
         "y-websocket": "2.1.0",
       },
       "devDependencies": {
-        "@nestjs/cli": "11.0.0",
+        "@nestjs/cli": "11.0.1",
         "@nestjs/schematics": "11.0.0",
         "@nestjs/testing": "11.0.3",
         "@openapitools/openapi-generator-cli": "2.15.3",
@@ -281,7 +281,7 @@
 
     "@nestjs/axios": ["@nestjs/axios@3.1.1", "", { "peerDependencies": { "@nestjs/common": "^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0", "axios": "^1.3.1", "rxjs": "^6.0.0 || ^7.0.0" } }, "sha512-ySoxrzqX80P1q6LKLKGcgyBd2utg4gbC+4FsJNpXYvILorMlxss/ECNogD9EXLCE4JS5exVFD5ez0nK5hXcNTQ=="],
 
-    "@nestjs/cli": ["@nestjs/cli@11.0.0", "", { "dependencies": { "@angular-devkit/core": "19.1.2", "@angular-devkit/schematics": "19.1.2", "@angular-devkit/schematics-cli": "19.1.2", "@inquirer/prompts": "7.2.3", "@nestjs/schematics": "11.0.0", "ansis": "3.9.0", "chokidar": "4.0.3", "cli-table3": "0.6.5", "commander": "4.1.1", "fork-ts-checker-webpack-plugin": "9.0.2", "glob": "11.0.1", "node-emoji": "1.11.0", "ora": "5.4.1", "tree-kill": "1.2.2", "tsconfig-paths": "4.2.0", "tsconfig-paths-webpack-plugin": "4.2.0", "typescript": "5.7.3", "webpack": "5.97.1", "webpack-node-externals": "3.0.0" }, "peerDependencies": { "@swc/cli": "^0.1.62 || ^0.3.0 || ^0.4.0 || ^0.5.0 || ^0.6.0", "@swc/core": "^1.3.62" }, "optionalPeers": ["@swc/cli", "@swc/core"], "bin": { "nest": "bin/nest.js" } }, "sha512-53Hparhbz4nNQNttf6EFfYNeFxSLdshqnvaiWy3MBnZxgAuqtAZP3xsiNHPId5dYtzGCjdK60FN4Vcspx3Y+aw=="],
+    "@nestjs/cli": ["@nestjs/cli@11.0.1", "", { "dependencies": { "@angular-devkit/core": "19.1.2", "@angular-devkit/schematics": "19.1.2", "@angular-devkit/schematics-cli": "19.1.2", "@inquirer/prompts": "7.2.3", "@nestjs/schematics": "11.0.0", "ansis": "3.9.0", "chokidar": "4.0.3", "cli-table3": "0.6.5", "commander": "4.1.1", "fork-ts-checker-webpack-plugin": "9.0.2", "glob": "11.0.1", "node-emoji": "1.11.0", "ora": "5.4.1", "tree-kill": "1.2.2", "tsconfig-paths": "4.2.0", "tsconfig-paths-webpack-plugin": "4.2.0", "typescript": "5.7.3", "webpack": "5.97.1", "webpack-node-externals": "3.0.0" }, "peerDependencies": { "@swc/cli": "^0.1.62 || ^0.3.0 || ^0.4.0 || ^0.5.0 || ^0.6.0", "@swc/core": "^1.3.62" }, "optionalPeers": ["@swc/cli", "@swc/core"], "bin": { "nest": "bin/nest.js" } }, "sha512-W1pS3mKBb5L2T0Sk9/bAFTS3XctcaAn9q1veXCIKSaGwGk7pjqEa1AwzX8/Lq10NJgjJno/Lhw1kZrX32VImFA=="],
 
     "@nestjs/common": ["@nestjs/common@11.0.3", "", { "dependencies": { "iterare": "1.2.1", "tslib": "2.8.1", "uid": "2.0.2" }, "peerDependencies": { "class-transformer": "*", "class-validator": "*", "reflect-metadata": "^0.1.12 || ^0.2.0", "rxjs": "^7.1.0" }, "optionalPeers": ["class-transformer", "class-validator"] }, "sha512-fTkJWQ20+jvPKfrv3A+T3wsPwwYSJyoJ+pcBzyKtv5fCpK/yX/rJalFUIpw1CDmarfqIaMX9SdkplNyxtvH6RA=="],
 
