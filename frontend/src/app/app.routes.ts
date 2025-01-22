@@ -3,6 +3,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
 import { HomeComponent } from './pages/home/home.component';
 import { NewProjectComponent } from './pages/new-project/new-project.component';
+import { NotFoundComponent } from './pages/not-found/not-found.component';
 import { ProjectComponent } from './pages/project/project.component';
 import { RegisterComponent } from './pages/register/register.component';
 import { UnavailableComponent } from './pages/unavailable/unavailable.component';
@@ -41,5 +42,10 @@ export const routes: Routes = [
     path: 'unavailable',
     component: UnavailableComponent,
     title: 'Service Unavailable',
+  },
+  {
+    path: '**',
+    component: NotFoundComponent,
+    title: '404 - Page Not Found',
   },
 ];
