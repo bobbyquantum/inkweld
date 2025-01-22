@@ -1,26 +1,26 @@
 # Stage 1: Build the Angular frontend
-FROM node:18 AS build-frontend
+FROM oven/bun AS build-frontend
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm install
+COPY frontend/package.json frontend/bun.lockb ./
+RUN bun install
 COPY frontend/ ./
-RUN npm run build --prod
+RUN bun run build --prod
 
 # Stage 2: Build the NestJS backend
-FROM node:18 AS build-backend
+FROM oven/bun AS build-backend
 WORKDIR /app/worm-server
-COPY worm-server/package.json worm-server/package-lock.json ./
-RUN npm install
+COPY worm-server/package.json worm-server/bun.lockb ./
+RUN bun install
 COPY worm-server/ ./
-RUN npm run build
+RUN bun run build
 
 # Stage 3: Create the final image
-FROM node:18-alpine
+FROM oven/bun:alpine
 WORKDIR /app
 COPY --from=build-backend /app/worm-server/dist ./worm-server/dist
 COPY --from=build-frontend /app/frontend/dist ./frontend/dist
-COPY worm-server/package.json worm-server/package-lock.json ./
-RUN npm install --only=production
+COPY worm-server/package.json worm-server/bun.lockb ./
+RUN bun install --production
 
 EXPOSE 8333
-CMD ["node", "worm-server/dist/main.js"]
+CMD ["bun", "worm-server/dist/main.js"]
