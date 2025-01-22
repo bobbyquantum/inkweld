@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  worm-server:
+    image: worm-server:prod
+    build:
+      context: .
+      dockerfile: worm-server/Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=8333
+      - DATABASE_URL=postgres://wormuser:secret@postgres:5432/wormdb
+    ports:
+      - '8333:8333'
+    depends_on:
+      - postgres
+
+  postgres:
+    image: 'pgvector/pgvector:pg17'
+    environment:
+      - 'POSTGRES_DB=wormdb'
+      - 'POSTGRES_PASSWORD=secret'
+      - 'POSTGRES_USER=wormuser'
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

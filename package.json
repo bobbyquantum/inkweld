@@ -5,7 +5,8 @@
   "scripts": {
     "install-all": "cd frontend && bun install --save-text-lockfile && cd ../worm-server && bun install --save-text-lockfile",
     "lint": "cd frontend && npm run lint && cd ../worm-server && bun run lint",
-    "test": "cd frontend && npm test && cd ../worm-server && bun test"
+    "test": "cd frontend && npm test && cd ../worm-server && bun test",
+    "build:image:prod": "docker build -t worm-server:prod -f worm-server/Dockerfile ."
   },
   "devDependencies": {
   }
