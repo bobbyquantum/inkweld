@@ -19,7 +19,7 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "types": ["node"],
+    "types": ["node", "bun"],
     "paths": {
       "yjs": ["node_modules/yjs/dist/yjs.mjs"]
     }

@@ -5,14 +5,11 @@ import {
 import { ValidationException } from '../common/exceptions/validation.exception.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
 import { UserEntity } from './user.entity.js';
 import { UserDto } from './user.dto.js';
 
 @Injectable()
 export class UserService {
-  private readonly SALT_ROUNDS = 10; // for bcrypt
-
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
@@ -55,7 +52,7 @@ export class UserService {
   ): Promise<UserEntity> {
     await this.validateUserInput(username, password);
 
-    const hashedPassword = await bcrypt.hash(password, this.SALT_ROUNDS);
+    const hashedPassword = await Bun.password.hash(password);
 
     const user = this.userRepo.create({
       username: username,
@@ -98,7 +95,7 @@ export class UserService {
   ): Promise<void> {
     const user = await this.getCurrentUser(userId);
 
-    const passwordMatches = await bcrypt.compare(oldPassword, user.password);
+    const passwordMatches = await Bun.password.verify(oldPassword, user.password);
     if (!passwordMatches) {
       throw new BadRequestException('Old password is incorrect');
     }
@@ -115,7 +112,7 @@ export class UserService {
       });
     }
 
-    user.password = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+    user.password = await Bun.password.hash(newPassword);
     await this.userRepo.save(user);
   }
 

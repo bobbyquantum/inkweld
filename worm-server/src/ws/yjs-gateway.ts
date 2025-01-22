@@ -5,7 +5,7 @@ import {
   OnGatewayDisconnect,
   OnGatewayInit,
 } from '@nestjs/websockets';
-import Server from 'ws';
+import type { Server as WSServer, WebSocket } from 'ws';
 import type { Request } from 'express';
 import {
   setupWSConnection,
@@ -82,7 +82,7 @@ export class YjsGateway
    * Called once the gateway is initialized. Here we set up the LevelDB persistence
    * so that any docs loaded via `setupWSConnection` get automatically persisted.
    */
-  afterInit(_server: Server) {
+  afterInit(_server: typeof WSServer) {
     this.logger.log('YjsGateway initialized');
 
     // Initialize LevelDBPersistence
@@ -128,7 +128,7 @@ export class YjsGateway
   }
 
   @WebSocketServer()
-  server: Server;
+  server: typeof WSServer;
 
   /**
    * Called every time a new WebSocket connection is established. We:

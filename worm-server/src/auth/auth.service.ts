@@ -3,7 +3,6 @@ import { UserService } from '../user/user.service.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from '../user/user.entity.js';
-import * as bcrypt from 'bcrypt';
 import { TypeOrmSessionStore } from './session.store.js';
 import type { Request } from 'express';
 
@@ -30,7 +29,7 @@ export class AuthService {
       throw new UnauthorizedException('User account is disabled');
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await Bun.password.verify(password, user.password);
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid username or password');

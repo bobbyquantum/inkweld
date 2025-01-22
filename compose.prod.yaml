@@ -15,6 +15,7 @@ services:
       - DB_PASSWORD=secret
       - DB_NAME=wormdb
       - Y_DATA_PATH=/var/lib/yjs
+      - ALLOWED_ORIGINS=http://localhost:8333
     volumes:
       - yjs_data:/var/lib/yjs
     ports:
