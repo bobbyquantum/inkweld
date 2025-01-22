@@ -23,4 +23,4 @@ COPY worm-server/package.json worm-server/bun.lock ./
 RUN bun install --production
 
 EXPOSE 8333
-CMD ["bun", "worm-server/dist/main.js"]
+CMD ["bun", "worm-server/dist/src/main.js"]

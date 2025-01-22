@@ -33,8 +33,79 @@ describe('GithubStrategy', () => {
     photos: [{ value: 'https://example.com/avatar.jpg' }],
   };
 
+  describe('initialization', () => {
+    it('should throw error when GITHUB_ENABLED is false', async () => {
+      process.env.GITHUB_ENABLED = 'false';
+      process.env.GITHUB_CLIENT_ID = 'mock-client-id';
+      process.env.GITHUB_CLIENT_SECRET = 'mock-client-secret';
+
+      await expect(
+        Test.createTestingModule({
+          providers: [
+            GithubStrategy,
+            {
+              provide: UserService,
+              useValue: { findByGithubId: jest.fn(), createGithubUser: jest.fn() },
+            },
+          ],
+        }).compile(),
+      ).rejects.toThrow('GitHub authentication is disabled');
+    });
+
+    it('should throw error when GITHUB_ENABLED is not set', async () => {
+      delete process.env.GITHUB_ENABLED;
+      process.env.GITHUB_CLIENT_ID = 'mock-client-id';
+      process.env.GITHUB_CLIENT_SECRET = 'mock-client-secret';
+
+      await expect(
+        Test.createTestingModule({
+          providers: [
+            GithubStrategy,
+            {
+              provide: UserService,
+              useValue: { findByGithubId: jest.fn(), createGithubUser: jest.fn() },
+            },
+          ],
+        }).compile(),
+      ).rejects.toThrow('GitHub authentication is disabled');
+    });
+
+    it('should initialize when GITHUB_ENABLED is true', async () => {
+      process.env.GITHUB_ENABLED = 'true';
+      process.env.GITHUB_CLIENT_ID = 'mock-client-id';
+      process.env.GITHUB_CLIENT_SECRET = 'mock-client-secret';
+      process.env.GITHUB_CALLBACK_URL =
+        'http://localhost:8333/oauth2/code/github';
+
+      const mockUserService = {
+        findByGithubId: jest.fn(),
+        createGithubUser: jest.fn(),
+      };
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          GithubStrategy,
+          {
+            provide: UserService,
+            useValue: mockUserService,
+          },
+        ],
+      }).compile();
+
+      strategy = module.get<GithubStrategy>(GithubStrategy);
+      userService = module.get(UserService);
+
+      // Mock logger to avoid console output in tests
+      jest.spyOn(strategy['logger'], 'log').mockImplementation(() => undefined);
+      jest.spyOn(strategy['logger'], 'error').mockImplementation(() => undefined);
+
+      expect(strategy).toBeDefined();
+    });
+  });
+
   beforeEach(async () => {
     // Mock environment variables
+    process.env.GITHUB_ENABLED = 'true';
     process.env.GITHUB_CLIENT_ID = 'mock-client-id';
     process.env.GITHUB_CLIENT_SECRET = 'mock-client-secret';
     process.env.GITHUB_CALLBACK_URL =
