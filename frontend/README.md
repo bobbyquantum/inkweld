@@ -25,3 +25,27 @@ Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To u
 ## Further help
 
 To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+## Docker
+
+### Building Docker Image
+
+To build the Docker image for the backend application, run the following command:
+
+```bash
+docker build -t worm-server:prod -f worm-server/Dockerfile .
+```
+
+### Running Docker Containers
+
+To run the Docker containers using Docker Compose, use the following command:
+
+```bash
+docker-compose -f compose.prod.yaml up
+```
+
+This will start the `worm-server` and `postgres` services defined in the `compose.prod.yaml` file.
+
+### Pushing Docker Image to GitHub Container Registry
+
+To push the Docker image to GitHub Container Registry, you can use the provided GitHub Action workflow. The workflow is defined in the `.github/workflows/docker-publish.yml` file and will automatically build and push the Docker image when changes are pushed to the `main` branch.
