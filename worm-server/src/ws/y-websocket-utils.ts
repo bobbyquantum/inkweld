@@ -12,7 +12,6 @@ import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 import * as map from 'lib0/map';
 import debounce from 'lodash.debounce';
-import { LeveldbPersistence } from 'y-leveldb';
 // Optional environment-based config
 const CALLBACK_DEBOUNCE_WAIT = parseInt(
   process.env.CALLBACK_DEBOUNCE_WAIT || '2000',
@@ -21,7 +20,6 @@ const CALLBACK_DEBOUNCE_MAXWAIT = parseInt(
   process.env.CALLBACK_DEBOUNCE_MAXWAIT || '10000',
 );
 const gcEnabled = process.env.GC !== 'false' && process.env.GC !== '0';
-const persistenceDir = process.env.YPERSISTENCE;
 const pingTimeout = 30000;
 
 // WebSocket "readyState" constants
@@ -33,30 +31,7 @@ const wsReadyStateOpen = 1;
 // Persistence (Leveldb or custom). If null, no persistence
 let persistence = null;
 
-if (typeof persistenceDir === 'string') {
-  console.info('Persisting documents to "' + persistenceDir + '"');
-  const ldb = new LeveldbPersistence(persistenceDir);
-  persistence = {
-    provider: ldb,
-    bindState: async (docName, ydoc) => {
-      const persistedYdoc = await ldb.getYDoc(docName);
-      // store initial snapshot
-      const newUpdates = Y.encodeStateAsUpdate(ydoc);
-      ldb.storeUpdate(docName, newUpdates);
-
-      // apply existing updates from DB
-      Y.applyUpdate(ydoc, Y.encodeStateAsUpdate(persistedYdoc));
-
-      // listen for changes and persist them
-      ydoc.on('update', (update) => {
-        ldb.storeUpdate(docName, update);
-      });
-    },
-    writeState: async (_docName, _ydoc) => {
-      // no-op by default
-    },
-  };
-}
+// Persistence will be set by the gateway
 
 /**
  * Provide or override the global persistence strategy.

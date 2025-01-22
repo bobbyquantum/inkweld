@@ -86,7 +86,7 @@ export class YjsGateway
     this.logger.log('YjsGateway initialized');
 
     // Initialize LevelDBPersistence
-    const ldb = new LeveldbPersistence(process.env.YPERSISTENCE, {
+    const ldb = new LeveldbPersistence(process.env.Y_DATA_PATH || './data', {
       // You can pass level options here if desired
       levelOptions: {
         createIfMissing: true,
@@ -205,7 +205,7 @@ export class YjsGateway
       setupWSConnection(connection, req, connectionOptions);
 
       this.logger.log(
-        `New Yjs WebSocket connection for doc: "${docId}" with persistence "${process.env.YPERSISTENCE}" (Owner: ${
+        `New Yjs WebSocket connection for doc: "${docId}" with persistence "${process.env.Y_DATA_PATH || './data'}" (Owner: ${
           docOwner || session.userId
         })`,
       );
