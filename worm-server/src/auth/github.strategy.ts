@@ -8,6 +8,16 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
   private logger = new Logger(GithubStrategy.name);
 
   constructor(private userService: UserService) {
+    if (!process.env.GITHUB_ENABLED || process.env.GITHUB_ENABLED === 'false') {
+      throw new Error('GitHub authentication is disabled');
+    }
+
+    if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
+      throw new Error(
+        'GitHub authentication requires GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to be set in environment variables',
+      );
+    }
+
     super({
       clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,

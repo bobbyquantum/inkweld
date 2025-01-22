@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { UserService } from '../user/user.service.js';
 import { ConfigModule } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
@@ -23,7 +24,16 @@ import { OAuth2Controller } from './oauth2.controller.js';
   providers: [
     AuthService,
     LocalStrategy,
-    GithubStrategy,
+    {
+      provide: GithubStrategy,
+      useFactory: (userService: UserService) => {
+        if (process.env.GITHUB_ENABLED && process.env.GITHUB_ENABLED === 'true') {
+          return new GithubStrategy(userService);
+        }
+        return null;
+      },
+      inject: [UserService],
+    },
     {
       provide: TypeOrmSessionStore,
       useFactory: (sessionRepository) => {

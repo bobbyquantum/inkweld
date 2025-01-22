@@ -9,7 +9,11 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=8333
-      - DATABASE_URL=postgres://wormuser:secret@postgres:5432/wormdb
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=wormuser
+      - DB_PASSWORD=secret
+      - DB_NAME=wormdb
     ports:
       - '8333:8333'
     depends_on:
