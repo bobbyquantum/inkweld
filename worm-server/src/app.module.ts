@@ -39,8 +39,7 @@ import * as path from 'path';
         }
         return [
           {
-            rootPath: '../frontend/dist/worm-frontend',
-            exclude: ['/api*', '/login*', '/oauth2*', '/ws*'],
+            rootPath: path.resolve('frontend/dist/worm-frontend/browser'),
             serveRoot: '/',
             serveStaticOptions: {
               fallthrough: true, // Allow falling through to other middleware
@@ -100,6 +99,7 @@ export class AppModule implements NestModule {
       // Production mode: serve index.html for client-side routing
       consumer
         .apply((req, res, next) => {
+          this.logger.log(`Serving index.html for ${req.url}, current dir: ${process.cwd()}`);
           if (
             !req.url.startsWith('/api/') &&
             !req.url.startsWith('/login/') &&
@@ -108,7 +108,7 @@ export class AppModule implements NestModule {
             !req.url.startsWith('/ws/') &&
             !req.url.match(/\.(js|css|ico|png|jpg|jpeg|gif|svg|json)$/)
           ) {
-            res.sendFile('../frontend/dist/worm-frontend/index.html');
+            res.sendFile('index.html', { root: path.resolve(process.cwd(), 'frontend/dist/worm-frontend/browser') });
           } else {
             next();
           }
