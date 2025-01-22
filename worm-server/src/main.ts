@@ -6,9 +6,10 @@ import * as path from 'path';
 import session from 'express-session';
 import { TypeOrmSessionStore } from './auth/session.store.js';
 import { WsAdapter } from '@nestjs/platform-ws';
-import { ExpressAdapter } from '@nestjs/platform-express';
 import { INestApplication } from '@nestjs/common';
 import { ValidationFilter } from './common/filters/validation.filter.js';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import compression from '@fastify/compress';
 
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
@@ -38,8 +39,8 @@ export async function setupSwagger(app: INestApplication) {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, new ExpressAdapter());
-
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+  await app.register(compression)
   // Enable CORS with multiple origins
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
   app.enableCors({
@@ -47,7 +48,7 @@ async function bootstrap() {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        callback(new Error('Not allowed by CORS'), false);
       }
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
@@ -76,6 +77,6 @@ async function bootstrap() {
   app.useGlobalFilters(new ValidationFilter());
 
   await setupSwagger(app);
-  await app.listen(process.env.PORT ?? 8333);
+  await app.listen(process.env.PORT ?? 8333, '0.0.0.0');
 }
 bootstrap();

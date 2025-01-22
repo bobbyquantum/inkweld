@@ -35,14 +35,16 @@ import * as path from 'path';
       useFactory: (configService: ConfigService) => {
         const isDev = configService.get('NODE_ENV') !== 'production';
         if (isDev) {
-          return []; // Don't serve static files in dev mode
+          return [];
         }
         return [
           {
             rootPath: path.resolve('frontend/dist/worm-frontend/browser'),
             serveRoot: '/',
             serveStaticOptions: {
-              fallthrough: true, // Allow falling through to other middleware
+              index: 'index.html',
+              fallthrough: false,
+              decorateReply: true
             },
           },
         ];
@@ -80,7 +82,6 @@ export class AppModule implements NestModule {
     const isDev = configService.get('NODE_ENV') !== 'production';
 
     if (isDev) {
-      // Development mode: proxy to Angular dev server
       consumer
         .apply(
           createProxyMiddleware({
@@ -94,25 +95,6 @@ export class AppModule implements NestModule {
         .exclude({ path: 'oauth2/*path', method: RequestMethod.ALL })
         .exclude({ path: 'mcp/*path', method: RequestMethod.ALL })
         .exclude({ path: 'ws/yjs/*path', method: RequestMethod.ALL })
-        .forRoutes({ path: '*', method: RequestMethod.ALL });
-    } else {
-      // Production mode: serve index.html for client-side routing
-      consumer
-        .apply((req, res, next) => {
-          this.logger.log(`Serving index.html for ${req.url}, current dir: ${process.cwd()}`);
-          if (
-            !req.url.startsWith('/api/') &&
-            !req.url.startsWith('/login/') &&
-            !req.url.startsWith('/oauth2/') &&
-            !req.url.startsWith('/mcp/') &&
-            !req.url.startsWith('/ws/') &&
-            !req.url.match(/\.(js|css|ico|png|jpg|jpeg|gif|svg|json)$/)
-          ) {
-            res.sendFile('index.html', { root: path.resolve(process.cwd(), 'frontend/dist/worm-frontend/browser') });
-          } else {
-            next();
-          }
-        })
         .forRoutes({ path: '*', method: RequestMethod.ALL });
     }
   }

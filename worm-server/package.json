@@ -27,6 +27,8 @@
     "generate:angular-client": "bun run build && bun dist/scripts/generate-angular-client.js"
   },
   "dependencies": {
+    "@fastify/compress": "^8.0.1",
+    "@fastify/static": "8.0.4",
     "@modelcontextprotocol/sdk": "1.3.1",
     "@nestjs/common": "11.0.4",
     "@nestjs/config": "4.0.0",
@@ -39,7 +41,7 @@
     "@nestjs/swagger": "11.0.2",
     "@nestjs/typeorm": "11.0.0",
     "@nestjs/websockets": "11.0.4",
-    "bcrypt": "5.1.1",
+    "argon2": "^0.41.1",
     "class-transformer": "0.5.1",
     "class-validator": "0.14.1",
     "cookie": "1.0.2",
@@ -65,7 +67,7 @@
     "@nestjs/schematics": "11.0.0",
     "@nestjs/testing": "11.0.4",
     "@openapitools/openapi-generator-cli": "2.15.3",
-    "@types/bcrypt": "5.0.2",
+    "@types/bun": "1.0.0",
     "@types/cookie": "1.0.0",
     "@types/express": "5.0.0",
     "@types/express-session": "1.18.1",
