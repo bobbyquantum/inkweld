@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://api.worm.com',
-  wssUrl: 'wss://api.worm.com'
+  apiUrl: 'http://localhost:8333',
+  wssUrl: 'ws://localhost:8333'
 };
