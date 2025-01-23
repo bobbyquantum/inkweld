@@ -73,7 +73,7 @@
     "@types/passport-github": "1.1.12",
     "@types/passport-github2": "1.2.9",
     "@types/passport-local": "1.0.38",
-    "@types/ws": "8.5.13",
+    "@types/ws": "8.5.14",
     "@typescript-eslint/eslint-plugin": "8.21.0",
     "@typescript-eslint/parser": "8.21.0",
     "eslint": "9.18.0",
