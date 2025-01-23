@@ -10,25 +10,9 @@ import { TypeOrmSessionStore } from './session.store.js';
 import { UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-// Define minimal interface for what we need from Bun's password functionality
-interface BunPasswordAPI {
-  verify: (password: string, hash: string) => Promise<boolean>;
-}
-
-declare global {
-  interface Global {
-    Bun: {
-      password: BunPasswordAPI;
-    };
-  }
-}
-
-// Set up mock
-(global as any).Bun = {
-  password: {
-    verify: jest.fn().mockImplementation(async () => true),
-  },
-};
+// Mock Bun.password methods using spyOn
+jest.spyOn(Bun.password, 'hash').mockImplementation(async (pass) => `hashed_${pass}`);
+jest.spyOn(Bun.password, 'verify').mockImplementation(async () => true);
 
 describe('AuthService', () => {
   let service: AuthService;

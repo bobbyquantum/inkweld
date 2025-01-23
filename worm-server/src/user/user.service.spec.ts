@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserEntity } from './user.entity.js';
 import { Repository } from 'typeorm';
 import {
+  afterAll,
   afterEach,
   beforeEach,
   describe,
@@ -13,26 +14,9 @@ import {
 } from '@jest/globals';
 import { BadRequestException } from '@nestjs/common';
 
-// Define minimal interface for what we need from Bun's password functionality
-interface BunPasswordAPI {
-  hash: (password: string) => Promise<string>;
-  verify: (password: string, hash: string) => Promise<boolean>;
-}
-
-// Declare types for Bun global
-declare const Bun: {
-  password: BunPasswordAPI;
-};
-
-// Set up mock
-Object.assign(global, {
-  Bun: {
-    password: {
-      hash: jest.fn().mockImplementation(async (pass) => `hashed_${pass}`),
-      verify: jest.fn().mockImplementation(async () => true),
-    },
-  },
-});
+// Mock Bun.password methods using spyOn
+jest.spyOn(Bun.password, 'hash').mockImplementation(async (pass) => `hashed_${pass}`);
+jest.spyOn(Bun.password, 'verify').mockImplementation(async () => true);
 
 describe('UserService', () => {
   let userService: UserService;
@@ -69,6 +53,11 @@ describe('UserService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    // Restore all mocks
+    jest.restoreAllMocks();
   });
 
   describe('registerUser', () => {

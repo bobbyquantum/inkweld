@@ -14,7 +14,7 @@
     "start:prod": "NODE_ENV=production bun dist/src/main.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test": "bun test",
     "test:exp": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:cov": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
