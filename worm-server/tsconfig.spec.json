@@ -23,7 +23,8 @@
     "resolvePackageJsonExports": false,
     "types": [
       "node",
-      "jest"
+      "jest",
+      "bun"
     ],
     "include": [
       "src/**/*.spec.ts",
