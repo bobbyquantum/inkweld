@@ -11,6 +11,29 @@ import {
   it,
   jest,
 } from '@jest/globals';
+import { BadRequestException } from '@nestjs/common';
+
+// Define minimal interface for what we need from Bun's password functionality
+interface BunPasswordAPI {
+  hash: (password: string) => Promise<string>;
+  verify: (password: string, hash: string) => Promise<boolean>;
+}
+
+// Declare types for Bun global
+declare const Bun: {
+  password: BunPasswordAPI;
+};
+
+// Set up mock
+Object.assign(global, {
+  Bun: {
+    password: {
+      hash: jest.fn().mockImplementation(async (pass) => `hashed_${pass}`),
+      verify: jest.fn().mockImplementation(async () => true),
+    },
+  },
+});
+
 describe('UserService', () => {
   let userService: UserService;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -38,6 +61,10 @@ describe('UserService', () => {
     userRepository = module.get<Repository<UserEntity>>(
       getRepositoryToken(UserEntity),
     );
+
+    // Reset Bun password mock implementations before each test
+    (Bun.password.hash as jest.Mock).mockImplementation(async (pass) => `hashed_${pass}`);
+    (Bun.password.verify as jest.Mock).mockImplementation(async () => true);
   });
 
   afterEach(() => {
@@ -55,7 +82,7 @@ describe('UserService', () => {
       mockUserRepository.create.mockReturnValue({
         username,
         email,
-        password: 'hashedpassword',
+        password: 'hashed_StrongPass123!',
         name,
         enabled: true,
       });
@@ -63,7 +90,7 @@ describe('UserService', () => {
         id: '1',
         username,
         email,
-        password: 'hashedpassword',
+        password: 'hashed_StrongPass123!',
         name,
         enabled: true,
       });
@@ -78,9 +105,11 @@ describe('UserService', () => {
       expect(mockUserRepository.findOne).toHaveBeenCalledWith({
         where: { username: username },
       });
+      expect(Bun.password.hash).toHaveBeenCalledWith(password);
       expect(result.username).toBe(username);
       expect(result.email).toBe(email);
       expect(result.enabled).toBe(true);
+      expect(result.password).toBe('hashed_StrongPass123!');
     });
 
     it('should throw an error if username already exists', async () => {
@@ -108,6 +137,54 @@ describe('UserService', () => {
       await expect(
         userService.registerUser(username, email, weakPassword),
       ).rejects.toThrow('Validation failed');
+    });
+  });
+
+  describe('updatePassword', () => {
+    const OLD_HASHED_PASSWORD = 'old_hashed_password';
+
+    beforeEach(() => {
+      mockUserRepository.findOne.mockResolvedValue({
+        id: '1',
+        username: 'testuser',
+        password: OLD_HASHED_PASSWORD,
+      });
+    });
+
+    it('should successfully update password', async () => {
+      await userService.updatePassword(
+        '1',
+        'OldPass123!',
+        'NewPass123!'
+      );
+
+      expect(Bun.password.verify).toHaveBeenCalledWith('OldPass123!', OLD_HASHED_PASSWORD);
+      expect(Bun.password.hash).toHaveBeenCalledWith('NewPass123!');
+      expect(mockUserRepository.save).toHaveBeenCalledWith({
+        id: '1',
+        username: 'testuser',
+        password: 'hashed_NewPass123!',
+      });
+    });
+
+    it('should throw error if old password is incorrect', async () => {
+      (Bun.password.verify as jest.Mock).mockImplementation(async () => false);
+
+      await expect(
+        userService.updatePassword('1', 'WrongPass123!', 'NewPass123!')
+      ).rejects.toThrow(BadRequestException);
+
+      expect(Bun.password.verify).toHaveBeenCalledWith('WrongPass123!', OLD_HASHED_PASSWORD);
+      expect(Bun.password.hash).not.toHaveBeenCalled();
+    });
+
+    it('should throw error if new password is weak', async () => {
+      await expect(
+        userService.updatePassword('1', 'OldPass123!', 'weak')
+      ).rejects.toThrow('Validation failed');
+
+      expect(Bun.password.verify).toHaveBeenCalledWith('OldPass123!', OLD_HASHED_PASSWORD);
+      expect(Bun.password.hash).not.toHaveBeenCalled();
     });
   });
 
@@ -162,6 +239,41 @@ describe('UserService', () => {
       expect(result.githubId).toBe(githubUserData.githubId);
       expect(result.username).toBe(githubUserData.username);
       expect(result.enabled).toBe(true);
+    });
+
+    it('should handle username conflict by appending timestamp', async () => {
+      const githubUserData = {
+        githubId: '12345',
+        username: 'githubuser',
+        email: 'github@example.com',
+      };
+
+      // Mock Date.now() to return a fixed timestamp
+      const mockTimestamp = 1234567890;
+      const realDateNow = Date.now;
+      Date.now = jest.fn(() => mockTimestamp);
+
+      mockUserRepository.findOne.mockResolvedValue({ username: 'githubuser' });
+      mockUserRepository.create.mockReturnValue({
+        ...githubUserData,
+        username: `githubuser_${mockTimestamp}`,
+        enabled: true,
+        password: null,
+      });
+      mockUserRepository.save.mockResolvedValue({
+        id: '1',
+        ...githubUserData,
+        username: `githubuser_${mockTimestamp}`,
+        enabled: true,
+        password: null,
+      });
+
+      const result = await userService.createGithubUser(githubUserData);
+
+      expect(result.username).toBe(`githubuser_${mockTimestamp}`);
+
+      // Restore original Date.now
+      Date.now = realDateNow;
     });
   });
 });
