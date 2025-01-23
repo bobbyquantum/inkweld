@@ -6,7 +6,7 @@
       "dependencies": {
         "@fastify/compress": "8.0.1",
         "@fastify/static": "8.0.4",
-        "@modelcontextprotocol/sdk": "1.3.1",
+        "@modelcontextprotocol/sdk": "1.4.0",
         "@nestjs/common": "11.0.4",
         "@nestjs/config": "4.0.0",
         "@nestjs/core": "11.0.4",
@@ -189,7 +189,7 @@
 
     "@microsoft/tsdoc": ["@microsoft/tsdoc@0.15.0", "", {}, "sha512-HZpPoABogPvjeJOdzCOSJsXeL/SMCBgBZMVC3X3d7YYp2gf31MfxhUoYUNwf1ERPJOnQc0wkFn9trqI6ZEdZuA=="],
 
-    "@modelcontextprotocol/sdk": ["@modelcontextprotocol/sdk@1.3.1", "", { "dependencies": { "content-type": "^1.0.5", "raw-body": "^3.0.0", "zod": "^3.23.8", "zod-to-json-schema": "^3.24.1" } }, "sha512-Fu3HstNO03/S5nvwh3KjRfP5JOSMl6IbOBxRl6JBDXMFRHPSJ4kiiV7n5yJjY51GtrFw3Y+V/vdsweN5bxULWQ=="],
+    "@modelcontextprotocol/sdk": ["@modelcontextprotocol/sdk@1.4.0", "", { "dependencies": { "content-type": "^1.0.5", "eventsource": "^3.0.2", "raw-body": "^3.0.0", "zod": "^3.23.8", "zod-to-json-schema": "^3.24.1" } }, "sha512-50YTsT4H9PuqmgwXkr/BPl0ankfEfxqVtFG8I378XqUThasnYRdNwE2PqktiJNm5MncOf3s5q37juv6kMe6WZQ=="],
 
     "@nestjs/axios": ["@nestjs/axios@3.1.1", "", { "peerDependencies": { "@nestjs/common": "^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0", "axios": "^1.3.1", "rxjs": "^6.0.0 || ^7.0.0" } }, "sha512-ySoxrzqX80P1q6LKLKGcgyBd2utg4gbC+4FsJNpXYvILorMlxss/ECNogD9EXLCE4JS5exVFD5ez0nK5hXcNTQ=="],
 
@@ -686,6 +686,10 @@
     "eventemitter3": ["eventemitter3@4.0.7", "", {}, "sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw=="],
 
     "events": ["events@3.3.0", "", {}, "sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q=="],
+
+    "eventsource": ["eventsource@3.0.2", "", { "dependencies": { "eventsource-parser": "^3.0.0" } }, "sha512-YolzkJNxsTL3tCJMWFxpxtG2sCjbZ4LQUBUrkdaJK0ub0p6lmJt+2+1SwhKjLc652lpH9L/79Ptez972H9tphw=="],
+
+    "eventsource-parser": ["eventsource-parser@3.0.0", "", {}, "sha512-T1C0XCUimhxVQzW4zFipdx0SficT651NnkR0ZSH3yQwh+mFMdLfgjABVi4YtMTtaL4s168593DaoaRLMqryavA=="],
 
     "expand-template": ["expand-template@2.0.3", "", {}, "sha512-XYfuKMvj4O35f/pOXLObndIRvyQ+/+6AhODh+OKWj9S9498pHHn/IMszH+gt0fBCRWMNfk1ZSp5x3AifmnI2vg=="],
 
