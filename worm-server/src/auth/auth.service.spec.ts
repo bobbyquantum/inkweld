@@ -10,6 +10,26 @@ import { TypeOrmSessionStore } from './session.store.js';
 import { UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+// Define minimal interface for what we need from Bun's password functionality
+interface BunPasswordAPI {
+  verify: (password: string, hash: string) => Promise<boolean>;
+}
+
+declare global {
+  interface Global {
+    Bun: {
+      password: BunPasswordAPI;
+    };
+  }
+}
+
+// Set up mock
+(global as any).Bun = {
+  password: {
+    verify: jest.fn().mockImplementation(async () => true),
+  },
+};
+
 describe('AuthService', () => {
   let service: AuthService;
   let userRepository: Repository<UserEntity>;
@@ -62,6 +82,10 @@ describe('AuthService', () => {
     userRepository = module.get<Repository<UserEntity>>(
       getRepositoryToken(UserEntity),
     );
+
+    // Reset Bun password verify mock before each test
+    (Bun.password.verify as jest.Mock).mockReset();
+    (Bun.password.verify as jest.Mock).mockImplementation(async () => true);
   });
 
   it('should be defined', () => {
@@ -90,13 +114,20 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException for invalid password', async () => {
       jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
-      // (bcrypt.compare as jest.Mock<() => Promise<boolean>>).mockResolvedValue(
-      //   false,
-      // );
+      (Bun.password.verify as jest.Mock).mockImplementation(async () => false);
 
       await expect(
         service.validateUser('testuser', 'wrongpassword'),
       ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should return user data for valid credentials', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
+      (Bun.password.verify as jest.Mock).mockImplementation(async () => true);
+
+      const result = await service.validateUser('testuser', 'correctpassword');
+      const { password: _, ...expectedUser } = mockUser;
+      expect(result).toEqual(expectedUser);
     });
   });
 
