@@ -10,7 +10,8 @@ import { INestApplication } from '@nestjs/common';
 import { ValidationFilter } from './common/filters/validation.filter.js';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import compression from '@fastify/compress';
-
+import { WinstonModule } from 'nest-winston';
+import * as winston from 'winston';
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
 export function createOpenAPIConfig() {
@@ -39,7 +40,19 @@ export async function setupSwagger(app: INestApplication) {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter(),{
+      logger: WinstonModule.createLogger({
+        format: winston.format.combine(
+          winston.format.timestamp(),
+          winston.format.json(),
+        ),
+        transports: [new winston.transports.Console()],
+      }),
+      rawBody: true,
+    },);
   await app.register(compression)
   // Enable CORS with multiple origins
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
@@ -75,7 +88,6 @@ async function bootstrap() {
   app.useWebSocketAdapter(new WsAdapter(app));
 
   app.useGlobalFilters(new ValidationFilter());
-
   await setupSwagger(app);
   await app.listen(process.env.PORT ?? 8333, '0.0.0.0');
 }
