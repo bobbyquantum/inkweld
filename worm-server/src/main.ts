@@ -8,8 +8,8 @@ import { TypeOrmSessionStore } from './auth/session.store.js';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { INestApplication } from '@nestjs/common';
 import { ValidationFilter } from './common/filters/validation.filter.js';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-import compression from '@fastify/compress';
+// import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+// import compression from '@fastify/compress';
 
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
@@ -39,8 +39,9 @@ export async function setupSwagger(app: INestApplication) {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
-  await app.register(compression)
+  // const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+  const app = await NestFactory.create(AppModule);
+  // await app.register(compression)
   // Enable CORS with multiple origins
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
   app.enableCors({
