@@ -25,15 +25,12 @@
     "generate:angular-client": "bun run build && bun dist/scripts/generate-angular-client.js"
   },
   "dependencies": {
-    "@fastify/compress": "8.0.1",
-    "@fastify/static": "8.0.4",
     "@modelcontextprotocol/sdk": "1.4.0",
     "@nestjs/common": "11.0.5",
     "@nestjs/config": "4.0.0",
     "@nestjs/core": "11.0.5",
     "@nestjs/passport": "11.0.5",
     "@nestjs/platform-express": "11.0.5",
-    "@nestjs/platform-fastify": "11.0.5",
     "@nestjs/platform-ws": "11.0.5",
     "@nestjs/serve-static": "5.0.1",
     "@nestjs/swagger": "11.0.3",
