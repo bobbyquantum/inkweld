@@ -10,6 +10,20 @@ import { UnavailableComponent } from './pages/unavailable/unavailable.component'
 import { WelcomeComponent } from './pages/welcome/welcome.component';
 
 export const routes: Routes = [
+  // Skip routing for OAuth-related paths to allow backend handling
+  {
+    matcher: url => {
+      if (
+        url.length > 0 &&
+        (url[0].path.startsWith('oauth2') ||
+          url[0].path.startsWith('login/oauth2'))
+      ) {
+        return null; // Return null to skip Angular routing
+      }
+      return { consumed: [] }; // Continue with normal routing
+    },
+    children: [],
+  },
   {
     path: '',
     component: HomeComponent,
