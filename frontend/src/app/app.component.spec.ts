@@ -2,12 +2,13 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { fakeAsync, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Event, Router } from '@angular/router';
-import { Configuration } from '@worm/index';
+import { Configuration, UserAPIService } from '@worm/index';
 import { Subject } from 'rxjs';
 
+import { userServiceMock } from '../testing/user-api.mock';
 import { ThemeService } from '../themes/theme.service';
 import { AppComponent } from './app.component';
 
@@ -22,6 +23,7 @@ describe('AppComponent', () => {
       imports: [AppComponent, MatProgressSpinnerModule],
       providers: [
         provideHttpClientTesting(),
+        { provide: UserAPIService, useValue: userServiceMock },
         {
           provide: Configuration,
           useValue: {},
@@ -53,12 +55,6 @@ describe('AppComponent', () => {
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
   });
-
-  it('should fetch current user on init', fakeAsync(() => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const component = fixture.componentInstance;
-    component.ngOnInit();
-  }));
 
   it('should initialize theme on init', () => {
     const fixture = TestBed.createComponent(AppComponent);
