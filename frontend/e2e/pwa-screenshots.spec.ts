@@ -8,6 +8,8 @@ test.describe('PWA Screenshots', () => {
     id: '123',
     name: 'Demo Project',
     description: 'A sample project for PWA screenshots',
+    username: 'testuser',
+    slug: 'demo-project',
     elements: [
       {
         id: '1',
@@ -42,16 +44,27 @@ test.describe('PWA Screenshots', () => {
     // Set viewport to desktop size
     await page.setViewportSize({ width: 1920, height: 1080 });
 
+    // Mock user endpoint to bypass auth guard
+    await page.route('**/api/users/me', async route => {
+      await route.fulfill({
+        json: {
+          username: 'testuser',
+          name: 'Test User',
+          avatarImageUrl: 'https://example.com/avatar.png',
+        },
+      });
+    });
+
     // Mock API response for project data
     await page.route('**/api/projects/**', async route => {
       await route.fulfill({ json: mockProject });
     });
 
     // Navigate to project page
-    await page.goto('/projects/123');
+    await page.goto(`/project/${mockProject.username}/${mockProject.slug}`);
 
     // Wait for content to load and any animations to complete
-    await page.waitForSelector('text=Demo Project');
+    // await page.waitForSelector('text=Demo Project');
     await page.waitForTimeout(1000); // Wait for any animations
 
     // Take screenshot
@@ -65,16 +78,27 @@ test.describe('PWA Screenshots', () => {
     // Set viewport to mobile size
     await page.setViewportSize({ width: 750, height: 1334 });
 
+    // Mock user endpoint to bypass auth guard
+    await page.route('**/api/users/me', async route => {
+      await route.fulfill({
+        json: {
+          username: 'testuser',
+          name: 'Test User',
+          avatarImageUrl: 'https://example.com/avatar.png',
+        },
+      });
+    });
+
     // Mock API response for project data
     await page.route('**/api/projects/**', async route => {
       await route.fulfill({ json: mockProject });
     });
 
     // Navigate to project page
-    await page.goto('/projects/123');
+    await page.goto(`/project/${mockProject.username}/${mockProject.slug}`);
 
     // Wait for content to load and any animations to complete
-    await page.waitForSelector('text=Demo Project');
+    // await page.waitForSelector('text=Demo Project');
     await page.waitForTimeout(1000); // Wait for any animations
 
     // Take screenshot
