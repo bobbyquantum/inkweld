@@ -10,6 +10,12 @@ import { UnavailableComponent } from './pages/unavailable/unavailable.component'
 import { WelcomeComponent } from './pages/welcome/welcome.component';
 
 export const routes: Routes = [
+  {
+    path: '',
+    component: HomeComponent,
+    title: 'Home',
+    canActivate: [authGuard],
+  },
   // Skip routing for OAuth-related paths to allow backend handling
   {
     matcher: url => {
@@ -23,12 +29,6 @@ export const routes: Routes = [
       return { consumed: [] }; // Continue with normal routing
     },
     children: [],
-  },
-  {
-    path: '',
-    component: HomeComponent,
-    title: 'Home',
-    canActivate: [authGuard],
   },
   {
     path: 'welcome',

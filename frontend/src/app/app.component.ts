@@ -1,6 +1,9 @@
 import { Component, HostBinding, inject, OnInit } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Router, RouterOutlet } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
+import { UserService } from '@services/user.service';
+import { UserAPIService } from '@worm/index';
+import { firstValueFrom } from 'rxjs';
 
 import { ThemeService } from '../themes/theme.service';
 
@@ -16,9 +19,14 @@ export class AppComponent implements OnInit {
   title = 'worm-frontend';
 
   protected themeService = inject(ThemeService);
-  private router = inject(Router);
+  protected userAPIService = inject(UserAPIService);
+  protected userService = inject(UserService);
 
   ngOnInit(): void {
     this.themeService.initTheme();
+    firstValueFrom(this.userAPIService.userControllerGetMe()).catch(e => {
+      console.log('Auth expired, clearing user from local db', e);
+      void this.userService.clearCurrentUser();
+    });
   }
 }
