@@ -1,0 +1,79 @@
+<div mat-dialog-title class="dialog-title">
+  <h2>New Project</h2>
+  <button mat-icon-button (click)="onCancel()" aria-label="Close dialog">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<form
+  [formGroup]="projectForm"
+  (ngSubmit)="onSubmit()"
+  class="form-container"
+  mat-dialog-content>
+  <mat-form-field appearance="outline">
+    <mat-label>Project Title</mat-label>
+    <input
+      matInput
+      formControlName="title"
+      title="Project Title"
+      placeholder="Title"
+      required />
+    @if (
+      projectForm.get('title')?.hasError('required') &&
+      projectForm.get('title')?.touched
+    ) {
+      <mat-error>Title is required</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Project Slug</mat-label>
+    <input
+      matInput
+      formControlName="slug"
+      title="Project Slug"
+      placeholder="project-slug"
+      required />
+    @if (
+      projectForm.get('slug')?.hasError('required') &&
+      projectForm.get('slug')?.touched
+    ) {
+      <mat-error>Slug is required</mat-error>
+    }
+    @if (
+      projectForm.get('slug')?.hasError('pattern') &&
+      projectForm.get('slug')?.touched
+    ) {
+      <mat-error>
+        Slug can only contain lowercase letters, numbers, and hyphens
+      </mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Project Description</mat-label>
+    <textarea
+      matInput
+      title="Project Description"
+      placeholder="Project Description"
+      formControlName="description"
+      rows="4"></textarea>
+  </mat-form-field>
+
+  @if (projectUrl) {
+    <div class="project-url-preview">
+      <strong>Project URL:</strong> {{ projectUrl }}
+    </div>
+  }
+</form>
+
+<div mat-dialog-actions>
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="onSubmit()"
+    [disabled]="projectForm.invalid || isSaving">
+    Create Project
+  </button>
+</div>
