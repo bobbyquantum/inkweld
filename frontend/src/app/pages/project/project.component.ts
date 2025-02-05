@@ -65,7 +65,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
     effect(() => {
       const project = this.projectState.project() as ProjectDto | null;
       if (project) {
-        this.title.setTitle(`${project.title} - Worm`);
+        this.title.setTitle(`${project.title}`);
       }
     });
   }

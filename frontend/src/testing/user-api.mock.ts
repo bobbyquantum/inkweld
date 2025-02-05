@@ -1,12 +1,16 @@
-import { UserDto } from "@worm/index";
-import { Observable, of } from "rxjs";
+import { HttpHeaders, HttpParameterCodec } from "@angular/common/http";
+import { Configuration } from "@worm/configuration";
+import { UserDto, UserControllerCheckUsernameAvailability200Response, UserRegisterDto } from "@worm/index";
+import { Observable } from "rxjs";
+
+
 
 export const userServiceMock = {
-  userControllerGetMe: jest.fn<Observable<UserDto>, []>().mockReturnValue(
-          of({
-            username: 'testuser',
-            name: 'Test User',
-            avatarImageUrl: 'https://example.com/avatar.png',
-          } as UserDto)
-        )
-}
+  defaultHeaders: new HttpHeaders(),
+  configuration: new Configuration(),
+  encoder: {} as HttpParameterCodec,
+  userControllerCheckUsernameAvailability: jest.fn<Observable<UserControllerCheckUsernameAvailability200Response>, [string]>(),
+  userControllerGetMe: jest.fn<Observable<UserDto>, []>(),
+  userControllerGetOAuthProviders: jest.fn<Observable<string[]>, []>(),
+  userControllerRegister: jest.fn<Observable<UserDto>, [UserRegisterDto]>()
+};
