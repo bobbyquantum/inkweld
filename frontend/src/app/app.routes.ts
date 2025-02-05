@@ -16,20 +16,6 @@ export const routes: Routes = [
     title: 'Home',
     canActivate: [authGuard],
   },
-  // Skip routing for OAuth-related paths to allow backend handling
-  {
-    matcher: url => {
-      if (
-        url.length > 0 &&
-        (url[0].path.startsWith('oauth2') ||
-          url[0].path.startsWith('login/oauth2'))
-      ) {
-        return null; // Return null to skip Angular routing
-      }
-      return { consumed: [] }; // Continue with normal routing
-    },
-    children: [],
-  },
   {
     path: 'welcome',
     component: WelcomeComponent,
@@ -56,6 +42,19 @@ export const routes: Routes = [
     path: 'unavailable',
     component: UnavailableComponent,
     title: 'Service Unavailable',
+  },
+  {
+    matcher: url => {
+      if (
+        url.length > 0 &&
+        (url[0].path.startsWith('oauth2') ||
+          url[0].path.startsWith('login/oauth2'))
+      ) {
+        return null;
+      }
+      return { consumed: [] };
+    },
+    children: [],
   },
   {
     path: '**',
