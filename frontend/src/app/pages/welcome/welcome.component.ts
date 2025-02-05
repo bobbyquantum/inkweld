@@ -12,10 +12,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
+import { UserService } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
 import { Subject, takeUntil } from 'rxjs';
-
-import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-welcome',
@@ -44,6 +43,7 @@ export class WelcomeComponent implements OnDestroy {
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private xsrfService = inject(XsrfService);
+  private userService = inject(UserService);
   private destroy$ = new Subject<void>();
 
   constructor() {
@@ -55,8 +55,20 @@ export class WelcomeComponent implements OnDestroy {
     this.destroy$.complete();
   }
 
-  onLogin(): void {
-    window.location.href = `${environment.apiUrl}/login`;
+  async onLogin(): Promise<void> {
+    try {
+      await this.userService.login(this.username, this.password);
+    } catch (error) {
+      if (error instanceof Error) {
+        this.snackBar.open(
+          error.message || 'Login failed. Please check your credentials.',
+          'Close',
+          {
+            duration: 5000,
+          }
+        );
+      }
+    }
   }
 
   private setupBreakpointObserver(): void {

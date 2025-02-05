@@ -1,4 +1,4 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
@@ -6,6 +6,7 @@ import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
 import { UserAPIService } from '../../api-client/api/user-api.service';
 import { UserDto } from '../../api-client/model/user-dto';
+import { environment } from '../../environments/environment';
 import { StorageService } from './storage.service';
 
 export class UserServiceError extends Error {
@@ -42,6 +43,7 @@ export class UserService {
   private readonly dialog = inject(MatDialog);
   private readonly userApi = inject(UserAPIService);
   private readonly storage = inject(StorageService);
+  private readonly http = inject(HttpClient);
   private db: Promise<IDBDatabase>;
 
   constructor() {
@@ -76,6 +78,14 @@ export class UserService {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  async hasCachedUser(): Promise<boolean> {
+    if (!this.storage.isAvailable()) {
+      return false;
+    }
+    const cachedUser = await this.getCachedUser();
+    return !!cachedUser;
   }
 
   async loadCurrentUser(): Promise<void> {
@@ -135,6 +145,31 @@ export class UserService {
       }
     }
     this.currentUser.set(user);
+  }
+
+  async login(username: string, password: string): Promise<void> {
+    this.isLoading.set(true);
+    this.error.set(undefined);
+
+    try {
+      const response = await firstValueFrom(
+        this.http.post(
+          `${environment.apiUrl}/login/login`,
+          { username, password },
+          { observe: 'response' }
+        )
+      );
+
+      // The server will redirect us, so we need to follow that redirect
+      const redirectUrl = response.headers.get('Location') || '/';
+      window.location.href = redirectUrl;
+    } catch (err) {
+      const error = this.formatError(err);
+      this.error.set(error);
+      throw error;
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
   async clearCurrentUser(): Promise<void> {

@@ -1,3 +1,4 @@
+import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import {
   ComponentFixture,
@@ -52,6 +53,7 @@ describe('NewProjectComponent', () => {
       imports: [NewProjectComponent],
       providers: [
         provideNoopAnimations(),
+        provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([{ path: '', component: NewProjectComponent }]),
         { provide: ActivatedRoute, useValue: {} },

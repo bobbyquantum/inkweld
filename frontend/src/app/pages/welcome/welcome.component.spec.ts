@@ -77,19 +77,4 @@ describe('WelcomeComponent', () => {
 
     expect(component.isMobile).toBeTruthy();
   });
-
-  describe('login', () => {
-    beforeEach(() => {
-      // Mock window.location
-      Object.defineProperty(window, 'location', {
-        value: { href: '' },
-        writable: true,
-      });
-    });
-
-    it('should redirect to login endpoint', () => {
-      component.onLogin();
-      expect(window.location.href).toBe('http://localhost:8333/login');
-    });
-  });
 });
