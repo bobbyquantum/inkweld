@@ -18,13 +18,7 @@
       <mat-icon class="empty-icon">add_circle_outline</mat-icon>
       <h2>Create Your First Project</h2>
       <p>Get started by creating a new project</p>
-      <button
-        mat-raised-button
-        color="primary"
-        [routerLink]="['/new-project']"
-        class="create-first-project-btn">
-        Create Project
-      </button>
+      <button mat-button [routerLink]="['/new-project']">Create Project</button>
     </div>
   } @else {
     @if (!isMobile || (isMobile && !selectedProject)) {
