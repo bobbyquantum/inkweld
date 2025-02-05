@@ -41,7 +41,7 @@ export class EditProjectDialogComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private dialogRef = inject(MatDialogRef<EditProjectDialogComponent>);
-  private projectApi = inject(ProjectAPIService);
+  private projectAPIService = inject(ProjectAPIService);
   private dialogData = inject<EditProjectDialogData>(MAT_DIALOG_DATA);
 
   constructor() {
@@ -93,7 +93,7 @@ export class EditProjectDialogComponent implements OnInit {
           ?.split('=')[1] || '';
 
       const response = await firstValueFrom(
-        this.projectApi.projectControllerUpdateProject(
+        this.projectAPIService.projectControllerUpdateProject(
           updatedProject.user!.username,
           updatedProject.slug,
           xsrfToken,

@@ -49,7 +49,7 @@ export class NewProjectComponent {
   username = '';
 
   private fb = inject(FormBuilder);
-  private projectService = inject(ProjectAPIService);
+  private projectAPIService = inject(ProjectAPIService);
   private userService = inject(UserService);
   private xsrfService = inject(XsrfService);
   private router = inject(Router);
@@ -105,7 +105,7 @@ export class NewProjectComponent {
     const xsrfToken = this.xsrfService.getXsrfToken();
     const projectData = this.projectForm.value as ProjectDto;
 
-    this.projectService
+    this.projectAPIService
       .projectControllerCreateProject(xsrfToken, projectData)
       .subscribe({
         next: () => {

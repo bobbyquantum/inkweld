@@ -65,7 +65,7 @@ export class ProjectStateService {
   private indexeddbProvider: IndexeddbPersistence | null = null;
   private docId: string | null = null;
 
-  private projectService = inject(ProjectAPIService);
+  private projectAPIService = inject(ProjectAPIService);
   /**
    * Initializes and loads a project with offline-first synchronization
    *
@@ -91,7 +91,7 @@ export class ProjectStateService {
 
     console.log('Loading project:', username, slug);
     const projectDto = await firstValueFrom(
-      this.projectService.projectControllerGetProjectByUsernameAndSlug(
+      this.projectAPIService.projectControllerGetProjectByUsernameAndSlug(
         username,
         slug
       )
