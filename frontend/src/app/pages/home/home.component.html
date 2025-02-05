@@ -18,7 +18,9 @@
       <mat-icon class="empty-icon">add_circle_outline</mat-icon>
       <h2>Create Your First Project</h2>
       <p>Get started by creating a new project</p>
-      <button mat-button [routerLink]="['/new-project']">Create Project</button>
+      <button mat-button (click)="openNewProjectDialog()">
+        Create Project
+      </button>
     </div>
   } @else {
     @if (!isMobile || (isMobile && !selectedProject)) {
@@ -62,7 +64,7 @@
     extended
     color="accent"
     class="add-project-fab"
-    [routerLink]="['/new-project']"
+    (click)="openNewProjectDialog()"
     aria-label="Add new project">
     <mat-icon>add</mat-icon>
     New Project

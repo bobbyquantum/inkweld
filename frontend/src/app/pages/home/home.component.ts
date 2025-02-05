@@ -2,6 +2,7 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -12,6 +13,7 @@ import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { ProjectAPIService, ProjectDto } from '@worm/index';
 import { catchError, EMPTY, Subject, takeUntil } from 'rxjs';
 
+import { NewProjectDialogComponent } from '../../dialogs/new-project-dialog/new-project-dialog.component';
 import { UserService } from '../../services/user.service';
 
 @Component({
@@ -26,6 +28,7 @@ import { UserService } from '../../services/user.service';
     MatFormFieldModule,
     MatInputModule,
     RouterModule,
+    MatDialogModule,
   ],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
@@ -38,9 +41,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   protected userService = inject(UserService);
   protected projectAPIService = inject(ProjectAPIService);
   protected breakpointObserver = inject(BreakpointObserver);
+  protected dialog = inject(MatDialog);
   protected user = this.userService.currentUser;
 
   protected destroy$ = new Subject<void>();
+
   ngOnInit() {
     this.loadProjects();
     this.setupBreakpointObserver();
@@ -75,6 +80,19 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   backToList() {
     this.selectedProject = null;
+  }
+
+  openNewProjectDialog(): void {
+    const dialogRef = this.dialog.open(NewProjectDialogComponent, {
+      width: '500px',
+      disableClose: true,
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.loadProjects();
+      }
+    });
   }
 
   ngOnDestroy() {
