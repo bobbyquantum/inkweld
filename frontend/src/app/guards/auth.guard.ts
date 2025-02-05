@@ -7,9 +7,21 @@ export const authGuard: CanActivateFn = async () => {
   const router = inject(Router);
   const userService = inject(UserService);
 
-  // Load user if not already loaded
+  // Check for cached user first
   if (!userService.currentUser()) {
+    const hasCached = await userService.hasCachedUser();
+    if (!hasCached) {
+      // No cached user, redirect to welcome
+      return router.createUrlTree(['/welcome']);
+    }
+  }
+
+  // Try loading/refreshing user data
+  try {
     await userService.loadCurrentUser();
+  } catch {
+    // Any error during load should redirect to welcome
+    return router.createUrlTree(['/welcome']);
   }
 
   // Allow navigation if authenticated

@@ -36,6 +36,7 @@ describe('authGuard', () => {
           useValue: {
             currentUser: mockCurrentUser,
             loadCurrentUser: jest.fn(),
+            hasCachedUser: jest.fn(),
             isAuthenticated: computed(() => !!mockCurrentUser()),
             initialized: signal(true),
             error: signal(undefined),
@@ -62,23 +63,11 @@ describe('authGuard', () => {
         {} as RouterStateSnapshot
       )
     ).toBe(true);
-    expect(userService.loadCurrentUser).not.toHaveBeenCalled();
   });
 
-  it('should try to load user when not loaded', async () => {
+  it('should redirect to welcome when no cached user', async () => {
     mockCurrentUser.set(undefined);
-    (userService.loadCurrentUser as jest.Mock).mockResolvedValue(undefined);
-    (router.createUrlTree as jest.Mock).mockReturnValue(
-      router.createUrlTree(['/welcome'])
-    );
-
-    await executeGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot);
-    expect(userService.loadCurrentUser).toHaveBeenCalled();
-  });
-
-  it('should redirect to welcome when unauthenticated', async () => {
-    mockCurrentUser.set(undefined);
-    (userService.loadCurrentUser as jest.Mock).mockResolvedValue(undefined);
+    (userService.hasCachedUser as jest.Mock).mockResolvedValue(false);
     const welcomeUrlTree = new UrlTree();
     (router.createUrlTree as jest.Mock).mockReturnValue(welcomeUrlTree);
 
@@ -90,23 +79,31 @@ describe('authGuard', () => {
     expect(router.createUrlTree).toHaveBeenCalledWith(['/welcome']);
   });
 
-  // it('should handle API errors and redirect', async () => {
-  //   mockCurrentUser.set(undefined);
-  //   (userService.loadCurrentUser as jest.Mock).mockRejectedValue(
-  //     new HttpErrorResponse({
-  //       status: 401,
-  //       statusText: 'Unauthorized',
-  //       url: 'http://localhost:3000/api/user/me',
-  //     })
-  //   );
-  //   const welcomeUrlTree = new UrlTree();
-  //   (router.createUrlTree as jest.Mock).mockReturnValue(welcomeUrlTree);
+  it('should try to load user when cached user exists', async () => {
+    mockCurrentUser.set(undefined);
+    (userService.hasCachedUser as jest.Mock).mockResolvedValue(true);
+    (userService.loadCurrentUser as jest.Mock).mockResolvedValue(undefined);
+    const welcomeUrlTree = new UrlTree();
+    (router.createUrlTree as jest.Mock).mockReturnValue(welcomeUrlTree);
 
-  //   const result = await executeGuard(
-  //     {} as ActivatedRouteSnapshot,
-  //     {} as RouterStateSnapshot
-  //   );
-  //   expect(result).toBe(welcomeUrlTree);
-  //   expect(router.createUrlTree).toHaveBeenCalledWith(['/welcome']);
-  // });
+    await executeGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot);
+    expect(userService.loadCurrentUser).toHaveBeenCalled();
+  });
+
+  it('should redirect to welcome when load fails', async () => {
+    mockCurrentUser.set(undefined);
+    (userService.hasCachedUser as jest.Mock).mockResolvedValue(true);
+    (userService.loadCurrentUser as jest.Mock).mockRejectedValue(
+      new Error('Failed to load')
+    );
+    const welcomeUrlTree = new UrlTree();
+    (router.createUrlTree as jest.Mock).mockReturnValue(welcomeUrlTree);
+
+    const result = await executeGuard(
+      {} as ActivatedRouteSnapshot,
+      {} as RouterStateSnapshot
+    );
+    expect(result).toBe(welcomeUrlTree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/welcome']);
+  });
 });

@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { UserDto } from '@worm/index';
 import { UserAPIService } from '@worm/index';
@@ -31,6 +32,8 @@ describe('UserService', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         UserService,
         StorageService,
         {
