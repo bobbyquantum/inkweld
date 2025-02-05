@@ -36,7 +36,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   isMobile = false;
 
   protected userService = inject(UserService);
-  protected projectService = inject(ProjectAPIService);
+  protected projectAPIService = inject(ProjectAPIService);
   protected breakpointObserver = inject(BreakpointObserver);
   protected user = this.userService.currentUser;
 
@@ -47,7 +47,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   loadProjects() {
-    this.projectService
+    this.projectAPIService
       .projectControllerGetAllProjects('body', true, { transferCache: true })
       .pipe(
         takeUntil(this.destroy$),
