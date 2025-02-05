@@ -78,7 +78,7 @@ describe('EditProjectDialogComponent', () => {
       } as unknown as ProjectDto)
     );
     const updateSpy = jest.spyOn(
-      component['projectApi'],
+      component['projectAPIService'],
       'projectControllerUpdateProject'
     );
     component.form.patchValue({
@@ -113,7 +113,10 @@ describe('EditProjectDialogComponent', () => {
     projectServiceMock.projectControllerUpdateProject.mockReturnValue(
       throwError(() => errorResponse)
     );
-    jest.spyOn(component['projectApi'], 'projectControllerUpdateProject');
+    jest.spyOn(
+      component['projectAPIService'],
+      'projectControllerUpdateProject'
+    );
     jest.spyOn(console, 'error');
 
     await expect(component.onSave()).rejects.toThrow(
