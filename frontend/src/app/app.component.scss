@@ -1,3 +1,16 @@
+.auth-error-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  height: 48px;
+  font-size: 14px;
+
+  .auth-error-actions {
+    display: flex;
+    gap: 8px;
+  }
+}
 .loading-overlay {
   position: fixed;
   top: 0;

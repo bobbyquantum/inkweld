@@ -38,7 +38,7 @@ const config = {
   cacheDirectory: '<rootDir>/.jest-cache',
   transformIgnorePatterns: ['node_modules/(?!(.*\\.mjs$))'],
   moduleDirectories: ['node_modules', '<rootDir>'],
-  silent: true, // Disable console logs during tests
+  silent: false, // Disable console logs during tests
   logHeapUsage: true, // Help identify memory leaks
   detectOpenHandles: true, // Help identify async issues
 };

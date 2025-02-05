@@ -62,9 +62,7 @@ test.describe('PWA Screenshots', () => {
 
     // Navigate to project page
     await page.goto(`/project/${mockProject.username}/${mockProject.slug}`);
-
-    // Wait for content to load and any animations to complete
-    // await page.waitForSelector('text=Demo Project');
+    await page.waitForSelector('text=Demo Project', { state: 'visible' });
     await page.waitForTimeout(1000); // Wait for any animations
 
     // Take screenshot

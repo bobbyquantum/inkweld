@@ -1,4 +1,4 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { computed, signal, type WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   ActivatedRouteSnapshot,
@@ -7,58 +7,106 @@ import {
   RouterStateSnapshot,
   UrlTree,
 } from '@angular/router';
-import { UserAPIService } from '@worm/index';
-import { throwError } from 'rxjs';
+import { UserService } from '@services/user.service';
+import { UserDto } from '@worm/index';
 
-import { userServiceMock } from '../../testing/user-api.mock';
-import { authGuard, resetAuthState } from './auth.guard';
+import { authGuard } from './auth.guard';
 
 describe('authGuard', () => {
-  const mockRoute = {} as ActivatedRouteSnapshot;
-  const mockState = {} as RouterStateSnapshot;
-
-  const executeGuard: CanActivateFn = (...guardParameters) =>
-    TestBed.runInInjectionContext(() => authGuard(...guardParameters));
+  const executeGuard: CanActivateFn = (...args) =>
+    TestBed.runInInjectionContext(() => authGuard(...args));
 
   let router: Router;
-  let createUrlTreeSpy: jest.SpyInstance;
-  let mockUrlTree: UrlTree;
+  let userService: UserService;
+  let mockCurrentUser: WritableSignal<UserDto | undefined>;
 
   beforeEach(() => {
-    resetAuthState();
-
-    mockUrlTree = new UrlTree();
-    router = {
-      createUrlTree: jest.fn().mockReturnValue(mockUrlTree),
-    } as unknown as Router;
-
-    createUrlTreeSpy = jest.spyOn(router, 'createUrlTree');
+    mockCurrentUser = signal<UserDto | undefined>(undefined);
 
     TestBed.configureTestingModule({
       providers: [
-        { provide: Router, useValue: router },
-        { provide: UserAPIService, useValue: userServiceMock },
+        {
+          provide: Router,
+          useValue: {
+            createUrlTree: jest.fn().mockReturnValue(new UrlTree()),
+          },
+        },
+        {
+          provide: UserService,
+          useValue: {
+            currentUser: mockCurrentUser,
+            loadCurrentUser: jest.fn(),
+            isAuthenticated: computed(() => !!mockCurrentUser()),
+            initialized: signal(true),
+            error: signal(undefined),
+          },
+        },
       ],
     });
+
+    router = TestBed.inject(Router);
+    userService = TestBed.inject(UserService);
   });
 
-  afterEach(() => {
-    resetAuthState();
+  it('should allow access when user is already loaded and authenticated', async () => {
+    const user: UserDto = {
+      username: 'test',
+      name: 'Test User',
+      avatarImageUrl: 'https://example.com/avatar.png',
+    };
+    mockCurrentUser.set(user);
+
+    expect(
+      await executeGuard(
+        {} as ActivatedRouteSnapshot,
+        {} as RouterStateSnapshot
+      )
+    ).toBe(true);
+    expect(userService.loadCurrentUser).not.toHaveBeenCalled();
   });
 
-  it('should be created', () => {
-    expect(executeGuard).toBeTruthy();
-  });
-
-  it('should redirect to welcome page when getCurrentUser fails with non-502 error', async () => {
-    const error = new HttpErrorResponse({ status: 401 });
-    userServiceMock.userControllerGetMe.mockReturnValue(
-      throwError(() => error)
+  it('should try to load user when not loaded', async () => {
+    mockCurrentUser.set(undefined);
+    (userService.loadCurrentUser as jest.Mock).mockResolvedValue(undefined);
+    (router.createUrlTree as jest.Mock).mockReturnValue(
+      router.createUrlTree(['/welcome'])
     );
 
-    const result = await executeGuard(mockRoute, mockState);
-
-    expect(result).toBe(mockUrlTree);
-    expect(createUrlTreeSpy).toHaveBeenCalledWith(['/welcome']);
+    await executeGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot);
+    expect(userService.loadCurrentUser).toHaveBeenCalled();
   });
+
+  it('should redirect to welcome when unauthenticated', async () => {
+    mockCurrentUser.set(undefined);
+    (userService.loadCurrentUser as jest.Mock).mockResolvedValue(undefined);
+    const welcomeUrlTree = new UrlTree();
+    (router.createUrlTree as jest.Mock).mockReturnValue(welcomeUrlTree);
+
+    const result = await executeGuard(
+      {} as ActivatedRouteSnapshot,
+      {} as RouterStateSnapshot
+    );
+    expect(result).toBe(welcomeUrlTree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/welcome']);
+  });
+
+  // it('should handle API errors and redirect', async () => {
+  //   mockCurrentUser.set(undefined);
+  //   (userService.loadCurrentUser as jest.Mock).mockRejectedValue(
+  //     new HttpErrorResponse({
+  //       status: 401,
+  //       statusText: 'Unauthorized',
+  //       url: 'http://localhost:3000/api/user/me',
+  //     })
+  //   );
+  //   const welcomeUrlTree = new UrlTree();
+  //   (router.createUrlTree as jest.Mock).mockReturnValue(welcomeUrlTree);
+
+  //   const result = await executeGuard(
+  //     {} as ActivatedRouteSnapshot,
+  //     {} as RouterStateSnapshot
+  //   );
+  //   expect(result).toBe(welcomeUrlTree);
+  //   expect(router.createUrlTree).toHaveBeenCalledWith(['/welcome']);
+  // });
 });

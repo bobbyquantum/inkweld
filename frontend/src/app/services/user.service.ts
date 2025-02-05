@@ -1,189 +1,173 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
-import { firstValueFrom } from 'rxjs';
+import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
 import { UserAPIService } from '../../api-client/api/user-api.service';
 import { UserDto } from '../../api-client/model/user-dto';
+import { StorageService } from './storage.service';
 
-/**
- * Name of the IndexedDB database used for user caching
- */
-const DB_NAME = 'userCache';
+export class UserServiceError extends Error {
+  constructor(
+    public code: 'NETWORK_ERROR' | 'SESSION_EXPIRED' | 'SERVER_ERROR',
+    message: string
+  ) {
+    super(message);
+    this.name = 'UserServiceError';
+  }
+}
 
-/**
- * Name of the object store within IndexedDB where user data is stored
- */
-const STORE_NAME = 'users';
+const USER_CACHE_CONFIG = {
+  dbName: 'userCache',
+  version: 1,
+  stores: {
+    users: null,
+  },
+} as const;
 
-/**
- * Key used to store the current user in the IndexedDB object store
- */
 const CACHE_KEY = 'currentUser';
+const MAX_RETRIES = 3;
 
-/**
- * Service for managing user-related operations including:
- * - Caching user data in IndexedDB
- * - Managing user settings dialog
- * - Providing access to current user information
- *
- * Uses IndexedDB for offline persistence and caching of user data,
- * with fallback to API calls when cached data is not available.
- */
 @Injectable({
   providedIn: 'root',
 })
 export class UserService {
-  /** The current user data */
   readonly currentUser = signal<UserDto | undefined>(undefined);
-
-  /** Whether user data is being loaded */
   readonly isLoading = signal(false);
-
-  /** Error message if user loading fails */
-  readonly error = signal<string | undefined>(undefined);
-
-  /** Computed property for user authentication state */
+  readonly error = signal<UserServiceError | undefined>(undefined);
   readonly isAuthenticated = computed(() => !!this.currentUser());
+  readonly initialized = signal(false);
 
-  private dialog = inject(MatDialog);
-  private userApi = inject(UserAPIService);
-  private dbPromise: Promise<IDBDatabase>;
+  private readonly dialog = inject(MatDialog);
+  private readonly userApi = inject(UserAPIService);
+  private readonly storage = inject(StorageService);
+  private db: Promise<IDBDatabase>;
 
   constructor() {
-    this.dbPromise = this.initDB();
+    this.db = this.storage
+      .initializeDatabase(USER_CACHE_CONFIG)
+      .catch(error => {
+        console.error('User cache initialization failed:', error);
+        throw new UserServiceError(
+          'SERVER_ERROR',
+          'Failed to initialize user cache'
+        );
+      });
   }
 
-  /**
-   * Opens the user settings dialog
-   */
   async openSettingsDialog(): Promise<void> {
-    await firstValueFrom(
-      this.dialog
-        .open(UserSettingsDialogComponent, {
-          width: '700px',
-        })
-        .afterClosed()
-    );
-  }
-
-  /**
-   * Loads the current user from cache or API
-   */
-  async loadCurrentUser(): Promise<void> {
-    console.log('Load current user called');
     this.isLoading.set(true);
-    this.error.set(undefined);
-
     try {
-      const cachedUser = await this.getCachedUser().catch(() => undefined); // Handle IndexedDB failure
-      if (cachedUser) {
-        this.currentUser.set(cachedUser);
-        return;
-      }
-
-      console.log('No cached user or IndexedDB failed, loading from API');
-      const user = await firstValueFrom(this.userApi.userControllerGetMe());
-      if (user) {
-        this.currentUser.set(user);
-
-        // Only cache if IndexedDB is available
-        try {
-          await this.setCurrentUser(user);
-        } catch {
-          console.warn('Skipping cache as IndexedDB is unavailable.');
-        }
-      }
-    } catch (err) {
-      this.error.set('Failed to load user data');
-      console.error('Error loading user:', err);
+      await firstValueFrom(
+        this.dialog
+          .open(UserSettingsDialogComponent, {
+            width: '700px',
+            disableClose: true,
+          })
+          .afterClosed()
+      );
+    } catch (error) {
+      console.error('Settings dialog error:', error);
+      throw new UserServiceError(
+        'SERVER_ERROR',
+        'Failed to open settings dialog'
+      );
     } finally {
       this.isLoading.set(false);
     }
   }
 
-  /**
-   * Sets the current user in the local cache
-   * @param user - The user data to cache
-   */
+  async loadCurrentUser(): Promise<void> {
+    if (!this.initialized()) {
+      this.initialized.set(true);
+    }
+
+    this.isLoading.set(true);
+    this.error.set(undefined);
+
+    try {
+      // Try cached user first if storage is available
+      if (this.storage.isAvailable()) {
+        const cachedUser = await this.getCachedUser();
+        if (cachedUser) {
+          this.currentUser.set(cachedUser);
+          return;
+        }
+      }
+
+      // Fallback to API with retry mechanism
+      const user = await firstValueFrom(
+        this.userApi.userControllerGetMe().pipe(
+          retry(MAX_RETRIES),
+          catchError((error: unknown) => {
+            const userError = this.formatError(error);
+            this.error.set(userError);
+            return throwError(() => userError);
+          })
+        )
+      );
+      console.log('User result', user);
+      if (user) {
+        console.log('Saving user', user);
+        await this.setCurrentUser(user);
+      }
+    } catch (err) {
+      const error =
+        err instanceof UserServiceError
+          ? err
+          : new UserServiceError('SERVER_ERROR', 'Failed to load user data');
+      this.error.set(error);
+      console.error('User loading error:', error);
+      throw error;
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
   async setCurrentUser(user: UserDto): Promise<void> {
-    const db = await this.getDB();
-    const transaction = db.transaction(STORE_NAME, 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    store.put(user, CACHE_KEY);
+    if (this.storage.isAvailable()) {
+      try {
+        const db = await this.db;
+        await this.storage.put(db, 'users', user, CACHE_KEY);
+      } catch (error) {
+        console.warn('Failed to cache user:', error);
+      }
+    }
     this.currentUser.set(user);
   }
 
-  /**
-   * Clears the current user from the local cache
-   */
   async clearCurrentUser(): Promise<void> {
-    const db = await this.getDB();
-    const transaction = db.transaction(STORE_NAME, 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    store.delete(CACHE_KEY);
+    if (this.storage.isAvailable()) {
+      try {
+        const db = await this.db;
+        await this.storage.delete(db, 'users', CACHE_KEY);
+      } catch (error) {
+        console.warn('Failed to clear cached user:', error);
+      }
+    }
     this.currentUser.set(undefined);
   }
-  /**
-   * Gets the cached user from IndexedDB
-   */
-  private async getCachedUser(): Promise<UserDto | undefined> {
-    console.log('Getting DB');
-    const db = await this.getDB();
-    console.log('Got DB');
-    return new Promise<UserDto | undefined>(resolve => {
-      const transaction = db.transaction(STORE_NAME, 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.get(CACHE_KEY);
 
-      request.onsuccess = () => resolve(request.result as UserDto);
-      request.onerror = () => resolve(undefined);
-    });
-  }
-  /**
-   * Initializes the IndexedDB database
-   */
-  private initDB(): Promise<IDBDatabase> {
-    // Check if `indexedDB` is available
-    console.log('Init User DB');
-    if (!indexedDB) {
-      console.error('IndexedDB is not available in this environment.');
-      return Promise.reject(new Error('IndexedDB is not available.'));
+  private formatError(error: unknown): UserServiceError {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 0) {
+        return new UserServiceError('NETWORK_ERROR', 'Server unavailable');
+      }
+      if (error.status === 401) {
+        return new UserServiceError('SESSION_EXPIRED', 'Session expired');
+      }
     }
-
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, 1);
-      console.log('Opened User DB');
-      request.onupgradeneeded = event => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME);
-        }
-      };
-
-      request.onsuccess = () => {
-        console.log('Database loaded', request.result);
-        resolve(request.result);
-      };
-      request.onerror = () => {
-        console.error('Error opening IndexedDB:', request.error);
-        reject(request.error as Error);
-      };
-    });
+    return new UserServiceError('SERVER_ERROR', 'Failed to load user data');
   }
 
-  /**
-   * Gets the initialized IndexedDB database instance
-   */
-  private async getDB(): Promise<IDBDatabase> {
+  private async getCachedUser(): Promise<UserDto | undefined> {
     try {
-      return await this.dbPromise;
+      const db = await this.db;
+      return await this.storage.get<UserDto>(db, 'users', CACHE_KEY);
     } catch (error) {
-      console.error(
-        'Failed to initialize IndexedDB. Falling back to API-only mode.',
-        error
-      );
-      throw error; // Rethrow or handle fallback logic as needed.
+      console.warn('Failed to get cached user:', error);
+      return undefined;
     }
   }
 }
