@@ -21,7 +21,7 @@
       "request": "launch",
       "name": "🚀 NestJS Server",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "start:dev"],
+      "runtimeArgs": ["run", "bun:dev"],
       "cwd": "${workspaceFolder}/worm-server",
       "console": "integratedTerminal",
       "sourceMaps": true,
