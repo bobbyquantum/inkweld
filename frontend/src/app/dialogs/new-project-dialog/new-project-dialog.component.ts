@@ -15,6 +15,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { XsrfService } from '@services/xsrf.service';
 import { ProjectAPIService, ProjectDto } from '@worm/index';
+import { firstValueFrom } from 'rxjs';
 
 import { UserService } from '../../services/user.service';
 
@@ -72,14 +73,11 @@ export class NewProjectDialogComponent {
       this.updateProjectUrl();
     });
 
-    effect(
-      () => {
-        const user = this.userService.currentUser();
-        this.username = user!.username;
-        this.updateProjectUrl();
-      },
-      { allowSignalWrites: false }
-    );
+    effect(() => {
+      const user = this.userService.currentUser();
+      this.username = user!.username;
+      this.updateProjectUrl();
+    });
   }
 
   generateSlug = (title: string): string => {
@@ -112,9 +110,12 @@ export class NewProjectDialogComponent {
       const xsrfToken = this.xsrfService.getXsrfToken();
       const projectData = this.projectForm.value as ProjectDto;
 
-      const response = await this.projectAPIService
-        .projectControllerCreateProject(xsrfToken, projectData)
-        .toPromise();
+      const response = await firstValueFrom(
+        this.projectAPIService.projectControllerCreateProject(
+          xsrfToken,
+          projectData
+        )
+      );
 
       this.snackBar.open('Project created successfully!', 'Close', {
         duration: 3000,
