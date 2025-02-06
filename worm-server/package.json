@@ -32,7 +32,7 @@
     "@nestjs/passport": "11.0.5",
     "@nestjs/platform-express": "11.0.7",
     "@nestjs/platform-ws": "11.0.7",
-    "@nestjs/serve-static": "5.0.1",
+    "@nestjs/serve-static": "5.0.2",
     "@nestjs/swagger": "11.0.3",
     "@nestjs/typeorm": "11.0.0",
     "@nestjs/websockets": "11.0.7",
