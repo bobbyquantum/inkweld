@@ -1,26 +1,29 @@
 .menu-popover {
   min-width: 16rem;
 }
-
-.user-menu {
-  padding: 0;
-  min-width: 40px;
-  width: auto;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.menu-container {
+  margin: 0 10px;
 }
+.user-menu {
+  width: 100%;
+  flex: 1;
 
+  gap: 8px;
+  padding: 0 16px;
+}
+.menu-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: start;
+}
 .avatar {
   height: 32px;
   width: 32px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
-
+.user-name {
+  flex:1;
+}
 .rounded-full {
   border-radius: 50%;
   width: 100%;
