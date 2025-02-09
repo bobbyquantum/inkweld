@@ -1,39 +1,39 @@
 import { Routes } from '@angular/router';
 
 import { authGuard } from './guards/auth.guard';
-import { HomeComponent } from './pages/home/home.component';
-import { NotFoundComponent } from './pages/not-found/not-found.component';
-import { ProjectComponent } from './pages/project/project.component';
-import { RegisterComponent } from './pages/register/register.component';
-import { UnavailableComponent } from './pages/unavailable/unavailable.component';
-import { WelcomeComponent } from './pages/welcome/welcome.component';
+
+
+
+
+
+
 
 export const routes: Routes = [
   {
     path: '',
-    component: HomeComponent,
+    loadComponent: () => import('./pages/home/home.component').then(m => m.HomeComponent),
     title: 'Home',
     canActivate: [authGuard],
   },
   {
     path: 'welcome',
-    component: WelcomeComponent,
+    loadComponent: () => import('./pages/welcome/welcome.component').then(m => m.WelcomeComponent),
     title: 'Welcome',
   },
   {
     path: 'register',
-    component: RegisterComponent,
+    loadComponent: () => import('./pages/register/register.component').then(m => m.RegisterComponent),
     title: 'Register',
   },
   {
     path: 'project/:username/:slug',
-    component: ProjectComponent,
+    loadComponent: () => import('./pages/project/project.component').then(m => m.ProjectComponent),
     title: 'Project',
     canActivate: [authGuard],
   },
   {
     path: 'unavailable',
-    component: UnavailableComponent,
+    loadComponent: () => import('./pages/unavailable/unavailable.component').then(m => m.UnavailableComponent),
     title: 'Service Unavailable',
   },
   {
@@ -51,7 +51,7 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    component: NotFoundComponent,
+    loadComponent: () => import('./pages/not-found/not-found.component').then(m => m.NotFoundComponent),
     title: '404 - Page Not Found',
   },
 ];
