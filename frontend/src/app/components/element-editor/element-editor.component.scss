@@ -67,7 +67,8 @@
 
 .editor-container.fit-width {
   .page-guide,
-  .margin-guide {
+  .margin-guide,
+  .ruler {
     display: none !important;
     visibility: hidden !important;
   }
@@ -107,11 +108,14 @@
       width: 100%;
       max-width: 100%;
       padding: 1rem 16px;
-      margin: 8px 16px 0;
+      margin: 0;
       border: none;
       box-shadow: none;
       background-color: var(--mat-sys-surface-container);
       border-radius: 12px;
+      .scaled-content.ruler {
+        display: none;
+      }
     }
   }
 }
