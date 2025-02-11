@@ -95,7 +95,7 @@ describe('OAuth2Controller', () => {
 
       expect(authService.login).not.toHaveBeenCalled();
       expect(mockResponse.redirect).toHaveBeenCalledWith(
-        'http://localhost:4200/login?error=authentication_failed',
+        'http://localhost:4200/welcome?error=authentication_failed',
       );
     });
 
@@ -106,7 +106,7 @@ describe('OAuth2Controller', () => {
 
       expect(authService.login).toHaveBeenCalledWith(mockRequest, mockUser);
       expect(mockResponse.redirect).toHaveBeenCalledWith(
-        'http://localhost:4200/login?error=server_error',
+        'http://localhost:4200/welcome?error=server_error',
       );
     });
   });
