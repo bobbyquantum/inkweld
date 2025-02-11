@@ -80,7 +80,7 @@ export class ElementEditorComponent
   }
 
   ngOnInit(): void {
-    this.editor = new Editor();
+    this.editor = new Editor({});
     this.updateDimensions();
   }
 
