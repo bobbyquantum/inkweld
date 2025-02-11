@@ -52,7 +52,7 @@ export class ElementEditorComponent
   @Input() documentId = 'default';
   editor!: Editor;
   zoomLevel = 100;
-  viewMode: 'page' | 'fitWidth' = 'page';
+  viewMode: 'page' | 'fitWidth' = 'fitWidth';
   showViewModeDropdown = false;
   dimensions: EditorDimensions = {
     pageWidth: 21,

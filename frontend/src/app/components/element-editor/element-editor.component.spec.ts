@@ -92,6 +92,12 @@ describe('ElementEditorComponent', () => {
       expect(documentElement.style.getPropertyValue('--page-width')).toBe('');
       expect(documentElement.style.getPropertyValue('--margin-left')).toBe('');
       expect(documentElement.style.getPropertyValue('--margin-right')).toBe('');
+
+      // Verify ruler is hidden in fit width mode
+      const ruler = fixture.nativeElement.querySelector(
+        '.ruler'
+      ) as HTMLElement;
+      expect(getComputedStyle(ruler).display).toBe('none');
     });
 
     it('should switch back to page mode', () => {
