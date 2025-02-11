@@ -9,7 +9,6 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { NgxEditorModule } from 'ngx-editor';
 import { of } from 'rxjs';
 
-import { CssVariableService } from '../../services/css-variable.service';
 import { DocumentService } from '../../services/document.service';
 import { MouseDragService } from '../../services/mouse-drag.service';
 import { ElementEditorComponent } from './element-editor.component';
@@ -22,9 +21,9 @@ class MockDocumentService {
 describe('ElementEditorComponent', () => {
   let component: ElementEditorComponent;
   let fixture: ComponentFixture<ElementEditorComponent>;
-  let cssVariableService: jest.Mocked<CssVariableService>;
   let mouseDragService: jest.Mocked<MouseDragService>;
   let documentService: jest.Mocked<DocumentService>;
+  let documentElement: HTMLElement;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -32,14 +31,6 @@ describe('ElementEditorComponent', () => {
       providers: [
         provideHttpClient(),
         provideNoopAnimations(),
-        {
-          provide: CssVariableService,
-          useValue: {
-            setPageDimensions: jest.fn(),
-            setFitWidthMode: jest.fn(),
-            setZoomLevel: jest.fn(),
-          },
-        },
         {
           provide: MouseDragService,
           useValue: {
@@ -73,15 +64,13 @@ describe('ElementEditorComponent', () => {
 
     fixture = TestBed.createComponent(ElementEditorComponent);
     component = fixture.componentInstance;
-    cssVariableService = TestBed.inject(
-      CssVariableService
-    ) as jest.Mocked<CssVariableService>;
     mouseDragService = TestBed.inject(
       MouseDragService
     ) as jest.Mocked<MouseDragService>;
     documentService = TestBed.inject(
       DocumentService
     ) as jest.Mocked<DocumentService>;
+    documentElement = document.documentElement;
     fixture.detectChanges();
   });
 
@@ -92,11 +81,15 @@ describe('ElementEditorComponent', () => {
   describe('Initialization', () => {
     it('should initialize editor and dimensions', () => {
       expect(component.editor).toBeDefined();
-      expect(cssVariableService.setPageDimensions).toHaveBeenCalledWith({
-        pageWidth: '21cm',
-        leftMargin: '2cm',
-        rightMargin: '2cm',
-      });
+      expect(documentElement.style.getPropertyValue('--page-width')).toBe(
+        '21cm'
+      );
+      expect(documentElement.style.getPropertyValue('--margin-left')).toBe(
+        '2cm'
+      );
+      expect(documentElement.style.getPropertyValue('--margin-right')).toBe(
+        '2cm'
+      );
     });
 
     it('should setup collaboration after view init', fakeAsync(() => {
@@ -126,14 +119,30 @@ describe('ElementEditorComponent', () => {
       component.setViewMode('fitWidth');
       expect(component.viewMode).toBe('fitWidth');
       expect(component.zoomLevel).toBe(100);
-      expect(cssVariableService.setFitWidthMode).toHaveBeenCalled();
+      expect(documentElement.style.getPropertyValue('--editor-max-width')).toBe(
+        '100%'
+      );
+      expect(documentElement.style.getPropertyValue('--page-width')).toBe('');
+      expect(documentElement.style.getPropertyValue('--margin-left')).toBe('');
+      expect(documentElement.style.getPropertyValue('--margin-right')).toBe('');
     });
 
     it('should switch back to page mode', () => {
       component.setViewMode('fitWidth');
       component.setViewMode('page');
       expect(component.viewMode).toBe('page');
-      expect(cssVariableService.setPageDimensions).toHaveBeenCalled();
+      expect(documentElement.style.getPropertyValue('--page-width')).toBe(
+        '21cm'
+      );
+      expect(documentElement.style.getPropertyValue('--margin-left')).toBe(
+        '2cm'
+      );
+      expect(documentElement.style.getPropertyValue('--margin-right')).toBe(
+        '2cm'
+      );
+      expect(documentElement.style.getPropertyValue('--editor-max-width')).toBe(
+        ''
+      );
     });
   });
 
@@ -141,13 +150,17 @@ describe('ElementEditorComponent', () => {
     it('should increase zoom level', () => {
       component.increaseZoom();
       expect(component.zoomLevel).toBe(110);
-      expect(cssVariableService.setZoomLevel).toHaveBeenCalledWith(110);
+      expect(documentElement.style.getPropertyValue('--editor-zoom')).toBe(
+        '1.1'
+      );
     });
 
     it('should decrease zoom level', () => {
       component.decreaseZoom();
       expect(component.zoomLevel).toBe(90);
-      expect(cssVariableService.setZoomLevel).toHaveBeenCalledWith(90);
+      expect(documentElement.style.getPropertyValue('--editor-zoom')).toBe(
+        '0.9'
+      );
     });
 
     it('should not increase zoom beyond 200%', () => {
