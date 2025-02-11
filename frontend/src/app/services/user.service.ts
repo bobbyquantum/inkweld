@@ -1,6 +1,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
@@ -11,7 +12,11 @@ import { StorageService } from './storage.service';
 
 export class UserServiceError extends Error {
   constructor(
-    public code: 'NETWORK_ERROR' | 'SESSION_EXPIRED' | 'SERVER_ERROR',
+    public code:
+      | 'NETWORK_ERROR'
+      | 'SESSION_EXPIRED'
+      | 'SERVER_ERROR'
+      | 'LOGIN_FAILED',
     message: string
   ) {
     super(message);
@@ -44,6 +49,7 @@ export class UserService {
   private readonly userApi = inject(UserAPIService);
   private readonly storage = inject(StorageService);
   private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
   private db: Promise<IDBDatabase>;
 
   constructor() {
@@ -152,17 +158,19 @@ export class UserService {
     this.error.set(undefined);
 
     try {
-      const response = await firstValueFrom(
-        this.http.post(
-          `${environment.apiUrl}/login/login`,
-          { username, password },
-          { observe: 'response' }
+      const user = await firstValueFrom(
+        this.http.post<UserDto>(
+          `${environment.apiUrl}/login`,
+          {
+            username,
+            password,
+          },
+          { withCredentials: true }
         )
       );
 
-      // The server will redirect us, so we need to follow that redirect
-      const redirectUrl = response.headers.get('Location') || '/';
-      window.location.href = redirectUrl;
+      await this.setCurrentUser(user);
+      await this.router.navigate(['/']);
     } catch (err) {
       const error = this.formatError(err);
       this.error.set(error);
@@ -190,6 +198,26 @@ export class UserService {
         return new UserServiceError('NETWORK_ERROR', 'Server unavailable');
       }
       if (error.status === 401) {
+        // Check for specific login failure case
+        const errorBody = error.error as
+          | {
+              message: string;
+              error: string;
+              statusCode: number;
+            }
+          | undefined;
+
+        if (
+          errorBody?.message === 'Invalid username or password' &&
+          errorBody.error === 'Unauthorized' &&
+          errorBody.statusCode === 401
+        ) {
+          return new UserServiceError(
+            'LOGIN_FAILED',
+            'Invalid username or password'
+          );
+        }
+        // Other 401 errors are treated as session expired
         return new UserServiceError('SESSION_EXPIRED', 'Session expired');
       }
     }

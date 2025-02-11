@@ -39,12 +39,12 @@ export class OAuth2Controller {
         res.redirect(clientUrl);
       } else {
         // Handle authentication failure
-        res.redirect(`${clientUrl}/login?error=authentication_failed`);
+        res.redirect(`${clientUrl}/welcome?error=authentication_failed`);
       }
     } catch (_error) {
       // Handle any errors during login process
       const clientUrl = this.configService.get('CLIENT_URL') || 'http://localhost:4200';
-      res.redirect(`${clientUrl}/login?error=server_error`);
+      res.redirect(`${clientUrl}/welcome?error=server_error`);
     }
   }
 }
