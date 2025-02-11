@@ -12,7 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
-import { UserService } from '@services/user.service';
+import { UserService, UserServiceError } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -59,9 +59,24 @@ export class WelcomeComponent implements OnDestroy {
     try {
       await this.userService.login(this.username, this.password);
     } catch (error) {
-      if (error instanceof Error) {
+      if (error instanceof UserServiceError) {
+        if (error.code === 'LOGIN_FAILED') {
+          this.snackBar.open(
+            'Invalid username or password. Please check your credentials.',
+            'Close',
+            {
+              duration: 5000,
+              panelClass: ['error-snackbar'],
+            }
+          );
+        } else {
+          this.snackBar.open(error.message, 'Close', {
+            duration: 5000,
+          });
+        }
+      } else if (error instanceof Error) {
         this.snackBar.open(
-          error.message || 'Login failed. Please check your credentials.',
+          'An unexpected error occurred during login.',
           'Close',
           {
             duration: 5000,

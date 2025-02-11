@@ -4,34 +4,42 @@ import {
   Post,
   Request,
   UnauthorizedException,
-  Res,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service.js';
 import { ApiExcludeController } from '@nestjs/swagger';
+import { LocalAuthGuard } from './local-auth.guard.js';
 
 @ApiExcludeController()
-@Controller('login')
+@Controller()
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService
   ) {}
+
   @Post('login')
-  @UseGuards(AuthGuard('local'))
-  async login(@Request() req, @Res() res: any) {
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(LocalAuthGuard)
+  async login(@Request() req) {
     if (!req.user) {
       throw new UnauthorizedException('Authentication failed');
     }
-    // If we get here, LocalStrategy has validated the user
+
     await this.authService.login(req, req.user);
 
-    const clientUrl = this.configService.get('CLIENT_URL');
-    if (!clientUrl) {
-      throw new Error('Client URL not configured');
-    }
+    // Return user details
+    const userResponse = {
+      id: req.user.id,
+      username: req.user.username,
+      name: req.user.name,
+      avatarImageUrl: req.user.avatarImageUrl,
+      enabled: req.user.enabled,
+      sessionId: req.sessionID
+    };
 
-    return res.redirect(clientUrl);
+    return userResponse;
   }
 }
