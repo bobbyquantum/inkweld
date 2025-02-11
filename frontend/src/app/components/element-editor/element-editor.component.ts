@@ -15,7 +15,6 @@ import { Editor, NgxEditorModule } from 'ngx-editor';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
-import { CssVariableService } from '../../services/css-variable.service';
 import { DocumentService } from '../../services/document.service';
 import {
   MouseDragEvent,
@@ -60,8 +59,8 @@ export class ElementEditorComponent
 
   private destroy$ = new Subject<void>();
   private documentService = inject(DocumentService);
-  private cssVariableService = inject(CssVariableService);
   private mouseDragService = inject(MouseDragService);
+  private documentElement = document.documentElement;
 
   ngOnInit(): void {
     this.editor = new Editor();
@@ -106,7 +105,7 @@ export class ElementEditorComponent
     if (mode === 'fitWidth') {
       this.zoomLevel = 100;
       this.updateZoom();
-      this.cssVariableService.setFitWidthMode();
+      this.setFitWidthMode();
     } else {
       this.updateDimensions();
     }
@@ -114,6 +113,36 @@ export class ElementEditorComponent
 
   toggleViewModeDropdown(): void {
     this.showViewModeDropdown = !this.showViewModeDropdown;
+  }
+
+  private setVariable(name: string, value: string): void {
+    this.documentElement.style.setProperty(name, value);
+  }
+
+  private removeVariable(name: string): void {
+    this.documentElement.style.removeProperty(name);
+  }
+
+  private setPageDimensions(dimensions: {
+    pageWidth: string;
+    leftMargin: string;
+    rightMargin: string;
+  }): void {
+    this.setVariable('--page-width', dimensions.pageWidth);
+    this.setVariable('--margin-left', dimensions.leftMargin);
+    this.setVariable('--margin-right', dimensions.rightMargin);
+    this.removeVariable('--editor-max-width');
+  }
+
+  private setFitWidthMode(): void {
+    this.removeVariable('--page-width');
+    this.removeVariable('--margin-left');
+    this.removeVariable('--margin-right');
+    this.setVariable('--editor-max-width', '100%');
+  }
+
+  private setZoomLevel(zoom: number): void {
+    this.setVariable('--editor-zoom', (zoom / 100).toString());
   }
 
   private setupCollaboration(): void {
@@ -197,12 +226,12 @@ export class ElementEditorComponent
   }
 
   private updateZoom(): void {
-    this.cssVariableService.setZoomLevel(this.zoomLevel);
+    this.setZoomLevel(this.zoomLevel);
   }
 
   private updateDimensions(): void {
     if (this.viewMode === 'page') {
-      this.cssVariableService.setPageDimensions({
+      this.setPageDimensions({
         pageWidth: `${this.dimensions.pageWidth}cm`,
         leftMargin: `${this.dimensions.leftMargin}cm`,
         rightMargin: `${this.dimensions.rightMargin}cm`,
