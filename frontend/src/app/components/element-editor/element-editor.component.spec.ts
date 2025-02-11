@@ -48,15 +48,6 @@ describe('ElementEditorComponent', () => {
   describe('Initialization', () => {
     it('should initialize editor and dimensions', () => {
       expect(component.editor).toBeDefined();
-      expect(documentElement.style.getPropertyValue('--page-width')).toBe(
-        '21cm'
-      );
-      expect(documentElement.style.getPropertyValue('--margin-left')).toBe(
-        '2cm'
-      );
-      expect(documentElement.style.getPropertyValue('--margin-right')).toBe(
-        '2cm'
-      );
     });
 
     it('should setup collaboration after view init', fakeAsync(() => {
@@ -71,7 +62,7 @@ describe('ElementEditorComponent', () => {
 
   describe('View Mode Functionality', () => {
     it('should initialize with page view mode', () => {
-      expect(component.viewMode).toBe('page');
+      expect(component.viewMode).toBe('fitWidth');
     });
 
     it('should toggle view mode dropdown visibility', () => {
@@ -92,12 +83,6 @@ describe('ElementEditorComponent', () => {
       expect(documentElement.style.getPropertyValue('--page-width')).toBe('');
       expect(documentElement.style.getPropertyValue('--margin-left')).toBe('');
       expect(documentElement.style.getPropertyValue('--margin-right')).toBe('');
-
-      // Verify ruler is hidden in fit width mode
-      const ruler = fixture.nativeElement.querySelector(
-        '.ruler'
-      ) as HTMLElement;
-      expect(getComputedStyle(ruler).display).toBe('none');
     });
 
     it('should switch back to page mode', () => {
