@@ -12,14 +12,18 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { Editor, NgxEditorModule } from 'ngx-editor';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { fromEvent, Subject, Subscription } from 'rxjs';
+import { filter, map, takeUntil } from 'rxjs/operators';
 
 import { DocumentService } from '../../services/document.service';
-import {
-  MouseDragEvent,
-  MouseDragService,
-} from '../../services/mouse-drag.service';
+
+interface MouseDragEvent {
+  type: 'start' | 'move' | 'end';
+  clientX: number;
+  clientY: number;
+  deltaX: number;
+  deltaY: number;
+}
 
 interface EditorDimensions {
   pageWidth: number; // in cm
@@ -59,8 +63,21 @@ export class ElementEditorComponent
 
   private destroy$ = new Subject<void>();
   private documentService = inject(DocumentService);
-  private mouseDragService = inject(MouseDragService);
   private documentElement = document.documentElement;
+
+  // Drag handling
+  private dragStart$ = new Subject<MouseDragEvent>();
+  private dragMove$ = new Subject<MouseDragEvent>();
+  private dragEnd$ = new Subject<MouseDragEvent>();
+  private startX = 0;
+  private startY = 0;
+  private moveSubscription?: Subscription;
+  private upSubscription?: Subscription;
+  private blurSubscription?: Subscription;
+
+  constructor() {
+    this.setupDocumentListeners();
+  }
 
   ngOnInit(): void {
     this.editor = new Editor();
@@ -77,6 +94,7 @@ export class ElementEditorComponent
     this.destroy$.complete();
     this.editor.destroy();
     this.documentService.disconnect(this.documentId);
+    this.cleanupSubscriptions();
   }
 
   increaseZoom(): void {
@@ -94,9 +112,18 @@ export class ElementEditorComponent
   }
 
   startDragging(event: MouseEvent, dragPoint: DragPoint): void {
-    this.mouseDragService.startDrag(event);
-    this.mouseDragService.dragMoveEvents$
-      .pipe(takeUntil(this.destroy$))
+    this.startX = event.clientX;
+    this.startY = event.clientY;
+    this.dragStart$.next({
+      type: 'start',
+      clientX: event.clientX,
+      clientY: event.clientY,
+      deltaX: 0,
+      deltaY: 0,
+    });
+
+    this.dragMove$
+      .pipe(takeUntil(this.dragEnd$))
       .subscribe(dragEvent => this.handleDrag(dragEvent, dragPoint));
   }
 
@@ -145,6 +172,60 @@ export class ElementEditorComponent
     this.setVariable('--editor-zoom', (zoom / 100).toString());
   }
 
+  private setupDocumentListeners(): void {
+    this.moveSubscription = fromEvent<MouseEvent>(document, 'mousemove')
+      .pipe(
+        filter(() => this.dragStart$.observed || this.dragMove$.observed),
+        map(event => ({
+          type: 'move' as const,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          deltaX: event.clientX - this.startX,
+          deltaY: event.clientY - this.startY,
+        }))
+      )
+      .subscribe(event => this.dragMove$.next(event));
+
+    this.upSubscription = fromEvent<MouseEvent>(document, 'mouseup')
+      .pipe(
+        filter(() => this.dragStart$.observed || this.dragEnd$.observed),
+        map(event => ({
+          type: 'end' as const,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          deltaX: event.clientX - this.startX,
+          deltaY: event.clientY - this.startY,
+        }))
+      )
+      .subscribe(event => {
+        this.dragEnd$.next(event);
+        this.cleanupSubscriptions();
+      });
+
+    this.blurSubscription = fromEvent(window, 'blur').subscribe(() => {
+      this.dragEnd$.next({
+        type: 'end',
+        clientX: this.startX,
+        clientY: this.startY,
+        deltaX: 0,
+        deltaY: 0,
+      });
+      this.cleanupSubscriptions();
+    });
+  }
+
+  private cleanupSubscriptions(): void {
+    if (
+      !this.dragStart$.observed &&
+      !this.dragMove$.observed &&
+      !this.dragEnd$.observed
+    ) {
+      this.moveSubscription?.unsubscribe();
+      this.upSubscription?.unsubscribe();
+      this.blurSubscription?.unsubscribe();
+    }
+  }
+
   private setupCollaboration(): void {
     setTimeout(() => {
       this.documentService
@@ -156,7 +237,7 @@ export class ElementEditorComponent
   }
 
   private setupDragHandlers(): void {
-    this.mouseDragService.dragEndEvents$
+    this.dragEnd$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.updateDimensions());
   }

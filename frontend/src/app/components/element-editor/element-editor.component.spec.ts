@@ -7,10 +7,8 @@ import {
 } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { NgxEditorModule } from 'ngx-editor';
-import { of } from 'rxjs';
 
 import { DocumentService } from '../../services/document.service';
-import { MouseDragService } from '../../services/mouse-drag.service';
 import { ElementEditorComponent } from './element-editor.component';
 
 class MockDocumentService {
@@ -21,7 +19,6 @@ class MockDocumentService {
 describe('ElementEditorComponent', () => {
   let component: ElementEditorComponent;
   let fixture: ComponentFixture<ElementEditorComponent>;
-  let mouseDragService: jest.Mocked<MouseDragService>;
   let documentService: jest.Mocked<DocumentService>;
   let documentElement: HTMLElement;
 
@@ -31,42 +28,12 @@ describe('ElementEditorComponent', () => {
       providers: [
         provideHttpClient(),
         provideNoopAnimations(),
-        {
-          provide: MouseDragService,
-          useValue: {
-            startDrag: jest.fn(),
-            dragMoveEvents$: of({
-              type: 'move',
-              clientX: 0,
-              clientY: 0,
-              deltaX: 0,
-              deltaY: 0,
-            }),
-            dragEndEvents$: of({
-              type: 'end',
-              clientX: 0,
-              clientY: 0,
-              deltaX: 0,
-              deltaY: 0,
-            }),
-            dragEvents$: of({
-              type: 'start',
-              clientX: 0,
-              clientY: 0,
-              deltaX: 0,
-              deltaY: 0,
-            }),
-          },
-        },
         { provide: DocumentService, useClass: MockDocumentService },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ElementEditorComponent);
     component = fixture.componentInstance;
-    mouseDragService = TestBed.inject(
-      MouseDragService
-    ) as jest.Mocked<MouseDragService>;
     documentService = TestBed.inject(
       DocumentService
     ) as jest.Mocked<DocumentService>;
@@ -177,28 +144,59 @@ describe('ElementEditorComponent', () => {
   });
 
   describe('Drag Functionality', () => {
-    it('should handle page left drag', () => {
-      const mockEvent = { clientX: 100 } as MouseEvent;
-      component.startDragging(mockEvent, 'pageLeft');
-      expect(mouseDragService.startDrag).toHaveBeenCalledWith(mockEvent);
+    let mousemoveEvent: MouseEvent;
+    let mouseupEvent: MouseEvent;
+
+    beforeEach(() => {
+      mousemoveEvent = new MouseEvent('mousemove', {
+        clientX: 150, // 50px to the right of start
+        clientY: 100,
+      });
+      mouseupEvent = new MouseEvent('mouseup', {
+        clientX: 150,
+        clientY: 100,
+      });
     });
 
-    it('should handle page right drag', () => {
-      const mockEvent = { clientX: 100 } as MouseEvent;
-      component.startDragging(mockEvent, 'pageRight');
-      expect(mouseDragService.startDrag).toHaveBeenCalledWith(mockEvent);
+    it('should handle page width drag', () => {
+      const startEvent = new MouseEvent('mousedown', {
+        clientX: 100,
+        clientY: 100,
+      });
+
+      component.startDragging(startEvent, 'pageRight');
+      document.dispatchEvent(mousemoveEvent);
+      document.dispatchEvent(mouseupEvent);
+
+      // 50px movement at 100% zoom is about 1.32cm (50/37.795275591)
+      expect(component.dimensions.pageWidth).toBeCloseTo(22.5, 1);
     });
 
-    it('should handle margin left drag', () => {
-      const mockEvent = { clientX: 100 } as MouseEvent;
-      component.startDragging(mockEvent, 'marginLeft');
-      expect(mouseDragService.startDrag).toHaveBeenCalledWith(mockEvent);
+    it('should handle margin drag', () => {
+      const startEvent = new MouseEvent('mousedown', {
+        clientX: 100,
+        clientY: 100,
+      });
+
+      component.startDragging(startEvent, 'marginRight');
+      document.dispatchEvent(mousemoveEvent);
+      document.dispatchEvent(mouseupEvent);
+
+      // Moving right margin to the left (negative delta)
+      expect(component.dimensions.rightMargin).toBeCloseTo(0.5, 1);
     });
 
-    it('should handle margin right drag', () => {
-      const mockEvent = { clientX: 100 } as MouseEvent;
-      component.startDragging(mockEvent, 'marginRight');
-      expect(mouseDragService.startDrag).toHaveBeenCalledWith(mockEvent);
+    it('should cleanup subscriptions on window blur', () => {
+      const startEvent = new MouseEvent('mousedown', {
+        clientX: 100,
+        clientY: 100,
+      });
+
+      component.startDragging(startEvent, 'pageRight');
+      window.dispatchEvent(new Event('blur'));
+
+      // Verify dimensions haven't changed after blur
+      expect(component.dimensions.pageWidth).toBe(21);
     });
   });
 
