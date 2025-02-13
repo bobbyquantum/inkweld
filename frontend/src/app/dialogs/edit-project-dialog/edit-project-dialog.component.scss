@@ -1,18 +1,56 @@
 :host {
   display: block;
-  width: 400px;
+  min-width: 400px;
 }
 
-mat-dialog-content {
-  padding: 16px 0;
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 mat-form-field {
   width: 100%;
-  margin-bottom: 16px;
 }
 
-textarea {
-  min-height: 100px;
-  resize: vertical;
+.import-export-section {
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+
+  .section-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.6);
+    margin-bottom: 1rem;
+  }
+
+  .button-group {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+
+    button {
+      flex: 1;
+
+      mat-icon {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  mat-progress-bar {
+    margin-top: 1rem;
+  }
+}
+
+:host-context(.dark-theme) {
+  .import-export-section {
+    border-top-color: rgba(255, 255, 255, 0.12);
+
+    .section-title {
+      color: rgba(255, 255, 255, 0.7);
+    }
+  }
 }
