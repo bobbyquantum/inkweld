@@ -2,10 +2,12 @@ import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   Component,
+  ElementRef,
   inject,
   Input,
   OnDestroy,
   OnInit,
+  ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatOptionModule } from '@angular/material/core';
@@ -49,6 +51,8 @@ type DragPoint = 'pageLeft' | 'pageRight' | 'marginLeft' | 'marginRight';
 export class ElementEditorComponent
   implements OnInit, OnDestroy, AfterViewInit
 {
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+
   @Input() documentId = 'default';
   editor!: Editor;
   zoomLevel = 100;
@@ -147,6 +151,29 @@ export class ElementEditorComponent
       const fileName = `document-${this.documentId}.json`;
       this.downloadFile(JSON.stringify(content), fileName, 'application/json');
     });
+  }
+
+  importDocumentFromFile(): void {
+    // importDocumentFromFile before private methods
+    this.fileInput.nativeElement.click();
+  }
+
+  onFileSelected(event: Event): void {
+    // onFileSelected before private methods
+    const inputElement = event.target as HTMLInputElement;
+    if (inputElement.files && inputElement.files.length > 0) {
+      const file = inputElement.files[0];
+      const fileReader = new FileReader();
+      fileReader.onload = () => {
+        const content = fileReader.result as string;
+        console.log('Content', content);
+        this.documentService.importDocument(this.documentId, content);
+      };
+      fileReader.onerror = error => {
+        console.error('Error reading file', error);
+      };
+      fileReader.readAsText(file);
+    }
   }
 
   private setVariable(name: string, value: string): void {

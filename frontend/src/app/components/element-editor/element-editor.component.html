@@ -49,6 +49,16 @@
       <mat-icon>download</mat-icon>
     </button>
   </div>
+  <div class="import-button">
+    <button mat-icon-button (click)="importDocumentFromFile()">
+      <mat-icon>upload</mat-icon>
+    </button>
+  </div>
+  <input
+    type="file"
+    style="display: none"
+    (change)="onFileSelected($event)"
+    #fileInput />
 </div>
 
 <div class="editor-container" [class.fit-width]="viewMode === 'fitWidth'">
