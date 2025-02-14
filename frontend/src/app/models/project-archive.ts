@@ -21,6 +21,7 @@ export interface ProjectArchive {
     level: number;
     version?: number;
     expandable?: boolean;
+    content?: unknown;
   }>;
 }
 

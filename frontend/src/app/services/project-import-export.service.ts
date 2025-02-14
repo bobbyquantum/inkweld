@@ -1,11 +1,13 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
+import { firstValueFrom } from 'rxjs';
 
 import {
   ProjectArchive,
   ProjectArchiveError,
   ProjectArchiveErrorType,
 } from '../models/project-archive';
+import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 
 const CURRENT_ARCHIVE_VERSION = 1;
@@ -24,6 +26,7 @@ export class ProjectImportExportService {
   readonly error = signal<string | undefined>(undefined);
 
   private projectStateService = inject(ProjectStateService);
+  private documentService = inject(DocumentService);
 
   /**
    * Exports the current project as a downloadable JSON file
@@ -53,7 +56,7 @@ export class ProjectImportExportService {
         exportedAt: new Date().toISOString(),
         project: {
           title: currentProject.title,
-          description: currentProject.description,
+          description: currentProject.description || '', // Handle undefined description
           slug: currentProject.slug,
         },
         elements: elements.map(elem => ({
@@ -66,6 +69,19 @@ export class ProjectImportExportService {
           expandable: elem.expandable,
         })),
       };
+
+      archive.elements = await Promise.all(
+        elements.map(async elem => {
+          const elementArchive = archive.elements.find(e => e.id === elem.id)!;
+          if (elem.type === 'ITEM') {
+            const content = await firstValueFrom(
+              this.documentService.exportDocument(elem.id!)
+            );
+            return { ...elementArchive, content };
+          }
+          return elementArchive;
+        })
+      );
 
       // Simulate progress for better UX
       this.progress.set(50);
@@ -105,6 +121,7 @@ export class ProjectImportExportService {
 
       this.progress.set(100);
     } catch (error) {
+      console.error('Error in exportProject:', error); // Log the error
       const message =
         error instanceof Error ? error.message : 'Failed to export project';
       this.error.set(message);
@@ -150,7 +167,7 @@ export class ProjectImportExportService {
       // Convert archive to DTO format
       const projectDto: ProjectDto = {
         title: archive.project.title,
-        description: archive.project.description,
+        description: archive.project.description || '', // Handle undefined description
         slug: archive.project.slug,
         createdDate: new Date().toISOString(),
         updatedDate: new Date().toISOString(),
@@ -165,6 +182,29 @@ export class ProjectImportExportService {
         version: elem.version,
         expandable: elem.expandable,
       }));
+
+      for (const elem of archive.elements) {
+        // Use for...of loop instead of forEach, iterate over archive elements
+        if (elem.type === 'ITEM') {
+          const content = elem.content; // Explicitly type content
+          if (!content) {
+            console.warn('Document content is missing for item:', elem.id);
+          } else if (typeof content !== 'string') {
+            console.error(
+              'Document content is not a string:',
+              elem.id,
+              content
+            );
+            throw new Error('Document content is not a string');
+          } else {
+            // Content is present and is a string, proceed to import
+            this.documentService.importDocument(
+              elem.id!,
+              JSON.stringify(content)
+            ); // Ensure content is a JSON string
+          }
+        }
+      }
 
       // Update project state
       await this.projectStateService.updateProject(projectDto);
