@@ -12,14 +12,32 @@
   top: 0;
   z-index: 100;
   display: flex;
+    flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
   padding: 8px 16px;
   background-color: var(--ngx-editor-menubar-bg-color);
 
+    > ngx-editor-menu {
+      border-right: 1px solid var(--mat-sys-outline-variant);
+      padding-right: 8px;
+      margin-right: 8px;
+    }
+
+    > .NgxEditor__Dropdown {
+      border-right: 1px solid var(--mat-sys-outline-variant);
+      padding-right: 8px;
+      margin-right: 8px;
+    }
+
+    > .zoom-controls {
+      border-right: 1px solid var(--mat-sys-outline-variant);
+      padding-right: 8px;
+      margin-right: 8px;
+    }
+
 .NgxEditor__Dropdown {
   position: relative;
-  margin-left: 1rem;
 
   &--Text {
     background: transparent;
