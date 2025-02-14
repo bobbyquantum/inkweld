@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
+import JSZip from 'jszip';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -33,10 +34,7 @@ export class ProjectImportExportService {
    * @throws ProjectArchiveError if export fails
    */
   async exportProject(): Promise<void> {
-    const currentProject = this.projectStateService.project();
-    const elements = this.projectStateService.elements();
-
-    if (!currentProject) {
+    if (!this.projectStateService.project()) {
       const error = new ProjectArchiveError(
         ProjectArchiveErrorType.ValidationFailed,
         'No project is currently loaded'
@@ -50,41 +48,7 @@ export class ProjectImportExportService {
       this.error.set(undefined);
       this.progress.set(0);
 
-      // Create the archive structure
-      const archive: ProjectArchive = {
-        version: CURRENT_ARCHIVE_VERSION,
-        exportedAt: new Date().toISOString(),
-        project: {
-          title: currentProject.title,
-          description: currentProject.description || '', // Handle undefined description
-          slug: currentProject.slug,
-        },
-        elements: elements.map(elem => ({
-          id: elem.id,
-          name: elem.name,
-          type: elem.type,
-          position: elem.position,
-          level: elem.level,
-          version: elem.version,
-          expandable: elem.expandable,
-        })),
-      };
-
-      archive.elements = await Promise.all(
-        elements.map(async elem => {
-          const elementArchive = archive.elements.find(e => e.id === elem.id)!;
-          if (elem.type === 'ITEM') {
-            const content = await firstValueFrom(
-              this.documentService.exportDocument(elem.id!)
-            );
-            return { ...elementArchive, content };
-          }
-          return elementArchive;
-        })
-      );
-
-      // Simulate progress for better UX
-      this.progress.set(50);
+      const archive = await this.createProjectArchive();
 
       // Convert to JSON and create blob
       const json = JSON.stringify(archive, null, 2);
@@ -96,7 +60,7 @@ export class ProjectImportExportService {
         .replace(/[:.]/g, '-')
         .replace('T', '_')
         .split('.')[0];
-      const filename = `${currentProject.slug}_${timestamp}.json`;
+      const filename = `${archive.project.slug}_${timestamp}.json`;
 
       // Create download link and trigger download
       const url = URL.createObjectURL(blob);
@@ -104,32 +68,66 @@ export class ProjectImportExportService {
       link.href = url;
       link.download = filename;
 
-      // Wrap in Promise to make this truly async
-      await new Promise<void>((resolve, reject) => {
-        try {
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-          resolve();
-        } catch (error) {
-          reject(
-            new Error(error instanceof Error ? error.message : String(error))
-          );
-        }
-      });
+      // Trigger download
+      await this.triggerDownload(link, url);
 
       this.progress.set(100);
     } catch (error) {
-      console.error('Error in exportProject:', error); // Log the error
-      const message =
-        error instanceof Error ? error.message : 'Failed to export project';
-      this.error.set(message);
-      throw new ProjectArchiveError(
-        ProjectArchiveErrorType.FileSystemError,
-        message,
-        error
+      this.handleExportError(error, 'Failed to export project');
+    } finally {
+      this.isProcessing.set(false);
+    }
+  }
+
+  /**
+   * Exports the current project as a downloadable ZIP file
+   * @throws ProjectArchiveError if export fails
+   */
+  async exportProjectZip(): Promise<void> {
+    if (!this.projectStateService.project()) {
+      const error = new ProjectArchiveError(
+        ProjectArchiveErrorType.ValidationFailed,
+        'No project is currently loaded'
       );
+      this.error.set(error.message);
+      throw error;
+    }
+
+    try {
+      this.isProcessing.set(true);
+      this.error.set(undefined);
+      this.progress.set(0);
+
+      const archive = await this.createProjectArchive();
+
+      // Convert to JSON
+      const json = JSON.stringify(archive, null, 2);
+
+      // Create ZIP archive
+      const zip = new JSZip();
+      zip.file('project.json', json);
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+      // Generate filename
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .replace('T', '_')
+        .split('.')[0];
+      const filename = `${archive.project.slug}_${timestamp}.zip`;
+
+      // Create download link and trigger download
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+
+      // Trigger download
+      await this.triggerDownload(link, url);
+
+      this.progress.set(100);
+    } catch (error) {
+      this.handleExportError(error, 'Failed to export project as zip');
     } finally {
       this.isProcessing.set(false);
     }
@@ -150,82 +148,249 @@ export class ProjectImportExportService {
       const text = await file.text();
       this.progress.set(30);
 
-      let archive: ProjectArchive;
-      try {
-        const parsed = JSON.parse(text) as unknown;
-        this.validateArchive(parsed);
-        archive = parsed;
-      } catch (error) {
+      const archive = this.importProjectArchiveFromJson(text);
+      this.progress.set(60);
+
+      // Update project state
+      await this.updateProjectState(archive);
+
+      this.progress.set(100);
+    } catch (error) {
+      this.handleImportError(error, 'Failed to import project');
+    } finally {
+      this.isProcessing.set(false);
+    }
+  }
+
+  /**
+   * Imports a project from a ZIP file
+   * @param file The ZIP file to import
+   * @throws ProjectArchiveError if import fails or validation fails
+   */
+  async importProjectZip(file: File): Promise<void> {
+    if (!file) {
+      throw new ProjectArchiveError(
+        ProjectArchiveErrorType.ValidationFailed,
+        'No file provided for import'
+      );
+    }
+
+    try {
+      this.isProcessing.set(true);
+      this.error.set(undefined);
+      this.progress.set(0);
+
+      // Read the zip file as a blob
+      const zip = await JSZip.loadAsync(file);
+      this.progress.set(30);
+
+      // Extract the project.json file
+      const projectFile = zip.file('project.json');
+      if (!projectFile) {
         throw new ProjectArchiveError(
           ProjectArchiveErrorType.InvalidFormat,
-          error instanceof Error ? error.message : 'Invalid JSON format'
+          'ZIP archive does not contain project.json'
         );
       }
+      const text = await projectFile.async('text');
+
+      const archive = this.importProjectArchiveFromJson(text);
 
       this.progress.set(60);
 
-      // Convert archive to DTO format
-      const projectDto: ProjectDto = {
-        title: archive.project.title,
-        description: archive.project.description || '', // Handle undefined description
-        slug: archive.project.slug,
-        createdDate: new Date().toISOString(),
-        updatedDate: new Date().toISOString(),
-      };
+      // Update project state
+      await this.updateProjectState(archive);
 
-      const elements: ProjectElementDto[] = archive.elements.map(elem => ({
-        id: elem.id || crypto.randomUUID(), // Generate new ID if not provided
+      this.progress.set(100);
+    } catch (error) {
+      this.handleImportError(error, 'Failed to import project from zip');
+    } finally {
+      this.isProcessing.set(false);
+    }
+  }
+
+  /**
+   * Creates a ProjectArchive object from the current project state
+   * @private
+   */
+  private async createProjectArchive(): Promise<ProjectArchive> {
+    const currentProject = this.projectStateService.project()!; // Assume project exists as exportProject and exportProjectZip check for it
+    const elements = this.projectStateService.elements();
+
+    const archive: ProjectArchive = {
+      version: CURRENT_ARCHIVE_VERSION,
+      exportedAt: new Date().toISOString(),
+      project: {
+        title: currentProject.title,
+        description: currentProject.description || '',
+        slug: currentProject.slug,
+      },
+      elements: elements.map(elem => ({
+        id: elem.id,
         name: elem.name,
         type: elem.type,
         position: elem.position,
         level: elem.level,
         version: elem.version,
         expandable: elem.expandable,
-      }));
+      })),
+    };
 
-      for (const elem of archive.elements) {
-        // Use for...of loop instead of forEach, iterate over archive elements
+    archive.elements = await Promise.all(
+      elements.map(async elem => {
+        const elementArchive = archive.elements.find(e => e.id === elem.id)!;
         if (elem.type === 'ITEM') {
-          const content = elem.content; // Explicitly type content
-          if (!content) {
-            console.warn('Document content is missing for item:', elem.id);
-          } else if (typeof content !== 'string') {
-            console.error(
-              'Document content is not a string:',
-              elem.id,
-              content
-            );
-            throw new Error('Document content is not a string');
-          } else {
-            // Content is present and is a string, proceed to import
-            this.documentService.importDocument(
-              elem.id!,
-              JSON.stringify(content)
-            ); // Ensure content is a JSON string
-          }
+          const content = await firstValueFrom(
+            this.documentService.exportDocument(elem.id!)
+          );
+          return { ...elementArchive, content };
+        }
+        return elementArchive;
+      })
+    );
+    return archive;
+  }
+
+  /**
+   * Imports a project archive from a JSON string and validates it
+   * @param text JSON string content of the archive
+   * @private
+   * @throws ProjectArchiveError if validation fails
+   * @returns Validated ProjectArchive object
+   */
+  private importProjectArchiveFromJson(text: string): ProjectArchive {
+    // Removed async here
+    let archive: ProjectArchive;
+    try {
+      const parsed = JSON.parse(text) as unknown;
+      this.validateArchive(parsed);
+      archive = parsed;
+    } catch (error) {
+      throw new ProjectArchiveError(
+        ProjectArchiveErrorType.InvalidFormat,
+        error instanceof Error
+          ? error.message
+          : 'Invalid JSON format in project.json'
+      );
+    }
+    return archive;
+  }
+
+  /**
+   * Updates the project state with the imported archive data
+   * @param archive Validated ProjectArchive object
+   * @private
+   */
+  private async updateProjectState(archive: ProjectArchive): Promise<void> {
+    // Convert archive to DTO format
+    const projectDto: ProjectDto = {
+      title: archive.project.title,
+      description: archive.project.description || '',
+      slug: archive.project.slug,
+      createdDate: new Date().toISOString(),
+      updatedDate: new Date().toISOString(),
+    };
+
+    const elements: ProjectElementDto[] = archive.elements.map(elem => ({
+      id: elem.id || crypto.randomUUID(), // Generate new ID if not provided
+      name: elem.name,
+      type: elem.type,
+      position: elem.position,
+      level: elem.level,
+      version: elem.version,
+      expandable: elem.expandable,
+    }));
+
+    for (const elem of archive.elements) {
+      if (elem.type === 'ITEM') {
+        const content = elem.content;
+        if (!content) {
+          console.warn('Document content is missing for item:', elem.id);
+        } else if (typeof content !== 'string') {
+          console.error('Document content is not a string:', elem.id, content);
+          throw new Error('Document content is not a string');
+        } else {
+          this.documentService.importDocument(
+            elem.id!,
+            JSON.stringify(content)
+          );
         }
       }
-
-      // Update project state
-      await this.projectStateService.updateProject(projectDto);
-      this.projectStateService.updateElements(elements);
-
-      this.progress.set(100);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to import project';
-      this.error.set(message);
-      if (error instanceof ProjectArchiveError) {
-        throw error;
-      }
-      throw new ProjectArchiveError(
-        ProjectArchiveErrorType.FileSystemError,
-        message,
-        error
-      );
-    } finally {
-      this.isProcessing.set(false);
     }
+
+    // Update project state
+    await this.projectStateService.updateProject(projectDto);
+    this.projectStateService.updateElements(elements);
+  }
+
+  /**
+   * Handles common export error logic
+   * @param error The error object
+   * @param defaultMessage Default error message
+   * @private
+   * @throws ProjectArchiveError
+   */
+  private handleExportError(error: unknown, defaultMessage: string) {
+    // Changed error: any to error: unknown
+    console.error('Export error:', error);
+    const message = error instanceof Error ? error.message : defaultMessage;
+    this.error.set(message);
+    if (error instanceof ProjectArchiveError) {
+      throw error;
+    }
+    throw new ProjectArchiveError(
+      ProjectArchiveErrorType.FileSystemError,
+      message,
+      error
+    );
+  }
+
+  /**
+   * Handles common import error logic
+   * @param error The error object
+   * @param defaultMessage Default error message
+   * @private
+   * @throws ProjectArchiveError
+   */
+  private handleImportError(error: unknown, defaultMessage: string) {
+    // Changed error: any to error: unknown
+    console.error('Import error:', error);
+    const message = error instanceof Error ? error.message : defaultMessage;
+    this.error.set(message);
+    if (error instanceof ProjectArchiveError) {
+      throw error;
+    }
+    throw new ProjectArchiveError(
+      ProjectArchiveErrorType.FileSystemError,
+      message,
+      error
+    );
+  }
+
+  /**
+   * Triggers the download of a file
+   * @param link Anchor element used for download
+   * @param url  URL of the file to download
+   * @private
+   */
+  private async triggerDownload(
+    link: HTMLAnchorElement,
+    url: string
+  ): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      // Added return here
+      try {
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        resolve();
+      } catch (error) {
+        reject(
+          new Error(error instanceof Error ? error.message : String(error))
+        );
+      }
+    });
   }
 
   /**
