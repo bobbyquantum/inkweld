@@ -72,6 +72,63 @@ export class DocumentService {
   }
 
   /**
+   * Imports content into a document, replacing existing content.
+   * This will propagate changes to all connected users and update IndexedDB.
+   * @param documentId - The document ID to import into
+   * @param content - The content to import, as a JSON string
+   */
+  importDocument(documentId: string, content: string): void {
+    const connection = this.connections.get(documentId);
+    if (!connection) {
+      throw new Error(`No connection found for document ${documentId}`);
+    }
+
+    this.importXmlString(connection.ydoc, connection.type, content);
+  }
+
+  importXmlString(ydoc: Y.Doc, fragment: Y.XmlFragment, xmlString: string) {
+    // Ensure the string has a single root element by wrapping it.
+    const wrapped = `<root>${xmlString}</root>`;
+    const parser = new DOMParser();
+    const dom = parser.parseFromString(wrapped, 'text/xml');
+    const root = dom.documentElement;
+
+    // Begin a Yjs transaction to update the fragment.
+    Y.transact(ydoc, () => {
+      // Clear existing content
+      fragment.delete(0, fragment.length);
+      console.log('Cleared previous doc');
+      // Traverse each child element of our temporary root.
+      for (let i = 0; i < root.childNodes.length; i++) {
+        console.log('Importing node', root.childNodes[i]);
+        const node = root.childNodes[i];
+        let yNode: Y.XmlElement | Y.XmlText;
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          console.log('Element node');
+          // Create a Y.XmlElement with the same tag name
+          yNode = new Y.XmlElement(node.nodeName);
+          // Optionally, handle attributes here if needed.
+          // Recursively add children if the element has nested nodes.
+          for (let j = 0; j < node.childNodes.length; j++) {
+            const child = node.childNodes[j];
+            if (child.nodeType === Node.TEXT_NODE) {
+              // Create a Y.XmlText for text content
+              const yText = new Y.XmlText();
+              yText.insert(0, child.textContent || '');
+              yNode.insert(0, [yText]);
+            }
+          }
+        } else {
+          console.log('Skip node');
+          continue; // skip other node types
+        }
+        // Append the created node to the fragment.
+        fragment.push([yNode]);
+      }
+    });
+  }
+
+  /**
    * Sets up collaborative editing for a document
    * @param editor - The editor instance to enable collaboration on
    * @param documentId - Unique identifier for the document
