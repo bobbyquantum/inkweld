@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
+import JSZip from 'jszip';
 import { of } from 'rxjs';
 
 import {
@@ -161,7 +162,7 @@ describe('ProjectImportExportService', () => {
     });
   });
 
-  describe('importProject', () => {
+  describe('importProjectZip', () => {
     it('should import valid project file', async () => {
       const validArchive = {
         version: 1,
@@ -193,14 +194,17 @@ describe('ProjectImportExportService', () => {
       }); // Cast element to any to avoid type error
 
       const fileContent = JSON.stringify(validArchive);
-      const file = new File([fileContent], 'project.json', {
-        type: 'application/json',
+
+      const zip = new JSZip();
+      zip.file('project.json', fileContent);
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+      const file = new File([zipBlob], 'project.zip', {
+        // Type cast zipBlob to Blob
+        type: 'application/zip',
       });
 
-      // Set up mock response for this test
-      (file.text as jest.Mock).mockResolvedValue(fileContent);
-
-      await service.importProject(file);
+      await service.importProjectZip(file);
 
       expect(service.isProcessing()).toBe(false);
       expect(service.progress()).toBe(100);
@@ -229,13 +233,15 @@ describe('ProjectImportExportService', () => {
     });
 
     it('should reject invalid JSON file', async () => {
-      const file = new File(['invalid json'], 'project.json', {
-        type: 'application/json',
+      const zip = new JSZip();
+      zip.file('project.json', 'invalid json');
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const file = new File([zipBlob], 'project.zip', {
+        // Type cast zipBlob to Blob
+        type: 'application/zip',
       });
 
-      (file.text as jest.Mock).mockResolvedValue('invalid json');
-
-      await expect(service.importProject(file)).rejects.toThrow(
+      await expect(service.importProjectZip(file)).rejects.toThrow(
         ProjectArchiveError
       );
 
@@ -252,15 +258,15 @@ describe('ProjectImportExportService', () => {
         elements: [],
       };
 
-      const file = new File([JSON.stringify(invalidArchive)], 'project.json', {
-        type: 'application/json',
+      const zip = new JSZip();
+      zip.file('project.json', JSON.stringify(invalidArchive));
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const file = new File([zipBlob], 'project.zip', {
+        // Type cast zipBlob to Blob
+        type: 'application/zip',
       });
 
-      (file.text as jest.Mock).mockResolvedValue(
-        JSON.stringify(invalidArchive)
-      );
-
-      await expect(service.importProject(file)).rejects.toThrow(
+      await expect(service.importProjectZip(file)).rejects.toThrow(
         /version.*not supported/i
       );
 
@@ -275,15 +281,15 @@ describe('ProjectImportExportService', () => {
         elements: [],
       };
 
-      const file = new File([JSON.stringify(invalidArchive)], 'project.json', {
-        type: 'application/json',
+      const zip = new JSZip();
+      zip.file('project.json', JSON.stringify(invalidArchive));
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const file = new File([zipBlob], 'project.zip', {
+        // Type cast zipBlob to Blob
+        type: 'application/zip',
       });
 
-      (file.text as jest.Mock).mockResolvedValue(
-        JSON.stringify(invalidArchive)
-      );
-
-      await expect(service.importProject(file)).rejects.toThrow(
+      await expect(service.importProjectZip(file)).rejects.toThrow(
         /missing.*slug/i
       );
 
@@ -306,15 +312,15 @@ describe('ProjectImportExportService', () => {
         ],
       };
 
-      const file = new File([JSON.stringify(invalidArchive)], 'project.json', {
-        type: 'application/json',
+      const zip = new JSZip();
+      zip.file('project.json', JSON.stringify(invalidArchive));
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const file = new File([zipBlob], 'project.zip', {
+        // Type cast zipBlob to Blob
+        type: 'application/zip',
       });
 
-      (file.text as jest.Mock).mockResolvedValue(
-        JSON.stringify(invalidArchive)
-      );
-
-      await expect(service.importProject(file)).rejects.toThrow(
+      await expect(service.importProjectZip(file)).rejects.toThrow(
         /invalid element/i
       );
 
