@@ -43,7 +43,12 @@
 }
 
 .main-container {
-  height: calc(100vh); // Adjust for toolbar height
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .loading-indicator {
@@ -61,13 +66,49 @@ mat-sidenav-content {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding-top: 48px;
-  overflow-y: auto;
+  overflow: hidden;
+  position: relative;
+
+  @media (min-width: 768px) {
+    padding-top: 48px;
+  }
+
+  @media (max-width: 767px) {
+    padding-top: 104px; // 56px toolbar + 48px tabs
+  }
+
+  app-element-editor {
+    flex: 1;
+    overflow: auto;
+  }
 }
 
-mat-toolbar {
+.mobile-toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
   background-color: var(--mat-sys-surface-container-highest);
   color: var(--mat-sys-on-surface);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 11;
+
+  .project-title {
+    font-size: 1.1rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .toolbar-spacer {
+    flex: 1;
+  }
 }
 
 .sidenav-content {
@@ -81,7 +122,7 @@ mat-toolbar {
   border-right: 1px solid var(--mat-sys-outline-variant);
 
   app-project-tree {
-    height:calc(100vh - 64px);
+    height: calc(100vh - 64px);
     display: block;
     overflow-y: auto;
   }
@@ -106,17 +147,36 @@ mat-toolbar {
 .tab-bars {
   background-color: var(--mat-sys-surface-container);
   position: fixed;
-  top: 0;
-  left: var(--sidenav-width, 250px);
   right: 0;
   z-index: 10;
+
+  @media (min-width: 768px) {
+    top: 0;
+    left: var(--sidenav-width, 250px);
+  }
+
+  @media (max-width: 767px) {
+    top: 56px; // Below mobile toolbar
+    left: 0;
+    width: 100%;
+  }
 }
 
 .empty-container {
   padding: 20px;
   position: fixed;
-  top: 0;
-  left: var(--sidenav-width, 250px);
   right: 0;
   z-index: 10;
+
+  @media (min-width: 768px) {
+    top: 0;
+    left: var(--sidenav-width, 250px);
+  }
+
+  @media (max-width: 767px) {
+    top: 56px; // Below mobile toolbar
+    left: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
 }
