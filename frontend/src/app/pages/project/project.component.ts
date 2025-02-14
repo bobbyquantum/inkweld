@@ -5,6 +5,7 @@ import {
   inject,
   OnDestroy,
   OnInit,
+  signal,
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,17 +14,21 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatToolbarModule } from '@angular/material/toolbar';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
-import { Subscription } from 'rxjs';
+import { fromEvent, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, map } from 'rxjs/operators';
 
 import { ElementEditorComponent } from '../../components/element-editor/element-editor.component';
 import { ProjectTreeComponent } from '../../components/project-tree/project-tree.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { DocumentService } from '../../services/document.service';
 import { ProjectStateService } from '../../services/project-state.service';
+
+const MOBILE_BREAKPOINT = 768;
 
 @Component({
   selector: 'app-project',
@@ -36,6 +41,7 @@ import { ProjectStateService } from '../../services/project-state.service';
     MatTabsModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatToolbarModule,
     ProjectTreeComponent,
     ElementEditorComponent,
     CommonModule,
@@ -47,13 +53,16 @@ export class ProjectComponent implements OnInit, OnDestroy {
   protected readonly projectState = inject(ProjectStateService);
   protected readonly DocumentSyncState = DocumentSyncState;
   protected readonly documentService = inject(DocumentService);
+  protected readonly isMobile = signal(window.innerWidth < MOBILE_BREAKPOINT);
+
   private readonly snackBar = inject(MatSnackBar);
   private readonly route = inject(ActivatedRoute);
   private readonly title = inject(Title);
-
   private startX = 0;
   private startWidth = 0;
   private paramsSubscription?: Subscription;
+  private resizeSubscription?: Subscription;
+
   private errorEffect = effect(() => {
     const error = this.projectState.error();
     if (error) {
@@ -81,21 +90,54 @@ export class ProjectComponent implements OnInit, OnDestroy {
       }
     });
 
-    const storedWidth = localStorage.getItem('sidenavWidth');
-    if (storedWidth) {
-      const width = parseInt(storedWidth, 10);
-      this.updateSidenavWidth(width);
+    // Handle responsive behavior
+    this.resizeSubscription = fromEvent(window, 'resize')
+      .pipe(
+        debounceTime(100),
+        map(() => window.innerWidth < MOBILE_BREAKPOINT),
+        distinctUntilChanged()
+      )
+      .subscribe(isMobile => {
+        this.isMobile.set(isMobile);
+        if (!isMobile) {
+          this.sidenav.mode = 'side';
+          void this.sidenav.open();
+          const storedWidth = localStorage.getItem('sidenavWidth');
+          if (storedWidth) {
+            const width = parseInt(storedWidth, 10);
+            this.updateSidenavWidth(width);
+          }
+        } else {
+          this.sidenav.mode = 'over';
+          void this.sidenav.close();
+        }
+      });
+
+    // Initialize sidenav width for desktop
+    if (!this.isMobile()) {
+      const storedWidth = localStorage.getItem('sidenavWidth');
+      if (storedWidth) {
+        const width = parseInt(storedWidth, 10);
+        this.updateSidenavWidth(width);
+      }
     }
   }
 
   ngOnDestroy() {
     this.paramsSubscription?.unsubscribe();
+    this.resizeSubscription?.unsubscribe();
     this.errorEffect.destroy();
   }
 
   isLoading = () => this.projectState.isLoading();
 
+  async toggleSidenav() {
+    await this.sidenav.toggle();
+  }
+
   onResizeStart(e: MouseEvent) {
+    if (this.isMobile()) return;
+
     e.preventDefault();
     this.startX = e.clientX;
     this.startWidth = this.getSidenavWidth();
@@ -106,6 +148,9 @@ export class ProjectComponent implements OnInit, OnDestroy {
 
   onFileOpened(element: ProjectElementDto) {
     this.projectState.openFile(element);
+    if (this.isMobile()) {
+      void this.sidenav.close();
+    }
   }
 
   closeTab(index: number) {

@@ -5,12 +5,28 @@
 }
 
 <mat-sidenav-container class="main-container">
-  <mat-sidenav mode="side" disableClose opened class="sidenav-content">
+  <mat-sidenav
+    [mode]="isMobile() ? 'over' : 'side'"
+    [opened]="!isMobile()"
+    class="sidenav-content">
     <app-project-tree></app-project-tree>
     <app-user-menu></app-user-menu>
-    <div class="resize-handle" (mousedown)="onResizeStart($event)"></div>
+    @if (!isMobile()) {
+      <div class="resize-handle" (mousedown)="onResizeStart($event)"></div>
+    }
   </mat-sidenav>
   <mat-sidenav-content>
+    @if (isMobile()) {
+      <mat-toolbar class="mobile-toolbar">
+        <button mat-icon-button (click)="toggleSidenav()">
+          <mat-icon>menu</mat-icon>
+        </button>
+        <span class="project-title">{{ projectState.project()?.title }}</span>
+        <!-- Space for additional mobile actions -->
+        <span class="toolbar-spacer"></span>
+        <!-- Add more mobile-specific actions here -->
+      </mat-toolbar>
+    }
     @if (projectState.openFiles().length === 0) {
       <div class="empty-container">
         <mat-icon>add</mat-icon>
