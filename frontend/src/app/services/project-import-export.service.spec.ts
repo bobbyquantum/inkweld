@@ -1,16 +1,20 @@
 import { TestBed } from '@angular/core/testing';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
+import { of } from 'rxjs';
 
 import {
+  ProjectArchive,
   ProjectArchiveError,
   ProjectArchiveErrorType,
 } from '../models/project-archive';
+import { DocumentService } from './document.service';
 import { ProjectImportExportService } from './project-import-export.service';
 import { ProjectStateService } from './project-state.service';
 
 describe('ProjectImportExportService', () => {
   let service: ProjectImportExportService;
   let projectStateService: jest.Mocked<ProjectStateService>;
+  let documentService: jest.Mocked<DocumentService>; // Mock DocumentService
 
   const mockProject: ProjectDto = {
     id: '123',
@@ -47,10 +51,16 @@ describe('ProjectImportExportService', () => {
       updateElements: jest.fn(),
     };
 
+    const documentServiceMock = {
+      exportDocument: jest.fn().mockReturnValue(of('mock document content')), // Mock exportDocument to return Observable<string>
+      importDocument: jest.fn().mockResolvedValue(undefined),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         ProjectImportExportService,
         { provide: ProjectStateService, useValue: projectStateMock },
+        { provide: DocumentService, useValue: documentServiceMock }, // Add DocumentService mock
       ],
     });
 
@@ -58,6 +68,10 @@ describe('ProjectImportExportService', () => {
     projectStateService = TestBed.inject(
       ProjectStateService
     ) as jest.Mocked<ProjectStateService>;
+    documentService = TestBed.inject(
+      // Inject DocumentService mock
+      DocumentService
+    ) as jest.Mocked<DocumentService>;
 
     // Mock URL methods
     global.URL.createObjectURL = jest.fn().mockReturnValue('blob-url');
@@ -73,7 +87,11 @@ describe('ProjectImportExportService', () => {
       this.json = jest.fn().mockResolvedValue({
         version: 1,
         project: mockProject,
-        elements: mockElements,
+        elements: mockElements.map(elem =>
+          elem.type === 'ITEM'
+            ? { ...elem, content: 'mock document content' }
+            : elem
+        ),
       });
       return this;
     }) as any;
@@ -117,6 +135,15 @@ describe('ProjectImportExportService', () => {
       expect(blobData.project.title).toBe(mockProject.title);
       expect(blobData.elements).toHaveLength(mockElements.length);
       expect(blobData.elements[0].id).toBe(mockElements[0].id);
+
+      // Verify document content for ITEM elements
+      const itemElement = blobData.elements.find((e: any) => e.type === 'ITEM');
+      expect(itemElement).toBeDefined();
+      expect(itemElement.content).toBe('mock document content');
+
+      // Verify documentService.exportDocument was called
+      expect(documentService.exportDocument).toHaveBeenCalledTimes(1);
+      expect(documentService.exportDocument).toHaveBeenCalledWith('elem2'); // elem2 is the id of the ITEM element
     });
 
     it('should throw error if no project is loaded', async () => {
@@ -154,7 +181,16 @@ describe('ProjectImportExportService', () => {
             expandable: true,
           },
         ],
-      };
+      } as ProjectArchive; // Explicitly type validArchive
+      validArchive.elements.push({
+        // Add ITEM element with content
+        id: 'import2',
+        name: 'Imported Item',
+        type: 'ITEM',
+        position: 1,
+        level: 1,
+        content: 'imported document content',
+      }); // Cast element to any to avoid type error
 
       const fileContent = JSON.stringify(validArchive);
       const file = new File([fileContent], 'project.json', {
@@ -179,8 +215,17 @@ describe('ProjectImportExportService', () => {
 
       const updatedElements =
         projectStateService.updateElements.mock.calls[0][0];
-      expect(updatedElements).toHaveLength(validArchive.elements.length);
+      expect(updatedElements).toHaveLength(validArchive.elements.length); // Corrected expected length
       expect(updatedElements[0].name).toBe(validArchive.elements[0].name);
+      expect(updatedElements[1].name).toBe('Imported Item'); // Verify imported item name
+      expect(updatedElements[1].type).toBe('ITEM'); // Verify imported item type
+
+      // Verify documentService.importDocument call
+      expect(documentService.importDocument).toHaveBeenCalledTimes(1);
+      expect(documentService.importDocument).toHaveBeenCalledWith(
+        'import2', // documentId should be the id of the imported ITEM element
+        JSON.stringify('imported document content') // Content should be the content from archive
+      );
     });
 
     it('should reject invalid JSON file', async () => {
