@@ -377,10 +377,7 @@ export class ProjectStateService {
 
     // 1. Project metadata
     const projectMap = this.getProjectMetaMap();
-    console.log(
-      'initializeLocalSignalsFromDoc: projectMetaMap:',
-      projectMap.toJSON()
-    );
+    console.log('initializeLocalSignalsFromDoc: projectMetaMap:');
     // Try reading fields or fallback to placeholders
     const projectId = projectMap.get('id') ?? 0;
     const projectName = projectMap.get('title') ?? '(Unnamed)';
