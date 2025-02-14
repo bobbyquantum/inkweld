@@ -80,6 +80,12 @@ export class ProjectComponent implements OnInit, OnDestroy {
         void this.projectState.loadProject(username, slug);
       }
     });
+
+    const storedWidth = localStorage.getItem('sidenavWidth');
+    if (storedWidth) {
+      const width = parseInt(storedWidth, 10);
+      this.updateSidenavWidth(width);
+    }
   }
 
   ngOnDestroy() {
@@ -131,5 +137,6 @@ export class ProjectComponent implements OnInit, OnDestroy {
   private onResizeEnd = () => {
     document.removeEventListener('mousemove', this.onResizeMove);
     document.removeEventListener('mouseup', this.onResizeEnd);
+    localStorage.setItem('sidenavWidth', this.getSidenavWidth().toString());
   };
 }
