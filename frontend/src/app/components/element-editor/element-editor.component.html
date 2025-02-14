@@ -44,6 +44,11 @@
       <mat-icon>add</mat-icon>
     </button>
   </div>
+  <div class="export-button">
+    <button mat-icon-button (click)="exportDocument()">
+      <mat-icon>download</mat-icon>
+    </button>
+  </div>
 </div>
 
 <div class="editor-container" [class.fit-width]="viewMode === 'fitWidth'">

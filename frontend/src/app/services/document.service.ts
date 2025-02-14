@@ -59,6 +59,19 @@ export class DocumentService {
   }
 
   /**
+   * Exports the content of a document
+   * @param documentId - The document ID to export
+   * @returns Observable<unknown> that emits the document content
+   */
+  exportDocument(documentId: string): Observable<unknown> {
+    const connection = this.connections.get(documentId);
+    if (!connection) {
+      throw new Error(`No connection found for document ${documentId}`);
+    }
+    return new BehaviorSubject(connection.type.toJSON()).asObservable();
+  }
+
+  /**
    * Sets up collaborative editing for a document
    * @param editor - The editor instance to enable collaboration on
    * @param documentId - Unique identifier for the document
