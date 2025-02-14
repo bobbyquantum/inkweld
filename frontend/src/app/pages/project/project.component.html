@@ -10,8 +10,9 @@
     [opened]="!isMobile()"
     class="sidenav-content">
     <app-project-tree></app-project-tree>
-    <app-user-menu></app-user-menu>
+
     @if (!isMobile()) {
+      <app-user-menu [miniMode]="false"></app-user-menu>
       <div class="resize-handle" (mousedown)="onResizeStart($event)"></div>
     }
   </mat-sidenav>
@@ -25,6 +26,7 @@
         <!-- Space for additional mobile actions -->
         <span class="toolbar-spacer"></span>
         <!-- Add more mobile-specific actions here -->
+        <app-user-menu [miniMode]="true"></app-user-menu>
       </mat-toolbar>
     }
     @if (projectState.openFiles().length === 0) {
