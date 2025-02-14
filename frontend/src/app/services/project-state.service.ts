@@ -89,15 +89,16 @@ export class ProjectStateService {
     this.isLoading.set(true);
     this.error.set(undefined);
 
-    console.log('Loading project:', username, slug);
+    console.log('loadProject: start', username, slug);
     const projectDto = await firstValueFrom(
       this.projectAPIService.projectControllerGetProjectByUsernameAndSlug(
         username,
         slug
       )
     );
-    console.log('Project loaded:', projectDto);
+    console.log('loadProject: projectDto from API:', projectDto);
     this.project.set(projectDto);
+    console.log('loadProject: project signal updated', projectDto);
 
     try {
       this.docId = `projectElements:${username}:${slug}`;
@@ -140,7 +141,9 @@ export class ProjectStateService {
       // Set initial sync state after IndexedDB sync
       this.docSyncState.set(DocumentSyncState.Synced);
 
+      console.log('loadProject: calling initializeLocalSignalsFromDoc');
       this.initializeLocalSignalsFromDoc();
+      console.log('loadProject: initializeLocalSignalsFromDoc complete');
 
       this.observeDocChanges();
 
@@ -374,11 +377,16 @@ export class ProjectStateService {
 
     // 1. Project metadata
     const projectMap = this.getProjectMetaMap();
+    console.log(
+      'initializeLocalSignalsFromDoc: projectMetaMap:',
+      projectMap.toJSON()
+    );
     // Try reading fields or fallback to placeholders
     const projectId = projectMap.get('id') ?? 0;
-    const projectName = projectMap.get('name') ?? '(Unnamed)';
+    const projectName = projectMap.get('title') ?? '(Unnamed)';
     const projectSlug = projectMap.get('slug') ?? '(no slug)';
     const projectDesc = projectMap.get('description') ?? '';
+    console.log('initializeLocalSignalsFromDoc: projectName:', projectName);
 
     // Construct your strongly-typed `ProjectDto`
     const loadedProject: ProjectDto = {
@@ -389,7 +397,9 @@ export class ProjectStateService {
       createdDate: new Date().toISOString(),
       updatedDate: new Date().toISOString(),
     };
+    console.log('initializeLocalSignalsFromDoc: loadedProject:', loadedProject);
     this.project.set(loadedProject);
+    console.log('initializeLocalSignalsFromDoc: project signal updated');
 
     // 2. Elements array
     const arr = this.getElementsArray();
