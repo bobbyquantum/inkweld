@@ -142,6 +142,13 @@ export class ElementEditorComponent
     this.showViewModeDropdown = !this.showViewModeDropdown;
   }
 
+  exportDocument(): void {
+    this.documentService.exportDocument(this.documentId).subscribe(content => {
+      const fileName = `document-${this.documentId}.json`;
+      this.downloadFile(JSON.stringify(content), fileName, 'application/json');
+    });
+  }
+
   private setVariable(name: string, value: string): void {
     this.documentElement.style.setProperty(name, value);
   }
@@ -318,5 +325,18 @@ export class ElementEditorComponent
         rightMargin: `${this.dimensions.rightMargin}cm`,
       });
     }
+  }
+
+  private downloadFile(
+    content: string,
+    fileName: string,
+    contentType: string
+  ): void {
+    const a = document.createElement('a');
+    const file = new Blob([content], { type: contentType });
+    a.href = URL.createObjectURL(file);
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(a.href);
   }
 }
