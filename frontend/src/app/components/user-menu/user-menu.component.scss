@@ -11,6 +11,14 @@
   gap: 8px;
   padding: 0 16px;
   justify-content: start;
+
+  &.mini-mode {
+    padding: 0;
+    width: 32px; /* Match avatar size */
+    height: 32px; /* Match avatar size */
+    border-radius: 50%;
+    overflow: hidden; /* Ensure icon button stays within circle */
+  }
 }
 .menu-content {
   display: flex;

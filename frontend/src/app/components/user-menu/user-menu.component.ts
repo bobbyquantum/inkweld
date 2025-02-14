@@ -21,6 +21,7 @@ interface LogoutResponse {
 })
 export class UserMenuComponent {
   @Input() user: UserDto | undefined = undefined;
+  @Input() miniMode = false;
 
   protected userService = inject(UserService);
   private router = inject(Router);
