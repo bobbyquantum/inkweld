@@ -17,6 +17,7 @@ jest.mock('yjs', () => ({
       set: jest.fn(),
       has: jest.fn(),
       observe: jest.fn(),
+      toJSON: jest.fn(),
     })),
     transact: jest.fn((fn: () => void) => fn()),
   })),
@@ -100,14 +101,16 @@ describe('ProjectStateService', () => {
       // Mock WebSocket provider to emit connected status
       mockWebSocketProvider.on.mockImplementation((name, callback) => {
         if (name === 'status') {
-          const mockStatusEvent: CloseEvent & {
-            status: 'connected' | 'disconnected' | 'connecting';
-          } & Event &
-            boolean = new CloseEvent('connected') as CloseEvent & {
-            status: 'connected' | 'disconnected' | 'connecting';
-          } & Event &
-            boolean;
-          callback(mockStatusEvent, mockWebSocketProvider);
+          const mockStatusEvent = {
+            status: 'connected',
+          };
+          callback(
+            mockStatusEvent as unknown as CloseEvent & {
+              status: 'connected' | 'disconnected' | 'connecting';
+            } & Event &
+              boolean,
+            mockWebSocketProvider
+          );
         }
         return () => {};
       });
