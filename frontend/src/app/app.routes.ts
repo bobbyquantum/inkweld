@@ -1,6 +1,9 @@
+import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 
 import { authGuard } from './guards/auth.guard';
+import { CanDeactivateProjectGuard } from './guards/can-deactivate-project.guard';
+import { ProjectComponent } from './pages/project/project.component';
 
 export const routes: Routes = [
   {
@@ -30,6 +33,10 @@ export const routes: Routes = [
       import('./pages/project/project.component').then(m => m.ProjectComponent),
     title: 'Project',
     canActivate: [authGuard],
+    canDeactivate: [
+      (component: ProjectComponent) =>
+        inject(CanDeactivateProjectGuard).canDeactivate(component),
+    ],
   },
   {
     path: 'unavailable',
