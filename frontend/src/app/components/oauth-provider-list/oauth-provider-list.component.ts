@@ -108,7 +108,11 @@ export class OAuthProviderListComponent implements OnInit {
   signInWithProvider(provider: string): void {
     console.log(`Sign in with ${provider} clicked`);
     this.ngZone.runOutsideAngular(() => {
-      window.location.href = `${environment.apiUrl}/oauth2/authorization/${provider.toLowerCase()}`;
+      let apiUrl = '';
+      if (typeof environment !== 'undefined' && environment?.apiUrl) {
+        apiUrl = (environment as { apiUrl: string }).apiUrl;
+      }
+      window.location.href = `${apiUrl}/oauth2/authorization/${provider.toLowerCase()}`;
     });
   }
 

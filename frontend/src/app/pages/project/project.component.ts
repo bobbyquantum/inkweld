@@ -17,16 +17,16 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
+import { ElementEditorComponent } from '@components/element-editor/element-editor.component';
+import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
+import { DocumentService } from '@services/document.service';
+import { ProjectStateService } from '@services/project-state.service';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
 import { fromEvent, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map } from 'rxjs/operators';
 
-import { ElementEditorComponent } from '../../components/element-editor/element-editor.component';
-import { ProjectTreeComponent } from '../../components/project-tree/project-tree.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { DocumentService } from '../../services/document.service';
-import { ProjectStateService } from '../../services/project-state.service';
 
 const MOBILE_BREAKPOINT = 768;
 
