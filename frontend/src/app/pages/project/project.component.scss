@@ -3,6 +3,11 @@
   align-items: center;
   gap: 8px;
 
+  &.home-tab {
+    pointer-events: none; // Make home tab non-closeable
+    cursor: default;
+  }
+
   .connection-status {
     width: 8px;
     height: 8px;
@@ -128,6 +133,7 @@ mat-sidenav-content {
     display: block;
     overflow-y: auto;
     flex: 1;
+    height: calc(100vh - 114px);
   }
 
   app-user-menu {
@@ -199,4 +205,23 @@ mat-sidenav-content {
     width: 100%;
     box-sizing: border-box;
   }
+}
+
+.home-tab-content {
+  display: flex;
+  flex-direction: row;
+  padding: 20px;
+  gap: 30px;
+  flex-wrap: wrap; // Add flex-wrap to allow columns to wrap
+
+  @media (max-width: 760px) {
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+
+.home-column {
+  flex: 1;
+  min-width: 300px;
+  margin-bottom: 20px; // Add margin for better spacing when columns wrap
 }
