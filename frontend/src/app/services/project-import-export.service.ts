@@ -106,7 +106,10 @@ export class ProjectImportExportService {
       // Create ZIP archive
       const zip = new JSZip();
       zip.file('project.json', json);
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const zipBlob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+      });
 
       // Generate filename
       const timestamp = new Date()

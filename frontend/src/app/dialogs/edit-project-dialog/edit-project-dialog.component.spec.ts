@@ -48,6 +48,7 @@ describe('EditProjectDialogComponent', () => {
 
     importExportService = {
       exportProject: jest.fn(),
+      exportProjectZip: jest.fn(),
       importProject: jest.fn(),
       isProcessing: jest.fn().mockReturnValue(signal(false)()),
       progress: jest.fn().mockReturnValue(signal(0)()),
@@ -112,7 +113,7 @@ describe('EditProjectDialogComponent', () => {
 
       await component.onExportClick();
 
-      expect(importExportService.exportProject).toHaveBeenCalled();
+      expect(importExportService.exportProjectZip).toHaveBeenCalled();
       expect(snackBar.open).toHaveBeenCalledWith(
         'Project exported successfully',
         'Close',
@@ -125,11 +126,11 @@ describe('EditProjectDialogComponent', () => {
         ProjectArchiveErrorType.FileSystemError,
         'Export failed'
       );
-      importExportService.exportProject.mockRejectedValue(error);
+      importExportService.exportProjectZip.mockRejectedValue(error);
 
       await component.onExportClick();
 
-      expect(importExportService.exportProject).toHaveBeenCalled();
+      expect(importExportService.exportProjectZip).toHaveBeenCalled();
       expect(snackBar.open).toHaveBeenCalledWith(
         'Failed to export project: Export failed',
         'Close',
