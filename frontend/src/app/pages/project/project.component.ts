@@ -20,7 +20,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Title } from '@angular/platform-browser';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ElementEditorComponent } from '@components/element-editor/element-editor.component';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
@@ -62,6 +62,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly route = inject(ActivatedRoute);
   protected readonly dialog = inject(MatDialog);
   protected readonly title = inject(Title);
+  protected readonly router = inject(Router);
 
   protected destroy$ = new Subject<void>();
   private startX = 0;
@@ -204,6 +205,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   closeTab = (index: number) => {
     this.projectState.closeFile(index);
   };
+
+  exitProject() {
+    void this.router.navigate(['/']);
+  }
 
   private getSidenavWidth = (): number => {
     const sidenavEl = document.querySelector<HTMLElement>('.sidenav-content');
