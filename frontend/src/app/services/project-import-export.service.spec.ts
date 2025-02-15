@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import JSZip from '@progress/jszip-esm';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
-import JSZip from 'jszip';
 import { of } from 'rxjs';
 
 import {
