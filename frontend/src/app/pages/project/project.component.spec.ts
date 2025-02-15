@@ -1,3 +1,4 @@
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { HttpClient } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -5,7 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
 import { ProjectAPIService, ProjectDto, ProjectElementDto } from '@worm/index';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, of } from 'rxjs';
 
 import { ProjectStateService } from '../../services/project-state.service';
 import { ProjectComponent } from './project.component';
@@ -45,6 +46,7 @@ describe('ProjectComponent', () => {
   let snackBarMock: jest.Mocked<MatSnackBar>;
   let httpClientMock: jest.Mocked<HttpClient>;
   let routeParams: BehaviorSubject<{ username: string; slug: string }>;
+  let breakpointObserverMock: jest.Mocked<BreakpointObserver>;
 
   const mockProject: ProjectDto = {
     id: '1',
@@ -113,6 +115,13 @@ describe('ProjectComponent', () => {
       slug: 'test-project',
     });
 
+    // Mock BreakpointObserver
+    breakpointObserverMock = {
+      observe: jest
+        .fn()
+        .mockReturnValue(of({ matches: false, breakpoints: {} })), // Default to desktop
+    } as unknown as jest.Mocked<BreakpointObserver>;
+
     await TestBed.configureTestingModule({
       imports: [ProjectComponent, NoopAnimationsModule],
       providers: [
@@ -120,6 +129,7 @@ describe('ProjectComponent', () => {
         { provide: ProjectAPIService, useValue: projectServiceMock },
         { provide: ProjectStateService, useValue: projectStateServiceMock },
         { provide: MatSnackBar, useValue: snackBarMock },
+        { provide: BreakpointObserver, useValue: breakpointObserverMock },
         {
           provide: ActivatedRoute,
           useValue: { params: routeParams.asObservable() },
@@ -149,32 +159,23 @@ describe('ProjectComponent', () => {
         return Promise.resolve();
       }
     );
-
     fixture.detectChanges();
-
-    // Wait for any async operations to complete
     await fixture.whenStable();
 
     expect(projectStateServiceMock.loadProject).toHaveBeenCalledWith(
       'testuser',
       'test-project'
     );
-
-    // Check that the project signal has been set
     expect(projectStateServiceMock.project?.()).toEqual(mockProject);
   });
 
   it('should handle route params changes', async () => {
-    // Mock the loadProject method
     (projectStateServiceMock.loadProject as jest.Mock).mockResolvedValue(
       undefined
     );
-
     fixture.detectChanges();
 
-    // Simulate route params change
     routeParams.next({ username: 'newuser', slug: 'new-project' });
-
     await fixture.whenStable();
 
     expect(projectStateServiceMock.loadProject).toHaveBeenCalledWith(
@@ -193,13 +194,11 @@ describe('ProjectComponent', () => {
     };
 
     component.onFileOpened(mockElement);
-
     expect(projectStateServiceMock.openFile).toHaveBeenCalledWith(mockElement);
   });
 
   it('should close a tab when closeTab is called', () => {
     component.closeTab(1);
-
     expect(projectStateServiceMock.closeFile).toHaveBeenCalledWith(1);
   });
 
@@ -213,7 +212,6 @@ describe('ProjectComponent', () => {
 
     projectStateServiceMock.isLoading?.set(false);
     fixture.detectChanges();
-
     expect(nativeElement.querySelector('.loading-indicator')).toBeNull();
   });
 
@@ -225,5 +223,21 @@ describe('ProjectComponent', () => {
     expect(snackBarMock.open).toHaveBeenCalledWith(errorMessage, 'Close', {
       duration: 5000,
     });
+  });
+
+  it('should set isMobile to true when breakpoint observer matches mobile breakpoints', () => {
+    breakpointObserverMock.observe.mockReturnValue(
+      of({ matches: true, breakpoints: { [Breakpoints.XSmall]: true } })
+    );
+    fixture.detectChanges();
+    expect(component.isMobile()).toBe(true);
+  });
+
+  it('should set isMobile to false when breakpoint observer does not match mobile breakpoints', () => {
+    breakpointObserverMock.observe.mockReturnValue(
+      of({ matches: false, breakpoints: {} })
+    );
+    fixture.detectChanges();
+    expect(component.isMobile()).toBe(false);
   });
 });
