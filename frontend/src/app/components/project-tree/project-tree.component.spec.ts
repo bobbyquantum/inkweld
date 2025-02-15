@@ -18,7 +18,7 @@ import { of } from 'rxjs';
 
 import { projectServiceMock } from '../../../testing/project-api.mock';
 import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
-import { ProjectElement } from './project-element';
+import { ProjectElement } from '../../models/project-element';
 import { ProjectTreeComponent } from './project-tree.component';
 
 const ROOT_WRAPPER_ID = 'root-wrapper';

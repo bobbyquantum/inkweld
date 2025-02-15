@@ -1,4 +1,4 @@
-import { ProjectElement } from './project-element';
+import { ProjectElement } from '../../models/project-element';
 import { TreeManipulator } from './tree-manipulator';
 
 describe('TreeManipulator', () => {
