@@ -69,7 +69,7 @@ mat-sidenav-content {
   overflow: hidden;
   position: relative;
 
-  @media (min-width: 768px) {
+  @media (min-width: 760px) {
     padding-top: 48px;
   }
 
@@ -170,12 +170,12 @@ mat-sidenav-content {
   right: 0;
   z-index: 10;
 
-  @media (min-width: 768px) {
+  @media (min-width: 760px) {
     top: 0;
     left: var(--sidenav-width, 250px);
   }
 
-  @media (max-width: 767px) {
+  @media (max-width: 759px) {
     top: 56px; // Below mobile toolbar
     left: 0;
     width: 100%;
@@ -188,12 +188,12 @@ mat-sidenav-content {
   right: 0;
   z-index: 10;
 
-  @media (min-width: 768px) {
+  @media (min-width: 760px) {
     top: 0;
     left: var(--sidenav-width, 250px);
   }
 
-  @media (max-width: 767px) {
+  @media (max-width: 759px) {
     top: 56px; // Below mobile toolbar
     left: 0;
     width: 100%;

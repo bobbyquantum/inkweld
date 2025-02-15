@@ -1,4 +1,4 @@
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
@@ -151,7 +151,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setupBreakpointObserver() {
     this.breakpointObserver
-      .observe([Breakpoints.XSmall, Breakpoints.Small])
+      .observe('(max-width: 759px)')
       .pipe(takeUntil(this.destroy$))
       .subscribe(result => {
         this.isMobile.set(result.matches);
