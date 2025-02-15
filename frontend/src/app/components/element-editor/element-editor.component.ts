@@ -13,11 +13,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
+import { DocumentService } from '@services/document.service';
 import { Editor, NgxEditorModule } from 'ngx-editor';
 import { fromEvent, Subject, Subscription } from 'rxjs';
 import { filter, map, takeUntil } from 'rxjs/operators';
-
-import { DocumentService } from '../../services/document.service';
 
 interface MouseDragEvent {
   type: 'start' | 'move' | 'end';

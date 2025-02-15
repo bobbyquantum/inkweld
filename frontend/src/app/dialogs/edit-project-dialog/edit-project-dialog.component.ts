@@ -20,11 +20,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { ProjectImportExportService } from '@services/project-import-export.service';
+import { ProjectAPIService } from '@worm/api/project-api.service';
+import { ProjectDto } from '@worm/model/project-dto';
 import { firstValueFrom } from 'rxjs';
-
-import { ProjectAPIService } from '../../../api-client/api/project-api.service';
-import { ProjectDto } from '../../../api-client/model/project-dto';
-import { ProjectImportExportService } from '../../services/project-import-export.service';
 
 export interface EditProjectDialogData {
   project: ProjectDto;
