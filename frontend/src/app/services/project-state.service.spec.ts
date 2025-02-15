@@ -187,7 +187,7 @@ describe('ProjectStateService', () => {
       service.openFile(mockFile);
 
       expect(service.openFiles()).toContain(mockFile);
-      expect(service.selectedTabIndex()).toBe(0);
+      expect(service.selectedTabIndex()).toBe(1);
     });
 
     it('should close a file', () => {

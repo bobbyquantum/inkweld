@@ -194,8 +194,9 @@ export class ProjectStateService {
       // docSyncState might remain 'Synced' or 'Offline' etc.
       // We'll just do no-op here.
     }
+
     const index = this.openFiles().findIndex(f => f.id === element.id);
-    this.selectedTabIndex.set(index);
+    this.selectedTabIndex.set(index + 1);
   }
 
   /**
