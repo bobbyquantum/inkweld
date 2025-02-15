@@ -11,7 +11,6 @@ export interface ValidDropLevels {
  */
 export class TreeManipulator {
   private sourceData: ProjectElement[] = [];
-  private readonly ROOT_LEVEL = 1;
 
   constructor(treeData?: ProjectElement[]) {
     if (treeData) {
@@ -136,33 +135,36 @@ export class TreeManipulator {
     if (nodeAbove && nodeBelow) {
       if (nodeAbove.level < nodeBelow.level) {
         if (nodeAbove.expandable) {
-          validLevels.add(Math.max(this.ROOT_LEVEL, nodeAbove.level + 1));
+          validLevels.add(nodeAbove.level + 1);
         }
-        validLevels.add(Math.max(this.ROOT_LEVEL, nodeBelow.level));
+        validLevels.add(nodeBelow.level);
       } else if (nodeAbove.level === nodeBelow.level) {
-        validLevels.add(Math.max(this.ROOT_LEVEL, nodeAbove.level));
+        validLevels.add(nodeAbove.level);
       } else {
         for (let level = nodeBelow.level; level <= nodeAbove.level; level++) {
-          validLevels.add(Math.max(this.ROOT_LEVEL, level));
+          validLevels.add(level);
         }
       }
     } else if (nodeAbove && !nodeBelow) {
-      for (let level = this.ROOT_LEVEL; level <= nodeAbove.level; level++) {
+      for (let level = 1; level <= nodeAbove.level; level++) {
         validLevels.add(level);
       }
       if (nodeAbove.expandable) {
-        validLevels.add(Math.max(this.ROOT_LEVEL, nodeAbove.level + 1));
+        validLevels.add(nodeAbove.level + 1);
       }
     } else if (!nodeAbove && nodeBelow) {
-      validLevels.add(Math.max(this.ROOT_LEVEL, nodeBelow.level));
+      validLevels.add(nodeBelow.level);
     } else {
-      validLevels.add(this.ROOT_LEVEL);
+      validLevels.add(1);
     }
 
     const levels = Array.from(validLevels).sort((a, b) => a - b);
+
+    // Default level should be the first level in the array, or 1 if array is empty
+    const defaultLevel = levels.length > 0 ? levels[0] : 1;
     return {
       levels,
-      defaultLevel: levels[0],
+      defaultLevel,
     };
   }
 
@@ -185,7 +187,7 @@ export class TreeManipulator {
   }
 
   isValidDrop(nodeAbove: ProjectElement | null, targetLevel: number): boolean {
-    if (!nodeAbove) return targetLevel === this.ROOT_LEVEL;
+    if (!nodeAbove) return targetLevel === 1;
     if (nodeAbove.type === 'ITEM' && targetLevel > nodeAbove.level) {
       return false;
     }

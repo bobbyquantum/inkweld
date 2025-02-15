@@ -21,8 +21,6 @@ import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/ed
 import { ProjectElement } from '../../models/project-element';
 import { ProjectTreeComponent } from './project-tree.component';
 
-const ROOT_WRAPPER_ID = 'root-wrapper';
-
 describe('ProjectTreeComponent', () => {
   let component: ProjectTreeComponent;
   let fixture: ComponentFixture<ProjectTreeComponent>;
@@ -38,7 +36,7 @@ describe('ProjectTreeComponent', () => {
     name: 'Test Element',
     type: 'FOLDER',
     position: 0,
-    level: 0,
+    level: 1, // Updated to reflect no root node wrapping
   };
 
   const createMockDialogRef = () =>
@@ -109,13 +107,11 @@ describe('ProjectTreeComponent', () => {
   });
 
   it('should initialize with elements from service', () => {
-    // Account for root wrapper + 1 element
-    expect(component.treeElements()).toHaveLength(2);
-    // Root wrapper should be first
-    expect(component.treeElements()[0].id).toBe(ROOT_WRAPPER_ID);
-    // Original element should be second with increased level
-    expect(component.treeElements()[1].type).toBe('FOLDER');
-    expect(component.treeElements()[1].level).toBe(1);
+    // Account for 1 element
+    expect(component.treeElements()).toHaveLength(1);
+    // Original element should be first
+    expect(component.treeElements()[0].type).toBe('FOLDER');
+    expect(component.treeElements()[0].level).toBe(1); // Updated to reflect no root node wrapping
   });
 
   describe('State Management', () => {
@@ -140,15 +136,15 @@ describe('ProjectTreeComponent', () => {
         name: 'New Element',
         type: 'ITEM',
         position: 1,
-        level: 0,
+        level: 1, // Updated to reflect no root node wrapping
       };
 
       elementsSignal.set([mockDto, newElement]);
 
-      expect(component.treeElements()).toHaveLength(3);
-      const lastElement = component.treeElements()[2];
+      expect(component.treeElements()).toHaveLength(2);
+      const lastElement = component.treeElements()[1];
       expect(lastElement.type).toBe('ITEM');
-      expect(lastElement.level).toBe(1);
+      expect(lastElement.level).toBe(1); // Updated to reflect no root node wrapping
     });
   });
 
@@ -156,6 +152,10 @@ describe('ProjectTreeComponent', () => {
     let testNode: ProjectElement;
 
     beforeEach(() => {
+      const data = component.treeManipulator.getData();
+      if (data.length < 2) {
+        component.treeManipulator.addNode('ITEM', data[0] || mockDto); // Ensure at least 2 nodes
+      }
       testNode = component.treeManipulator.getData()[1];
     });
 
@@ -239,6 +239,10 @@ describe('ProjectTreeComponent', () => {
 
     beforeEach(() => {
       dataSource = new ArrayDataSource<ProjectElement>([]);
+      const data = component.treeManipulator.getData();
+      if (data.length < 2) {
+        component.treeManipulator.addNode('ITEM', data[0] || mockDto); // Ensure at least 2 nodes
+      }
       node = component.treeManipulator.getData()[1];
       mockDrag = { data: node } as CdkDrag<ProjectElement>;
       mockDropList = {
@@ -272,8 +276,8 @@ describe('ProjectTreeComponent', () => {
   });
 
   it('should extract project info from URL', async () => {
-    // Get the first non-root element
-    const node = component.treeManipulator.getData()[1];
+    // Get the first element
+    const node = component.treeManipulator.getData()[0];
     await component.onDelete(node);
     expect(treeService.saveProjectElements).toHaveBeenCalledWith(
       'testuser',
@@ -300,8 +304,8 @@ describe('ProjectTreeComponent', () => {
     elementsSignal.set([]);
     fixture.detectChanges();
 
-    expect(component.treeElements()).toHaveLength(1); // Just root wrapper
-    expect(component.treeManipulator.getData()).toHaveLength(1);
+    expect(component.treeElements()).toHaveLength(0); // Empty tree with no elements
+    expect(component.treeManipulator.getData()).toHaveLength(0);
   });
 
   it('should handle undefined error state', () => {
@@ -342,20 +346,18 @@ describe('ProjectTreeComponent', () => {
 
   describe('Context Menu', () => {
     let regularNode: ProjectElement;
-    let rootNode: ProjectElement;
     let fileNode: ProjectElement;
 
     const createFileNode = (): ProjectElement => ({
       id: '2',
       name: 'Test File',
       type: 'ITEM',
-      position: 1,
-      level: 0,
+      position: 0,
+      level: 1, // Updated to reflect no root node wrapping
     });
 
     beforeEach(() => {
-      regularNode = component.treeManipulator.getData()[1];
-      rootNode = component.treeManipulator.getData()[0];
+      regularNode = component.treeManipulator.getData()[0];
       fileNode = createFileNode();
       elementsSignal.update(elements => [...elements, fileNode]);
       fixture.detectChanges();
@@ -371,7 +373,7 @@ describe('ProjectTreeComponent', () => {
       });
 
       it('should open file through context menu', () => {
-        const node = component.treeManipulator.getData()[2];
+        const node = component.treeManipulator.getData()[1];
         expect(node.type).toBe('ITEM');
 
         component.onOpenFile(node);
@@ -380,36 +382,9 @@ describe('ProjectTreeComponent', () => {
           ...node,
           expandable: undefined,
           expanded: undefined,
-          level: node.level - 1,
+          level: node.level - 1, // Decrement level since component increments it for tree display
           visible: undefined,
         });
-      });
-    });
-
-    describe('Root Node Protection', () => {
-      beforeEach(() => {
-        expect(rootNode.id).toBe(ROOT_WRAPPER_ID);
-      });
-
-      it('should prevent root node editing', () => {
-        component.startEditing(rootNode);
-        expect(component.editingNode).toBeUndefined();
-      });
-
-      it('should prevent root node deletion', async () => {
-        await component.onDelete(rootNode);
-        expect(component.treeManipulator.getData()[0].id).toBe(ROOT_WRAPPER_ID);
-      });
-
-      it('should allow context menu but prevent actions on root', async () => {
-        component.onContextMenuOpen(rootNode);
-        expect(component.contextItem).toBe(rootNode);
-
-        component.onRename(rootNode);
-        expect(component.editingNode).toBeUndefined();
-
-        await component.onDelete(rootNode);
-        expect(component.treeManipulator.getData()[0].id).toBe(ROOT_WRAPPER_ID);
       });
     });
   });
