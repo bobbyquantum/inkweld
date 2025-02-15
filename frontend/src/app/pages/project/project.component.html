@@ -9,7 +9,21 @@
     [mode]="isMobile() ? 'over' : 'side'"
     [opened]="!isMobile()"
     class="sidenav-content">
+    @if (!isMobile()) {
+      <mat-toolbar class="project-toolbar">
+        <button mat-icon-button (click)="exitProject()">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+      </mat-toolbar>
+    }
     <app-project-tree></app-project-tree>
+    @if (isMobile()) {
+      <div class="mobile-exit-button">
+        <button mat-raised-button color="warn" (click)="exitProject()">
+          Exit Project
+        </button>
+      </div>
+    }
 
     @if (!isMobile()) {
       <app-user-menu [miniMode]="false"></app-user-menu>

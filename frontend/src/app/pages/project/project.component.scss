@@ -120,12 +120,32 @@ mat-sidenav-content {
   height: 100%;
   background-color: var(--mat-sys-surface-container);
   border-right: 1px solid var(--mat-sys-outline-variant);
+  display: flex;
+  flex-direction: column;
 
   app-project-tree {
-    height: calc(100vh - 64px);
+    /* height: auto; */
     display: block;
     overflow-y: auto;
+    flex: 1;
   }
+
+  app-user-menu {
+    margin-top: auto; /* Push user menu to the bottom */
+  }
+}
+
+.project-toolbar {
+  top: 0;
+  height: 48px;
+  background-color: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; // Changed to space-between
+  z-index: 2; // lowered z-index
 }
 
 .resize-handle {
