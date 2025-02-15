@@ -31,7 +31,10 @@ import { ProjectStateService } from '@services/project-state.service';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
 
 import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
-import { mapDtoToProjectElement, ProjectElement } from '../../models/project-element';
+import {
+  mapDtoToProjectElement,
+  ProjectElement,
+} from '../../models/project-element';
 import { TreeManipulator } from './tree-manipulator';
 
 const ROOT_WRAPPER_ID = 'root-wrapper';
