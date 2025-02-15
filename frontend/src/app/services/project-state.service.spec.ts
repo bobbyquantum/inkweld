@@ -45,7 +45,7 @@ describe('ProjectStateService', () => {
     id: '1',
     type: ProjectElementDto.TypeEnum.Folder,
     position: 0,
-    level: 0,
+    level: 1, // Updated to reflect no root node wrapping
     name: 'Test Folder',
   };
 

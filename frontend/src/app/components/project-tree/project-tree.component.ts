@@ -36,8 +36,6 @@ import {
   ProjectElement,
 } from '../../models/project-element';
 import { TreeManipulator } from './tree-manipulator';
-const ROOT_WRAPPER_ID = 'root-wrapper';
-
 /**
  * Component for displaying and managing the project tree.
  */
@@ -72,25 +70,9 @@ export class ProjectTreeComponent implements AfterViewInit {
 
   readonly projectStateService = inject(ProjectStateService);
 
-  // Map DTOs to internal model and wrap with root node
+  // Map DTOs to internal model
   readonly treeElements = computed(() => {
-    const elements = this.projectStateService
-      .elements()
-      .map(mapDtoToProjectElement);
-    // Increment all elements' levels by 1 to make room for wrapper
-    elements.forEach(el => (el.level += 1));
-    // Add wrapper node
-    const wrapper: ProjectElement = {
-      id: ROOT_WRAPPER_ID,
-      name: this.projectStateService.project()?.title || 'Project',
-      type: 'FOLDER',
-      level: 0,
-      position: 0,
-      expandable: true,
-      expanded: true,
-      visible: true,
-    };
-    return [wrapper, ...elements];
+    return this.projectStateService.elements().map(mapDtoToProjectElement);
   });
 
   // Other service signals
@@ -202,8 +184,8 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node that is being pressed.
    */
   public onNodeDown(node: ProjectElement) {
-    // Don't allow dragging root wrapper or when editing
-    if (node.id === ROOT_WRAPPER_ID || this.editingNode !== undefined) return;
+    // Don't allow dragging when editing
+    if (this.editingNode !== undefined) return;
 
     this.selectedItem = node;
     if (node.type === 'FOLDER' && node.expanded) {
@@ -245,8 +227,8 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node being dragged.
    */
   public dragStarted(node: ProjectElement) {
-    // Don't allow dragging root wrapper or when editing
-    if (node.id === ROOT_WRAPPER_ID || this.editingNode !== undefined) return;
+    // Don't allow dragging when editing
+    if (this.editingNode !== undefined) return;
 
     this.draggedNode = node;
     this.currentDropLevel = node.level;
@@ -292,11 +274,13 @@ export class ProjectTreeComponent implements AfterViewInit {
     const { currentIndex, container } = event;
     const sortedNodes = container
       .getSortedItems()
-      .map(dragItem => dragItem.data as ProjectElement)
-      .filter(node => node.id !== this.draggedNode?.id);
+      .map(dragItem => dragItem.data as ProjectElement);
+    const filteredNodes = sortedNodes.filter(
+      node => node.id !== this.draggedNode?.id
+    );
 
-    const nodeAbove = sortedNodes[currentIndex - 1] || null;
-    const nodeBelow = sortedNodes[currentIndex] || null;
+    const nodeAbove = filteredNodes[currentIndex - 1] || null;
+    const nodeBelow = filteredNodes[currentIndex] || null;
 
     const { levels, defaultLevel } = this.treeManipulator.getValidDropLevels(
       nodeAbove,
@@ -352,8 +336,6 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node to edit.
    */
   public startEditing(node: ProjectElement) {
-    // Don't allow editing root wrapper
-    if (node.id === ROOT_WRAPPER_ID) return;
     this.editingNode = node.id;
   }
 
@@ -363,13 +345,9 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param newName The new name for the node.
    */
   public async finishEditing(node: ProjectElement, newName: string) {
-    // Don't allow editing root wrapper
-    if (node.id === ROOT_WRAPPER_ID) return;
-
     if (newName.trim() !== '') {
       this.treeManipulator.renameNode(node, newName.trim());
       this.updateDataSource();
-      // Save changes after rename
       await this.saveChanges();
     }
     this.editingNode = undefined;
@@ -387,8 +365,6 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node to rename.
    */
   public onRename(node: ProjectElement) {
-    // Don't allow renaming root wrapper
-    if (node.id === ROOT_WRAPPER_ID) return;
     this.startEditing(node);
   }
 
@@ -397,8 +373,6 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node to delete.
    */
   public async onDelete(node: ProjectElement) {
-    // Don't allow deleting root wrapper
-    if (node.id === ROOT_WRAPPER_ID) return;
     this.treeManipulator.deleteNode(node);
     this.updateDataSource();
     // Save changes after delete
@@ -470,10 +444,9 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Saves the current tree state to the backend.
    */
   private async saveChanges() {
-    // Get all elements except the root wrapper and decrement their levels
+    // Get all elements and decrement their levels
     const elements = this.treeManipulator
       .getData()
-      .filter(el => el.id !== ROOT_WRAPPER_ID)
       .map(el => ({ ...el, level: el.level - 1 }));
 
     // Get project info from URL or service
