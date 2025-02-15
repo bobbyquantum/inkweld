@@ -131,7 +131,7 @@ export class EditProjectDialogComponent implements OnInit {
 
   async onExportClick(): Promise<void> {
     try {
-      await this.importExportService.exportProject();
+      await this.importExportService.exportProjectZip();
       this.showSuccess('Project exported successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
