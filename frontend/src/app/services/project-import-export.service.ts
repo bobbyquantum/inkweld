@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
+import JSZip from '@progress/jszip-esm';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
-import JSZip from 'jszip';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -181,7 +181,8 @@ export class ProjectImportExportService {
       this.progress.set(0);
 
       // Read the zip file as a blob
-      const zip = await JSZip.loadAsync(file);
+      const buffer = await file.arrayBuffer();
+      const zip = await new JSZip().loadAsync(buffer);
       this.progress.set(30);
 
       // Extract the project.json file
