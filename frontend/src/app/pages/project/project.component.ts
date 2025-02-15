@@ -1,5 +1,7 @@
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
 import {
+  AfterViewInit,
   Component,
   effect,
   HostListener,
@@ -25,14 +27,10 @@ import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
-import { firstValueFrom } from 'rxjs';
-import { fromEvent, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, map } from 'rxjs/operators';
+import { firstValueFrom, Subject, Subscription, takeUntil } from 'rxjs';
 
 import { ConfirmationDialogComponent } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
-
-const MOBILE_BREAKPOINT = 768;
 
 @Component({
   selector: 'app-project',
@@ -53,21 +51,22 @@ const MOBILE_BREAKPOINT = 768;
   ],
   standalone: true,
 })
-export class ProjectComponent implements OnInit, OnDestroy {
+export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
+  public readonly isMobile = signal(false);
   protected readonly projectState = inject(ProjectStateService);
   protected readonly DocumentSyncState = DocumentSyncState;
   protected readonly documentService = inject(DocumentService);
-  protected readonly isMobile = signal(window.innerWidth < MOBILE_BREAKPOINT);
+  protected readonly breakpointObserver = inject(BreakpointObserver);
+  protected readonly snackBar = inject(MatSnackBar);
+  protected readonly route = inject(ActivatedRoute);
+  protected readonly dialog = inject(MatDialog);
+  protected readonly title = inject(Title);
 
-  private readonly snackBar = inject(MatSnackBar);
-  private readonly route = inject(ActivatedRoute);
-  private readonly dialog = inject(MatDialog);
-  private readonly title = inject(Title);
+  protected destroy$ = new Subject<void>();
   private startX = 0;
   private startWidth = 0;
   private paramsSubscription?: Subscription;
-  private resizeSubscription?: Subscription;
   private syncSubscription?: Subscription;
   private hasUnsavedChanges = false;
 
@@ -143,17 +142,19 @@ export class ProjectComponent implements OnInit, OnDestroy {
         void this.projectState.loadProject(username, slug);
       }
     });
+  }
 
-    // Handle responsive behavior
-    this.resizeSubscription = fromEvent(window, 'resize')
-      .pipe(
-        debounceTime(100),
-        map(() => window.innerWidth < MOBILE_BREAKPOINT),
-        distinctUntilChanged()
-      )
-      .subscribe(isMobile => {
-        this.isMobile.set(isMobile);
-        if (!isMobile) {
+  ngAfterViewInit() {
+    this.setupBreakpointObserver();
+  }
+
+  setupBreakpointObserver() {
+    this.breakpointObserver
+      .observe([Breakpoints.XSmall, Breakpoints.Small])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(result => {
+        this.isMobile.set(result.matches);
+        if (!result.matches) {
           this.sidenav.mode = 'side';
           void this.sidenav.open();
           const storedWidth = localStorage.getItem('sidenavWidth');
@@ -166,22 +167,14 @@ export class ProjectComponent implements OnInit, OnDestroy {
           void this.sidenav.close();
         }
       });
-
-    // Initialize sidenav width for desktop
-    if (!this.isMobile()) {
-      const storedWidth = localStorage.getItem('sidenavWidth');
-      if (storedWidth) {
-        const width = parseInt(storedWidth, 10);
-        this.updateSidenavWidth(width);
-      }
-    }
   }
 
   ngOnDestroy() {
     this.paramsSubscription?.unsubscribe();
-    this.resizeSubscription?.unsubscribe();
     this.syncSubscription?.unsubscribe();
     this.errorEffect.destroy();
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   isLoading = () => this.projectState.isLoading();
@@ -190,7 +183,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
     await this.sidenav.toggle();
   }
 
-  onResizeStart(e: MouseEvent) {
+  onResizeStart = (e: MouseEvent) => {
     if (this.isMobile()) return;
 
     e.preventDefault();
@@ -199,25 +192,25 @@ export class ProjectComponent implements OnInit, OnDestroy {
 
     document.addEventListener('mousemove', this.onResizeMove);
     document.addEventListener('mouseup', this.onResizeEnd);
-  }
+  };
 
-  onFileOpened(element: ProjectElementDto) {
+  onFileOpened = (element: ProjectElementDto) => {
     this.projectState.openFile(element);
     if (this.isMobile()) {
       void this.sidenav.close();
     }
-  }
+  };
 
-  closeTab(index: number) {
+  closeTab = (index: number) => {
     this.projectState.closeFile(index);
-  }
+  };
 
-  private getSidenavWidth(): number {
+  private getSidenavWidth = (): number => {
     const sidenavEl = document.querySelector<HTMLElement>('.sidenav-content');
     return sidenavEl?.offsetWidth ?? 200;
-  }
+  };
 
-  private updateSidenavWidth(width: number): void {
+  private updateSidenavWidth = (width: number): void => {
     const sidenavEl = document.querySelector<HTMLElement>('.sidenav-content');
     if (sidenavEl) {
       sidenavEl.style.width = `${width}px`;
@@ -226,7 +219,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
         `${width}px`
       );
     }
-  }
+  };
 
   private onResizeMove = (e: MouseEvent) => {
     const diff = e.clientX - this.startX;
