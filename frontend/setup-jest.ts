@@ -8,3 +8,13 @@ jest.mock('nanoid', () => {
     nanoid: () => `test-id-${counter++}`
   };
 });
+Object.defineProperty(File.prototype, 'arrayBuffer', {
+  value: function () {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(this);
+    });
+  },
+});
