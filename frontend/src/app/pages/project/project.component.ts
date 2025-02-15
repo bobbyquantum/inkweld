@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   Component,
   effect,
+  HostListener,
   inject,
   OnDestroy,
   OnInit,
@@ -9,6 +10,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
@@ -23,9 +25,11 @@ import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
+import { firstValueFrom } from 'rxjs';
 import { fromEvent, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map } from 'rxjs/operators';
 
+import { ConfirmationDialogComponent } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
 
 const MOBILE_BREAKPOINT = 768;
@@ -34,9 +38,9 @@ const MOBILE_BREAKPOINT = 768;
   selector: 'app-project',
   templateUrl: './project.component.html',
   styleUrls: ['./project.component.scss'],
-
   imports: [
     MatButtonModule,
+    MatDialogModule,
     MatSidenavModule,
     MatTabsModule,
     MatIconModule,
@@ -47,6 +51,7 @@ const MOBILE_BREAKPOINT = 768;
     CommonModule,
     UserMenuComponent,
   ],
+  standalone: true,
 })
 export class ProjectComponent implements OnInit, OnDestroy {
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
@@ -57,13 +62,16 @@ export class ProjectComponent implements OnInit, OnDestroy {
 
   private readonly snackBar = inject(MatSnackBar);
   private readonly route = inject(ActivatedRoute);
+  private readonly dialog = inject(MatDialog);
   private readonly title = inject(Title);
   private startX = 0;
   private startWidth = 0;
   private paramsSubscription?: Subscription;
   private resizeSubscription?: Subscription;
+  private syncSubscription?: Subscription;
+  private hasUnsavedChanges = false;
 
-  private errorEffect = effect(() => {
+  private readonly errorEffect = effect(() => {
     const error = this.projectState.error();
     if (error) {
       this.snackBar.open(error, 'Close', { duration: 5000 });
@@ -77,6 +85,52 @@ export class ProjectComponent implements OnInit, OnDestroy {
         this.title.setTitle(`${project.title}`);
       }
     });
+
+    effect(() => {
+      const openFiles = this.projectState.openFiles();
+      const currentFile = openFiles[0];
+
+      // Clean up previous subscription
+      this.syncSubscription?.unsubscribe();
+
+      if (currentFile?.id) {
+        this.syncSubscription = this.documentService
+          .getSyncStatus(currentFile.id)
+          .subscribe(state => {
+            this.hasUnsavedChanges = state === DocumentSyncState.Offline;
+          });
+      } else {
+        this.hasUnsavedChanges = false;
+      }
+    });
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(event: BeforeUnloadEvent) {
+    if (this.hasUnsavedChanges) {
+      event.preventDefault();
+      event.returnValue = '';
+      return '';
+    }
+    return true;
+  }
+
+  async canDeactivate(): Promise<boolean> {
+    console.log('Checking project de-activation guard');
+    if (!this.hasUnsavedChanges) {
+      return true;
+    }
+
+    const dialogRef = this.dialog.open<
+      ConfirmationDialogComponent,
+      void,
+      boolean
+    >(ConfirmationDialogComponent, {
+      disableClose: true,
+    });
+
+    const result = await firstValueFrom(dialogRef.afterClosed());
+    return result ?? false;
   }
 
   ngOnInit() {
@@ -126,6 +180,7 @@ export class ProjectComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.paramsSubscription?.unsubscribe();
     this.resizeSubscription?.unsubscribe();
+    this.syncSubscription?.unsubscribe();
     this.errorEffect.destroy();
   }
 
