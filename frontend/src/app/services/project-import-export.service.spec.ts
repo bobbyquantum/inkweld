@@ -199,7 +199,7 @@ describe('ProjectImportExportService', () => {
       zip.file('project.json', fileContent);
       const zipBlob = await zip.generateAsync({ type: 'blob' });
 
-      const file = new File([zipBlob], 'project.zip', {
+      const file = new File([zipBlob as BlobPart], 'project.zip', {
         // Type cast zipBlob to Blob
         type: 'application/zip',
       });
@@ -236,7 +236,7 @@ describe('ProjectImportExportService', () => {
       const zip = new JSZip();
       zip.file('project.json', 'invalid json');
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const file = new File([zipBlob], 'project.zip', {
+      const file = new File([zipBlob as BlobPart], 'project.zip', {
         // Type cast zipBlob to Blob
         type: 'application/zip',
       });
@@ -261,7 +261,7 @@ describe('ProjectImportExportService', () => {
       const zip = new JSZip();
       zip.file('project.json', JSON.stringify(invalidArchive));
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const file = new File([zipBlob], 'project.zip', {
+      const file = new File([zipBlob as BlobPart], 'project.zip', {
         // Type cast zipBlob to Blob
         type: 'application/zip',
       });
@@ -284,7 +284,7 @@ describe('ProjectImportExportService', () => {
       const zip = new JSZip();
       zip.file('project.json', JSON.stringify(invalidArchive));
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const file = new File([zipBlob], 'project.zip', {
+      const file = new File([zipBlob as BlobPart], 'project.zip', {
         // Type cast zipBlob to Blob
         type: 'application/zip',
       });
@@ -315,7 +315,7 @@ describe('ProjectImportExportService', () => {
       const zip = new JSZip();
       zip.file('project.json', JSON.stringify(invalidArchive));
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const file = new File([zipBlob], 'project.zip', {
+      const file = new File([zipBlob as BlobPart], 'project.zip', {
         // Type cast zipBlob to Blob
         type: 'application/zip',
       });
