@@ -38,6 +38,7 @@ describe('ElementEditorComponent', () => {
           },
         },
       },
+      configurable: true,
     });
 
     await TestBed.configureTestingModule({
