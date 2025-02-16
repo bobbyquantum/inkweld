@@ -79,7 +79,7 @@ describe('EditProjectDialogComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: MatDialogRef, useValue: dialogRef },
-        { provide: MAT_DIALOG_DATA, useValue: { project: mockProject } },
+        { provide: MAT_DIALOG_DATA, useValue: mockProject },
         { provide: ProjectImportExportService, useValue: importExportService },
         { provide: ProjectAPIService, useValue: projectAPIService },
         { provide: MatSnackBar, useValue: snackBar },
@@ -89,6 +89,7 @@ describe('EditProjectDialogComponent', () => {
     fixture = TestBed.createComponent(EditProjectDialogComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    component.project = mockProject;
   });
 
   afterEach(() => {

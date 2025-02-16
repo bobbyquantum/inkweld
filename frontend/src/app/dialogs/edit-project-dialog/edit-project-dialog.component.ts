@@ -25,10 +25,6 @@ import { ProjectAPIService } from '@worm/api/project-api.service';
 import { ProjectDto } from '@worm/model/project-dto';
 import { firstValueFrom } from 'rxjs';
 
-export interface EditProjectDialogData {
-  project: ProjectDto;
-}
-
 @Component({
   selector: 'app-edit-project-dialog',
   templateUrl: './edit-project-dialog.component.html',
@@ -56,7 +52,7 @@ export class EditProjectDialogComponent implements OnInit {
   private fb = inject(FormBuilder);
   private dialogRef = inject(MatDialogRef<EditProjectDialogComponent>);
   private projectAPIService = inject(ProjectAPIService);
-  private dialogData = inject<EditProjectDialogData>(MAT_DIALOG_DATA);
+  private dialogData = inject<ProjectDto>(MAT_DIALOG_DATA);
   private snackBar = inject(MatSnackBar);
 
   constructor() {
@@ -67,7 +63,8 @@ export class EditProjectDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.project = this.dialogData.project;
+    this.project = this.dialogData;
+    console.log('dialogData: ', this.dialogData);
     console.log('Project: ', this.project);
     this.form.patchValue({
       title: this.project.title,

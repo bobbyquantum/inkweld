@@ -212,6 +212,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   openEditDialog() {
+    console.log(
+      'projectState.project() in openEditDialog:',
+      this.projectState.project()
+    );
     const project = this.projectState.project();
     if (!project) return;
 
@@ -220,6 +224,18 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       width: '500px',
     });
     void dialogRef.afterClosed().subscribe();
+    void dialogRef.afterClosed().subscribe(updatedProject => {
+      if (updatedProject) {
+        console.log('Project updated successfully', updatedProject);
+        // Refresh the project data
+        const currentProject = this.projectState.project();
+        if (currentProject?.user?.username && currentProject?.slug)
+          void this.projectState.loadProject(
+            currentProject.user.username,
+            currentProject.slug
+          );
+      }
+    });
   }
 
   private getSidenavWidth = (): number => {
