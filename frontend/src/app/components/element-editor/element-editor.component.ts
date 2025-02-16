@@ -1,3 +1,5 @@
+import { CdkDragEnd } from '@angular/cdk/drag-drop';
+import { DragDropModule } from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
@@ -15,18 +17,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { DocumentService } from '@services/document.service';
 import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
-import { fromEvent, Subject, Subscription } from 'rxjs';
-import { filter, map, takeUntil } from 'rxjs/operators';
+import { Subject } from 'rxjs';
 
 import { EditorControlsMenuComponent } from './editor-controls-menu.component';
-
-interface MouseDragEvent {
-  type: 'start' | 'move' | 'end';
-  clientX: number;
-  clientY: number;
-  deltaX: number;
-  deltaY: number;
-}
 
 interface EditorDimensions {
   pageWidth: number; // in cm
@@ -46,6 +39,7 @@ type DragPoint = 'pageLeft' | 'pageRight' | 'marginLeft' | 'marginRight';
     MatSelectModule,
     MatOptionModule,
     EditorControlsMenuComponent,
+    DragDropModule,
   ],
   templateUrl: './element-editor.component.html',
   styleUrl: './element-editor.component.scss',
@@ -110,23 +104,8 @@ export class ElementEditorComponent
 
   private destroy$ = new Subject<void>();
   private documentService = inject(DocumentService);
-  private documentElement = document.documentElement;
 
-  // Drag handling
-  private dragStart$ = new Subject<MouseDragEvent>();
-  private dragMove$ = new Subject<MouseDragEvent>();
-  private dragEnd$ = new Subject<MouseDragEvent>();
-  private currentDragSubscription?: Subscription;
-  private lastX = 0;
-  private lastY = 0;
-  private isDragging = false;
-  private moveSubscription?: Subscription;
-  private upSubscription?: Subscription;
-  private blurSubscription?: Subscription;
-
-  constructor() {
-    this.setupDocumentListeners();
-  }
+  constructor() {}
 
   ngOnInit(): void {
     this.editor = new Editor({
@@ -137,7 +116,6 @@ export class ElementEditorComponent
 
   ngAfterViewInit(): void {
     this.setupCollaboration();
-    this.setupDragHandlers();
   }
 
   ngOnDestroy(): void {
@@ -145,8 +123,6 @@ export class ElementEditorComponent
     this.destroy$.complete();
     this.editor.destroy();
     this.documentService.disconnect(this.documentId);
-    this.cleanupDragSubscription();
-    this.cleanupSubscriptions();
   }
 
   increaseZoom(): void {
@@ -168,28 +144,6 @@ export class ElementEditorComponent
     this.updateZoom();
   }
 
-  startDragging(event: MouseEvent, dragPoint: DragPoint): void {
-    this.isDragging = true;
-    this.lastX = event.clientX;
-    this.lastY = event.clientY;
-    this.dragStart$.next({
-      type: 'start',
-      clientX: event.clientX,
-      clientY: event.clientY,
-      deltaX: 0,
-      deltaY: 0,
-    });
-    this.updateTooltips();
-
-    // Clean up any existing drag subscription
-    this.currentDragSubscription?.unsubscribe();
-
-    // Create new drag subscription
-    this.currentDragSubscription = this.dragMove$
-      .pipe(takeUntil(this.dragEnd$))
-      .subscribe(dragEvent => this.handleDrag(dragEvent, dragPoint));
-  }
-
   updateTooltips(): void {
     const contentWidth =
       this.dimensions.pageWidth -
@@ -204,10 +158,7 @@ export class ElementEditorComponent
   }
 
   onHandleMouseMove(): void {
-    if (!this.isDragging) {
-      // Only update tooltips when not dragging
-      this.updateTooltips();
-    }
+    this.updateTooltips();
   }
 
   getTooltipText(dragPoint: DragPoint): string {
@@ -222,6 +173,16 @@ export class ElementEditorComponent
       default:
         return '';
     }
+  }
+
+  onDragEnd(event: CdkDragEnd, dragPoint: DragPoint): void {
+    const pixelsPerCm = 37.795275591;
+    const delta = event.source.getFreeDragPosition().x / pixelsPerCm;
+
+    this.handleDragDelta(delta, dragPoint);
+    this.updateTooltips();
+    this.updateDimensions();
+    event.source.reset();
   }
 
   setViewMode(mode: 'page' | 'fitWidth'): void {
@@ -240,11 +201,11 @@ export class ElementEditorComponent
   }
 
   private setVariable(name: string, value: string): void {
-    this.documentElement.style.setProperty(name, value);
+    document.documentElement.style.setProperty(name, value);
   }
 
   private removeVariable(name: string): void {
-    this.documentElement.style.removeProperty(name);
+    document.documentElement.style.removeProperty(name);
   }
 
   private setPageDimensions(dimensions: {
@@ -269,64 +230,6 @@ export class ElementEditorComponent
     this.setVariable('--editor-zoom', (zoom / 100).toString());
   }
 
-  private setupDocumentListeners(): void {
-    this.moveSubscription = fromEvent<MouseEvent>(document, 'mousemove')
-      .pipe(
-        filter(() => this.isDragging),
-        map(event => ({
-          type: 'move' as const,
-          clientX: event.clientX,
-          clientY: event.clientY,
-          deltaX: event.clientX - this.lastX,
-          deltaY: event.clientY - this.lastY,
-        }))
-      )
-      .subscribe(event => {
-        this.lastX = event.clientX;
-        this.lastY = event.clientY;
-        this.dragMove$.next(event);
-      });
-
-    this.upSubscription = fromEvent<MouseEvent>(document, 'mouseup')
-      .pipe(
-        filter(() => this.isDragging),
-        map(event => ({
-          type: 'end' as const,
-          clientX: event.clientX,
-          clientY: event.clientY,
-          deltaX: event.clientX - this.lastX,
-          deltaY: event.clientY - this.lastY,
-        }))
-      )
-      .subscribe(event => {
-        this.dragEnd$.next(event);
-        this.isDragging = false;
-        this.cleanupSubscriptions();
-        this.cleanupDragSubscription();
-      });
-
-    this.blurSubscription = fromEvent(window, 'blur').subscribe(() => {
-      this.dragEnd$.next({
-        type: 'end',
-        clientX: this.lastX,
-        clientY: this.lastY,
-        deltaX: 0,
-        deltaY: 0,
-      });
-      this.isDragging = false;
-      this.cleanupSubscriptions();
-      this.cleanupDragSubscription();
-    });
-  }
-
-  private cleanupSubscriptions(): void {
-    if (!this.isDragging) {
-      this.moveSubscription?.unsubscribe();
-      this.upSubscription?.unsubscribe();
-      this.blurSubscription?.unsubscribe();
-    }
-  }
-
   private setupCollaboration(): void {
     setTimeout(() => {
       this.documentService
@@ -337,17 +240,7 @@ export class ElementEditorComponent
     }, 0);
   }
 
-  private setupDragHandlers(): void {
-    this.dragEnd$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.updateDimensions());
-  }
-
-  private handleDrag(dragEvent: MouseDragEvent, dragPoint: DragPoint): void {
-    // Account for zoom level in pixels per cm calculation
-    const basePixelsPerCm = 37.795275591;
-    const delta = dragEvent.deltaX / basePixelsPerCm;
-
+  private handleDragDelta(delta: number, dragPoint: DragPoint): void {
     switch (dragPoint) {
       case 'pageLeft':
         this.adjustPageWidth(-delta);
@@ -362,7 +255,6 @@ export class ElementEditorComponent
         this.adjustRightMargin(-delta);
         break;
     }
-    this.updateTooltips();
   }
 
   private adjustPageWidth(delta: number): void {
@@ -420,13 +312,6 @@ export class ElementEditorComponent
         leftMargin: `${this.dimensions.leftMargin}cm`,
         rightMargin: `${this.dimensions.rightMargin}cm`,
       });
-    }
-  }
-
-  private cleanupDragSubscription(): void {
-    if (this.currentDragSubscription) {
-      this.currentDragSubscription.unsubscribe();
-      this.currentDragSubscription = undefined;
     }
   }
 }

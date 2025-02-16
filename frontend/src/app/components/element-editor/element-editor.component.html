@@ -31,32 +31,39 @@
         <!-- Page width controls -->
         <div
           class="page-guide left"
-          (mousedown)="startDragging($event, 'pageLeft')"
-          (mousemove)="onHandleMouseMove()"
+          cdkDrag
+          cdkDragLockAxis="x"
+          cdkDragBoundary=".horizontal-ruler"
+          (cdkDragEnded)="onDragEnd($event, 'pageLeft')"
           [style.left.px]="-6"
           [attr.data-tooltip]="getTooltipText('pageLeft')"></div>
         <div
           class="page-guide right"
-          (mousedown)="startDragging($event, 'pageRight')"
-          (mousemove)="onHandleMouseMove()"
+          cdkDrag
+          cdkDragLockAxis="x"
+          (cdkDragEnded)="onDragEnd($event, 'pageRight')"
           [style.right.px]="-6"
           [attr.data-tooltip]="getTooltipText('pageRight')"></div>
 
         <!-- Margin controls -->
         <div
           class="margin-guide left-margin"
+          cdkDrag
+          cdkDragLockAxis="x"
+          cdkDragBoundary=".horizontal-ruler"
+          (cdkDragEnded)="onDragEnd($event, 'marginLeft')"
           [style.left.cm]="dimensions.leftMargin"
-          (mousedown)="startDragging($event, 'marginLeft')"
-          (mousemove)="onHandleMouseMove()"
-          draggable="false"
-          [attr.data-tooltip]="getTooltipText('marginLeft')"></div>
+          [attr.data-tooltip]="getTooltipText('marginLeft')"
+          draggable="false"></div>
         <div
           class="margin-guide right-margin"
+          cdkDrag
+          cdkDragLockAxis="x"
+          cdkDragBoundary=".horizontal-ruler"
+          (cdkDragEnded)="onDragEnd($event, 'marginRight')"
           [style.right.cm]="dimensions.rightMargin"
-          (mousedown)="startDragging($event, 'marginRight')"
-          (mousemove)="onHandleMouseMove()"
-          draggable="false"
-          [attr.data-tooltip]="getTooltipText('marginRight')"></div>
+          [attr.data-tooltip]="getTooltipText('marginRight')"
+          draggable="false"></div>
       </div>
     }
     <div class="editor-wrapper">
