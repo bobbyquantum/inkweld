@@ -31,20 +31,32 @@
         <!-- Page width controls -->
         <div
           class="page-guide left"
-          (mousedown)="startDragging($event, 'pageLeft')"></div>
+          (mousedown)="startDragging($event, 'pageLeft')"
+          (mousemove)="onHandleMouseMove()"
+          [style.left.px]="-6"
+          [attr.data-tooltip]="getTooltipText('pageLeft')"></div>
         <div
           class="page-guide right"
-          (mousedown)="startDragging($event, 'pageRight')"></div>
+          (mousedown)="startDragging($event, 'pageRight')"
+          (mousemove)="onHandleMouseMove()"
+          [style.right.px]="-6"
+          [attr.data-tooltip]="getTooltipText('pageRight')"></div>
 
         <!-- Margin controls -->
         <div
           class="margin-guide left-margin"
           [style.left.cm]="dimensions.leftMargin"
-          (mousedown)="startDragging($event, 'marginLeft')"></div>
+          (mousedown)="startDragging($event, 'marginLeft')"
+          (mousemove)="onHandleMouseMove()"
+          draggable="false"
+          [attr.data-tooltip]="getTooltipText('marginLeft')"></div>
         <div
           class="margin-guide right-margin"
           [style.right.cm]="dimensions.rightMargin"
-          (mousedown)="startDragging($event, 'marginRight')"></div>
+          (mousedown)="startDragging($event, 'marginRight')"
+          (mousemove)="onHandleMouseMove()"
+          draggable="false"
+          [attr.data-tooltip]="getTooltipText('marginRight')"></div>
       </div>
     }
     <div class="editor-wrapper">
