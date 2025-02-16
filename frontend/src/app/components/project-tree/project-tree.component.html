@@ -90,7 +90,11 @@
         } @else {
           <mat-icon>description</mat-icon>
         }
-        <div class="node-title">{{ node.name }}</div>
+        <div class="node-title">
+          {{ node.name }}
+          (Current: {{ currentDropLevel }}, Valid:
+          {{ validLevelsArray.join(', ') }})
+        </div>
       </div>
 
       <div class="drag-preview" *cdkDragPreview>

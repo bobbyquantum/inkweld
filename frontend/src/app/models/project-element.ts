@@ -16,7 +16,7 @@ export function mapDtoToProjectElement(dto: ProjectElementDto): ProjectElement {
     id: dto.id,
     name: dto.name || '',
     type: dto.type || 'ITEM',
-    level: dto.level || 1, // Default to level 1 since we no longer use root node wrapping
+    level: dto.level || 0, // Default to level 0
     position: dto.position || 0,
     expandable: dto.type === 'FOLDER',
     expanded: false,
