@@ -1,50 +1,20 @@
 <div class="editor-toolbar">
-  <ngx-editor-menu [editor]="editor"></ngx-editor-menu>
-  <div class="NgxEditor__Dropdown">
-    <button
-      type="button"
-      class="NgxEditor__Dropdown--Text"
-      (click)="toggleViewModeDropdown()"
-      (keydown.enter)="toggleViewModeDropdown()"
-      [attr.aria-expanded]="showViewModeDropdown"
-      tabindex="0">
-      {{ viewMode === 'page' ? 'Page' : 'Fit Width' }}
-    </button>
-    <div class="NgxEditor__Dropdown--Items" *ngIf="showViewModeDropdown">
-      <button
-        type="button"
-        class="NgxEditor__Dropdown--Item"
-        (click)="setViewMode('fitWidth')"
-        (keydown.enter)="setViewMode('fitWidth')"
-        tabindex="0">
-        Fit Width
-      </button>
-      <button
-        type="button"
-        class="NgxEditor__Dropdown--Item"
-        (click)="setViewMode('page')"
-        (keydown.enter)="setViewMode('page')"
-        tabindex="0">
-        Page
-      </button>
-    </div>
-  </div>
-  <div class="zoom-controls">
-    <button
-      mat-icon-button
-      (click)="decreaseZoom()"
-      [disabled]="zoomLevel <= 50">
-      <mat-icon>remove</mat-icon>
-    </button>
-    <span>{{ zoomLevel }}%</span>
-    <button
-      mat-icon-button
-      (click)="increaseZoom()"
-      [disabled]="zoomLevel >= 200">
-      <mat-icon>add</mat-icon>
-    </button>
-  </div>
+  <ngx-editor-menu
+    [editor]="editor"
+    [toolbar]="toolbar"
+    [colorPresets]="colorPresets"
+    [customMenuRef]="customMenu">
+  </ngx-editor-menu>
 </div>
+<ng-template #customMenu>
+  <app-editor-controls-menu
+    [editor]="editor"
+    [viewMode]="viewMode"
+    [zoomLevel]="zoomLevel"
+    (viewModeChange)="setViewMode($event)"
+    (zoomLevelChange)="onZoomLevelChange($event)">
+  </app-editor-controls-menu>
+</ng-template>
 
 <div class="editor-container" [class.fit-width]="viewMode === 'fitWidth'">
   <div class="scaled-content">
@@ -68,12 +38,10 @@
 
         <!-- Margin controls -->
         <div
-          *ngIf="viewMode === 'page'"
           class="margin-guide left-margin"
           [style.left.cm]="dimensions.leftMargin"
           (mousedown)="startDragging($event, 'marginLeft')"></div>
         <div
-          *ngIf="viewMode === 'page'"
           class="margin-guide right-margin"
           [style.right.cm]="dimensions.rightMargin"
           (mousedown)="startDragging($event, 'marginRight')"></div>
