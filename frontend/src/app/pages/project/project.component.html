@@ -57,8 +57,22 @@
         </ng-template>
         <div class="home-tab-content">
           <div class="home-column">
-            <h3>Project Overview</h3>
-            <p>Dummy project overview content.</p>
+            <div class="overview-header">
+              <h3>Project Overview</h3>
+              <button
+                mat-icon-button
+                color="primary"
+                (click)="openEditDialog()"
+                title="Edit Project">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </div>
+            <p>
+              {{
+                projectState.project()?.description ||
+                  'No description provided.'
+              }}
+            </p>
           </div>
           <div class="home-column">
             <h3>Recent Files</h3>

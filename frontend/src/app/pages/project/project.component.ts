@@ -30,6 +30,7 @@ import { ProjectDto, ProjectElementDto } from '@worm/index';
 import { firstValueFrom, Subject, Subscription, takeUntil } from 'rxjs';
 
 import { ConfirmationDialogComponent } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
+import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
 
 @Component({
@@ -208,6 +209,17 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   exitProject() {
     void this.router.navigate(['/']);
+  }
+
+  openEditDialog() {
+    const project = this.projectState.project();
+    if (!project) return;
+
+    const dialogRef = this.dialog.open(EditProjectDialogComponent, {
+      data: project,
+      width: '500px',
+    });
+    void dialogRef.afterClosed().subscribe();
   }
 
   private getSidenavWidth = (): number => {

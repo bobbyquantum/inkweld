@@ -3,9 +3,9 @@
     <mat-form-field appearance="outline">
       <mat-label>Title</mat-label>
       <input matInput formControlName="title" required />
-      <mat-error *ngIf="form.get('title')?.hasError('required')">
-        Title is required
-      </mat-error>
+      @if (form.get('title')?.hasError('required')) {
+        <mat-error>Title is required</mat-error>
+      }
     </mat-form-field>
 
     <mat-form-field appearance="outline">
@@ -40,10 +40,12 @@
       accept="application/json"
       style="display: none"
       (change)="onFileSelected($event)" />
-    <mat-progress-bar
-      *ngIf="importExportService.isProcessing()"
-      mode="determinate"
-      [value]="importExportService.progress()"></mat-progress-bar>
+    @if (importExportService.isProcessing()) {
+      <mat-progress-bar
+        mode="determinate"
+        [value]="importExportService.progress()">
+      </mat-progress-bar>
+    }
   </div>
 </mat-dialog-content>
 

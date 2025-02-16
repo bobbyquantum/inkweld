@@ -21,26 +21,30 @@ import { Editor } from 'ngx-editor';
         tabindex="0">
         {{ viewMode === 'page' ? 'Page' : 'Fit Width' }}
       </button>
-      <div class="NgxEditor__Dropdown--Items" *ngIf="showViewModeDropdown">
-        <button
-          type="button"
-          class="NgxEditor__Dropdown--Item"
-          (click)="setViewMode('fitWidth')"
-          (keydown.enter)="setViewMode('fitWidth')"
-          [ngClass]="{ 'NgxEditor__MenuItem--Active': viewMode === 'fitWidth' }"
-          tabindex="0">
-          Fit Width
-        </button>
-        <button
-          type="button"
-          class="NgxEditor__Dropdown--Item"
-          (click)="setViewMode('page')"
-          (keydown.enter)="setViewMode('page')"
-          [ngClass]="{ 'NgxEditor__MenuItem--Active': viewMode === 'page' }"
-          tabindex="0">
-          Page
-        </button>
-      </div>
+      @if (showViewModeDropdown) {
+        <div class="NgxEditor__Dropdown--Items">
+          <button
+            type="button"
+            class="NgxEditor__Dropdown--Item"
+            (click)="setViewMode('fitWidth')"
+            (keydown.enter)="setViewMode('fitWidth')"
+            [ngClass]="{
+              'NgxEditor__MenuItem--Active': viewMode === 'fitWidth',
+            }"
+            tabindex="0">
+            Fit Width
+          </button>
+          <button
+            type="button"
+            class="NgxEditor__Dropdown--Item"
+            (click)="setViewMode('page')"
+            (keydown.enter)="setViewMode('page')"
+            [ngClass]="{ 'NgxEditor__MenuItem--Active': viewMode === 'page' }"
+            tabindex="0">
+            Page
+          </button>
+        </div>
+      }
     </div>
     <div class="NgxEditor__Seperator"></div>
     <div class="NgxEditor__MenuItem NgxEditor__MenuItem--Text">
