@@ -250,19 +250,36 @@ export class ProjectTreeComponent implements AfterViewInit {
     const treeRect = this.treeContainer.nativeElement.getBoundingClientRect();
     const indentPerLevel = this.levelWidth;
     const relativeX = pointerX - treeRect.left;
-    const intendedLevel = Math.max(1, Math.floor(relativeX / indentPerLevel)); // Minimum level 1 to stay under wrapper
+    const intendedLevel = Math.floor(relativeX / indentPerLevel); // Allow any level based on horizontal position
     const validLevels = this.validLevelsArray;
+
+    // Debug logging
+    console.log('Drag Debug:', {
+      intendedLevel,
+      relativeX,
+      validLevels,
+      draggedNode: this.draggedNode?.name,
+    });
+
     const selectedLevel = validLevels.reduce((prev, curr) =>
       Math.abs(curr - intendedLevel) < Math.abs(prev - intendedLevel)
         ? curr
         : prev
     );
+
+    // Debug level selection
+    console.log('Level Selection:', {
+      selectedLevel,
+      validLevels,
+      currentDropLevel: this.currentDropLevel,
+    });
+
     this.currentDropLevel = selectedLevel;
     const placeholderElement = this.treeContainer.nativeElement.querySelector(
       '.cdk-drag-placeholder'
     ) as HTMLElement;
     if (placeholderElement) {
-      placeholderElement.style.marginLeft = `${selectedLevel * indentPerLevel}px`;
+      placeholderElement.style.marginLeft = `${Math.max(0, selectedLevel * indentPerLevel)}px`;
     }
   }
 
@@ -281,6 +298,13 @@ export class ProjectTreeComponent implements AfterViewInit {
 
     const nodeAbove = filteredNodes[currentIndex - 1] || null;
     const nodeBelow = filteredNodes[currentIndex] || null;
+
+    // Debug valid levels calculation
+    console.log('Valid Levels:', {
+      nodeAbove: nodeAbove?.name,
+      nodeAboveType: nodeAbove?.type,
+      nodeBelow: nodeBelow?.name,
+    });
 
     const { levels, defaultLevel } = this.treeManipulator.getValidDropLevels(
       nodeAbove,
@@ -417,7 +441,7 @@ export class ProjectTreeComponent implements AfterViewInit {
       id: node.id ?? '',
       name: node.name,
       type: node.type,
-      level: node.level - 1, // Decrement level since we incremented it for the tree
+      level: node.level, // No longer need to decrement since we're using 0-based levels
       position: node.position,
     };
     this.projectStateService.openFile(dto);
@@ -444,10 +468,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Saves the current tree state to the backend.
    */
   private async saveChanges() {
-    // Get all elements and decrement their levels
-    const elements = this.treeManipulator
-      .getData()
-      .map(el => ({ ...el, level: el.level - 1 }));
+    const elements = this.treeManipulator.getData();
 
     // Get project info from URL or service
     const urlParts = window.location.pathname.split('/');

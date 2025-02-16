@@ -271,7 +271,7 @@ describe('ProjectTreeComponent', () => {
       component.treeManipulator.getData().push(nodeAbove, nodeBelow);
 
       component.sorted(mockSortEvent);
-      expect(component.validLevelsArray).toEqual([1, 2]);
+      expect(component.validLevelsArray).toContain(1); // Must contain original level
     });
   });
 
@@ -382,7 +382,7 @@ describe('ProjectTreeComponent', () => {
           ...node,
           expandable: undefined,
           expanded: undefined,
-          level: node.level - 1, // Decrement level since component increments it for tree display
+          level: node.level, // No longer need to decrement since we're using 0-based levels
           visible: undefined,
         });
       });

@@ -17,6 +17,11 @@ export class TreeManipulator {
       this.sourceData = JSON.parse(
         JSON.stringify(treeData)
       ) as ProjectElement[];
+
+      // Fix any negative levels on load
+      this.sourceData.forEach(node => {
+        node.level = Math.max(0, node.level);
+      });
       this.updateVisibility();
       this.updateGlobalPositions();
     }
@@ -65,7 +70,7 @@ export class TreeManipulator {
       id: nanoid(),
       name: name || (type === 'ITEM' ? 'New Item' : 'New Folder'),
       type,
-      level: parentNode.level + 1,
+      level: this.validateLevel(parentNode.level + 1),
       position: 0,
       expandable: type === 'FOLDER',
       expanded: false,
@@ -91,6 +96,7 @@ export class TreeManipulator {
     // Insert after parent node
     this.sourceData.splice(nodeIndex + 1, 0, newNode);
     this.updateVisibility();
+    this.ensureValidLevels();
     this.updateGlobalPositions();
 
     return newNode;
@@ -132,36 +138,58 @@ export class TreeManipulator {
   ): ValidDropLevels {
     const validLevels = new Set<number>();
 
+    // Debug logging
+    console.log('GetValidDropLevels Debug:', {
+      nodeAbove: nodeAbove
+        ? { name: nodeAbove.name, level: nodeAbove.level, type: nodeAbove.type }
+        : null,
+      nodeBelow: nodeBelow
+        ? { name: nodeBelow.name, level: nodeBelow.level, type: nodeBelow.type }
+        : null,
+    });
+
     if (nodeAbove && nodeBelow) {
       if (nodeAbove.level < nodeBelow.level) {
         if (nodeAbove.expandable) {
-          validLevels.add(nodeAbove.level + 1);
+          // If above node is a folder, allow its level and one level deeper
+          for (
+            let level = nodeAbove.level;
+            level <= nodeAbove.level + 1;
+            level++
+          ) {
+            validLevels.add(level);
+          }
         }
         validLevels.add(nodeBelow.level);
       } else if (nodeAbove.level === nodeBelow.level) {
         validLevels.add(nodeAbove.level);
+        // Also allow dropping inside if above node is a folder
+        if (nodeAbove.expandable) {
+          validLevels.add(nodeAbove.level + 1);
+        }
       } else {
         for (let level = nodeBelow.level; level <= nodeAbove.level; level++) {
           validLevels.add(level);
         }
       }
     } else if (nodeAbove && !nodeBelow) {
-      for (let level = 1; level <= nodeAbove.level; level++) {
+      for (let level = 0; level <= nodeAbove.level; level++) {
         validLevels.add(level);
       }
+      // If above node is a folder, allow one level deeper than the folder
       if (nodeAbove.expandable) {
         validLevels.add(nodeAbove.level + 1);
       }
     } else if (!nodeAbove && nodeBelow) {
       validLevels.add(nodeBelow.level);
     } else {
-      validLevels.add(1);
+      validLevels.add(0);
     }
 
     const levels = Array.from(validLevels).sort((a, b) => a - b);
 
-    // Default level should be the first level in the array, or 1 if array is empty
-    const defaultLevel = levels.length > 0 ? levels[0] : 1;
+    // Default level should be the first level in the array, or 0 if array is empty
+    const defaultLevel = levels.length > 0 ? levels[0] : 0;
     return {
       levels,
       defaultLevel,
@@ -187,7 +215,7 @@ export class TreeManipulator {
   }
 
   isValidDrop(nodeAbove: ProjectElement | null, targetLevel: number): boolean {
-    if (!nodeAbove) return targetLevel === 1;
+    if (!nodeAbove) return targetLevel <= 1; // Allow root level or first level
     if (nodeAbove.type === 'ITEM' && targetLevel > nodeAbove.level) {
       return false;
     }
@@ -210,13 +238,14 @@ export class TreeManipulator {
     // Update levels
     const levelDifference = newLevel - node.level;
     nodeSubtree.forEach(n => {
-      n.level += levelDifference;
+      n.level = Math.max(0, n.level + levelDifference);
     });
 
     // Adjust target index if needed
     if (targetIndex > nodeIndex) {
       targetIndex -= nodeSubtreeLength;
     }
+    this.ensureValidLevels();
 
     // Insert the subtree
     this.sourceData.splice(targetIndex, 0, ...nodeSubtree);
@@ -253,6 +282,17 @@ export class TreeManipulator {
   private updateGlobalPositions() {
     this.sourceData.forEach((node, index) => {
       node.position = index;
+    });
+  }
+
+  // Validate level changes
+  private validateLevel(level: number): number {
+    return Math.max(0, level);
+  }
+
+  private ensureValidLevels() {
+    this.sourceData.forEach(node => {
+      node.level = this.validateLevel(node.level);
     });
   }
 }
