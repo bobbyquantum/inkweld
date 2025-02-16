@@ -14,9 +14,11 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { DocumentService } from '@services/document.service';
-import { Editor, NgxEditorModule } from 'ngx-editor';
+import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
 import { fromEvent, Subject, Subscription } from 'rxjs';
 import { filter, map, takeUntil } from 'rxjs/operators';
+
+import { EditorControlsMenuComponent } from './editor-controls-menu.component';
 
 interface MouseDragEvent {
   type: 'start' | 'move' | 'end';
@@ -43,6 +45,7 @@ type DragPoint = 'pageLeft' | 'pageRight' | 'marginLeft' | 'marginRight';
     NgxEditorModule,
     MatSelectModule,
     MatOptionModule,
+    EditorControlsMenuComponent,
   ],
   templateUrl: './element-editor.component.html',
   styleUrl: './element-editor.component.scss',
@@ -54,6 +57,41 @@ export class ElementEditorComponent
 
   @Input() documentId = 'default';
   editor!: Editor;
+  toolbar: Toolbar = [
+    ['bold', 'italic'],
+    ['underline', 'strike'],
+    ['code', 'blockquote'],
+    ['ordered_list', 'bullet_list'],
+    [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
+    ['link', 'image'],
+    ['text_color', 'background_color'],
+    ['align_left', 'align_center', 'align_right', 'align_justify'],
+    ['horizontal_rule', 'format_clear'],
+    ['superscript', 'subscript'],
+    ['undo', 'redo'],
+  ];
+  colorPresets = [
+    '#000000',
+    '#434343',
+    '#666666',
+    '#999999',
+    '#b7b7b7',
+    '#cccccc',
+    '#d9d9d9',
+    '#efefef',
+    '#f3f3f3',
+    '#ffffff',
+    '#980000',
+    '#ff0000',
+    '#ff9900',
+    '#ffff00',
+    '#00ff00',
+    '#00ffff',
+    '#4a86e8',
+    '#0000ff',
+    '#9900ff',
+    '#ff00ff',
+  ];
   zoomLevel = 100;
   viewMode: 'page' | 'fitWidth' = 'fitWidth';
   showViewModeDropdown = false;
@@ -83,7 +121,9 @@ export class ElementEditorComponent
   }
 
   ngOnInit(): void {
-    this.editor = new Editor({});
+    this.editor = new Editor({
+      history: true,
+    });
     this.updateDimensions();
   }
 
@@ -112,6 +152,11 @@ export class ElementEditorComponent
       this.zoomLevel -= 10;
       this.updateZoom();
     }
+  }
+
+  onZoomLevelChange(newZoomLevel: number): void {
+    this.zoomLevel = newZoomLevel;
+    this.updateZoom();
   }
 
   startDragging(event: MouseEvent, dragPoint: DragPoint): void {
