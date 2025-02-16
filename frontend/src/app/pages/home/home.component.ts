@@ -6,6 +6,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule } from '@angular/router';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
@@ -28,12 +29,14 @@ import { catchError, EMPTY, Subject, takeUntil } from 'rxjs';
     MatInputModule,
     RouterModule,
     MatDialogModule,
+    MatProgressSpinnerModule,
   ],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit, OnDestroy {
   projects: ProjectDto[] = [];
+  isLoading = true;
   selectedProject: ProjectDto | null = null;
   isMobile = false;
 
@@ -51,6 +54,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   loadProjects() {
+    this.isLoading = true;
     this.projectAPIService
       .projectControllerGetAllProjects('body', true, { transferCache: true })
       .pipe(
@@ -61,6 +65,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       )
       .subscribe(projects => {
         this.projects = projects;
+        this.isLoading = false;
       });
   }
 
