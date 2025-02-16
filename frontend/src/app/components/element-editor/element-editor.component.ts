@@ -145,36 +145,6 @@ export class ElementEditorComponent
     this.showViewModeDropdown = !this.showViewModeDropdown;
   }
 
-  exportDocument(): void {
-    this.documentService.exportDocument(this.documentId).subscribe(content => {
-      const fileName = `document-${this.documentId}.json`;
-      this.downloadFile(JSON.stringify(content), fileName, 'application/json');
-    });
-  }
-
-  importDocumentFromFile(): void {
-    // importDocumentFromFile before private methods
-    this.fileInput.nativeElement.click();
-  }
-
-  onFileSelected(event: Event): void {
-    // onFileSelected before private methods
-    const inputElement = event.target as HTMLInputElement;
-    if (inputElement.files && inputElement.files.length > 0) {
-      const file = inputElement.files[0];
-      const fileReader = new FileReader();
-      fileReader.onload = () => {
-        const content = fileReader.result as string;
-        console.log('Content', content);
-        this.documentService.importDocument(this.documentId, content);
-      };
-      fileReader.onerror = error => {
-        console.error('Error reading file', error);
-      };
-      fileReader.readAsText(file);
-    }
-  }
-
   private setVariable(name: string, value: string): void {
     this.documentElement.style.setProperty(name, value);
   }
@@ -351,18 +321,5 @@ export class ElementEditorComponent
         rightMargin: `${this.dimensions.rightMargin}cm`,
       });
     }
-  }
-
-  private downloadFile(
-    content: string,
-    fileName: string,
-    contentType: string
-  ): void {
-    const a = document.createElement('a');
-    const file = new Blob([content], { type: contentType });
-    a.href = URL.createObjectURL(file);
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(a.href);
   }
 }
