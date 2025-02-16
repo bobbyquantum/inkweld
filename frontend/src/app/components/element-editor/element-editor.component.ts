@@ -100,7 +100,13 @@ export class ElementEditorComponent
     leftMargin: 2,
     rightMargin: 2,
   };
-  rulerMeasurements = Array.from({ length: 35 }, (_, i) => i - 5);
+  tooltips = {
+    pageWidth: '',
+    leftMargin: '',
+    rightMargin: '',
+    contentWidth: '',
+  };
+  rulerMeasurements = Array.from({ length: 30 }, (_, i) => i);
 
   private destroy$ = new Subject<void>();
   private documentService = inject(DocumentService);
@@ -110,8 +116,10 @@ export class ElementEditorComponent
   private dragStart$ = new Subject<MouseDragEvent>();
   private dragMove$ = new Subject<MouseDragEvent>();
   private dragEnd$ = new Subject<MouseDragEvent>();
-  private startX = 0;
-  private startY = 0;
+  private currentDragSubscription?: Subscription;
+  private lastX = 0;
+  private lastY = 0;
+  private isDragging = false;
   private moveSubscription?: Subscription;
   private upSubscription?: Subscription;
   private blurSubscription?: Subscription;
@@ -137,6 +145,7 @@ export class ElementEditorComponent
     this.destroy$.complete();
     this.editor.destroy();
     this.documentService.disconnect(this.documentId);
+    this.cleanupDragSubscription();
     this.cleanupSubscriptions();
   }
 
@@ -160,8 +169,9 @@ export class ElementEditorComponent
   }
 
   startDragging(event: MouseEvent, dragPoint: DragPoint): void {
-    this.startX = event.clientX;
-    this.startY = event.clientY;
+    this.isDragging = true;
+    this.lastX = event.clientX;
+    this.lastY = event.clientY;
     this.dragStart$.next({
       type: 'start',
       clientX: event.clientX,
@@ -169,10 +179,49 @@ export class ElementEditorComponent
       deltaX: 0,
       deltaY: 0,
     });
+    this.updateTooltips();
 
-    this.dragMove$
+    // Clean up any existing drag subscription
+    this.currentDragSubscription?.unsubscribe();
+
+    // Create new drag subscription
+    this.currentDragSubscription = this.dragMove$
       .pipe(takeUntil(this.dragEnd$))
       .subscribe(dragEvent => this.handleDrag(dragEvent, dragPoint));
+  }
+
+  updateTooltips(): void {
+    const contentWidth =
+      this.dimensions.pageWidth -
+      this.dimensions.leftMargin -
+      this.dimensions.rightMargin;
+    this.tooltips = {
+      pageWidth: `Page width: ${this.dimensions.pageWidth.toFixed(1)}cm`,
+      leftMargin: `Left margin: ${this.dimensions.leftMargin.toFixed(1)}cm`,
+      rightMargin: `Right margin: ${this.dimensions.rightMargin.toFixed(1)}cm`,
+      contentWidth: `Content width: ${contentWidth.toFixed(1)}cm`,
+    };
+  }
+
+  onHandleMouseMove(): void {
+    if (!this.isDragging) {
+      // Only update tooltips when not dragging
+      this.updateTooltips();
+    }
+  }
+
+  getTooltipText(dragPoint: DragPoint): string {
+    switch (dragPoint) {
+      case 'pageLeft':
+      case 'pageRight':
+        return `${this.tooltips.pageWidth}\n${this.tooltips.contentWidth}`;
+      case 'marginLeft':
+        return this.tooltips.leftMargin;
+      case 'marginRight':
+        return this.tooltips.rightMargin;
+      default:
+        return '';
+    }
   }
 
   setViewMode(mode: 'page' | 'fitWidth'): void {
@@ -223,51 +272,55 @@ export class ElementEditorComponent
   private setupDocumentListeners(): void {
     this.moveSubscription = fromEvent<MouseEvent>(document, 'mousemove')
       .pipe(
-        filter(() => this.dragStart$.observed || this.dragMove$.observed),
+        filter(() => this.isDragging),
         map(event => ({
           type: 'move' as const,
           clientX: event.clientX,
           clientY: event.clientY,
-          deltaX: event.clientX - this.startX,
-          deltaY: event.clientY - this.startY,
+          deltaX: event.clientX - this.lastX,
+          deltaY: event.clientY - this.lastY,
         }))
       )
-      .subscribe(event => this.dragMove$.next(event));
+      .subscribe(event => {
+        this.lastX = event.clientX;
+        this.lastY = event.clientY;
+        this.dragMove$.next(event);
+      });
 
     this.upSubscription = fromEvent<MouseEvent>(document, 'mouseup')
       .pipe(
-        filter(() => this.dragStart$.observed || this.dragEnd$.observed),
+        filter(() => this.isDragging),
         map(event => ({
           type: 'end' as const,
           clientX: event.clientX,
           clientY: event.clientY,
-          deltaX: event.clientX - this.startX,
-          deltaY: event.clientY - this.startY,
+          deltaX: event.clientX - this.lastX,
+          deltaY: event.clientY - this.lastY,
         }))
       )
       .subscribe(event => {
         this.dragEnd$.next(event);
+        this.isDragging = false;
         this.cleanupSubscriptions();
+        this.cleanupDragSubscription();
       });
 
     this.blurSubscription = fromEvent(window, 'blur').subscribe(() => {
       this.dragEnd$.next({
         type: 'end',
-        clientX: this.startX,
-        clientY: this.startY,
+        clientX: this.lastX,
+        clientY: this.lastY,
         deltaX: 0,
         deltaY: 0,
       });
+      this.isDragging = false;
       this.cleanupSubscriptions();
+      this.cleanupDragSubscription();
     });
   }
 
   private cleanupSubscriptions(): void {
-    if (
-      !this.dragStart$.observed &&
-      !this.dragMove$.observed &&
-      !this.dragEnd$.observed
-    ) {
+    if (!this.isDragging) {
       this.moveSubscription?.unsubscribe();
       this.upSubscription?.unsubscribe();
       this.blurSubscription?.unsubscribe();
@@ -291,8 +344,9 @@ export class ElementEditorComponent
   }
 
   private handleDrag(dragEvent: MouseDragEvent, dragPoint: DragPoint): void {
-    const pixelsPerCm = 37.795275591 * (this.zoomLevel / 100);
-    const delta = dragEvent.deltaX / pixelsPerCm;
+    // Account for zoom level in pixels per cm calculation
+    const basePixelsPerCm = 37.795275591;
+    const delta = dragEvent.deltaX / basePixelsPerCm;
 
     switch (dragPoint) {
       case 'pageLeft':
@@ -308,12 +362,13 @@ export class ElementEditorComponent
         this.adjustRightMargin(-delta);
         break;
     }
+    this.updateTooltips();
   }
 
   private adjustPageWidth(delta: number): void {
     const newWidth = this.dimensions.pageWidth + delta;
     if (newWidth >= 10 && newWidth <= 29.7) {
-      this.dimensions.pageWidth = Math.round(newWidth * 2) / 2;
+      this.dimensions.pageWidth = Math.round(newWidth * 10) / 10;
       this.adjustMarginsForNewWidth();
     }
   }
@@ -323,7 +378,7 @@ export class ElementEditorComponent
       0.5,
       Math.min(
         this.dimensions.pageWidth - this.dimensions.rightMargin - 5,
-        Math.round((this.dimensions.leftMargin + delta) * 2) / 2
+        Math.round((this.dimensions.leftMargin + delta) * 10) / 10
       )
     );
   }
@@ -333,7 +388,7 @@ export class ElementEditorComponent
       0.5,
       Math.min(
         this.dimensions.pageWidth - this.dimensions.leftMargin - 5,
-        Math.round((this.dimensions.rightMargin + delta) * 2) / 2
+        Math.round((this.dimensions.rightMargin + delta) * 10) / 10
       )
     );
   }
@@ -365,6 +420,13 @@ export class ElementEditorComponent
         leftMargin: `${this.dimensions.leftMargin}cm`,
         rightMargin: `${this.dimensions.rightMargin}cm`,
       });
+    }
+  }
+
+  private cleanupDragSubscription(): void {
+    if (this.currentDragSubscription) {
+      this.currentDragSubscription.unsubscribe();
+      this.currentDragSubscription = undefined;
     }
   }
 }
