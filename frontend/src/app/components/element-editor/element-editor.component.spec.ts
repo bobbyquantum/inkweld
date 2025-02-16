@@ -1,3 +1,4 @@
+import { DragDropModule } from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
@@ -19,9 +20,25 @@ describe('ElementEditorComponent', () => {
   let component: ElementEditorComponent;
   let fixture: ComponentFixture<ElementEditorComponent>;
   let documentService: MockDocumentService;
+  let mockStyle: { [key: string]: string };
 
   beforeEach(async () => {
     documentService = new MockDocumentService();
+    mockStyle = {};
+
+    // Mock document.documentElement
+    Object.defineProperty(document, 'documentElement', {
+      value: {
+        style: {
+          setProperty: (prop: string, value: string) => {
+            mockStyle[prop] = value;
+          },
+          removeProperty: (prop: string) => {
+            delete mockStyle[prop];
+          },
+        },
+      },
+    });
 
     await TestBed.configureTestingModule({
       imports: [
@@ -32,6 +49,7 @@ describe('ElementEditorComponent', () => {
         MatSelectModule,
         MatOptionModule,
         EditorControlsMenuComponent,
+        DragDropModule,
       ],
       providers: [{ provide: DocumentService, useValue: documentService }],
     }).compileComponents();
