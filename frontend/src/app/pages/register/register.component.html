@@ -14,28 +14,35 @@
               required
               (blur)="checkUsernameAvailability()"
               aria-label="Username" />
-            <mat-icon matSuffix [ngSwitch]="usernameAvailability">
-              <ng-container *ngSwitchCase="'available'">
-                <mat-icon color="primary">check_circle</mat-icon>
-              </ng-container>
-              <ng-container *ngSwitchCase="'unavailable'">
-                <mat-icon color="warn">cancel</mat-icon>
-              </ng-container>
+            <mat-icon matSuffix>
+              @switch (usernameAvailability) {
+                @case ('available') {
+                  <mat-icon color="primary">check_circle</mat-icon>
+                }
+                @case ('unavailable') {
+                  <mat-icon color="warn">cancel</mat-icon>
+                }
+              }
             </mat-icon>
-            <mat-hint
-              *ngIf="usernameSuggestions && usernameSuggestions.length > 0">
-              Suggestions:
-              <span
-                *ngFor="let suggestion of usernameSuggestions; let last = last">
-                <button
-                  mat-button
-                  type="button"
-                  (click)="selectSuggestion(suggestion)"
-                  class="suggestion-button">
-                  {{ suggestion }}</button
-                >{{ last ? '' : ', ' }}
-              </span>
-            </mat-hint>
+            @if (usernameSuggestions && usernameSuggestions.length > 0) {
+              <mat-hint>
+                Suggestions:
+                @for (
+                  suggestion of usernameSuggestions;
+                  track suggestion;
+                  let last = $last
+                ) {
+                  <button
+                    mat-button
+                    type="button"
+                    (click)="selectSuggestion(suggestion)"
+                    class="suggestion-button">
+                    {{ suggestion }}
+                  </button>
+                  {{ last ? '' : ', ' }}
+                }
+              </mat-hint>
+            }
           </mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>Name</mat-label>
