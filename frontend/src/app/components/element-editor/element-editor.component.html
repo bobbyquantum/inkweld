@@ -21,11 +21,11 @@
     @if (viewMode === 'page') {
       <div class="ruler horizontal-ruler">
         <div class="ruler-measurements">
-          <ng-container *ngFor="let cm of rulerMeasurements">
+          @for (cm of rulerMeasurements; track cm.valueOf()) {
             <div class="ruler-mark" [style.left.cm]="cm">
               <div class="ruler-number">{{ cm }}</div>
             </div>
-          </ng-container>
+          }
         </div>
 
         <!-- Page width controls -->
