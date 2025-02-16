@@ -14,6 +14,7 @@
         <button mat-icon-button (click)="exitProject()">
           <mat-icon>arrow_back</mat-icon>
         </button>
+        <span class="project-title">{{ projectState.project()?.title }}</span>
       </mat-toolbar>
     }
     <app-project-tree></app-project-tree>
