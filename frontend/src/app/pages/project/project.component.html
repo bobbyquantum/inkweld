@@ -91,9 +91,7 @@
           <ng-template mat-tab-label>
             <div class="tab-label">
               {{ file.name }}
-              @switch (
-                documentService.getSyncStatus(file.id ?? 'default') | async
-              ) {
+              @switch (documentService.getSyncStatus(file.id) | async) {
                 @case (DocumentSyncState.Unavailable) {
                   <div
                     class="connection-status unavailable"
@@ -122,8 +120,7 @@
               </button>
             </div>
           </ng-template>
-          <app-element-editor
-            [documentId]="file.id ?? 'default'"></app-element-editor>
+          <app-element-editor [documentId]="file.id"></app-element-editor>
         </mat-tab>
       }
     </mat-tab-group>
