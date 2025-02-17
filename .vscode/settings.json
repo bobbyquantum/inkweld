@@ -1,7 +1,7 @@
 {
   "json.schemaDownload.enable": false,
   "editor.defaultFormatter": null,
-  "editor.formatOnSave": false,
+  "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
