@@ -13,17 +13,17 @@ export interface ProjectElementDto {
     /**
      * Unique identifier of the element
      */
-    id?: string;
+    id: string;
     /**
      * Version for optimistic locking
      */
-    version?: number;
+    version: number;
     /**
      * Name of the element
      */
     name: string;
     /**
-     * Type of the element (FOLDER/ITEM)
+     * Type of the element (FOLDER/ITEM/IMAGE)
      */
     type: ProjectElementDto.TypeEnum;
     /**
@@ -37,13 +37,18 @@ export interface ProjectElementDto {
     /**
      * Whether the element can be expanded (computed from type)
      */
-    expandable?: boolean;
+    expandable: boolean;
+    /**
+     * Metadata associated with the project element
+     */
+    metadata: { [key: string]: string; };
 }
 export namespace ProjectElementDto {
-    export type TypeEnum = 'FOLDER' | 'ITEM';
+    export type TypeEnum = 'FOLDER' | 'ITEM' | 'IMAGE';
     export const TypeEnum = {
         Folder: 'FOLDER' as TypeEnum,
-        Item: 'ITEM' as TypeEnum
+        Item: 'ITEM' as TypeEnum,
+        Image: 'IMAGE' as TypeEnum
     };
 }
 

@@ -440,9 +440,12 @@ export class ProjectTreeComponent implements AfterViewInit {
     const dto: ProjectElementDto = {
       id: node.id ?? '',
       name: node.name,
-      type: node.type,
+      type: node.type as any, // Cast to any to avoid type mismatch for now
       level: node.level, // No longer need to decrement since we're using 0-based levels
       position: node.position,
+      version: 0, // Default version
+      expandable: node.expandable || false, // Default expandable
+      metadata: {}, // Empty metadata for now
     };
     this.projectStateService.openFile(dto);
   }

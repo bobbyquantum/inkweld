@@ -1,0 +1,24 @@
+<div class="image-editor-container">
+  <div class="image-preview">
+    @if (imageUrl) {
+      <img [src]="imageUrl" alt="Image Preview" />
+    }
+    @if (!imageUrl) {
+      <div class="placeholder">No image selected</div>
+    }
+  </div>
+  <div class="upload-controls">
+    <input type="file" accept="image/*" (change)="onFileChange($event)" />
+    <button (click)="uploadImage()" [disabled]="!selectedFile">
+      Upload Image
+    </button>
+  </div>
+  <div class="metadata">
+    @if (metadata) {
+      <p>
+        Size: {{ metadata.size }} bytes, Type: {{ metadata.contentType }},
+        Modified: {{ metadata.lastModified | date }}
+      </p>
+    }
+  </div>
+</div>

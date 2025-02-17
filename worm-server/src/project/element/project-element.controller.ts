@@ -1,23 +1,5 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Param,
-  Body,
-  Headers,
-  UseGuards,
-  Logger,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiNotFoundResponse,
-  ApiHeader,
-  ApiBadRequestResponse,
-  ApiForbiddenResponse,
-  ApiOkResponse,
-  ApiBody,
-} from '@nestjs/swagger';
+import { Controller, Get, Put, Param, Body, Headers, UseGuards, Logger, Post, StreamableFile, Delete } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiNotFoundResponse, ApiHeader, ApiBadRequestResponse, ApiForbiddenResponse, ApiOkResponse, ApiBody, ApiProduces, ApiConsumes } from '@nestjs/swagger';
 import { SessionAuthGuard } from '../../auth/session-auth.guard.js';
 import { ProjectElementDto } from './project-element.dto.js';
 import { ProjectElementService } from './project-element.service.js';
@@ -76,5 +58,50 @@ export class ProjectElementController {
       `Replacing entire element list in Yjs doc for project ${username}/${slug}, CSRF=${csrfToken}`,
     );
     return this.yjsService.replaceProjectElements(username, slug, elements);
+  }
+
+  @Post(':elementId/image')
+  @ApiOperation({ summary: 'Upload image for project element' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  async uploadImage(
+    @Param('username') username: string,
+    @Param('slug') slug: string,
+    @Param('elementId') elementId: string,
+    @Body() file: Buffer, // Assuming raw file data in body for now
+  ): Promise<void> {
+    await this.yjsService.uploadImage(username, slug, elementId, file, 'default-filename.jpg');
+  }
+
+  @Get(':elementId/image')
+  @ApiOperation({ summary: 'Download image for project element' })
+  @ApiProduces('image/*')
+  async downloadImage(
+    @Param('username') username: string,
+    @Param('slug') slug: string,
+    @Param('elementId') elementId: string,
+  ): Promise<StreamableFile> { // Return StreamableFile
+    const imageStream = await this.yjsService.downloadImage(username, slug, elementId);
+    return new StreamableFile(imageStream as any); // Wrap stream in StreamableFile
+  }
+
+  @Delete(':elementId/image')
+  @ApiOperation({ summary: 'Delete image for project element' })
+  async deleteImage(
+    @Param('username') username: string,
+    @Param('slug') slug: string,
+    @Param('elementId') elementId: string,
+  ): Promise<void> {
+    await this.yjsService.deleteImage(username, slug, elementId);
   }
 }

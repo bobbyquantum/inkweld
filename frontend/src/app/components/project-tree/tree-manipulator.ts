@@ -62,24 +62,32 @@ export class TreeManipulator {
   // NODE CREATION METHODS
 
   createNode(
-    type: 'ITEM' | 'FOLDER',
+    type: 'ITEM' | 'FOLDER' | 'IMAGE',
     parentNode: ProjectElement,
     name?: string
   ): ProjectElement {
     return {
       id: nanoid(),
-      name: name || (type === 'ITEM' ? 'New Item' : 'New Folder'),
+      name:
+        name ||
+        (type === 'ITEM'
+          ? 'New Item'
+          : type === 'IMAGE'
+            ? 'New Image'
+            : 'New Folder'),
       type,
       level: this.validateLevel(parentNode.level + 1),
       position: 0,
       expandable: type === 'FOLDER',
       expanded: false,
       visible: true,
+      version: 0,
+      metadata: {},
     };
   }
 
   addNode(
-    type: 'ITEM' | 'FOLDER',
+    type: 'ITEM' | 'FOLDER' | 'IMAGE',
     parentNode: ProjectElement,
     name?: string
   ): ProjectElement {
