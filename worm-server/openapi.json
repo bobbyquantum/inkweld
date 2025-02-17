@@ -542,6 +542,138 @@
         ]
       }
     },
+    "/api/v1/projects/{username}/{slug}/elements/{elementId}/image": {
+      "post": {
+        "operationId": "ProjectElementController_uploadImage",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "elementId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Upload image for project element",
+        "tags": [
+          "Project API"
+        ]
+      },
+      "get": {
+        "operationId": "ProjectElementController_downloadImage",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "elementId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Download image for project element",
+        "tags": [
+          "Project API"
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectElementController_deleteImage",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "elementId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete image for project element",
+        "tags": [
+          "Project API"
+        ]
+      }
+    },
     "/mcp/sse": {
       "get": {
         "operationId": "McpController_getSse",
@@ -699,10 +831,11 @@
           },
           "type": {
             "type": "string",
-            "description": "Type of the element (FOLDER/ITEM)",
+            "description": "Type of the element (FOLDER/ITEM/IMAGE)",
             "enum": [
               "FOLDER",
-              "ITEM"
+              "ITEM",
+              "IMAGE"
             ],
             "example": "FOLDER"
           },
@@ -719,13 +852,24 @@
           "expandable": {
             "type": "boolean",
             "description": "Whether the element can be expanded (computed from type)"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Metadata associated with the project element"
           }
         },
         "required": [
+          "id",
+          "version",
           "name",
           "type",
           "position",
-          "level"
+          "level",
+          "expandable",
+          "metadata"
         ]
       }
     }

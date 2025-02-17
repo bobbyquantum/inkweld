@@ -53,7 +53,14 @@
         </button>
         <mat-icon>folder</mat-icon>
       } @else {
-        <mat-icon>description</mat-icon>
+        @switch (node.type) {
+          @case ('IMAGE') {
+            <mat-icon>image</mat-icon>
+          }
+          @default {
+            <mat-icon>description</mat-icon>
+          }
+        }
       }
 
       @if (editingNode === node.id) {
@@ -88,7 +95,14 @@
           </button>
           <mat-icon>folder</mat-icon>
         } @else {
-          <mat-icon>description</mat-icon>
+          @switch (node.type) {
+            @case ('IMAGE') {
+              <mat-icon>image</mat-icon>
+            }
+            @default {
+              <mat-icon>description</mat-icon>
+            }
+          }
         }
         <div class="node-title">
           {{ node.name }}
@@ -106,7 +120,14 @@
           </button>
           <mat-icon>folder</mat-icon>
         } @else {
-          <mat-icon>description</mat-icon>
+          @switch (node.type) {
+            @case ('IMAGE') {
+              <mat-icon>image</mat-icon>
+            }
+            @default {
+              <mat-icon>description</mat-icon>
+            }
+          }
         }
         <div class="node-title">{{ node.name }}</div>
       </div>

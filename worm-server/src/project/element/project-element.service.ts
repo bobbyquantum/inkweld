@@ -1,13 +1,18 @@
-// project-element-yjs.service.ts
+// project-element.service.ts
 
 import { Injectable, Logger } from '@nestjs/common';
-import { getPersistence } from '../../ws/y-websocket-utils.js'; // your existing y-websocket-utils
+import { getPersistence } from '../../ws/y-websocket-utils.js';
 import { LeveldbPersistence } from 'y-leveldb';
 import * as Y from 'yjs';
+import { ImageStorageService } from './image-storage.service.js'; // Import ImageStorageService
 
 @Injectable()
 export class ProjectElementService {
   private readonly logger = new Logger(ProjectElementService.name);
+
+  constructor(
+    private readonly imageStorageService: ImageStorageService, // Inject ImageStorageService
+  ) {}
 
   /**
    * Load the Y.Doc for the given project.
@@ -18,8 +23,6 @@ export class ProjectElementService {
     if (!ldb) {
       throw new Error('No LevelDB persistence found for Yjs project elements');
     }
-
-    // Get or create the Y.Doc from the database
     return await ldb.getYDoc(docId);
   }
 
@@ -31,42 +34,28 @@ export class ProjectElementService {
     if (!ldb) {
       throw new Error('No LevelDB persistence found for Yjs project elements');
     }
-
     const update = Y.encodeStateAsUpdate(doc);
     await ldb.storeUpdate(doc.guid, update);
   }
 
   /**
    * Get the elements from the Y.Doc as a JSON array.
-   * We assume we've stored them in a Y.Map called "data",
-   * which has a field "elements" that is a Y.Array<json>.
    */
   async getProjectElements(username: string, slug: string) {
     const docId = this.getDocId(username, slug);
     const doc = await this.loadDoc(docId);
-
-    // "data" is a Y.Map
     const dataMap = doc.getMap<any>('data');
-    // If empty, initialize it
     if (!dataMap.has('elements')) {
       dataMap.set('elements', new Y.Array());
     }
     const elementsArray = dataMap.get('elements') as Y.Array<any>;
-
-    // Convert the Y.Array back to JSON
     return elementsArray.toArray();
   }
 
   /**
-   * Overwrite the entire array of elements in the doc with the provided new array.
-   * This is conceptually similar to your "dinsert" approach.
-   * Here, we just replace everything with the new data in a single transaction.
+   * Replace project elements (similar to dinsert).
    */
-  async replaceProjectElements(
-    username: string,
-    slug: string,
-    incomingElements: any[],
-  ) {
+  async replaceProjectElements(username: string, slug: string, incomingElements: any[]) {
     const docId = this.getDocId(username, slug);
     const doc = await this.loadDoc(docId);
 
@@ -76,24 +65,55 @@ export class ProjectElementService {
         dataMap.set('elements', new Y.Array());
       }
       const elementsArray = dataMap.get('elements') as Y.Array<any>;
-
-      // Clear existing
-      elementsArray.delete(0, elementsArray.length);
-
-      // Insert incoming
+      elementsArray.delete(0, elementsArray.length); // Clear existing
       for (const elem of incomingElements) {
-        elementsArray.push([elem]);
+        elementsArray.push([elem]); // Insert incoming
       }
     });
 
     await this.persistDoc(doc);
-
-    // Return updated data
-    return incomingElements;
+    return incomingElements; // Return updated data
   }
 
   private getDocId(username: string, slug: string): string {
-    // e.g. "projectElements:bob:my-first-project"
     return `projectElements:${username}:${slug}`;
+  }
+
+  async uploadImage(
+    username: string,
+    slug: string,
+    elementId: string,
+    file: Buffer,
+    filename: string,
+  ): Promise<void> {
+    await this.imageStorageService.saveImage(username, slug, elementId, file, filename);
+
+    // TODO: Update project element metadata in LevelDB
+    this.logger.log(`Image uploaded for element ${elementId} in project ${username}/${slug}`);
+
+    // Metadata update logic will be added here
+    // Example: update element metadata in Yjs doc with image details (version, size, etc.)
+  }
+
+  async downloadImage(
+    username: string,
+    slug: string,
+    elementId: string,
+  ): Promise<NodeJS.ReadableStream> {
+    return this.imageStorageService.readImage(username, slug, elementId);
+  }
+
+  async deleteImage(
+    username: string,
+    slug: string,
+    elementId: string,
+  ): Promise<void> {
+    await this.imageStorageService.deleteImage(username, slug, elementId);
+
+    // TODO: Update project element metadata in LevelDB
+    this.logger.log(`Image deleted for element ${elementId} in project ${username}/${slug}`);
+
+    // Metadata update logic will be added here
+    // Example: update element metadata in Yjs doc to remove image details
   }
 }

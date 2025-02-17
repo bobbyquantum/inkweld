@@ -1,16 +1,19 @@
-import { ProjectElementDto } from '@worm/index';
+import { ProjectElementDto } from '../../api-client/model/project-element-dto';
 
 export interface ProjectElement {
-  id: string | undefined;
+  id: string;
   name: string;
-  type: 'FOLDER' | 'ITEM';
+  type: ProjectElementDto['type']; // Use type from DTO
   level: number;
   position: number;
-  expandable?: boolean;
+  expandable: boolean;
   expanded?: boolean;
   visible?: boolean;
+  version: number; // Add version property, make non-nullable
+  metadata: { [key: string]: string }; // Add metadata property to interface, use object type
 }
 
+// map DTO to frontend model
 export function mapDtoToProjectElement(dto: ProjectElementDto): ProjectElement {
   return {
     id: dto.id,
@@ -21,5 +24,7 @@ export function mapDtoToProjectElement(dto: ProjectElementDto): ProjectElement {
     expandable: dto.type === 'FOLDER',
     expanded: false,
     visible: true,
+    metadata: dto.metadata,
+    version: dto.version, // Map version from DTO
   };
 }

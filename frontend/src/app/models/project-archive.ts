@@ -16,12 +16,13 @@ export interface ProjectArchive {
   elements: Array<{
     id?: string;
     name: string;
-    type: 'FOLDER' | 'ITEM';
+    type: 'FOLDER' | 'ITEM' | 'IMAGE';
     position: number;
     level: number;
     version?: number;
     expandable?: boolean;
     content?: unknown;
+    metadata: { [key: string]: string };
   }>;
 }
 

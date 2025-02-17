@@ -37,6 +37,10 @@ describe('ProjectTreeComponent', () => {
     type: 'FOLDER',
     position: 0,
     level: 1, // Updated to reflect no root node wrapping
+    expandable: false,
+    version: 0,
+    metadata: {},
+    visible: true,
   };
 
   const createMockDialogRef = () =>
@@ -137,6 +141,10 @@ describe('ProjectTreeComponent', () => {
         type: 'ITEM',
         position: 1,
         level: 1, // Updated to reflect no root node wrapping
+        expandable: false,
+        version: 0,
+        metadata: {},
+        visible: true,
       };
 
       elementsSignal.set([mockDto, newElement]);
@@ -228,13 +236,17 @@ describe('ProjectTreeComponent', () => {
     const createTestNode = (
       id: string,
       level: number,
-      position: number
+      position: number = 0 // added position
     ): ProjectElement => ({
       id,
       name: `Test Node ${id}`,
       type: 'FOLDER',
       level,
       position,
+      expandable: false, // added expandable
+      version: 0, // added version
+      metadata: {}, // added metadata
+      visible: true, // added visible (assuming it's needed)
     });
 
     beforeEach(() => {
@@ -265,8 +277,8 @@ describe('ProjectTreeComponent', () => {
       } as CdkDragSortEvent<ArrayDataSource<ProjectElement>>;
 
       const [nodeAbove, nodeBelow] = [
-        createTestNode('2', 1, 0),
-        createTestNode('3', 2, 1),
+        createTestNode('2', 1),
+        createTestNode('3', 2),
       ];
       component.treeManipulator.getData().push(nodeAbove, nodeBelow);
 
@@ -354,6 +366,10 @@ describe('ProjectTreeComponent', () => {
       type: 'ITEM',
       position: 0,
       level: 1, // Updated to reflect no root node wrapping
+      expandable: false, // added expandable
+      version: 0, // added version
+      metadata: {}, // added metadata
+      visible: true, // added visible (assuming it's needed)
     });
 
     beforeEach(() => {
@@ -380,9 +396,9 @@ describe('ProjectTreeComponent', () => {
 
         expect(treeService.openFile).toHaveBeenCalledWith({
           ...node,
-          expandable: undefined,
+          expandable: false,
           expanded: undefined,
-          level: node.level, // No longer need to decrement since we're using 0-based levels
+          level: node.level,
           visible: undefined,
         });
       });
