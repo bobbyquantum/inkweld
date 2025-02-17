@@ -237,6 +237,7 @@ export class ProjectImportExportService {
         level: elem.level,
         version: elem.version,
         expandable: elem.expandable,
+        metadata: elem.metadata,
       })),
     };
 
@@ -245,7 +246,7 @@ export class ProjectImportExportService {
         const elementArchive = archive.elements.find(e => e.id === elem.id)!;
         if (elem.type === 'ITEM') {
           const content = await firstValueFrom(
-            this.documentService.exportDocument(elem.id!)
+            this.documentService.exportDocument(elem.id)
           );
           return { ...elementArchive, content };
         }
@@ -301,8 +302,9 @@ export class ProjectImportExportService {
       type: elem.type,
       position: elem.position,
       level: elem.level,
-      version: elem.version,
-      expandable: elem.expandable,
+      version: elem.version!,
+      expandable: elem.expandable!,
+      metadata: elem.metadata,
     }));
 
     for (const elem of archive.elements) {

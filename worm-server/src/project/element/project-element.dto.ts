@@ -1,19 +1,26 @@
 // project-element.dto.ts
+import { ElementType } from './element-type.enum.js';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsEnum, IsNumber } from 'class-validator';
-import { ElementType, isExpandable } from './element-type.enum.js';
+import { isExpandable } from './element-type.enum.js';
+
+export interface ProjectElementMetadataDto {
+  version: number;
+  contentType?: string;
+  size?: number;
+  lastModified?: Date;
+  originalFilename?: string;
+}
 
 export class ProjectElementDto {
   @ApiProperty({
     description: 'Unique identifier of the element',
     example: 'd42200be-2a40-4c3e-9c35-47c8f641c8ea',
-    required: false,
   })
   id?: string;
 
   @ApiProperty({
     description: 'Version for optimistic locking',
-    required: false,
   })
   version?: number;
 
@@ -23,11 +30,11 @@ export class ProjectElementDto {
   name: string;
 
   @ApiProperty({
-    description: 'Type of the element (FOLDER/ITEM)',
+    description: 'Type of the element (FOLDER/ITEM/IMAGE)',
     enum: ElementType,
     example: ElementType.FOLDER,
   })
-  @IsEnum(ElementType, {
+  @IsEnum(ElementType as any, {
     message: 'Type is required and must be FOLDER or ITEM',
   })
   type: ElementType;
@@ -50,9 +57,11 @@ export class ProjectElementDto {
 
   @ApiProperty({
     description: 'Whether the element can be expanded (computed from type)',
-    required: false,
   })
   expandable?: boolean;
+
+  @ApiProperty({ type: 'object', additionalProperties: { type: 'string' }, description: 'Metadata associated with the project element' })
+  metadata?: ProjectElementMetadataDto;
 
   constructor(entity?: ProjectElementDto) {
     if (entity) {
@@ -63,6 +72,7 @@ export class ProjectElementDto {
       this.position = entity.position;
       this.level = entity.level;
       this.expandable = isExpandable(entity.type);
+      this.metadata = entity.metadata;
     }
   }
 }
