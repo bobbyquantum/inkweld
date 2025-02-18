@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -20,6 +21,7 @@ interface ImageMetadata {
 @Component({
   selector: 'app-image-element-editor',
   standalone: true,
+  imports: [CommonModule],
   templateUrl: './image-element-editor.component.html',
   styleUrl: './image-element-editor.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -87,12 +89,10 @@ export class ImageElementEditorComponent implements OnInit {
     if (this.selectedFile && this.elementId) {
       const username = this.projectStateService.project()?.user?.username;
       const slug = this.projectStateService.project()?.slug;
-
       if (!username || !slug) {
         console.error('Username or slug not found in project state');
         return;
       }
-
       this.projectApiService
         .projectElementControllerUploadImage(
           username,
