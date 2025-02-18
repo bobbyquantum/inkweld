@@ -30,7 +30,7 @@ interface EditorDimensions {
 type DragPoint = 'pageLeft' | 'pageRight' | 'marginLeft' | 'marginRight';
 
 @Component({
-  selector: 'app-element-editor',
+  selector: 'app-document-element-editor',
   imports: [
     CommonModule,
     MatButtonModule,
@@ -41,10 +41,10 @@ type DragPoint = 'pageLeft' | 'pageRight' | 'marginLeft' | 'marginRight';
     EditorControlsMenuComponent,
     DragDropModule,
   ],
-  templateUrl: './element-editor.component.html',
-  styleUrl: './element-editor.component.scss',
+  templateUrl: './document-element-editor.component.html',
+  styleUrl: './document-element-editor.component.scss',
 })
-export class ElementEditorComponent
+export class DocumentElementEditorComponent
   implements OnInit, OnDestroy, AfterViewInit
 {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
