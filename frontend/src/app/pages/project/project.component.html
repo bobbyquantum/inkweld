@@ -15,6 +15,9 @@
           <mat-icon>arrow_back</mat-icon>
         </button>
         <span class="project-title">{{ projectState.project()?.title }}</span>
+        <button mat-icon-button (click)="projectState.showNewElementDialog()">
+          <mat-icon>add</mat-icon>
+        </button>
       </mat-toolbar>
     }
     <app-project-tree></app-project-tree>

@@ -63,6 +63,8 @@ export class ProjectElementController {
   @Post(':elementId/image')
   @ApiOperation({ summary: 'Upload image for project element' })
   @ApiConsumes('multipart/form-data')
+  @ApiOkResponse({ description: 'Image successfully uploaded' })
+  @ApiNotFoundResponse({ description: 'Element not found' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -80,28 +82,44 @@ export class ProjectElementController {
     @Param('elementId') elementId: string,
     @Body() file: Buffer, // Assuming raw file data in body for now
   ): Promise<void> {
+    this.logger.log(
+      `Uploading image for project element ${username}/${slug}/${elementId}`,
+      { username, slug, elementId },    );
     await this.yjsService.uploadImage(username, slug, elementId, file, 'default-filename.jpg');
   }
 
   @Get(':elementId/image')
   @ApiOperation({ summary: 'Download image for project element' })
   @ApiProduces('image/*')
+  @ApiOkResponse({
+    description: 'Image file stream',
+    type: StreamableFile
+  })
+  @ApiNotFoundResponse({ description: 'Image not found' })
   async downloadImage(
     @Param('username') username: string,
     @Param('slug') slug: string,
     @Param('elementId') elementId: string,
   ): Promise<StreamableFile> { // Return StreamableFile
+    this.logger.log(
+      `Downloading image for project element ${username}/${slug}/${elementId}`,
+      { username, slug, elementId },    );
     const imageStream = await this.yjsService.downloadImage(username, slug, elementId);
     return new StreamableFile(imageStream as any); // Wrap stream in StreamableFile
   }
 
   @Delete(':elementId/image')
   @ApiOperation({ summary: 'Delete image for project element' })
+  @ApiOkResponse({ description: 'Image successfully deleted' })
+  @ApiNotFoundResponse({ description: 'Image not found' })
   async deleteImage(
     @Param('username') username: string,
     @Param('slug') slug: string,
     @Param('elementId') elementId: string,
   ): Promise<void> {
+    this.logger.log(
+      `Deleting image for project element ${username}/${slug}/${elementId}`,
+      { username, slug, elementId },    );
     await this.yjsService.deleteImage(username, slug, elementId);
   }
 }

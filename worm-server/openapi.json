@@ -588,8 +588,11 @@
           }
         },
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "Image successfully uploaded"
+          },
+          "404": {
+            "description": "Element not found"
           }
         },
         "summary": "Upload image for project element",
@@ -627,7 +630,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Image file stream",
+            "content": {
+              "image/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamableFile"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Image not found"
           }
         },
         "summary": "Download image for project element",
@@ -665,7 +678,10 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Image successfully deleted"
+          },
+          "404": {
+            "description": "Image not found"
           }
         },
         "summary": "Delete image for project element",
@@ -871,6 +887,10 @@
           "expandable",
           "metadata"
         ]
+      },
+      "StreamableFile": {
+        "type": "object",
+        "properties": {}
       }
     }
   }
