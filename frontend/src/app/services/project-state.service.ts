@@ -1,5 +1,11 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { ProjectAPIService, ProjectDto, ProjectElementDto } from '@worm/index';
+import { MatDialog } from '@angular/material/dialog';
+import {
+  ProjectAPIService,
+  ProjectDto,
+  ProjectElementDto,
+  UserDto,
+} from '@worm/index';
 import { nanoid } from 'nanoid';
 import { firstValueFrom } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -7,7 +13,13 @@ import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
 import { environment } from '../../environments/environment';
+import { TreeManipulator } from '../components/project-tree/tree-manipulator';
+import {
+  NewElementDialogComponent,
+  NewElementDialogResult,
+} from '../dialogs/new-element-dialog/new-element-dialog.component';
 import { DocumentSyncState } from '../models/document-sync-state';
+import { ProjectElement } from '../models/project-element';
 
 /**
  * Manages the state of projects and their elements with offline-first capabilities
@@ -66,6 +78,7 @@ export class ProjectStateService {
   private docId: string | null = null;
 
   private projectAPIService = inject(ProjectAPIService);
+  private dialog = inject(MatDialog);
   /**
    * Initializes and loads a project with offline-first synchronization
    *
@@ -85,6 +98,25 @@ export class ProjectStateService {
    * @example
    * await projectStateService.loadProject('john-doe', 'my-project');
    */
+
+  showNewElementDialog(parentElement?: ProjectElement) {
+    const dialogRef = this.dialog.open<
+      NewElementDialogComponent,
+      { parentElement?: ProjectElement },
+      NewElementDialogResult
+    >(NewElementDialogComponent, {
+      width: '400px',
+      data: { parentElement },
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        const { name, type, file } = result;
+        void this.createNewElement(name, type, file, parentElement);
+      }
+    });
+  }
+
   async loadProject(username: string, slug: string): Promise<void> {
     this.isLoading.set(true);
     this.error.set(undefined);
@@ -355,7 +387,53 @@ export class ProjectStateService {
       this.isSaving.set(false);
     }
   }
+  private async uploadImage(elementId: string, file: File) {
+    const project = this.project();
+    if (!project?.user?.username || !project?.slug) {
+      throw new Error('Project information not available');
+    }
 
+    await firstValueFrom(
+      this.projectAPIService.projectElementControllerUploadImage(
+        project.user.username,
+        project.slug,
+        elementId,
+        file
+      )
+    );
+  }
+  private async createNewElement(
+    name: string,
+    type: ProjectElementDto.TypeEnum,
+    file: File | null,
+    parentElement?: ProjectElement
+  ) {
+    // Get current elements
+    const elements = this.elements();
+    const treeManipulator = new TreeManipulator(elements);
+
+    // Add new element
+    const newElement = treeManipulator.addNode(type, parentElement);
+    newElement.name = name;
+
+    // Update state
+    this.updateElements(treeManipulator.getData());
+
+    // Handle image upload if needed
+    if (type === ProjectElementDto.TypeEnum.Image && file) {
+      await this.uploadImage(newElement.id, file);
+    }
+
+    // Save changes
+    const project = this.project();
+    if (project?.user?.username && project?.slug) {
+      await this.saveProjectElements(
+        project.user.username,
+        project.slug,
+        treeManipulator.getData()
+      );
+    }
+  }
   /**
    * Synchronizes local Angular signals with the Yjs document state
    *
@@ -382,7 +460,9 @@ export class ProjectStateService {
     // Try reading fields or fallback to placeholders
     const projectId = projectMap.get('id') ?? 0;
     const projectName = projectMap.get('title') ?? '(Unnamed)';
-    const projectSlug = projectMap.get('slug') ?? '(no slug)';
+    const docIdParts = this.docId?.split(':') ?? [];
+    const projectUser = { username: docIdParts[1] ?? '(no user}' };
+    const projectSlug = docIdParts[2] ?? '(no slug)';
     const projectDesc = projectMap.get('description') ?? '';
     console.log('initializeLocalSignalsFromDoc: projectName:', projectName);
 
@@ -390,7 +470,8 @@ export class ProjectStateService {
     const loadedProject: ProjectDto = {
       id: projectId as string,
       title: projectName as string,
-      slug: projectSlug as string,
+      slug: projectSlug,
+      user: projectUser as UserDto,
       description: projectDesc as string,
       createdDate: new Date().toISOString(),
       updatedDate: new Date().toISOString(),
