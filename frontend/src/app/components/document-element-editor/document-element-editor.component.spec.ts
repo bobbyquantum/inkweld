@@ -8,8 +8,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { DocumentService } from '@services/document.service';
 import { NgxEditorModule } from 'ngx-editor';
 
+import { DocumentElementEditorComponent } from './document-element-editor.component';
 import { EditorControlsMenuComponent } from './editor-controls-menu.component';
-import { ElementEditorComponent } from './element-editor.component';
 
 class MockDocumentService {
   setupCollaboration = jest.fn().mockResolvedValue(undefined);
@@ -17,8 +17,8 @@ class MockDocumentService {
 }
 
 describe('ElementEditorComponent', () => {
-  let component: ElementEditorComponent;
-  let fixture: ComponentFixture<ElementEditorComponent>;
+  let component: DocumentElementEditorComponent;
+  let fixture: ComponentFixture<DocumentElementEditorComponent>;
   let documentService: MockDocumentService;
   let mockStyle: { [key: string]: string };
 
@@ -55,7 +55,7 @@ describe('ElementEditorComponent', () => {
       providers: [{ provide: DocumentService, useValue: documentService }],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(ElementEditorComponent);
+    fixture = TestBed.createComponent(DocumentElementEditorComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
