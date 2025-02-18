@@ -63,7 +63,7 @@ export class TreeManipulator {
 
   createNode(
     type: 'ITEM' | 'FOLDER' | 'IMAGE',
-    parentNode: ProjectElement,
+    parentNode?: ProjectElement,
     name?: string
   ): ProjectElement {
     return {
@@ -76,7 +76,7 @@ export class TreeManipulator {
             ? 'New Image'
             : 'New Folder'),
       type,
-      level: this.validateLevel(parentNode.level + 1),
+      level: parentNode ? this.validateLevel(parentNode.level + 1) : 0,
       position: 0,
       expandable: type === 'FOLDER',
       expanded: false,
@@ -88,16 +88,18 @@ export class TreeManipulator {
 
   addNode(
     type: 'ITEM' | 'FOLDER' | 'IMAGE',
-    parentNode: ProjectElement,
+    parentNode?: ProjectElement,
     name?: string
   ): ProjectElement {
-    const nodeIndex = this.sourceData.indexOf(parentNode);
+    const nodeIndex = parentNode
+      ? this.sourceData.indexOf(parentNode)
+      : this.sourceData.length;
     if (nodeIndex === -1) return null!;
 
     const newNode = this.createNode(type, parentNode, name);
 
     // If adding to a folder, ensure it's expanded
-    if (parentNode.expandable && !parentNode.expanded) {
+    if (parentNode && parentNode.expandable && !parentNode.expanded) {
       this.toggleExpanded(parentNode);
     }
 
