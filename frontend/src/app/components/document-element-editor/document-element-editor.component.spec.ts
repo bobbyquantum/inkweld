@@ -16,7 +16,7 @@ class MockDocumentService {
   disconnect = jest.fn();
 }
 
-describe('ElementEditorComponent', () => {
+describe('DocumentElementEditorComponent', () => {
   let component: DocumentElementEditorComponent;
   let fixture: ComponentFixture<DocumentElementEditorComponent>;
   let documentService: MockDocumentService;
