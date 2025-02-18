@@ -29,6 +29,7 @@ import { ProjectStateService } from '@services/project-state.service';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
 import { firstValueFrom, Subject, Subscription, takeUntil } from 'rxjs';
 
+import { ImageElementEditorComponent } from '../../components/image-element-editor/image-element-editor.component';
 import { ConfirmationDialogComponent } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
 import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
@@ -49,6 +50,7 @@ import { DocumentSyncState } from '../../models/document-sync-state';
     ElementEditorComponent,
     CommonModule,
     UserMenuComponent,
+    ImageElementEditorComponent,
   ],
   standalone: true,
 })

@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -6,8 +5,8 @@ import {
   Input,
 } from '@angular/core';
 
-import { ProjectAPIService } from '../../../../api-client/api/project-api.service';
-import { ProjectStateService } from '../../../services/project-state.service';
+import { ProjectAPIService } from '../../../api-client/api/project-api.service';
+import { ProjectStateService } from '../../services/project-state.service';
 
 interface ImageMetadata {
   size?: number;
@@ -18,7 +17,6 @@ interface ImageMetadata {
 @Component({
   selector: 'app-image-element-editor',
   standalone: true,
-  imports: [DatePipe],
   templateUrl: './image-element-editor.component.html',
   styleUrl: './image-element-editor.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,7 +26,6 @@ export class ImageElementEditorComponent {
   imageUrl: string | null = null;
   selectedFile: File | null = null;
   metadata: ImageMetadata | null = null;
-  datePipe = inject(DatePipe);
   projectApiService = inject(ProjectAPIService);
   projectStateService = inject(ProjectStateService);
 
