@@ -440,7 +440,7 @@ export class ProjectTreeComponent implements AfterViewInit {
     const dto: ProjectElementDto = {
       id: node.id ?? '',
       name: node.name,
-      type: node.type as any, // Cast to any to avoid type mismatch for now
+      type: node.type, // Use proper type from node
       level: node.level, // No longer need to decrement since we're using 0-based levels
       position: node.position,
       version: 0, // Default version
