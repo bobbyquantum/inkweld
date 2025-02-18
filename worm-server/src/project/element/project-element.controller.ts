@@ -1,10 +1,22 @@
 import { Controller, Get, Put, Param, Body, Headers, UseGuards, Logger, Post, StreamableFile, Delete } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadedFile, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiNotFoundResponse, ApiHeader, ApiBadRequestResponse, ApiForbiddenResponse, ApiOkResponse, ApiBody, ApiProduces, ApiConsumes } from '@nestjs/swagger';
 import { SessionAuthGuard } from '../../auth/session-auth.guard.js';
 import { ProjectElementDto } from './project-element.dto.js';
 import { ProjectElementService } from './project-element.service.js';
 // e.g. a service that deals with doc reading/writing
-
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination?: string;
+  filename?: string;
+  path?: string;
+  buffer?: Buffer;
+}
 @ApiTags('Project API')
 @Controller('api/v1/projects/:username/:slug/elements')
 @UseGuards(SessionAuthGuard)
@@ -62,6 +74,7 @@ export class ProjectElementController {
 
   @Post(':elementId/image')
   @ApiOperation({ summary: 'Upload image for project element' })
+  @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOkResponse({ description: 'Image successfully uploaded' })
   @ApiNotFoundResponse({ description: 'Element not found' })
@@ -80,12 +93,13 @@ export class ProjectElementController {
     @Param('username') username: string,
     @Param('slug') slug: string,
     @Param('elementId') elementId: string,
-    @Body() file: Buffer, // Assuming raw file data in body for now
+    @UploadedFile() file: MulterFile,
   ): Promise<void> {
     this.logger.log(
-      `Uploading image for project element ${username}/${slug}/${elementId}`,
-      { username, slug, elementId },    );
-    await this.yjsService.uploadImage(username, slug, elementId, file, 'default-filename.jpg');
+      `Uploading image ${file.originalname} for element ${elementId}`,
+      { username, slug, elementId, size: file.size }
+    );
+    await this.yjsService.uploadImage(username, slug, elementId, file.buffer, file.originalname);
   }
 
   @Get(':elementId/image')
