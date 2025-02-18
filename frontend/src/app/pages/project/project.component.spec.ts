@@ -58,8 +58,26 @@ describe('ProjectComponent', () => {
   };
 
   const mockElements: ProjectElementDto[] = [
-    { id: '1', name: 'Element 1', type: 'ITEM', level: 0, position: 0 },
-    { id: '2', name: 'Element 2', type: 'ITEM', level: 0, position: 1 },
+    {
+      id: '1',
+      name: 'Element 1',
+      type: 'ITEM',
+      level: 0,
+      position: 0,
+      version: 1,
+      expandable: false,
+      metadata: {},
+    },
+    {
+      id: '2',
+      name: 'Element 2',
+      type: 'ITEM',
+      level: 0,
+      position: 1,
+      version: 1,
+      expandable: false,
+      metadata: {},
+    },
   ];
 
   beforeEach(async () => {
@@ -119,7 +137,7 @@ describe('ProjectComponent', () => {
     breakpointObserverMock = {
       observe: jest
         .fn()
-        .mockReturnValue(of({ matches: false, breakpoints: {} })), // Default to desktop
+        .mockReturnValue(of({ matches: false, breakpoints: {} })),
     } as unknown as jest.Mocked<BreakpointObserver>;
 
     await TestBed.configureTestingModule({
@@ -161,7 +179,6 @@ describe('ProjectComponent', () => {
     );
     fixture.detectChanges();
     await fixture.whenStable();
-
     expect(projectStateServiceMock.loadProject).toHaveBeenCalledWith(
       'testuser',
       'test-project'
@@ -191,8 +208,10 @@ describe('ProjectComponent', () => {
       type: 'ITEM',
       level: 0,
       position: 0,
+      version: 1,
+      expandable: false,
+      metadata: {},
     };
-
     component.onFileOpened(mockElement);
     expect(projectStateServiceMock.openFile).toHaveBeenCalledWith(mockElement);
   });
@@ -205,11 +224,9 @@ describe('ProjectComponent', () => {
   it('should display loading state based on isLoading signal', () => {
     projectStateServiceMock.isLoading?.set(true);
     fixture.detectChanges();
-
     const nativeElement = fixture.nativeElement as HTMLElement;
     const loadingIndicator = nativeElement.querySelector('.loading-indicator');
     expect(loadingIndicator).toBeTruthy();
-
     projectStateServiceMock.isLoading?.set(false);
     fixture.detectChanges();
     expect(nativeElement.querySelector('.loading-indicator')).toBeNull();
@@ -219,7 +236,6 @@ describe('ProjectComponent', () => {
     const errorMessage = 'An error occurred';
     projectStateServiceMock.error?.set(errorMessage);
     fixture.detectChanges();
-
     expect(snackBarMock.open).toHaveBeenCalledWith(errorMessage, 'Close', {
       duration: 5000,
     });
