@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ProjectAPIService } from '../../../../api-client/api/project-api.service';
+import { ProjectAPIService } from '../../../api-client/api/project-api.service';
 import { ImageElementEditorComponent } from './image-element-editor.component';
 
 describe('ImageElementEditorComponent', () => {

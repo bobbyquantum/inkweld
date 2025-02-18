@@ -123,7 +123,12 @@
               </button>
             </div>
           </ng-template>
-          <app-element-editor [documentId]="file.id"></app-element-editor>
+          @if (file.type === 'IMAGE') {
+            <app-image-element-editor
+              [elementId]="file.id"></app-image-element-editor>
+          } @else {
+            <app-element-editor [documentId]="file.id"></app-element-editor>
+          }
         </mat-tab>
       }
     </mat-tab-group>
