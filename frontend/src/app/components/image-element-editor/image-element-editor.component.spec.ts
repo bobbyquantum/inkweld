@@ -21,7 +21,6 @@ describe('ImageElementEditorComponent', () => {
   beforeEach(async () => {
     mockProjectApiService = {
       projectElementControllerDownloadImage: jest.fn(() => of(new Blob([]))),
-      projectElementControllerUploadImage: jest.fn(() => of({})),
     };
     mockProjectStateService = {
       project: () => ({ user: { username: 'testuser' }, slug: 'test-project' }),
@@ -46,27 +45,10 @@ describe('ImageElementEditorComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should update image URL when onFileChange is called', () => {
-    if (component.onFileChange) {
-      const dummyFile = new File(['dummy content'], 'dummy.png', {
-        type: 'image/png',
-      });
-      component.onFileChange({
-        target: { files: [dummyFile] },
-      } as unknown as Event);
-      expect(component.imageUrl).toBeTruthy();
-      expect(component.selectedFile).toEqual(dummyFile);
-    } else {
-      expect(true).toBe(true);
-    }
-  });
-
   it('should set imageUrl when a value is provided', () => {
     const testUrl = 'http://example.com/test-image.png';
     component.imageUrl = testUrl;
     fixture.detectChanges();
-    // Instead of querying DOM for <img> (since the template uses "@if" syntax),
-    // we simply verify that the component property is correctly set.
     expect(component.imageUrl).toEqual(testUrl);
   });
 
@@ -86,20 +68,16 @@ describe('ImageElementEditorComponent', () => {
     expect(component.imageUrl).toBeTruthy();
   });
 
-  it('should call projectElementControllerUploadImage when uploadImage is invoked with selected file and elementId', () => {
-    component.elementId = '123';
-    const dummyFile = new File(['dummy content'], 'dummy.png', {
-      type: 'image/png',
-    });
-    component.selectedFile = dummyFile;
-    component.uploadImage();
-    expect(
-      mockProjectApiService.projectElementControllerUploadImage
-    ).toHaveBeenCalledWith('testuser', 'test-project', '123', dummyFile);
-  });
-
   it('should have a ProjectAPIService injected', () => {
     const service = TestBed.inject(ProjectAPIService);
     expect(service).toBeTruthy();
+  });
+
+  it('should show placeholder when no image is available', () => {
+    component.imageUrl = null;
+    fixture.detectChanges();
+    const placeholder = fixture.nativeElement.querySelector('.placeholder');
+    expect(placeholder).toBeTruthy();
+    expect(placeholder.textContent).toContain('No image available');
   });
 });
