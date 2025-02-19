@@ -27,9 +27,8 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
-import { EditProjectDialogComponent } from '@dialogs/edit-project-dialog/edit-project-dialog.component';
 import { ProjectStateService } from '@services/project-state.service';
-import { ProjectDto, ProjectElementDto } from '@worm/index';
+import { ProjectElementDto } from '@worm/index';
 
 import {
   mapDtoToProjectElement,
@@ -419,16 +418,7 @@ export class ProjectTreeComponent implements AfterViewInit {
   }
 
   public editProject() {
-    console.log('Edit project', this.projectStateService.project());
-    const dialogRef = this.dialog.open(EditProjectDialogComponent, {
-      data: { project: this.projectStateService.project() },
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        void this.projectStateService.updateProject(result as ProjectDto);
-      }
-    });
+    this.projectStateService.showEditProjectDialog();
   }
 
   /**

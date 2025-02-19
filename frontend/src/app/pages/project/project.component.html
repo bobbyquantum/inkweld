@@ -68,10 +68,17 @@
         <div class="home-tab-content">
           <div class="full-width-column">
             <div class="full-width-header">
-              <h2>{{ projectState.project()?.title }}</h2>
-              <p>
-                {{ projectState.project()?.description }}
-              </p>
+              <div class="header-content">
+                <div>
+                  <h2>{{ projectState.project()?.title }}</h2>
+                  <p>{{ projectState.project()?.description }}</p>
+                </div>
+                <button
+                  mat-icon-button
+                  (click)="projectState.showEditProjectDialog()">
+                  <mat-icon>edit</mat-icon>
+                </button>
+              </div>
             </div>
           </div>
 
