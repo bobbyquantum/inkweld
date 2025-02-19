@@ -47,6 +47,9 @@ describe('ProjectStateService', () => {
     position: 0,
     level: 1, // Updated to reflect no root node wrapping
     name: 'Test Folder',
+    version: 0,
+    expandable: true,
+    metadata: {},
   };
 
   beforeEach(() => {
@@ -199,6 +202,22 @@ describe('ProjectStateService', () => {
 
       expect(service.openFiles().length).toBe(1);
       expect(service.selectedTabIndex()).toBe(0);
+    });
+
+    it('should close editors when their nodes are deleted', () => {
+      // Set up initial elements
+      const elements = [mockFile, { ...mockFile, id: '2', name: 'file2.txt' }];
+      service.updateElements(elements);
+
+      // Open both files
+      service.openFile(mockFile);
+      service.openFile(elements[1]);
+      expect(service.openFiles().length).toBe(2);
+
+      // Update elements with one file deleted
+      service.updateElements([elements[1]]);
+      expect(service.openFiles().length).toBe(1);
+      expect(service.openFiles()[0].id).toBe('2');
     });
   });
 
