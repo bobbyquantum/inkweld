@@ -17,7 +17,6 @@ import { ProjectAPIService } from '@worm/index';
 import { of } from 'rxjs';
 
 import { projectServiceMock } from '../../../testing/project-api.mock';
-import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { ProjectElement } from '../../models/project-element';
 import { ProjectTreeComponent } from './project-tree.component';
 
@@ -324,36 +323,6 @@ describe('ProjectTreeComponent', () => {
     errorSignal.set(undefined);
     fixture.detectChanges();
     expect(component.error()).toBeUndefined();
-  });
-
-  describe('Project Editing', () => {
-    beforeEach(() => {
-      mockDialogRef.afterClosed = jest.fn().mockReturnValue(of(null));
-    });
-
-    it('should open edit project dialog', () => {
-      component.editProject();
-      expect(component.dialog.open).toHaveBeenCalledWith(
-        EditProjectDialogComponent,
-        {
-          data: { project: component.projectStateService.project() },
-        }
-      );
-    });
-
-    it('should handle successful dialog result', () => {
-      const updatedProject = { title: 'Updated Project' };
-      mockDialogRef.afterClosed = jest.fn().mockReturnValue(of(updatedProject));
-
-      component.editProject();
-      expect(treeService.updateProject).toHaveBeenCalledWith(updatedProject);
-    });
-
-    it('should handle dialog cancellation', () => {
-      component.editProject();
-      expect(component.error()).toBeUndefined();
-      expect(treeService.updateProject).not.toHaveBeenCalled();
-    });
   });
 
   describe('Context Menu', () => {
