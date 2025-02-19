@@ -225,7 +225,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       data: project,
       width: '500px',
     });
-    void dialogRef.afterClosed().subscribe();
     void dialogRef.afterClosed().subscribe(updatedProject => {
       if (updatedProject) {
         console.log('Project updated successfully', updatedProject);
