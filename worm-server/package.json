@@ -33,7 +33,7 @@
     "@nestjs/platform-express": "11.0.9",
     "@nestjs/platform-ws": "11.0.9",
     "@nestjs/serve-static": "5.0.2",
-    "@nestjs/swagger": "11.0.3",
+    "@nestjs/swagger": "11.0.4",
     "@nestjs/typeorm": "11.0.0",
     "@nestjs/websockets": "11.0.9",
     "class-transformer": "0.5.1",
