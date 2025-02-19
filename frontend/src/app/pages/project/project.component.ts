@@ -1,3 +1,4 @@
+import { CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
 import {
@@ -44,6 +45,7 @@ import { DocumentSyncState } from '../../models/document-sync-state';
     MatSidenavModule,
     MatTabsModule,
     MatIconModule,
+    DragDropModule,
     MatProgressSpinnerModule,
     MatToolbarModule,
     ProjectTreeComponent,
@@ -68,11 +70,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly router = inject(Router);
 
   protected destroy$ = new Subject<void>();
-  private startX = 0;
-  private startWidth = 0;
   private paramsSubscription?: Subscription;
   private syncSubscription?: Subscription;
   private hasUnsavedChanges = false;
+  private startWidth = 0;
 
   private readonly errorEffect = effect(() => {
     const error = this.projectState.error();
@@ -187,16 +188,21 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     await this.sidenav.toggle();
   }
 
-  onResizeStart = (e: MouseEvent) => {
+  onDragStart() {
+    if (this.isMobile()) return;
+    this.startWidth = this.getSidenavWidth();
+  }
+
+  onDragEnd(event: CdkDragEnd) {
     if (this.isMobile()) return;
 
-    e.preventDefault();
-    this.startX = e.clientX;
-    this.startWidth = this.getSidenavWidth();
+    const delta = event.distance.x;
+    const newWidth = Math.max(150, Math.min(600, this.startWidth + delta));
+    this.updateSidenavWidth(newWidth);
+    localStorage.setItem('sidenavWidth', newWidth.toString());
 
-    document.addEventListener('mousemove', this.onResizeMove);
-    document.addEventListener('mouseup', this.onResizeEnd);
-  };
+    event.source._dragRef.reset();
+  }
 
   onFileOpened = (element: ProjectElementDto) => {
     this.projectState.openFile(element);
@@ -253,17 +259,5 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
         `${width}px`
       );
     }
-  };
-
-  private onResizeMove = (e: MouseEvent) => {
-    const diff = e.clientX - this.startX;
-    const newWidth = Math.max(150, Math.min(600, this.startWidth + diff));
-    this.updateSidenavWidth(newWidth);
-  };
-
-  private onResizeEnd = () => {
-    document.removeEventListener('mousemove', this.onResizeMove);
-    document.removeEventListener('mouseup', this.onResizeEnd);
-    localStorage.setItem('sidenavWidth', this.getSidenavWidth().toString());
   };
 }
