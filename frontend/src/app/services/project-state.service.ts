@@ -1,5 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { EditProjectDialogComponent } from '@dialogs/edit-project-dialog/edit-project-dialog.component';
 import {
   ProjectAPIService,
   ProjectDto,
@@ -113,6 +114,18 @@ export class ProjectStateService {
       if (result) {
         const { name, type, file } = result;
         void this.createNewElement(name, type, file, parentElement);
+      }
+    });
+  }
+
+  showEditProjectDialog() {
+    const dialogRef = this.dialog.open(EditProjectDialogComponent, {
+      data: this.project(),
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        void this.updateProject(result as ProjectDto);
       }
     });
   }

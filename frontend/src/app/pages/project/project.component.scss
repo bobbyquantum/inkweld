@@ -151,8 +151,17 @@ mat-sidenav-content {
   padding: 0 8px;
   display: flex;
   align-items: center;
-  justify-content: space-between; // Changed to space-between
+  gap: 8px;
   z-index: 2;
+
+  .project-title {
+    flex: 1;
+    font-size: 1.1rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 .resize-handle {
@@ -172,10 +181,6 @@ mat-sidenav-content {
   &:hover, &:active {
     background-color: var(--mat-sys-primary);
   }
-}
-
-.project-toolbar {
-  justify-content: flex-start;
 }
 
 .tab-bars {
@@ -247,6 +252,16 @@ mat-sidenav-content {
 
 .full-width-header {
   margin-bottom: 16px;
+
+  .header-content {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+
+    h2 { margin-top: 0; }
+    p { margin-bottom: 0; }
+  }
 }
 
 .columns-container {
