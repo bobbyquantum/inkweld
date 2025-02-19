@@ -123,6 +123,7 @@ mat-sidenav-content {
   border-radius: 0;
   position: relative;
   height: 100%;
+  overflow: visible; // Allow resize handle to extend beyond sidenav
   background-color: var(--mat-sys-surface-container);
   border-right: 1px solid var(--mat-sys-outline-variant);
   display: flex;
@@ -163,7 +164,10 @@ mat-sidenav-content {
   cursor: ew-resize;
   background-color: transparent;
   transition: background-color 0.2s;
-  z-index: 1;
+  z-index: 100;
+  touch-action: none;
+  transform: translateX(0);
+  margin-right: -2px; // Center the handle on the border
 
   &:hover, &:active {
     background-color: var(--mat-sys-primary);

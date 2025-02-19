@@ -31,7 +31,13 @@
 
     @if (!isMobile()) {
       <app-user-menu [miniMode]="false"></app-user-menu>
-      <div class="resize-handle" (mousedown)="onResizeStart($event)"></div>
+      <div
+        cdkDrag
+        cdkDragLockAxis="x"
+        [cdkDragBoundary]="'.main-container'"
+        (cdkDragStarted)="onDragStart()"
+        (cdkDragEnded)="onDragEnd($event)"
+        class="resize-handle"></div>
     }
   </mat-sidenav>
   <mat-sidenav-content>
