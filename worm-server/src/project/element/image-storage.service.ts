@@ -6,9 +6,8 @@ import * as fsSync from 'fs';
 @Injectable()
 export class ImageStorageService {
   private readonly dataDir = path.resolve(process.env.Y_DATA_PATH || './data');
-  private readonly imageMetadata = new Map<string, string>(); // Stores elementId -> filename
 
-  async saveImage(userId: string, projectSlug: string, elementId: string, file: Buffer, filename: string): Promise<void> {
+  async saveImage(userId: string, projectSlug: string, elementId: string, file: Buffer, filename: string): Promise<string> {
     const projectDir = path.join(this.dataDir, 'projects', userId, projectSlug, 'images');
     await fsPromises.mkdir(projectDir, { recursive: true });
     const finalFilename = `${elementId}-${Date.now()}${path.extname(filename)}`;
@@ -16,24 +15,23 @@ export class ImageStorageService {
 
     try {
       await fsPromises.writeFile(filePath, file);
-      this.imageMetadata.set(elementId, finalFilename);
+      return finalFilename;
     } catch (error) {
       throw new Error(`Failed to save image: ${error.message}`);
     }
   }
 
-  async readImage(userId: string, projectSlug: string, elementId: string): Promise<NodeJS.ReadableStream> {
-    const filename = this.imageMetadata.get(elementId);
-    if (!filename) throw new Error('Image not found');
-
+  async readImage(userId: string, projectSlug: string, filename: string): Promise<NodeJS.ReadableStream> {
     const projectDir = path.join(this.dataDir, 'projects', userId, projectSlug, 'images');
     return fsSync.createReadStream(path.join(projectDir, filename));
   }
 
-  async deleteImage(userId: string, projectSlug: string, elementId: string): Promise<void> {
-    const filename = this.imageMetadata.get(elementId);
-    if (!filename) throw new Error('Image not found');
+  async deleteImage(userId: string, projectSlug: string, filename: string): Promise<void> {
     const projectDir = path.join(this.dataDir, 'projects', userId, projectSlug, 'images');
     await fsPromises.unlink(path.join(projectDir, filename));
+  }
+
+  getProjectImageDir(userId: string, projectSlug: string): string {
+    return path.join(this.dataDir, 'projects', userId, projectSlug, 'images');
   }
 }
