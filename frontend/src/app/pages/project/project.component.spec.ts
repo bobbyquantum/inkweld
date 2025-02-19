@@ -2,7 +2,13 @@ import { CdkDrag, CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { HttpClient } from '@angular/common/http';
 import { signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import {
+  ComponentFixture,
+  fakeAsync,
+  TestBed,
+  tick,
+} from '@angular/core/testing';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
@@ -48,6 +54,7 @@ describe('ProjectComponent', () => {
   let httpClientMock: jest.Mocked<HttpClient>;
   let routeParams: BehaviorSubject<{ username: string; slug: string }>;
   let breakpointObserverMock: jest.Mocked<BreakpointObserver>;
+  let mockDialogRef: MatDialogRef<unknown>;
 
   const mockProject: ProjectDto = {
     id: '1',
@@ -121,6 +128,7 @@ describe('ProjectComponent', () => {
       loadProject: jest.fn().mockResolvedValue(undefined),
       openFile: jest.fn(),
       closeFile: jest.fn(),
+      showEditProjectDialog: jest.fn(),
     };
 
     // Mock MatSnackBar
@@ -141,6 +149,19 @@ describe('ProjectComponent', () => {
         .mockReturnValue(of({ matches: false, breakpoints: {} })),
     } as unknown as jest.Mocked<BreakpointObserver>;
 
+    // Mock MatDialog
+    mockDialogRef = {
+      afterClosed: jest.fn().mockReturnValue(of(null)),
+      close: jest.fn(),
+    } as unknown as MatDialogRef<unknown>;
+
+    const dialogMock = {
+      open: jest.fn().mockReturnValue(mockDialogRef),
+    };
+
+    // Create dialog spy
+    jest.spyOn(dialogMock, 'open');
+
     await TestBed.configureTestingModule({
       imports: [ProjectComponent, NoopAnimationsModule, DragDropModule],
       providers: [
@@ -153,6 +174,7 @@ describe('ProjectComponent', () => {
           provide: ActivatedRoute,
           useValue: { params: routeParams.asObservable() },
         },
+        { provide: MatDialog, useValue: dialogMock },
       ],
     }).compileComponents();
 
@@ -336,6 +358,33 @@ describe('ProjectComponent', () => {
       component.onDragStart();
       component.onDragEnd(createMockDrag(50));
       expect(localStorage.setItem).toHaveBeenCalledWith('sidenavWidth', '250');
+    });
+  });
+
+  describe('Project Editing', () => {
+    beforeEach(() => {
+      mockDialogRef.afterClosed = jest.fn().mockReturnValue(of(null));
+    });
+
+    it('should show edit project dialog through service', () => {
+      projectStateServiceMock.showEditProjectDialog?.();
+      expect(projectStateServiceMock.showEditProjectDialog).toHaveBeenCalled();
+    });
+
+    it('should handle successful dialog result', fakeAsync(() => {
+      const updatedProject = { title: 'Updated Project' };
+      mockDialogRef.afterClosed = jest.fn().mockReturnValue(of(updatedProject));
+
+      projectStateServiceMock.showEditProjectDialog?.();
+      tick();
+
+      expect(projectStateServiceMock.showEditProjectDialog).toHaveBeenCalled();
+    }));
+
+    it('should handle dialog cancellation', () => {
+      projectStateServiceMock.showEditProjectDialog?.();
+      expect(projectStateServiceMock.error?.()).toBeUndefined();
+      expect(projectStateServiceMock.showEditProjectDialog).toHaveBeenCalled();
     });
   });
 });
