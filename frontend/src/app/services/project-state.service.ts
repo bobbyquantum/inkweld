@@ -298,6 +298,27 @@ export class ProjectStateService {
    */
   updateElements(elements: ProjectElementDto[]): void {
     // Update the signals (for immediate UI reflection)
+
+    // Check for deleted nodes that have open editors
+    const currentElements = this.elements();
+    const currentElementIds = new Set(currentElements.map(e => e.id));
+    const newElementIds = new Set(elements.map(e => e.id));
+
+    // Find elements that were deleted (in current but not in new)
+    const deletedElementIds = new Set(
+      Array.from(currentElementIds).filter(id => !newElementIds.has(id))
+    );
+
+    // Close any open editors for deleted nodes
+    if (deletedElementIds.size > 0) {
+      const openFiles = this.openFiles();
+      openFiles.forEach((file, index) => {
+        if (file.id && deletedElementIds.has(file.id)) {
+          this.closeFile(index);
+        }
+      });
+    }
+
     this.elements.set(elements);
 
     if (this.doc) {
