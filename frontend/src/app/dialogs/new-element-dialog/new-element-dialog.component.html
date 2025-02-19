@@ -5,37 +5,41 @@
     <mat-form-field appearance="fill" class="full-width">
       <mat-label>Name</mat-label>
       <input matInput [formControl]="$any(form.controls.name)" required />
-      <mat-error *ngIf="form.controls.name.errors?.['required']">
-        Name is required
-      </mat-error>
+      @if (form.controls.name.errors?.['required']) {
+        <mat-error> Name is required </mat-error>
+      }
     </mat-form-field>
 
     <mat-form-field appearance="fill" class="full-width">
       <mat-label>Type</mat-label>
       <mat-select [formControl]="$any(form.controls.type)" required>
-        <mat-option *ngFor="let type of elementTypes" [value]="type">
-          {{ type }}
-        </mat-option>
+        @for (type of elementTypes; track type) {
+          <mat-option [value]="type">
+            {{ type }}
+          </mat-option>
+        }
       </mat-select>
-      <mat-error *ngIf="form.controls.type.errors?.['required']">
-        Type is required
-      </mat-error>
+      @if (form.controls.type.errors?.['required']) {
+        <mat-error> Type is required </mat-error>
+      }
     </mat-form-field>
 
-    <div *ngIf="form.controls.type.value === 'IMAGE'" class="file-upload">
-      <input
-        type="file"
-        accept="image/*"
-        (change)="onFileChange($event)"
-        #fileInput
-        style="display: none" />
-      <button type="button" mat-stroked-button (click)="fileInput.click()">
-        Choose Image
-      </button>
-      <span *ngIf="form.controls.file.value" class="file-name">{{
-        form.controls.file.value.name
-      }}</span>
-    </div>
+    @if (form.controls.type.value === 'IMAGE') {
+      <div class="file-upload">
+        <input
+          type="file"
+          accept="image/*"
+          (change)="onFileChange($event)"
+          #fileInput
+          style="display: none" />
+        <button type="button" mat-stroked-button (click)="fileInput.click()">
+          Choose Image
+        </button>
+        @if (form.controls.file.value) {
+          <span class="file-name">{{ form.controls.file.value.name }}</span>
+        }
+      </div>
+    }
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">

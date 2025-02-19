@@ -15,6 +15,7 @@
     "lint:fix": "ng lint --fix",
     "analyze": "ng build --stats-json && esbuild-visualizer --metadata dist/worm-frontend/stats.json",
     "upgrade-angular": "ng update @angular/core@19 @angular/cli@19 @angular/material@19 @angular/cdk@19 --allow-dirty",
+    "fix-angular-control-flow": "ng generate @angular/core:control-flow",
     "e2e": "ng e2e"
   },
   "private": true,
