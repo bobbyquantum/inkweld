@@ -1,3 +1,4 @@
+import { CdkDrag, CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { HttpClient } from '@angular/common/http';
 import { signal } from '@angular/core';
@@ -141,7 +142,7 @@ describe('ProjectComponent', () => {
     } as unknown as jest.Mocked<BreakpointObserver>;
 
     await TestBed.configureTestingModule({
-      imports: [ProjectComponent, NoopAnimationsModule],
+      imports: [ProjectComponent, NoopAnimationsModule, DragDropModule],
       providers: [
         { provide: HttpClient, useValue: httpClientMock },
         { provide: ProjectAPIService, useValue: projectServiceMock },
@@ -255,5 +256,86 @@ describe('ProjectComponent', () => {
     );
     fixture.detectChanges();
     expect(component.isMobile()).toBe(false);
+  });
+
+  describe('Sidenav resizing', () => {
+    beforeEach(() => {
+      // Mock localStorage
+      Storage.prototype.getItem = jest.fn().mockImplementation(() => '200');
+      Storage.prototype.setItem = jest.fn();
+
+      // Create mock sidenav element
+      const sidenavEl = document.createElement('div');
+      sidenavEl.className = 'sidenav-content';
+      sidenavEl.style.width = '200px';
+      Object.defineProperty(sidenavEl, 'offsetWidth', {
+        configurable: true,
+        value: 200,
+      });
+      document.body.appendChild(sidenavEl);
+      jest
+        .spyOn(HTMLElement.prototype, 'offsetWidth', 'get')
+        .mockImplementation(function (this: HTMLElement) {
+          if (this.classList.contains('sidenav-content')) {
+            // Return the element's style width (or a default if not set)
+            return parseInt(this.style.width, 10) || 200;
+          }
+          return 0;
+        });
+    });
+
+    afterEach(() => {
+      document.body.innerHTML = '';
+    });
+
+    const createMockDrag = (x: number) =>
+      ({
+        source: {
+          getFreeDragPosition: () => ({ x, y: 0 }),
+          element: document.createElement('div'),
+          dropContainer: null,
+          _dragRef: { reset: jest.fn() },
+        } as unknown as CdkDrag,
+        distance: { x, y: 0 },
+        dropPoint: { x, y: 0 },
+        event: new MouseEvent('mouseup'),
+      }) as CdkDragEnd;
+
+    it('should update sidenav width on drag end', () => {
+      component.onDragStart();
+      component.onDragEnd(createMockDrag(50));
+
+      const sidenavEl = document.querySelector<HTMLElement>('.sidenav-content');
+      const width = parseInt(sidenavEl?.style.width || '0', 10);
+      expect(width).toBe(250); // 200px + 50px
+    });
+
+    it('should respect min and max width constraints', () => {
+      // Test minimum width
+      component.onDragStart();
+      component.onDragEnd(createMockDrag(-500));
+      const minWidth = parseInt(
+        document.querySelector<HTMLElement>('.sidenav-content')?.style.width ||
+          '0',
+        10
+      );
+      expect(minWidth).toBe(150);
+
+      // Test maximum width
+      component.onDragStart();
+      component.onDragEnd(createMockDrag(1000));
+      const maxWidth = parseInt(
+        document.querySelector<HTMLElement>('.sidenav-content')?.style.width ||
+          '0',
+        10
+      );
+      expect(maxWidth).toBe(600);
+    });
+
+    it('should save width to localStorage on drag end', () => {
+      component.onDragStart();
+      component.onDragEnd(createMockDrag(50));
+      expect(localStorage.setItem).toHaveBeenCalledWith('sidenavWidth', '250');
+    });
   });
 });
