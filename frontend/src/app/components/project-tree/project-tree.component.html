@@ -86,7 +86,11 @@
         </div>
       }
 
-      <div class="drag-placeholder" *cdkDragPlaceholder>
+      <div
+        class="drag-placeholder"
+        *cdkDragPlaceholder
+        [style.padding-left.px]="node.level * 24 + (node.expandable ? 0 : 16)"
+        [class.folder-node]="node.expandable">
         @if (node.expandable) {
           <button mat-icon-button type="button">
             <mat-icon>{{
@@ -104,11 +108,7 @@
             }
           }
         }
-        <div class="node-title">
-          {{ node.name }}
-          (Current: {{ currentDropLevel }}, Valid:
-          {{ validLevelsArray.join(', ') }})
-        </div>
+        <div class="node-title">{{ node.name }}</div>
       </div>
 
       <div class="drag-preview" *cdkDragPreview>
