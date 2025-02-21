@@ -54,7 +54,7 @@
     "rxjs": "7.8.1",
     "swagger-ui-express": "5.0.1",
     "typeorm": "0.3.20",
-    "ws": "8.18.0",
+    "ws": "8.18.1",
     "y-websocket": "2.1.0"
   },
   "devDependencies": {
