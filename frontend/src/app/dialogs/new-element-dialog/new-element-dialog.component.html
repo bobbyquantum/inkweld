@@ -2,7 +2,7 @@
 
 <form [formGroup]="form" (ngSubmit)="onCreate()">
   <mat-dialog-content>
-    <mat-form-field appearance="fill" class="full-width">
+    <mat-form-field appearance="outline" class="full-width">
       <mat-label>Name</mat-label>
       <input matInput [formControl]="$any(form.controls.name)" required />
       @if (form.controls.name.errors?.['required']) {
@@ -10,7 +10,7 @@
       }
     </mat-form-field>
 
-    <mat-form-field appearance="fill" class="full-width">
+    <mat-form-field appearance="outline" class="full-width">
       <mat-label>Type</mat-label>
       <mat-select [formControl]="$any(form.controls.type)" required>
         @for (type of elementTypes; track type) {
