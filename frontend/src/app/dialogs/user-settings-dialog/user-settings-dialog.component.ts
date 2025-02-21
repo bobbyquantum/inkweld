@@ -21,6 +21,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject, takeUntil } from 'rxjs';
 
 import { GeneralSettingsComponent } from './tabs/general-settings/general-settings.component';
+import { ProjectTreeSettingsComponent } from './tabs/project-tree-settings/project-tree-settings.component';
 
 const slideAnimation = trigger('slideAnimation', [
   transition(
@@ -66,14 +67,15 @@ const slideAnimation = trigger('slideAnimation', [
     MatIconModule,
     MatTooltipModule,
     GeneralSettingsComponent,
+    ProjectTreeSettingsComponent,
   ],
   animations: [slideAnimation],
   templateUrl: './user-settings-dialog.component.html',
   styleUrl: './user-settings-dialog.component.scss',
 })
 export class UserSettingsDialogComponent implements OnInit, OnDestroy {
-  @Input() selectedCategory: 'general' | 'account' = 'general';
-  previousCategory: 'general' | 'account' = 'general';
+  @Input() selectedCategory: 'general' | 'account' | 'project-tree' = 'general';
+  previousCategory: 'general' | 'account' | 'project-tree' = 'general';
   isMobile = false;
   private destroyed = new Subject<void>();
   private breakpointObserver = inject(BreakpointObserver);
@@ -92,15 +94,17 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
     this.destroyed.complete();
   }
 
-  selectCategory(category: 'general' | 'account') {
+  selectCategory(category: 'general' | 'account' | 'project-tree') {
     this.previousCategory = this.selectedCategory;
     this.selectedCategory = category;
   }
 
   getAnimationState() {
     const isMovingDown =
-      this.selectedCategory === 'account' &&
-      this.previousCategory === 'general';
+      (this.selectedCategory === 'account' &&
+        this.previousCategory === 'general') ||
+      (this.selectedCategory === 'project-tree' &&
+        this.previousCategory === 'account');
     return {
       value: this.selectedCategory,
       params: {

@@ -32,6 +32,18 @@
         <mat-icon matListItemIcon>account_circle</mat-icon>
         <span matListItemTitle>Account</span>
       </a>
+      <a
+        mat-list-item
+        role="tab"
+        (click)="selectCategory('project-tree')"
+        (keydown.enter)="selectCategory('project-tree')"
+        [attr.aria-selected]="selectedCategory === 'project-tree'"
+        [class.active]="selectedCategory === 'project-tree'"
+        tabindex="2"
+        aria-label="Project Tree settings">
+        <mat-icon matListItemIcon>account_tree</mat-icon>
+        <span matListItemTitle>Project Tree</span>
+      </a>
     </mat-nav-list>
 
     <div
@@ -45,6 +57,9 @@
         }
         @case ('account') {
           <p>Account settings content goes here</p>
+        }
+        @case ('project-tree') {
+          <app-project-tree-settings />
         }
       }
     </div>

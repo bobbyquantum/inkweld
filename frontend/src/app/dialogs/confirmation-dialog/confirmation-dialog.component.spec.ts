@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { ConfirmationDialogComponent } from './confirmation-dialog.component';
@@ -16,7 +16,18 @@ describe('ConfirmationDialogComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [ConfirmationDialogComponent, NoopAnimationsModule],
-      providers: [{ provide: MatDialogRef, useValue: dialogRef }],
+      providers: [
+        { provide: MatDialogRef, useValue: dialogRef },
+        {
+          provide: MAT_DIALOG_DATA,
+          useValue: {
+            title: 'Confirmation',
+            message: 'Are you sure you want to leave this page?',
+            cancelText: 'Stay on Page',
+            confirmText: 'Leave Page',
+          },
+        },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ConfirmationDialogComponent);
@@ -28,13 +39,13 @@ describe('ConfirmationDialogComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should close dialog with false when staying on page', () => {
-    component.onStay();
+  it('should close dialog with false when canceling', () => {
+    component.onCancel();
     expect(dialogRef.close).toHaveBeenCalledWith(false);
   });
 
-  it('should close dialog with true when leaving page', () => {
-    component.onLeave();
+  it('should close dialog with true when confirming', () => {
+    component.onConfirm();
     expect(dialogRef.close).toHaveBeenCalledWith(true);
   });
 

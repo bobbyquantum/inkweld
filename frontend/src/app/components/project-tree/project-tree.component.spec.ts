@@ -35,7 +35,7 @@ describe('ProjectTreeComponent', () => {
     name: 'Test Element',
     type: 'FOLDER',
     position: 0,
-    level: 1, // Updated to reflect no root node wrapping
+    level: 1,
     expandable: false,
     version: 0,
     metadata: {},
@@ -44,7 +44,7 @@ describe('ProjectTreeComponent', () => {
 
   const createMockDialogRef = () =>
     ({
-      afterClosed: jest.fn(),
+      afterClosed: jest.fn().mockReturnValue(of(true)),
       close: jest.fn(),
       componentInstance: {},
       _containerInstance: {},
@@ -60,7 +60,6 @@ describe('ProjectTreeComponent', () => {
     }) as unknown as MatDialogRef<unknown, unknown>;
 
   const setupTestBed = async () => {
-    // Mock window.location.pathname
     Object.defineProperty(window, 'location', {
       value: {
         pathname: '/project/testuser/testproject',
@@ -68,7 +67,6 @@ describe('ProjectTreeComponent', () => {
       writable: true,
     });
 
-    // Create writable signals
     elementsSignal = signal<ProjectElement[]>([mockDto]);
     loadingSignal = signal(false);
     savingSignal = signal(false);
@@ -98,7 +96,6 @@ describe('ProjectTreeComponent', () => {
     component = fixture.componentInstance;
     mockDialogRef = createMockDialogRef();
     jest.spyOn(component.dialog, 'open').mockReturnValue(mockDialogRef);
-    // fixture.detectChanges();
   };
 
   beforeEach(async () => {
@@ -110,11 +107,9 @@ describe('ProjectTreeComponent', () => {
   });
 
   it('should initialize with elements from service', () => {
-    // Account for 1 element
     expect(component.treeElements()).toHaveLength(1);
-    // Original element should be first
     expect(component.treeElements()[0].type).toBe('FOLDER');
-    expect(component.treeElements()[0].level).toBe(1); // Updated to reflect no root node wrapping
+    expect(component.treeElements()[0].level).toBe(1);
   });
 
   describe('State Management', () => {
@@ -139,7 +134,7 @@ describe('ProjectTreeComponent', () => {
         name: 'New Element',
         type: 'ITEM',
         position: 1,
-        level: 1, // Updated to reflect no root node wrapping
+        level: 1,
         expandable: false,
         version: 0,
         metadata: {},
@@ -147,11 +142,10 @@ describe('ProjectTreeComponent', () => {
       };
 
       elementsSignal.set([mockDto, newElement]);
-
       expect(component.treeElements()).toHaveLength(2);
       const lastElement = component.treeElements()[1];
       expect(lastElement.type).toBe('ITEM');
-      expect(lastElement.level).toBe(1); // Updated to reflect no root node wrapping
+      expect(lastElement.level).toBe(1);
     });
   });
 
@@ -161,13 +155,12 @@ describe('ProjectTreeComponent', () => {
     beforeEach(() => {
       const data = component.treeManipulator.getData();
       if (data.length < 2) {
-        component.treeManipulator.addNode('ITEM', data[0] || mockDto); // Ensure at least 2 nodes
+        component.treeManipulator.addNode('ITEM', data[0] || mockDto);
       }
       testNode = component.treeManipulator.getData()[1];
     });
 
     describe('Node Creation', () => {
-      // Modify to focus on component state and service calls rather than tree structure
       it('should create new item and start editing', async () => {
         await component.onNewItem(testNode);
         expect(component.editingNode).toBeDefined();
@@ -187,6 +180,7 @@ describe('ProjectTreeComponent', () => {
     let mockDropList: CdkDropList<ArrayDataSource<ProjectElement>>;
     let node: ProjectElement;
     let dataSource: ArrayDataSource<ProjectElement>;
+
     const createTestDragEvent = (
       invalid = false
     ): CdkDragDrop<ArrayDataSource<ProjectElement>> => ({
@@ -217,12 +211,6 @@ describe('ProjectTreeComponent', () => {
       tick();
       expect(treeService.saveProjectElements).toHaveBeenCalled();
     }));
-    it('should handle valid drops', fakeAsync(() => {
-      const event = createTestDragEvent();
-      void component.drop(event);
-      tick();
-      expect(treeService.saveProjectElements).toHaveBeenCalled();
-    }));
 
     it('should prevent invalid drops', fakeAsync(() => {
       const event = createTestDragEvent(true);
@@ -235,24 +223,24 @@ describe('ProjectTreeComponent', () => {
     const createTestNode = (
       id: string,
       level: number,
-      position: number = 0 // added position
+      position: number = 0
     ): ProjectElement => ({
       id,
       name: `Test Node ${id}`,
       type: 'FOLDER',
       level,
       position,
-      expandable: false, // added expandable
-      version: 0, // added version
-      metadata: {}, // added metadata
-      visible: true, // added visible (assuming it's needed)
+      expandable: false,
+      version: 0,
+      metadata: {},
+      visible: true,
     });
 
     beforeEach(() => {
       dataSource = new ArrayDataSource<ProjectElement>([]);
       const data = component.treeManipulator.getData();
       if (data.length < 2) {
-        component.treeManipulator.addNode('ITEM', data[0] || mockDto); // Ensure at least 2 nodes
+        component.treeManipulator.addNode('ITEM', data[0] || mockDto);
       }
       node = component.treeManipulator.getData()[1];
       mockDrag = { data: node } as CdkDrag<ProjectElement>;
@@ -276,18 +264,17 @@ describe('ProjectTreeComponent', () => {
       } as CdkDragSortEvent<ArrayDataSource<ProjectElement>>;
 
       const [nodeAbove, nodeBelow] = [
-        createTestNode('2', 1),
-        createTestNode('3', 2),
+        createTestNode('2', 1, 0),
+        createTestNode('3', 2, 1),
       ];
       component.treeManipulator.getData().push(nodeAbove, nodeBelow);
 
       component.sorted(mockSortEvent);
-      expect(component.validLevelsArray).toContain(1); // Must contain original level
+      expect(component.validLevelsArray).toContain(1);
     });
   });
 
   it('should extract project info from URL', async () => {
-    // Get the first element
     const node = component.treeManipulator.getData()[0];
     await component.onDelete(node);
     expect(treeService.saveProjectElements).toHaveBeenCalledWith(
@@ -302,20 +289,18 @@ describe('ProjectTreeComponent', () => {
       pointerPosition: { x: 100, y: 0 },
     } as CdkDragMove<ArrayDataSource<ProjectElement>>;
 
-    // Mock invalid container dimensions
     jest
       .spyOn(component.treeContainer.nativeElement, 'getBoundingClientRect')
       .mockReturnValue({ left: NaN, width: NaN } as DOMRect);
 
     component.dragMove(mockMoveEvent);
-    expect(component.currentDropLevel).toBe(0); // Should default to minimum level
+    expect(component.currentDropLevel).toBe(0);
   });
 
   it('should handle empty tree state', () => {
     elementsSignal.set([]);
     fixture.detectChanges();
-
-    expect(component.treeElements()).toHaveLength(0); // Empty tree with no elements
+    expect(component.treeElements()).toHaveLength(0);
     expect(component.treeManipulator.getData()).toHaveLength(0);
   });
 
@@ -334,11 +319,11 @@ describe('ProjectTreeComponent', () => {
       name: 'Test File',
       type: 'ITEM',
       position: 0,
-      level: 1, // Updated to reflect no root node wrapping
-      expandable: false, // added expandable
-      version: 0, // added version
-      metadata: {}, // added metadata
-      visible: true, // added visible (assuming it's needed)
+      level: 1,
+      expandable: false,
+      version: 0,
+      metadata: {},
+      visible: true,
     });
 
     beforeEach(() => {
@@ -362,7 +347,6 @@ describe('ProjectTreeComponent', () => {
         expect(node.type).toBe('ITEM');
 
         component.onOpenFile(node);
-
         expect(treeService.openFile).toHaveBeenCalledWith({
           ...node,
           expandable: false,

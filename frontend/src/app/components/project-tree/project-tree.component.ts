@@ -28,8 +28,11 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { ProjectStateService } from '@services/project-state.service';
+import { SettingsService } from '@services/settings.service';
 import { ProjectElementDto } from '@worm/index';
+import { firstValueFrom } from 'rxjs';
 
+import { ConfirmationDialogComponent } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
 import {
   mapDtoToProjectElement,
   ProjectElement,
@@ -80,6 +83,7 @@ export class ProjectTreeComponent implements AfterViewInit {
   readonly error = this.projectStateService.error;
 
   dataSource: ArrayDataSource<ProjectElement>;
+  readonly settingsService = inject(SettingsService);
   treeManipulator!: TreeManipulator;
 
   selectedItem: ProjectElement | null = null;
@@ -318,6 +322,25 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param event The drag drop event.
    */
   public async drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {
+    // Check if confirmation is enabled
+    const confirmElementMoves = this.settingsService.getSetting<boolean>(
+      'confirmElementMoves',
+      false
+    );
+
+    if (confirmElementMoves) {
+      const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+        data: {
+          title: 'Confirm Move',
+          message: 'Are you sure you want to move this item?',
+          confirmText: 'Move',
+          cancelText: 'Cancel',
+        },
+      });
+      const result = (await firstValueFrom(dialogRef.afterClosed())) as boolean;
+      if (!result) return;
+    }
+
     const { currentIndex, container, item } = event;
     const sortedNodes = container
       .getSortedItems()
@@ -396,10 +419,22 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node to delete.
    */
   public async onDelete(node: ProjectElement) {
-    this.treeManipulator.deleteNode(node);
-    this.updateDataSource();
-    // Save changes after delete
-    await this.saveChanges();
+    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+      data: {
+        title: 'Confirm Delete' as const,
+        message:
+          `Are you sure you want to delete "${node.name}"? This action cannot be undone.` as const,
+        confirmText: 'Delete' as const,
+        cancelText: 'Cancel' as const,
+      },
+    });
+
+    const result = (await firstValueFrom(dialogRef.afterClosed())) as boolean;
+    if (result) {
+      this.treeManipulator.deleteNode(node);
+      this.updateDataSource();
+      await this.saveChanges();
+    }
   }
 
   /**
