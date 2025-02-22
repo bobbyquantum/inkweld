@@ -22,7 +22,6 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInput, MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -34,11 +33,16 @@ import { firstValueFrom } from 'rxjs';
 
 import { ConfirmationDialogComponent } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
 import {
+  RenameDialogComponent,
+  RenameDialogData,
+} from '../../dialogs/rename-dialog/rename-dialog.component';
+import {
   mapDtoToProjectElement,
   ProjectElement,
 } from '../../models/project-element';
 import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
 import { TreeManipulator } from './tree-manipulator';
+
 /**
  * Component for displaying and managing the project tree.
  */
@@ -47,7 +51,6 @@ import { TreeManipulator } from './tree-manipulator';
     MatTreeModule,
     MatIconModule,
     MatButtonModule,
-    MatInputModule,
     MatListModule,
     MatMenuModule,
     MatProgressSpinnerModule,
@@ -69,7 +72,6 @@ export class ProjectTreeComponent implements AfterViewInit {
   @ViewChild('tree') treeEl!: MatTree<ProjectElement>;
   @ViewChild('treeContainer', { static: true })
   treeContainer!: ElementRef<HTMLElement>;
-  @ViewChild('editInput') inputEl!: MatInput;
   @ViewChild(CdkDropList) dropList!: CdkDropList<ProjectElement>;
 
   readonly projectStateService = inject(ProjectStateService);
@@ -89,7 +91,6 @@ export class ProjectTreeComponent implements AfterViewInit {
   treeManipulator!: TreeManipulator;
 
   selectedItem: ProjectElement | null = null;
-  editingNode: string | undefined = undefined;
   currentDropLevel = 0;
   validLevelsArray: number[] = [0];
   draggedNode: ProjectElement | null = null;
@@ -167,8 +168,8 @@ export class ProjectTreeComponent implements AfterViewInit {
     this.updateDataSource();
     await this.saveChanges();
 
-    // Start editing the new item
-    this.startEditing(newItem);
+    // Start renaming the new item
+    await this.onRename(newItem);
   }
 
   /**
@@ -180,8 +181,8 @@ export class ProjectTreeComponent implements AfterViewInit {
     this.updateDataSource();
     await this.saveChanges();
 
-    // Start editing the new folder
-    this.startEditing(newFolder);
+    // Start renaming the new folder
+    await this.onRename(newFolder);
   }
 
   /**
@@ -189,9 +190,6 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node that is being pressed.
    */
   public onNodeDown(node: ProjectElement) {
-    // Don't allow dragging when editing
-    if (this.editingNode !== undefined) return;
-
     this.selectedItem = node;
     if (node.type === 'FOLDER' && node.expanded) {
       // Start a timer to collapse the node after a short delay
@@ -232,9 +230,6 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The node being dragged.
    */
   public dragStarted(node: ProjectElement) {
-    // Don't allow dragging when editing
-    if (this.editingNode !== undefined) return;
-
     this.draggedNode = node;
     this.currentDropLevel = node.level;
     this.validLevelsArray = [node.level];
@@ -380,40 +375,27 @@ export class ProjectTreeComponent implements AfterViewInit {
   }
 
   /**
-   * Initiates editing of a node's name.
-   * @param node The node to edit.
-   */
-  public startEditing(node: ProjectElement) {
-    this.editingNode = node.id;
-  }
-
-  /**
-   * Completes editing of a node's name.
-   * @param node The node being edited.
-   * @param newName The new name for the node.
-   */
-  public async finishEditing(node: ProjectElement, newName: string) {
-    if (newName.trim() !== '') {
-      this.treeManipulator.renameNode(node, newName.trim());
-      this.updateDataSource();
-      await this.saveChanges();
-    }
-    this.editingNode = undefined;
-  }
-
-  /**
-   * Cancels editing of a node's name.
-   */
-  public cancelEditing() {
-    this.editingNode = undefined;
-  }
-
-  /**
    * Handles the rename action from the context menu.
    * @param node The node to rename.
    */
-  public onRename(node: ProjectElement) {
-    this.startEditing(node);
+  public async onRename(node: ProjectElement) {
+    const dialogRef = this.dialog.open<
+      RenameDialogComponent,
+      RenameDialogData,
+      string
+    >(RenameDialogComponent, {
+      data: {
+        currentName: node.name,
+        title: `Rename ${node.expandable ? 'Folder' : 'Item'}`,
+      },
+    });
+
+    const newName = await firstValueFrom(dialogRef.afterClosed());
+    if (newName) {
+      this.treeManipulator.renameNode(node, newName);
+      this.updateDataSource();
+      await this.saveChanges();
+    }
   }
 
   /**
@@ -467,12 +449,12 @@ export class ProjectTreeComponent implements AfterViewInit {
     const dto: ProjectElementDto = {
       id: node.id ?? '',
       name: node.name,
-      type: node.type, // Use proper type from node
-      level: node.level, // No longer need to decrement since we're using 0-based levels
+      type: node.type,
+      level: node.level,
       position: node.position,
-      version: 0, // Default version
-      expandable: node.expandable || false, // Default expandable
-      metadata: {}, // Empty metadata for now
+      version: 0,
+      expandable: node.expandable || false,
+      metadata: {},
     };
     this.projectStateService.openFile(dto);
   }

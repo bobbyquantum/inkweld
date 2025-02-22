@@ -42,9 +42,9 @@ describe('ProjectTreeComponent', () => {
     visible: true,
   };
 
-  const createMockDialogRef = () =>
+  const createMockDialogRef = (returnValue: unknown = true) =>
     ({
-      afterClosed: jest.fn().mockReturnValue(of(true)),
+      afterClosed: jest.fn().mockReturnValue(of(returnValue)),
       close: jest.fn(),
       componentInstance: {},
       _containerInstance: {},
@@ -161,16 +161,46 @@ describe('ProjectTreeComponent', () => {
     });
 
     describe('Node Creation', () => {
-      it('should create new item and start editing', async () => {
+      it('should create new item and open rename dialog', async () => {
+        const mockRenameRef = createMockDialogRef('New Name');
+        jest.spyOn(component.dialog, 'open').mockReturnValue(mockRenameRef);
+
         await component.onNewItem(testNode);
-        expect(component.editingNode).toBeDefined();
+        expect(component.dialog.open).toHaveBeenCalled();
         expect(treeService.saveProjectElements).toHaveBeenCalled();
       });
 
-      it('should create new folder and start editing', async () => {
+      it('should create new folder and open rename dialog', async () => {
+        const mockRenameRef = createMockDialogRef('New Folder');
+        jest.spyOn(component.dialog, 'open').mockReturnValue(mockRenameRef);
+
         await component.onNewFolder(testNode);
-        expect(component.editingNode).toBeDefined();
+        expect(component.dialog.open).toHaveBeenCalled();
         expect(treeService.saveProjectElements).toHaveBeenCalled();
+      });
+    });
+
+    describe('Rename Dialog', () => {
+      it('should open rename dialog and update node name', async () => {
+        const newName = 'Updated Name';
+        const mockRenameRef = createMockDialogRef(newName);
+        jest.spyOn(component.dialog, 'open').mockReturnValue(mockRenameRef);
+
+        await component.onRename(testNode);
+        expect(component.dialog.open).toHaveBeenCalled();
+        expect(treeService.saveProjectElements).toHaveBeenCalled();
+        expect(testNode.name).toBe(newName);
+      });
+
+      it('should not update node name if dialog is cancelled', async () => {
+        const originalName = testNode.name;
+        const mockRenameRef = createMockDialogRef(null);
+        jest.spyOn(component.dialog, 'open').mockReturnValue(mockRenameRef);
+
+        await component.onRename(testNode);
+        expect(component.dialog.open).toHaveBeenCalled();
+        expect(treeService.saveProjectElements).not.toHaveBeenCalled();
+        expect(testNode.name).toBe(originalName);
       });
     });
   });

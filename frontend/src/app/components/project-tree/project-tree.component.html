@@ -30,7 +30,7 @@
       (cdkDragMoved)="dragMove($event)"
       (cdkDragEnded)="dragEnded()"
       [cdkDragStartDelay]="node.expandable && node.expanded ? 1000 : 0"
-      [cdkDragDisabled]="editingNode !== undefined || isLoading()"
+      [cdkDragDisabled]="isLoading()"
       [style.padding-left.px]="node.level * 24 + (node.expandable ? 0 : 16)"
       [class.folder-node]="node.expandable"
       [class.context-item]="node.id === contextItem?.id"
@@ -58,28 +58,14 @@
         [type]="node.type">
       </app-tree-node-icon>
 
-      @if (editingNode === node.id) {
-        <mat-form-field appearance="outline" class="node-edit-field">
-          <input
-            matInput
-            #editInput
-            [value]="node.name"
-            (blur)="finishEditing(node, editInput.value)"
-            (keyup.enter)="finishEditing(node, editInput.value)"
-            (keyup.escape)="cancelEditing()"
-            [attr.aria-label]="'Edit ' + node.name"
-            placeholder="Edit node name" />
-        </mat-form-field>
-      } @else {
-        <div
-          class="node-title"
-          tabindex="0"
-          (click)="!node.expandable && onOpenFile(node)"
-          (keyup.enter)="!node.expandable && onOpenFile(node)"
-          (dblclick)="!node.expandable && onOpenFile(node)">
-          {{ node.name }}
-        </div>
-      }
+      <div
+        class="node-title"
+        tabindex="0"
+        (click)="!node.expandable && onOpenFile(node)"
+        (keyup.enter)="!node.expandable && onOpenFile(node)"
+        (dblclick)="!node.expandable && onOpenFile(node)">
+        {{ node.name }}
+      </div>
 
       <div
         class="drag-placeholder"
