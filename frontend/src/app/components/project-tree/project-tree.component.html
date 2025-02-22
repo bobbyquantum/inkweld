@@ -51,17 +51,12 @@
             node.expanded ? 'expand_more' : 'chevron_right'
           }}</mat-icon>
         </button>
-        <mat-icon>folder</mat-icon>
-      } @else {
-        @switch (node.type) {
-          @case ('IMAGE') {
-            <mat-icon>image</mat-icon>
-          }
-          @default {
-            <mat-icon>description</mat-icon>
-          }
-        }
       }
+      <app-tree-node-icon
+        [isExpandable]="node.expandable"
+        [isExpanded]="node.expanded"
+        [type]="node.type">
+      </app-tree-node-icon>
 
       @if (editingNode === node.id) {
         <mat-form-field appearance="outline" class="node-edit-field">

@@ -1,0 +1,5 @@
+@if (isExpandable) {
+  <mat-icon>{{ isExpanded ? 'folder_open' : 'folder' }}</mat-icon>
+} @else {
+  <mat-icon>{{ type === 'IMAGE' ? 'image' : 'description' }}</mat-icon>
+}
