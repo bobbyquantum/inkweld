@@ -1,0 +1,93 @@
+<div class="template-builder">
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="template-header">
+      <h2>{{ template ? 'Edit Template' : 'Create Template' }}</h2>
+
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input
+          id="name"
+          type="text"
+          formControlName="name"
+          placeholder="Template name"
+          class="form-control" />
+        @if (
+          form.get('name')?.errors?.['required'] && form.get('name')?.touched
+        ) {
+          <div class="error-message">Name is required</div>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          placeholder="Template description"
+          class="form-control"
+          rows="3"></textarea>
+      </div>
+    </div>
+
+    <div class="template-sections">
+      <div class="section-header">
+        <h3>Sections</h3>
+        <button type="button" class="btn btn-secondary" (click)="addSection()">
+          Add Section
+        </button>
+      </div>
+
+      @if (sections.length === 0) {
+        <div class="empty-state">
+          <p>
+            No sections added yet. Click "Add Section" to start building your
+            template.
+          </p>
+        </div>
+      }
+
+      @for (section of sections; track section.id) {
+        <div class="section-card">
+          <div class="section-header">
+            <h4>{{ section.name }}</h4>
+            <div class="section-actions">
+              <button
+                type="button"
+                class="btn btn-link"
+                (click)="editSection(section)">
+                Edit
+              </button>
+              <button
+                type="button"
+                class="btn btn-link text-danger"
+                (click)="removeSection(section.id)">
+                Remove
+              </button>
+            </div>
+          </div>
+
+          <div class="section-preview">
+            @for (field of section.fields; track field.id) {
+              <div class="field-preview">
+                <span class="field-name">{{ field.name }}</span>
+                <span class="field-type">{{ field.type }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="template-actions">
+      <button type="button" class="btn btn-secondary" (click)="onCancel()">
+        Cancel
+      </button>
+      <button
+        type="submit"
+        class="btn btn-primary"
+        [disabled]="!form.valid || saving">
+        {{ saving ? 'Saving...' : template ? 'Update' : 'Create' }}
+      </button>
+    </div>
+  </form>
+</div>

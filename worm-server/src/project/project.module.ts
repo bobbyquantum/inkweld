@@ -5,11 +5,17 @@ import { ProjectService } from './project.service.js';
 import { ProjectController } from './project.controller.js';
 import { UserEntity } from '../user/user.entity.js';
 import { UserModule } from '../user/user.module.js';
+import { Template } from './template/template.entity.js';
+import { TemplateModule } from './template/template.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ProjectEntity, UserEntity]), UserModule],
+  imports: [
+    TypeOrmModule.forFeature([ProjectEntity, UserEntity, Template]),
+    UserModule,
+    TemplateModule
+  ],
   controllers: [ProjectController],
   providers: [ProjectService],
-  exports: [ProjectService],
+  exports: [ProjectService]
 })
 export class ProjectModule {}

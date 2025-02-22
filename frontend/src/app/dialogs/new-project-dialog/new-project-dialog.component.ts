@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { CommonModule } from '@angular/common';
 import { Component, effect, inject } from '@angular/core';
 import {
@@ -37,9 +38,9 @@ import { UserService } from '../../services/user.service';
 })
 export class NewProjectDialogComponent {
   projectForm = new FormGroup({
-    title: new FormControl('', [Validators.required.bind(this)]),
+    title: new FormControl('', [Validators.required]),
     slug: new FormControl('', [
-      Validators.required.bind(this),
+      Validators.required,
       Validators.pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     ]),
     description: new FormControl(''),

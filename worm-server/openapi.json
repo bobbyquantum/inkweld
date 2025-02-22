@@ -426,6 +426,335 @@
         ]
       }
     },
+    "/templates": {
+      "post": {
+        "operationId": "TemplateController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Template created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid template data"
+          },
+          "409": {
+            "description": "Template with same name already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new template",
+        "tags": [
+          "templates"
+        ]
+      },
+      "get": {
+        "operationId": "TemplateController_findAll",
+        "parameters": [
+          {
+            "name": "isPublic",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "category",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tags",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TemplateDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List templates",
+        "tags": [
+          "templates"
+        ]
+      }
+    },
+    "/templates/{id}": {
+      "get": {
+        "operationId": "TemplateController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a template by ID",
+        "tags": [
+          "templates"
+        ]
+      },
+      "put": {
+        "operationId": "TemplateController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Template updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid template data"
+          },
+          "404": {
+            "description": "Template not found"
+          },
+          "409": {
+            "description": "Template with same name already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a template",
+        "tags": [
+          "templates"
+        ]
+      },
+      "delete": {
+        "operationId": "TemplateController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template deleted successfully"
+          },
+          "404": {
+            "description": "Template not found"
+          },
+          "409": {
+            "description": "Template cannot be deleted due to dependencies"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a template",
+        "tags": [
+          "templates"
+        ]
+      }
+    },
+    "/templates/{id}/version": {
+      "post": {
+        "operationId": "TemplateController_createVersion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "New version created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new version of a template",
+        "tags": [
+          "templates"
+        ]
+      }
+    },
+    "/templates/public": {
+      "get": {
+        "operationId": "TemplateController_findPublic",
+        "parameters": [
+          {
+            "name": "category",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tags",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of public templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TemplateDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List public templates",
+        "tags": [
+          "templates"
+        ]
+      }
+    },
     "/api/v1/projects/{username}/{slug}/elements": {
       "get": {
         "operationId": "ProjectElementController_getProjectElements",
@@ -827,6 +1156,312 @@
           "email",
           "password"
         ]
+      },
+      "TemplateSchemaDto": {
+        "type": "object",
+        "properties": {
+          "nodes": {
+            "type": "object",
+            "description": "Template node specifications"
+          }
+        },
+        "required": [
+          "nodes"
+        ]
+      },
+      "TemplateFieldDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Field identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Field name"
+          },
+          "type": {
+            "type": "string",
+            "description": "Field type (references node type)"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether field is required"
+          },
+          "defaultValue": {
+            "type": "object",
+            "description": "Default value"
+          },
+          "viewMode": {
+            "type": "string",
+            "description": "View mode",
+            "enum": [
+              "edit",
+              "readonly",
+              "hidden"
+            ]
+          },
+          "styles": {
+            "type": "object",
+            "description": "Custom styles"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type"
+        ]
+      },
+      "TemplateSectionLayoutDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Layout type",
+            "enum": [
+              "grid",
+              "flex",
+              "flow"
+            ]
+          },
+          "columns": {
+            "type": "number",
+            "description": "Number of columns for grid layout"
+          },
+          "gap": {
+            "type": "string",
+            "description": "Gap between elements"
+          },
+          "styles": {
+            "type": "object",
+            "description": "Custom styles"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "TemplateSectionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Section identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Section name"
+          },
+          "fields": {
+            "description": "Section fields",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateFieldDto"
+            }
+          },
+          "layout": {
+            "description": "Section layout configuration",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateSectionLayoutDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "fields",
+          "layout"
+        ]
+      },
+      "TemplateLayoutDto": {
+        "type": "object",
+        "properties": {
+          "sections": {
+            "description": "Template sections",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateSectionDto"
+            }
+          },
+          "styles": {
+            "type": "object",
+            "description": "Custom styles"
+          }
+        },
+        "required": [
+          "sections"
+        ]
+      },
+      "CreateTemplateDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the template"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description of the template"
+          },
+          "schema": {
+            "description": "Template schema definition",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateSchemaDto"
+              }
+            ]
+          },
+          "layout": {
+            "description": "Template layout configuration",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateLayoutDto"
+              }
+            ]
+          },
+          "version": {
+            "type": "number",
+            "description": "Template version number"
+          }
+        },
+        "required": [
+          "name",
+          "schema",
+          "layout",
+          "version"
+        ]
+      },
+      "TemplateMetadataDto": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Template creation date"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Template last update date"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Template creator ID"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Whether template is public"
+          },
+          "tags": {
+            "description": "Template tags",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "category": {
+            "type": "string",
+            "description": "Template category"
+          },
+          "parentTemplate": {
+            "type": "string",
+            "description": "Parent template ID for inheritance"
+          }
+        },
+        "required": [
+          "createdAt",
+          "updatedAt",
+          "createdBy",
+          "isPublic"
+        ]
+      },
+      "TemplateDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the template"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the template"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description of the template"
+          },
+          "schema": {
+            "description": "Template schema definition",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateSchemaDto"
+              }
+            ]
+          },
+          "layout": {
+            "description": "Template layout configuration",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateLayoutDto"
+              }
+            ]
+          },
+          "metadata": {
+            "description": "Template metadata",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateMetadataDto"
+              }
+            ]
+          },
+          "version": {
+            "type": "number",
+            "description": "Template version number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "schema",
+          "layout",
+          "metadata",
+          "version"
+        ]
+      },
+      "UpdateTemplateDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the template"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description of the template"
+          },
+          "schema": {
+            "description": "Template schema definition",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateSchemaDto"
+              }
+            ]
+          },
+          "layout": {
+            "description": "Template layout configuration",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateLayoutDto"
+              }
+            ]
+          },
+          "version": {
+            "type": "number",
+            "description": "Template version number"
+          }
+        }
       },
       "ProjectElementDto": {
         "type": "object",
