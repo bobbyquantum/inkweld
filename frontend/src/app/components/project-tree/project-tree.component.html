@@ -107,23 +107,10 @@
       </div>
 
       <div class="drag-preview" *cdkDragPreview>
-        @if (node.expandable) {
-          <button mat-icon-button type="button" (click)="toggleExpanded(node)">
-            <mat-icon>{{
-              node.expanded ? 'expand_more' : 'chevron_right'
-            }}</mat-icon>
-          </button>
-          <mat-icon>folder</mat-icon>
-        } @else {
-          @switch (node.type) {
-            @case ('IMAGE') {
-              <mat-icon>image</mat-icon>
-            }
-            @default {
-              <mat-icon>description</mat-icon>
-            }
-          }
-        }
+        <app-tree-node-icon
+          [isExpandable]="node.expandable"
+          [isExpanded]="node.expanded"
+          [type]="node.type"></app-tree-node-icon>
         <div class="node-title">{{ node.name }}</div>
       </div>
     </mat-tree-node>
