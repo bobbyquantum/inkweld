@@ -37,6 +37,7 @@ import {
   mapDtoToProjectElement,
   ProjectElement,
 } from '../../models/project-element';
+import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
 import { TreeManipulator } from './tree-manipulator';
 /**
  * Component for displaying and managing the project tree.
@@ -58,6 +59,7 @@ import { TreeManipulator } from './tree-manipulator';
     CdkDragPreview,
     CdkDragPlaceholder,
     CdkDropList,
+    TreeNodeIconComponent,
   ],
   selector: 'app-project-tree',
   templateUrl: './project-tree.component.html',
