@@ -57,7 +57,7 @@ export class EditProjectDialogComponent implements OnInit {
 
   constructor() {
     this.form = this.fb.group({
-      title: ['', Validators.required.bind(this)],
+      title: ['', Validators.required],
       description: [''],
     });
   }
