@@ -38,6 +38,7 @@ export default tseslint.config(
         },
       ],
       'unused-imports/no-unused-imports': 'error',
+      '@typescript-eslint/unbound-method': 'off',
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
       '@typescript-eslint/member-ordering': 'error',
