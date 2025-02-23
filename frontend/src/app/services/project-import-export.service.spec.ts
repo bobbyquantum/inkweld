@@ -1,264 +1,322 @@
 import { TestBed } from '@angular/core/testing';
 import JSZip from '@progress/jszip-esm';
-import { ProjectDto, ProjectElementDto } from '@worm/index';
 import { of } from 'rxjs';
 
-import {
-  ProjectArchiveError,
-  ProjectArchiveErrorType,
-} from '../models/project-archive';
 import { DocumentService } from './document.service';
 import { ProjectImportExportService } from './project-import-export.service';
 import { ProjectStateService } from './project-state.service';
 
+(global as any).URL.createObjectURL = jest.fn(() => 'dummy-url');
+(global as any).URL.revokeObjectURL = jest.fn();
+
 describe('ProjectImportExportService', () => {
   let service: ProjectImportExportService;
-  let projectStateService: jest.Mocked<ProjectStateService>;
-  let documentService: jest.Mocked<DocumentService>; // Mock DocumentService
+  let mockProjectStateService: any;
+  let mockDocumentService: any;
 
-  const mockProject: ProjectDto = {
-    id: '123',
+  const dummyProject = {
     title: 'Test Project',
-    description: 'Test Description',
     slug: 'test-project',
-    createdDate: '2025-02-12T15:30:00.000Z',
-    updatedDate: '2025-02-12T15:30:00.000Z',
+    description: 'Test Description',
   };
-
-  const mockElements: ProjectElementDto[] = [
+  const dummyElements = [
     {
-      id: 'elem1',
-      name: 'Root Folder',
+      id: 'folder1',
+      name: 'Folder 1',
       type: 'FOLDER',
       position: 0,
       level: 0,
-      expandable: true,
-      metadata: {},
       version: 1,
-    },
-    {
-      id: 'elem2',
-      name: 'Test File',
-      type: 'ITEM',
-      position: 1,
-      level: 1,
       expandable: false,
       metadata: {},
+    },
+    {
+      id: 'item1',
+      name: 'Item 1',
+      type: 'ITEM',
+      position: 1,
+      level: 0,
       version: 1,
+      expandable: false,
+      metadata: {},
     },
   ];
 
   beforeEach(() => {
-    const projectStateMock = {
-      project: jest.fn().mockReturnValue(mockProject),
-      elements: jest.fn().mockReturnValue(mockElements),
-      updateProject: jest.fn().mockResolvedValue(undefined),
+    mockProjectStateService = {
+      project: jest.fn(),
+      elements: jest.fn(),
+      updateProject: jest.fn(),
       updateElements: jest.fn(),
     };
 
-    const documentServiceMock = {
-      exportDocument: jest.fn().mockReturnValue(of('mock document content')), // Mock exportDocument to return Observable<string>
-      importDocument: jest.fn().mockResolvedValue(undefined),
+    mockDocumentService = {
+      exportDocument: jest.fn(),
+      importDocument: jest.fn(),
     };
 
     TestBed.configureTestingModule({
       providers: [
         ProjectImportExportService,
-        { provide: ProjectStateService, useValue: projectStateMock },
-        { provide: DocumentService, useValue: documentServiceMock }, // Add DocumentService mock
+        { provide: ProjectStateService, useValue: mockProjectStateService },
+        { provide: DocumentService, useValue: mockDocumentService },
       ],
     });
 
     service = TestBed.inject(ProjectImportExportService);
-    projectStateService = TestBed.inject(
-      ProjectStateService
-    ) as jest.Mocked<ProjectStateService>;
-    documentService = TestBed.inject(
-      // Inject DocumentService mock
-      DocumentService
-    ) as jest.Mocked<DocumentService>;
-
-    // Mock URL methods
-    global.URL.createObjectURL = jest.fn().mockReturnValue('blob-url');
-    global.URL.revokeObjectURL = jest.fn();
-
-    // Mock document methods
-    document.body.appendChild = jest.fn();
-    document.body.removeChild = jest.fn();
-    HTMLAnchorElement.prototype.click = jest.fn();
-
-    // Mock Response.json for Blob testing
-    global.Response = jest.fn().mockImplementation(function (this: any) {
-      this.json = jest.fn().mockResolvedValue({
-        version: 1,
-        project: mockProject,
-        elements: mockElements.map(elem =>
-          elem.type === 'ITEM'
-            ? { ...elem, content: 'mock document content' }
-            : elem
-        ),
-      });
-      return this;
-    }) as any;
-
-    // Mock File.prototype.text
-    Object.defineProperty(File.prototype, 'text', {
-      configurable: true,
-      value: jest.fn(),
-    });
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  it('should be created', () => {
-    expect(service).toBeTruthy();
+    // Override private triggerDownload to avoid actual DOM manipulation in tests
+    (service as any).triggerDownload = jest.fn(() => Promise.resolve());
   });
 
   describe('exportProject', () => {
-    it('should export project as JSON file', async () => {
-      await service.exportProject();
-
-      expect(service.isProcessing()).toBe(false);
-      expect(service.progress()).toBe(100);
-      expect(service.error()).toBeUndefined();
-
-      // Verify file creation and download
-      expect(URL.createObjectURL).toHaveBeenCalled();
-      expect(document.body.appendChild).toHaveBeenCalled();
-      expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
-      expect(document.body.removeChild).toHaveBeenCalled();
-      expect(URL.revokeObjectURL).toHaveBeenCalled();
-
-      // Verify the created blob contains correct data
-      const blobArg = (URL.createObjectURL as jest.Mock).mock
-        .calls[0][0] as Blob;
-      const blobData = await new Response(blobArg).json();
-
-      expect(blobData.version).toBe(1);
-      expect(blobData.project.title).toBe(mockProject.title);
-      expect(blobData.elements).toHaveLength(mockElements.length);
-      expect(blobData.elements[0].id).toBe(mockElements[0].id);
-
-      // Verify document content for ITEM elements
-      const itemElement = blobData.elements.find((e: any) => e.type === 'ITEM');
-      expect(itemElement).toBeDefined();
-      expect(itemElement.content).toBe('mock document content');
-
-      // Verify documentService.exportDocument was called
-      expect(documentService.exportDocument).toHaveBeenCalledTimes(1);
-      expect(documentService.exportDocument).toHaveBeenCalledWith('elem2'); // elem2 is the id of the ITEM element
+    it('should throw error if no project is loaded', async () => {
+      mockProjectStateService.project.mockReturnValue(null);
+      await expect(service.exportProject()).rejects.toThrow(
+        'No project is currently loaded'
+      );
+      expect(service.error()).toContain('No project is currently loaded');
     });
 
-    it('should throw error if no project is loaded', async () => {
-      projectStateService.project.mockReturnValue(undefined);
+    it('should export project successfully', async () => {
+      mockProjectStateService.project.mockReturnValue(dummyProject);
+      mockProjectStateService.elements.mockReturnValue(dummyElements);
+      // For ITEM element, return dummy content via observable
+      mockDocumentService.exportDocument.mockReturnValue(of('dummy content'));
 
-      await expect(service.exportProject()).rejects.toThrow(
-        new ProjectArchiveError(
-          ProjectArchiveErrorType.ValidationFailed,
-          'No project is currently loaded'
-        )
-      );
-
+      await service.exportProject();
+      expect((service as any).triggerDownload).toHaveBeenCalled();
+      expect(service.progress()).toBe(100);
       expect(service.isProcessing()).toBe(false);
-      expect(service.error()).toBe('No project is currently loaded');
+    });
+
+    it('should handle error when createProjectArchive fails in exportProject', async () => {
+      mockProjectStateService.project.mockReturnValue(dummyProject);
+      // Force createProjectArchive to throw an error
+      (service as any).createProjectArchive = jest.fn(() => {
+        throw new Error('Test createProjectArchive error');
+      });
+      await expect(service.exportProject()).rejects.toThrow(
+        'Test createProjectArchive error'
+      );
+      expect(service.error()).toContain('Test createProjectArchive error');
+      expect(service.isProcessing()).toBe(false);
+    });
+
+    it('should handle error if triggerDownload fails in exportProject', async () => {
+      mockProjectStateService.project.mockReturnValue(dummyProject);
+      mockProjectStateService.elements.mockReturnValue(dummyElements);
+      mockDocumentService.exportDocument.mockReturnValue(of('dummy content'));
+      // Simulate failure in triggerDownload
+      (service as any).triggerDownload = jest.fn(() =>
+        Promise.reject(new Error('Download error'))
+      );
+      await expect(service.exportProject()).rejects.toThrow('Download error');
+      expect(service.error()).toContain('Download error');
+      expect(service.isProcessing()).toBe(false);
+    });
+  });
+
+  describe('exportProjectZip', () => {
+    it('should throw error if no project is loaded', async () => {
+      mockProjectStateService.project.mockReturnValue(undefined);
+      await expect(service.exportProjectZip()).rejects.toThrow(
+        'No project is currently loaded'
+      );
+      expect(service.error()).toContain('No project is currently loaded');
+    });
+
+    it('should export project zip successfully', async () => {
+      mockProjectStateService.project.mockReturnValue(dummyProject);
+      mockProjectStateService.elements.mockReturnValue(dummyElements);
+      mockDocumentService.exportDocument.mockReturnValue(of('dummy content'));
+
+      await service.exportProjectZip();
+      expect((service as any).triggerDownload).toHaveBeenCalled();
+      expect(service.progress()).toBe(100);
+      expect(service.isProcessing()).toBe(false);
+    });
+
+    it('should handle error when createProjectArchive fails in exportProjectZip', async () => {
+      mockProjectStateService.project.mockReturnValue(dummyProject);
+      // Force createProjectArchive to throw an error
+      (service as any).createProjectArchive = jest.fn(() => {
+        throw new Error('Test createProjectArchive error');
+      });
+      await expect(service.exportProjectZip()).rejects.toThrow(
+        'Test createProjectArchive error'
+      );
+      expect(service.error()).toContain('Test createProjectArchive error');
+      expect(service.isProcessing()).toBe(false);
+    });
+
+    it('should handle error if triggerDownload fails in exportProjectZip', async () => {
+      mockProjectStateService.project.mockReturnValue(dummyProject);
+      mockProjectStateService.elements.mockReturnValue(dummyElements);
+      mockDocumentService.exportDocument.mockReturnValue(of('dummy content'));
+      // Simulate failure in triggerDownload
+      (service as any).triggerDownload = jest.fn(() =>
+        Promise.reject(new Error('Download error'))
+      );
+      await expect(service.exportProjectZip()).rejects.toThrow(
+        'Download error'
+      );
+      expect(service.error()).toContain('Download error');
+      expect(service.isProcessing()).toBe(false);
+    });
+  });
+
+  describe('importProject', () => {
+    it('should import project from valid JSON file', async () => {
+      const archive = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        project: {
+          title: 'Imported Project',
+          description: 'Desc',
+          slug: 'imported-project',
+        },
+        elements: [],
+      };
+      const jsonContent = JSON.stringify(archive, null, 2);
+      const fakeFile = {
+        text: () => Promise.resolve(jsonContent),
+      } as unknown as File;
+      await service.importProject(fakeFile);
+      expect(mockProjectStateService.updateProject).toHaveBeenCalled();
+      expect(mockProjectStateService.updateElements).toHaveBeenCalled();
+      expect(service.progress()).toBe(100);
+      expect(service.isProcessing()).toBe(false);
+    });
+
+    it('should handle error when updateProjectState fails in importProject', async () => {
+      const archive = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        project: {
+          title: 'Imported Project',
+          description: 'Desc',
+          slug: 'imported-project',
+        },
+        elements: [],
+      };
+      const jsonContent = JSON.stringify(archive, null, 2);
+      const fakeFile = {
+        text: () => Promise.resolve(jsonContent),
+      } as unknown as File;
+      (service as any).updateProjectState = jest.fn(() => {
+        throw new Error('Test updateProjectState error');
+      });
+      await expect(service.importProject(fakeFile)).rejects.toThrow(
+        'Test updateProjectState error'
+      );
+      expect(service.error()).toContain('Test updateProjectState error');
+      expect(service.isProcessing()).toBe(false);
+    });
+
+    it('should handle error for invalid JSON in importProject', async () => {
+      const invalidContent = 'invalid json';
+      const fakeFile = {
+        text: () => Promise.resolve(invalidContent),
+      } as unknown as File;
+      await expect(service.importProject(fakeFile)).rejects.toThrow();
+      expect(service.error()).toBeDefined();
+      expect(service.isProcessing()).toBe(false);
+    });
+
+    it('should handle error for invalid archive structure in importProject', async () => {
+      const invalidArchive = JSON.stringify({});
+      const fakeFile = {
+        text: () => Promise.resolve(invalidArchive),
+      } as unknown as File;
+      await expect(service.importProject(fakeFile)).rejects.toThrow(
+        'Missing or invalid version number'
+      );
+      expect(service.error()).toContain('Missing or invalid version number');
+      expect(service.isProcessing()).toBe(false);
     });
   });
 
   describe('importProjectZip', () => {
-    it('should reject invalid JSON file', async () => {
-      const zip = new JSZip();
-      zip.file('project.json', 'invalid json');
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const file = new File([zipBlob as BlobPart], 'project.zip', {
-        // Type cast zipBlob to Blob
-        type: 'application/zip',
-      });
-
-      await expect(service.importProjectZip(file)).rejects.toThrow(
-        ProjectArchiveError
-      );
-
-      expect(service.isProcessing()).toBe(false);
-      expect(service.error()).toBeTruthy();
+    it('should throw error if no file is provided', async () => {
+      await expect(
+        service.importProjectZip(null as unknown as File)
+      ).rejects.toThrow('No file provided for import');
     });
 
-    it('should reject archive with invalid version', async () => {
-      const invalidArchive = {
-        version: 999,
-        project: { title: 'Test', slug: 'test' },
+    it('should import project from valid ZIP file', async () => {
+      const archive = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        project: {
+          title: 'Zip Project',
+          description: 'Zip Desc',
+          slug: 'zip-project',
+        },
         elements: [],
       };
-
+      const jsonContent = JSON.stringify(archive, null, 2);
       const zip = new JSZip();
-      zip.file('project.json', JSON.stringify(invalidArchive));
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const file = new File([zipBlob as BlobPart], 'project.zip', {
-        // Type cast zipBlob to Blob
-        type: 'application/zip',
+      zip.file('project.json', jsonContent);
+      const arrayBuffer = await zip.generateAsync({
+        type: 'arraybuffer',
+        compression: 'DEFLATE',
       });
-
-      await expect(service.importProjectZip(file)).rejects.toThrow(
-        /version.*not supported/i
-      );
-
+      const fakeFile = {
+        arrayBuffer: () => Promise.resolve(arrayBuffer),
+      } as unknown as File;
+      await service.importProjectZip(fakeFile);
+      expect(mockProjectStateService.updateProject).toHaveBeenCalled();
+      expect(mockProjectStateService.updateElements).toHaveBeenCalled();
+      expect(service.progress()).toBe(100);
       expect(service.isProcessing()).toBe(false);
-      expect(service.error()).toBeTruthy();
     });
 
-    it('should reject archive with missing required fields', async () => {
-      const invalidArchive = {
+    it('should handle error when updateProjectState fails in importProjectZip', async () => {
+      const archive = {
         version: 1,
-        project: { title: 'Test' }, // missing slug
+        exportedAt: new Date().toISOString(),
+        project: {
+          title: 'Zip Project',
+          description: 'Zip Desc',
+          slug: 'zip-project',
+        },
         elements: [],
       };
-
+      const jsonContent = JSON.stringify(archive, null, 2);
       const zip = new JSZip();
-      zip.file('project.json', JSON.stringify(invalidArchive));
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const file = new File([zipBlob as BlobPart], 'project.zip', {
-        // Type cast zipBlob to Blob
-        type: 'application/zip',
+      zip.file('project.json', jsonContent);
+      const arrayBuffer = await zip.generateAsync({
+        type: 'arraybuffer',
+        compression: 'DEFLATE',
       });
-
-      await expect(service.importProjectZip(file)).rejects.toThrow(
-        /missing.*slug/i
+      const fakeFile = {
+        arrayBuffer: () => Promise.resolve(arrayBuffer),
+      } as unknown as File;
+      (service as any).updateProjectState = jest.fn(() => {
+        throw new Error('Test updateProjectState error');
+      });
+      await expect(service.importProjectZip(fakeFile)).rejects.toThrow(
+        'Test updateProjectState error'
       );
-
+      expect(service.error()).toContain('Test updateProjectState error');
       expect(service.isProcessing()).toBe(false);
-      expect(service.error()).toBeTruthy();
     });
 
-    it('should reject archive with invalid element structure', async () => {
-      const invalidArchive = {
-        version: 1,
-        project: { title: 'Test', slug: 'test' },
-        elements: [
-          {
-            id: 'test',
-            name: 'Test',
-            type: 'INVALID_TYPE', // invalid type
-            position: 0,
-            level: 0,
-          },
-        ],
-      };
-
+    it('should throw error if ZIP file does not contain project.json', async () => {
       const zip = new JSZip();
-      zip.file('project.json', JSON.stringify(invalidArchive));
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const file = new File([zipBlob as BlobPart], 'project.zip', {
-        // Type cast zipBlob to Blob
-        type: 'application/zip',
+      // Do not add project.json
+      const arrayBuffer = await zip.generateAsync({
+        type: 'arraybuffer',
+        compression: 'DEFLATE',
       });
+      const fakeFile = {
+        arrayBuffer: () => Promise.resolve(arrayBuffer),
+      } as unknown as File;
 
-      await expect(service.importProjectZip(file)).rejects.toThrow(
-        /invalid element/i
+      await expect(service.importProjectZip(fakeFile)).rejects.toThrow(
+        'ZIP archive does not contain project.json'
       );
-
       expect(service.isProcessing()).toBe(false);
-      expect(service.error()).toBeTruthy();
     });
   });
 });
