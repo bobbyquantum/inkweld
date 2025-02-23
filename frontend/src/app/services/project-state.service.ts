@@ -14,13 +14,13 @@ import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
 import { environment } from '../../environments/environment';
-import { TreeManipulator } from '../components/project-tree/tree-manipulator';
 import {
   NewElementDialogComponent,
   NewElementDialogResult,
 } from '../dialogs/new-element-dialog/new-element-dialog.component';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { ProjectElement } from '../models/project-element';
+import { TreeManipulator } from './tree-manipulator';
 
 /**
  * Manages the state of projects and their elements with offline-first capabilities
@@ -68,6 +68,9 @@ export class ProjectStateService {
    * If you had multiple docs, you'd store a Map<string, DocumentSyncState>.
    */
   readonly getSyncState = computed(() => this.docSyncState());
+
+  /** The tree manipulator instance for managing tree operations */
+  private treeManipulator: TreeManipulator | null = null;
 
   private readonly docSyncState = signal<DocumentSyncState>(
     DocumentSyncState.Unavailable
@@ -133,19 +136,18 @@ export class ProjectStateService {
   async loadProject(username: string, slug: string): Promise<void> {
     this.isLoading.set(true);
     this.error.set(undefined);
-
-    console.log('loadProject: start', username, slug);
-    const projectDto = await firstValueFrom(
-      this.projectAPIService.projectControllerGetProjectByUsernameAndSlug(
-        username,
-        slug
-      )
-    );
-    console.log('loadProject: projectDto from API:', projectDto);
-    this.project.set(projectDto);
-    console.log('loadProject: project signal updated', projectDto);
-
     try {
+      console.log('loadProject: start', username, slug);
+      const projectDto = await firstValueFrom(
+        this.projectAPIService.projectControllerGetProjectByUsernameAndSlug(
+          username,
+          slug
+        )
+      );
+      console.log('loadProject: projectDto from API:', projectDto);
+      this.project.set(projectDto);
+      console.log('loadProject: project signal updated', projectDto);
+
       this.docId = `projectElements:${username}:${slug}`;
 
       // Create a new Y.Doc
@@ -309,7 +311,7 @@ export class ProjectStateService {
    * @note This method performs a complete replacement of elements. For partial updates,
    * consider modifying the Yjs document directly through the exposed methods.
    */
-  updateElements(elements: ProjectElementDto[]): void {
+  async updateElements(elements: ProjectElementDto[]): Promise<void> {
     // Update the signals (for immediate UI reflection)
 
     // Check for deleted nodes that have open editors
@@ -335,32 +337,41 @@ export class ProjectStateService {
     this.elements.set(elements);
 
     if (this.doc) {
-      const arr = this.getElementsArray();
-      if (!arr) return;
+      try {
+        const arr = this.getElementsArray();
+        if (!arr) return;
 
-      this.doc.transact(() => {
-        // Clear the entire Yjs array
-        arr.delete(0, arr.length);
+        await new Promise<void>((resolve, reject) => {
+          try {
+            this.doc!.transact(() => {
+              // Clear the entire Yjs array
+              arr.delete(0, arr.length);
 
-        // Insert the new set
-        for (const elem of elements) {
-          // If there's no ID yet, generate one
-          if (!elem.id) {
-            elem.id = nanoid();
-            // or any other ID strategy: could be a UUID, timestamp, etc.
+              // Insert the new set
+              for (const elem of elements) {
+                // If there's no ID yet, generate one
+                if (!elem.id) {
+                  elem.id = nanoid();
+                }
+                arr.push([structuredClone(elem)]);
+              }
+            });
+            resolve();
+          } catch (err) {
+            reject(err instanceof Error ? err : new Error(String(err)));
           }
-
-          // Because Yjs data must be plain, we do a structured clone
-          arr.push([structuredClone(elem)]);
-        }
-      });
+        });
+      } catch (err) {
+        console.error('Error updating Yjs document:', err);
+        throw err;
+      }
     }
   }
 
   /**
    * Saves project elements by updating the Yjs doc
    */
-  // eslint-disable-next-line @typescript-eslint/require-await
+
   async saveProjectElements(
     _username: string,
     _slug: string,
@@ -375,7 +386,9 @@ export class ProjectStateService {
       const currentTitle = currentProject?.title || 'Project';
 
       // Update elements
-      this.updateElements(elements);
+      await this.updateElements(elements).catch(err => {
+        throw err;
+      });
 
       // Restore project title if it was changed
       if (currentProject) {
@@ -421,6 +434,147 @@ export class ProjectStateService {
       this.isSaving.set(false);
     }
   }
+
+  /**
+   * Creates a new element in the project tree
+   * @param type The type of element to create
+   * @param name The name of the element
+   * @param parentElement Optional parent element
+   */
+  async createTreeElement(
+    type: ProjectElementDto.TypeEnum,
+    name: string,
+    parentElement?: ProjectElement,
+    file?: File | null
+  ): Promise<void> {
+    this.ensureTreeManipulator();
+    if (!this.treeManipulator) return;
+
+    const newElement = this.treeManipulator.addNode(type, parentElement, name);
+    const elements = this.treeManipulator.getData();
+
+    // Handle image upload if needed
+    if (type === ProjectElementDto.TypeEnum.Image && file && newElement.id) {
+      await this.uploadImage(newElement.id, file);
+    }
+
+    await this.updateElements(elements);
+  }
+
+  /**
+   * Moves a node in the project tree
+   * @param node The node to move
+   * @param targetIndex The target index
+   * @param newLevel The new level for the node
+   */
+  async moveTreeElement(
+    node: ProjectElement,
+    targetIndex: number,
+    newLevel: number
+  ): Promise<void> {
+    this.ensureTreeManipulator();
+    if (!this.treeManipulator) return;
+
+    this.treeManipulator.moveNode(node, targetIndex, newLevel);
+    await this.updateElements(this.treeManipulator.getData());
+  }
+
+  /**
+   * Renames a node in the project tree
+   * @param node The node to rename
+   * @param newName The new name
+   */
+  async renameTreeElement(
+    node: ProjectElement,
+    newName: string
+  ): Promise<void> {
+    this.ensureTreeManipulator();
+    if (!this.treeManipulator) return;
+
+    this.treeManipulator.renameNode(node, newName);
+    await this.updateElements(this.treeManipulator.getData());
+  }
+
+  /**
+   * Deletes a node from the project tree
+   * @param node The node to delete
+   */
+  async deleteTreeElement(node: ProjectElement): Promise<void> {
+    this.ensureTreeManipulator();
+    if (!this.treeManipulator) return;
+
+    this.treeManipulator.deleteNode(node);
+    await this.updateElements(this.treeManipulator.getData());
+  }
+
+  /**
+   * Toggles the expanded state of a node
+   * @param node The node to toggle
+   */
+  toggleExpanded(node: ProjectElement) {
+    this.ensureTreeManipulator();
+    if (!this.treeManipulator) return;
+
+    node.expanded = !node.expanded;
+    this.treeManipulator.updateVisibility();
+    const elements = this.treeManipulator.getData();
+    void this.updateElements(elements);
+  }
+  /**
+   * Gets valid drop levels for drag and drop operations
+   */
+  getValidDropLevels(
+    nodeAbove: ProjectElement | null,
+    nodeBelow: ProjectElement | null
+  ) {
+    this.ensureTreeManipulator();
+    return (
+      this.treeManipulator?.getValidDropLevels(nodeAbove, nodeBelow) ?? {
+        levels: [0],
+        defaultLevel: 0,
+      }
+    );
+  }
+
+  /**
+   * Validates if a drop operation is valid
+   */
+  isValidDrop(nodeAbove: ProjectElement | null, targetLevel: number): boolean {
+    this.ensureTreeManipulator();
+    return this.treeManipulator?.isValidDrop(nodeAbove, targetLevel) ?? false;
+  }
+
+  /**
+   * Gets the insert index for a drop operation
+   * @param nodeAbove The node above the drop position
+   * @param targetLevel The target level for the drop
+   */
+  getDropInsertIndex(
+    nodeAbove: ProjectElement | null,
+    targetLevel: number
+  ): number {
+    this.ensureTreeManipulator();
+    return (
+      this.treeManipulator?.getDropInsertIndex(nodeAbove, targetLevel) ?? 0
+    );
+  }
+
+  /**
+   * Updates the visibility of nodes in the tree
+   */
+  updateVisibility(): void {
+    this.ensureTreeManipulator();
+    if (!this.treeManipulator) return;
+
+    this.treeManipulator.updateVisibility();
+    void this.updateElements(this.treeManipulator.getData());
+  }
+
+  /**
+   * Uploads an image file for an element
+   * @param elementId The ID of the element
+   * @param file The image file to upload
+   */
   private async uploadImage(elementId: string, file: File) {
     const project = this.project();
     if (!project?.user?.username || !project?.slug) {
@@ -442,21 +596,7 @@ export class ProjectStateService {
     file: File | null,
     parentElement?: ProjectElement
   ) {
-    // Get current elements
-    const elements = this.elements();
-    const treeManipulator = new TreeManipulator(elements);
-
-    // Add new element
-    const newElement = treeManipulator.addNode(type, parentElement);
-    newElement.name = name;
-
-    // Update state
-    this.updateElements(treeManipulator.getData());
-
-    // Handle image upload if needed
-    if (type === ProjectElementDto.TypeEnum.Image && file) {
-      await this.uploadImage(newElement.id, file);
-    }
+    await this.createTreeElement(type, name, parentElement, file);
 
     // Save changes
     const project = this.project();
@@ -464,8 +604,21 @@ export class ProjectStateService {
       await this.saveProjectElements(
         project.user.username,
         project.slug,
-        treeManipulator.getData()
+        this.treeManipulator?.getData() ?? []
       );
+    }
+  }
+
+  /**
+   * Ensures the tree manipulator is initialized with current elements
+   */
+  private ensureTreeManipulator(): void {
+    const currentElements = this.elements();
+    if (!this.treeManipulator) {
+      this.treeManipulator = new TreeManipulator(currentElements);
+    } else {
+      // Update with current elements if needed
+      this.treeManipulator = new TreeManipulator(currentElements);
     }
   }
   /**
@@ -673,5 +826,36 @@ export class ProjectStateService {
       return arr as Y.Array<ProjectElementDto>;
     }
     return undefined;
+  }
+
+  /**
+   * Updates the Yjs array with new elements
+   * @param elements The elements to update
+   * @returns Promise that resolves when the update is complete
+   */
+  private async updateYjsElements(
+    elements: ProjectElementDto[]
+  ): Promise<void> {
+    if (!this.doc) return;
+
+    const arr = this.getElementsArray();
+    if (!arr) return;
+
+    await new Promise<void>((resolve, reject) => {
+      try {
+        this.doc!.transact(() => {
+          arr.delete(0, arr.length);
+          for (const elem of elements) {
+            if (!elem.id) {
+              elem.id = nanoid();
+            }
+            arr.push([structuredClone(elem)]);
+          }
+        });
+        resolve();
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
+    });
   }
 }

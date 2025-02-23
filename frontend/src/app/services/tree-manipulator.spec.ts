@@ -1,4 +1,4 @@
-import { ProjectElement } from '../../models/project-element';
+import { ProjectElement } from '../models/project-element';
 import { TreeManipulator } from './tree-manipulator';
 
 describe('TreeManipulator', () => {
@@ -19,6 +19,8 @@ describe('TreeManipulator', () => {
     expandable: type === 'FOLDER',
     expanded: false,
     visible: true,
+    version: 0,
+    metadata: {},
   });
 
   beforeEach(() => {
@@ -45,6 +47,8 @@ describe('TreeManipulator', () => {
         level: 0,
         position: 0,
         expandable: true,
+        version: 0,
+        metadata: {},
       };
 
       const item: ProjectElement = {
@@ -53,6 +57,9 @@ describe('TreeManipulator', () => {
         type: 'ITEM',
         level: 0,
         position: 1,
+        expandable: false,
+        version: 0,
+        metadata: {},
       };
 
       const result = manipulator.getValidDropLevels(folder, item);
@@ -68,6 +75,9 @@ describe('TreeManipulator', () => {
         type: 'ITEM',
         level: 0,
         position: 0,
+        expandable: false,
+        version: 0,
+        metadata: {},
       };
 
       const item2: ProjectElement = {
@@ -76,6 +86,9 @@ describe('TreeManipulator', () => {
         type: 'ITEM',
         level: 0,
         position: 1,
+        expandable: false,
+        version: 0,
+        metadata: {},
       };
 
       const result = manipulator.getValidDropLevels(item1, item2);
@@ -90,6 +103,8 @@ describe('TreeManipulator', () => {
         level: 0,
         position: 0,
         expandable: true,
+        version: 0,
+        metadata: {},
       };
 
       const deeperItem: ProjectElement = {
@@ -98,6 +113,9 @@ describe('TreeManipulator', () => {
         type: 'ITEM',
         level: 2,
         position: 1,
+        expandable: false,
+        version: 0,
+        metadata: {},
       };
 
       const result = manipulator.getValidDropLevels(folder, deeperItem);
@@ -189,6 +207,8 @@ describe('TreeManipulator', () => {
         level: 2,
         position: 0,
         expandable: true,
+        version: 0,
+        metadata: {},
       };
 
       const item: ProjectElement = {
@@ -197,6 +217,9 @@ describe('TreeManipulator', () => {
         type: 'ITEM',
         level: 2,
         position: 1,
+        expandable: false,
+        version: 0,
+        metadata: {},
       };
 
       const result = manipulator.getValidDropLevels(folder, item);
