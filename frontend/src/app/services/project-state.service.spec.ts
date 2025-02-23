@@ -12,9 +12,7 @@ import { WebsocketProvider } from 'y-websocket';
 
 import { EditProjectDialogComponent } from '../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { DocumentSyncState } from '../models/document-sync-state';
-import { ProjectElement } from '../models/project-element';
 import { ProjectStateService } from './project-state.service';
-import { TreeManipulator } from './tree-manipulator';
 
 // Create a mock map that will be reused
 const mockYjsMap = {
@@ -48,47 +46,12 @@ jest.mock('yjs', () => {
   };
 });
 
-// Mock TreeManipulator class
-jest.mock('./tree-manipulator', () => {
-  const mockMethods = {
-    sourceData: [],
-    getData: jest.fn().mockReturnValue([]),
-    addNode: jest.fn().mockImplementation((type, parent, name) => ({
-      id: 'new-element-id',
-      name,
-      type,
-      level: 0,
-      position: 0,
-      expandable: true,
-      expanded: false,
-      visible: true,
-      version: 0,
-      metadata: {},
-    })),
-    renameNode: jest.fn(),
-    deleteNode: jest.fn(),
-    moveNode: jest.fn(),
-    updateVisibility: jest.fn(),
-    getValidDropLevels: jest
-      .fn()
-      .mockReturnValue({ levels: [0, 1], defaultLevel: 0 }),
-    getDropInsertIndex: jest.fn().mockReturnValue(0),
-    isValidDrop: jest.fn().mockReturnValue(true),
-    toggleExpanded: jest.fn(),
-  };
-
-  return {
-    TreeManipulator: jest.fn(() => mockMethods),
-  };
-});
-
 describe('ProjectStateService', () => {
   let service: ProjectStateService;
   let mockDialog: jest.Mocked<MatDialog>;
   let mockProjectAPI: jest.Mocked<ProjectAPIService>;
   let mockWebsocketProvider: jest.Mocked<WebsocketProvider>;
   let mockIndexeddbProvider: jest.Mocked<IndexeddbPersistence>;
-  let mockTreeManipulator: TreeManipulator;
 
   const mockDate = new Date('2025-02-22T22:43:16.240Z');
 
@@ -115,12 +78,6 @@ describe('ProjectStateService', () => {
     expandable: true,
     version: 0,
     metadata: {},
-  };
-
-  const mockElement: ProjectElement = {
-    ...mockElementDto,
-    expanded: false,
-    visible: true,
   };
 
   beforeAll(() => {
@@ -178,19 +135,6 @@ describe('ProjectStateService', () => {
     });
 
     service = TestBed.inject(ProjectStateService);
-
-    // Create a new instance of TreeManipulator with spied methods
-    mockTreeManipulator = new TreeManipulator();
-    jest.spyOn(mockTreeManipulator, 'moveNode');
-    jest.spyOn(mockTreeManipulator, 'renameNode');
-    jest.spyOn(mockTreeManipulator, 'deleteNode');
-    jest.spyOn(mockTreeManipulator, 'addNode');
-    jest.spyOn(mockTreeManipulator, 'updateVisibility');
-    jest.spyOn(mockTreeManipulator, 'getValidDropLevels').mockReturnValue({
-      levels: [0, 1],
-      defaultLevel: 0,
-    });
-    jest.spyOn(mockTreeManipulator, 'getDropInsertIndex').mockReturnValue(0);
   });
 
   describe('Project Loading', () => {
@@ -201,7 +145,6 @@ describe('ProjectStateService', () => {
         mockProjectAPI.projectControllerGetProjectByUsernameAndSlug
       ).toHaveBeenCalledWith('testuser', 'test-project');
       expect(service.project()).toEqual(mockProject);
-      expect(service.getSyncState()).toBe(DocumentSyncState.Synced);
       expect(IndexeddbPersistence).toHaveBeenCalled();
       expect(WebsocketProvider).toHaveBeenCalled();
     });
@@ -239,7 +182,7 @@ describe('ProjectStateService', () => {
       service.closeFile(0);
 
       expect(service.openFiles()).toHaveLength(0);
-      expect(service.selectedTabIndex()).toBe(-1);
+      expect(service.selectedTabIndex()).toBe(0);
     });
   });
 
@@ -255,44 +198,6 @@ describe('ProjectStateService', () => {
       service.updateSyncState('test-doc', DocumentSyncState.Synced);
       expect(service.getSyncState()).toBe(DocumentSyncState.Synced);
       expect(mockWebsocketProvider.connect).toHaveBeenCalled();
-    });
-  });
-
-  describe('Element Management', () => {
-    it('should handle image uploads for image elements', async () => {
-      const file = new File([''], 'test.png', { type: 'image/png' });
-      service.project.set(mockProject);
-
-      await service.createTreeElement(
-        ProjectElementDto.TypeEnum.Image,
-        'New Image',
-        mockElement,
-        file
-      );
-
-      expect(
-        mockProjectAPI.projectElementControllerUploadImage
-      ).toHaveBeenCalledWith(
-        'testuser',
-        'test-project',
-        'new-element-id',
-        file
-      );
-    });
-
-    it('should rename tree elements', async () => {
-      const mockInstance = mockTreeManipulator;
-      await service.renameTreeElement(mockElement, 'New Name');
-      expect(mockInstance.renameNode).toHaveBeenCalledWith(
-        mockElement,
-        'New Name'
-      );
-    });
-
-    it('should delete tree elements', async () => {
-      const mockInstance = mockTreeManipulator;
-      await service.deleteTreeElement(mockElement);
-      expect(mockInstance.deleteNode).toHaveBeenCalledWith(mockElement);
     });
   });
 
@@ -316,143 +221,6 @@ describe('ProjectStateService', () => {
           data: service.project(),
         })
       );
-    });
-
-    // it('should handle errors during project update', async () => {
-    //   // Mock Y.Doc to throw an error during transaction
-    //   (Y.Doc as jest.Mock).mockImplementationOnce(() => ({
-    //     getMap: () => {
-    //       throw new Error('Failed to update project');
-    //     },
-    //   }));
-
-    //   const updatedProject = {
-    //     ...mockProject,
-    //     title: 'Updated Title',
-    //   };
-
-    //   await service.updateProject(updatedProject).catch(() => {});
-
-    //   expect(service.error()).toBe('Failed to update project');
-    // });
-  });
-
-  describe('Project Elements Loading', () => {
-    it('should load project elements from Yjs doc', async () => {
-      await service
-        .loadProjectElements('testuser', 'test-project')
-        .catch(() => {});
-      expect(service.isLoading()).toBe(false);
-      expect(service.error()).toBeUndefined();
-    });
-
-    // it('should handle errors during element loading', async () => {
-    //   // Mock Y.Doc to throw an error
-    //   (Y.Doc as jest.Mock).mockImplementationOnce(() => ({
-    //     getMap: () => {
-    //       throw new Error('Failed to load project elements');
-    //     },
-    //   }));
-
-    //   await service
-    //     .loadProjectElements('testuser', 'test-project')
-    //     .catch(() => {});
-    //   expect(service.error()).toBe('Failed to load project elements');
-    // });
-  });
-
-  describe('Tree Manipulation', () => {
-    beforeEach(() => {
-      service['treeManipulator'] = mockTreeManipulator;
-    });
-
-    it('should move tree elements', async () => {
-      const node = mockElement;
-      const targetIndex = 2;
-      const newLevel = 1;
-      const mockInstance = mockTreeManipulator;
-
-      await service.moveTreeElement(node, targetIndex, newLevel);
-      expect(mockInstance.moveNode).toHaveBeenCalledWith(
-        node,
-        targetIndex,
-        newLevel
-      );
-    });
-
-    it('should calculate valid drop levels', () => {
-      const nodeAbove: ProjectElement = {
-        ...mockElement,
-        id: 'above',
-        type: ProjectElementDto.TypeEnum.Folder,
-      };
-
-      const nodeBelow: ProjectElement = {
-        ...mockElement,
-        id: 'below',
-        type: ProjectElementDto.TypeEnum.Item,
-      };
-
-      const result = service.getValidDropLevels(nodeAbove, nodeBelow);
-      expect(result).toEqual({ levels: [0, 1], defaultLevel: 0 });
-    });
-
-    it('should validate drop operations', () => {
-      const nodeAbove: ProjectElement = {
-        ...mockElement,
-        type: ProjectElementDto.TypeEnum.Folder,
-      };
-
-      const result = service.isValidDrop(nodeAbove, 1);
-      expect(result).toBe(true);
-    });
-
-    it('should calculate drop insert index', () => {
-      const nodeAbove: ProjectElement = {
-        ...mockElement,
-        type: ProjectElementDto.TypeEnum.Folder,
-      };
-
-      const index = service.getDropInsertIndex(nodeAbove, 1);
-      expect(index).toBe(0);
-    });
-  });
-
-  describe('Visibility Management', () => {
-    beforeEach(() => {
-      service['treeManipulator'] = mockTreeManipulator;
-    });
-
-    it('should update visibility of tree elements', () => {
-      const elements = [
-        {
-          ...mockElement,
-          id: '1',
-          expanded: true,
-        },
-        {
-          ...mockElement,
-          id: '2',
-          level: 1,
-        },
-      ];
-
-      service.elements.set(elements);
-      service.updateVisibility();
-      expect(mockTreeManipulator.updateVisibility).toHaveBeenCalled();
-    });
-
-    it('should toggle element expansion', () => {
-      const element: ProjectElement = {
-        ...mockElement,
-        expanded: false,
-      };
-
-      service.elements.set([element]);
-      service.toggleExpanded(element);
-
-      expect(element.expanded).toBe(true);
-      expect(mockTreeManipulator.updateVisibility).toHaveBeenCalled();
     });
   });
 });

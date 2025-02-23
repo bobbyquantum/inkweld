@@ -111,6 +111,8 @@ describe('ProjectComponent', () => {
     // Mock signals in ProjectStateService
     const projectSignal = signal<ProjectDto>({} as ProjectDto);
     const elementsSignal = signal<ProjectElementDto[]>([]);
+    const visibleElementsSignal = signal<ProjectElementDto[]>([]);
+
     const openFilesSignal = signal<ProjectElementDto[]>([]);
     const selectedTabIndexSignal = signal<number>(0);
     const isLoadingSignal = signal<boolean>(false);
@@ -120,6 +122,7 @@ describe('ProjectComponent', () => {
     projectStateServiceMock = {
       project: projectSignal,
       elements: elementsSignal,
+      visibleElements: visibleElementsSignal,
       openFiles: openFilesSignal,
       selectedTabIndex: selectedTabIndexSignal,
       isLoading: isLoadingSignal,
