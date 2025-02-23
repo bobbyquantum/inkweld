@@ -11,7 +11,6 @@ import {
 } from '@angular/cdk/drag-drop';
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import {
-  AfterViewInit,
   Component,
   computed,
   effect,
@@ -36,10 +35,7 @@ import {
   RenameDialogComponent,
   RenameDialogData,
 } from '../../dialogs/rename-dialog/rename-dialog.component';
-import {
-  mapDtoToProjectElement,
-  ProjectElement,
-} from '../../models/project-element';
+import { ProjectElement } from '../../models/project-element';
 import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
 
 /**
@@ -67,7 +63,7 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
   templateUrl: './project-tree.component.html',
   styleUrls: ['./project-tree.component.scss'],
 })
-export class ProjectTreeComponent implements AfterViewInit {
+export class ProjectTreeComponent {
   @ViewChild('tree') treeEl!: MatTree<ProjectElement>;
   @ViewChild('treeContainer', { static: true })
   treeContainer!: ElementRef<HTMLElement>;
@@ -77,38 +73,7 @@ export class ProjectTreeComponent implements AfterViewInit {
 
   // Map DTOs to internal model
   readonly treeElements = computed(() => {
-    const baseElements = this.projectStateService.elements().map(dto => {
-      const element = mapDtoToProjectElement(dto);
-      // Set expanded based on local state stored in expandedNodeIds for folder nodes
-      element.expanded =
-        element.expandable && this.expandedNodeIds.has(element.id);
-      return element;
-    });
-
-    const result = [];
-    const stack = [];
-    // Compute visibility: a node is visible if all its ancestors are expanded
-    for (const element of baseElements) {
-      while (
-        stack.length > 0 &&
-        stack[stack.length - 1].level >= element.level
-      ) {
-        stack.pop();
-      }
-      let visible = true;
-      for (const ancestor of stack) {
-        if (!ancestor.expanded) {
-          visible = false;
-          break;
-        }
-      }
-      element.visible = visible;
-      result.push(element);
-      if (element.expandable) {
-        stack.push(element);
-      }
-    }
-    return result;
+    return this.projectStateService.visibleElements();
   });
 
   // Other service signals
@@ -127,36 +92,18 @@ export class ProjectTreeComponent implements AfterViewInit {
 
   dialog = inject(MatDialog);
   contextItem: ProjectElement | null = null;
-  private expandedNodeIds = new Set<string>();
 
   constructor() {
-    // Initialize tree with current elements
-    this.initializeTree();
     this.dataSource = new ArrayDataSource<ProjectElement>([]);
-
-    // Update tree when elements change
     effect(() => {
-      this.initializeTree();
+      console.log(
+        'Visible elements changed',
+        this.projectStateService.visibleElements()
+      );
+      this.dataSource = new ArrayDataSource<ProjectElement>(
+        this.projectStateService.visibleElements()
+      );
     });
-  }
-
-  /**
-   * Lifecycle hook after the view is initialized.
-   */
-  ngAfterViewInit() {
-    // Subscribe to beforeStarted event on the DropListRef
-    this.dropList._dropListRef.beforeStarted.subscribe(() => {
-      // this.beforeDragStarted();
-    });
-  }
-
-  /**
-   * Updates the data source based on visibility.
-   */
-  updateDataSource(): void {
-    this.dataSource = new ArrayDataSource<ProjectElement>(
-      this.treeElements().filter(x => x.visible)
-    );
   }
 
   /**
@@ -173,32 +120,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The project element to toggle.
    */
   toggleExpanded(node: ProjectElement) {
-    this.projectStateService.toggleExpanded(node);
-    // Track expanded state
-    if (node.id) {
-      if (node.expanded) {
-        this.expandedNodeIds.add(node.id);
-      } else {
-        this.expandedNodeIds.delete(node.id);
-      }
-    }
-    this.updateDataSource();
-  }
-
-  /**
-   * Creates a new item as a child of the specified node.
-   * @param node The parent node to add a new item to.
-   */
-  public onNewItem(node: ProjectElement) {
-    this.projectStateService.showNewElementDialog(node);
-  }
-
-  /**
-   * Creates a new folder as a child of the specified node.
-   * @param node The parent node to add a new folder to.
-   */
-  public onNewFolder(node: ProjectElement) {
-    this.projectStateService.showNewElementDialog(node);
+    this.projectStateService.toggleExpanded(node.id);
   }
 
   /**
@@ -334,14 +256,14 @@ export class ProjectTreeComponent implements AfterViewInit {
       this.currentDropLevel
     );
 
-    await this.projectStateService.moveTreeElement(
-      node,
+    this.projectStateService.moveElement(
+      node.id,
       insertIndex,
       this.currentDropLevel
     );
     this.draggedNode = null;
-    this.updateDataSource();
-    await this.saveChanges();
+    // this.updateDataSource();
+    // await this.saveChanges();
   }
 
   /**
@@ -362,8 +284,8 @@ export class ProjectTreeComponent implements AfterViewInit {
 
     const newName = await firstValueFrom(dialogRef.afterClosed());
     if (newName) {
-      await this.projectStateService.renameTreeElement(node, newName);
-      await this.saveChanges();
+      // await this.projectStateService.renameTreeElement(node, newName);
+      // await this.saveChanges();
     }
   }
 
@@ -384,8 +306,7 @@ export class ProjectTreeComponent implements AfterViewInit {
 
     const result = (await firstValueFrom(dialogRef.afterClosed())) as boolean;
     if (result) {
-      await this.projectStateService.deleteTreeElement(node);
-      await this.saveChanges();
+      this.projectStateService.deleteElement(node.id);
     }
   }
 
@@ -425,36 +346,5 @@ export class ProjectTreeComponent implements AfterViewInit {
       metadata: {},
     };
     this.projectStateService.openFile(dto);
-  }
-
-  /**
-   * Initializes or reinitializes the tree with current data.
-   */
-  private initializeTree() {
-    // Restore expanded state for nodes from expandedNodeIds
-    this.treeElements().forEach(node => {
-      if (node.id && this.expandedNodeIds.has(node.id)) {
-        node.expanded = true;
-      }
-    });
-    this.updateDataSource();
-  }
-
-  /**
-   * Saves the current tree state to the backend.
-   */
-  private async saveChanges() {
-    const elements = this.treeElements();
-
-    // Get project info from URL or service
-    const urlParts = window.location.pathname.split('/');
-    const username = urlParts[2];
-    const slug = urlParts[3];
-    await this.projectStateService.saveProjectElements(
-      username,
-      slug,
-      elements
-    );
-    console.log('Changes saved');
   }
 }

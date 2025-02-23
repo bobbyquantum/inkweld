@@ -1,12 +1,8 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { EditProjectDialogComponent } from '@dialogs/edit-project-dialog/edit-project-dialog.component';
-import {
-  ProjectAPIService,
-  ProjectDto,
-  ProjectElementDto,
-  UserDto,
-} from '@worm/index';
+import { ProjectAPIService, ProjectDto, ProjectElementDto } from '@worm/index';
+import { ProjectElement } from 'app/models/project-element';
 import { nanoid } from 'nanoid';
 import { firstValueFrom } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -19,159 +15,115 @@ import {
   NewElementDialogResult,
 } from '../dialogs/new-element-dialog/new-element-dialog.component';
 import { DocumentSyncState } from '../models/document-sync-state';
-import { ProjectElement } from '../models/project-element';
-import { TreeManipulator } from './tree-manipulator';
-
-/**
- * Manages the state of projects and their elements with offline-first capabilities
- *
- * This service provides a comprehensive solution for managing project metadata,
- * elements, and synchronization state. It uses Yjs for real-time collaboration
- * and IndexedDB for offline persistence. The service maintains reactive signals
- * for all state properties and handles synchronization between local and remote
- * states automatically.
- *
- * Key Features:
- * - Offline-first architecture with automatic conflict resolution
- * - Real-time collaboration through Yjs
- * - Reactive state management using Angular signals
- * - Automatic synchronization between local and remote states
- * - Comprehensive error handling and state tracking
- */
+export interface ValidDropLevels {
+  levels: number[];
+  defaultLevel: number;
+}
 @Injectable({
   providedIn: 'root',
 })
 export class ProjectStateService {
-  /** The project's metadata, e.g. name, slug, etc. */
+  // Core state signals
   readonly project = signal<ProjectDto | undefined>(undefined);
-
-  /** The list of elements for the project. */
   readonly elements = signal<ProjectElementDto[]>([]);
-
-  /** The currently open "files" or "tabs" in the editor. */
   readonly openFiles = signal<ProjectElementDto[]>([]);
-
-  /** The index of whichever tab is selected. */
   readonly selectedTabIndex = signal<number>(0);
-
-  /** Whether we are currently loading data from somewhere. */
   readonly isLoading = signal<boolean>(false);
-
-  /** Whether we are currently saving data. */
   readonly isSaving = signal<boolean>(false);
-
-  /** If an error occurred, store the message here. */
   readonly error = signal<string | undefined>(undefined);
 
-  /**
-   * For a single doc approach, we store just one `DocumentSyncState`.
-   * If you had multiple docs, you'd store a Map<string, DocumentSyncState>.
-   */
+  // Computed state for tree visibility with local expansion state
+  readonly visibleElements = computed(() => {
+    const elements = this.elements();
+    const expanded = this.expandedNodeIds();
+    const result: ProjectElement[] = [];
+    const stack: { id: string; level: number }[] = [];
+    console.log('Assessing elements for visibility', elements);
+    for (const element of elements) {
+      // Pop ancestors that are not in the current branch
+      while (
+        stack.length > 0 &&
+        stack[stack.length - 1].level >= element.level
+      ) {
+        stack.pop();
+      }
+
+      let visible = true;
+      for (const ancestor of stack) {
+        if (!expanded.has(ancestor.id)) {
+          visible = false;
+          break;
+        }
+      }
+
+      if (visible) {
+        result.push({
+          ...element,
+          expanded: expanded.has(element.id),
+        });
+        if (element.expandable) {
+          stack.push({ id: element.id, level: element.level });
+        }
+      }
+    }
+    return result;
+  });
+
+  // Sync state management
   readonly getSyncState = computed(() => this.docSyncState());
 
-  /** The tree manipulator instance for managing tree operations */
-  private treeManipulator: TreeManipulator | null = null;
+  // Local-only expanded nodes state
+  private readonly expandedNodeIds = signal<Set<string>>(new Set());
 
   private readonly docSyncState = signal<DocumentSyncState>(
     DocumentSyncState.Unavailable
   );
 
+  // Yjs document management
   private doc: Y.Doc | null = null;
   private provider: WebsocketProvider | null = null;
   private indexeddbProvider: IndexeddbPersistence | null = null;
   private docId: string | null = null;
 
+  // Services
   private projectAPIService = inject(ProjectAPIService);
   private dialog = inject(MatDialog);
-  /**
-   * Initializes and loads a project with offline-first synchronization
-   *
-   * This method sets up the Yjs document for the specified project, establishing
-   * both local IndexedDB persistence and WebSocket synchronization. It handles
-   * the complete project loading lifecycle including:
-   * - Creating a new Yjs document
-   * - Setting up IndexedDB persistence for offline access
-   * - Establishing WebSocket connection for real-time collaboration
-   * - Initializing reactive signals from the document state
-   * - Setting up change observers for automatic synchronization
-   *
-   * @param {string} username - The owner's username for the project
-   * @param {string} slug - The project's unique slug identifier
-   * @returns {Promise<void>} Resolves when the project is fully loaded and synchronized
-   * @throws Will throw and log errors if initialization fails
-   * @example
-   * await projectStateService.loadProject('john-doe', 'my-project');
-   */
 
-  showNewElementDialog(parentElement?: ProjectElement) {
-    const dialogRef = this.dialog.open<
-      NewElementDialogComponent,
-      { parentElement?: ProjectElement },
-      NewElementDialogResult
-    >(NewElementDialogComponent, {
-      width: '400px',
-      data: { parentElement },
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        const { name, type, file } = result;
-        void this.createNewElement(name, type, file, parentElement);
-      }
-    });
-  }
-
-  showEditProjectDialog() {
-    const dialogRef = this.dialog.open(EditProjectDialogComponent, {
-      data: this.project(),
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        void this.updateProject(result as ProjectDto);
-      }
-    });
-  }
-
+  // Project Loading and Initialization
   async loadProject(username: string, slug: string): Promise<void> {
     this.isLoading.set(true);
     this.error.set(undefined);
+
     try {
-      console.log('loadProject: start', username, slug);
       const projectDto = await firstValueFrom(
         this.projectAPIService.projectControllerGetProjectByUsernameAndSlug(
           username,
           slug
         )
       );
-      console.log('loadProject: projectDto from API:', projectDto);
       this.project.set(projectDto);
-      console.log('loadProject: project signal updated', projectDto);
 
       this.docId = `projectElements:${username}:${slug}`;
-
-      // Create a new Y.Doc
       this.doc = new Y.Doc();
 
+      // Initialize IndexedDB persistence
       this.indexeddbProvider = new IndexeddbPersistence(this.docId, this.doc);
       await this.indexeddbProvider.whenSynced;
-      console.log('Local IndexedDB sync complete for docId:', this.docId);
 
+      // Initialize WebSocket provider
       if (!environment.wssUrl) {
-        throw new Error('WebSocket URL is not configured in environment');
+        throw new Error('WebSocket URL is not configured');
       }
+
       this.provider = new WebsocketProvider(
         environment.wssUrl + '/ws/yjs?documentId=',
         this.docId,
         this.doc,
-        {
-          connect: true,
-          resyncInterval: 10000,
-        }
+        { connect: true, resyncInterval: 10000 }
       );
 
+      // Set up WebSocket status handling
       this.provider.on('status', ({ status }: { status: string }) => {
-        console.log(`Doc ${this.docId} websocket status: ${status}`);
         switch (status) {
           case 'connected':
             this.docSyncState.set(DocumentSyncState.Synced);
@@ -180,92 +132,20 @@ export class ProjectStateService {
             this.docSyncState.set(DocumentSyncState.Offline);
             break;
           default:
-            // For initial connection, set to synced once IndexedDB is ready
             this.docSyncState.set(DocumentSyncState.Synced);
         }
       });
 
-      // Set initial sync state after IndexedDB sync
-      this.docSyncState.set(DocumentSyncState.Synced);
-
-      console.log('loadProject: calling initializeLocalSignalsFromDoc');
-      this.initializeLocalSignalsFromDoc();
-      console.log('loadProject: initializeLocalSignalsFromDoc complete');
-
+      this.initializeFromDoc();
       this.observeDocChanges();
-
-      void this.updateProject(projectDto);
     } catch (err) {
-      if (err instanceof Error) {
-        console.error('Failed to load project doc via Yjs:', err.message);
-      } else {
-        console.error('Failed to load project doc via Yjs:', String(err));
-      }
+      console.error('Failed to load project:', err);
       this.error.set('Failed to load project');
       this.docSyncState.set(DocumentSyncState.Unavailable);
     } finally {
       this.isLoading.set(false);
     }
   }
-
-  /**
-   * Loads project elements by reading them from the Yjs doc
-   */
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async loadProjectElements(username: string, slug: string): Promise<void> {
-    console.log('Loading project elements:', username, slug);
-    this.isLoading.set(true);
-    this.error.set(undefined);
-
-    try {
-      this.initializeLocalSignalsFromDoc();
-    } catch (err) {
-      console.error('Error loading project elements (Yjs doc):', err);
-      this.error.set('Failed to load project elements');
-    } finally {
-      this.isLoading.set(false);
-    }
-  }
-
-  /**
-   * Opens a file (element) in the "editor tabs".
-   */
-  openFile(element: ProjectElementDto | null): void {
-    if (!element?.id) return;
-
-    const files = this.openFiles();
-    const alreadyOpen = files.some(f => f.id === element.id);
-    if (!alreadyOpen) {
-      this.openFiles.set([...files, element]);
-      // We only have one doc, so let's leave docSyncState alone or set to current value
-      // docSyncState might remain 'Synced' or 'Offline' etc.
-      // We'll just do no-op here.
-    }
-
-    const index = this.openFiles().findIndex(f => f.id === element.id);
-    this.selectedTabIndex.set(index + 1);
-  }
-
-  /**
-   * Closes an open file (element) tab by index.
-   */
-  closeFile(index: number): void {
-    const files = this.openFiles();
-    const file = files[index];
-    if (file?.id) {
-      // Optionally set docSyncState to something else if we like.
-      // docSyncState.set(DocumentSyncState.Offline);
-    }
-    const newFiles = [...files.slice(0, index), ...files.slice(index + 1)];
-    this.openFiles.set(newFiles);
-
-    // If the selected tab was the last, move the selection to the previous
-    const filesLength = newFiles.length;
-    if (this.selectedTabIndex() >= filesLength) {
-      this.selectedTabIndex.set(filesLength - 1);
-    }
-  }
-
   /**
    * Updates the sync state for our doc.
    * In a single-doc approach, we simply store it in `docSyncState`.
@@ -292,570 +172,363 @@ export class ProjectStateService {
     // Trigger change detection
     this.getSyncState();
   }
-
-  /**
-   * Updates project elements with full synchronization between local state and Yjs document
-   *
-   * This method performs a transactional update of project elements, ensuring consistency
-   * between the local reactive signals and the Yjs document. It handles:
-   * - Immediate UI updates through Angular signals
-   * - Atomic updates to the Yjs document
-   * - Automatic ID generation for new elements
-   * - Structured cloning for proper Yjs data handling
-   *
-   * @param {ProjectElementDto[]} elements - The updated array of project elements
-   * @example
-   * const updatedElements = [...currentElements, newElement];
-   * projectStateService.updateElements(updatedElements);
-   *
-   * @note This method performs a complete replacement of elements. For partial updates,
-   * consider modifying the Yjs document directly through the exposed methods.
-   */
-  async updateElements(elements: ProjectElementDto[]): Promise<void> {
-    // Update the signals (for immediate UI reflection)
-
-    // Check for deleted nodes that have open editors
-    const currentElements = this.elements();
-    const currentElementIds = new Set(currentElements.map(e => e.id));
-    const newElementIds = new Set(elements.map(e => e.id));
-
-    // Find elements that were deleted (in current but not in new)
-    const deletedElementIds = new Set(
-      Array.from(currentElementIds).filter(id => !newElementIds.has(id))
-    );
-
-    // Close any open editors for deleted nodes
-    if (deletedElementIds.size > 0) {
-      const openFiles = this.openFiles();
-      openFiles.forEach((file, index) => {
-        if (file.id && deletedElementIds.has(file.id)) {
-          this.closeFile(index);
-        }
-      });
-    }
-
-    this.elements.set(elements);
-
-    if (this.doc) {
-      try {
-        const arr = this.getElementsArray();
-        if (!arr) return;
-
-        await new Promise<void>((resolve, reject) => {
-          try {
-            this.doc!.transact(() => {
-              // Clear the entire Yjs array
-              arr.delete(0, arr.length);
-
-              // Insert the new set
-              for (const elem of elements) {
-                // If there's no ID yet, generate one
-                if (!elem.id) {
-                  elem.id = nanoid();
-                }
-                arr.push([structuredClone(elem)]);
-              }
-            });
-            resolve();
-          } catch (err) {
-            reject(err instanceof Error ? err : new Error(String(err)));
-          }
-        });
-      } catch (err) {
-        console.error('Error updating Yjs document:', err);
-        throw err;
-      }
-    }
-  }
-
-  /**
-   * Saves project elements by updating the Yjs doc
-   */
-
-  async saveProjectElements(
-    _username: string,
-    _slug: string,
-    elements: ProjectElementDto[]
-  ): Promise<void> {
-    this.isSaving.set(true);
-    this.error.set(undefined);
-
-    try {
-      // Preserve current project title
-      const currentProject = this.project();
-      const currentTitle = currentProject?.title || 'Project';
-
-      // Update elements
-      await this.updateElements(elements).catch(err => {
-        throw err;
-      });
-
-      // Restore project title if it was changed
-      if (currentProject) {
-        this.project.set({ ...currentProject, title: currentTitle });
-      }
-
-      console.log(
-        'Elements saved to the Y.Doc - remote sync will happen automatically!'
-      );
-    } catch (err) {
-      console.error('Error saving project elements (Yjs):', err);
-      this.error.set('Failed to save project elements');
-    } finally {
-      this.isSaving.set(false);
-    }
-  }
-
-  async updateProject(project: ProjectDto): Promise<void> {
-    this.isSaving.set(true);
-    this.error.set(undefined);
-
-    try {
-      if (this.doc) {
-        // Wrap transaction in Promise to properly await it
-        await new Promise<void>((resolve, reject) => {
-          try {
-            this.doc!.transact(() => {
-              const projectMap = this.getProjectMetaMap();
-              projectMap.set('title', project.title);
-              projectMap.set('description', project.description);
-            });
-            resolve();
-          } catch (err) {
-            reject(err instanceof Error ? err : new Error(String(err)));
-          }
-        });
-        this.project.set(project);
-      }
-    } catch (err) {
-      console.error('Error updating project:', err);
-      this.error.set('Failed to update project');
-    } finally {
-      this.isSaving.set(false);
-    }
-  }
-
-  /**
-   * Creates a new element in the project tree
-   * @param type The type of element to create
-   * @param name The name of the element
-   * @param parentElement Optional parent element
-   */
-  async createTreeElement(
-    type: ProjectElementDto.TypeEnum,
+  // Tree Operations
+  async addElement(
+    type: ProjectElementDto['type'],
     name: string,
-    parentElement?: ProjectElement,
-    file?: File | null
+    parentId?: string,
+    file?: File
   ): Promise<void> {
-    this.ensureTreeManipulator();
-    if (!this.treeManipulator) return;
+    const elements = this.elements();
+    const parentIndex = parentId
+      ? elements.findIndex(e => e.id === parentId)
+      : -1;
+    const parentLevel = parentIndex >= 0 ? elements[parentIndex].level : -1;
 
-    const newElement = this.treeManipulator.addNode(type, parentElement, name);
-    const elements = this.treeManipulator.getData();
+    const newElement: ProjectElementDto = {
+      id: nanoid(),
+      name,
+      type,
+      level: parentLevel + 1,
+      expandable: type === 'FOLDER',
+      position: elements.length,
+      version: 0,
+      metadata: {},
+    };
+
+    const newElements = [...elements];
+    newElements.splice(parentIndex + 1, 0, newElement);
+    this.updateElements(this.recomputePositions(newElements));
 
     // Handle image upload if needed
-    if (type === ProjectElementDto.TypeEnum.Image && file && newElement.id) {
-      await this.uploadImage(newElement.id, file);
+    if (type === 'IMAGE' && file) {
+      await this.uploadImageFile(newElement.id, file);
     }
 
-    await this.updateElements(elements);
+    // Auto-expand parent when adding new element
+    if (parentId) {
+      this.setExpanded(parentId, true);
+    }
   }
 
-  /**
-   * Moves a node in the project tree
-   * @param node The node to move
-   * @param targetIndex The target index
-   * @param newLevel The new level for the node
-   */
-  async moveTreeElement(
-    node: ProjectElement,
-    targetIndex: number,
-    newLevel: number
-  ): Promise<void> {
-    this.ensureTreeManipulator();
-    if (!this.treeManipulator) return;
+  isValidDrop(
+    nodeAbove: ProjectElementDto | null,
+    targetLevel: number
+  ): boolean {
+    if (!nodeAbove) {
+      // If no node above, only allow root level or first level
+      return targetLevel <= 1;
+    }
 
-    this.treeManipulator.moveNode(node, targetIndex, newLevel);
-    await this.updateElements(this.treeManipulator.getData());
+    // Items can't have children
+    if (nodeAbove.type === 'ITEM' && targetLevel > nodeAbove.level) {
+      return false;
+    }
+
+    // Folders can only have children one level deeper
+    if (nodeAbove.type === 'FOLDER' && targetLevel > nodeAbove.level + 1) {
+      return false;
+    }
+
+    // Images can't have children
+    if (nodeAbove.type === 'IMAGE' && targetLevel > nodeAbove.level) {
+      return false;
+    }
+
+    // Prevent negative levels
+    if (targetLevel < 0) {
+      return false;
+    }
+
+    return true;
   }
 
-  /**
-   * Renames a node in the project tree
-   * @param node The node to rename
-   * @param newName The new name
-   */
-  async renameTreeElement(
-    node: ProjectElement,
-    newName: string
-  ): Promise<void> {
-    this.ensureTreeManipulator();
-    if (!this.treeManipulator) return;
-
-    this.treeManipulator.renameNode(node, newName);
-    await this.updateElements(this.treeManipulator.getData());
-  }
-
-  /**
-   * Deletes a node from the project tree
-   * @param node The node to delete
-   */
-  async deleteTreeElement(node: ProjectElement): Promise<void> {
-    this.ensureTreeManipulator();
-    if (!this.treeManipulator) return;
-
-    this.treeManipulator.deleteNode(node);
-    await this.updateElements(this.treeManipulator.getData());
-  }
-
-  /**
-   * Toggles the expanded state of a node
-   * @param node The node to toggle
-   */
-  toggleExpanded(node: ProjectElement) {
-    this.ensureTreeManipulator();
-    if (!this.treeManipulator) return;
-
-    node.expanded = !node.expanded;
-    this.treeManipulator.updateVisibility();
-    const elements = this.treeManipulator.getData();
-    void this.updateElements(elements);
-  }
-  /**
-   * Gets valid drop levels for drag and drop operations
-   */
   getValidDropLevels(
-    nodeAbove: ProjectElement | null,
-    nodeBelow: ProjectElement | null
-  ) {
-    this.ensureTreeManipulator();
-    return (
-      this.treeManipulator?.getValidDropLevels(nodeAbove, nodeBelow) ?? {
-        levels: [0],
-        defaultLevel: 0,
+    nodeAbove: ProjectElementDto | null,
+    nodeBelow: ProjectElementDto | null
+  ): ValidDropLevels {
+    const validLevels = new Set<number>();
+
+    // Debug logging
+    console.log('GetValidDropLevels Debug:', {
+      nodeAbove: nodeAbove
+        ? { name: nodeAbove.name, level: nodeAbove.level, type: nodeAbove.type }
+        : null,
+      nodeBelow: nodeBelow
+        ? { name: nodeBelow.name, level: nodeBelow.level, type: nodeBelow.type }
+        : null,
+    });
+
+    if (nodeAbove && nodeBelow) {
+      if (nodeAbove.level < nodeBelow.level) {
+        // If above node is a folder, allow its level and one level deeper
+        if (nodeAbove.type === 'FOLDER') {
+          validLevels.add(nodeAbove.level);
+          validLevels.add(nodeAbove.level + 1);
+        }
+        validLevels.add(nodeBelow.level);
+      } else if (nodeAbove.level === nodeBelow.level) {
+        validLevels.add(nodeAbove.level);
+        // Also allow dropping inside if above node is a folder
+        if (nodeAbove.type === 'FOLDER') {
+          validLevels.add(nodeAbove.level + 1);
+        }
+      } else {
+        // Allow all levels between the two nodes
+        for (let level = nodeBelow.level; level <= nodeAbove.level; level++) {
+          validLevels.add(level);
+        }
       }
-    );
-  }
+    } else if (nodeAbove && !nodeBelow) {
+      // Allow current level and all levels above it
+      for (let level = 0; level <= nodeAbove.level; level++) {
+        validLevels.add(level);
+      }
+      // If above node is a folder, allow one level deeper
+      if (nodeAbove.type === 'FOLDER') {
+        validLevels.add(nodeAbove.level + 1);
+      }
+    } else if (!nodeAbove && nodeBelow) {
+      validLevels.add(nodeBelow.level);
+    } else {
+      validLevels.add(0); // Root level only if no context
+    }
 
-  /**
-   * Validates if a drop operation is valid
-   */
-  isValidDrop(nodeAbove: ProjectElement | null, targetLevel: number): boolean {
-    this.ensureTreeManipulator();
-    return this.treeManipulator?.isValidDrop(nodeAbove, targetLevel) ?? false;
-  }
+    const levels = Array.from(validLevels).sort((a, b) => a - b);
+    const defaultLevel = levels.length > 0 ? levels[0] : 0;
 
-  /**
-   * Gets the insert index for a drop operation
-   * @param nodeAbove The node above the drop position
-   * @param targetLevel The target level for the drop
-   */
+    return {
+      levels,
+      defaultLevel,
+    };
+  }
   getDropInsertIndex(
-    nodeAbove: ProjectElement | null,
+    nodeAbove: ProjectElementDto | null,
     targetLevel: number
   ): number {
-    this.ensureTreeManipulator();
-    return (
-      this.treeManipulator?.getDropInsertIndex(nodeAbove, targetLevel) ?? 0
-    );
+    if (!nodeAbove) {
+      return 0;
+    }
+
+    const elements = this.elements();
+    const nodeAboveIndex = elements.findIndex(n => n.id === nodeAbove.id);
+    if (nodeAboveIndex === -1) {
+      return elements.length;
+    }
+
+    // If dropping at a deeper level than the node above, insert right after it
+    if (targetLevel > nodeAbove.level) {
+      return nodeAboveIndex + 1;
+    }
+
+    // If dropping at the same or higher level, insert after the entire subtree
+    const subtree = this.getSubtree(elements, nodeAboveIndex);
+    return nodeAboveIndex + subtree.length;
+  }
+  moveElement(elementId: string, targetIndex: number, newLevel: number): void {
+    const elements = this.elements();
+    const elementIndex = elements.findIndex(e => e.id === elementId);
+    if (elementIndex === -1) return;
+
+    const element = elements[elementIndex];
+    const subtree = this.getSubtree(elements, elementIndex);
+    const levelDiff = newLevel - element.level;
+
+    // Remove subtree from current position
+    const newElements = elements.filter(e => !subtree.includes(e));
+
+    // Update levels in subtree
+    subtree.forEach(e => (e.level += levelDiff));
+
+    // Insert at new position
+    newElements.splice(targetIndex, 0, ...subtree);
+    void this.updateElements(this.recomputePositions(newElements));
   }
 
-  /**
-   * Updates the visibility of nodes in the tree
-   */
-  updateVisibility(): void {
-    this.ensureTreeManipulator();
-    if (!this.treeManipulator) return;
+  toggleExpanded(elementId: string): void {
+    const expanded = this.expandedNodeIds();
+    const newExpanded = new Set(expanded);
 
-    this.treeManipulator.updateVisibility();
-    void this.updateElements(this.treeManipulator.getData());
+    if (expanded.has(elementId)) {
+      newExpanded.delete(elementId);
+    } else {
+      newExpanded.add(elementId);
+    }
+
+    this.expandedNodeIds.set(newExpanded);
   }
 
-  /**
-   * Uploads an image file for an element
-   * @param elementId The ID of the element
-   * @param file The image file to upload
-   */
-  private async uploadImage(elementId: string, file: File) {
+  setExpanded(elementId: string, expanded: boolean): void {
+    const currentExpanded = this.expandedNodeIds();
+    const newExpanded = new Set(currentExpanded);
+
+    if (expanded) {
+      newExpanded.add(elementId);
+    } else {
+      newExpanded.delete(elementId);
+    }
+
+    this.expandedNodeIds.set(newExpanded);
+  }
+
+  isExpanded(elementId: string): boolean {
+    return this.expandedNodeIds().has(elementId);
+  }
+
+  deleteElement(elementId: string): void {
+    const elements = this.elements();
+    const index = elements.findIndex(e => e.id === elementId);
+    if (index === -1) return;
+
+    const subtree = this.getSubtree(elements, index);
+    const newElements = elements.filter(e => !subtree.includes(e));
+
+    // Remove deleted elements from expanded set
+    const expanded = this.expandedNodeIds();
+    const newExpanded = new Set(expanded);
+    subtree.forEach(e => newExpanded.delete(e.id));
+    this.expandedNodeIds.set(newExpanded);
+
+    void this.updateElements(this.recomputePositions(newElements));
+  }
+
+  // File Operations
+  openFile(element: ProjectElementDto): void {
+    const files = this.openFiles();
+    if (!files.some(f => f.id === element.id)) {
+      this.openFiles.set([...files, element]);
+    }
+    const index = this.openFiles().findIndex(f => f.id === element.id);
+    this.selectedTabIndex.set(index + 1);
+  }
+
+  closeFile(index: number): void {
+    const files = this.openFiles();
+    const newFiles = [...files.slice(0, index), ...files.slice(index + 1)];
+    this.openFiles.set(newFiles);
+
+    if (this.selectedTabIndex() >= newFiles.length) {
+      this.selectedTabIndex.set(Math.max(0, newFiles.length - 1));
+    }
+  }
+
+  // Dialog Handlers
+  showNewElementDialog(parentElement?: ProjectElementDto): void {
+    const dialogRef = this.dialog.open<
+      NewElementDialogComponent,
+      { parentElement?: ProjectElementDto },
+      NewElementDialogResult
+    >(NewElementDialogComponent, {
+      width: '400px',
+      data: { parentElement },
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        void this.addElement(
+          result.type,
+          result.name,
+          parentElement?.id,
+          result?.file ?? undefined
+        );
+      }
+    });
+  }
+
+  showEditProjectDialog(): void {
+    const dialogRef = this.dialog.open(EditProjectDialogComponent, {
+      data: this.project(),
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        void this.updateProject(result as ProjectDto);
+      }
+    });
+  }
+  private async uploadImageFile(elementId: string, file: File): Promise<void> {
     const project = this.project();
     if (!project?.user?.username || !project?.slug) {
       throw new Error('Project information not available');
     }
 
-    await firstValueFrom(
-      this.projectAPIService.projectElementControllerUploadImage(
-        project.user.username,
-        project.slug,
-        elementId,
-        file
-      )
-    );
-  }
-  private async createNewElement(
-    name: string,
-    type: ProjectElementDto.TypeEnum,
-    file: File | null,
-    parentElement?: ProjectElement
-  ) {
-    await this.createTreeElement(type, name, parentElement, file);
-
-    // Save changes
-    const project = this.project();
-    if (project?.user?.username && project?.slug) {
-      await this.saveProjectElements(
-        project.user.username,
-        project.slug,
-        this.treeManipulator?.getData() ?? []
+    try {
+      await firstValueFrom(
+        this.projectAPIService.projectElementControllerUploadImage(
+          project.user.username,
+          project.slug,
+          elementId,
+          file
+        )
       );
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      // Optionally: Remove the element if upload failed
+      this.deleteElement(elementId);
+      throw new Error('Failed to upload image');
     }
+  }
+  private getSubtree(
+    elements: ProjectElementDto[],
+    startIndex: number
+  ): ProjectElementDto[] {
+    const startLevel = elements[startIndex].level;
+    const subtree = [elements[startIndex]];
+
+    for (let i = startIndex + 1; i < elements.length; i++) {
+      if (elements[i].level > startLevel) {
+        subtree.push(elements[i]);
+      } else {
+        break;
+      }
+    }
+
+    return subtree;
   }
 
-  /**
-   * Ensures the tree manipulator is initialized with current elements
-   */
-  private ensureTreeManipulator(): void {
-    const currentElements = this.elements();
-    if (!this.treeManipulator) {
-      this.treeManipulator = new TreeManipulator(currentElements);
-    } else {
-      // Update with current elements if needed
-      this.treeManipulator = new TreeManipulator(currentElements);
-    }
+  private recomputePositions(
+    elements: ProjectElementDto[]
+  ): ProjectElementDto[] {
+    return elements.map((element, index) => ({
+      ...element,
+      position: index,
+    }));
   }
-  /**
-   * Synchronizes local Angular signals with the Yjs document state
-   *
-   * This method establishes the connection between the Yjs document and Angular's
-   * reactive signals. It handles:
-   * - Reading project metadata from the Yjs map
-   * - Loading project elements from the Yjs array
-   * - Setting up initial signal values
-   * - Ensuring type safety when converting Yjs data to Angular signals
-   *
-   * The synchronization is bidirectional:
-   * - Changes in Yjs are reflected in Angular signals
-   * - Changes in Angular signals are propagated to Yjs
-   *
-   * @note This method should be called whenever the Yjs document is initialized
-   * or when significant changes occur in the document structure
-   */
-  private initializeLocalSignalsFromDoc(): void {
+
+  private initializeFromDoc(): void {
     if (!this.doc) return;
 
-    // 1. Project metadata
-    const projectMap = this.getProjectMetaMap();
-    console.log('initializeLocalSignalsFromDoc: projectMetaMap:');
-    // Try reading fields or fallback to placeholders
-    const projectId = projectMap.get('id') ?? 0;
-    const projectName = projectMap.get('title') ?? '(Unnamed)';
-    const docIdParts = this.docId?.split(':') ?? [];
-    const projectUser = { username: docIdParts[1] ?? '(no user}' };
-    const projectSlug = docIdParts[2] ?? '(no slug)';
-    const projectDesc = projectMap.get('description') ?? '';
-    console.log('initializeLocalSignalsFromDoc: projectName:', projectName);
-
-    // Construct your strongly-typed `ProjectDto`
-    const loadedProject: ProjectDto = {
-      id: projectId as string,
-      title: projectName as string,
-      slug: projectSlug,
-      user: projectUser as UserDto,
-      description: projectDesc as string,
-      createdDate: new Date().toISOString(),
-      updatedDate: new Date().toISOString(),
-    };
-    console.log('initializeLocalSignalsFromDoc: loadedProject:', loadedProject);
-    this.project.set(loadedProject);
-    console.log('initializeLocalSignalsFromDoc: project signal updated');
-
-    // 2. Elements array
-    const arr = this.getElementsArray();
-    if (arr) {
-      const rawElements = arr.toArray();
-      // Yjs doesn't natively enforce the type, so we'll assume we put `ProjectElementDto`s in
-      // If you wanted runtime validation, you'd do it here.
-      this.elements.set(rawElements);
-    }
+    const elementsArray = this.doc.getArray<ProjectElementDto>('elements');
+    this.elements.set(elementsArray.toArray());
   }
 
-  /**
-   * Establishes real-time synchronization between Yjs document and Angular signals
-   *
-   * This method creates a comprehensive observation system that:
-   * - Tracks changes to project metadata (name, slug, description)
-   * - Monitors deep changes in the elements array
-   * - Handles both local and remote changes
-   * - Maintains consistency between Yjs document and Angular signals
-   *
-   * The synchronization system provides:
-   * - Real-time updates across all connected clients
-   * - Efficient change detection using Yjs's delta-based system
-   * - Automatic conflict resolution for concurrent edits
-   * - Granular control over which changes trigger updates
-   * - Comprehensive error handling and recovery mechanisms
-   *
-   * @note The observers use Yjs's efficient change detection system, which
-   * minimizes unnecessary updates and maintains optimal performance even
-   * with large documents and frequent changes. The system automatically
-   * handles network interruptions and reconnects when possible.
-   *
-   * @example
-   * // Changes to project metadata
-   * projectMetaMap.set('name', 'New Project Name');
-   *
-   * // Changes to elements array
-   * elementsArray.push([newElement]);
-   * elementsArray.get(0).content = 'Updated content';
-   */
   private observeDocChanges(): void {
     if (!this.doc) return;
 
-    // Listen for changes in `projectMeta`
-    const projectMetaMap = this.getProjectMetaMap();
-    projectMetaMap.observe((event, transaction) => {
-      console.log('Project meta changed:', event, transaction);
-      this.initializeLocalSignalsFromDoc();
-      // or do a partial update if you want
-    });
-
-    // Listen for changes in `elements` array
-    const elementsArray = this.getElementsArray();
-    elementsArray?.observeDeep(events => {
-      console.log('Elements array changed in doc:', events);
-      this.initializeLocalSignalsFromDoc();
-      // or do partial updates if you prefer
+    const elementsArray = this.doc.getArray<ProjectElementDto>('elements');
+    elementsArray.observe(() => {
+      this.elements.set(elementsArray.toArray());
     });
   }
 
-  /**
-   * Manages access to project metadata stored in a Yjs map
-   *
-   * This method provides a type-safe interface for working with project metadata,
-   * including:
-   * - Retrieving and modifying project identification (id, slug)
-   * - Managing descriptive information (name, description)
-   * - Handling timestamps for creation and modification
-   * - Storing additional project-specific metadata
-   *
-   * The metadata map offers:
-   * - Real-time synchronization across all collaborators
-   * - Automatic conflict resolution for concurrent edits
-   * - Efficient change detection using Yjs's delta-based system
-   * - Comprehensive error handling and recovery mechanisms
-   *
-   * @returns {Y.Map<unknown>} The Yjs map containing project metadata
-   * @throws {Error} If the Yjs document is not initialized
-   * @note The returned map is a live Yjs data structure that automatically
-   * synchronizes changes across all connected clients. All modifications to this
-   * map are immediately propagated to all collaborators.
-   *
-   * @example
-   * // Update project name and description
-   * const metaMap = projectStateService.getProjectMetaMap();
-   * metaMap.set('name', 'New Project Name');
-   * metaMap.set('description', 'Updated project description');
-   *
-   * // Add custom metadata
-   * metaMap.set('customField', 'Custom Value');
-   *
-   * // Read metadata
-   * const projectName = metaMap.get('name');
-   */
-  private getProjectMetaMap(): Y.Map<unknown> {
-    if (!this.doc) {
-      throw new Error('Cannot get projectMetaMap because doc is null');
-    }
-    // `Y.Doc.getMap<T>()` is strongly typed, but the generic param doesn't do much runtime checking.
-    const existing = this.doc.getMap<unknown>('projectMeta');
-    return existing;
-  }
-
-  /**
-   * Provides access to the project's element structure in a Yjs array
-   *
-   * This method manages the core element storage system, offering:
-   * - Lazy initialization of the elements array
-   * - Type-safe access to project elements
-   * - Integration with the Yjs document structure
-   * - Automatic synchronization across collaborators
-   *
-   * The elements array provides:
-   * - Hierarchical organization of project elements
-   * - Real-time synchronization of all changes
-   * - Efficient delta-based updates
-   * - Automatic conflict resolution for concurrent edits
-   * - Comprehensive error handling and recovery mechanisms
-   *
-   * @returns {Y.Array<ProjectElementDto> | undefined} The Yjs array containing project elements,
-   * or undefined if the document is not initialized
-   * @throws {Error} If the document structure is corrupted
-   * @note The returned array is a live Yjs data structure that automatically
-   * synchronizes changes across all connected clients. All modifications to this
-   * array are immediately propagated to all collaborators.
-   *
-   * @example
-   * // Add new element
-   * const elementsArray = projectStateService.getElementsArray();
-   * if (elementsArray) {
-   *   elementsArray.push([{
-   *     id: nanoid(),
-   *     type: 'file',
-   *     content: 'New content',
-   *     position: 0
-   *   }]);
-   * }
-   *
-   * // Modify existing element
-   * const firstElement = elementsArray.get(0);
-   * if (firstElement) {
-   *   firstElement.content = 'Updated content';
-   * }
-   *
-   * // Remove element
-   * elementsArray.delete(0, 1);
-   */
-  private getElementsArray(): Y.Array<ProjectElementDto> | undefined {
-    if (!this.doc) return undefined;
-
-    const dataMap = this.doc.getMap<unknown>('data');
-    // If there's no 'elements' key, we create it
-    if (!dataMap.has('elements')) {
-      dataMap.set('elements', new Y.Array<ProjectElementDto>());
-    }
-    const arr = dataMap.get('elements');
-    if (arr instanceof Y.Array) {
-      return arr as Y.Array<ProjectElementDto>;
-    }
-    return undefined;
-  }
-
-  /**
-   * Updates the Yjs array with new elements
-   * @param elements The elements to update
-   * @returns Promise that resolves when the update is complete
-   */
-  private async updateYjsElements(
-    elements: ProjectElementDto[]
-  ): Promise<void> {
+  private updateElements(elements: ProjectElementDto[]): void {
     if (!this.doc) return;
 
-    const arr = this.getElementsArray();
-    if (!arr) return;
-
-    await new Promise<void>((resolve, reject) => {
-      try {
-        this.doc!.transact(() => {
-          arr.delete(0, arr.length);
-          for (const elem of elements) {
-            if (!elem.id) {
-              elem.id = nanoid();
-            }
-            arr.push([structuredClone(elem)]);
-          }
-        });
-        resolve();
-      } catch (err) {
-        reject(err instanceof Error ? err : new Error(String(err)));
-      }
+    const elementsArray = this.doc.getArray<ProjectElementDto>('elements');
+    this.doc.transact(() => {
+      elementsArray.delete(0, elementsArray.length);
+      elementsArray.insert(0, elements);
     });
+  }
+
+  private updateProject(project: ProjectDto): void {
+    if (!this.doc) return;
+
+    const projectMap = this.doc.getMap('projectMeta');
+    this.doc.transact(() => {
+      projectMap.set('title', project.title);
+      projectMap.set('description', project.description);
+    });
+    this.project.set(project);
   }
 }

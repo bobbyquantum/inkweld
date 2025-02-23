@@ -59,7 +59,7 @@
         (click)="!node.expandable && onOpenFile(node)"
         (keyup.enter)="!node.expandable && onOpenFile(node)"
         (dblclick)="!node.expandable && onOpenFile(node)">
-        {{ node.name }}
+        {{ node.name }} {{ currentDropLevel }} / {{ node.level }}
       </div>
 
       <div
@@ -75,16 +75,15 @@
           </button>
           <mat-icon>folder</mat-icon>
         } @else {
-          @switch (node.type) {
-            @case ('IMAGE') {
-              <mat-icon>image</mat-icon>
-            }
-            @default {
-              <mat-icon>description</mat-icon>
-            }
-          }
+          <app-tree-node-icon
+            [isExpandable]="node.expandable"
+            [isExpanded]="node.expanded"
+            [type]="node.type">
+          </app-tree-node-icon>
         }
-        <div class="node-title">{{ node.name }}</div>
+        <div class="node-title">
+          {{ node.name }} {{ currentDropLevel }} / {{ node.level }}
+        </div>
       </div>
 
       <div class="drag-preview" *cdkDragPreview>
@@ -111,24 +110,6 @@
         <span class="context-menu-item-title">Open File</span>
       </button>
     }
-    <button
-      type="button"
-      class="context-menu-item"
-      cdkMenuItem
-      [disabled]="isLoading()"
-      (click)="onNewItem(node)">
-      <mat-icon>note_add</mat-icon>
-      <span class="context-menu-item-title">New Item</span>
-    </button>
-    <button
-      type="button"
-      class="context-menu-item"
-      cdkMenuItem
-      [disabled]="isLoading()"
-      (click)="onNewFolder(node)">
-      <mat-icon>create_new_folder</mat-icon>
-      <span class="context-menu-item-title">New Folder</span>
-    </button>
     <button
       type="button"
       class="context-menu-item"

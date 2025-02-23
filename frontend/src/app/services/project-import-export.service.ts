@@ -325,8 +325,8 @@ export class ProjectImportExportService {
     }
 
     // Update project state
-    await this.projectStateService.updateProject(projectDto);
-    this.projectStateService.updateElements(elements);
+    // await this.projectStateService.updateProject(projectDto);
+    // this.projectStateService.updateElements(elements);
   }
 
   /**

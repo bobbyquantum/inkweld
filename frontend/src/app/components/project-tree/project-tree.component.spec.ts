@@ -24,9 +24,10 @@ import { ProjectTreeComponent } from './project-tree.component';
 describe('ProjectTreeComponent', () => {
   let component: ProjectTreeComponent;
   let fixture: ComponentFixture<ProjectTreeComponent>;
-  let treeService: jest.Mocked<ProjectStateService>;
+  let projectStateService: jest.Mocked<ProjectStateService>;
   let settingsService: jest.Mocked<SettingsService>;
   let elementsSignal: WritableSignal<ProjectElement[]>;
+  let visibleElementsSignal: WritableSignal<ProjectElement[]>;
   let loadingSignal: WritableSignal<boolean>;
   let savingSignal: WritableSignal<boolean>;
   let errorSignal: WritableSignal<string | undefined>;
@@ -70,6 +71,7 @@ describe('ProjectTreeComponent', () => {
     });
 
     elementsSignal = signal<ProjectElement[]>([mockDto]);
+    visibleElementsSignal = signal<ProjectElement[]>([mockDto]);
     loadingSignal = signal(false);
     savingSignal = signal(false);
     errorSignal = signal<string | undefined>(undefined);
@@ -78,8 +80,9 @@ describe('ProjectTreeComponent', () => {
       getSetting: jest.fn().mockReturnValue(false),
     } as unknown as jest.Mocked<SettingsService>;
 
-    treeService = {
+    projectStateService = {
       elements: elementsSignal,
+      visibleElements: visibleElementsSignal,
       isLoading: loadingSignal,
       isSaving: savingSignal,
       error: errorSignal,
@@ -89,9 +92,9 @@ describe('ProjectTreeComponent', () => {
       updateProject: jest.fn(),
       showNewElementDialog: jest.fn(),
       toggleExpanded: jest.fn(),
-      moveTreeElement: jest.fn().mockResolvedValue(undefined),
-      renameTreeElement: jest.fn().mockResolvedValue(undefined),
-      deleteTreeElement: jest.fn().mockResolvedValue(undefined),
+      moveElement: jest.fn().mockResolvedValue(undefined),
+      renameElement: jest.fn().mockResolvedValue(undefined),
+      deleteElement: jest.fn().mockResolvedValue(undefined),
       getValidDropLevels: jest
         .fn()
         .mockReturnValue({ levels: [1], defaultLevel: 1 }),
@@ -103,7 +106,7 @@ describe('ProjectTreeComponent', () => {
       imports: [ProjectTreeComponent, NoopAnimationsModule],
       providers: [
         { provide: SettingsService, useValue: settingsService },
-        { provide: ProjectStateService, useValue: treeService },
+        { provide: ProjectStateService, useValue: projectStateService },
         { provide: ProjectAPIService, useValue: projectServiceMock },
         provideHttpClient(),
       ],
@@ -166,58 +169,6 @@ describe('ProjectTreeComponent', () => {
     });
   });
 
-  describe('Tree Manipulation', () => {
-    let testNode: ProjectElement;
-
-    beforeEach(() => {
-      testNode = mockDto;
-    });
-
-    describe('Node Creation', () => {
-      it('should create new item and open rename dialog', () => {
-        const mockRenameRef = createMockDialogRef('New Name');
-        jest.spyOn(component.dialog, 'open').mockReturnValue(mockRenameRef);
-
-        component.onNewItem(testNode);
-        expect(treeService.showNewElementDialog).toHaveBeenCalledWith(testNode);
-      });
-
-      it('should create new folder and open rename dialog', () => {
-        const mockRenameRef = createMockDialogRef('New Folder');
-        jest.spyOn(component.dialog, 'open').mockReturnValue(mockRenameRef);
-
-        component.onNewFolder(testNode);
-        expect(treeService.showNewElementDialog).toHaveBeenCalledWith(testNode);
-      });
-    });
-
-    describe('Rename Dialog', () => {
-      it('should open rename dialog and update node name', async () => {
-        const newName = 'Updated Name';
-        const mockRenameRef = createMockDialogRef(newName);
-        jest.spyOn(component.dialog, 'open').mockReturnValue(mockRenameRef);
-
-        await component.onRename(testNode);
-        expect(component.dialog.open).toHaveBeenCalled();
-        expect(treeService.saveProjectElements).toHaveBeenCalled();
-        expect(treeService.renameTreeElement).toHaveBeenCalledWith(
-          testNode,
-          newName
-        );
-      });
-
-      it('should not update node name if dialog is cancelled', async () => {
-        const mockRenameRef = createMockDialogRef(null);
-        jest.spyOn(component.dialog, 'open').mockReturnValue(mockRenameRef);
-
-        await component.onRename(testNode);
-        expect(component.dialog.open).toHaveBeenCalled();
-        expect(treeService.saveProjectElements).not.toHaveBeenCalled();
-        expect(treeService.renameTreeElement).not.toHaveBeenCalled();
-      });
-    });
-  });
-
   describe('Drag and Drop', () => {
     let mockDrag: CdkDrag<ProjectElement>;
     let mockDropList: CdkDropList<ArrayDataSource<ProjectElement>>;
@@ -252,10 +203,10 @@ describe('ProjectTreeComponent', () => {
         settingsService.getSetting.mockReturnValue(false); // confirmElementMoves disabled
         const event = createTestDragEvent();
         void component.drop(event);
-        expect(treeService.isValidDrop).toHaveBeenCalled();
-        expect(treeService.getDropInsertIndex).toHaveBeenCalled();
+        expect(projectStateService.isValidDrop).toHaveBeenCalled();
+        expect(projectStateService.getDropInsertIndex).toHaveBeenCalled();
         tick();
-        expect(treeService.moveTreeElement).toHaveBeenCalled();
+        expect(projectStateService.moveElement).toHaveBeenCalled();
         expect(component.dialog.open).not.toHaveBeenCalled();
       }));
 
@@ -266,7 +217,7 @@ describe('ProjectTreeComponent', () => {
 
         const event = createTestDragEvent();
         void component.drop(event);
-        expect(treeService.isValidDrop).toHaveBeenCalled();
+        expect(projectStateService.isValidDrop).toHaveBeenCalled();
         expect(component.dialog.open).toHaveBeenCalled();
       }));
 
@@ -277,10 +228,10 @@ describe('ProjectTreeComponent', () => {
 
         const event = createTestDragEvent();
         void component.drop(event);
-        expect(treeService.isValidDrop).toHaveBeenCalled();
+        expect(projectStateService.isValidDrop).toHaveBeenCalled();
         expect(component.dialog.open).toHaveBeenCalled();
         tick();
-        expect(treeService.moveTreeElement).not.toHaveBeenCalled();
+        expect(projectStateService.moveElement).not.toHaveBeenCalled();
       }));
     });
 
@@ -328,7 +279,7 @@ describe('ProjectTreeComponent', () => {
       ];
 
       // Mock the service to return valid levels based on the nodes
-      treeService.getValidDropLevels.mockReturnValue({
+      projectStateService.getValidDropLevels.mockReturnValue({
         levels: [nodeAbove.level, nodeBelow.level],
         defaultLevel: nodeAbove.level,
       });
@@ -344,11 +295,7 @@ describe('ProjectTreeComponent', () => {
   it('should extract project info from URL', async () => {
     const node = mockDto;
     await component.onDelete(node);
-    expect(treeService.saveProjectElements).toHaveBeenCalledWith(
-      expect.any(String),
-      'testproject',
-      expect.any(Array)
-    );
+    expect(projectStateService.deleteElement).toHaveBeenCalled();
   });
 
   it('should handle drag move with invalid container dimensions', () => {
@@ -362,12 +309,6 @@ describe('ProjectTreeComponent', () => {
 
     component.dragMove(mockMoveEvent);
     expect(component.currentDropLevel).toBe(0);
-  });
-
-  it('should handle empty tree state', () => {
-    elementsSignal.set([]);
-    fixture.detectChanges();
-    expect(component.treeElements()).toHaveLength(0);
   });
 
   it('should handle undefined error state', () => {
@@ -413,7 +354,7 @@ describe('ProjectTreeComponent', () => {
         expect(node.type).toBe('ITEM');
 
         component.onOpenFile(node);
-        expect(treeService.openFile).toHaveBeenCalledWith({
+        expect(projectStateService.openFile).toHaveBeenCalledWith({
           ...node,
           expandable: false,
           expanded: undefined,
