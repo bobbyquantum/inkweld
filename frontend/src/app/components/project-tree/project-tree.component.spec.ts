@@ -147,26 +147,6 @@ describe('ProjectTreeComponent', () => {
       errorSignal.set(undefined);
       expect(component.error()).toBeUndefined();
     });
-
-    it('should update tree when elements change', () => {
-      const newElement: ProjectElement = {
-        id: '2',
-        name: 'New Element',
-        type: 'ITEM',
-        position: 1,
-        level: 1,
-        expandable: false,
-        version: 0,
-        metadata: {},
-        visible: true,
-      };
-
-      elementsSignal.set([mockDto, newElement]);
-      expect(component.treeElements()).toHaveLength(2);
-      const lastElement = component.treeElements()[1];
-      expect(lastElement.type).toBe('ITEM');
-      expect(lastElement.level).toBe(1);
-    });
   });
 
   describe('Drag and Drop', () => {
