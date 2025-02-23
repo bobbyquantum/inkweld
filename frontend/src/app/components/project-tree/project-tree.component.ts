@@ -77,7 +77,38 @@ export class ProjectTreeComponent implements AfterViewInit {
 
   // Map DTOs to internal model
   readonly treeElements = computed(() => {
-    return this.projectStateService.elements().map(mapDtoToProjectElement);
+    const baseElements = this.projectStateService.elements().map(dto => {
+      const element = mapDtoToProjectElement(dto);
+      // Set expanded based on local state stored in expandedNodeIds for folder nodes
+      element.expanded =
+        element.expandable && this.expandedNodeIds.has(element.id);
+      return element;
+    });
+
+    const result = [];
+    const stack = [];
+    // Compute visibility: a node is visible if all its ancestors are expanded
+    for (const element of baseElements) {
+      while (
+        stack.length > 0 &&
+        stack[stack.length - 1].level >= element.level
+      ) {
+        stack.pop();
+      }
+      let visible = true;
+      for (const ancestor of stack) {
+        if (!ancestor.expanded) {
+          visible = false;
+          break;
+        }
+      }
+      element.visible = visible;
+      result.push(element);
+      if (element.expandable) {
+        stack.push(element);
+      }
+    }
+    return result;
   });
 
   // Other service signals
@@ -96,9 +127,6 @@ export class ProjectTreeComponent implements AfterViewInit {
 
   dialog = inject(MatDialog);
   contextItem: ProjectElement | null = null;
-  wasExpandedNodeIds = new Set<string>();
-  private collapseTimer: ReturnType<typeof setTimeout> | null = null;
-  // Track expanded nodes to persist state
   private expandedNodeIds = new Set<string>();
 
   constructor() {
@@ -118,7 +146,7 @@ export class ProjectTreeComponent implements AfterViewInit {
   ngAfterViewInit() {
     // Subscribe to beforeStarted event on the DropListRef
     this.dropList._dropListRef.beforeStarted.subscribe(() => {
-      this.beforeDragStarted();
+      // this.beforeDragStarted();
     });
   }
 
@@ -179,38 +207,6 @@ export class ProjectTreeComponent implements AfterViewInit {
    */
   public onNodeDown(node: ProjectElement) {
     this.selectedItem = node;
-    if (node.type === 'FOLDER' && node.expanded) {
-      // Start a timer to collapse the node after a short delay
-      this.collapseTimer = setTimeout(() => {
-        // Collapse the node
-        if (node.id) this.wasExpandedNodeIds.add(node.id);
-        this.toggleExpanded(node);
-        this.draggedNode = node;
-      }, 950); // Delay slightly less than drag start delay
-    }
-  }
-
-  /**
-   * Handles the mouseup event on a node.
-   */
-  public onNodeUp() {
-    if (this.collapseTimer) {
-      clearTimeout(this.collapseTimer);
-      this.collapseTimer = null;
-    }
-  }
-
-  /**
-   * Prepares for drag start by collapsing expanded nodes if necessary.
-   */
-  public beforeDragStarted() {
-    if (this.selectedItem?.type === 'FOLDER' && this.selectedItem.expanded) {
-      // Remember that we collapsed this node
-      if (this.selectedItem.id) {
-        this.wasExpandedNodeIds.add(this.selectedItem.id);
-      }
-      this.toggleExpanded(this.selectedItem);
-    }
   }
 
   /**
@@ -221,11 +217,6 @@ export class ProjectTreeComponent implements AfterViewInit {
     this.draggedNode = node;
     this.currentDropLevel = node.level;
     this.validLevelsArray = [node.level];
-
-    if (this.collapseTimer) {
-      clearTimeout(this.collapseTimer);
-      this.collapseTimer = null;
-    }
   }
 
   /**
@@ -351,19 +342,6 @@ export class ProjectTreeComponent implements AfterViewInit {
     this.draggedNode = null;
     this.updateDataSource();
     await this.saveChanges();
-  }
-
-  /**
-   * Handles the drag end event.
-   */
-  public dragEnded() {
-    if (
-      this.draggedNode?.id &&
-      this.wasExpandedNodeIds.has(this.draggedNode.id)
-    ) {
-      this.toggleExpanded(this.draggedNode);
-      this.wasExpandedNodeIds.delete(this.draggedNode.id);
-    }
   }
 
   /**
