@@ -10,10 +10,6 @@ import { ProjectDto, UserDto } from '@worm/index';
 import { of } from 'rxjs';
 
 import { ProjectAPIService } from '../../../api-client/api/project-api.service';
-import {
-  ProjectArchiveError,
-  ProjectArchiveErrorType,
-} from '../../models/project-archive';
 import { ProjectImportExportService } from '../../services/project-import-export.service';
 import { EditProjectDialogComponent } from './edit-project-dialog.component';
 
@@ -106,109 +102,6 @@ describe('EditProjectDialogComponent', () => {
     expect(component.form.get('description')?.value).toBe(
       mockProject.description
     );
-  });
-
-  describe('export functionality', () => {
-    it('should export project successfully', async () => {
-      importExportService.exportProject.mockResolvedValue(undefined);
-
-      await component.onExportClick();
-
-      expect(importExportService.exportProjectZip).toHaveBeenCalled();
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Project exported successfully',
-        'Close',
-        expect.any(Object)
-      );
-    });
-
-    it('should show error on export failure', async () => {
-      const error = new ProjectArchiveError(
-        ProjectArchiveErrorType.FileSystemError,
-        'Export failed'
-      );
-      importExportService.exportProjectZip.mockRejectedValue(error);
-
-      await component.onExportClick();
-
-      expect(importExportService.exportProjectZip).toHaveBeenCalled();
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Failed to export project: Export failed',
-        'Close',
-        expect.any(Object)
-      );
-    });
-  });
-
-  describe('import functionality', () => {
-    it('should trigger file input click on import button click', () => {
-      const clickSpy = jest.spyOn(component.fileInput.nativeElement, 'click');
-
-      component.onImportClick();
-
-      expect(clickSpy).toHaveBeenCalled();
-    });
-
-    it('should import project successfully', async () => {
-      const file = new File(['{}'], 'project.json', {
-        type: 'application/json',
-      });
-      importExportService.importProject.mockResolvedValue(undefined);
-
-      const event = new Event('change');
-      Object.defineProperty(event, 'target', {
-        value: { files: [file] },
-      });
-
-      await component.onFileSelected(event);
-
-      expect(importExportService.importProject).toHaveBeenCalledWith(file);
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Project imported successfully',
-        'Close',
-        expect.any(Object)
-      );
-      expect(dialogRef.close).toHaveBeenCalled();
-    });
-
-    it('should show error on import failure', async () => {
-      const file = new File(['{}'], 'project.json', {
-        type: 'application/json',
-      });
-      const error = new ProjectArchiveError(
-        ProjectArchiveErrorType.InvalidFormat,
-        'Invalid format'
-      );
-      importExportService.importProject.mockRejectedValue(error);
-
-      const event = new Event('change');
-      Object.defineProperty(event, 'target', {
-        value: { files: [file] },
-      });
-
-      await component.onFileSelected(event);
-
-      expect(importExportService.importProject).toHaveBeenCalledWith(file);
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Failed to import project: Invalid format',
-        'Close',
-        expect.any(Object)
-      );
-      expect(dialogRef.close).not.toHaveBeenCalled();
-    });
-
-    it('should do nothing if no file is selected', async () => {
-      const event = new Event('change');
-      Object.defineProperty(event, 'target', {
-        value: { files: [] },
-      });
-
-      await component.onFileSelected(event);
-
-      expect(importExportService.importProject).not.toHaveBeenCalled();
-      expect(snackBar.open).not.toHaveBeenCalled();
-      expect(dialogRef.close).not.toHaveBeenCalled();
-    });
   });
 
   describe('save functionality', () => {

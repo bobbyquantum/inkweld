@@ -90,7 +90,12 @@
 
               <div class="start-actions">
                 <button mat-button color="primary">New File</button>
-                <button mat-button color="primary">Import File</button>
+                <button mat-button color="primary" (click)="onExportClick()">
+                  Export Project
+                </button>
+                <button mat-button color="primary" (click)="onImportClick()">
+                  Import Project
+                </button>
               </div>
             </div>
             <div class="home-column">

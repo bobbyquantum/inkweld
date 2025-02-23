@@ -126,38 +126,6 @@ export class EditProjectDialogComponent implements OnInit {
     }
   }
 
-  async onExportClick(): Promise<void> {
-    try {
-      await this.importExportService.exportProjectZip();
-      this.showSuccess('Project exported successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      this.showError(`Failed to export project: ${message}`);
-    }
-  }
-
-  onImportClick(): void {
-    this.fileInput.nativeElement.click();
-  }
-
-  async onFileSelected(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-
-    try {
-      await this.importExportService.importProject(file);
-      this.showSuccess('Project imported successfully');
-      this.dialogRef.close();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      this.showError(`Failed to import project: ${message}`);
-    } finally {
-      // Clear the input so the same file can be selected again
-      input.value = '';
-    }
-  }
-
   private showError(message: string): void {
     this.snackBar.open(message, 'Close', {
       duration: 5000,

@@ -13,40 +13,6 @@
       <textarea matInput formControlName="description"></textarea>
     </mat-form-field>
   </form>
-
-  <div class="import-export-section">
-    <div class="section-title">Project Data</div>
-    <div class="button-group">
-      <button
-        mat-stroked-button
-        color="primary"
-        [disabled]="importExportService.isProcessing()"
-        (click)="onExportClick()">
-        <mat-icon>download</mat-icon>
-        Export Project
-      </button>
-      <button
-        mat-stroked-button
-        color="primary"
-        [disabled]="importExportService.isProcessing()"
-        (click)="onImportClick()">
-        <mat-icon>upload</mat-icon>
-        Import Project
-      </button>
-    </div>
-    <input
-      #fileInput
-      type="file"
-      accept="application/json"
-      style="display: none"
-      (change)="onFileSelected($event)" />
-    @if (importExportService.isProcessing()) {
-      <mat-progress-bar
-        mode="determinate"
-        [value]="importExportService.progress()">
-      </mat-progress-bar>
-    }
-  </div>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
