@@ -389,5 +389,83 @@ describe('ProjectImportExportService', () => {
       );
       expect(service.isProcessing()).toBe(false);
     });
+    describe('updateProjectState', () => {
+      it('should warn when ITEM content is missing and not call documentService.importDocument', () => {
+        const archive = {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          project: { title: 'Project', description: 'Desc', slug: 'project' },
+          elements: [
+            {
+              id: 'itemMissing',
+              name: 'Missing Item',
+              type: 'ITEM',
+              position: 0,
+              level: 0,
+              version: 1,
+              expandable: false,
+              metadata: {},
+            },
+          ],
+        };
+        jest.spyOn(console, 'warn');
+        (service as any).updateProjectState(archive);
+        expect(console.warn).toHaveBeenCalledWith(
+          'Document content is missing for item:',
+          'itemMissing'
+        );
+      });
+
+      it('should call documentService.importDocument for ITEM with valid string content', () => {
+        const archive = {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          project: { title: 'Project', description: 'Desc', slug: 'project' },
+          elements: [
+            {
+              id: 'itemValid',
+              name: 'Valid Item',
+              type: 'ITEM',
+              position: 0,
+              level: 0,
+              version: 1,
+              expandable: false,
+              metadata: {},
+              content: 'valid content',
+            },
+          ],
+        };
+        jest.spyOn(mockDocumentService, 'importDocument');
+        (service as any).updateProjectState(archive);
+        expect(mockDocumentService.importDocument).toHaveBeenCalledWith(
+          'itemValid',
+          JSON.stringify('valid content')
+        );
+      });
+
+      it('should throw error when ITEM content is not a string', () => {
+        const archive = {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          project: { title: 'Project', description: 'Desc', slug: 'project' },
+          elements: [
+            {
+              id: 'itemInvalid',
+              name: 'Invalid Item',
+              type: 'ITEM',
+              position: 0,
+              level: 0,
+              version: 1,
+              expandable: false,
+              metadata: {},
+              content: { text: 'not a string' },
+            },
+          ],
+        };
+        expect(() => (service as any).updateProjectState(archive)).toThrow(
+          'Document content is not a string'
+        );
+      });
+    });
   });
 });
