@@ -305,12 +305,26 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param event The drag drop event.
    */
   public async drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {
-    // Check if confirmation is enabled
+    const { currentIndex, container, item } = event;
+    const sortedNodes = container
+      .getSortedItems()
+      .map(dragItem => dragItem.data as ProjectElement)
+      .filter(node => node.id !== this.draggedNode?.id);
+    const nodeAbove = sortedNodes[currentIndex - 1] || null;
+    const node = item.data as ProjectElement;
+
+    // Always validate the drop before confirmation
+    if (
+      !this.projectStateService.isValidDrop(nodeAbove, this.currentDropLevel)
+    ) {
+      return;
+    }
+
+    // Check if confirmation is enabled after validating drop
     const confirmElementMoves = this.settingsService.getSetting<boolean>(
       'confirmElementMoves',
       false
     );
-
     if (confirmElementMoves) {
       const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
         data: {
@@ -322,20 +336,6 @@ export class ProjectTreeComponent implements AfterViewInit {
       });
       const result = (await firstValueFrom(dialogRef.afterClosed())) as boolean;
       if (!result) return;
-    }
-
-    const { currentIndex, container, item } = event;
-    const sortedNodes = container
-      .getSortedItems()
-      .map(dragItem => dragItem.data as ProjectElement)
-      .filter(node => node.id !== this.draggedNode?.id);
-    const nodeAbove = sortedNodes[currentIndex - 1] || null;
-    const node = item.data as ProjectElement;
-
-    if (
-      !this.projectStateService.isValidDrop(nodeAbove, this.currentDropLevel)
-    ) {
-      return;
     }
 
     const insertIndex = this.projectStateService.getDropInsertIndex(
