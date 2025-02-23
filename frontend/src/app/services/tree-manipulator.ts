@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 
-import { ProjectElement } from '../../models/project-element';
+import { ProjectElement } from '../models/project-element';
 export interface ValidDropLevels {
   levels: number[];
   defaultLevel: number;

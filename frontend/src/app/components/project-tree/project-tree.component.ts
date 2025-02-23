@@ -41,7 +41,6 @@ import {
   ProjectElement,
 } from '../../models/project-element';
 import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
-import { TreeManipulator } from './tree-manipulator';
 
 /**
  * Component for displaying and managing the project tree.
@@ -88,7 +87,6 @@ export class ProjectTreeComponent implements AfterViewInit {
 
   dataSource: ArrayDataSource<ProjectElement>;
   readonly settingsService = inject(SettingsService);
-  treeManipulator!: TreeManipulator;
 
   selectedItem: ProjectElement | null = null;
   currentDropLevel = 0;
@@ -129,7 +127,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    */
   updateDataSource(): void {
     this.dataSource = new ArrayDataSource<ProjectElement>(
-      this.treeManipulator.getData().filter(x => x.visible)
+      this.treeElements().filter(x => x.visible)
     );
   }
 
@@ -147,7 +145,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The project element to toggle.
    */
   toggleExpanded(node: ProjectElement) {
-    this.treeManipulator.toggleExpanded(node);
+    this.projectStateService.toggleExpanded(node);
     // Track expanded state
     if (node.id) {
       if (node.expanded) {
@@ -163,26 +161,16 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Creates a new item as a child of the specified node.
    * @param node The parent node to add a new item to.
    */
-  public async onNewItem(node: ProjectElement) {
-    const newItem = this.treeManipulator.addNode('ITEM', node);
-    this.updateDataSource();
-    await this.saveChanges();
-
-    // Start renaming the new item
-    await this.onRename(newItem);
+  public onNewItem(node: ProjectElement) {
+    this.projectStateService.showNewElementDialog(node);
   }
 
   /**
    * Creates a new folder as a child of the specified node.
    * @param node The parent node to add a new folder to.
    */
-  public async onNewFolder(node: ProjectElement) {
-    const newFolder = this.treeManipulator.addNode('FOLDER', node);
-    this.updateDataSource();
-    await this.saveChanges();
-
-    // Start renaming the new folder
-    await this.onRename(newFolder);
+  public onNewFolder(node: ProjectElement) {
+    this.projectStateService.showNewElementDialog(node);
   }
 
   /**
@@ -306,10 +294,8 @@ export class ProjectTreeComponent implements AfterViewInit {
       nodeBelow: nodeBelow?.name,
     });
 
-    const { levels, defaultLevel } = this.treeManipulator.getValidDropLevels(
-      nodeAbove,
-      nodeBelow
-    );
+    const { levels, defaultLevel } =
+      this.projectStateService.getValidDropLevels(nodeAbove, nodeBelow);
     this.validLevelsArray = levels;
     this.currentDropLevel = defaultLevel;
   }
@@ -346,16 +332,22 @@ export class ProjectTreeComponent implements AfterViewInit {
     const nodeAbove = sortedNodes[currentIndex - 1] || null;
     const node = item.data as ProjectElement;
 
-    if (!this.treeManipulator.isValidDrop(nodeAbove, this.currentDropLevel)) {
+    if (
+      !this.projectStateService.isValidDrop(nodeAbove, this.currentDropLevel)
+    ) {
       return;
     }
 
-    const insertIndex = this.treeManipulator.getDropInsertIndex(
+    const insertIndex = this.projectStateService.getDropInsertIndex(
       nodeAbove,
       this.currentDropLevel
     );
 
-    this.treeManipulator.moveNode(node, insertIndex, this.currentDropLevel);
+    await this.projectStateService.moveTreeElement(
+      node,
+      insertIndex,
+      this.currentDropLevel
+    );
     this.draggedNode = null;
     this.updateDataSource();
     await this.saveChanges();
@@ -392,8 +384,7 @@ export class ProjectTreeComponent implements AfterViewInit {
 
     const newName = await firstValueFrom(dialogRef.afterClosed());
     if (newName) {
-      this.treeManipulator.renameNode(node, newName);
-      this.updateDataSource();
+      await this.projectStateService.renameTreeElement(node, newName);
       await this.saveChanges();
     }
   }
@@ -415,8 +406,7 @@ export class ProjectTreeComponent implements AfterViewInit {
 
     const result = (await firstValueFrom(dialogRef.afterClosed())) as boolean;
     if (result) {
-      this.treeManipulator.deleteNode(node);
-      this.updateDataSource();
+      await this.projectStateService.deleteTreeElement(node);
       await this.saveChanges();
     }
   }
@@ -463,16 +453,12 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Initializes or reinitializes the tree with current data.
    */
   private initializeTree() {
-    this.treeManipulator = new TreeManipulator(this.treeElements());
-
-    // Restore expanded state for nodes
-    this.treeManipulator.getData().forEach(node => {
+    // Restore expanded state for nodes from expandedNodeIds
+    this.treeElements().forEach(node => {
       if (node.id && this.expandedNodeIds.has(node.id)) {
         node.expanded = true;
       }
     });
-
-    this.treeManipulator.updateVisibility();
     this.updateDataSource();
   }
 
@@ -480,7 +466,7 @@ export class ProjectTreeComponent implements AfterViewInit {
    * Saves the current tree state to the backend.
    */
   private async saveChanges() {
-    const elements = this.treeManipulator.getData();
+    const elements = this.treeElements();
 
     // Get project info from URL or service
     const urlParts = window.location.pathname.split('/');
