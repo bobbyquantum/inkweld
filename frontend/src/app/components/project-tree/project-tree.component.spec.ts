@@ -10,15 +10,14 @@ import { provideHttpClient } from '@angular/common/http';
 import { signal, WritableSignal } from '@angular/core';
 import { fakeAsync, tick } from '@angular/core/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
 import { ProjectAPIService } from '@worm/index';
-import { of } from 'rxjs';
 
 import { projectServiceMock } from '../../../testing/project-api.mock';
 import { ProjectElement } from '../../models/project-element';
+import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { ProjectTreeComponent } from './project-tree.component';
 
 describe('ProjectTreeComponent', () => {
@@ -31,7 +30,7 @@ describe('ProjectTreeComponent', () => {
   let loadingSignal: WritableSignal<boolean>;
   let savingSignal: WritableSignal<boolean>;
   let errorSignal: WritableSignal<string | undefined>;
-  let mockDialogRef: MatDialogRef<unknown, unknown>;
+  let dialogGatewayService: jest.Mocked<DialogGatewayService>;
 
   const mockDto: ProjectElement = {
     id: '1',
@@ -44,23 +43,6 @@ describe('ProjectTreeComponent', () => {
     metadata: {},
     visible: true,
   };
-
-  const createMockDialogRef = (returnValue: unknown = true) =>
-    ({
-      afterClosed: jest.fn().mockReturnValue(of(returnValue)),
-      close: jest.fn(),
-      componentInstance: {},
-      _containerInstance: {},
-      _ref: {},
-      id: 'mock-dialog',
-      backdropClick: of(),
-      keydownEvents: of(),
-      updatePosition: jest.fn(),
-      updateSize: jest.fn(),
-      addPanelClass: jest.fn(),
-      removePanelClass: jest.fn(),
-      getState: jest.fn(),
-    }) as unknown as MatDialogRef<unknown, unknown>;
 
   const setupTestBed = async () => {
     Object.defineProperty(window, 'location', {
@@ -102,6 +84,13 @@ describe('ProjectTreeComponent', () => {
       isValidDrop: jest.fn().mockReturnValue(true),
     } as unknown as jest.Mocked<ProjectStateService>;
 
+    dialogGatewayService = {
+      openConfirmationDialog: jest.fn().mockResolvedValue(true),
+      openRenameDialog: jest.fn().mockResolvedValue('New Name'),
+      openEditProjectDialog: jest.fn().mockResolvedValue(null),
+      openNewElementDialog: jest.fn().mockResolvedValue(null),
+    } as unknown as jest.Mocked<DialogGatewayService>;
+
     await TestBed.configureTestingModule({
       imports: [ProjectTreeComponent, NoopAnimationsModule],
       providers: [
@@ -109,13 +98,13 @@ describe('ProjectTreeComponent', () => {
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: ProjectAPIService, useValue: projectServiceMock },
         provideHttpClient(),
+        { provide: DialogGatewayService, useValue: dialogGatewayService },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ProjectTreeComponent);
     component = fixture.componentInstance;
-    mockDialogRef = createMockDialogRef();
-    jest.spyOn(component.dialog, 'open').mockReturnValue(mockDialogRef);
+    fixture.detectChanges();
   };
 
   beforeEach(async () => {
@@ -187,29 +176,29 @@ describe('ProjectTreeComponent', () => {
         expect(projectStateService.getDropInsertIndex).toHaveBeenCalled();
         tick();
         expect(projectStateService.moveElement).toHaveBeenCalled();
-        expect(component.dialog.open).not.toHaveBeenCalled();
+        expect(
+          dialogGatewayService.openConfirmationDialog
+        ).not.toHaveBeenCalled();
       }));
 
       it('should show confirmation dialog when confirmElementMoves is enabled', fakeAsync(() => {
         settingsService.getSetting.mockReturnValue(true); // confirmElementMoves enabled
-        const mockConfirmRef = createMockDialogRef(true);
-        jest.spyOn(component.dialog, 'open').mockReturnValue(mockConfirmRef);
+        dialogGatewayService.openConfirmationDialog.mockResolvedValue(true);
 
         const event = createTestDragEvent();
         void component.drop(event);
         expect(projectStateService.isValidDrop).toHaveBeenCalled();
-        expect(component.dialog.open).toHaveBeenCalled();
+        expect(dialogGatewayService.openConfirmationDialog).toHaveBeenCalled();
       }));
 
       it('should not move element when confirmation is cancelled', fakeAsync(() => {
         settingsService.getSetting.mockReturnValue(true); // confirmElementMoves enabled
-        const mockConfirmRef = createMockDialogRef(false);
-        jest.spyOn(component.dialog, 'open').mockReturnValue(mockConfirmRef);
+        dialogGatewayService.openConfirmationDialog.mockResolvedValue(false);
 
         const event = createTestDragEvent();
         void component.drop(event);
         expect(projectStateService.isValidDrop).toHaveBeenCalled();
-        expect(component.dialog.open).toHaveBeenCalled();
+        expect(dialogGatewayService.openConfirmationDialog).toHaveBeenCalled();
         tick();
         expect(projectStateService.moveElement).not.toHaveBeenCalled();
       }));
