@@ -5,6 +5,7 @@ import {
   AfterViewInit,
   Component,
   effect,
+  ElementRef,
   HostListener,
   inject,
   OnDestroy,
@@ -26,6 +27,7 @@ import { DocumentElementEditorComponent } from '@components/document-element-edi
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { DocumentService } from '@services/document.service';
+import { ProjectImportExportService } from '@services/project-import-export.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
 import { firstValueFrom, Subject, Subscription, takeUntil } from 'rxjs';
@@ -58,6 +60,8 @@ import { DocumentSyncState } from '../../models/document-sync-state';
 })
 export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+
   public readonly isMobile = signal(false);
   protected readonly projectState = inject(ProjectStateService);
   protected readonly DocumentSyncState = DocumentSyncState;
@@ -68,6 +72,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly dialog = inject(MatDialog);
   protected readonly title = inject(Title);
   protected readonly router = inject(Router);
+  protected readonly importExportService = inject(ProjectImportExportService);
 
   protected destroy$ = new Subject<void>();
   private paramsSubscription?: Subscription;
@@ -217,6 +222,27 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   exitProject() {
     void this.router.navigate(['/']);
+  }
+
+  public onExportClick(): void {
+    const project = this.projectState.project();
+    if (project) {
+      void this.importExportService.exportProjectZip();
+    }
+  }
+
+  public onImportClick(): void {
+    this.fileInput?.nativeElement.click();
+  }
+
+  public onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const project = this.projectState.project();
+      if (project) {
+        void this.importExportService.importProjectZip(input.files[0]);
+      }
+    }
   }
 
   openEditDialog() {
