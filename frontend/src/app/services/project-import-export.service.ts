@@ -155,7 +155,7 @@ export class ProjectImportExportService {
       this.progress.set(60);
 
       // Update project state
-      await this.updateProjectState(archive);
+      this.updateProjectState(archive);
 
       this.progress.set(100);
     } catch (error) {
@@ -203,7 +203,7 @@ export class ProjectImportExportService {
       this.progress.set(60);
 
       // Update project state
-      await this.updateProjectState(archive);
+      this.updateProjectState(archive);
 
       this.progress.set(100);
     } catch (error) {
@@ -286,7 +286,7 @@ export class ProjectImportExportService {
    * @param archive Validated ProjectArchive object
    * @private
    */
-  private async updateProjectState(archive: ProjectArchive): Promise<void> {
+  private updateProjectState(archive: ProjectArchive): void {
     // Convert archive to DTO format
     const projectDto: ProjectDto = {
       title: archive.project.title,
@@ -325,8 +325,8 @@ export class ProjectImportExportService {
     }
 
     // Update project state
-    // await this.projectStateService.updateProject(projectDto);
-    // this.projectStateService.updateElements(elements);
+    this.projectStateService.updateProject(projectDto);
+    this.projectStateService.updateElements(elements);
   }
 
   /**
