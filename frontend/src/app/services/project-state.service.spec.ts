@@ -223,4 +223,154 @@ describe('ProjectStateService', () => {
       );
     });
   });
+
+  describe('Visible Elements', () => {
+    it('should return empty array when no elements exist', () => {
+      service.elements.set([]);
+      expect(service.visibleElements()).toEqual([]);
+    });
+
+    it('should show root level elements', () => {
+      const rootElement: ProjectElementDto = {
+        id: 'root',
+        name: 'Root',
+        type: ProjectElementDto.TypeEnum.Folder,
+        level: 0,
+        position: 0,
+        expandable: true,
+        version: 0,
+        metadata: {},
+      };
+
+      service.elements.set([rootElement]);
+      const visible = service.visibleElements();
+
+      expect(visible).toHaveLength(1);
+      expect(visible[0].id).toBe('root');
+      expect(visible[0].expanded).toBe(false);
+    });
+
+    it('should show children when parent is expanded', () => {
+      const parent: ProjectElementDto = {
+        id: 'parent',
+        name: 'Parent',
+        type: ProjectElementDto.TypeEnum.Folder,
+        level: 0,
+        position: 0,
+        expandable: true,
+        version: 0,
+        metadata: {},
+      };
+
+      const child: ProjectElementDto = {
+        id: 'child',
+        name: 'Child',
+        type: ProjectElementDto.TypeEnum.Item,
+        level: 1,
+        position: 1,
+        expandable: false,
+        version: 0,
+        metadata: {},
+      };
+
+      service.elements.set([parent, child]);
+      service.setExpanded('parent', true);
+      const visible = service.visibleElements();
+
+      expect(visible).toHaveLength(2);
+      expect(visible[0].id).toBe('parent');
+      expect(visible[0].expanded).toBe(true);
+      expect(visible[1].id).toBe('child');
+    });
+
+    it('should hide children when parent is collapsed', () => {
+      const parent: ProjectElementDto = {
+        id: 'parent',
+        name: 'Parent',
+        type: ProjectElementDto.TypeEnum.Folder,
+        level: 0,
+        position: 0,
+        expandable: true,
+        version: 0,
+        metadata: {},
+      };
+
+      const child: ProjectElementDto = {
+        id: 'child',
+        name: 'Child',
+        type: ProjectElementDto.TypeEnum.Item,
+        level: 1,
+        position: 1,
+        expandable: false,
+        version: 0,
+        metadata: {},
+      };
+
+      service.elements.set([parent, child]);
+      const visible = service.visibleElements();
+
+      expect(visible).toHaveLength(1);
+      expect(visible[0].id).toBe('parent');
+      expect(visible[0].expanded).toBe(false);
+    });
+
+    it('should handle multiple levels of nesting with mixed expanded states', () => {
+      const elements: ProjectElementDto[] = [
+        {
+          id: 'root',
+          name: 'Root',
+          type: ProjectElementDto.TypeEnum.Folder,
+          level: 0,
+          position: 0,
+          expandable: true,
+          version: 0,
+          metadata: {},
+        },
+        {
+          id: 'child1',
+          name: 'Child 1',
+          type: ProjectElementDto.TypeEnum.Folder,
+          level: 1,
+          position: 1,
+          expandable: true,
+          version: 0,
+          metadata: {},
+        },
+        {
+          id: 'grandchild1',
+          name: 'Grandchild 1',
+          type: ProjectElementDto.TypeEnum.Item,
+          level: 2,
+          position: 2,
+          expandable: false,
+          version: 0,
+          metadata: {},
+        },
+        {
+          id: 'child2',
+          name: 'Child 2',
+          type: ProjectElementDto.TypeEnum.Folder,
+          level: 1,
+          position: 3,
+          expandable: true,
+          version: 0,
+          metadata: {},
+        },
+      ];
+
+      service.elements.set(elements);
+      service.setExpanded('root', true);
+      service.setExpanded('child1', true);
+      const visible = service.visibleElements();
+
+      expect(visible).toHaveLength(4);
+      expect(visible[0].id).toBe('root');
+      expect(visible[0].expanded).toBe(true);
+      expect(visible[1].id).toBe('child1');
+      expect(visible[1].expanded).toBe(true);
+      expect(visible[2].id).toBe('grandchild1');
+      expect(visible[3].id).toBe('child2');
+      expect(visible[3].expanded).toBe(false);
+    });
+  });
 });
