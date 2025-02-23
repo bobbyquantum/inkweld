@@ -14,7 +14,6 @@ import {
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
@@ -30,12 +29,11 @@ import { DocumentService } from '@services/document.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { ProjectDto, ProjectElementDto } from '@worm/index';
-import { firstValueFrom, Subject, Subscription, takeUntil } from 'rxjs';
+import { Subject, Subscription, takeUntil } from 'rxjs';
 
 import { ImageElementEditorComponent } from '../../components/image-element-editor/image-element-editor.component';
-import { ConfirmationDialogComponent } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
-import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { DialogGatewayService } from '../../services/dialog-gateway.service';
 
 @Component({
   selector: 'app-project',
@@ -43,7 +41,6 @@ import { DocumentSyncState } from '../../models/document-sync-state';
   styleUrls: ['./project.component.scss'],
   imports: [
     MatButtonModule,
-    MatDialogModule,
     MatSidenavModule,
     MatTabsModule,
     MatIconModule,
@@ -69,12 +66,12 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly breakpointObserver = inject(BreakpointObserver);
   protected readonly snackBar = inject(MatSnackBar);
   protected readonly route = inject(ActivatedRoute);
-  protected readonly dialog = inject(MatDialog);
   protected readonly title = inject(Title);
   protected readonly router = inject(Router);
   protected readonly importExportService = inject(ProjectImportExportService);
 
   protected destroy$ = new Subject<void>();
+  private readonly dialogGateway = inject(DialogGatewayService);
   private paramsSubscription?: Subscription;
   private syncSubscription?: Subscription;
   private hasUnsavedChanges = false;
@@ -130,16 +127,14 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       return true;
     }
 
-    const dialogRef = this.dialog.open<
-      ConfirmationDialogComponent,
-      void,
-      boolean
-    >(ConfirmationDialogComponent, {
-      disableClose: true,
+    const confirmed = await this.dialogGateway.openConfirmationDialog({
+      title: 'Unsaved Changes',
+      message: 'You have unsaved changes. Are you sure you want to leave?',
+      confirmText: 'Leave',
+      cancelText: 'Stay',
     });
 
-    const result = await firstValueFrom(dialogRef.afterClosed());
-    return result ?? false;
+    return confirmed;
   }
 
   ngOnInit() {
@@ -253,22 +248,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     const project = this.projectState.project();
     if (!project) return;
 
-    const dialogRef = this.dialog.open(EditProjectDialogComponent, {
-      data: project,
-      width: '500px',
-    });
-    void dialogRef.afterClosed().subscribe(updatedProject => {
-      if (updatedProject) {
-        console.log('Project updated successfully', updatedProject);
-        // Refresh the project data
-        const currentProject = this.projectState.project();
-        if (currentProject?.user?.username && currentProject?.slug)
-          void this.projectState.loadProject(
-            currentProject.user.username,
-            currentProject.slug
-          );
-      }
-    });
+    void this.dialogGateway.openEditProjectDialog(project);
   }
 
   private getSidenavWidth = (): number => {

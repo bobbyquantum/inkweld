@@ -1,6 +1,4 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
-import { EditProjectDialogComponent } from '@dialogs/edit-project-dialog/edit-project-dialog.component';
 import { ProjectAPIService, ProjectDto, ProjectElementDto } from '@worm/index';
 import { ProjectElement } from 'app/models/project-element';
 import { nanoid } from 'nanoid';
@@ -10,11 +8,8 @@ import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
 import { environment } from '../../environments/environment';
-import {
-  NewElementDialogComponent,
-  NewElementDialogResult,
-} from '../dialogs/new-element-dialog/new-element-dialog.component';
 import { DocumentSyncState } from '../models/document-sync-state';
+import { DialogGatewayService } from './dialog-gateway.service';
 export interface ValidDropLevels {
   levels: number[];
   defaultLevel: number;
@@ -87,7 +82,7 @@ export class ProjectStateService {
 
   // Services
   private projectAPIService = inject(ProjectAPIService);
-  private dialog = inject(MatDialog);
+  private dialogGateway = inject(DialogGatewayService);
 
   // Project Loading and Initialization
   async loadProject(username: string, slug: string): Promise<void> {
@@ -436,37 +431,26 @@ export class ProjectStateService {
 
   // Dialog Handlers
   showNewElementDialog(parentElement?: ProjectElementDto): void {
-    const dialogRef = this.dialog.open<
-      NewElementDialogComponent,
-      { parentElement?: ProjectElementDto },
-      NewElementDialogResult
-    >(NewElementDialogComponent, {
-      width: '400px',
-      data: { parentElement },
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
+    void this.dialogGateway.openNewElementDialog().then(result => {
       if (result) {
         void this.addElement(
           result.type,
           result.name,
           parentElement?.id,
-          result?.file ?? undefined
+          result.file ?? undefined
         );
       }
     });
   }
 
   showEditProjectDialog(): void {
-    const dialogRef = this.dialog.open(EditProjectDialogComponent, {
-      data: this.project(),
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        void this.updateProject(result as ProjectDto);
-      }
-    });
+    void this.dialogGateway
+      .openEditProjectDialog(this.project()!)
+      .then(result => {
+        if (result) {
+          void this.updateProject(result);
+        }
+      });
   }
   private async uploadImageFile(elementId: string, file: File): Promise<void> {
     const project = this.project();

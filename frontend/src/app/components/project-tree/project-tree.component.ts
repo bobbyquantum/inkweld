@@ -19,7 +19,6 @@ import {
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
@@ -28,14 +27,9 @@ import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
 import { ProjectElementDto } from '@worm/index';
-import { firstValueFrom } from 'rxjs';
 
-import { ConfirmationDialogComponent } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
-import {
-  RenameDialogComponent,
-  RenameDialogData,
-} from '../../dialogs/rename-dialog/rename-dialog.component';
 import { ProjectElement } from '../../models/project-element';
+import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
 
 /**
@@ -90,8 +84,8 @@ export class ProjectTreeComponent {
   draggedNode: ProjectElement | null = null;
   levelWidth = 24; // Width in pixels for each level of indentation
 
-  dialog = inject(MatDialog);
   contextItem: ProjectElement | null = null;
+  private dialogGateway = inject(DialogGatewayService);
 
   constructor() {
     this.dataSource = new ArrayDataSource<ProjectElement>([]);
@@ -239,16 +233,14 @@ export class ProjectTreeComponent {
       false
     );
     if (confirmElementMoves) {
-      const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-        data: {
-          title: 'Confirm Move',
-          message: 'Are you sure you want to move this item?',
-          confirmText: 'Move',
-          cancelText: 'Cancel',
-        },
+      const confirmed = await this.dialogGateway.openConfirmationDialog({
+        title: 'Confirm Move',
+        message: 'Are you sure you want to move this item?',
+        confirmText: 'Move',
+        cancelText: 'Cancel',
       });
-      const result = (await firstValueFrom(dialogRef.afterClosed())) as boolean;
-      if (!result) return;
+
+      if (!confirmed) return;
     }
 
     const insertIndex = this.projectStateService.getDropInsertIndex(
@@ -271,18 +263,11 @@ export class ProjectTreeComponent {
    * @param node The node to rename.
    */
   public async onRename(node: ProjectElement) {
-    const dialogRef = this.dialog.open<
-      RenameDialogComponent,
-      RenameDialogData,
-      string
-    >(RenameDialogComponent, {
-      data: {
-        currentName: node.name,
-        title: `Rename ${node.expandable ? 'Folder' : 'Item'}`,
-      },
+    const newName = await this.dialogGateway.openRenameDialog({
+      currentName: node.name,
+      title: `Rename ${node.expandable ? 'Folder' : 'Item'}`,
     });
 
-    const newName = await firstValueFrom(dialogRef.afterClosed());
     if (newName) {
       // await this.projectStateService.renameTreeElement(node, newName);
       // await this.saveChanges();
@@ -294,17 +279,14 @@ export class ProjectTreeComponent {
    * @param node The node to delete.
    */
   public async onDelete(node: ProjectElement) {
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-      data: {
-        title: 'Confirm Delete' as const,
-        message:
-          `Are you sure you want to delete "${node.name}"? This action cannot be undone.` as const,
-        confirmText: 'Delete' as const,
-        cancelText: 'Cancel' as const,
-      },
+    const confirmed = await this.dialogGateway.openConfirmationDialog({
+      title: 'Confirm Delete',
+      message: `Are you sure you want to delete "${node.name}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
     });
 
-    const result = (await firstValueFrom(dialogRef.afterClosed())) as boolean;
+    const result = confirmed;
     if (result) {
       this.projectStateService.deleteElement(node.id);
     }
