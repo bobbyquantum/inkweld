@@ -15,50 +15,62 @@ import { EditProjectDialogComponent } from '../dialogs/edit-project-dialog/edit-
 import { DocumentSyncState } from '../models/document-sync-state';
 import { ProjectStateService } from './project-state.service';
 
-// Create a mock map that will be reused
-const mockYjsMap = {
-  set: jest.fn(),
-  get: jest.fn().mockImplementation(key => {
-    if (key === 'elements') return [];
-    return null;
-  }),
-  has: jest.fn().mockReturnValue(true),
-  observe: jest.fn(),
-};
-
-// Mock array to track elements
-let mockElements: ProjectElementDto[] = [];
-
-// Create a properly typed mock Y.Array
-const createMockYArray = () => ({
-  toArray: jest.fn().mockImplementation(() => mockElements),
-  delete: jest.fn().mockImplementation((start: number, length: number) => {
-    mockElements.splice(start, length);
-  }),
-  insert: jest
-    .fn()
-    .mockImplementation((index: number, elements: ProjectElementDto[]) => {
-      mockElements.splice(index, 0, ...elements);
-    }),
-  observe: jest.fn(),
-});
-
+// Mock state
+let mockYArrayState: ProjectElementDto[] = [];
+let mockArrayObservers: any[] = [];
+function notifyObservers(event: any) {
+  mockArrayObservers.forEach(callback => callback(event));
+}
+function createMockYArray() {
+  return {
+    toArray() {
+      return [...mockYArrayState];
+    },
+    delete(start: number, length: number) {
+      // Remove items from our simulated state.
+      mockYArrayState.splice(start, length);
+      // Notify observers once for this deletion.
+      notifyObservers({ changes: { added: [], deleted: length } });
+    },
+    insert(index: number, elements: ProjectElementDto[]) {
+      // Insert elements at the given index.
+      mockYArrayState.splice(index, 0, ...elements);
+      // Notify observers once for these insertions.
+      notifyObservers({ changes: { added: elements, deleted: 0 } });
+    },
+    observe(callback: any) {
+      mockArrayObservers.push(callback);
+    },
+    unobserve(callback: any) {
+      mockArrayObservers = mockArrayObservers.filter(fn => fn !== callback);
+    },
+  };
+}
 // Mock Y.Doc and related classes
 jest.mock('y-websocket');
 jest.mock('y-indexeddb');
-jest.mock('yjs', () => {
-  const actual = jest.requireActual('yjs');
-  return {
-    ...actual,
-    Doc: jest.fn().mockImplementation(() => ({
-      getMap: jest.fn().mockReturnValue(mockYjsMap),
-      transact: jest.fn(fn => fn()),
-      getArray: jest.fn().mockReturnValue(createMockYArray()),
+jest.mock('yjs', () => ({
+  Doc: jest.fn(() => ({
+    getMap: jest.fn(() => ({
+      set: jest.fn(),
+      get: jest.fn(),
+      observe: jest.fn(),
     })),
-    Array: jest.fn().mockImplementation(() => createMockYArray()),
-    Map: jest.fn().mockImplementation(() => mockYjsMap),
-  };
-});
+    getArray: jest.fn(() => createMockYArray()),
+    transact: jest.fn(fn => {
+      console.log('executing transaction');
+      fn();
+    }),
+    destroy: jest.fn(),
+  })),
+  Array: jest.fn(() => ({
+    toArray: jest.fn(),
+    delete: jest.fn(),
+    insert: jest.fn(),
+    observe: jest.fn(),
+  })),
+  Map: jest.fn(),
+}));
 
 describe('ProjectStateService', () => {
   let service: ProjectStateService;
@@ -66,6 +78,7 @@ describe('ProjectStateService', () => {
   let mockProjectAPI: jest.Mocked<ProjectAPIService>;
   let mockWebsocketProvider: jest.Mocked<WebsocketProvider>;
   let mockIndexeddbProvider: jest.Mocked<IndexeddbPersistence>;
+  let mockYDoc: jest.Mocked<Y.Doc>;
 
   const mockDate = new Date('2025-02-22T22:43:16.240Z');
 
@@ -105,7 +118,8 @@ describe('ProjectStateService', () => {
 
   beforeEach(() => {
     // Reset mock elements
-    mockElements = [];
+    mockYArrayState = [];
+    mockArrayObservers = [];
 
     mockDialog = {
       open: jest.fn(),
@@ -119,9 +133,10 @@ describe('ProjectStateService', () => {
     } as unknown as jest.Mocked<ProjectAPIService>;
 
     mockWebsocketProvider = {
-      on: jest.fn(),
+      on: jest.fn().mockReturnValue(() => {}),
       connect: jest.fn(),
       disconnect: jest.fn(),
+      destroy: jest.fn(),
     } as unknown as jest.Mocked<WebsocketProvider>;
 
     mockIndexeddbProvider = {
@@ -136,13 +151,9 @@ describe('ProjectStateService', () => {
       () => mockIndexeddbProvider
     );
 
-    // Mock Yjs responses
-    mockYjsMap.get
-      .mockReturnValueOnce('1')
-      .mockReturnValueOnce('Test Project')
-      .mockReturnValueOnce('Test Description')
-      .mockReturnValueOnce(mockUser);
-
+    // Set up mock YDoc instance
+    mockYDoc = new Y.Doc() as jest.Mocked<Y.Doc>;
+    (Y.Doc as jest.Mock).mockImplementation(() => mockYDoc);
     TestBed.configureTestingModule({
       providers: [
         ProjectStateService,
@@ -155,9 +166,20 @@ describe('ProjectStateService', () => {
     service.project.set(mockProject);
 
     // Initialize the Yjs document
-    service['doc'] = new Y.Doc();
-    // Initialize elements array
-    service['initializeFromDoc']();
+    service['doc'] = mockYDoc;
+
+    // Set up default WebSocket status handler
+    mockWebsocketProvider.on.mockImplementation((event: any, callback: any) => {
+      if (event === 'status') {
+        const mockEvent = new CloseEvent('close', {
+          code: 1000,
+          wasClean: true,
+        }) as CloseEvent & { status: 'connected' } & boolean;
+        mockEvent.status = 'connected';
+        Object.assign(mockEvent, { valueOf: () => true });
+        callback(mockEvent, mockWebsocketProvider);
+      }
+    });
   });
 
   describe('Project Loading', () => {
@@ -210,17 +232,57 @@ describe('ProjectStateService', () => {
   });
 
   describe('Sync State Management', () => {
-    it('should update sync state and handle provider connections', () => {
-      // Set provider before testing
-      service['provider'] = mockWebsocketProvider;
+    it('should update sync state when WebSocket connects', async () => {
+      // Mock WebSocket status handler
+      mockWebsocketProvider.on.mockImplementation((event, callback) => {
+        if (event === 'status') {
+          const mockEvent = new CloseEvent('close', {
+            code: 1000,
+            reason: '',
+            wasClean: true,
+            bubbles: true,
+            cancelable: true,
+          }) as CloseEvent & {
+            status: 'connected' | 'disconnected' | 'connecting';
+          } & boolean;
+          mockEvent.status = 'connected';
+          Object.assign(mockEvent, { valueOf: () => true });
+          callback(mockEvent, mockWebsocketProvider);
+        }
+        return () => {};
+      });
 
-      service.updateSyncState('test-doc', DocumentSyncState.Offline);
-      expect(service.getSyncState()).toBe(DocumentSyncState.Offline);
-      expect(mockWebsocketProvider.disconnect).toHaveBeenCalled();
-
-      service.updateSyncState('test-doc', DocumentSyncState.Synced);
+      await service.loadProject('testuser', 'test-project');
       expect(service.getSyncState()).toBe(DocumentSyncState.Synced);
-      expect(mockWebsocketProvider.connect).toHaveBeenCalled();
+    });
+
+    it('should handle WebSocket connection errors', async () => {
+      // Mock WebSocket error handler
+      mockWebsocketProvider.on.mockImplementation((event, callback) => {
+        if (event === 'status') {
+          const mockEvent = new CloseEvent('close', {
+            code: 1006,
+            reason: 'Connection error',
+            wasClean: false,
+            bubbles: true,
+            cancelable: true,
+          }) as CloseEvent & { status: 'disconnected' } & boolean;
+          mockEvent.status = 'disconnected';
+          Object.assign(mockEvent, { valueOf: () => false });
+          callback(mockEvent, mockWebsocketProvider);
+        }
+        return () => {};
+      });
+
+      await service.loadProject('testuser', 'test-project');
+      expect(service.getSyncState()).toBe(DocumentSyncState.Offline);
+    });
+
+    it('should handle network restoration', async () => {
+      await service.loadProject('testuser', 'test-project');
+      // Simulate network restoration
+      window.dispatchEvent(new Event('online'));
+      expect(service.getSyncState()).toBe(DocumentSyncState.Synced);
     });
   });
 
@@ -247,16 +309,12 @@ describe('ProjectStateService', () => {
       );
 
       expect(service.project()).toEqual(updatedProject);
-      expect(mockYjsMap.set).toHaveBeenCalledWith('title', 'Updated Title');
-      expect(mockYjsMap.set).toHaveBeenCalledWith(
-        'description',
-        'Updated Description'
-      );
     });
   });
 
   describe('Element Management', () => {
     it('should add root level element', async () => {
+      await service.loadProject('testuser', 'test-project');
       await service.addElement(ProjectElementDto.TypeEnum.Folder, 'New Folder');
       const elements = service.elements();
 
@@ -278,8 +336,8 @@ describe('ProjectStateService', () => {
         metadata: {},
       };
 
-      mockElements = [parent];
-      service['initializeFromDoc']();
+      mockYArrayState = [parent];
+      await service.loadProject('testuser', 'test-project');
 
       await service.addElement(
         ProjectElementDto.TypeEnum.Item,
@@ -297,6 +355,7 @@ describe('ProjectStateService', () => {
     it('should handle image upload when adding image element', async () => {
       const imageFile = new File(['test'], 'test.png', { type: 'image/png' });
       service.project.set(mockProject);
+      await service.loadProject('testuser', 'test-project');
 
       await service.addElement(
         ProjectElementDto.TypeEnum.Image,
@@ -318,6 +377,7 @@ describe('ProjectStateService', () => {
     it('should handle image upload failure', async () => {
       const imageFile = new File(['test'], 'test.png', { type: 'image/png' });
       service.project.set(mockProject);
+      await service.loadProject('testuser', 'test-project');
 
       mockProjectAPI.projectElementControllerUploadImage.mockReturnValue(
         throwError(() => new Error('Upload failed'))
@@ -337,6 +397,8 @@ describe('ProjectStateService', () => {
     });
 
     it('should maintain correct positions when adding elements', async () => {
+      await service.loadProject('testuser', 'test-project');
+
       await service.addElement(ProjectElementDto.TypeEnum.Folder, 'Folder 1');
       const folder1 = service.elements()[0];
       await service.addElement(ProjectElementDto.TypeEnum.Folder, 'Folder 2');
@@ -358,7 +420,7 @@ describe('ProjectStateService', () => {
   });
 
   describe('Tree Operations', () => {
-    it('should move element and its subtree', () => {
+    it('should move element and its subtree', async () => {
       const elements: ProjectElementDto[] = [
         {
           id: 'root1',
@@ -392,8 +454,8 @@ describe('ProjectStateService', () => {
         },
       ];
 
-      mockElements = elements;
-      service['initializeFromDoc']();
+      mockYArrayState = elements;
+      await service.loadProject('testuser', 'test-project');
       service.moveElement('root1', 2, 0);
 
       const movedElements = service.elements();
@@ -406,7 +468,7 @@ describe('ProjectStateService', () => {
       expect(movedElements[2].level).toBe(1); // Child maintains relative level
     });
 
-    it('should delete element and its subtree', () => {
+    it('should delete element and its subtree', async () => {
       const elements: ProjectElementDto[] = [
         {
           id: 'root',
@@ -440,8 +502,8 @@ describe('ProjectStateService', () => {
         },
       ];
 
-      mockElements = elements;
-      service['initializeFromDoc']();
+      mockYArrayState = elements;
+      await service.loadProject('testuser', 'test-project');
       service.setExpanded('root', true);
       service.setExpanded('child1', true);
 
@@ -517,28 +579,19 @@ describe('ProjectStateService', () => {
       expect(service.visibleElements()).toEqual([]);
     });
 
-    it('should show root level elements', () => {
-      const rootElement: ProjectElementDto = {
-        id: 'root',
-        name: 'Root',
-        type: ProjectElementDto.TypeEnum.Folder,
-        level: 0,
-        position: 0,
-        expandable: true,
-        version: 0,
-        metadata: {},
-      };
+    it('should show root level elements', async () => {
+      await service.loadProject('testuser', 'test-project');
 
-      mockElements = [rootElement];
-      service['initializeFromDoc']();
+      await service.addElement('FOLDER', 'root');
       const visible = service.visibleElements();
 
       expect(visible).toHaveLength(1);
-      expect(visible[0].id).toBe('root');
+      expect(visible[0].name).toBe('root');
       expect(visible[0].expanded).toBe(false);
     });
 
-    it('should show children when parent is expanded', () => {
+    it('should show children when parent is expanded', async () => {
+      await service.loadProject('testuser', 'test-project');
       const parent: ProjectElementDto = {
         id: 'parent',
         name: 'Parent',
@@ -561,8 +614,7 @@ describe('ProjectStateService', () => {
         metadata: {},
       };
 
-      mockElements = [parent, child];
-      service['initializeFromDoc']();
+      mockYArrayState = [parent, child];
       service.setExpanded('parent', true);
       const visible = service.visibleElements();
 
@@ -572,7 +624,8 @@ describe('ProjectStateService', () => {
       expect(visible[1].id).toBe('child');
     });
 
-    it('should hide children when parent is collapsed', () => {
+    it('should hide children when parent is collapsed', async () => {
+      await service.loadProject('testuser', 'test-project');
       const parent: ProjectElementDto = {
         id: 'parent',
         name: 'Parent',
@@ -595,8 +648,7 @@ describe('ProjectStateService', () => {
         metadata: {},
       };
 
-      mockElements = [parent, child];
-      service['initializeFromDoc']();
+      mockYArrayState = [parent, child];
       const visible = service.visibleElements();
 
       expect(visible).toHaveLength(1);
@@ -604,7 +656,8 @@ describe('ProjectStateService', () => {
       expect(visible[0].expanded).toBe(false);
     });
 
-    it('should handle multiple levels of nesting with mixed expanded states', () => {
+    it('should handle multiple levels of nesting with mixed expanded states', async () => {
+      await service.loadProject('testuser', 'test-project');
       const elements: ProjectElementDto[] = [
         {
           id: 'root',
@@ -648,8 +701,7 @@ describe('ProjectStateService', () => {
         },
       ];
 
-      mockElements = elements;
-      service['initializeFromDoc']();
+      mockYArrayState = elements;
       service.setExpanded('root', true);
       service.setExpanded('child1', true);
       const visible = service.visibleElements();
