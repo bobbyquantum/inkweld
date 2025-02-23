@@ -146,6 +146,28 @@ export class ProjectStateService {
       this.isLoading.set(false);
     }
   }
+
+  updateElements(elements: ProjectElementDto[]): void {
+    if (!this.doc) return;
+
+    const elementsArray = this.doc.getArray<ProjectElementDto>('elements');
+    this.doc.transact(() => {
+      elementsArray.delete(0, elementsArray.length);
+      elementsArray.insert(0, elements);
+    });
+  }
+
+  updateProject(project: ProjectDto): void {
+    if (!this.doc) return;
+
+    const projectMap = this.doc.getMap('projectMeta');
+    this.doc.transact(() => {
+      projectMap.set('title', project.title);
+      projectMap.set('description', project.description);
+    });
+    this.project.set(project);
+  }
+
   /**
    * Updates the sync state for our doc.
    * In a single-doc approach, we simply store it in `docSyncState`.
@@ -509,26 +531,5 @@ export class ProjectStateService {
     elementsArray.observe(() => {
       this.elements.set(elementsArray.toArray());
     });
-  }
-
-  private updateElements(elements: ProjectElementDto[]): void {
-    if (!this.doc) return;
-
-    const elementsArray = this.doc.getArray<ProjectElementDto>('elements');
-    this.doc.transact(() => {
-      elementsArray.delete(0, elementsArray.length);
-      elementsArray.insert(0, elements);
-    });
-  }
-
-  private updateProject(project: ProjectDto): void {
-    if (!this.doc) return;
-
-    const projectMap = this.doc.getMap('projectMeta');
-    this.doc.transact(() => {
-      projectMap.set('title', project.title);
-      projectMap.set('description', project.description);
-    });
-    this.project.set(project);
   }
 }
