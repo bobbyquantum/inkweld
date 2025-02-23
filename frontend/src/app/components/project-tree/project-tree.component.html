@@ -65,7 +65,6 @@
       <div
         class="drag-placeholder"
         *cdkDragPlaceholder
-        [style.padding-left.px]="node.level * 24 + (node.expandable ? 0 : 16)"
         [class.folder-node]="node.expandable">
         @if (node.expandable) {
           <button mat-icon-button type="button">
