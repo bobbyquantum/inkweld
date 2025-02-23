@@ -15,7 +15,7 @@ import {
   UserAPIService,
   UserDto,
 } from '@worm/index';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { HomeComponent } from './home.component';
 
@@ -132,5 +132,49 @@ describe('HomeComponent', () => {
     );
     component.ngOnInit();
     expect(component.isMobile).toBe(false);
+  });
+
+  it('should handle error when loading projects', () => {
+    // Simulate an error scenario by returning a throwError observable.
+    projectService.projectControllerGetAllProjects.mockReturnValue(
+      throwError(() => new Error('Error'))
+    );
+    component.loadProjects();
+    // Verify that the API was called with the expected parameters.
+    expect(projectService.projectControllerGetAllProjects).toHaveBeenCalledWith(
+      'body',
+      true,
+      { transferCache: true }
+    );
+    // Since catchError converts the error to EMPTY, no projects are returned.
+    expect(component.projects).toEqual([]);
+    // Note: isLoading remains true because the subscription’s 'next' callback was never invoked.
+    expect(component.isLoading).toBe(true);
+  });
+
+  it('should call loadProjects when new project dialog returns truthy result', () => {
+    const loadProjectsSpy = jest.spyOn(component, 'loadProjects');
+    // Create a fake dialog reference where afterClosed returns an observable emitting a truthy result.
+    const dialogRef = {
+      afterClosed: () => of(true),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    jest.spyOn(component.dialog, 'open').mockReturnValue(dialogRef as any);
+    component.openNewProjectDialog();
+    // The truthy result should trigger a call to loadProjects.
+    expect(loadProjectsSpy).toHaveBeenCalled();
+  });
+
+  it('should not call loadProjects when new project dialog returns falsy result', () => {
+    const loadProjectsSpy = jest.spyOn(component, 'loadProjects');
+    // Create a fake dialog reference where afterClosed returns an observable emitting a falsy result.
+    const dialogRef = {
+      afterClosed: () => of(false),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    jest.spyOn(component.dialog, 'open').mockReturnValue(dialogRef as any);
+    component.openNewProjectDialog();
+    // No call to loadProjects should be made if the result is falsy.
+    expect(loadProjectsSpy).not.toHaveBeenCalled();
   });
 });

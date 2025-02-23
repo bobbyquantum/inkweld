@@ -39,11 +39,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   isLoading = true;
   selectedProject: ProjectDto | null = null;
   isMobile = false;
-
+  dialog = inject(MatDialog);
   protected userService = inject(UserService);
   protected projectAPIService = inject(ProjectAPIService);
   protected breakpointObserver = inject(BreakpointObserver);
-  protected dialog = inject(MatDialog);
+
   protected user = this.userService.currentUser;
 
   protected destroy$ = new Subject<void>();
