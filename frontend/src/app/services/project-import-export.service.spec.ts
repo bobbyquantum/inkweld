@@ -234,6 +234,77 @@ describe('ProjectImportExportService', () => {
       expect(service.error()).toContain('Missing or invalid version number');
       expect(service.isProcessing()).toBe(false);
     });
+
+    it('should import ITEM with valid string content', async () => {
+      const archive = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        project: {
+          title: 'Imported Project',
+          description: 'Desc',
+          slug: 'imported-project',
+        },
+        elements: [
+          {
+            id: 'item1',
+            name: 'Item 1',
+            type: 'ITEM',
+            position: 0,
+            level: 0,
+            version: 1,
+            expandable: false,
+            metadata: {},
+            content: 'valid content',
+          },
+        ],
+      };
+      const jsonContent = JSON.stringify(archive, null, 2);
+      const fakeFile = {
+        text: () => Promise.resolve(jsonContent),
+      } as unknown as File;
+      await service.importProject(fakeFile);
+      expect(mockDocumentService.importDocument).toHaveBeenCalledWith(
+        'item1',
+        JSON.stringify('valid content')
+      );
+      expect(mockProjectStateService.updateProject).toHaveBeenCalled();
+      expect(mockProjectStateService.updateElements).toHaveBeenCalled();
+      expect(service.progress()).toBe(100);
+      expect(service.isProcessing()).toBe(false);
+    });
+
+    it('should throw error if ITEM content is not a string', async () => {
+      const archive = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        project: {
+          title: 'Imported Project',
+          description: 'Desc',
+          slug: 'imported-project',
+        },
+        elements: [
+          {
+            id: 'item2',
+            name: 'Item 2',
+            type: 'ITEM',
+            position: 0,
+            level: 0,
+            version: 1,
+            expandable: false,
+            metadata: {},
+            content: { text: 'not a string' },
+          },
+        ],
+      };
+      const jsonContent = JSON.stringify(archive, null, 2);
+      const fakeFile = {
+        text: () => Promise.resolve(jsonContent),
+      } as unknown as File;
+      await expect(service.importProject(fakeFile)).rejects.toThrow(
+        'Document content is not a string'
+      );
+      expect(service.isProcessing()).toBe(false);
+    });
   });
 
   describe('importProjectZip', () => {
