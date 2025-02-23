@@ -247,14 +247,42 @@ describe('ProjectTreeComponent', () => {
       dropPoint: { x: 0, y: 0 },
     });
 
-    it('should handle valid drops', fakeAsync(() => {
-      const event = createTestDragEvent();
-      void component.drop(event);
-      expect(treeService.isValidDrop).toHaveBeenCalled();
-      expect(treeService.getDropInsertIndex).toHaveBeenCalled();
-      tick();
-      expect(treeService.moveTreeElement).toHaveBeenCalled();
-    }));
+    describe('Drop Handling', () => {
+      it('should handle valid drops without confirmation', fakeAsync(() => {
+        settingsService.getSetting.mockReturnValue(false); // confirmElementMoves disabled
+        const event = createTestDragEvent();
+        void component.drop(event);
+        expect(treeService.isValidDrop).toHaveBeenCalled();
+        expect(treeService.getDropInsertIndex).toHaveBeenCalled();
+        tick();
+        expect(treeService.moveTreeElement).toHaveBeenCalled();
+        expect(component.dialog.open).not.toHaveBeenCalled();
+      }));
+
+      it('should show confirmation dialog when confirmElementMoves is enabled', fakeAsync(() => {
+        settingsService.getSetting.mockReturnValue(true); // confirmElementMoves enabled
+        const mockConfirmRef = createMockDialogRef(true);
+        jest.spyOn(component.dialog, 'open').mockReturnValue(mockConfirmRef);
+
+        const event = createTestDragEvent();
+        void component.drop(event);
+        expect(treeService.isValidDrop).toHaveBeenCalled();
+        expect(component.dialog.open).toHaveBeenCalled();
+      }));
+
+      it('should not move element when confirmation is cancelled', fakeAsync(() => {
+        settingsService.getSetting.mockReturnValue(true); // confirmElementMoves enabled
+        const mockConfirmRef = createMockDialogRef(false);
+        jest.spyOn(component.dialog, 'open').mockReturnValue(mockConfirmRef);
+
+        const event = createTestDragEvent();
+        void component.drop(event);
+        expect(treeService.isValidDrop).toHaveBeenCalled();
+        expect(component.dialog.open).toHaveBeenCalled();
+        tick();
+        expect(treeService.moveTreeElement).not.toHaveBeenCalled();
+      }));
+    });
 
     const createTestNode = (
       id: string,
