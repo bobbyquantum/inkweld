@@ -32,7 +32,7 @@
     "@angular/router": "19.1.7",
     "@angular/service-worker": "19.1.7",
     "@progress/jszip-esm": "^1.0.4",
-    "nanoid": "5.1.0",
+    "nanoid": "5.1.2",
     "ngx-editor": "18.0.0",
     "rxjs": "7.8.1",
     "tslib": "2.8.1",
