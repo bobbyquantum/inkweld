@@ -10,6 +10,7 @@ import * as Y from 'yjs';
 import { environment } from '../../environments/environment';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { DialogGatewayService } from './dialog-gateway.service';
+import { RecentFilesService } from './recent-files.service';
 export interface ValidDropLevels {
   levels: number[];
   defaultLevel: number;
@@ -83,6 +84,7 @@ export class ProjectStateService {
   // Services
   private projectAPIService = inject(ProjectAPIService);
   private dialogGateway = inject(DialogGatewayService);
+  private recentFilesService = inject(RecentFilesService);
 
   // Project Loading and Initialization
   async loadProject(username: string, slug: string): Promise<void> {
@@ -412,6 +414,24 @@ export class ProjectStateService {
   // File Operations
   openFile(element: ProjectElementDto): void {
     const files = this.openFiles();
+
+    // Add to recent files if we have a project
+    const project = this.project();
+    console.log('Opening file:', element.name, 'Project:', project);
+
+    this.recentFilesService.addRecentFile(
+      element,
+      project!.user!.username,
+      project!.slug
+    );
+    console.log(
+      'Added to recent files. Current recent files:',
+      this.recentFilesService.getRecentFilesForProject(
+        project!.user!.username,
+        project!.slug
+      )
+    );
+
     if (!files.some(f => f.id === element.id)) {
       this.openFiles.set([...files, element]);
     }

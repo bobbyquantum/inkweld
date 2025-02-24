@@ -16,21 +16,21 @@
     transition: background-color 0.2s ease;
 
     &.unavailable {
-      background-color: #9e9e9e;  // Grey for unavailable
+      background-color: #9e9e9e; // Grey for unavailable
       opacity: 0.5;
     }
 
     &.offline {
-      background-color: #fdd835;  // Yellow for offline
+      background-color: #fdd835; // Yellow for offline
     }
 
     &.syncing {
-      background-color: #2196f3;  // Blue for syncing
+      background-color: #2196f3; // Blue for syncing
       animation: pulse 1.5s infinite;
     }
 
     &.synced {
-      background-color: #4caf50;  // Green for synced
+      background-color: #4caf50; // Green for synced
     }
   }
 }
@@ -178,7 +178,8 @@ mat-sidenav-content {
   transform: translateX(0);
   margin-right: -2px; // Center the handle on the border
 
-  &:hover, &:active {
+  &:hover,
+  &:active {
     background-color: var(--mat-sys-primary);
   }
 }
@@ -241,7 +242,9 @@ mat-sidenav-content {
     align-items: center;
     justify-content: space-between;
     margin-bottom: 16px;
-    h3 { margin: 0; }
+    h3 {
+      margin: 0;
+    }
   }
 }
 
@@ -259,8 +262,12 @@ mat-sidenav-content {
     justify-content: space-between;
     gap: 16px;
 
-    h2 { margin-top: 0; }
-    p { margin-bottom: 0; }
+    h2 {
+      margin-top: 0;
+    }
+    p {
+      margin-bottom: 0;
+    }
   }
 }
 
@@ -274,4 +281,41 @@ mat-sidenav-content {
     flex-direction: column;
     gap: 20px;
   }
+}
+
+// Recent files styles
+.recent-files-list {
+  margin-top: 8px;
+}
+
+.recent-file-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover,
+  &:focus {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  mat-icon {
+    margin-right: 8px;
+    color: #666;
+  }
+
+  .recent-file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.no-recent-files {
+  color: #666;
+  font-style: italic;
+  padding: 8px 12px;
 }

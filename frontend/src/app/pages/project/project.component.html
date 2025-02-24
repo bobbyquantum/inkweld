@@ -102,7 +102,39 @@
               <div class="home-column-header">
                 <h3>Recent Files</h3>
               </div>
-              <p>Dummy recent files list.</p>
+              @if (
+                projectState.project() &&
+                recentFilesService.getRecentFilesForProject(
+                  projectState.project()!.user?.username!,
+                  projectState.project()!.slug!
+                ).length > 0
+              ) {
+                <div class="recent-files-list">
+                  @for (
+                    file of recentFilesService.getRecentFilesForProject(
+                      projectState.project()!.user?.username!,
+                      projectState.project()!.slug!
+                    );
+                    track file.id
+                  ) {
+                    <div
+                      tabindex="0"
+                      class="recent-file-item"
+                      role="button"
+                      (keydown)="onRecentFileKeydown($event, file.id)"
+                      (click)="onRecentFileClick(file.id)">
+                      <mat-icon>{{
+                        file.type === 'IMAGE' ? 'image' : 'description'
+                      }}</mat-icon>
+                      <span class="recent-file-name">{{ file.name }}</span>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p class="no-recent-files">
+                  No recent files yet. Open files to see them here.
+                </p>
+              }
             </div>
           </div>
         </div>
