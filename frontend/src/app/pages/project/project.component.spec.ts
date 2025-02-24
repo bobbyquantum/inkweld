@@ -86,6 +86,16 @@ describe('ProjectComponent', () => {
       expandable: false,
       metadata: {},
     },
+    {
+      id: '3',
+      name: 'Folder Element',
+      type: 'FOLDER',
+      level: 0,
+      position: 2,
+      version: 1,
+      expandable: true,
+      metadata: { viewMode: 'grid' },
+    },
   ];
 
   beforeEach(async () => {
@@ -240,6 +250,24 @@ describe('ProjectComponent', () => {
     };
     component.onFileOpened(mockElement);
     expect(projectStateServiceMock.openFile).toHaveBeenCalledWith(mockElement);
+  });
+
+  it('should display folder-element-editor when a folder is opened', () => {
+    const folderElement = mockElements.find(e => e.type === 'FOLDER');
+    if (!folderElement) {
+      fail('Folder element not found in mock data');
+      return;
+    }
+
+    // Set up the component to show a folder element
+    projectStateServiceMock.openFiles?.set([folderElement]);
+    projectStateServiceMock.selectedTabIndex?.set(1);
+    fixture.detectChanges();
+
+    // Check if the folder-element-editor component is rendered
+    const compiled = fixture.nativeElement;
+    const folderEditor = compiled.querySelector('app-folder-element-editor');
+    expect(folderEditor).toBeTruthy();
   });
 
   it('should close a tab when closeTab is called', () => {

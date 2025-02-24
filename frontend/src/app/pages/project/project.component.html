@@ -176,6 +176,9 @@
           @if (file.type === 'IMAGE') {
             <app-image-element-editor
               [elementId]="file.id"></app-image-element-editor>
+          } @else if (file.type === 'FOLDER') {
+            <app-folder-element-editor
+              [elementId]="file.id"></app-folder-element-editor>
           } @else {
             <app-document-element-editor
               [documentId]="file.id"></app-document-element-editor>

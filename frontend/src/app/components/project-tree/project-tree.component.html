@@ -56,9 +56,9 @@
       <div
         class="node-title"
         tabindex="0"
-        (click)="!node.expandable && onOpenFile(node)"
-        (keyup.enter)="!node.expandable && onOpenFile(node)"
-        (dblclick)="!node.expandable && onOpenFile(node)">
+        (click)="onOpenFile(node)"
+        (keyup.enter)="onOpenFile(node)"
+        (dblclick)="onOpenFile(node)">
         {{ node.name }}
       </div>
 
