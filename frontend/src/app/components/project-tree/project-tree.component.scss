@@ -98,11 +98,9 @@ mat-tree {
   display: flex;
   align-items: center;
   opacity: 0.5;
-  border: 2px solid blue;
   padding: 8px 16px;
 }
 
 .drag-preview {
   background-color: var(--mat-sys-surface-container);
-  border: 2px solid red;
 }
