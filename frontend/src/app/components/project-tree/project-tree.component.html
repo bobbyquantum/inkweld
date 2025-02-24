@@ -59,7 +59,7 @@
         (click)="!node.expandable && onOpenFile(node)"
         (keyup.enter)="!node.expandable && onOpenFile(node)"
         (dblclick)="!node.expandable && onOpenFile(node)">
-        {{ node.name }} {{ currentDropLevel }} / {{ node.level }}
+        {{ node.name }}
       </div>
 
       <div
@@ -81,7 +81,7 @@
           </app-tree-node-icon>
         }
         <div class="node-title">
-          {{ node.name }} {{ currentDropLevel }} / {{ node.level }}
+          {{ node.name }}
         </div>
       </div>
 
