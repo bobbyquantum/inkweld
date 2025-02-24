@@ -70,6 +70,7 @@ describe('ProjectTreeComponent', () => {
       error: errorSignal,
       project: signal({ title: 'Test Project' }),
       saveProjectElements: jest.fn().mockResolvedValue(undefined),
+      showEditProjectDialog: jest.fn(),
       openFile: jest.fn(),
       updateProject: jest.fn(),
       showNewElementDialog: jest.fn(),
@@ -202,6 +203,19 @@ describe('ProjectTreeComponent', () => {
         tick();
         expect(projectStateService.moveElement).not.toHaveBeenCalled();
       }));
+
+      it('should not proceed when drop is invalid', fakeAsync(() => {
+        projectStateService.isValidDrop.mockReturnValue(false);
+        const event = createTestDragEvent();
+        void component.drop(event);
+        expect(projectStateService.isValidDrop).toHaveBeenCalled();
+        tick();
+        expect(projectStateService.getDropInsertIndex).not.toHaveBeenCalled();
+        expect(projectStateService.moveElement).not.toHaveBeenCalled();
+        expect(
+          dialogGatewayService.openConfirmationDialog
+        ).not.toHaveBeenCalled();
+      }));
     });
 
     const createTestNode = (
@@ -259,6 +273,35 @@ describe('ProjectTreeComponent', () => {
         nodeBelow.level,
       ]);
     });
+
+    it('should handle drag move with valid container dimensions', () => {
+      const mockMoveEvent = {
+        pointerPosition: { x: 100, y: 0 },
+      } as CdkDragMove<ArrayDataSource<ProjectElement>>;
+
+      // Mock the getBoundingClientRect to return valid dimensions
+      jest
+        .spyOn(component.treeContainer.nativeElement, 'getBoundingClientRect')
+        .mockReturnValue({ left: 50, width: 300 } as DOMRect);
+
+      // Mock the querySelector to return a placeholder element
+      const mockPlaceholder = document.createElement('div');
+      jest
+        .spyOn(component.treeContainer.nativeElement, 'querySelector')
+        .mockReturnValue(mockPlaceholder);
+
+      // Set up valid levels
+      component.validLevelsArray = [0, 1, 2];
+      component.levelWidth = 24;
+
+      component.dragMove(mockMoveEvent);
+
+      // The relative position is 100 - 50 = 50px
+      // With a level width of 24px, this should be level 2 (50 / 24 = 2.08 -> floor = 2)
+      // The closest valid level to 2 is 2
+      expect(component.currentDropLevel).toBe(2);
+      expect(mockPlaceholder.style.marginLeft).toBe('48px');
+    });
   });
 
   it('should extract project info from URL', async () => {
@@ -284,6 +327,51 @@ describe('ProjectTreeComponent', () => {
     errorSignal.set(undefined);
     fixture.detectChanges();
     expect(component.error()).toBeUndefined();
+  });
+
+  it('should toggle expanded state of a node', () => {
+    const node = { ...mockDto, id: 'test-id' };
+    component.toggleExpanded(node);
+    expect(projectStateService.toggleExpanded).toHaveBeenCalledWith('test-id');
+  });
+
+  it('should edit project', () => {
+    component.editProject();
+    expect(projectStateService.showEditProjectDialog).toHaveBeenCalled();
+  });
+
+  describe('Rename Handling', () => {
+    it('should handle successful rename', async () => {
+      const node = mockDto;
+      dialogGatewayService.openRenameDialog.mockResolvedValue('New Name');
+
+      await component.onRename(node);
+
+      expect(dialogGatewayService.openRenameDialog).toHaveBeenCalledWith({
+        currentName: node.name,
+        title: 'Rename Item',
+      });
+    });
+
+    it('should handle cancelled rename', async () => {
+      const node = mockDto;
+      dialogGatewayService.openRenameDialog.mockResolvedValue(null);
+
+      await component.onRename(node);
+
+      expect(dialogGatewayService.openRenameDialog).toHaveBeenCalled();
+      // No further action should be taken when rename is cancelled
+    });
+
+    it('should use correct title for folder nodes', async () => {
+      const folderNode = { ...mockDto, expandable: true };
+      await component.onRename(folderNode);
+
+      expect(dialogGatewayService.openRenameDialog).toHaveBeenCalledWith({
+        currentName: folderNode.name,
+        title: 'Rename Folder',
+      });
+    });
   });
 
   describe('Context Menu', () => {
