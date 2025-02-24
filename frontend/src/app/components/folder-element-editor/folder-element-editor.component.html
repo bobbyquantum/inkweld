@@ -1,0 +1,151 @@
+<div class="folder-editor-container">
+  @if (isLoading()) {
+    <div class="loading-overlay">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="error-message">
+      {{ error() }}
+    </div>
+  }
+
+  <div class="folder-editor-header">
+    <h2 class="folder-name">{{ folderElement()?.name }}</h2>
+
+    <div class="view-controls">
+      <mat-button-toggle-group
+        [value]="viewMode()"
+        (change)="setViewMode($event.value)">
+        <mat-button-toggle value="grid" matTooltip="Grid View">
+          <mat-icon>grid_view</mat-icon>
+        </mat-button-toggle>
+        <mat-button-toggle value="list" matTooltip="List View">
+          <mat-icon>view_list</mat-icon>
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+  </div>
+
+  @if (!hasElements()) {
+    <div class="empty-folder">
+      <mat-icon>folder_open</mat-icon>
+      <p>This folder is empty</p>
+      <button mat-raised-button color="primary" (click)="createNewElement()">
+        <mat-icon>add</mat-icon>
+        Add Element
+      </button>
+    </div>
+  } @else {
+    <!-- Grid View -->
+    @if (viewMode() === 'grid') {
+      <div
+        class="grid-container"
+        cdkDropList
+        [cdkDropListData]="childElements()"
+        (cdkDropListDropped)="onDrop($event)">
+        @for (element of childElements(); track element.id) {
+          <div
+            class="grid-item"
+            cdkDrag
+            [cdkDragData]="element"
+            (dblclick)="openElement(element)"
+            (contextmenu)="showContextMenu(element, $event)">
+            <div class="grid-item-content">
+              <app-tree-node-icon
+                [isExpandable]="element.expandable"
+                [isExpanded]="false"
+                [type]="element.type">
+              </app-tree-node-icon>
+              <div class="element-name">{{ element.name }}</div>
+            </div>
+            <div class="grid-item-actions">
+              <button
+                mat-icon-button
+                matTooltip="Open"
+                (click)="openElement(element)">
+                <mat-icon>open_in_new</mat-icon>
+              </button>
+            </div>
+            <!-- Drag Preview -->
+            <div *cdkDragPreview class="grid-item-preview">
+              <app-tree-node-icon
+                [isExpandable]="element.expandable"
+                [isExpanded]="false"
+                [type]="element.type">
+              </app-tree-node-icon>
+              <div class="element-name">{{ element.name }}</div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- List View -->
+    @if (viewMode() === 'list') {
+      <div
+        class="list-container"
+        cdkDropList
+        [cdkDropListData]="childElements()"
+        (cdkDropListDropped)="onDrop($event)">
+        <table class="element-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (element of childElements(); track element.id) {
+              <tr
+                cdkDrag
+                [cdkDragData]="element"
+                (dblclick)="openElement(element)"
+                (contextmenu)="showContextMenu(element, $event)">
+                <td class="element-name-cell">
+                  <app-tree-node-icon
+                    [isExpandable]="element.expandable"
+                    [isExpanded]="false"
+                    [type]="element.type">
+                  </app-tree-node-icon>
+                  <span class="element-name">{{ element.name }}</span>
+                </td>
+                <td>{{ element.type }}</td>
+                <td class="actions-cell">
+                  <button
+                    mat-icon-button
+                    matTooltip="Open"
+                    (click)="openElement(element)">
+                    <mat-icon>open_in_new</mat-icon>
+                  </button>
+                </td>
+                <!-- Drag Preview -->
+                <div *cdkDragPreview class="list-item-preview">
+                  <app-tree-node-icon
+                    [isExpandable]="element.expandable"
+                    [isExpanded]="false"
+                    [type]="element.type">
+                  </app-tree-node-icon>
+                  <span class="element-name">{{ element.name }}</span>
+                </div>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    <div class="folder-actions">
+      <button
+        mat-fab
+        color="primary"
+        class="add-button"
+        matTooltip="Add Element"
+        (click)="createNewElement()">
+        <mat-icon>add</mat-icon>
+      </button>
+    </div>
+  }
+</div>
