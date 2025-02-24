@@ -34,6 +34,7 @@ import { Subject, Subscription, takeUntil } from 'rxjs';
 import { ImageElementEditorComponent } from '../../components/image-element-editor/image-element-editor.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { DialogGatewayService } from '../../services/dialog-gateway.service';
+import { RecentFilesService } from '../../services/recent-files.service';
 
 @Component({
   selector: 'app-project',
@@ -63,6 +64,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly projectState = inject(ProjectStateService);
   protected readonly DocumentSyncState = DocumentSyncState;
   protected readonly documentService = inject(DocumentService);
+  protected readonly recentFilesService = inject(RecentFilesService);
   protected readonly breakpointObserver = inject(BreakpointObserver);
   protected readonly snackBar = inject(MatSnackBar);
   protected readonly route = inject(ActivatedRoute);
@@ -217,6 +219,20 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   exitProject() {
     void this.router.navigate(['/']);
+  }
+
+  onRecentFileClick(fileId: string): void {
+    const elements = this.projectState.elements();
+    const element = elements.find(e => e.id === fileId);
+    if (element) {
+      this.projectState.openFile(element);
+    }
+  }
+
+  onRecentFileKeydown(event: KeyboardEvent, fileId: string): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      this.onRecentFileClick(fileId);
+    }
   }
 
   public onExportClick(): void {
