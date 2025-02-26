@@ -1,12 +1,12 @@
-// project-element.service.ts
+// project-element.service.ts - Updated for per-project LevelDB implementation
 
 import { Injectable, Logger } from '@nestjs/common';
-import { getPersistence } from '../../ws/y-websocket-utils.js';
-import { LeveldbPersistence } from 'y-leveldb';
 import * as Y from 'yjs';
 import * as path from 'path';
 import { ElementType } from './element-type.enum.js';
 import { ImageStorageService } from './image-storage.service.js';
+import { LevelDBManagerService } from '../../common/persistence/leveldb-manager.service.js';
+import { LeveldbPersistence } from 'y-leveldb';
 
 @Injectable()
 export class ProjectElementService {
@@ -14,14 +14,16 @@ export class ProjectElementService {
 
   constructor(
     private readonly imageStorageService: ImageStorageService,
+    private readonly levelDBManager: LevelDBManagerService,
   ) {}
 
   /**
-   * Load the Y.Doc for the given project.
+   * Load the Y.Doc for the given project using per-project LevelDB.
    * If it doesn't exist, it is implicitly created by leveldb when we store an update.
    */
-  private async loadDoc(docId: string): Promise<Y.Doc> {
-    const ldb = getPersistence()?.provider as LeveldbPersistence;
+  private async loadDoc(username: string, slug: string): Promise<Y.Doc> {
+    const docId = this.getDocId(username, slug);
+    const ldb = await this.getProjectLevelDB(username, slug);
     if (!ldb) {
       throw new Error('No LevelDB persistence found for Yjs project elements');
     }
@@ -29,13 +31,22 @@ export class ProjectElementService {
   }
 
   /**
+   * Get the LevelDB instance for a specific project.
+   */
+  private async getProjectLevelDB(username: string, slug: string): Promise<LeveldbPersistence> {
+    return await this.levelDBManager.getProjectDatabase(username, slug);
+  }
+
+  /**
    * Save a given doc's current state back to LevelDB.
    */
-  private async persistDoc(doc: Y.Doc, docId: string): Promise<void> {
-    const ldb = getPersistence()?.provider as LeveldbPersistence;
+  private async persistDoc(doc: Y.Doc, username: string, slug: string): Promise<void> {
+    const docId = this.getDocId(username, slug);
+    const ldb = await this.getProjectLevelDB(username, slug);
     if (!ldb) {
       throw new Error('No LevelDB persistence found for Yjs project elements');
     }
+
     await ldb.storeUpdate(docId, Y.encodeStateAsUpdate(doc));
     this.logger.debug(`Persisted doc ${docId}, state: ${JSON.stringify(doc.getMap('data').toJSON())}`);
   }
@@ -44,9 +55,10 @@ export class ProjectElementService {
    * Get the elements from the Y.Doc as a JSON array.
    */
   async getProjectElements(username: string, slug: string) {
-    const docId = this.getDocId(username, slug);
-    const doc = await this.loadDoc(docId);
+    const doc = await this.loadDoc(username, slug);
     const dataMap = doc.getMap<any>('data');
+    const docId = this.getDocId(username, slug);
+
     this.logger.debug(`Loading doc ${docId}, current state: ${JSON.stringify(dataMap.toJSON())}`);
     if (!dataMap.has('elements')) {
       dataMap.set('elements', new Y.Array());
@@ -59,8 +71,7 @@ export class ProjectElementService {
    * Replace project elements (similar to dinsert).
    */
   async replaceProjectElements(username: string, slug: string, incomingElements: any[]) {
-    const docId = this.getDocId(username, slug);
-    const doc = await this.loadDoc(docId);
+    const doc = await this.loadDoc(username, slug);
 
     doc.transact(() => {
       const dataMap = doc.getMap<any>('data');
@@ -74,7 +85,7 @@ export class ProjectElementService {
       }
     });
 
-    await this.persistDoc(doc, docId);
+    await this.persistDoc(doc, username, slug);
     return incomingElements; // Return updated data
   }
 
@@ -110,8 +121,8 @@ export class ProjectElementService {
     file: Buffer,
     filename: string,
   ): Promise<void> {
+    const doc = await this.loadDoc(username, slug);
     const docId = this.getDocId(username, slug);
-    const doc = await this.loadDoc(docId);
 
     this.logger.debug(`Starting upload for doc ${docId}, current state: ${JSON.stringify(doc.getMap('data').toJSON())}`);
     let existingElement;
@@ -168,7 +179,7 @@ export class ProjectElementService {
     });
 
     if (wasUpdated) {
-      await this.persistDoc(doc, docId);
+      await this.persistDoc(doc, username, slug);
       this.logger.debug(`After update state: ${JSON.stringify(doc.getMap('data').toJSON())}`);
       this.logger.debug(`Persisted doc changes for element ${elementId} to doc ${docId}`);
     }
@@ -181,9 +192,10 @@ export class ProjectElementService {
   ): Promise<NodeJS.ReadableStream> {
     // Get the element metadata from Yjs
     this.logger.debug(`Attempting to download image for element ${elementId}`);
+    const doc = await this.loadDoc(username, slug);
     const docId = this.getDocId(username, slug);
+
     this.logger.debug(`Loading doc with ID: ${docId}`);
-    const doc = await this.loadDoc(docId);
 
     const dataMap = doc.getMap<any>('data');
     const elementsArray = dataMap.get('elements');
@@ -208,8 +220,7 @@ export class ProjectElementService {
     elementId: string,
   ): Promise<void> {
     // Get the element metadata from Yjs
-    const docId = this.getDocId(username, slug);
-    const doc = await this.loadDoc(docId);
+    const doc = await this.loadDoc(username, slug);
     const { element, index } = await this.findElementById(doc, elementId);
 
     if (!element.metadata?.storedFilename) {
@@ -240,7 +251,7 @@ export class ProjectElementService {
       elementsArray.insert(index, [element]);
     });
 
-    await this.persistDoc(doc, docId);
+    await this.persistDoc(doc, username, slug);
     this.logger.debug(`Deleted image for element ${elementId}`);
   }
 }

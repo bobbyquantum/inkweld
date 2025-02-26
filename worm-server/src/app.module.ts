@@ -15,6 +15,7 @@ import { ProjectEntity } from './project/project.entity.js';
 import { ProjectElementModule } from './project/element/project-element.module.js';
 import { WsModule } from './ws/ws.module.js';
 import { McpModule } from './mcp/mcp.module.js';
+import { LevelDBManagerService } from './common/persistence/leveldb-manager.service.js';
 import * as path from 'path';
 import { cwd } from 'process';
 
@@ -59,6 +60,12 @@ import { cwd } from 'process';
     AuthModule,
     WsModule,
     McpModule,
+  ],
+  providers: [
+    LevelDBManagerService
+  ],
+  exports: [
+    LevelDBManagerService
   ],
   controllers: [],
 })
