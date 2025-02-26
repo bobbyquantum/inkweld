@@ -10,14 +10,141 @@ import type { Request } from 'express';
 import {
   setupWSConnection,
   setPersistence,
-  getPersistence,
 } from './y-websocket-utils.js';
-import { LeveldbPersistence } from 'y-leveldb';
 import { Logger, Injectable } from '@nestjs/common';
 import { TypeOrmSessionStore } from '../auth/session.store.js';
 import { ConfigService } from '@nestjs/config';
 import * as cookie from 'cookie';
 import { Doc, encodeStateAsUpdate, applyUpdate } from 'yjs';
+import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
+import { LeveldbPersistence } from 'y-leveldb';
+
+/**
+ * Custom persistence adapter for using per-project LevelDB instances
+ */
+class PerProjectPersistence {
+  constructor(
+    private readonly levelDBManager: LevelDBManagerService,
+    private readonly logger: Logger
+  ) {
+    this.logger.log('Initialized per-project LevelDB persistence adapter');
+  }
+
+  /**
+   * Parse a docName to extract username and project slug
+   * Expected format: "documentName:username:projectSlug"
+   */
+  private parseDocName(docName: string): { username: string; projectSlug: string } {
+    const parts = docName.split(':');
+    if (parts.length < 3) {
+      // Default to a safe value if we can't parse
+      this.logger.warn(`Invalid document name format: ${docName}. Using default parsing.`);
+      return { username: 'default', projectSlug: 'default' };
+    }
+    // First part is the document type, rest should be username and project
+    const username = parts[1];
+    const projectSlug = parts[2];
+    return { username, projectSlug };
+  }
+
+  /**
+   * Get the LevelDB instance for a specific document
+   */
+  private async getLevelDBForDoc(docName: string): Promise<LeveldbPersistence> {
+    const { username, projectSlug } = this.parseDocName(docName);
+    return await this.levelDBManager.getProjectDatabase(username, projectSlug);
+  }
+
+  /**
+   * Get document metadata stored in LevelDB
+   */
+  async getMeta(docName: string, key: string): Promise<any> {
+    try {
+      const db = await this.getLevelDBForDoc(docName);
+      return await db.getMeta(docName, key);
+    } catch (error) {
+      this.logger.error(`Error getting meta for ${docName}.${key}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Set document metadata in LevelDB
+   */
+  async setMeta(docName: string, key: string, value: any): Promise<void> {
+    try {
+      const db = await this.getLevelDBForDoc(docName);
+      await db.setMeta(docName, key, value);
+    } catch (error) {
+      this.logger.error(`Error setting meta for ${docName}.${key}:`, error);
+    }
+  }
+
+  /**
+   * Store an update to a document in LevelDB
+   */
+  async storeUpdate(docName: string, update: Uint8Array): Promise<void> {
+    try {
+      const db = await this.getLevelDBForDoc(docName);
+      await db.storeUpdate(docName, update);
+    } catch (error) {
+      this.logger.error(`Error storing update for ${docName}:`, error);
+    }
+  }
+
+  /**
+   * Get a Y.Doc from LevelDB
+   */
+  async getYDoc(docName: string): Promise<Doc> {
+    try {
+      const db = await this.getLevelDBForDoc(docName);
+      return await db.getYDoc(docName);
+    } catch (error) {
+      this.logger.error(`Error getting document ${docName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bind state for a document in LevelDB (called by y-websocket)
+   */
+  async bindState(docName: string, ydoc: Doc): Promise<void> {
+    try {
+      const db = await this.getLevelDBForDoc(docName);
+      const persistedYdoc = await db.getYDoc(docName);
+
+      // Always store an initial update so the DB knows this doc name exists
+      const newUpdates = encodeStateAsUpdate(ydoc);
+      await db.storeUpdate(docName, newUpdates);
+
+      // Apply persisted state onto our fresh doc
+      applyUpdate(ydoc, encodeStateAsUpdate(persistedYdoc));
+
+      // Listen for any doc updates and write them out
+      ydoc.on('update', async (update) => {
+        await db.storeUpdate(docName, update);
+      });
+
+      this.logger.verbose(`Bound state for document ${docName}`);
+    } catch (error) {
+      this.logger.error(`Error binding state for ${docName}:`, error);
+    }
+  }
+
+  /**
+   * Write state for a document back to LevelDB (optional cleanup phase)
+   */
+  async writeState(docName: string, ydoc: Doc): Promise<void> {
+    try {
+      const db = await this.getLevelDBForDoc(docName);
+      const update = encodeStateAsUpdate(ydoc);
+      await db.storeUpdate(docName, update);
+      this.logger.verbose(`Wrote state for document ${docName}`);
+    } catch (error) {
+      this.logger.error(`Error writing state for ${docName}:`, error);
+    }
+  }
+}
 
 @WebSocketGateway({ path: '/ws/yjs' })
 @Injectable()
@@ -42,33 +169,35 @@ export class YjsGateway
   }
 
   private async getDocument(documentId: string): Promise<Doc> {
-    const ldb = getPersistence()?.provider as LeveldbPersistence;
-    if (!ldb) {
-      throw new Error('No LevelDB persistence found');
+    const persistenceProvider = this.perProjectPersistence;
+    if (!persistenceProvider) {
+      throw new Error('No persistence found');
     }
 
     // Get or create document
-    const doc = await ldb.getYDoc(documentId);
+    const doc = await persistenceProvider.getYDoc(documentId);
     return doc;
   }
 
   private async persistDocument(doc: Doc): Promise<void> {
-    const ldb = getPersistence()?.provider as LeveldbPersistence;
-    if (!ldb) {
-      throw new Error('No LevelDB persistence found');
+    const persistenceProvider = this.perProjectPersistence;
+    if (!persistenceProvider) {
+      throw new Error('No persistence found');
     }
 
     // Store the final state
     const update = encodeStateAsUpdate(doc);
-    await ldb.storeUpdate(doc.guid, update);
+    await persistenceProvider.storeUpdate(doc.guid, update);
   }
 
   private readonly logger = new Logger(YjsGateway.name);
   private readonly allowedOrigins: string[];
+  private perProjectPersistence: PerProjectPersistence;
 
   constructor(
     private readonly sessionStore: TypeOrmSessionStore,
     private readonly configService: ConfigService,
+    private readonly levelDBManager: LevelDBManagerService,
   ) {
     // Get allowed origins from config
     this.allowedOrigins = this.configService
@@ -79,52 +208,22 @@ export class YjsGateway
   }
 
   /**
-   * Called once the gateway is initialized. Here we set up the LevelDB persistence
+   * Called once the gateway is initialized. Here we set up the per-project LevelDB persistence
    * so that any docs loaded via `setupWSConnection` get automatically persisted.
    */
   afterInit(_server: typeof WSServer) {
     this.logger.log('YjsGateway initialized');
 
-    // Initialize LevelDBPersistence
-    const ldb = new LeveldbPersistence(process.env.Y_DATA_PATH || './data', {
-      // You can pass level options here if desired
-      levelOptions: {
-        createIfMissing: true,
-        errorIfExists: false,
-      },
-    });
+    // Initialize per-project persistence adapter
+    this.perProjectPersistence = new PerProjectPersistence(
+      this.levelDBManager,
+      new Logger('PerProjectPersistence')
+    );
 
-    // Inform y-websocket about our persistence instance
-    setPersistence({
-      provider: ldb,
+    // Register our persistence with y-websocket utils
+    setPersistence(this.perProjectPersistence);
 
-      /**
-       * bindState is called whenever y-websocket needs to “attach” an incoming doc.
-       * We load the persisted doc, apply any changes to the new in-memory doc, and
-       * persist new updates as they come in.
-       */
-      bindState: async (docName, ydoc) => {
-        // Get doc from DB and apply its state to the new in-memory Y.Doc
-        const persistedYdoc = await ldb.getYDoc(docName);
-
-        // Always store an initial update so the DB knows this doc name exists
-        const newUpdates = encodeStateAsUpdate(ydoc);
-        await ldb.storeUpdate(docName, newUpdates);
-
-        // Apply persisted state onto our fresh doc
-        applyUpdate(ydoc, encodeStateAsUpdate(persistedYdoc));
-
-        // Listen for any doc updates and write them out
-        ydoc.on('update', async (update) => {
-          await ldb.storeUpdate(docName, update);
-        });
-      },
-
-      // (Optionally implement if you want a "cleanup" phase)
-      writeState: async (_docName, _ydoc) => {
-        // Example: flush or merge incremental updates
-      },
-    });
+    this.logger.log('Per-project LevelDB persistence initialized');
   }
 
   @WebSocketServer()
@@ -169,27 +268,30 @@ export class YjsGateway
       const url = new URL(`http://localhost${req.url}`);
       const docId = url.searchParams.get('documentId') || 'default';
 
-      // Check & enforce doc ownership
-      const ldb = getPersistence()?.provider as LeveldbPersistence;
-      if (!ldb) {
-        this.logger.error('No LevelDB persistence found!');
-        connection.close(1011, 'Server Error');
-        return;
+      // Determine username and project slug
+      const _username = session.userId;
+      let _projectSlug = 'default';
+
+      if (docId.includes(':')) {
+        const parts = docId.split(':');
+        if (parts.length >= 3) {
+          _projectSlug = parts[2];
+        }
       }
 
-      // Retrieve existing owner
-      const docOwner = await ldb.getMeta(docId, 'ownerId');
-      this.logger.log('session', session);
+      // Check & enforce doc ownership
+      const ownerId = await this.perProjectPersistence.getMeta(docId, 'ownerId');
+
       // If no owner is set, the first user to open the doc becomes the owner
-      if (!docOwner) {
-        await ldb.setMeta(docId, 'ownerId', session.userId);
+      if (!ownerId) {
+        await this.perProjectPersistence.setMeta(docId, 'ownerId', session.userId);
         this.logger.log(
           `Doc "${docId}" had no owner; set owner to user ${session.userId}`,
         );
-      } else if (docOwner !== session.userId) {
+      } else if (ownerId !== session.userId) {
         // If the doc is owned by someone else, deny
         this.logger.warn(
-          `User ${session.userId} tried to open doc "${docId}", but it belongs to ${docOwner}`,
+          `User ${session.userId} tried to open doc "${docId}", but it belongs to ${ownerId}`,
         );
         connection.close(1008, 'You do not have permission for this doc');
         return;
@@ -205,8 +307,8 @@ export class YjsGateway
       setupWSConnection(connection, req, connectionOptions);
 
       this.logger.log(
-        `New Yjs WebSocket connection for doc: "${docId}" with persistence "${process.env.Y_DATA_PATH || './data'}" (Owner: ${
-          docOwner || session.userId
+        `New Yjs WebSocket connection for doc: "${docId}" (Owner: ${
+          ownerId || session.userId
         })`,
       );
     } catch (error) {
