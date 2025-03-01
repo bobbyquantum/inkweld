@@ -62,7 +62,10 @@ export class UserRepository extends LevelDBRepository<UserEntity> {
    * @param userData The user data to update
    * @returns The updated user
    */
-  async updateUser(id: string, userData: Partial<UserEntity>): Promise<UserEntity> {
+  async updateUser(
+    id: string,
+    userData: Partial<UserEntity>,
+  ): Promise<UserEntity> {
     // Update timestamp
     userData.updatedAt = Date.now();
 

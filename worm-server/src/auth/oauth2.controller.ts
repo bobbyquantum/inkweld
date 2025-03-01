@@ -10,7 +10,7 @@ import { ApiExcludeController } from '@nestjs/swagger';
 export class OAuth2Controller {
   constructor(
     private readonly authService: AuthService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
   ) {}
 
   @Get('authorization/github')
@@ -43,7 +43,8 @@ export class OAuth2Controller {
       }
     } catch (_error) {
       // Handle any errors during login process
-      const clientUrl = this.configService.get('CLIENT_URL') || 'http://localhost:4200';
+      const clientUrl =
+        this.configService.get('CLIENT_URL') || 'http://localhost:4200';
       res.redirect(`${clientUrl}/welcome?error=server_error`);
     }
   }

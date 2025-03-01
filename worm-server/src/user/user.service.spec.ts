@@ -15,7 +15,9 @@ import { LevelDBManagerService } from '../common/persistence/leveldb-manager.ser
 import { ConfigService } from '@nestjs/config';
 
 // Mock Bun.password methods
-jest.spyOn(Bun.password, 'hash').mockImplementation(async (pass) => `hashed_${pass}`);
+jest
+  .spyOn(Bun.password, 'hash')
+  .mockImplementation(async (pass) => `hashed_${pass}`);
 jest.spyOn(Bun.password, 'verify').mockImplementation(async () => true);
 
 describe('UserLevelDBService', () => {
@@ -72,7 +74,9 @@ describe('UserLevelDBService', () => {
     userService = module.get<UserService>(UserService);
 
     // Reset Bun password mock implementations before each test
-    (Bun.password.hash as jest.Mock).mockImplementation(async (pass) => `hashed_${pass}`);
+    (Bun.password.hash as jest.Mock).mockImplementation(
+      async (pass) => `hashed_${pass}`,
+    );
     (Bun.password.verify as jest.Mock).mockImplementation(async () => true);
   });
 
@@ -166,16 +170,15 @@ describe('UserLevelDBService', () => {
         password: 'hashed_NewPass123!',
       });
 
-      await userService.updatePassword(
-        '1',
-        'OldPass123!',
-        'NewPass123!'
-      );
+      await userService.updatePassword('1', 'OldPass123!', 'NewPass123!');
 
-      expect(Bun.password.verify).toHaveBeenCalledWith('OldPass123!', OLD_HASHED_PASSWORD);
+      expect(Bun.password.verify).toHaveBeenCalledWith(
+        'OldPass123!',
+        OLD_HASHED_PASSWORD,
+      );
       expect(Bun.password.hash).toHaveBeenCalledWith('NewPass123!');
       expect(mockUserRepository.updateUser).toHaveBeenCalledWith('1', {
-        password: 'hashed_NewPass123!'
+        password: 'hashed_NewPass123!',
       });
     });
 
@@ -183,19 +186,25 @@ describe('UserLevelDBService', () => {
       (Bun.password.verify as jest.Mock).mockImplementation(async () => false);
 
       await expect(
-        userService.updatePassword('1', 'WrongPass123!', 'NewPass123!')
+        userService.updatePassword('1', 'WrongPass123!', 'NewPass123!'),
       ).rejects.toThrow(BadRequestException);
 
-      expect(Bun.password.verify).toHaveBeenCalledWith('WrongPass123!', OLD_HASHED_PASSWORD);
+      expect(Bun.password.verify).toHaveBeenCalledWith(
+        'WrongPass123!',
+        OLD_HASHED_PASSWORD,
+      );
       expect(Bun.password.hash).not.toHaveBeenCalled();
     });
 
     it('should throw error if new password is weak', async () => {
       await expect(
-        userService.updatePassword('1', 'OldPass123!', 'weak')
+        userService.updatePassword('1', 'OldPass123!', 'weak'),
       ).rejects.toThrow('Validation failed');
 
-      expect(Bun.password.verify).toHaveBeenCalledWith('OldPass123!', OLD_HASHED_PASSWORD);
+      expect(Bun.password.verify).toHaveBeenCalledWith(
+        'OldPass123!',
+        OLD_HASHED_PASSWORD,
+      );
       expect(Bun.password.hash).not.toHaveBeenCalled();
     });
   });
@@ -240,7 +249,9 @@ describe('UserLevelDBService', () => {
 
       const result = await userService.createGithubUser(githubUserData);
 
-      expect(mockUserRepository.findByUsername).toHaveBeenCalledWith(githubUserData.username);
+      expect(mockUserRepository.findByUsername).toHaveBeenCalledWith(
+        githubUserData.username,
+      );
       expect(result.githubId).toBe(githubUserData.githubId);
       expect(result.username).toBe(githubUserData.username);
       expect(result.enabled).toBe(true);
@@ -258,7 +269,9 @@ describe('UserLevelDBService', () => {
       const realDateNow = Date.now;
       Date.now = jest.fn(() => mockTimestamp);
 
-      mockUserRepository.findByUsername.mockResolvedValue({ username: 'githubuser' });
+      mockUserRepository.findByUsername.mockResolvedValue({
+        username: 'githubuser',
+      });
       mockUserRepository.createUser.mockResolvedValue({
         id: '1',
         ...githubUserData,
@@ -285,7 +298,9 @@ describe('UserLevelDBService', () => {
 
       const result = await userService.checkUsernameAvailability(username);
 
-      expect(mockUserRepository.isUsernameAvailable).toHaveBeenCalledWith(username);
+      expect(mockUserRepository.isUsernameAvailable).toHaveBeenCalledWith(
+        username,
+      );
       expect(result.available).toBe(true);
       expect(result.suggestions).toEqual([]);
     });
@@ -296,12 +311,14 @@ describe('UserLevelDBService', () => {
 
       const result = await userService.checkUsernameAvailability(username);
 
-      expect(mockUserRepository.isUsernameAvailable).toHaveBeenCalledWith(username);
+      expect(mockUserRepository.isUsernameAvailable).toHaveBeenCalledWith(
+        username,
+      );
       expect(result.available).toBe(false);
       expect(result.suggestions).toEqual([
         `${username}1`,
         `${username}2`,
-        `${username}3`
+        `${username}3`,
       ]);
     });
   });

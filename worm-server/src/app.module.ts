@@ -1,8 +1,4 @@
-import {
-  Module,
-  NestModule,
-  Logger,
-} from '@nestjs/common';
+import { Module, NestModule, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { AuthModule } from './auth/auth.module.js';
@@ -11,7 +7,7 @@ import { ProjectModule } from './project/project.module.js';
 import { ProjectElementModule } from './project/element/project-element.module.js';
 import { WsModule } from './ws/ws.module.js';
 import { McpModule } from './mcp/mcp.module.js';
-import { LevelDBManagerService } from './common/persistence/leveldb-manager.service.js';
+import { PersistenceModule } from './common/persistence/persistence.module.js';
 import * as path from 'path';
 import { cwd } from 'process';
 
@@ -30,7 +26,9 @@ import { cwd } from 'process';
       useFactory: () => {
         return [
           {
-            rootPath: path.resolve(path.join(cwd(),'../frontend/dist/browser')),
+            rootPath: path.resolve(
+              path.join(cwd(), '../frontend/dist/browser'),
+            ),
           },
         ];
       },
@@ -42,12 +40,7 @@ import { cwd } from 'process';
     AuthModule,
     WsModule,
     McpModule,
-  ],
-  providers: [
-    LevelDBManagerService
-  ],
-  exports: [
-    LevelDBManagerService
+    PersistenceModule,
   ],
   controllers: [],
 })

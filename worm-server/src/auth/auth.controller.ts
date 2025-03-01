@@ -17,7 +17,7 @@ import { LocalAuthGuard } from './local-auth.guard.js';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
   ) {}
 
   @Post('login')
@@ -37,7 +37,7 @@ export class AuthController {
       name: req.user.name,
       avatarImageUrl: req.user.avatarImageUrl,
       enabled: req.user.enabled,
-      sessionId: req.sessionID
+      sessionId: req.sessionID,
     };
 
     return userResponse;

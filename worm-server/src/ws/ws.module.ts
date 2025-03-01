@@ -5,10 +5,7 @@ import { AuthModule } from '../auth/auth.module.js';
 import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
 
 @Module({
-  imports: [
-    ConfigModule,
-    AuthModule,
-  ],
+  imports: [ConfigModule, AuthModule],
   providers: [YjsGateway, LevelDBManagerService],
   exports: [YjsGateway],
 })

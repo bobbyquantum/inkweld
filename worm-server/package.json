@@ -51,11 +51,9 @@
     "passport-google-oauth20": "2.0.0",
     "passport-jwt": "4.0.1",
     "passport-local": "1.0.0",
-    "pg": "8.13.3",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
     "swagger-ui-express": "5.0.1",
-    "typeorm": "0.3.20",
     "ws": "8.18.1",
     "uuid": "11.1.0",
     "y-websocket": "2.1.0"

@@ -26,14 +26,20 @@ export class ProjectService {
     username: string,
     slug: string,
   ): Promise<ProjectEntity> {
-    const project = await this.projectRepo.findByUsernameAndSlug(username, slug);
+    const project = await this.projectRepo.findByUsernameAndSlug(
+      username,
+      slug,
+    );
     if (!project) {
       throw new NotFoundException('Project not found');
     }
     return project;
   }
 
-  async create(userId: string, project: Partial<ProjectEntity>): Promise<ProjectEntity> {
+  async create(
+    userId: string,
+    project: Partial<ProjectEntity>,
+  ): Promise<ProjectEntity> {
     // Look up the current user
     const user = await this.userRepo.findById(userId);
     if (!user) {
@@ -41,7 +47,10 @@ export class ProjectService {
     }
 
     // Check if project with this slug already exists for this user
-    const isSlugAvailable = await this.projectRepo.isSlugAvailable(userId, project.slug);
+    const isSlugAvailable = await this.projectRepo.isSlugAvailable(
+      userId,
+      project.slug,
+    );
     if (!isSlugAvailable) {
       throw new ForbiddenException('Project already exists');
     }
@@ -68,7 +77,8 @@ export class ProjectService {
     // Update fields
     const updates: Partial<ProjectEntity> = {};
     if (projectData.title !== undefined) updates.title = projectData.title;
-    if (projectData.description !== undefined) updates.description = projectData.description;
+    if (projectData.description !== undefined)
+      updates.description = projectData.description;
 
     // Save changes
     return this.projectRepo.updateProject(existing.id, updates);

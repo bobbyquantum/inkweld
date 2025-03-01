@@ -60,7 +60,11 @@ export class ProjectElementDto {
   })
   expandable?: boolean;
 
-  @ApiProperty({ type: 'object', additionalProperties: { type: 'string' }, description: 'Metadata associated with the project element' })
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: { type: 'string' },
+    description: 'Metadata associated with the project element',
+  })
   metadata?: ProjectElementMetadataDto;
 
   constructor(entity?: ProjectElementDto) {

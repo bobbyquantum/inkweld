@@ -111,7 +111,7 @@ export class UserController {
       message: 'User registered and logged in',
       userId: user?.id,
       username: user?.username,
-      name: user?.name
+      name: user?.name,
     };
   }
 
@@ -142,24 +142,23 @@ export class UserController {
         available: { type: 'boolean' },
         suggestions: {
           type: 'array',
-          items: { type: 'string' }
-        }
-      }
-    }
+          items: { type: 'string' },
+        },
+      },
+    },
   })
   @ApiBadRequestResponse({ description: 'Invalid username format' })
-  async checkUsernameAvailability(
-    @Query('username') username: string
-  ) {
+  async checkUsernameAvailability(@Query('username') username: string) {
     if (!username || username.length < 3) {
       throw new BadRequestException('Username must be at least 3 characters');
     }
 
-    const { available, suggestions } = await this.userService.checkUsernameAvailability(username);
+    const { available, suggestions } =
+      await this.userService.checkUsernameAvailability(username);
 
     return {
       available,
-      suggestions: available ? [] : suggestions
+      suggestions: available ? [] : suggestions,
     };
   }
 }

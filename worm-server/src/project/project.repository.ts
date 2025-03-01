@@ -11,7 +11,7 @@ import { UserRepository } from '../user/user.repository.js';
 export class ProjectRepository extends LevelDBRepository<ProjectEntity> {
   constructor(
     levelDBManager: LevelDBManagerService,
-    private readonly userRepository: UserRepository
+    private readonly userRepository: UserRepository,
   ) {
     // Create a repository with composite index for userId+slug
     super(levelDBManager, 'Project', ['userId:slug']);
@@ -32,7 +32,10 @@ export class ProjectRepository extends LevelDBRepository<ProjectEntity> {
    * @param slug The project slug
    * @returns The project or null if not found
    */
-  async findByUsernameAndSlug(username: string, slug: string): Promise<ProjectEntity | null> {
+  async findByUsernameAndSlug(
+    username: string,
+    slug: string,
+  ): Promise<ProjectEntity | null> {
     // First find the user by username
     const user = await this.userRepository.findByUsername(username);
     if (!user) return null;
@@ -57,7 +60,9 @@ export class ProjectRepository extends LevelDBRepository<ProjectEntity> {
    * @param projectData The project data
    * @returns The created project
    */
-  async createProject(projectData: Partial<ProjectEntity>): Promise<ProjectEntity> {
+  async createProject(
+    projectData: Partial<ProjectEntity>,
+  ): Promise<ProjectEntity> {
     // Set timestamps
     projectData.createdAt = Date.now();
     projectData.updatedAt = Date.now();
@@ -76,7 +81,10 @@ export class ProjectRepository extends LevelDBRepository<ProjectEntity> {
    * @param projectData The project data to update
    * @returns The updated project
    */
-  async updateProject(id: string, projectData: Partial<ProjectEntity>): Promise<ProjectEntity> {
+  async updateProject(
+    id: string,
+    projectData: Partial<ProjectEntity>,
+  ): Promise<ProjectEntity> {
     // Get the current project
     const currentProject = await this.findById(id);
     if (!currentProject) {
@@ -91,7 +99,8 @@ export class ProjectRepository extends LevelDBRepository<ProjectEntity> {
 
     // Update composite index if slug changes
     if (projectData.slug && projectData.slug !== currentProject.slug) {
-      projectData['userId:slug'] = `${currentProject.userId}:${projectData.slug}`;
+      projectData['userId:slug'] =
+        `${currentProject.userId}:${projectData.slug}`;
     }
 
     return this.update(id, projectData);

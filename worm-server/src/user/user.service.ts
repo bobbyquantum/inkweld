@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { ValidationException } from '../common/exceptions/validation.exception.js';
 import { UserRepository } from './user.repository.js';
 import { UserDto } from './user.dto.js';
@@ -9,9 +6,7 @@ import { UserEntity } from './user.entity.js';
 
 @Injectable()
 export class UserService {
-  constructor(
-    private readonly userRepo: UserRepository,
-  ) {}
+  constructor(private readonly userRepo: UserRepository) {}
 
   private async validateUserInput(
     username: string,
@@ -75,7 +70,8 @@ export class UserService {
 
     const updates: Partial<UserEntity> = {};
     if (dto.name !== undefined) updates.name = dto.name;
-    if (dto.avatarImageUrl !== undefined) updates.avatarImageUrl = dto.avatarImageUrl;
+    if (dto.avatarImageUrl !== undefined)
+      updates.avatarImageUrl = dto.avatarImageUrl;
 
     return this.userRepo.updateUser(userId, updates);
   }
@@ -90,7 +86,10 @@ export class UserService {
       throw new BadRequestException('User not found');
     }
 
-    const passwordMatches = await Bun.password.verify(oldPassword, user.password);
+    const passwordMatches = await Bun.password.verify(
+      oldPassword,
+      user.password,
+    );
     if (!passwordMatches) {
       throw new BadRequestException('Old password is incorrect');
     }
@@ -162,18 +161,19 @@ export class UserService {
     if (available) {
       return {
         available: true,
-        suggestions: []
+        suggestions: [],
       };
     }
 
     // Generate suggestions by appending numbers
-    const suggestions = Array.from({ length: 3 }, (_, i) =>
-      `${username}${i + 1}`
+    const suggestions = Array.from(
+      { length: 3 },
+      (_, i) => `${username}${i + 1}`,
     );
 
     return {
       available: false,
-      suggestions
+      suggestions,
     };
   }
 }

@@ -9,12 +9,11 @@ import { OAuth2Controller } from './oauth2.controller.js';
 import { SessionStore } from './session.store.js';
 import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
 import { UserService } from 'user/user.service.js';
+import { PersistenceModule } from 'common/persistence/persistence.module.js';
+import { UserModule } from 'user/user.module.js';
 
 @Module({
-  imports: [
-    ConfigModule,
-    PassportModule,
-  ],
+  imports: [ConfigModule, PassportModule, PersistenceModule, UserModule],
   controllers: [AuthController, OAuth2Controller],
   providers: [
     AuthService,
@@ -22,7 +21,10 @@ import { UserService } from 'user/user.service.js';
     {
       provide: GithubStrategy,
       useFactory: (userService: UserService) => {
-        if (process.env.GITHUB_ENABLED && process.env.GITHUB_ENABLED === 'true') {
+        if (
+          process.env.GITHUB_ENABLED &&
+          process.env.GITHUB_ENABLED === 'true'
+        ) {
           return new GithubStrategy(userService);
         }
         return null;

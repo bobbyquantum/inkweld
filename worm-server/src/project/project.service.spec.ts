@@ -121,11 +121,16 @@ describe('ProjectLevelDBService', () => {
         userId: 'user1',
       };
 
-      mockProjectRepository.findByUsernameAndSlug.mockResolvedValue(mockProject);
+      mockProjectRepository.findByUsernameAndSlug.mockResolvedValue(
+        mockProject,
+      );
 
       const result = await projectService.findByUsernameAndSlug(username, slug);
 
-      expect(mockProjectRepository.findByUsernameAndSlug).toHaveBeenCalledWith(username, slug);
+      expect(mockProjectRepository.findByUsernameAndSlug).toHaveBeenCalledWith(
+        username,
+        slug,
+      );
       expect(result).toEqual(mockProject);
     });
 
@@ -136,7 +141,7 @@ describe('ProjectLevelDBService', () => {
       mockProjectRepository.findByUsernameAndSlug.mockResolvedValue(null);
 
       await expect(
-        projectService.findByUsernameAndSlug(username, slug)
+        projectService.findByUsernameAndSlug(username, slug),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -170,13 +175,16 @@ describe('ProjectLevelDBService', () => {
       const result = await projectService.create(userId, projectData);
 
       expect(mockUserRepository.findById).toHaveBeenCalledWith(userId);
-      expect(mockProjectRepository.isSlugAvailable).toHaveBeenCalledWith(userId, projectData.slug);
+      expect(mockProjectRepository.isSlugAvailable).toHaveBeenCalledWith(
+        userId,
+        projectData.slug,
+      );
       expect(mockProjectRepository.createProject).toHaveBeenCalledWith(
         expect.objectContaining({
           ...projectData,
           userId,
           user: mockUser,
-        })
+        }),
       );
       expect(result).toEqual(mockCreatedProject);
     });
@@ -190,7 +198,9 @@ describe('ProjectLevelDBService', () => {
 
       mockUserRepository.findById.mockResolvedValue(null);
 
-      await expect(projectService.create(userId, projectData)).rejects.toThrow(ForbiddenException);
+      await expect(projectService.create(userId, projectData)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should throw ForbiddenException if project slug already exists for user', async () => {
@@ -207,7 +217,9 @@ describe('ProjectLevelDBService', () => {
       mockUserRepository.findById.mockResolvedValue(mockUser);
       mockProjectRepository.isSlugAvailable.mockResolvedValue(false);
 
-      await expect(projectService.create(userId, projectData)).rejects.toThrow(ForbiddenException);
+      await expect(projectService.create(userId, projectData)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -232,15 +244,20 @@ describe('ProjectLevelDBService', () => {
         updatedAt: Date.now(),
       };
 
-      mockProjectRepository.findByUsernameAndSlug.mockResolvedValue(existingProject);
+      mockProjectRepository.findByUsernameAndSlug.mockResolvedValue(
+        existingProject,
+      );
       mockProjectRepository.updateProject.mockResolvedValue(updatedProject);
 
       const result = await projectService.update(username, slug, updateData);
 
-      expect(mockProjectRepository.findByUsernameAndSlug).toHaveBeenCalledWith(username, slug);
+      expect(mockProjectRepository.findByUsernameAndSlug).toHaveBeenCalledWith(
+        username,
+        slug,
+      );
       expect(mockProjectRepository.updateProject).toHaveBeenCalledWith(
         existingProject.id,
-        expect.objectContaining(updateData)
+        expect.objectContaining(updateData),
       );
       expect(result).toEqual(updatedProject);
     });
@@ -257,13 +274,20 @@ describe('ProjectLevelDBService', () => {
         userId: 'user1',
       };
 
-      mockProjectRepository.findByUsernameAndSlug.mockResolvedValue(existingProject);
+      mockProjectRepository.findByUsernameAndSlug.mockResolvedValue(
+        existingProject,
+      );
       mockProjectRepository.delete.mockResolvedValue(undefined);
 
       await projectService.delete(username, slug);
 
-      expect(mockProjectRepository.findByUsernameAndSlug).toHaveBeenCalledWith(username, slug);
-      expect(mockProjectRepository.delete).toHaveBeenCalledWith(existingProject.id);
+      expect(mockProjectRepository.findByUsernameAndSlug).toHaveBeenCalledWith(
+        username,
+        slug,
+      );
+      expect(mockProjectRepository.delete).toHaveBeenCalledWith(
+        existingProject.id,
+      );
     });
   });
 });
