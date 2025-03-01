@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Request } from 'express';
 import { Session } from 'express-session';
-import { UserController } from './user.controller.js';
 import { UserRegisterDto } from './user-register.dto.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { AuthService } from './auth.service.js';
@@ -13,8 +12,8 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { UserService } from './user.service.js';
+import { UserController } from './user.controller.js';
 import { UserEntity } from './user.entity.js';
-
 interface _MockRequest extends Request {
   session: Session & {
     user?: any;

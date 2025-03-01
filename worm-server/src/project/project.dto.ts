@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { UserDto } from '../user/user.dto.js';
+import { UserDto } from '../auth/user.dto.js';
 import { ProjectEntity } from './project.entity.js';
 
 export class ProjectDto {

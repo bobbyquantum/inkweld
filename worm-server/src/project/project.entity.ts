@@ -1,5 +1,5 @@
 import { BaseEntity } from '../common/persistence/leveldb-repository.js';
-import { UserEntity } from '../user/user.entity.js';
+import { UserEntity } from '../auth/user.entity.js';
 
 /**
  * Project entity for LevelDB storage

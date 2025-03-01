@@ -25,9 +25,9 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { SessionAuthGuard } from './session-auth.guard.js';
-import { UserDto } from './user.dto.js';
 import { UserRegisterDto } from './user-register.dto.js';
 import { UserService } from './user.service.js';
+import { UserDto } from './user.dto.js';
 
 @ApiTags('User API')
 @ApiBearerAuth()

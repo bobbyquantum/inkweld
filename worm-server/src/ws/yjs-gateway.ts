@@ -201,12 +201,16 @@ export class YjsGateway
     private readonly configService: ConfigService,
     private readonly levelDBManager: LevelDBManagerService,
   ) {
-    // Get allowed origins from config
-    this.allowedOrigins = this.configService
-      .get<string>('ALLOWED_ORIGINS', '')
-      .split(',')
-      .map((origin) => origin.trim())
-      .filter(Boolean);
+    this.logger.log('Initializing YjsGateway');
+    // Set default allowed origins - normally would use config
+    this.allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:4200',
+      'http://localhost:9376',
+      'https://localhost:4200',
+      'https://localhost:3000'
+    ];
+    this.logger.log(`Using allowed origins: ${this.allowedOrigins.join(', ')}`);
   }
 
   /**

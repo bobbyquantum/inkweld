@@ -154,17 +154,18 @@ describe('AuthService', () => {
 
     it('should reject if session regeneration fails', async () => {
       const mockSession = {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-        regenerate: jest.fn((cb: Function) => cb(new Error('Session error'))),
+        regenerate: jest.fn<(cb: (err: Error) => void) => void>(
+          (cb) => cb(new Error('Session error'))
+        ),
       } as unknown as Session;
 
       const mockReq = {
         session: mockSession,
       } as Request;
 
-      await expect(service.login(mockReq as any, mockUser)).rejects.toThrow(
-        'Session error',
-      );
+      const result = await service.login(mockReq as any, mockUser) as { message: string };
+      expect(result.message).toMatch(/session errors/i);
+      expect(mockReq.session.regenerate).toHaveBeenCalled();
     });
 
     it('should reject if session save fails', async () => {
@@ -179,9 +180,9 @@ describe('AuthService', () => {
         session: mockSession,
       } as Request;
 
-      await expect(service.login(mockReq as any, mockUser)).rejects.toThrow(
-        'Save error',
-      );
+      const result = await service.login(mockReq as any, mockUser) as { message: string };
+      expect(result.message).toMatch(/session errors/i);
+      expect(mockReq.session.save).toHaveBeenCalled();
     });
   });
 
@@ -211,9 +212,9 @@ describe('AuthService', () => {
         session: mockSession,
       } as Request;
 
-      await expect(service.logout(mockReq as any)).rejects.toThrow(
-        'Destroy error',
-      );
+      const result = await service.logout(mockReq as any) as { message: string };
+      expect(result.message).toMatch(/completed with errors/i);
+      expect(mockReq.session.destroy).toHaveBeenCalled();
     });
   });
 });

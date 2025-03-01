@@ -16,21 +16,28 @@ export interface BaseEntity {
  */
 export class LevelDBRepository<T extends BaseEntity> {
   private readonly logger: Logger;
-  private readonly dbPrefix: string;
-  private readonly indexFields: string[];
+  protected readonly dbPrefix: string;
+  protected readonly indexFields: string[];
+
+  // Flag indicating if this is a system repository (users, projects, etc.)
+  // or a project-specific repository
+  private readonly isSystemRepository: boolean;
 
   /**
    * Creates a new LevelDB repository
    * @param levelDBManager The LevelDB manager service
    * @param entityName The name of the entity (used for logging and as DB prefix)
    * @param indexFields Fields to create secondary indexes for (e.g. 'username', 'email')
+   * @param isSystemRepository Whether this repository stores system-level entities
    */
   constructor(
     private readonly levelDBManager: LevelDBManagerService,
     private readonly entityName: string,
     indexFields: string[] = [],
+    isSystemRepository: boolean = false
   ) {
     this.logger = new Logger(`LevelDBRepository:${entityName}`);
+    this.isSystemRepository = isSystemRepository || ['users', 'sessions', 'projects'].includes(entityName);
     this.dbPrefix = entityName.toLowerCase();
     this.indexFields = indexFields;
   }
@@ -55,6 +62,45 @@ export class LevelDBRepository<T extends BaseEntity> {
   }
 
   /**
+   * Get the appropriate database based on whether this is a system repository or not
+   * @param username Optional username for project databases
+   * @param projectSlug Optional project slug for project databases
+   * @returns The database instance
+   */
+  protected async getDatabase(username?: string, projectSlug?: string) {
+    if (this.isSystemRepository) {
+      this.logger.debug(`Getting system database for ${this.entityName}`);
+      return this.levelDBManager.getSystemDatabase(this.dbPrefix);
+    }
+
+    if (!username || !projectSlug) {
+      throw new Error(`Username and projectSlug are required for project database access: ${this.entityName}`);
+    }
+
+    this.logger.debug(`Getting project database for ${username}/${projectSlug}/${this.entityName}`);
+    const db = await this.levelDBManager.getProjectDatabase(username, projectSlug);
+    return db;
+  }
+
+  /**
+   * Check if a database is ready and retry getting it if not
+   * @param db The database to check
+   * @returns The checked database
+   */
+  private async ensureDatabaseReady(db: any): Promise<any> {
+    // For system databases (Level instances), check if the database is open
+    if (db && typeof db.status === 'function') {
+      const status = db.status();
+      if (status !== 'open') {
+        this.logger.warn(`Database for ${this.entityName} is not open (status: ${status}), waiting...`);
+        await new Promise(resolve => setTimeout(resolve, 500)); // Short delay
+        return this.levelDBManager.getSystemDatabase(this.dbPrefix);
+      }
+    }
+    return db;
+  }
+
+  /**
    * Creates a new entity
    * @param data The entity data
    * @returns The created entity
@@ -64,47 +110,43 @@ export class LevelDBRepository<T extends BaseEntity> {
     const entity = { ...data, id } as T;
 
     try {
-      const db = await this.levelDBManager.getProjectDatabase('_system', 'users');
+      let db;
+      if (this.isSystemRepository) {
+        // Get system database for system entities
+        db = await this.levelDBManager.getSystemDatabase(this.dbPrefix);
+        db = await this.ensureDatabaseReady(db);
 
-      // Check if db and db.db are properly initialized
-      if (!db || !db.db) {
-        this.logger.error(`Database not properly initialized for ${this.entityName}`);
+        // Start a batch operation for system DB
+        const batch = db.batch();
 
-        // Instead of throwing, return the entity directly for auth flows
-        // This allows authentication to proceed even with DB issues
-        if (data.githubId) {
-          this.logger.warn(`Returning unsaved entity for github user ${data.githubId} due to DB initialization issues`);
-          return entity;
+        // Add the main entity
+        const entityKey = this.getEntityKey(id);
+        await batch.put(entityKey, JSON.stringify(entity));
+
+        // Add indexes
+        for (const field of this.indexFields) {
+          if (entity[field]) {
+            const indexKey = this.getIndexKey(field, entity[field]);
+            await batch.put(indexKey, id);
+          }
         }
 
-        throw new Error(`Database not initialized for ${this.entityName}`);
+        // Execute the batch
+        await batch.write();
+      } else {
+        // Get project database for project-specific entities
+        // This case should include the username and projectSlug from the repository context
+        throw new Error('Project-specific entity operations not implemented');
       }
 
-      // Start a batch operation
-      const batch = [];
-
-      // Add the main entity
-      const entityKey = this.getEntityKey(id);
-      batch.push({ type: 'put', key: entityKey, value: JSON.stringify(entity) });
-
-      // Add indexes
-      for (const field of this.indexFields) {
-        if (entity[field]) {
-          const indexKey = this.getIndexKey(field, entity[field]);
-          batch.push({ type: 'put', key: indexKey, value: id });
-        }
-      }
-
-      // Execute the batch
-      await db.db.batch(batch);
-
-      this.logger.debug(`Created ${this.entityName} with ID ${id}`);
+      const entityType = this.isSystemRepository ? 'system' : 'project';
+      this.logger.debug(`Created ${entityType} ${this.entityName} with ID ${id}`);
     } catch (error) {
       this.logger.error(`Error creating ${this.entityName}:`, error);
 
       // For GitHub auth, allow auth to proceed even with DB errors
       if (data.githubId) {
-        this.logger.warn(`Returning unsaved entity for github user ${data.githubId} due to error: ${error.message}`);
+        this.logger.warn(`Returning unsaved entity for github user ${data.githubId} due to DB initialization issues`);
         return entity;
       }
 
@@ -121,22 +163,24 @@ export class LevelDBRepository<T extends BaseEntity> {
    */
   async findById(id: string): Promise<T | null> {
     try {
-      const db = await this.levelDBManager.getProjectDatabase(
-        '_system',
-        'users',
-      );
-
-      // Check if db and db.db are properly initialized
-      if (!db || !db.db) {
-        this.logger.error(`Database not properly initialized for ${this.entityName}`);
-        return null;
+      if (!this.isSystemRepository) {
+        throw new Error('Project-specific findById operations not implemented');
       }
 
+      // Get system database for system entities
+      const db = await this.levelDBManager.getSystemDatabase(this.dbPrefix);
+
+      // Make sure the database is ready
+      await this.ensureDatabaseReady(db);
+
+      this.logger.log("Database status",db.status);
+
       const entityKey = this.getEntityKey(id);
-      const data = await db.db.get(entityKey);
+      const data = await db.get(entityKey);
+      if (!data) return null;
       return JSON.parse(data);
     } catch (error) {
-      if (error.type === 'NotFoundError') {
+      if (error && error.type === 'NotFoundError') {
         return null;
       }
       throw error;
@@ -153,48 +197,44 @@ export class LevelDBRepository<T extends BaseEntity> {
     try {
       // If the field is indexed, use the index
       if (field === 'githubId' && value) {
-        // Special case for GitHub authentication to prevent errors
+        // Special case for GitHub authentication
         try {
-          const db = await this.levelDBManager.getProjectDatabase(
-            '_system',
-            'users',
-          );
-
-          // Check if db and db.db are properly initialized
-          if (!db || !db.db) {
-            this.logger.error(`Database not properly initialized for ${this.entityName} when looking up GitHub ID ${value}`);
-            return null;
+          if (!this.isSystemRepository) {
+            throw new Error('Project-specific findByField operations not implemented');
           }
 
+          // Get system database for system entities
+          const db = await this.levelDBManager.getSystemDatabase(this.dbPrefix);
+
+          // Make sure the database is ready
+          await this.ensureDatabaseReady(db);
+
           const indexKey = this.getIndexKey(field, value);
-          const id = await db.db.get(indexKey);
+          const id = await db.get(indexKey);
           return this.findById(id);
-        } catch (error) {
-          // Handle any errors during GitHub auth lookup gracefully
-          this.logger.warn(`GitHub authentication lookup failed for ID ${value}:`, error);
+        } catch (_error) {
           return null;
         }
       } else if (this.indexFields.includes(field)) {
-        const db = await this.levelDBManager.getProjectDatabase(
-          '_system',
-          'users',
-        );
-
-        // Check if db and db.db are properly initialized
-        if (!db || !db.db) {
-          this.logger.error(`Database not properly initialized for ${this.entityName}`);
-          return null;
+        if (!this.isSystemRepository) {
+          throw new Error('Project-specific findByField operations not implemented');
         }
 
+        // Get system database for system entities
+        const db = await this.levelDBManager.getSystemDatabase(this.dbPrefix);
+
+        // Make sure the database is ready
+        await this.ensureDatabaseReady(db);
+
         const indexKey = this.getIndexKey(field, value);
-        const id = await db.db.get(indexKey);
+        const id = await db.get(indexKey);
         return this.findById(id);
       }
 
       // Otherwise, scan all entities
       return this.findOne({ [field]: value } as Partial<T>);
     } catch (error) {
-      if (error.type === 'NotFoundError') {
+      if (error && error.type === 'NotFoundError') {
         return null;
       }
       throw error;
@@ -207,28 +247,30 @@ export class LevelDBRepository<T extends BaseEntity> {
    * @returns An array of matching entities
    */
   async find(filter: Partial<T> = {}): Promise<T[]> {
-    const db = await this.levelDBManager.getProjectDatabase('_system', 'users');
-
-    // Check if db and db.db are properly initialized
-    if (!db || !db.db) {
-      this.logger.error(`Database not properly initialized for ${this.entityName}`);
-      return [];
+    if (!this.isSystemRepository) {
+      throw new Error('Project-specific find operations not implemented');
     }
+
+    // Get system database for system entities
+    const db = await this.levelDBManager.getSystemDatabase(this.dbPrefix);
+
+    // Make sure the database is ready
+    await this.ensureDatabaseReady(db);
 
     const results: T[] = [];
 
     // Get all keys with the entity prefix
-    const prefix = `${this.dbPrefix}:`;
+    const prefix = `${this.entityName.toLowerCase()}:`;
 
     // Use the LevelDB iterator to get all entities
-    for await (const [key, value] of db.db.iterator({
+    for await (const [key, value] of db.iterator({
       gte: prefix,
       lte: prefix + '\uffff',
       keys: true,
       values: true,
-    })) {
+    }) as any) {
       // Skip index keys
-      if (key.includes(':index:')) continue;
+      if (key.toString().includes(':index:')) continue;
 
       const entity = JSON.parse(value) as T;
 
@@ -268,49 +310,51 @@ export class LevelDBRepository<T extends BaseEntity> {
   async update(id: string, data: Partial<T>): Promise<T> {
     const entity = await this.findById(id);
     if (!entity) {
-      throw new Error(`${this.entityName} with ID ${id} not found`);
+      throw new Error(`${this.entityName} with ID ${id} not found for update`);
     }
 
     const updatedEntity = { ...entity, ...data, id };
-    const db = await this.levelDBManager.getProjectDatabase('_system', 'users');
 
-    // Check if db and db.db are properly initialized
-    if (!db || !db.db) {
-      this.logger.error(`Database not properly initialized for ${this.entityName}`);
-      throw new Error(`Database not initialized for ${this.entityName}`);
+    if (!this.isSystemRepository) {
+      throw new Error('Project-specific update operations not implemented');
     }
 
+    // Get system database for system entities
+    const db = await this.levelDBManager.getSystemDatabase(this.dbPrefix);
+
+    // Make sure the database is ready
+    await this.ensureDatabaseReady(db);
+
     // Start a batch operation
-    const batch = [];
+    const batch = db.batch();
 
     // Update the main entity
     const entityKey = this.getEntityKey(id);
-    batch.push({
-      type: 'put',
-      key: entityKey,
-      value: JSON.stringify(updatedEntity),
-    });
+    await batch.put(
+      entityKey,
+      JSON.stringify(updatedEntity)
+    );
 
     // Update indexes
     for (const field of this.indexFields) {
-      // If the field has changed, update the index
+      // If the field value has changed, update the index
       if (data[field] !== undefined && entity[field] !== data[field]) {
         // Delete old index if it exists
         if (entity[field]) {
           const oldIndexKey = this.getIndexKey(field, entity[field]);
-          batch.push({ type: 'del', key: oldIndexKey });
+          await batch.del(oldIndexKey);
         }
 
         // Add new index if it exists
         if (data[field]) {
           const newIndexKey = this.getIndexKey(field, data[field]);
-          batch.push({ type: 'put', key: newIndexKey, value: id });
+          await batch.put(newIndexKey, id);
         }
       }
     }
 
     // Execute the batch
-    await db.db.batch(batch);
+    await batch.write();
 
     this.logger.debug(`Updated ${this.entityName} with ID ${id}`);
     return updatedEntity;
@@ -326,31 +370,33 @@ export class LevelDBRepository<T extends BaseEntity> {
       return; // Entity doesn't exist, nothing to delete
     }
 
-    const db = await this.levelDBManager.getProjectDatabase('_system', 'users');
-
-    // Check if db and db.db are properly initialized
-    if (!db || !db.db) {
-      this.logger.error(`Database not properly initialized for ${this.entityName}`);
-      return;
+    if (!this.isSystemRepository) {
+      throw new Error('Project-specific delete operations not implemented');
     }
 
+    // Get system database for system entities
+    const db = await this.levelDBManager.getSystemDatabase(this.dbPrefix);
+
+    // Make sure the database is ready
+    await this.ensureDatabaseReady(db);
+
     // Start a batch operation
-    const batch = [];
+    const batch = db.batch();
 
     // Delete the main entity
     const entityKey = this.getEntityKey(id);
-    batch.push({ type: 'del', key: entityKey });
+    await batch.del(entityKey);
 
     // Delete indexes
     for (const field of this.indexFields) {
       if (entity[field]) {
         const indexKey = this.getIndexKey(field, entity[field]);
-        batch.push({ type: 'del', key: indexKey });
+        await batch.del(indexKey);
       }
     }
 
     // Execute the batch
-    await db.db.batch(batch);
+    await batch.write();
 
     this.logger.debug(`Deleted ${this.entityName} with ID ${id}`);
   }

@@ -42,7 +42,7 @@ import { UserRepository } from './user.repository.js';
       inject: [LevelDBManagerService],
     },
   ],
-  exports: [AuthService, SessionStore],
+  exports: [AuthService, SessionStore, UserRepository, UserService],
 })
 export class AuthModule {}
 

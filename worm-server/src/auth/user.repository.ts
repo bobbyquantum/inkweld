@@ -10,7 +10,7 @@ import { LevelDBManagerService } from '../common/persistence/leveldb-manager.ser
 export class UserRepository extends LevelDBRepository<UserEntity> {
   constructor(levelDBManager: LevelDBManagerService) {
     // Create a repository with indexes for username and githubId
-    super(levelDBManager, 'User', ['username', 'githubId']);
+    super(levelDBManager, 'users', ['username', 'githubId'], true);
   }
 
   /**

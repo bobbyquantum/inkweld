@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { LevelDBRepository } from '../common/persistence/leveldb-repository.js';
 import { ProjectEntity } from './project.entity.js';
 import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
-import { UserRepository } from '../user/user.repository.js';
+import { UserRepository } from '../auth/user.repository.js';
 
 /**
  * Repository for Project entities stored in LevelDB
@@ -14,7 +14,7 @@ export class ProjectRepository extends LevelDBRepository<ProjectEntity> {
     private readonly userRepository: UserRepository,
   ) {
     // Create a repository with composite index for userId+slug
-    super(levelDBManager, 'Project', ['userId:slug']);
+    super(levelDBManager, 'projects', ['userId:slug'], true);
   }
 
   /**

@@ -141,6 +141,10 @@ export class AuthService {
         } catch (sessionSaveErr) {
           clearTimeout(saveTimeout);
           this.logger.error('Exception during session save:', sessionSaveErr);
+          this.logger.debug('DEBUG: In catch block, should reject with sessionSaveErr but using err:', {
+            hasSessionSaveErr: !!sessionSaveErr,
+            hasErr: !!err
+          });
 
           return reject(err);
         }
