@@ -34,10 +34,12 @@ export class LevelDBRepository<T extends BaseEntity> {
     private readonly levelDBManager: LevelDBManagerService,
     private readonly entityName: string,
     indexFields: string[] = [],
-    isSystemRepository: boolean = false
+    isSystemRepository: boolean = false,
   ) {
     this.logger = new Logger(`LevelDBRepository:${entityName}`);
-    this.isSystemRepository = isSystemRepository || ['users', 'sessions', 'projects'].includes(entityName);
+    this.isSystemRepository =
+      isSystemRepository ||
+      ['users', 'sessions', 'projects'].includes(entityName);
     this.dbPrefix = entityName.toLowerCase();
     this.indexFields = indexFields;
   }
@@ -74,11 +76,18 @@ export class LevelDBRepository<T extends BaseEntity> {
     }
 
     if (!username || !projectSlug) {
-      throw new Error(`Username and projectSlug are required for project database access: ${this.entityName}`);
+      throw new Error(
+        `Username and projectSlug are required for project database access: ${this.entityName}`,
+      );
     }
 
-    this.logger.debug(`Getting project database for ${username}/${projectSlug}/${this.entityName}`);
-    const db = await this.levelDBManager.getProjectDatabase(username, projectSlug);
+    this.logger.debug(
+      `Getting project database for ${username}/${projectSlug}/${this.entityName}`,
+    );
+    const db = await this.levelDBManager.getProjectDatabase(
+      username,
+      projectSlug,
+    );
     return db;
   }
 
@@ -89,13 +98,12 @@ export class LevelDBRepository<T extends BaseEntity> {
    */
   private async ensureDatabaseReady(db: any): Promise<any> {
     // For system databases (Level instances), check if the database is open
-    if (db && typeof db.status === 'function') {
-      const status = db.status();
-      if (status !== 'open') {
-        this.logger.warn(`Database for ${this.entityName} is not open (status: ${status}), waiting...`);
-        await new Promise(resolve => setTimeout(resolve, 500)); // Short delay
-        return this.levelDBManager.getSystemDatabase(this.dbPrefix);
-      }
+    if (!db || db.status !== 'open') {
+      this.logger.warn(
+        `Database for ${this.entityName} is not open (status: ${db?.status}), waiting...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Short delay
+      return this.levelDBManager.getSystemDatabase(this.dbPrefix);
     }
     return db;
   }
@@ -140,13 +148,17 @@ export class LevelDBRepository<T extends BaseEntity> {
       }
 
       const entityType = this.isSystemRepository ? 'system' : 'project';
-      this.logger.debug(`Created ${entityType} ${this.entityName} with ID ${id}`);
+      this.logger.debug(
+        `Created ${entityType} ${this.entityName} with ID ${id}`,
+      );
     } catch (error) {
       this.logger.error(`Error creating ${this.entityName}:`, error);
 
       // For GitHub auth, allow auth to proceed even with DB errors
       if (data.githubId) {
-        this.logger.warn(`Returning unsaved entity for github user ${data.githubId} due to DB initialization issues`);
+        this.logger.warn(
+          `Returning unsaved entity for github user ${data.githubId} due to DB initialization issues`,
+        );
         return entity;
       }
 
@@ -173,7 +185,7 @@ export class LevelDBRepository<T extends BaseEntity> {
       // Make sure the database is ready
       await this.ensureDatabaseReady(db);
 
-      this.logger.log("Database status",db.status);
+      this.logger.log('Database status', db.status);
 
       const entityKey = this.getEntityKey(id);
       const data = await db.get(entityKey);
@@ -200,7 +212,9 @@ export class LevelDBRepository<T extends BaseEntity> {
         // Special case for GitHub authentication
         try {
           if (!this.isSystemRepository) {
-            throw new Error('Project-specific findByField operations not implemented');
+            throw new Error(
+              'Project-specific findByField operations not implemented',
+            );
           }
 
           // Get system database for system entities
@@ -217,7 +231,9 @@ export class LevelDBRepository<T extends BaseEntity> {
         }
       } else if (this.indexFields.includes(field)) {
         if (!this.isSystemRepository) {
-          throw new Error('Project-specific findByField operations not implemented');
+          throw new Error(
+            'Project-specific findByField operations not implemented',
+          );
         }
 
         // Get system database for system entities
@@ -330,10 +346,7 @@ export class LevelDBRepository<T extends BaseEntity> {
 
     // Update the main entity
     const entityKey = this.getEntityKey(id);
-    await batch.put(
-      entityKey,
-      JSON.stringify(updatedEntity)
-    );
+    await batch.put(entityKey, JSON.stringify(updatedEntity));
 
     // Update indexes
     for (const field of this.indexFields) {

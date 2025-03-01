@@ -33,9 +33,7 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
     // For now use defaults since ConfigService injection might be failing
     this.basePath = './data';
     this.maxIdleTime = 1000 * 60 * 30; // Default: 30 minutes
-    this.logger.log(
-      `Using database path: ${this.basePath}`
-    ); // Default: 30 minutes
+    this.logger.log(`Using database path: ${this.basePath}`); // Default: 30 minutes
 
     // Ensure base directory exists
     if (!fs.existsSync(this.basePath)) {
@@ -120,7 +118,9 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
 
     // Check if databases are initialized
     if (!this.dbsInitialized) {
-      this.logger.warn(`Database access requested for ${projectKey} before initialization completed`);
+      this.logger.warn(
+        `Database access requested for ${projectKey} before initialization completed`,
+      );
     }
 
     if (!this.projectDatabases.has(projectKey)) {
@@ -136,7 +136,7 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
         const db = new LeveldbPersistence(dbPath, {
           levelOptions: {
             createIfMissing: true,
-            errorIfExists: false
+            errorIfExists: false,
           },
         });
 
@@ -156,11 +156,18 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
             fs.readFileSync(testFile);
             fs.unlinkSync(testFile);
             this.hasVerifiedDatabaseFiles = true;
-            this.logger.log(`Database directory for ${projectKey} verified and writable`);
+            this.logger.log(
+              `Database directory for ${projectKey} verified and writable`,
+            );
           } catch (error) {
-            this.logger.error(`Failed to verify database directory for ${projectKey}:`, error);
+            this.logger.error(
+              `Failed to verify database directory for ${projectKey}:`,
+              error,
+            );
             this.projectDatabases.delete(projectKey);
-            throw new Error(`Database directory verification failed for ${projectKey}`);
+            throw new Error(
+              `Database directory verification failed for ${projectKey}`,
+            );
           }
         }
       } catch (error) {
@@ -184,6 +191,7 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
    */
   async getSystemDatabase(dbName: string): Promise<Level<string, string>> {
     if (!this.systemDatabases.has(dbName)) {
+      this.logger.debug(`Creating new system database: ${dbName}`);
       const dbPath = path.join(this.basePath, '_system', dbName);
 
       // Ensure directory exists
@@ -194,6 +202,7 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
 
       try {
         const db = new Level<string, string>(dbPath, {
+          createIfMissing: true,
           valueEncoding: 'utf8',
           keyEncoding: 'utf8',
         });
@@ -202,6 +211,7 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
         this.logger.log(
           `Created new system LevelDB instance for ${dbName} at ${dbPath}`,
         );
+        this.logger.debug(`Database status for ${dbName}: ${db.status}`);
       } catch (error) {
         this.logger.error(
           `Failed to create system LevelDB instance for ${dbName}:`,
@@ -211,6 +221,9 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
+    this.logger.debug(
+      `Returning existing system database: ${dbName}, status: ${this.systemDatabases.get(dbName)?.status}`,
+    );
     return this.systemDatabases.get(dbName);
   }
 
@@ -328,14 +341,26 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
   private cleanupLockFiles(): void {
     try {
       // Clean lock files in _system/users database
-      const usersLockFile = path.join(this.basePath, '_system', 'users', 'leveldb', 'LOCK');
+      const usersLockFile = path.join(
+        this.basePath,
+        '_system',
+        'users',
+        'leveldb',
+        'LOCK',
+      );
       if (fs.existsSync(usersLockFile)) {
         this.logger.log(`Removing lock file: ${usersLockFile}`);
         fs.unlinkSync(usersLockFile);
       }
 
       // Clean lock files in _system/sessions database
-      const sessionsLockFile = path.join(this.basePath, '_system', 'sessions', 'leveldb', 'LOCK');
+      const sessionsLockFile = path.join(
+        this.basePath,
+        '_system',
+        'sessions',
+        'leveldb',
+        'LOCK',
+      );
       if (fs.existsSync(sessionsLockFile)) {
         this.logger.log(`Removing lock file: ${sessionsLockFile}`);
         fs.unlinkSync(sessionsLockFile);

@@ -32,7 +32,7 @@ describe('GithubStrategy', () => {
     username: 'testuser',
     name: 'Test User',
     avatarImageUrl: 'https://example.com/avatar.jpg',
-    githubId: '12345'
+    githubId: '12345',
   };
 
   const mockGithubProfile = {
@@ -170,7 +170,7 @@ describe('GithubStrategy', () => {
       const result = await strategy.validate(
         'token',
         'refresh',
-        mockGithubProfile
+        mockGithubProfile,
       );
 
       expect(result).toEqual(expectedUserDTO);
@@ -185,7 +185,7 @@ describe('GithubStrategy', () => {
       const result = await strategy.validate(
         'token',
         'refresh',
-        mockGithubProfile
+        mockGithubProfile,
       );
 
       expect(result).toEqual(expectedUserDTO);
@@ -195,7 +195,7 @@ describe('GithubStrategy', () => {
         username: 'testuser',
         email: 'test@example.com',
         name: 'Test User',
-        avatarImageUrl: 'https://example.com/avatar.jpg'
+        avatarImageUrl: 'https://example.com/avatar.jpg',
       });
     });
 
@@ -209,7 +209,11 @@ describe('GithubStrategy', () => {
       userService.findByGithubId.mockResolvedValue(null);
       userService.createGithubUser.mockResolvedValue(mockFullUser);
 
-      await strategy.validate('token', 'refresh', profileWithoutOptionals as any);
+      await strategy.validate(
+        'token',
+        'refresh',
+        profileWithoutOptionals as any,
+      );
 
       expect(userService.createGithubUser).toHaveBeenCalledWith({
         githubId: '12345',
@@ -225,10 +229,16 @@ describe('GithubStrategy', () => {
       userService.findByGithubId.mockRejectedValue(error);
 
       // Also mock the warn logger to verify it's called
-      jest.spyOn(strategy['logger'], 'warn').mockImplementation(() => undefined);
+      jest
+        .spyOn(strategy['logger'], 'warn')
+        .mockImplementation(() => undefined);
 
       // Strategy should return fallback user instead of propagating error
-      const result = await strategy.validate('token', 'refresh', mockGithubProfile);
+      const result = await strategy.validate(
+        'token',
+        'refresh',
+        mockGithubProfile,
+      );
 
       // Verify fallback user was returned
       expect(result).toEqual({
@@ -241,7 +251,7 @@ describe('GithubStrategy', () => {
 
       // The implementation uses warn instead of error for findByGithubId errors
       expect(strategy['logger'].warn).toHaveBeenCalledWith(
-        `Error finding GitHub user 12345: ${error.message}`
+        `Error finding GitHub user 12345: ${error.message}`,
       );
     });
 

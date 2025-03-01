@@ -45,7 +45,9 @@ export class AuthService {
     return new Promise((resolve, reject) => {
       // Set timeout to prevent hanging indefinitely
       const timeout = setTimeout(() => {
-        this.logger.warn('Session operation timed out, continuing with in-memory session');
+        this.logger.warn(
+          'Session operation timed out, continuing with in-memory session',
+        );
         // Force resolve to prevent hanging
         resolve({
           message: 'Login successful (session not saved)',
@@ -103,7 +105,9 @@ export class AuthService {
 
         // Save the session with a new timeout
         const saveTimeout = setTimeout(() => {
-          this.logger.warn('Session save timed out, continuing with in-memory session');
+          this.logger.warn(
+            'Session save timed out, continuing with in-memory session',
+          );
           resolve({
             message: 'Login successful (session not saved)',
             user: {
@@ -141,10 +145,13 @@ export class AuthService {
         } catch (sessionSaveErr) {
           clearTimeout(saveTimeout);
           this.logger.error('Exception during session save:', sessionSaveErr);
-          this.logger.debug('DEBUG: In catch block, should reject with sessionSaveErr but using err:', {
-            hasSessionSaveErr: !!sessionSaveErr,
-            hasErr: !!err
-          });
+          this.logger.debug(
+            'DEBUG: In catch block, should reject with sessionSaveErr but using err:',
+            {
+              hasSessionSaveErr: !!sessionSaveErr,
+              hasErr: !!err,
+            },
+          );
 
           return reject(err);
         }
@@ -153,7 +160,7 @@ export class AuthService {
   }
 
   async logout(req: Request) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       // Set timeout to prevent hanging indefinitely
       const timeout = setTimeout(() => {
         this.logger.warn('Session destroy timed out, continuing with logout');

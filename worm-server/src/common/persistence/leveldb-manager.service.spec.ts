@@ -50,16 +50,21 @@ describe('LevelDBManagerService', () => {
     // Mock the fs module
     spyOn(fs, 'existsSync').mockImplementation((dirPath: string) => {
       // Base path already exists
-      if (dirPath === testBasePath ||
-          dirPath.includes('leveldb') ||
-          dirPath.includes('__test__')) return true;
+      if (
+        dirPath === testBasePath ||
+        dirPath.includes('leveldb') ||
+        dirPath.includes('__test__')
+      )
+        return true;
       // Project paths don't exist initially
       return false;
     });
     spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
-    spyOn(fs, 'writeFileSync').mockImplementation((_path: string, _content: string) => {
-      return undefined;
-    });
+    spyOn(fs, 'writeFileSync').mockImplementation(
+      (_path: string, _content: string) => {
+        return undefined;
+      },
+    );
     spyOn(fs, 'readFileSync').mockImplementation((_path: string) => {
       return 'test' as any;
     });

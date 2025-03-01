@@ -61,7 +61,8 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
             username: username,
             email: emails && emails.length > 0 ? emails[0].value : null,
             name: profile.displayName,
-            avatarImageUrl: photos && photos.length > 0 ? photos[0].value : null,
+            avatarImageUrl:
+              photos && photos.length > 0 ? photos[0].value : null,
           });
         } catch (error) {
           this.logger.error('Failed to create GitHub user:', error);
@@ -83,7 +84,9 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
       this.logger.error('GitHub authentication error', error);
 
       // Instead of throwing, return a synthetic user to allow auth to proceed
-      this.logger.warn('Using fallback user due to error during GitHub authentication');
+      this.logger.warn(
+        'Using fallback user due to error during GitHub authentication',
+      );
       return fallbackUser;
     }
   }

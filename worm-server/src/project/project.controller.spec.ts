@@ -15,7 +15,9 @@ describe('ProjectController', () => {
   let controller: ProjectController;
   let projectService: jest.Mocked<ProjectService>;
 
-  const mockUser: UserEntity = { createdAt: Date.now(), updatedAt: Date.now(),
+  const mockUser: UserEntity = {
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
     id: 'user-1',
     username: 'testuser',
     name: 'Test User',
@@ -25,9 +27,12 @@ describe('ProjectController', () => {
     enabled: false,
     avatarImageUrl: '',
   };
-  const mockProject: ProjectEntity = { userId: 'user-1',
+  const mockProject: ProjectEntity = {
+    userId: 'user-1',
     id: 'project-1',
-    version: 1, createdAt: Date.now(), updatedAt: Date.now(),
+    version: 1,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
     slug: 'test-project',
     title: 'Test Project',
     description: 'A test project',
@@ -138,7 +143,10 @@ describe('ProjectController', () => {
         ...mockProject,
         ...createProjectDto.toEntity(),
         id: 'new-project-1',
-        version: 1, createdAt: Date.now(), updatedAt: Date.now(), userId: 'user-1',
+        version: 1,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        userId: 'user-1',
         user: mockUser as UserEntity,
       };
       projectService.create.mockResolvedValue(createdProject);
@@ -179,7 +187,9 @@ describe('ProjectController', () => {
       const updatedProject: ProjectEntity = {
         ...mockProject,
         ...updateProjectDto.toEntity(),
-        version: mockProject.version + 1, updatedAt: Date.now(), userId: 'user-1',
+        version: mockProject.version + 1,
+        updatedAt: Date.now(),
+        userId: 'user-1',
       };
       projectService.update.mockResolvedValue(updatedProject);
 

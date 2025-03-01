@@ -208,7 +208,7 @@ export class YjsGateway
       'http://localhost:4200',
       'http://localhost:9376',
       'https://localhost:4200',
-      'https://localhost:3000'
+      'https://localhost:3000',
     ];
     this.logger.log(`Using allowed origins: ${this.allowedOrigins.join(', ')}`);
   }

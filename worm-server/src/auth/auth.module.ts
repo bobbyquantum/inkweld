@@ -45,4 +45,3 @@ import { UserRepository } from './user.repository.js';
   exports: [AuthService, SessionStore, UserRepository, UserService],
 })
 export class AuthModule {}
-

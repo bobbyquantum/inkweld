@@ -60,7 +60,7 @@ describe('AuthService', () => {
             findByUsername: jest.fn(),
             findByGithubId: jest.fn(),
             createUser: jest.fn(),
-          }
+          },
         },
         {
           provide: UserService,
@@ -74,9 +74,7 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    userRepository = module.get<UserRepository>(
-      getRepositoryToken(UserEntity),
-    );
+    userRepository = module.get<UserRepository>(getRepositoryToken(UserEntity));
 
     // Reset Bun password verify mock before each test
     (Bun.password.verify as jest.Mock).mockReset();
@@ -115,7 +113,6 @@ describe('AuthService', () => {
         service.validateUser('testuser', 'wrongpassword'),
       ).rejects.toThrow(UnauthorizedException);
     });
-
   });
 
   describe('login', () => {
@@ -154,8 +151,8 @@ describe('AuthService', () => {
 
     it('should reject if session regeneration fails', async () => {
       const mockSession = {
-        regenerate: jest.fn<(cb: (err: Error) => void) => void>(
-          (cb) => cb(new Error('Session error'))
+        regenerate: jest.fn<(cb: (err: Error) => void) => void>((cb) =>
+          cb(new Error('Session error')),
         ),
       } as unknown as Session;
 
@@ -163,7 +160,9 @@ describe('AuthService', () => {
         session: mockSession,
       } as Request;
 
-      const result = await service.login(mockReq as any, mockUser) as { message: string };
+      const result = (await service.login(mockReq as any, mockUser)) as {
+        message: string;
+      };
       expect(result.message).toMatch(/session errors/i);
       expect(mockReq.session.regenerate).toHaveBeenCalled();
     });
@@ -180,7 +179,9 @@ describe('AuthService', () => {
         session: mockSession,
       } as Request;
 
-      const result = await service.login(mockReq as any, mockUser) as { message: string };
+      const result = (await service.login(mockReq as any, mockUser)) as {
+        message: string;
+      };
       expect(result.message).toMatch(/session errors/i);
       expect(mockReq.session.save).toHaveBeenCalled();
     });
@@ -212,7 +213,9 @@ describe('AuthService', () => {
         session: mockSession,
       } as Request;
 
-      const result = await service.logout(mockReq as any) as { message: string };
+      const result = (await service.logout(mockReq as any)) as {
+        message: string;
+      };
       expect(result.message).toMatch(/completed with errors/i);
       expect(mockReq.session.destroy).toHaveBeenCalled();
     });
