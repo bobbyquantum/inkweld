@@ -6,7 +6,7 @@ import { LocalStrategy } from './local.strategy.js';
 import { GithubStrategy } from './github.strategy.js';
 import { AuthController } from './auth.controller.js';
 import { OAuth2Controller } from './oauth2.controller.js';
-import { LevelDBSessionStore } from './session.store.leveldb.js';
+import { SessionStore } from './session.store.js';
 import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
 import { UserService } from 'user/user.service.js';
 
@@ -30,13 +30,13 @@ import { UserService } from 'user/user.service.js';
       inject: [UserService],
     },
     {
-      provide: LevelDBSessionStore,
+      provide: SessionStore,
       useFactory: (levelDBManager: LevelDBManagerService) => {
-        return new LevelDBSessionStore(levelDBManager);
+        return new SessionStore(levelDBManager);
       },
       inject: [LevelDBManagerService],
     },
   ],
-  exports: [AuthService, LevelDBSessionStore],
+  exports: [AuthService, SessionStore],
 })
 export class AuthModule {}

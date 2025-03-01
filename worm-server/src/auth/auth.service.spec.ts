@@ -4,12 +4,11 @@ import { Repository } from 'typeorm';
 import { Request } from 'express';
 import { Session } from 'express-session';
 import { AuthService } from './auth.service.js';
-import { UserService } from '../user/user.service.js';
-import { UserEntity } from '../user/user.entity.js';
-import { TypeOrmSessionStore } from './session.store.js';
 import { UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-
+import { UserEntity } from 'user/user.entity.js';
+import { UserService } from 'user/user.service.js';
+import { SessionStore } from './session.store.js';
 // Mock Bun.password methods using spyOn
 jest.spyOn(Bun.password, 'hash').mockImplementation(async (pass) => `hashed_${pass}`);
 jest.spyOn(Bun.password, 'verify').mockImplementation(async () => true);
@@ -27,6 +26,8 @@ describe('AuthService', () => {
     enabled: true,
     githubId: null,
     avatarImageUrl: null,
+    createdAt: 0,
+    updatedAt: 0
   };
 
   const mockSessionStore = {
@@ -56,7 +57,7 @@ describe('AuthService', () => {
           useValue: mockUserService,
         },
         {
-          provide: TypeOrmSessionStore,
+          provide: SessionStore,
           useValue: mockSessionStore,
         },
       ],

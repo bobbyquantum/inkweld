@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Store } from 'express-session';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { UserSessionEntity } from './session.entity.js';
+import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
 
 interface SessionStoreOptions {
   /**
@@ -13,28 +11,35 @@ interface SessionStoreOptions {
 }
 
 @Injectable()
-export class TypeOrmSessionStore extends Store {
-  private logger = new Logger(TypeOrmSessionStore.name);
+export class SessionStore extends Store {
+  private logger = new Logger(SessionStore.name);
   private readonly defaultExpiration: number;
+  private readonly db: Promise<any>;
 
   constructor(
-    @InjectRepository(UserSessionEntity)
-    private readonly sessionRepository: Repository<UserSessionEntity>,
+    private readonly levelDBManager: LevelDBManagerService,
     options: SessionStoreOptions = {},
   ) {
     super();
     this.defaultExpiration = options.expiration || 30 * 24 * 60 * 60 * 1000; // 30 days
+    this.db = this.levelDBManager.getSystemDatabase('sessions');
   }
 
   async get(sid: string, callback: (err: any, session?: any) => void) {
     try {
-      const session = await this.sessionRepository.findOne({
-        where: { id: sid },
-        select: ['data', 'expiredAt'],
+      const db = await this.db;
+      const sessionData = await db.get(sid).catch((err: any) => {
+        if (err.code === 'LEVEL_NOT_FOUND') {
+          return null;
+        }
+        throw err;
       });
-      if (!session) {
+
+      if (!sessionData) {
         return callback(null, null);
       }
+
+      const session = JSON.parse(sessionData);
 
       // Check if session has expired
       if (Date.now() > session.expiredAt) {
@@ -43,7 +48,6 @@ export class TypeOrmSessionStore extends Store {
         return callback(null, null);
       }
 
-      // this.logger.log('retrieved session', session.data);
       callback(null, session.data);
     } catch (err) {
       callback(err);
@@ -57,11 +61,16 @@ export class TypeOrmSessionStore extends Store {
         ? new Date(session.cookie.expires).getTime()
         : Date.now() + this.defaultExpiration;
 
-      await this.sessionRepository.save({
+      const sessionData = {
         id: sid,
         data: session,
         expiredAt: expiredAt,
-      });
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      const db = await this.db;
+      await db.put(sid, JSON.stringify(sessionData));
 
       if (callback) callback(null);
     } catch (err) {
@@ -71,7 +80,14 @@ export class TypeOrmSessionStore extends Store {
 
   async destroy(sid: string, callback?: (err?: any) => void) {
     try {
-      await this.sessionRepository.delete({ id: sid });
+      const db = await this.db;
+      await db.del(sid).catch((err: any) => {
+        if (err.code === 'LEVEL_NOT_FOUND') {
+          return;
+        }
+        throw err;
+      });
+
       if (callback) callback(null);
     } catch (err) {
       if (callback) callback(err);
@@ -80,15 +96,35 @@ export class TypeOrmSessionStore extends Store {
 
   async touch(sid: string, session: any, callback?: (err?: any) => void) {
     try {
+      const db = await this.db;
+
+      // Get the current session
+      const sessionData = await db.get(sid).catch((err: any) => {
+        if (err.code === 'LEVEL_NOT_FOUND') {
+          return null;
+        }
+        throw err;
+      });
+
+      if (!sessionData) {
+        if (callback) callback(null);
+        return;
+      }
+
+      // Parse the session data
+      const parsedSession = JSON.parse(sessionData);
+
       // Extend session expiration
       const expiredAt = session.cookie?.expires
         ? new Date(session.cookie.expires).getTime()
         : Date.now() + this.defaultExpiration;
 
-      await this.sessionRepository.update(
-        { id: sid },
-        { expiredAt: expiredAt },
-      );
+      // Update the session
+      parsedSession.expiredAt = expiredAt;
+      parsedSession.updatedAt = Date.now();
+
+      // Save the updated session
+      await db.put(sid, JSON.stringify(parsedSession));
 
       if (callback) callback(null);
     } catch (err) {
@@ -98,10 +134,20 @@ export class TypeOrmSessionStore extends Store {
 
   // Optional method to clean up expired sessions
   async clearExpiredSessions(): Promise<void> {
-    await this.sessionRepository
-      .createQueryBuilder()
-      .delete()
-      .where('expired_at < :now', { now: Date.now() })
-      .execute();
+    const db = await this.db;
+    const now = Date.now();
+
+    // Iterate through all sessions
+    for await (const [key, value] of db.iterator()) {
+      try {
+        const session = JSON.parse(value);
+        if (session.expiredAt < now) {
+          await db.del(key);
+          this.logger.debug(`Cleared expired session: ${key}`);
+        }
+      } catch (err) {
+        this.logger.error(`Error clearing expired session ${key}:`, err);
+      }
+    }
   }
 }

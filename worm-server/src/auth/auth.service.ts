@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service.js';
 import { UserRepository } from '../user/user.repository.js';
 import { UserEntity } from '../user/user.entity.js';
-import { LevelDBSessionStore } from './session.store.leveldb.js';
+import { SessionStore } from './session.store.js';
 import type { Request } from 'express';
 
 @Injectable()
@@ -10,7 +10,7 @@ export class AuthService {
   constructor(
     private readonly userRepo: UserRepository,
     private readonly userService: UserService,
-    private readonly sessionStore: LevelDBSessionStore,
+    private readonly sessionStore: SessionStore,
   ) {}
 
   async validateUser(

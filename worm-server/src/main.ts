@@ -4,7 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import session from 'express-session';
-import { LevelDBSessionStore } from './auth/session.store.leveldb.js';
+import { SessionStore } from './auth/session.store.js';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { INestApplication } from '@nestjs/common';
 import { ValidationFilter } from './common/filters/validation.filter.js';
@@ -58,7 +58,7 @@ async function bootstrap() {
   });
 
   // Configure session middleware
-  const sessionStore = app.get(LevelDBSessionStore);
+  const sessionStore = app.get(SessionStore);
   app.use(
     session({
       store: sessionStore,
