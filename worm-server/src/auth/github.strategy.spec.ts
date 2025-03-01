@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GithubStrategy } from './github.strategy.js';
-import { UserService } from '../user/user.service.js';
+import { UserService } from './user.service.js';
+import { UserEntity } from './user.entity.js';
 import {
   afterEach,
   beforeEach,
@@ -13,18 +14,15 @@ describe('GithubStrategy', () => {
   let strategy: GithubStrategy;
   let userService: jest.Mocked<UserService>;
 
-  const mockFullUser = {
+  const mockFullUser: UserEntity = { createdAt: Date.now(), updatedAt: Date.now(), email: null, password: null, enabled: true,
     id: 'user-1',
     username: 'testuser',
     name: 'Test User',
     avatarImageUrl: 'https://example.com/avatar.jpg',
     githubId: '12345',
-    email: null,
-    password: null,
-    enabled: true,
   };
 
-  const mockSimplifiedUser = {
+  const mockSimplifiedUser: UserEntity = { createdAt: Date.now(), updatedAt: Date.now(), email: null, password: null, enabled: true,
     id: 'user-1',
     username: 'testuser',
     name: 'Test User',

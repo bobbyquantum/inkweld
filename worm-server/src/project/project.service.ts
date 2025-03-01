@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { ProjectRepository } from './project.repository.js';
 import { ProjectEntity } from './project.entity.js';
-import { UserRepository } from '../user/user.repository.js';
+import { UserRepository } from '../auth/user.repository.js';
 
 @Injectable()
 export class ProjectService {

@@ -8,15 +8,18 @@ import { AuthController } from './auth.controller.js';
 import { OAuth2Controller } from './oauth2.controller.js';
 import { SessionStore } from './session.store.js';
 import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
-import { UserService } from 'user/user.service.js';
-import { PersistenceModule } from 'common/persistence/persistence.module.js';
-import { UserModule } from 'user/user.module.js';
+import { UserService } from './user.service.js';
+import { PersistenceModule } from '../common/persistence/persistence.module.js';
+import { UserController } from './user.controller.js';
+import { UserRepository } from './user.repository.js';
 
 @Module({
-  imports: [ConfigModule, PassportModule, PersistenceModule, UserModule],
-  controllers: [AuthController, OAuth2Controller],
+  imports: [ConfigModule, PassportModule, PersistenceModule],
+  controllers: [AuthController, OAuth2Controller, UserController],
   providers: [
     AuthService,
+    UserService,
+    UserRepository,
     LocalStrategy,
     {
       provide: GithubStrategy,
@@ -42,3 +45,4 @@ import { UserModule } from 'user/user.module.js';
   exports: [AuthService, SessionStore],
 })
 export class AuthModule {}
+

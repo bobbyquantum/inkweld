@@ -4,7 +4,7 @@ import { Session } from 'express-session';
 import { UserController } from './user.controller.js';
 import { UserRegisterDto } from './user-register.dto.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { AuthService } from '../auth/auth.service.js';
+import { AuthService } from './auth.service.js';
 import { ValidationFilter } from '../common/filters/validation.filter.js';
 import {
   ValidationPipe,

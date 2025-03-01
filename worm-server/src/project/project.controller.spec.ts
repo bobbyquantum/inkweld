@@ -4,8 +4,8 @@ import { ProjectService } from './project.service.js';
 import { ProjectDto } from './project.dto.js';
 import { ProjectEntity } from './project.entity.js';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
-import { UserEntity } from '../user/user.entity.js';
-import { UserService } from '../user/user.service.js';
+import { UserEntity } from '../auth/user.entity.js';
+import { UserService } from '../auth/user.service.js';
 import { SessionAuthGuard } from '../auth/session-auth.guard.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 describe('ProjectController', () => {
@@ -15,7 +15,7 @@ describe('ProjectController', () => {
   let controller: ProjectController;
   let projectService: jest.Mocked<ProjectService>;
 
-  const mockUser: UserEntity = {
+  const mockUser: UserEntity = { createdAt: Date.now(), updatedAt: Date.now(),
     id: 'user-1',
     username: 'testuser',
     name: 'Test User',
@@ -25,15 +25,13 @@ describe('ProjectController', () => {
     enabled: false,
     avatarImageUrl: '',
   };
-  const mockProject: ProjectEntity = {
+  const mockProject: ProjectEntity = { userId: 'user-1',
     id: 'project-1',
-    version: 1,
+    version: 1, createdAt: Date.now(), updatedAt: Date.now(),
     slug: 'test-project',
     title: 'Test Project',
     description: 'A test project',
     user: mockUser as UserEntity,
-    createdDate: new Date(),
-    updatedDate: new Date(),
   };
 
   beforeEach(async () => {
@@ -140,9 +138,7 @@ describe('ProjectController', () => {
         ...mockProject,
         ...createProjectDto.toEntity(),
         id: 'new-project-1',
-        version: 1,
-        createdDate: new Date(),
-        updatedDate: new Date(),
+        version: 1, createdAt: Date.now(), updatedAt: Date.now(), userId: 'user-1',
         user: mockUser as UserEntity,
       };
       projectService.create.mockResolvedValue(createdProject);
@@ -183,8 +179,7 @@ describe('ProjectController', () => {
       const updatedProject: ProjectEntity = {
         ...mockProject,
         ...updateProjectDto.toEntity(),
-        version: mockProject.version + 1,
-        updatedDate: new Date(),
+        version: mockProject.version + 1, updatedAt: Date.now(), userId: 'user-1',
       };
       projectService.update.mockResolvedValue(updatedProject);
 

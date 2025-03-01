@@ -6,7 +6,6 @@ import { PassportModule } from '@nestjs/passport';
 import { ProjectModule } from './project/project.module.js';
 import { ProjectElementModule } from './project/element/project-element.module.js';
 import { WsModule } from './ws/ws.module.js';
-import { McpModule } from './mcp/mcp.module.js';
 import { PersistenceModule } from './common/persistence/persistence.module.js';
 import * as path from 'path';
 import { cwd } from 'process';
@@ -39,7 +38,6 @@ import { cwd } from 'process';
     ProjectElementModule,
     AuthModule,
     WsModule,
-    McpModule,
     PersistenceModule,
   ],
   controllers: [],

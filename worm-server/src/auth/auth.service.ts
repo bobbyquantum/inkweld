@@ -1,7 +1,7 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { UserService } from '../user/user.service.js';
-import { UserRepository } from '../user/user.repository.js';
-import { UserEntity } from '../user/user.entity.js';
+import { UserService } from './user.service.js';
+import { UserRepository } from './user.repository.js';
+import { UserEntity } from './user.entity.js';
 import { SessionStore } from './session.store.js';
 import type { Request } from 'express';
 

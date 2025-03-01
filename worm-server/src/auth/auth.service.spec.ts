@@ -5,10 +5,10 @@ import { Session } from 'express-session';
 import { AuthService } from './auth.service.js';
 import { UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { UserEntity } from 'user/user.entity.js';
-import { UserService } from 'user/user.service.js';
+import { UserEntity } from './user.entity.js';
+import { UserService } from './user.service.js';
 import { SessionStore } from './session.store.js';
-import { UserRepository } from 'user/user.repository.js';
+import { UserRepository } from './user.repository.js';
 // Mock Bun.password methods using spyOn
 jest
   .spyOn(Bun.password, 'hash')

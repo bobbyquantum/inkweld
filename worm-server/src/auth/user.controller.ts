@@ -13,7 +13,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ValidationException } from '../common/exceptions/validation.exception.js';
-import { AuthService } from '../auth/auth.service.js';
+import { AuthService } from './auth.service.js';
 import {
   ApiTags,
   ApiOperation,
@@ -24,7 +24,7 @@ import {
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
-import { SessionAuthGuard } from '../auth/session-auth.guard.js';
+import { SessionAuthGuard } from './session-auth.guard.js';
 import { UserDto } from './user.dto.js';
 import { UserRegisterDto } from './user-register.dto.js';
 import { UserService } from './user.service.js';

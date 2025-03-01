@@ -1,6 +1,6 @@
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { UserService } from '../user/user.service.js';
+import { UserService } from './user.service.js';
 import { SessionAuthGuard } from './session-auth.guard.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 describe('SessionAuthGuard', () => {
@@ -14,8 +14,8 @@ describe('SessionAuthGuard', () => {
     avatarImageUrl: 'https://example.com/avatar.png',
     // Add other required user properties that aren't used by the guard
     email: 'test@example.com',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
     password: null,
     githubId: null,
     enabled: true,

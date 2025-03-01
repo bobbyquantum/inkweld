@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProjectRepository } from './project.repository.js';
-import { UserRepository } from '../user/user.repository.js';
+import { UserRepository } from '../auth/user.repository.js';
 import {
   afterAll,
   afterEach,
