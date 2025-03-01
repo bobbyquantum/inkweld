@@ -2,13 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Request } from 'express';
 import { Session } from 'express-session';
 import { UserController } from './user.controller.js';
-import { UserService } from './user.service.js';
 import { UserRegisterDto } from './user-register.dto.js';
-import { UserEntity } from './user.entity.js';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { AuthService } from '../auth/auth.service.js';
 import { ValidationFilter } from '../common/filters/validation.filter.js';
 import { ValidationPipe, INestApplication, HttpException, HttpStatus } from '@nestjs/common';
+import { UserService } from './user.service.js';
+import { UserEntity } from './user.entity.js';
 
 interface _MockRequest extends Request {
   session: Session & {
@@ -92,6 +92,8 @@ describe('UserController', () => {
         githubId: null,
         enabled: true,
         avatarImageUrl: 'http://example.com/avatar.jpg',
+        createdAt: 0,
+        updatedAt: 0
       };
       jest.spyOn(userService, 'getCurrentUser').mockResolvedValue(mockUser);
 
@@ -137,6 +139,8 @@ describe('UserController', () => {
         githubId: null,
         enabled: true,
         avatarImageUrl: null,
+        createdAt: 0,
+        updatedAt: 0
       };
       jest
         .spyOn(userService, 'registerUser')
@@ -175,6 +179,8 @@ describe('UserController', () => {
         githubId: null,
         enabled: true,
         avatarImageUrl: null,
+        createdAt: 0,
+        updatedAt: 0
       };
       jest
         .spyOn(userService, 'registerUser')

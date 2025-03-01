@@ -3,16 +3,14 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ValidationException } from '../common/exceptions/validation.exception.js';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { UserEntity } from './user.entity.js';
+import { UserRepository } from './user.repository.js';
 import { UserDto } from './user.dto.js';
+import { UserEntity } from './user.entity.js';
 
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(UserEntity)
-    private readonly userRepo: Repository<UserEntity>,
+    private readonly userRepo: UserRepository,
   ) {}
 
   private async validateUserInput(
@@ -21,9 +19,7 @@ export class UserService {
   ): Promise<void> {
     const errors: Record<string, string[]> = {};
 
-    const existing = await this.userRepo.findOne({
-      where: { username: username },
-    });
+    const existing = await this.userRepo.findByUsername(username);
     if (existing) {
       errors['username'] = ['Username already exists'];
     }
@@ -37,7 +33,6 @@ export class UserService {
         'Password must contain at least one special character',
       ];
     }
-
 
     if (Object.keys(errors).length > 0) {
       throw new ValidationException(errors);
@@ -54,7 +49,7 @@ export class UserService {
 
     const hashedPassword = await Bun.password.hash(password);
 
-    const user = this.userRepo.create({
+    const user = new UserEntity({
       username: username,
       email: email,
       password: hashedPassword,
@@ -62,17 +57,11 @@ export class UserService {
       enabled: true,
     });
 
-    return this.userRepo.save(user);
+    return this.userRepo.createUser(user);
   }
 
   async getCurrentUser(userId: string): Promise<UserEntity | null> {
-    const user = await this.userRepo.findOne({
-      where: { id: userId },
-    });
-    if (!user) {
-      return null;
-    }
-    return user;
+    return this.userRepo.findById(userId);
   }
 
   async updateUserDetails(
@@ -80,12 +69,15 @@ export class UserService {
     dto: Partial<UserDto>,
   ): Promise<UserEntity> {
     const user = await this.getCurrentUser(userId);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
 
-    if (dto.name !== undefined) user.name = dto.name;
-    if (dto.avatarImageUrl !== undefined)
-      user.avatarImageUrl = dto.avatarImageUrl;
+    const updates: Partial<UserEntity> = {};
+    if (dto.name !== undefined) updates.name = dto.name;
+    if (dto.avatarImageUrl !== undefined) updates.avatarImageUrl = dto.avatarImageUrl;
 
-    return this.userRepo.save(user);
+    return this.userRepo.updateUser(userId, updates);
   }
 
   async updatePassword(
@@ -94,6 +86,9 @@ export class UserService {
     newPassword: string,
   ): Promise<void> {
     const user = await this.getCurrentUser(userId);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
 
     const passwordMatches = await Bun.password.verify(oldPassword, user.password);
     if (!passwordMatches) {
@@ -112,19 +107,16 @@ export class UserService {
       });
     }
 
-    user.password = await Bun.password.hash(newPassword);
-    await this.userRepo.save(user);
+    const hashedPassword = await Bun.password.hash(newPassword);
+    await this.userRepo.updateUser(userId, { password: hashedPassword });
   }
 
   async deleteAccount(userId: string): Promise<void> {
-    const user = await this.getCurrentUser(userId);
-    await this.userRepo.remove(user);
+    await this.userRepo.delete(userId);
   }
 
   async findByGithubId(githubId: string): Promise<UserEntity | null> {
-    return this.userRepo.findOne({
-      where: { githubId: githubId },
-    });
+    return this.userRepo.findByGithubId(githubId);
   }
 
   async createGithubUser(userData: {
@@ -135,16 +127,14 @@ export class UserService {
     avatarImageUrl?: string;
   }): Promise<UserEntity> {
     // Check if username already exists
-    const existingUser = await this.userRepo.findOne({
-      where: { username: userData.username },
-    });
+    const existingUser = await this.userRepo.findByUsername(userData.username);
 
     if (existingUser) {
       // If username exists, append a unique identifier
       userData.username = `${userData.username}_${Date.now()}`;
     }
 
-    const user = this.userRepo.create({
+    const user = new UserEntity({
       username: userData.username,
       email: userData.email,
       name: userData.name || null,
@@ -154,7 +144,7 @@ export class UserService {
       password: null, // GitHub users don't have a local password
     });
 
-    return this.userRepo.save(user);
+    return this.userRepo.createUser(user);
   }
 
   private isPasswordStrong(password: string): boolean {
@@ -167,11 +157,9 @@ export class UserService {
     available: boolean;
     suggestions: string[];
   }> {
-    const existing = await this.userRepo.findOne({
-      where: { username: username },
-    });
+    const available = await this.userRepo.isUsernameAvailable(username);
 
-    if (!existing) {
+    if (available) {
       return {
         available: true,
         suggestions: []

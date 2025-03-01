@@ -1,25 +1,23 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service.js';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { UserRepository } from '../user/user.repository.js';
 import { UserEntity } from '../user/user.entity.js';
-import { TypeOrmSessionStore } from './session.store.js';
+import { LevelDBSessionStore } from './session.store.leveldb.js';
 import type { Request } from 'express';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(UserEntity)
-    private readonly userRepo: Repository<UserEntity>,
+    private readonly userRepo: UserRepository,
     private readonly userService: UserService,
-    private readonly sessionStore: TypeOrmSessionStore,
+    private readonly sessionStore: LevelDBSessionStore,
   ) {}
 
   async validateUser(
     username: string,
     password: string,
   ): Promise<Partial<UserEntity> | null> {
-    const user = await this.userRepo.findOne({ where: { username } });
+    const user = await this.userRepo.findByUsername(username);
 
     if (!user) {
       throw new UnauthorizedException('Invalid username or password');
@@ -36,7 +34,6 @@ export class AuthService {
     }
 
     // Remove password from returned user object
-
     const { password: _, ...result } = user;
     return result;
   }
@@ -95,13 +92,11 @@ export class AuthService {
     const { id, username, emails, displayName, photos } = profile;
 
     // Try to find existing user by GitHub ID
-    let user = await this.userRepo.findOne({
-      where: { githubId: id.toString() },
-    });
+    let user = await this.userRepo.findByGithubId(id.toString());
 
     // If no user found, create a new GitHub user
     if (!user) {
-      user = this.userRepo.create({
+      const userData = {
         username: username,
         email: emails && emails.length > 0 ? emails[0].value : null,
         name: displayName ?? null,
@@ -109,9 +104,9 @@ export class AuthService {
         avatarImageUrl: photos && photos.length > 0 ? photos[0].value : null,
         enabled: true,
         password: null, // GitHub users don't have a local password
-      });
+      };
 
-      user = await this.userRepo.save(user);
+      user = await this.userRepo.createUser(userData);
     }
 
     return user;

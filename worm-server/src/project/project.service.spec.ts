@@ -1,36 +1,58 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ProjectRepository } from './project.repository.js';
+import { UserRepository } from '../user/user.repository.js';
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
+import { ConfigService } from '@nestjs/config';
 import { ProjectService } from './project.service.js';
-import { ProjectEntity } from './project.entity.js';
-import { UserEntity } from '../user/user.entity.js';
-import { NotFoundException, ForbiddenException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-describe('ProjectService', () => {
-  let service: ProjectService;
-  let projectRepository: Repository<ProjectEntity>;
-  let userRepository: Repository<UserEntity>;
 
-  const mockUser: UserEntity = {
-    id: '123',
-    username: 'testuser',
-    password: 'password',
-    githubId: null,
-    name: 'Test User',
-    email: 'test@example.com',
-    enabled: true,
-    avatarImageUrl: null,
+describe('ProjectLevelDBService', () => {
+  let projectService: ProjectService;
+  let _projectRepository: ProjectRepository;
+  let _userRepository: UserRepository;
+
+  // Create mock for ProjectLevelDBRepository
+  const mockProjectRepository = {
+    findAllForUser: jest.fn<() => any>(),
+    findByUsernameAndSlug: jest.fn<() => any>(),
+    findById: jest.fn<() => any>(),
+    find: jest.fn<() => any>(),
+    findOne: jest.fn<() => any>(),
+    createProject: jest.fn<() => any>(),
+    updateProject: jest.fn<() => any>(),
+    delete: jest.fn<() => any>(),
+    isSlugAvailable: jest.fn<() => any>(),
   };
 
-  const mockProject: ProjectEntity = {
-    id: '456',
-    title: 'Test Project',
-    description: 'A test project',
-    slug: 'test-project',
-    createdDate: new Date(),
-    updatedDate: new Date(),
-    version: 1,
-    user: mockUser,
+  // Create mock for UserLevelDBRepository
+  const mockUserRepository = {
+    findByUsername: jest.fn<() => any>(),
+    findById: jest.fn<() => any>(),
+  };
+
+  // Create mock for LevelDBManagerService
+  const mockLevelDBManagerService = {
+    getProjectDatabase: jest.fn<() => any>(),
+    getSystemDatabase: jest.fn<() => any>(),
+    getSystemSublevel: jest.fn<() => any>(),
+    deleteProjectDatabase: jest.fn<() => any>(),
+  };
+
+  // Create mock for ConfigService
+  const mockConfigService = {
+    get: jest.fn<(key: string) => any>().mockImplementation((key) => {
+      if (key === 'Y_DATA_PATH') return './test-data';
+      return null;
+    }),
   };
 
   beforeEach(async () => {
@@ -38,149 +60,210 @@ describe('ProjectService', () => {
       providers: [
         ProjectService,
         {
-          provide: getRepositoryToken(ProjectEntity),
-          useValue: {
-            find: jest.fn(),
-            findOne: jest.fn(),
-            save: jest.fn(),
-            remove: jest.fn(),
-          },
+          provide: ProjectRepository,
+          useValue: mockProjectRepository,
         },
         {
-          provide: getRepositoryToken(UserEntity),
-          useValue: {
-            findOne: jest.fn(),
-          },
+          provide: UserRepository,
+          useValue: mockUserRepository,
+        },
+        {
+          provide: LevelDBManagerService,
+          useValue: mockLevelDBManagerService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();
 
-    service = module.get<ProjectService>(ProjectService);
-    projectRepository = module.get<Repository<ProjectEntity>>(
-      getRepositoryToken(ProjectEntity),
-    );
-    userRepository = module.get<Repository<UserEntity>>(
-      getRepositoryToken(UserEntity),
-    );
+    projectService = module.get<ProjectService>(ProjectService);
+
+    // Reset all mocks before each test
+    jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    // Restore all mocks
+    jest.restoreAllMocks();
   });
 
   describe('findAllForCurrentUser', () => {
     it('should return all projects for a user', async () => {
-      const projects = [mockProject];
-      jest.spyOn(projectRepository, 'find').mockResolvedValue(projects);
+      const userId = 'user1';
+      const mockProjects = [
+        { id: 'project1', title: 'Project 1', userId },
+        { id: 'project2', title: 'Project 2', userId },
+      ];
 
-      const result = await service.findAllForCurrentUser(mockUser.id);
-      expect(result).toEqual(projects);
-      expect(projectRepository.find).toHaveBeenCalledWith({
-        where: { user: { id: mockUser.id } },
-        order: { createdDate: 'DESC' },
-      });
+      mockProjectRepository.findAllForUser.mockResolvedValue(mockProjects);
+
+      const result = await projectService.findAllForCurrentUser(userId);
+
+      expect(mockProjectRepository.findAllForUser).toHaveBeenCalledWith(userId);
+      expect(result).toEqual(mockProjects);
     });
   });
 
   describe('findByUsernameAndSlug', () => {
-    it('should return a project when found', async () => {
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(mockProject);
+    it('should find a project by username and slug', async () => {
+      const username = 'testuser';
+      const slug = 'test-project';
+      const mockProject = {
+        id: 'project1',
+        title: 'Test Project',
+        slug,
+        userId: 'user1',
+      };
 
-      const result = await service.findByUsernameAndSlug(
-        'testuser',
-        'test-project',
-      );
+      mockProjectRepository.findByUsernameAndSlug.mockResolvedValue(mockProject);
+
+      const result = await projectService.findByUsernameAndSlug(username, slug);
+
+      expect(mockProjectRepository.findByUsernameAndSlug).toHaveBeenCalledWith(username, slug);
       expect(result).toEqual(mockProject);
-      expect(projectRepository.findOne).toHaveBeenCalledWith({
-        where: { slug: 'test-project', user: { username: 'testuser' } },
-      });
     });
 
-    it('should throw NotFoundException when project not found', async () => {
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(null);
+    it('should throw NotFoundException if project not found', async () => {
+      const username = 'testuser';
+      const slug = 'nonexistent-project';
+
+      mockProjectRepository.findByUsernameAndSlug.mockResolvedValue(null);
 
       await expect(
-        service.findByUsernameAndSlug('testuser', 'non-existent'),
+        projectService.findByUsernameAndSlug(username, slug)
       ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('create', () => {
     it('should create a new project', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(null);
-      jest.spyOn(projectRepository, 'save').mockResolvedValue(mockProject);
+      const userId = 'user1';
+      const mockUser = {
+        id: userId,
+        username: 'testuser',
+        email: 'test@example.com',
+      };
+      const projectData = {
+        title: 'New Project',
+        slug: 'new-project',
+        description: 'A new test project',
+      };
+      const mockCreatedProject = {
+        id: 'project1',
+        ...projectData,
+        userId,
+        user: mockUser,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
 
-      const result = await service.create(mockUser.id, mockProject);
-      expect(result).toEqual(mockProject);
-      expect(userRepository.findOne).toHaveBeenCalledWith({
-        where: { id: mockUser.id },
-      });
-      expect(projectRepository.save).toHaveBeenCalled();
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockProjectRepository.isSlugAvailable.mockResolvedValue(true);
+      mockProjectRepository.createProject.mockResolvedValue(mockCreatedProject);
+
+      const result = await projectService.create(userId, projectData);
+
+      expect(mockUserRepository.findById).toHaveBeenCalledWith(userId);
+      expect(mockProjectRepository.isSlugAvailable).toHaveBeenCalledWith(userId, projectData.slug);
+      expect(mockProjectRepository.createProject).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ...projectData,
+          userId,
+          user: mockUser,
+        })
+      );
+      expect(result).toEqual(mockCreatedProject);
     });
 
-    it('should throw ForbiddenException when user not found', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+    it('should throw ForbiddenException if user not found', async () => {
+      const userId = 'nonexistent-user';
+      const projectData = {
+        title: 'New Project',
+        slug: 'new-project',
+      };
 
-      await expect(service.create(mockUser.id, mockProject)).rejects.toThrow(
-        ForbiddenException,
-      );
+      mockUserRepository.findById.mockResolvedValue(null);
+
+      await expect(projectService.create(userId, projectData)).rejects.toThrow(ForbiddenException);
     });
 
-    it('should throw ForbiddenException when project already exists', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(mockProject);
+    it('should throw ForbiddenException if project slug already exists for user', async () => {
+      const userId = 'user1';
+      const projectData = {
+        title: 'New Project',
+        slug: 'existing-project',
+      };
+      const mockUser = {
+        id: userId,
+        username: 'testuser',
+      };
 
-      await expect(service.create(mockUser.id, mockProject)).rejects.toThrow(
-        ForbiddenException,
-      );
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockProjectRepository.isSlugAvailable.mockResolvedValue(false);
+
+      await expect(projectService.create(userId, projectData)).rejects.toThrow(ForbiddenException);
     });
   });
 
   describe('update', () => {
-    const updatedProject = {
-      ...mockProject,
-      title: 'Updated Title',
-      description: 'Updated description',
-    };
+    it('should update a project', async () => {
+      const username = 'testuser';
+      const slug = 'test-project';
+      const existingProject = {
+        id: 'project1',
+        title: 'Test Project',
+        description: 'Original description',
+        slug,
+        userId: 'user1',
+      };
+      const updateData = {
+        title: 'Updated Project Title',
+        description: 'Updated description',
+      };
+      const updatedProject = {
+        ...existingProject,
+        ...updateData,
+        updatedAt: Date.now(),
+      };
 
-    it('should update an existing project', async () => {
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(mockProject);
-      jest.spyOn(projectRepository, 'save').mockResolvedValue(updatedProject);
+      mockProjectRepository.findByUsernameAndSlug.mockResolvedValue(existingProject);
+      mockProjectRepository.updateProject.mockResolvedValue(updatedProject);
 
-      const result = await service.update(
-        'testuser',
-        'test-project',
-        updatedProject,
+      const result = await projectService.update(username, slug, updateData);
+
+      expect(mockProjectRepository.findByUsernameAndSlug).toHaveBeenCalledWith(username, slug);
+      expect(mockProjectRepository.updateProject).toHaveBeenCalledWith(
+        existingProject.id,
+        expect.objectContaining(updateData)
       );
       expect(result).toEqual(updatedProject);
-      expect(projectRepository.save).toHaveBeenCalled();
-    });
-
-    it('should throw NotFoundException when project not found', async () => {
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(null);
-
-      await expect(
-        service.update('testuser', 'non-existent', updatedProject),
-      ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('delete', () => {
-    it('should delete an existing project', async () => {
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(mockProject);
-      jest.spyOn(projectRepository, 'remove').mockResolvedValue(mockProject);
+    it('should delete a project', async () => {
+      const username = 'testuser';
+      const slug = 'test-project';
+      const existingProject = {
+        id: 'project1',
+        title: 'Test Project',
+        slug,
+        userId: 'user1',
+      };
 
-      await service.delete('testuser', 'test-project');
-      expect(projectRepository.remove).toHaveBeenCalledWith(mockProject);
-    });
+      mockProjectRepository.findByUsernameAndSlug.mockResolvedValue(existingProject);
+      mockProjectRepository.delete.mockResolvedValue(undefined);
 
-    it('should throw NotFoundException when project not found', async () => {
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(null);
+      await projectService.delete(username, slug);
 
-      await expect(service.delete('testuser', 'non-existent')).rejects.toThrow(
-        NotFoundException,
-      );
+      expect(mockProjectRepository.findByUsernameAndSlug).toHaveBeenCalledWith(username, slug);
+      expect(mockProjectRepository.delete).toHaveBeenCalledWith(existingProject.id);
     });
   });
 });

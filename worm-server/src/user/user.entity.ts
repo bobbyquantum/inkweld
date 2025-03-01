@@ -1,28 +1,46 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { BaseEntity } from '../common/persistence/leveldb-repository.js';
 
-@Entity('users')
-export class UserEntity {
-  @PrimaryGeneratedColumn('uuid')
+/**
+ * User entity for LevelDB storage
+ * This is a plain TypeScript class without TypeORM decorators
+ */
+export class UserEntity implements BaseEntity {
+  /** Unique identifier for the user */
   id: string;
 
-  @Column({ nullable: true, unique: true })
+  /** Username (unique) */
   username: string | null;
 
-  @Column({ nullable: true })
+  /** User's full name */
   name: string | null;
 
-  @Column({ nullable: true })
+  /** User's email address */
   email: string | null;
 
-  @Column({ nullable: true })
+  /** Hashed password (null for OAuth users) */
   password: string | null;
 
-  @Column({ nullable: true, unique: true })
+  /** GitHub ID (unique, null for non-GitHub users) */
   githubId: string | null;
 
-  @Column({ default: false })
+  /** Whether the user account is enabled */
   enabled: boolean;
 
-  @Column({ name: 'avatar_image_url', nullable: true })
+  /** URL to the user's avatar image */
   avatarImageUrl: string | null;
+
+  /** Timestamp when the user was created */
+  createdAt: number;
+
+  /** Timestamp when the user was last updated */
+  updatedAt: number;
+
+  constructor(partial: Partial<UserEntity> = {}) {
+    Object.assign(this, partial);
+
+    // Set default values
+    this.enabled = partial.enabled ?? false;
+    this.createdAt = partial.createdAt ?? Date.now();
+    this.updatedAt = partial.updatedAt ?? Date.now();
+  }
 }

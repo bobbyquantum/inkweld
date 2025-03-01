@@ -1,39 +1,44 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  VersionColumn,
-  ManyToOne,
-  JoinColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { BaseEntity } from '../common/persistence/leveldb-repository.js';
 import { UserEntity } from '../user/user.entity.js';
 
-@Entity('projects')
-export class ProjectEntity {
-  @PrimaryGeneratedColumn('uuid')
+/**
+ * Project entity for LevelDB storage
+ * This is a plain TypeScript class without TypeORM decorators
+ */
+export class ProjectEntity implements BaseEntity {
+  /** Unique identifier for the project */
   id: string;
 
-  @VersionColumn()
+  /** Version number for optimistic locking */
   version: number;
 
-  @Column({ nullable: false })
+  /** Project slug (unique per user) */
   slug: string;
 
-  @Column({ nullable: false })
+  /** Project title */
   title: string;
 
-  @Column({ length: 1000, nullable: true })
+  /** Project description */
   description: string;
 
-  @ManyToOne(() => UserEntity, (user) => user.id, { eager: true })
-  @JoinColumn({ name: 'user_id' })
-  user: UserEntity;
+  /** User ID who owns the project */
+  userId: string;
 
-  @CreateDateColumn({ name: 'created_date' })
-  createdDate: Date;
+  /** User who owns the project (denormalized for convenience) */
+  user?: UserEntity;
 
-  @UpdateDateColumn({ name: 'updated_date' })
-  updatedDate: Date;
+  /** Timestamp when the project was created */
+  createdAt: number;
+
+  /** Timestamp when the project was last updated */
+  updatedAt: number;
+
+  constructor(partial: Partial<ProjectEntity> = {}) {
+    Object.assign(this, partial);
+
+    // Set default values
+    this.version = partial.version ?? 1;
+    this.createdAt = partial.createdAt ?? Date.now();
+    this.updatedAt = partial.updatedAt ?? Date.now();
+  }
 }

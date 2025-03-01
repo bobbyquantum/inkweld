@@ -3,84 +3,79 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ProjectRepository } from './project.repository.js';
 import { ProjectEntity } from './project.entity.js';
-import { UserEntity } from '../user/user.entity.js';
+import { UserRepository } from '../user/user.repository.js';
 
 @Injectable()
 export class ProjectService {
   constructor(
-    @InjectRepository(ProjectEntity)
-    private readonly projectRepo: Repository<ProjectEntity>,
-    @InjectRepository(UserEntity)
-    private readonly userRepo: Repository<UserEntity>,
+    private readonly projectRepo: ProjectRepository,
+    private readonly userRepo: UserRepository,
   ) {}
 
   async findAllForCurrentUser(userId: string): Promise<ProjectEntity[]> {
-    // Eagerly load if needed or just do a standard query
-    return this.projectRepo.find({
-      where: {
-        user: { id: userId },
-      },
-      order: { createdDate: 'DESC' },
-    });
+    return this.projectRepo.findAllForUser(userId);
   }
+
   async findAll(): Promise<ProjectEntity[]> {
-    return await this.projectRepo.find();
+    return this.projectRepo.find();
   }
+
   async findByUsernameAndSlug(
     username: string,
     slug: string,
   ): Promise<ProjectEntity> {
-    // Typically you'd join with the user table to match the username
-    const project = await this.projectRepo.findOne({
-      where: {
-        slug,
-        user: { username },
-      },
-    });
+    const project = await this.projectRepo.findByUsernameAndSlug(username, slug);
     if (!project) {
       throw new NotFoundException('Project not found');
     }
     return project;
   }
 
-  async create(userId: string, project: ProjectEntity): Promise<ProjectEntity> {
+  async create(userId: string, project: Partial<ProjectEntity>): Promise<ProjectEntity> {
     // Look up the current user
-    const user = await this.userRepo.findOne({ where: { id: userId } });
+    const user = await this.userRepo.findById(userId);
     if (!user) {
       throw new ForbiddenException('User not found');
     }
 
-    const existing = await this.projectRepo.findOne({
-      where: { user: user, slug: project.slug },
-    });
-    if (existing) {
+    // Check if project with this slug already exists for this user
+    const isSlugAvailable = await this.projectRepo.isSlugAvailable(userId, project.slug);
+    if (!isSlugAvailable) {
       throw new ForbiddenException('Project already exists');
     }
-    // Assign the user relationship
-    project.user = user;
-    return this.projectRepo.save(project);
+
+    // Create the project
+    const newProject: Partial<ProjectEntity> = {
+      ...project,
+      userId: user.id,
+      // Store the user object for convenience (denormalized)
+      user: user,
+    };
+
+    return this.projectRepo.createProject(newProject);
   }
 
   async update(
     username: string,
     slug: string,
-    projectData: ProjectEntity,
+    projectData: Partial<ProjectEntity>,
   ): Promise<ProjectEntity> {
     // Find existing project
     const existing = await this.findByUsernameAndSlug(username, slug);
-    // Optionally check if the user is the same (or do it in the controller)
-    // Overwrite fields
-    existing.title = projectData.title;
-    existing.description = projectData.description;
+
+    // Update fields
+    const updates: Partial<ProjectEntity> = {};
+    if (projectData.title !== undefined) updates.title = projectData.title;
+    if (projectData.description !== undefined) updates.description = projectData.description;
+
     // Save changes
-    return this.projectRepo.save(existing);
+    return this.projectRepo.updateProject(existing.id, updates);
   }
 
   async delete(username: string, slug: string): Promise<void> {
     const existing = await this.findByUsernameAndSlug(username, slug);
-    await this.projectRepo.remove(existing);
+    await this.projectRepo.delete(existing.id);
   }
 }

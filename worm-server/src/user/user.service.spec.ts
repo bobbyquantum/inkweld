@@ -1,8 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service.js';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { UserEntity } from './user.entity.js';
-import { Repository } from 'typeorm';
+import { UserRepository } from './user.repository.js';
 import {
   afterAll,
   afterEach,
@@ -13,21 +11,43 @@ import {
   jest,
 } from '@jest/globals';
 import { BadRequestException } from '@nestjs/common';
+import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
+import { ConfigService } from '@nestjs/config';
 
-// Mock Bun.password methods using spyOn
+// Mock Bun.password methods
 jest.spyOn(Bun.password, 'hash').mockImplementation(async (pass) => `hashed_${pass}`);
 jest.spyOn(Bun.password, 'verify').mockImplementation(async () => true);
 
-describe('UserService', () => {
+describe('UserLevelDBService', () => {
   let userService: UserService;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let userRepository: Repository<UserEntity>;
+  let _userRepository: UserRepository;
 
+  // Create mock for UserLevelDBRepository
   const mockUserRepository = {
+    findByUsername: jest.fn<() => any>(),
+    findById: jest.fn<() => any>(),
+    findByGithubId: jest.fn<() => any>(),
     findOne: jest.fn<() => any>(),
-    create: jest.fn<() => any>(),
-    save: jest.fn<() => any>(),
-    remove: jest.fn<() => any>(),
+    createUser: jest.fn<() => any>(),
+    updateUser: jest.fn<() => any>(),
+    delete: jest.fn<() => any>(),
+    isUsernameAvailable: jest.fn<() => any>(),
+  };
+
+  // Create mock for LevelDBManagerService
+  const mockLevelDBManagerService = {
+    getProjectDatabase: jest.fn<() => any>(),
+    getSystemDatabase: jest.fn<() => any>(),
+    getSystemSublevel: jest.fn<() => any>(),
+    deleteProjectDatabase: jest.fn<() => any>(),
+  };
+
+  // Create mock for ConfigService
+  const mockConfigService = {
+    get: jest.fn<(key: string) => any>().mockImplementation((key) => {
+      if (key === 'Y_DATA_PATH') return './test-data';
+      return null;
+    }),
   };
 
   beforeEach(async () => {
@@ -35,16 +55,21 @@ describe('UserService', () => {
       providers: [
         UserService,
         {
-          provide: getRepositoryToken(UserEntity),
+          provide: UserRepository,
           useValue: mockUserRepository,
+        },
+        {
+          provide: LevelDBManagerService,
+          useValue: mockLevelDBManagerService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();
 
     userService = module.get<UserService>(UserService);
-    userRepository = module.get<Repository<UserEntity>>(
-      getRepositoryToken(UserEntity),
-    );
 
     // Reset Bun password mock implementations before each test
     (Bun.password.hash as jest.Mock).mockImplementation(async (pass) => `hashed_${pass}`);
@@ -67,21 +92,16 @@ describe('UserService', () => {
       const password = 'StrongPass123!';
       const name = 'Test User';
 
-      mockUserRepository.findOne.mockResolvedValue(null);
-      mockUserRepository.create.mockReturnValue({
-        username,
-        email,
-        password: 'hashed_StrongPass123!',
-        name,
-        enabled: true,
-      });
-      mockUserRepository.save.mockResolvedValue({
+      mockUserRepository.findByUsername.mockResolvedValue(null);
+      mockUserRepository.createUser.mockResolvedValue({
         id: '1',
         username,
         email,
         password: 'hashed_StrongPass123!',
         name,
         enabled: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       });
 
       const result = await userService.registerUser(
@@ -91,9 +111,7 @@ describe('UserService', () => {
         name,
       );
 
-      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
-        where: { username: username },
-      });
+      expect(mockUserRepository.findByUsername).toHaveBeenCalledWith(username);
       expect(Bun.password.hash).toHaveBeenCalledWith(password);
       expect(result.username).toBe(username);
       expect(result.email).toBe(email);
@@ -106,7 +124,8 @@ describe('UserService', () => {
       const email = 'test@example.com';
       const password = 'StrongPass123!';
 
-      mockUserRepository.findOne.mockResolvedValue({
+      mockUserRepository.findByUsername.mockResolvedValue({
+        id: '1',
         username,
         email,
       });
@@ -121,7 +140,7 @@ describe('UserService', () => {
       const email = 'test@example.com';
       const weakPassword = 'weak';
 
-      mockUserRepository.findOne.mockResolvedValue(null);
+      mockUserRepository.findByUsername.mockResolvedValue(null);
 
       await expect(
         userService.registerUser(username, email, weakPassword),
@@ -133,7 +152,7 @@ describe('UserService', () => {
     const OLD_HASHED_PASSWORD = 'old_hashed_password';
 
     beforeEach(() => {
-      mockUserRepository.findOne.mockResolvedValue({
+      mockUserRepository.findById.mockResolvedValue({
         id: '1',
         username: 'testuser',
         password: OLD_HASHED_PASSWORD,
@@ -141,6 +160,12 @@ describe('UserService', () => {
     });
 
     it('should successfully update password', async () => {
+      mockUserRepository.updateUser.mockResolvedValue({
+        id: '1',
+        username: 'testuser',
+        password: 'hashed_NewPass123!',
+      });
+
       await userService.updatePassword(
         '1',
         'OldPass123!',
@@ -149,10 +174,8 @@ describe('UserService', () => {
 
       expect(Bun.password.verify).toHaveBeenCalledWith('OldPass123!', OLD_HASHED_PASSWORD);
       expect(Bun.password.hash).toHaveBeenCalledWith('NewPass123!');
-      expect(mockUserRepository.save).toHaveBeenCalledWith({
-        id: '1',
-        username: 'testuser',
-        password: 'hashed_NewPass123!',
+      expect(mockUserRepository.updateUser).toHaveBeenCalledWith('1', {
+        password: 'hashed_NewPass123!'
       });
     });
 
@@ -186,13 +209,11 @@ describe('UserService', () => {
         username: 'githubuser',
       };
 
-      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockUserRepository.findByGithubId.mockResolvedValue(mockUser);
 
       const result = await userService.findByGithubId(githubId);
 
-      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
-        where: { githubId: githubId },
-      });
+      expect(mockUserRepository.findByGithubId).toHaveBeenCalledWith(githubId);
       expect(result).toEqual(mockUser);
     });
   });
@@ -207,24 +228,19 @@ describe('UserService', () => {
         avatarImageUrl: 'http://example.com/avatar.jpg',
       };
 
-      mockUserRepository.findOne.mockResolvedValue(null);
-      mockUserRepository.create.mockReturnValue({
-        ...githubUserData,
-        enabled: true,
-        password: null,
-      });
-      mockUserRepository.save.mockResolvedValue({
+      mockUserRepository.findByUsername.mockResolvedValue(null);
+      mockUserRepository.createUser.mockResolvedValue({
         id: '1',
         ...githubUserData,
         enabled: true,
         password: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       });
 
       const result = await userService.createGithubUser(githubUserData);
 
-      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
-        where: { username: githubUserData.username },
-      });
+      expect(mockUserRepository.findByUsername).toHaveBeenCalledWith(githubUserData.username);
       expect(result.githubId).toBe(githubUserData.githubId);
       expect(result.username).toBe(githubUserData.username);
       expect(result.enabled).toBe(true);
@@ -242,19 +258,15 @@ describe('UserService', () => {
       const realDateNow = Date.now;
       Date.now = jest.fn(() => mockTimestamp);
 
-      mockUserRepository.findOne.mockResolvedValue({ username: 'githubuser' });
-      mockUserRepository.create.mockReturnValue({
-        ...githubUserData,
-        username: `githubuser_${mockTimestamp}`,
-        enabled: true,
-        password: null,
-      });
-      mockUserRepository.save.mockResolvedValue({
+      mockUserRepository.findByUsername.mockResolvedValue({ username: 'githubuser' });
+      mockUserRepository.createUser.mockResolvedValue({
         id: '1',
         ...githubUserData,
         username: `githubuser_${mockTimestamp}`,
         enabled: true,
         password: null,
+        createdAt: mockTimestamp,
+        updatedAt: mockTimestamp,
       });
 
       const result = await userService.createGithubUser(githubUserData);
@@ -263,6 +275,34 @@ describe('UserService', () => {
 
       // Restore original Date.now
       Date.now = realDateNow;
+    });
+  });
+
+  describe('checkUsernameAvailability', () => {
+    it('should return available: true when username is available', async () => {
+      const username = 'newuser';
+      mockUserRepository.isUsernameAvailable.mockResolvedValue(true);
+
+      const result = await userService.checkUsernameAvailability(username);
+
+      expect(mockUserRepository.isUsernameAvailable).toHaveBeenCalledWith(username);
+      expect(result.available).toBe(true);
+      expect(result.suggestions).toEqual([]);
+    });
+
+    it('should return available: false with suggestions when username is taken', async () => {
+      const username = 'takenuser';
+      mockUserRepository.isUsernameAvailable.mockResolvedValue(false);
+
+      const result = await userService.checkUsernameAvailability(username);
+
+      expect(mockUserRepository.isUsernameAvailable).toHaveBeenCalledWith(username);
+      expect(result.available).toBe(false);
+      expect(result.suggestions).toEqual([
+        `${username}1`,
+        `${username}2`,
+        `${username}3`
+      ]);
     });
   });
 });

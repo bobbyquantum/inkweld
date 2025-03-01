@@ -36,12 +36,14 @@
     "@nestjs/swagger": "11.0.5",
     "@nestjs/typeorm": "11.0.0",
     "@nestjs/websockets": "11.0.11",
+    "abstract-level": "^3.0.1",
     "class-transformer": "0.5.1",
     "class-validator": "0.14.1",
     "cookie": "1.0.2",
     "dotenv": "16.4.7",
     "express-session": "1.18.1",
     "http-proxy-middleware": "3.0.3",
+    "level": "9.0.0",
     "nest-winston": "^1.10.2",
     "passport": "0.7.0",
     "passport-github": "1.1.0",
@@ -55,6 +57,7 @@
     "swagger-ui-express": "5.0.1",
     "typeorm": "0.3.20",
     "ws": "8.18.1",
+    "uuid": "11.1.0",
     "y-websocket": "2.1.0"
   },
   "devDependencies": {

@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { LeveldbPersistence } from 'y-leveldb';
 import * as path from 'path';
 import * as fs from 'fs';
+import { Level } from 'level';
 import { ConfigService } from '@nestjs/config';
 
 /**
@@ -12,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(LevelDBManagerService.name);
+  private readonly systemDatabases = new Map<string, Level<string, string>>();
   private readonly projectDatabases = new Map<string, LeveldbPersistence>();
   private readonly basePath: string;
   private readonly maxIdleTime: number; // ms before closing unused connections
@@ -35,6 +37,10 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
     // Start cleanup timer to close idle database connections
     this.cleanupInterval = setInterval(() => this.cleanupIdleDatabases(), 1000 * 60 * 5); // Check every 5 minutes
     this.logger.log(`LevelDB Manager initialized with base path: ${this.basePath}`);
+
+    // Initialize system databases
+    await this.getSystemDatabase('users');
+    await this.getSystemDatabase('sessions');
   }
 
   async onModuleDestroy() {
@@ -55,6 +61,19 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.projectDatabases.clear();
+
+    // Close system databases
+    for (const [key, db] of this.systemDatabases.entries()) {
+      try {
+        await db.close();
+        this.logger.log(`Closed system database: ${key}`);
+      } catch (error) {
+        this.logger.error(`Error closing system database ${key}:`, error);
+      }
+    }
+
+    this.systemDatabases.clear();
+
     this.logger.log('All project database connections closed');
   }
 
@@ -92,6 +111,46 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
     }
 
     return this.projectDatabases.get(projectKey);
+  }
+
+  /**
+   * Get a system-level LevelDB database
+   * @param dbName The database name (e.g., 'users', 'sessions')
+   * @returns The LevelDB database instance
+   */
+  async getSystemDatabase(dbName: string): Promise<Level<string, string>> {
+    if (!this.systemDatabases.has(dbName)) {
+      const dbPath = path.join(this.basePath, '_system', dbName);
+
+      // Ensure directory exists
+      if (!fs.existsSync(dbPath)) {
+        fs.mkdirSync(dbPath, { recursive: true });
+        this.logger.log(`Created directory for system database: ${dbPath}`);
+      }
+
+      try {
+        const db = new Level<string, string>(dbPath, {
+          valueEncoding: 'utf8',
+          keyEncoding: 'utf8'
+        });
+
+        this.systemDatabases.set(dbName, db);
+        this.logger.log(`Created new system LevelDB instance for ${dbName} at ${dbPath}`);
+      } catch (error) {
+        this.logger.error(`Failed to create system LevelDB instance for ${dbName}:`, error);
+        throw new Error(`System database initialization failed for ${dbName}`);
+      }
+    }
+
+    return this.systemDatabases.get(dbName);
+  }
+
+  /**
+   * Get a sublevel of a system database for namespacing
+   */
+  async getSystemSublevel(dbName: string, sublevelName: string): Promise<any> {
+    const db = await this.getSystemDatabase(dbName);
+    return db.sublevel(sublevelName);
   }
 
   /**
