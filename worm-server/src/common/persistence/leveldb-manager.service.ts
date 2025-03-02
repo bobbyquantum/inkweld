@@ -29,11 +29,17 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
   private hasVerifiedDatabaseFiles: boolean = false;
 
   constructor(private readonly configService: ConfigService) {
-    this.logger.log('Initializing LevelDBManagerService with ConfigService');
-    // For now use defaults since ConfigService injection might be failing
-    this.basePath = './data';
-    this.maxIdleTime = 1000 * 60 * 30; // Default: 30 minutes
-    this.logger.log(`Using database path: ${this.basePath}`); // Default: 30 minutes
+    this.logger.log(
+      `Initializing LevelDBManagerService with ConfigService: ${this.configService ? 'provided' : 'undefined'}`,
+    );
+    this.basePath = this.configService.get<string>('DATA_PATH', './data');
+    this.maxIdleTime = this.configService.get<number>(
+      'LEVELDB_MAX_IDLE_TIME',
+      1000 * 60 * 30,
+    ); // Default: 30 minutes
+    this.logger.log(
+      `Using database path: ${this.basePath}, max idle time: ${this.maxIdleTime}`,
+    );
 
     // Ensure base directory exists
     if (!fs.existsSync(this.basePath)) {

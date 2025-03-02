@@ -15,10 +15,22 @@ import {
 
 // Mock the y-leveldb module before importing
 const mockDB = {
-  close: mock(() => Promise.resolve()),
-  get: mock(() => undefined),
-  set: mock(() => undefined),
-  del: mock(() => undefined),
+  close: mock(() => {
+    console.log('mockDB.close() called');
+    return Promise.resolve();
+  }),
+  get: mock(() => {
+    console.log('mockDB.get() called');
+    return undefined;
+  }),
+  set: mock(() => {
+    console.log('mockDB.set() called');
+    return undefined;
+  }),
+  del: mock(() => {
+    console.log('mockDB.del() called');
+    return undefined;
+  }),
 };
 
 // Mock the LeveldbPersistence constructor
@@ -43,7 +55,8 @@ describe('LevelDBManagerService', () => {
       get: mock((key: string, defaultValue?: any) => {
         if (key === 'DATA_PATH') return testBasePath;
         if (key === 'LEVELDB_MAX_IDLE_TIME') return 1000; // 1 second for faster tests
-        return defaultValue;
+        const result = defaultValue;
+        return result;
       }),
     };
 
@@ -89,7 +102,6 @@ describe('LevelDBManagerService', () => {
         },
       ],
     }).compile();
-
     service = module.get<LevelDBManagerService>(LevelDBManagerService);
   });
 
