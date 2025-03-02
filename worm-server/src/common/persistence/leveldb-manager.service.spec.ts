@@ -33,7 +33,7 @@ describe('LevelDBManagerService', () => {
     // Mock the ConfigService
     mockConfigService = {
       get: mock((key: string, defaultValue?: any) => {
-        if (key === 'Y_DATA_PATH') return testBasePath;
+        if (key === 'DATA_PATH') return testBasePath;
         if (key === 'LEVELDB_MAX_IDLE_TIME') return 1000; // 1 second for faster tests
         return defaultValue;
       }),
