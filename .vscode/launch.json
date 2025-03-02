@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "msedge",
+      "type": "chrome",
       "name": "🎨 Frontend",
       "request": "launch",
       "preLaunchTask": "🎯 Start Stack",
@@ -25,15 +25,14 @@
       "cwd": "${workspaceFolder}/worm-server",
       "console": "integratedTerminal",
       "sourceMaps": true,
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/worm-server/**/*.ts"
-      ]
+      "resolveSourceMapLocations": ["${workspaceFolder}/worm-server/**/*.ts"]
     }
   ],
   "compounds": [
     {
       "name": "🌐 Full",
-      "configurations": ["🎨 Frontend", "🚀 NestJS Server"]
+      "configurations": ["🎨 Frontend", "🚀 NestJS Server"],
+      "stopAll": true
     }
   ]
 }
