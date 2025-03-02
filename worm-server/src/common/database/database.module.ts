@@ -11,8 +11,7 @@ import { DatabaseConfigService } from './database.config.js';
   imports: [
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) =>
- {
+      useFactory: (configService: ConfigService) => {
         return new DatabaseConfigService(configService).createTypeOrmOptions();
       },
       inject: [ConfigService],
