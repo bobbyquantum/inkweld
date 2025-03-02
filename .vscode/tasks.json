@@ -2,22 +2,6 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "🐳 Start Docker Services",
-      "type": "shell",
-      "command": "docker compose up -d",
-      "isBackground": true,
-      "problemMatcher": {
-        "pattern": {
-          "regexp": ".*"
-        },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": "Creating",
-          "endsPattern": "Started"
-        }
-      }
-    },
-    {
       "label": "🚀 Start Frontend Dev Server",
       "type": "shell",
       "command": "cd frontend && bun run start",
@@ -51,8 +35,13 @@
       "label": "🎯 Start Stack",
       "type": "shell",
       "command": "echo '🚀 Stack dependencies started and ready!'",
-      "dependsOn": ["🐳 Start Docker Services", "🚀 Start Frontend Dev Server"],
-      "dependsOrder": "sequence",
+      "dependsOn": ["🚀 Start Frontend Dev Server"],
+      "dependsOrder": "sequence"
+    },
+    {
+      "label": "⏹️ Stop All Tasks",
+      "command": "${command:workbench.action.tasks.terminateAll}",
+      "type": "shell"
     }
   ]
 }

@@ -9,10 +9,7 @@
   "eslint.format.enable": true,
   "eslint.run": "onSave",
   "eslint.lintTask.enable": true,
-  "eslint.validate": [
-    "json",
-    "typescript",
-  ],
+  "eslint.validate": ["json", "typescript"],
   "[typescript]": {
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
@@ -23,5 +20,10 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "jest.rootPath": "frontend",
-
+  "debug.internalConsoleOptions": "neverOpen",
+  "debug.openDebug": "openOnDebugBreak",
+  "debug.toolBarLocation": "docked",
+  "debug.focusWindowOnBreak": true,
+  "debug.showInStatusBar": "always",
+  "launch": { "configurations": [], "compounds": [] }
 }
