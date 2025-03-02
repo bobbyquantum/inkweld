@@ -21,7 +21,7 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
 
   constructor(private readonly configService: ConfigService) {
     // Get configuration from environment
-    this.basePath = this.configService.get<string>('Y_DATA_PATH', './data');
+    this.basePath = this.configService.get<string>('DATA_PATH', './data');
     this.maxIdleTime = this.configService.get<number>('LEVELDB_MAX_IDLE_TIME', 1000 * 60 * 30); // Default: 30 minutes
 
     // Ensure base directory exists
@@ -155,7 +155,7 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
     const safeUsername = username.replace(/[^a-zA-Z0-9_-]/g, '_');
     const safeSlug = projectSlug.replace(/[^a-zA-Z0-9_-]/g, '_');
 
-    // Follow the structure: /Y_DATA_PATH/{username}/{project_slug}/leveldb
+    // Follow the structure: /DATA_PATH/{username}/{project_slug}/leveldb
     return path.join(this.basePath, safeUsername, safeSlug, 'leveldb');
   }
 

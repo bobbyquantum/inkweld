@@ -6,7 +6,7 @@ import * as fsSync from 'fs';
 @Injectable()
 export class ImageStorageService {
   private readonly logger = new Logger(ImageStorageService.name);
-  private readonly dataDir = path.resolve(process.env.Y_DATA_PATH || './data');
+  private readonly dataDir = path.resolve(process.env.DATA_PATH || './data');
 
   async saveImage(userId: string, projectSlug: string, elementId: string, file: Buffer, filename: string): Promise<string> {
     this.logger.log(`Starting saveImage for user ${userId}, project ${projectSlug}, element ${elementId}, file size: ${file.byteLength} bytes`);
