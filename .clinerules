@@ -4,7 +4,6 @@
 
    - Before attempting completion, always make sure that any code changes have test coverage
    - Ensure all tests pass before submitting changes
-   - Always run jest tests with CI=true in env to minimize unnecessary output and token usage.
 
 2. Lint Rules:
 
@@ -14,18 +13,14 @@
    - Document any approved lint rule disabling with a comment explaining the reason
 
 3. Angular Control Flow:
-   - Angular Control Flow Guidance: Use @if/@else for conditionals (optionally assigning results with as), @for with track (prefer unique IDs like item.id, avoid identity, use @empty for empty states), leverage contextual variables ($index, $count, etc.) and aliasing, and @switch/@case with strict equality (===), replacing legacy *ngIf, *ngFor, and \*ngSwitch directives.
+   - Angular Control Flow Guidance: Use @if/@else for conditionals (optionally assigning results with as), @for with track (prefer unique IDs like item.id, avoid identity, use @empty for empty states), leverage contextual variables ($index, $count, etc.) and aliasing, and @switch/@case with strict equality (===), replacing legacy \*ngIf, \*ngFor, and \*ngSwitch directives.
 
-# Project Information
+## Project Information
 
-1. /frontend:
+1. /frontend - The frontend is Angular 19. Preference is to use inject() syntax rather than constructor injection. Everything is standalone, no modules. The dev server is run on node. All tests are jest based. Do not use jasmine.
 
-- The frontend is Angular 19. Preference is to use inject() syntax rather than constructor injection. Everything is standalone, no modules. The dev server is run on node. All tests are jest based. Do not use jasmine.
+2. /worm-server - The worm-server is NestJS 10. This project runs on bun rather than node. Tests are run with jest. If you need Request or Response from type, import it with "import type" not regular import.
 
-2. /worm-server:
-
-- The worm-server is NestJS 10. This project runs on bun rather than node. Tests are run with jest. If you need Request or Response from type, import it with "import type" not regular import.
-
-# General Requests
+## General Requests
 
 - If there are issues, loops, or problems requiring user intervention encountered, which could have been prevented by a new rule, then summarise the lessons learned and suggest new rules to remedy.
