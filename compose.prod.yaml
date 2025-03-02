@@ -7,31 +7,12 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=8333
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USERNAME=wormuser
-      - DB_PASSWORD=secret
-      - DB_NAME=wormdb
       - DATA_PATH=/var/lib/yjs
       - ALLOWED_ORIGINS=http://localhost:8333
     volumes:
-      - yjs_data:/var/lib/yjs
+      - data:/var/lib/yjs
     ports:
       - "8333:8333"
-    depends_on:
-      - postgres
-
-  postgres:
-    image: "pgvector/pgvector:pg17"
-    environment:
-      - "POSTGRES_DB=wormdb"
-      - "POSTGRES_PASSWORD=secret"
-      - "POSTGRES_USER=wormuser"
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
 
 volumes:
-  postgres_data:
-  yjs_data:
+  data:

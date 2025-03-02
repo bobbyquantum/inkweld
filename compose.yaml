@@ -1,7 +1,0 @@
-services:
-  # No services required since we're using LevelDB for persistence
-  # The data will be stored in the local filesystem
-  # within the ./data directory (as configured in LevelDBManagerService)
-
-volumes:
-  # Volumes are not needed anymore since we're not using containerized databases

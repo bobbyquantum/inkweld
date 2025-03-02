@@ -61,10 +61,9 @@ describe('AuthController', () => {
     it('should handle authentication failure', async () => {
       // Mock request object without user (authentication failed)
       const mockRequest = {};
-      const mockResponse = {};
-      await expect(
-        controller.login(mockRequest, mockResponse as any),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(controller.login(mockRequest)).rejects.toThrow(
+        UnauthorizedException,
+      );
       expect(authService.login).not.toHaveBeenCalled();
     });
 
@@ -76,10 +75,7 @@ describe('AuthController', () => {
       const error = new Error('Login failed');
       authService.login.mockRejectedValue(error);
 
-      const mockResponse = {};
-      await expect(
-        controller.login(mockRequest, mockResponse as any),
-      ).rejects.toThrow(error);
+      await expect(controller.login(mockRequest)).rejects.toThrow(error);
       expect(authService.login).toHaveBeenCalledWith(mockRequest, mockUser);
     });
   });
