@@ -47,7 +47,7 @@ describe('UserLevelDBService', () => {
   // Create mock for ConfigService
   const mockConfigService = {
     get: jest.fn<(key: string) => any>().mockImplementation((key) => {
-      if (key === 'Y_DATA_PATH') return './test-data';
+      if (key === 'DATA_PATH') return './test-data';
       return null;
     }),
   };

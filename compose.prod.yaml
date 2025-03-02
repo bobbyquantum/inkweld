@@ -12,23 +12,23 @@ services:
       - DB_USERNAME=wormuser
       - DB_PASSWORD=secret
       - DB_NAME=wormdb
-      - Y_DATA_PATH=/var/lib/yjs
+      - DATA_PATH=/var/lib/yjs
       - ALLOWED_ORIGINS=http://localhost:8333
     volumes:
       - yjs_data:/var/lib/yjs
     ports:
-      - '8333:8333'
+      - "8333:8333"
     depends_on:
       - postgres
 
   postgres:
-    image: 'pgvector/pgvector:pg17'
+    image: "pgvector/pgvector:pg17"
     environment:
-      - 'POSTGRES_DB=wormdb'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=wormuser'
+      - "POSTGRES_DB=wormdb"
+      - "POSTGRES_PASSWORD=secret"
+      - "POSTGRES_USER=wormuser"
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

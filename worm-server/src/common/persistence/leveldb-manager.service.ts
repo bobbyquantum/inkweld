@@ -306,7 +306,7 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
     const safeUsername = username.replace(/[^a-zA-Z0-9_-]/g, '_');
     const safeSlug = projectSlug.replace(/[^a-zA-Z0-9_-]/g, '_');
 
-    // Follow the structure: /Y_DATA_PATH/{username}/{project_slug}/leveldb
+    // Follow the structure: /DATA_PATH/{username}/{project_slug}/leveldb
     return path.join(this.basePath, safeUsername, safeSlug, 'leveldb');
   }
 
