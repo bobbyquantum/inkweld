@@ -31,7 +31,7 @@ import { cwd } from 'process';
       useFactory: () => {
         return [
           {
-            rootPath: path.resolve(path.join(cwd(),'../frontend/dist/browser')),
+            rootPath: path.resolve(path.join(cwd(),'frontend/dist/browser')),
           },
         ];
       },
