@@ -27,7 +27,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.6.1",
     "@nestjs/common": "11.0.11",
-    "@nestjs/config": "4.0.0",
+    "@nestjs/config": "4.0.1",
     "@nestjs/core": "11.0.11",
     "@nestjs/passport": "11.0.5",
     "@nestjs/platform-express": "^11.0.10",
@@ -60,7 +60,7 @@
   },
   "devDependencies": {
     "@nestjs/cli": "11.0.5",
-    "@nestjs/schematics": "11.0.1",
+    "@nestjs/schematics": "11.0.2",
     "@nestjs/testing": "11.0.11",
     "@openapitools/openapi-generator-cli": "2.17.0",
     "@types/bun": "1.2.4",
