@@ -1,24 +1,35 @@
 services:
-  postgres:
-    image: 'pgvector/pgvector:pg17'
+  worm-server:
+    image: worm-server:latest
+    build:
+      context: .
+      dockerfile: worm-server/Dockerfile
     environment:
-      - 'POSTGRES_DB=wormdb'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=wormuser'
-    ports:
-      - '5432:5432'
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # Database Configuration - SQLite mode
+      - DB_TYPE=sqlite
+      - DB_PATH=/data/sqlite.db
+      - DB_LOGGING=false
 
-  pgadmin:
-    image: 'dpage/pgadmin4'
-    environment:
-      - 'PGADMIN_DEFAULT_EMAIL=admin@example.com'
-      - 'PGADMIN_DEFAULT_PASSWORD=admin'
+      # Server Configuration
+      - PORT=8333
+      - HOST=0.0.0.0
+      - PUBLIC_URL=${PUBLIC_URL:-http://localhost:8333}
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:8333}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:8333}
+
+      # Auth Configuration
+      - LOCAL_USERS_ENABLED=${LOCAL_USERS_ENABLED:-true}
+      - GITHUB_ENABLED=${GITHUB_ENABLED:-false}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+
+      # Yjs data path
+      - DATA_PATH=/data/yjs
+    volumes:
+      - worm_data:/data
     ports:
-      - '5050:80'
-    depends_on:
-      - postgres
+      - "${PORT:-8333}:8333"
 
 volumes:
-  postgres_data:
+  worm_data:
+    # Volume for both SQLite database and Yjs data

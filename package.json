@@ -7,9 +7,7 @@
     "lint": "cd frontend && npm run lint && cd ../worm-server && bun run lint",
     "test": "cd frontend && npm test && cd ../worm-server && bun test",
     "build:image:prod": "cd frontend && bun run clean && bun run build && bun run compress && cd .. && docker build -t worm-server:prod -f worm-server/Dockerfile .",
-    "compose:up:prod":  "cd frontend && bun run clean && bun run build && bun run compress && cd .. && docker compose -f 'compose.prod.yaml' up -d --build "
-
+    "compose:up:prod": "cd frontend && bun run clean && bun run build && bun run compress && cd .. && docker compose -f compose.yaml up -d --build "
   },
-  "devDependencies": {
-  }
+  "devDependencies": {}
 }

@@ -7,7 +7,7 @@
     "serve:prod": "ng serve --configuration production",
     "clean": "rimraf dist",
     "build": "ng build",
-    "compress": "find dist -type f -exec brotli --best {} \\;",
+    "compress": "node scripts/compress.js",
     "watch": "ng build --watch --configuration development",
     "test": "jest",
     "text:exp": "NODE_OPTIONS=--experimental-vm-modules jest",
