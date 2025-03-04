@@ -39,7 +39,7 @@
     "y-indexeddb": "9.0.12",
     "y-prosemirror": "1.2.16",
     "y-websocket": "2.1.0",
-    "yjs": "13.6.23",
+    "yjs": "13.6.24",
     "zone.js": "0.15.0"
   },
   "devDependencies": {
