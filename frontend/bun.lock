@@ -21,7 +21,7 @@
         "rxjs": "7.8.2",
         "tslib": "2.8.1",
         "y-indexeddb": "9.0.12",
-        "y-prosemirror": "1.2.16",
+        "y-prosemirror": "1.2.17",
         "y-websocket": "2.1.0",
         "yjs": "13.6.24",
         "zone.js": "0.15.0",
@@ -2198,7 +2198,7 @@
 
     "y-leveldb": ["y-leveldb@0.1.2", "", { "dependencies": { "level": "^6.0.1", "lib0": "^0.2.31" }, "peerDependencies": { "yjs": "^13.0.0" } }, "sha512-6ulEn5AXfXJYi89rXPEg2mMHAyyw8+ZfeMMdOtBbV8FJpQ1NOrcgi6DTAcXof0dap84NjHPT2+9d0rb6cFsjEg=="],
 
-    "y-prosemirror": ["y-prosemirror@1.2.16", "", { "dependencies": { "lib0": "^0.2.42" }, "peerDependencies": { "prosemirror-model": "^1.7.1", "prosemirror-state": "^1.2.3", "prosemirror-view": "^1.9.10", "y-protocols": "^1.0.1", "yjs": "^13.5.38" } }, "sha512-7JJTpyRzAgN9K2XQBrD/ouVe1/dh6tXc2uDO85vVRg0bSppphDet5e8r1ieVFXdp2P8C8QSfa8i/AMWnPz3FRA=="],
+    "y-prosemirror": ["y-prosemirror@1.2.17", "", { "dependencies": { "lib0": "^0.2.42" }, "peerDependencies": { "prosemirror-model": "^1.7.1", "prosemirror-state": "^1.2.3", "prosemirror-view": "^1.9.10", "y-protocols": "^1.0.1", "yjs": "^13.5.38" } }, "sha512-9bmO5Vl6E3AH5JRQhJPWOmX4x0dwDZvfM86qd+w38G0j23VSV+ZvrKYBbKc1l44Tnyd7j7TWEuqBpzfOfbc4fw=="],
 
     "y-protocols": ["y-protocols@1.0.6", "", { "dependencies": { "lib0": "^0.2.85" }, "peerDependencies": { "yjs": "^13.0.0" } }, "sha512-vHRF2L6iT3rwj1jub/K5tYcTT/mEYDUppgNPXwp8fmLpui9f7Yeq3OEtTLVF012j39QnV+KEQpNqoN7CWU7Y9Q=="],
 
