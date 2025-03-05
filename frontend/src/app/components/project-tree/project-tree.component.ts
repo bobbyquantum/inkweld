@@ -149,12 +149,12 @@ export class ProjectTreeComponent {
     const validLevels = this.validLevelsArray;
 
     // Debug logging
-    console.log('Drag Debug:', {
-      intendedLevel,
-      relativeX,
-      validLevels,
-      draggedNode: this.draggedNode?.name,
-    });
+    // console.log('Drag Debug:', {
+    //   intendedLevel,
+    //   relativeX,
+    //   validLevels,
+    //   draggedNode: this.draggedNode?.name,
+    // });
 
     const selectedLevel = validLevels.reduce((prev, curr) =>
       Math.abs(curr - intendedLevel) < Math.abs(prev - intendedLevel)
@@ -163,11 +163,11 @@ export class ProjectTreeComponent {
     );
 
     // Debug level selection
-    console.log('Level Selection:', {
-      selectedLevel,
-      validLevels,
-      currentDropLevel: this.currentDropLevel,
-    });
+    // console.log('Level Selection:', {
+    //   selectedLevel,
+    //   validLevels,
+    //   currentDropLevel: this.currentDropLevel,
+    // });
 
     this.currentDropLevel = selectedLevel;
     const placeholderElement = this.treeContainer.nativeElement.querySelector(
@@ -179,26 +179,54 @@ export class ProjectTreeComponent {
   }
 
   /**
-   * Handles the sort event during drag and drop.
+   * Handles the sort event during drag and drop to determine valid drop levels.
+   *
    * @param event The drag sort event.
    */
   sorted(event: CdkDragSortEvent<ArrayDataSource<ProjectElement>>) {
-    const { currentIndex, container } = event;
+    const { previousIndex, currentIndex, container, item } = event;
+
+    // Item being dragged
+    const draggedItem = item.data as unknown as ProjectElement;
+
+    // Determine if dragging up or down
+    const isDraggingDown = previousIndex < currentIndex;
+
+    console.log('Sorted event:', {
+      previousIndex,
+      currentIndex,
+      isDraggingDown,
+      draggedItem: draggedItem.name,
+    });
+
     const sortedNodes = container
       .getSortedItems()
       .map(dragItem => dragItem.data as ProjectElement);
+
+    // Filter out the dragged item
     const filteredNodes = sortedNodes.filter(
-      node => node.id !== this.draggedNode?.id
+      node => node.id !== draggedItem.id
     );
 
-    const nodeAbove = filteredNodes[currentIndex - 1] || null;
-    const nodeBelow = filteredNodes[currentIndex] || null;
+    // Determine nodes above and below based on the filtered list
+    let nodeAbove = null;
+    let nodeBelow = null;
 
-    // Debug valid levels calculation
+    if (currentIndex > 0) {
+      nodeAbove =
+        currentIndex - 1 < filteredNodes.length
+          ? filteredNodes[currentIndex - 1]
+          : null;
+    }
+
+    nodeBelow =
+      currentIndex < filteredNodes.length ? filteredNodes[currentIndex] : null;
+
     console.log('Valid Levels:', {
       nodeAbove: nodeAbove?.name,
-      nodeAboveType: nodeAbove?.type,
       nodeBelow: nodeBelow?.name,
+      filteredLength: filteredNodes.length,
+      currentIndex,
     });
 
     const { levels, defaultLevel } =
@@ -212,13 +240,34 @@ export class ProjectTreeComponent {
    * @param event The drag drop event.
    */
   public async drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {
-    const { currentIndex, container, item } = event;
+    const { previousIndex, currentIndex, container, item } = event;
+
+    // Item being dragged
+    const draggedItem = item.data as ProjectElement;
+
+    // Determine if dragging up or down
+    const isDraggingDown = previousIndex < currentIndex;
+
+    console.log('Drop event:', {
+      previousIndex,
+      currentIndex,
+      isDraggingDown,
+      draggedItem: draggedItem.name,
+    });
+
     const sortedNodes = container
       .getSortedItems()
-      .map(dragItem => dragItem.data as ProjectElement)
-      .filter(node => node.id !== this.draggedNode?.id);
-    const nodeAbove = sortedNodes[currentIndex - 1] || null;
-    const node = item.data as ProjectElement;
+      .map(dragItem => dragItem.data as ProjectElement);
+
+    // Filter out the dragged item
+    const filteredNodes = sortedNodes.filter(
+      node => node.id !== draggedItem.id
+    );
+    const nodeAbove =
+      currentIndex > 0 && currentIndex - 1 < filteredNodes.length
+        ? filteredNodes[currentIndex - 1]
+        : null;
+    const node = draggedItem;
 
     // Always validate the drop before confirmation
     if (

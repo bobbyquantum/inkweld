@@ -56,17 +56,9 @@ export class RecentFilesService {
   }
 
   getRecentFilesForProject(username: string, slug: string): RecentFile[] {
-    console.log(
-      'Getting recent files for project:',
-      username,
-      slug,
-      'All recent files:',
-      this.recentFiles()
-    );
     const filteredFiles = this.recentFiles().filter(
       file => file.projectUser === username && file.projectSlug === slug
     );
-    console.log('Filtered recent files:', filteredFiles);
     return filteredFiles;
   }
 

@@ -280,12 +280,16 @@ export class ProjectStateService {
 
     if (nodeAbove && nodeBelow) {
       if (nodeAbove.level < nodeBelow.level) {
-        // If above node is a folder, allow its level and one level deeper
         if (nodeAbove.type === 'FOLDER') {
-          validLevels.add(nodeAbove.level);
-          validLevels.add(nodeAbove.level + 1);
+          if (nodeBelow.level === nodeAbove.level + 1) {
+            validLevels.add(nodeBelow.level);
+          } else {
+            validLevels.add(nodeAbove.level);
+            validLevels.add(nodeAbove.level + 1);
+          }
+        } else {
+          validLevels.add(nodeBelow.level);
         }
-        validLevels.add(nodeBelow.level);
       } else if (nodeAbove.level === nodeBelow.level) {
         validLevels.add(nodeAbove.level);
         // Also allow dropping inside if above node is a folder
