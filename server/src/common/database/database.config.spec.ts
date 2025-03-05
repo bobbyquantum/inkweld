@@ -35,9 +35,9 @@ describe('DatabaseConfigService', () => {
           DB_TYPE: 'postgres',
           DB_HOST: 'localhost',
           DB_PORT: 5432,
-          DB_USERNAME: 'wormuser',
+          DB_USERNAME: 'user',
           DB_PASSWORD: 'secret',
-          DB_NAME: 'wormdb',
+          DB_NAME: 'db',
           NODE_ENV: 'development',
         };
         return defaults[key];
@@ -49,9 +49,9 @@ describe('DatabaseConfigService', () => {
         type: 'postgres',
         host: 'localhost',
         port: 5432,
-        username: 'wormuser',
+        username: 'user',
         password: 'secret',
-        database: 'wormdb',
+        database: 'db',
         synchronize: true,
       });
     });

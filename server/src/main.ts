@@ -15,11 +15,11 @@ dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
 export function createOpenAPIConfig() {
   return new DocumentBuilder()
-    .setTitle('Worm API')
+    .setTitle('Inkweld API')
     .setDescription(
-      'Worm tunnel protocol - Secure API for managing projects and user data',
+      'API for managing projects and user data',
     )
-    .setVersion(process.env.WORM_VERSION || '1.0')
+    .setVersion(process.env.INKWELD_VERSION || '1.0')
     .addTag(
       'User API',
       'The user controller allows accessing and updating details for the current user.',

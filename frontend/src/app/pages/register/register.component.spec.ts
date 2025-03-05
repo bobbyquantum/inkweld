@@ -10,7 +10,7 @@ import {
   UserControllerCheckUsernameAvailability200Response,
   UserDto,
   UserRegisterDto,
-} from '@worm/index';
+} from '@inkweld/index';
 import { Observable, of, throwError } from 'rxjs';
 
 import { RegisterComponent } from './register.component';

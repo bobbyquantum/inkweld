@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { Router } from '@angular/router';
 import { UserService } from '@services/user.service';
-import { UserDto } from '@worm/index';
+import { UserDto } from '@inkweld/index';
 
 interface LogoutResponse {
   message: string;

@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { UserAPIService } from '@worm/index';
+import { UserAPIService } from '@inkweld/index';
 import { Observable, of, throwError } from 'rxjs';
 
 import { OAuthProviderListComponent } from './oauth-provider-list.component';

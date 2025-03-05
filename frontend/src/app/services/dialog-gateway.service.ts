@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { ProjectDto } from '@worm/model/project-dto';
+import { ProjectDto } from '@inkweld/model/project-dto';
 import { firstValueFrom } from 'rxjs';
 
 import {

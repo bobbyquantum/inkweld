@@ -1,4 +1,4 @@
-import { ProjectDto } from "@worm/index";
+import { ProjectDto } from "@inkweld/index";
 import { Observable } from "rxjs";
 
 export const projectServiceMock = {

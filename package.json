@@ -1,12 +1,12 @@
 {
-  "name": "worm-project",
+  "name": "inkweld",
   "version": "1.0.0",
-  "description": "Worm project",
+  "description": "Inkweld",
   "scripts": {
-    "install-all": "cd frontend && bun install --save-text-lockfile && cd ../worm-server && bun install --save-text-lockfile",
-    "lint": "cd frontend && npm run lint && cd ../worm-server && bun run lint",
-    "test": "cd frontend && npm test && cd ../worm-server && bun test",
-    "build:image:prod": "cd frontend && bun run clean && bun run build && bun run compress && cd .. && docker build -t worm-server:prod -f worm-server/Dockerfile .",
+    "install-all": "cd frontend && bun install --save-text-lockfile && cd ../server && bun install --save-text-lockfile",
+    "lint": "cd frontend && npm run lint && cd ../server && bun run lint",
+    "test": "cd frontend && npm test && cd ../server && bun test",
+    "build:image:prod": "cd frontend && bun run clean && bun run build && bun run compress && cd .. && docker build -t inkweld:prod -f server/Dockerfile .",
     "compose:up:prod": "cd frontend && bun run clean && bun run build && bun run compress && cd .. && docker compose -f compose.yaml up -d --build "
   },
   "devDependencies": {}

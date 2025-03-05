@@ -6,17 +6,17 @@
     },
     {
       "name": "⚙️ Server",
-      "path": "worm-server"
+      "path": "server"
     },
     {
       "name": "🎨 Frontend",
       "path": "frontend"
-    },
+    }
   ],
   "settings": {
     "files.exclude": {
       "frontend/": true,
-      "worm-server/": true,
+      "server/": true
     },
     "typescript.tsdk": "🎨 Frontend/frontend/node_modules/typescript/lib",
     "[typescript]": {
@@ -27,8 +27,6 @@
       "editor.defaultFormatter": "esbenp.prettier-vscode",
       "editor.formatOnSave": true
     },
-    "jest.disabledWorkspaceFolders": [
-      "✨ Root",
-    ]
+    "jest.disabledWorkspaceFolders": ["✨ Root"]
   }
 }

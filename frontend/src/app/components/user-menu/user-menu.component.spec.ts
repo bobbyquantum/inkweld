@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { UserService } from '@services/user.service';
-import { UserDto } from '@worm/index';
+import { UserDto } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 
 import { UserMenuComponent } from './user-menu.component';

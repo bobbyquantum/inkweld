@@ -25,5 +25,11 @@
   "debug.toolBarLocation": "docked",
   "debug.focusWindowOnBreak": true,
   "debug.showInStatusBar": "always",
-  "launch": { "configurations": [], "compounds": [] }
+  "launch": {
+    "configurations": [],
+    "compounds": []
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
+  }
 }

@@ -105,7 +105,7 @@ Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 To build the Docker image for the backend application, run the following command:
 
 ```bash
-docker build -t worm-server:prod -f worm-server/Dockerfile .
+docker build -t server:prod -f server/Dockerfile .
 ```
 
 ### Running Docker Containers
@@ -116,7 +116,7 @@ To run the Docker containers using Docker Compose, use the following command:
 docker-compose -f compose.prod.yaml up
 ```
 
-This will start the `worm-server` and `postgres` services defined in the `compose.prod.yaml` file.
+This will start the `server` and `postgres` services defined in the `compose.prod.yaml` file.
 
 ### Pushing Docker Image to GitHub Container Registry
 

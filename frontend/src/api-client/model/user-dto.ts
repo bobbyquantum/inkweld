@@ -1,5 +1,5 @@
 /**
- * Worm API
+ * Inkweld API
  *
  * 
  *

@@ -15,7 +15,7 @@ import {
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { XsrfService } from '@services/xsrf.service';
-import { Configuration, ProjectAPIService, UserDto } from '@worm/index';
+import { Configuration, ProjectAPIService, UserDto } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 
 import { UserService } from '../../services/user.service';

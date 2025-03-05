@@ -28,7 +28,7 @@ import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { DocumentService } from '@services/document.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
 import { ProjectStateService } from '@services/project-state.service';
-import { ProjectDto, ProjectElementDto } from '@worm/index';
+import { ProjectDto, ProjectElementDto } from '@inkweld/index';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 
 import { FolderElementEditorComponent } from '../../components/folder-element-editor/folder-element-editor.component';

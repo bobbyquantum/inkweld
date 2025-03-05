@@ -11,9 +11,9 @@ import { signal, WritableSignal } from '@angular/core';
 import { fakeAsync, tick } from '@angular/core/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { ProjectAPIService } from '@inkweld/index';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
-import { ProjectAPIService } from '@worm/index';
 
 import { projectServiceMock } from '../../../testing/project-api.mock';
 import { ProjectElement } from '../../models/project-element';

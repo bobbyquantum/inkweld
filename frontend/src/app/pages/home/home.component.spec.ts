@@ -14,7 +14,7 @@ import {
   ProjectDto,
   UserAPIService,
   UserDto,
-} from '@worm/index';
+} from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 
 import { HomeComponent } from './home.component';

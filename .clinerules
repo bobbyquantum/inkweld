@@ -19,7 +19,7 @@
 
 1. /frontend - The frontend is Angular 19. Preference is to use inject() syntax rather than constructor injection. Everything is standalone, no modules. The dev server is run on node. All tests are jest based. Do not use jasmine.
 
-2. /worm-server - The worm-server is NestJS 10. This project runs on bun rather than node. Tests are run with jest. If you need Request or Response from type, import it with "import type" not regular import.
+2. /server - The server is NestJS 10. This project runs on bun rather than node. Tests are run with jest. If you need Request or Response from type, import it with "import type" not regular import.
 
 ## General Requests
 

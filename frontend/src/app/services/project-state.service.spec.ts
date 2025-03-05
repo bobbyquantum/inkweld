@@ -5,7 +5,7 @@ import {
   ProjectDto,
   ProjectElementDto,
   UserDto,
-} from '@worm/index';
+} from '@inkweld/index.js';
 import { of, throwError } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';

@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "worm-frontend": {
+    "inkweld-frontend": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -17,12 +17,10 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/worm-frontend",
+            "outputPath": "dist/inkweld-frontend",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "polyfills": [
-              "zone.js"
-            ],
+            "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -31,9 +29,7 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/themes/theme.scss"
-            ],
+            "styles": ["src/themes/theme.scss"],
             "scripts": []
           },
           "configurations": {
@@ -79,10 +75,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "worm-frontend:build:production"
+              "buildTarget": "inkweld-frontend:build:production"
             },
             "development": {
-              "buildTarget": "worm-frontend:build:development"
+              "buildTarget": "inkweld-frontend:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -93,10 +89,7 @@
         "test": {
           "builder": "@angular-builders/jest:run",
           "options": {
-            "polyfills": [
-              "zone.js",
-              "zone.js/testing"
-            ],
+            "polyfills": ["zone.js", "zone.js/testing"],
             "tsConfig": "tsconfig.spec.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -105,29 +98,24 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/themes/theme.scss"
-            ],
+            "styles": ["src/themes/theme.scss"],
             "scripts": []
           }
         },
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": [
-              "src/**/*.ts",
-              "src/**/*.html"
-            ]
+            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
           }
         },
         "e2e": {
           "builder": "playwright-ng-schematics:playwright",
           "options": {
-            "devServerTarget": "worm-frontend:serve"
+            "devServerTarget": "inkweld-frontend:serve"
           },
           "configurations": {
             "production": {
-              "devServerTarget": "worm-frontend:serve:production"
+              "devServerTarget": "inkweld-frontend:serve:production"
             }
           }
         }
@@ -137,8 +125,6 @@
   "cli": {
     "analytics": false,
     "packageManager": "bun",
-    "schematicCollections": [
-      "@angular-eslint/schematics"
-    ]
+    "schematicCollections": ["@angular-eslint/schematics"]
   }
 }

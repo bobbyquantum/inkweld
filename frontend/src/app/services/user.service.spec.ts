@@ -3,8 +3,8 @@ import 'fake-indexeddb/auto';
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { UserDto } from '@worm/index';
-import { UserAPIService } from '@worm/index';
+import { UserDto } from '@inkweld/index';
+import { UserAPIService } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 
 import { userServiceMock } from '../../testing/user-api.mock';

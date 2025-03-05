@@ -8,7 +8,7 @@ const config = {
     '@dialogs/(.*)': '<rootDir>/src/app/dialogs/$1',
     '@services/(.*)': '<rootDir>/src/app/services/$1',
     '@themes/(.*)': '<rootDir>/src/themes/$1',
-    '@worm/(.*)': '<rootDir>/src/api-client/$1',
+    '@inkweld/(.*)': '<rootDir>/src/api-client/$1',
   },
   roots: ['<rootDir>/src/'],
   testMatch: ['**/+(*.)+(spec).+(ts)'],

@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Provider } from '@angular/core';
-import { Configuration, ProjectAPIService, UserAPIService } from '@worm/index';
+import { Configuration, ProjectAPIService, UserAPIService } from '@inkweld/index';
 
 import { environment } from '../../environments/environment';
 

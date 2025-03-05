@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { ProjectDto } from '@worm/index';
+import { ProjectDto } from '@inkweld/index';
 
 import { ProjectCardComponent } from './project-card.component';
 

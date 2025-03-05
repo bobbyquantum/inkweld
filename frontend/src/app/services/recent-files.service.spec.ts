@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { ProjectElementDto } from '@worm/index';
+import { ProjectElementDto } from '@inkweld/index';
 
 import { RecentFilesService } from './recent-files.service';
 import { SettingsService } from './settings.service';
