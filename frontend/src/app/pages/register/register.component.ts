@@ -11,9 +11,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
+import { UserAPIService, UserRegisterDto } from '@inkweld/index';
 import { UserService } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
-import { UserAPIService, UserRegisterDto } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 @Component({

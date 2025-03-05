@@ -13,8 +13,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { XsrfService } from '@services/xsrf.service';
 import { ProjectAPIService, ProjectDto } from '@inkweld/index';
+import { XsrfService } from '@services/xsrf.service';
 import { firstValueFrom } from 'rxjs';
 
 import { UserService } from '../../services/user.service';
