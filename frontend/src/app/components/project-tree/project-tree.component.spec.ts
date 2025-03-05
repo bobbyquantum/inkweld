@@ -171,6 +171,9 @@ describe('ProjectTreeComponent', () => {
     describe('Drop Handling', () => {
       it('should handle valid drops without confirmation', fakeAsync(() => {
         settingsService.getSetting.mockReturnValue(false); // confirmElementMoves disabled
+
+        // Set up the dragged node for the test
+        component.draggedNode = mockDto;
         const event = createTestDragEvent();
         void component.drop(event);
         expect(projectStateService.isValidDrop).toHaveBeenCalled();
@@ -184,6 +187,8 @@ describe('ProjectTreeComponent', () => {
 
       it('should show confirmation dialog when confirmElementMoves is enabled', fakeAsync(() => {
         settingsService.getSetting.mockReturnValue(true); // confirmElementMoves enabled
+        // Set up the dragged node for the test
+        component.draggedNode = mockDto;
         dialogGatewayService.openConfirmationDialog.mockResolvedValue(true);
 
         const event = createTestDragEvent();
@@ -194,7 +199,9 @@ describe('ProjectTreeComponent', () => {
 
       it('should not move element when confirmation is cancelled', fakeAsync(() => {
         settingsService.getSetting.mockReturnValue(true); // confirmElementMoves enabled
+        // Set up the dragged node for the test
         dialogGatewayService.openConfirmationDialog.mockResolvedValue(false);
+        component.draggedNode = mockDto;
 
         const event = createTestDragEvent();
         void component.drop(event);
@@ -207,6 +214,9 @@ describe('ProjectTreeComponent', () => {
       it('should not proceed when drop is invalid', fakeAsync(() => {
         projectStateService.isValidDrop.mockReturnValue(false);
         const event = createTestDragEvent();
+
+        // Set up the dragged node for the test
+        component.draggedNode = mockDto;
         void component.drop(event);
         expect(projectStateService.isValidDrop).toHaveBeenCalled();
         tick();
@@ -251,10 +261,19 @@ describe('ProjectTreeComponent', () => {
     });
 
     it('should handle sorted event', () => {
+      // Set up the dragged node for the test
+      component.draggedNode = node;
+
       const mockSortEvent = {
+        previousIndex: 0,
         currentIndex: 1,
         container: mockDropList,
-      } as CdkDragSortEvent<ArrayDataSource<ProjectElement>>;
+        item: {
+          data: node,
+        } as CdkDrag<ProjectElement>,
+        // Add the drag item to be able to filter it properly
+        // in the sorted event handler
+      } as unknown as CdkDragSortEvent<ArrayDataSource<ProjectElement>>;
 
       const [nodeAbove, nodeBelow] = [
         createTestNode('2', 1, 0),
