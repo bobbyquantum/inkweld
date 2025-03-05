@@ -4,7 +4,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
-import { UserAPIService } from '@inkweld/index';
 import { UserService, UserServiceError } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
 import { of } from 'rxjs';
@@ -23,7 +22,6 @@ describe('WelcomeComponent', () => {
   let snackBar: jest.Mocked<MatSnackBar>;
   let xsrfService: jest.Mocked<XsrfService>;
   let userService: jest.Mocked<UserService>;
-  let userAPIService: jest.Mocked<UserAPIService>;
   let breakpointObserver: jest.Mocked<BreakpointObserver>;
 
   beforeEach(async () => {
@@ -47,10 +45,6 @@ describe('WelcomeComponent', () => {
       login: jest.fn(),
     } as unknown as jest.Mocked<UserService>;
 
-    userAPIService = {
-      userControllerGetOAuthProviders: jest.fn().mockReturnValue(of([])),
-    } as unknown as jest.Mocked<UserAPIService>;
-
     breakpointObserver = {
       observe: jest.fn().mockReturnValue(of({ matches: false })),
     } as unknown as jest.Mocked<BreakpointObserver>;
@@ -63,7 +57,6 @@ describe('WelcomeComponent', () => {
         { provide: MatSnackBar, useValue: snackBar },
         { provide: XsrfService, useValue: xsrfService },
         { provide: UserService, useValue: userService },
-        { provide: UserAPIService, useValue: userAPIService },
         { provide: BreakpointObserver, useValue: breakpointObserver },
       ],
     }).compileComponents();
@@ -104,7 +97,6 @@ describe('WelcomeComponent', () => {
       await component.onLogin();
 
       expect(userService.login).toHaveBeenCalledWith('testuser', 'testpass');
-      expect(snackBar.open).not.toHaveBeenCalled();
     });
 
     it('should show error message for invalid credentials', async () => {

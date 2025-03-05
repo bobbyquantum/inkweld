@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { UserAPIService } from '@inkweld/index';
+import { AuthService } from '@inkweld/index';
 import { Observable, of, throwError } from 'rxjs';
 
 import { OAuthProviderListComponent } from './oauth-provider-list.component';
@@ -9,13 +9,13 @@ import { OAuthProviderListComponent } from './oauth-provider-list.component';
 describe('OAuthProviderListComponent', () => {
   let component: OAuthProviderListComponent;
   let fixture: ComponentFixture<OAuthProviderListComponent>;
-  let userService: jest.Mocked<UserAPIService>;
+  let authService: jest.Mocked<AuthService>;
   let snackBar: jest.Mocked<MatSnackBar>;
 
   beforeEach(async () => {
-    userService = {
-      userControllerGetOAuthProviders: jest.fn(),
-    } as unknown as jest.Mocked<UserAPIService>;
+    authService = {
+      authControllerGetOAuthProviders: jest.fn(),
+    } as unknown as jest.Mocked<AuthService>;
 
     snackBar = {
       open: jest.fn(),
@@ -24,7 +24,7 @@ describe('OAuthProviderListComponent', () => {
     await TestBed.configureTestingModule({
       imports: [OAuthProviderListComponent, NoopAnimationsModule],
       providers: [
-        { provide: UserAPIService, useValue: userService },
+        { provide: AuthService, useValue: authService },
         { provide: MatSnackBar, useValue: snackBar },
       ],
     }).compileComponents();
@@ -41,7 +41,7 @@ describe('OAuthProviderListComponent', () => {
   describe('initialization', () => {
     it('should load OAuth2 providers on init', async () => {
       const getEnabledOAuth2ProvidersMock =
-        userService.userControllerGetOAuthProviders as unknown as jest.MockedFunction<
+        authService.authControllerGetOAuthProviders as unknown as jest.MockedFunction<
           (observe: 'body') => Observable<string[]>
         >;
       getEnabledOAuth2ProvidersMock.mockReturnValue(of(['github', 'google']));
@@ -60,7 +60,7 @@ describe('OAuthProviderListComponent', () => {
       await Promise.resolve();
 
       // After loading completes
-      expect(userService.userControllerGetOAuthProviders).toHaveBeenCalled();
+      expect(authService.authControllerGetOAuthProviders).toHaveBeenCalled();
       expect(component.enabledProviders()).toEqual(['github', 'google']);
       expect(component.isLoadingProviders()).toBeFalsy();
       expect(component.githubEnabled()).toBeTruthy();
@@ -70,7 +70,7 @@ describe('OAuthProviderListComponent', () => {
 
     it('should handle OAuth2 providers loading error', async () => {
       const getEnabledOAuth2ProvidersMock =
-        userService.userControllerGetOAuthProviders as unknown as jest.MockedFunction<
+        authService.authControllerGetOAuthProviders as unknown as jest.MockedFunction<
           (observe: 'body') => Observable<string[]>
         >;
       getEnabledOAuth2ProvidersMock.mockReturnValue(

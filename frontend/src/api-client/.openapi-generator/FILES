@@ -2,6 +2,7 @@
 README.md
 api.module.ts
 api/api.ts
+api/auth.service.ts
 api/mcp.service.ts
 api/project-api.service.ts
 api/user-api.service.ts
@@ -9,6 +10,8 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
+model/login-request-dto.ts
+model/login-response-dto.ts
 model/models.ts
 model/project-dto.ts
 model/project-element-dto.ts

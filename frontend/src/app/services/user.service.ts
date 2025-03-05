@@ -3,6 +3,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
+import { AuthService } from '@inkweld/index';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
 import { UserAPIService } from '../../api-client/api/user-api.service';
@@ -47,6 +48,7 @@ export class UserService {
 
   private readonly dialog = inject(MatDialog);
   private readonly userApi = inject(UserAPIService);
+  private readonly authService = inject(AuthService);
   private readonly storage = inject(StorageService);
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
@@ -158,6 +160,7 @@ export class UserService {
     this.error.set(undefined);
 
     try {
+      this.authService.authControllerLogin({ username, password });
       const user = await firstValueFrom(
         this.http.post<UserDto>(
           `${environment.apiUrl}/login`,

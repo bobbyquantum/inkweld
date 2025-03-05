@@ -115,20 +115,6 @@ export class UserController {
     };
   }
 
-  @Get('oauth2-providers')
-  @ApiOperation({
-    summary: 'Get available OAuth2 providers',
-    description:
-      'Retrieves a list of available OAuth2 authentication providers.',
-  })
-  @ApiOkResponse({
-    description: 'Successfully retrieved OAuth2 providers',
-    type: [String],
-  })
-  getOAuthProviders(): string[] {
-    return ['github'];
-  }
-
   @Get('check-username')
   @ApiOperation({
     summary: 'Check username availability',
