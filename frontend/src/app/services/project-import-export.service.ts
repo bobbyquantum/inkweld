@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import JSZip from '@progress/jszip-esm';
-import { ProjectDto, ProjectElementDto } from '@worm/index';
+import { ProjectDto, ProjectElementDto } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import {

@@ -1,4 +1,4 @@
-# WormFrontend
+# Inkweld Frontend
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.1.3.
 
@@ -33,7 +33,7 @@ To get more help on the Angular CLI use `ng help` or go check out the [Angular C
 To build the Docker image for the backend application, run the following command:
 
 ```bash
-docker build -t worm-server:prod -f worm-server/Dockerfile .
+docker build -t server:prod -f server/Dockerfile .
 ```
 
 ### Running Docker Containers
@@ -44,7 +44,7 @@ To run the Docker containers using Docker Compose, use the following command:
 docker-compose -f compose.prod.yaml up
 ```
 
-This will start the `worm-server` and `postgres` services defined in the `compose.prod.yaml` file.
+This will start the `server` and `postgres` services defined in the `compose.prod.yaml` file.
 
 ### Pushing Docker Image to GitHub Container Registry
 

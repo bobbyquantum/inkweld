@@ -1,9 +1,9 @@
 services:
-  worm-server:
-    image: worm-server:latest
+  inkweld-server:
+    image: inkweld:latest
     build:
       context: .
-      dockerfile: worm-server/Dockerfile
+      dockerfile: server/Dockerfile
     environment:
       # Database Configuration - SQLite mode
       - DB_TYPE=sqlite
@@ -26,10 +26,10 @@ services:
       # Yjs data path
       - DATA_PATH=/data/yjs
     volumes:
-      - worm_data:/data
+      - inkweld_data:/data
     ports:
       - "${PORT:-8333}:8333"
 
 volumes:
-  worm_data:
+  inkweld_data:
     # Volume for both SQLite database and Yjs data

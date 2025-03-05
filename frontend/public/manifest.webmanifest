@@ -1,6 +1,6 @@
 {
-  "name": "Worm",
-  "short_name": "Worm",
+  "name": "Inkweld",
+  "short_name": "Inkweld",
   "theme_color": "#1976d2",
   "background_color": "#fafafa",
   "display": "standalone",
@@ -60,16 +60,12 @@
     {
       "src": "screenshots/desktop.png",
       "sizes": "1920x1080",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Worm Desktop View"
+      "type": "image/png"
     },
     {
       "src": "screenshots/mobile.png",
       "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Worm Mobile View"
+      "type": "image/png"
     }
   ]
 }

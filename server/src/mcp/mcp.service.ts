@@ -31,7 +31,7 @@ export class McpService implements OnModuleInit {
     // Instantiate the MCP Server
     this.mcpServer = new Server(
       {
-        name: 'worm-mcp-service',
+        name: 'inkweld-mcp-service',
         version: '0.1.0',
       },
       {

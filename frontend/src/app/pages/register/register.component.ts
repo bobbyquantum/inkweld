@@ -13,7 +13,7 @@ import { Router, RouterModule } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
 import { UserService } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
-import { UserAPIService, UserRegisterDto } from '@worm/index';
+import { UserAPIService, UserRegisterDto } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 @Component({

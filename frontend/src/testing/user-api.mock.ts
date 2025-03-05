@@ -1,6 +1,6 @@
 import { HttpHeaders, HttpParameterCodec } from "@angular/common/http";
-import { Configuration } from "@worm/configuration";
-import { UserDto, UserControllerCheckUsernameAvailability200Response, UserRegisterDto } from "@worm/index";
+import { Configuration } from "@inkweld/configuration";
+import { UserDto, UserControllerCheckUsernameAvailability200Response, UserRegisterDto } from "@inkweld/index";
 import { Observable } from "rxjs";
 
 

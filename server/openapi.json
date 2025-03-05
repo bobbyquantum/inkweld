@@ -718,8 +718,8 @@
     }
   },
   "info": {
-    "title": "Worm API",
-    "description": "Worm tunnel protocol - Secure API for managing projects and user data",
+    "title": "Inkweld API",
+    "description": "API for managing projects and user data",
     "version": "1.0",
     "contact": {}
   },

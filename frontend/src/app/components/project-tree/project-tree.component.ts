@@ -24,9 +24,9 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
+import { ProjectElementDto } from '@inkweld/index';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
-import { ProjectElementDto } from '@worm/index';
 
 import { ProjectElement } from '../../models/project-element';
 import { DialogGatewayService } from '../../services/dialog-gateway.service';

@@ -8,8 +8,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { By } from '@angular/platform-browser';
 import { Event, Router } from '@angular/router';
+import { Configuration, UserAPIService } from '@inkweld/index';
 import { UserService, UserServiceError } from '@services/user.service';
-import { Configuration, UserAPIService } from '@worm/index';
 import { of, Subject } from 'rxjs';
 
 import { userServiceMock } from '../testing/user-api.mock';
@@ -83,7 +83,7 @@ describe('AppComponent', () => {
   });
 
   it('should have the correct title', () => {
-    expect(component.title).toBe('worm-frontend');
+    expect(component.title).toBe('inkweld-frontend');
   });
 
   it('should have a router outlet', () => {

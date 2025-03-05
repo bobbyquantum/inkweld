@@ -19,7 +19,7 @@
     {
       "label": "🚀 Start NestJS Server",
       "type": "shell",
-      "command": "cd worm-server && bun run start:dev",
+      "command": "cd server && bun run start:dev",
       "isBackground": true,
       "problemMatcher": {
         "owner": "typescript",

@@ -6,7 +6,7 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ProjectDto, UserDto } from '@worm/index';
+import { ProjectDto, UserDto } from '@inkweld/index';
 import { of } from 'rxjs';
 
 import { ProjectAPIService } from '../../../api-client/api/project-api.service';

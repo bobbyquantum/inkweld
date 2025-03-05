@@ -1,6 +1,6 @@
 # @
 
-Worm tunnel protocol - Secure API for managing projects and user data
+API for managing projects and user data
 
 The version of the OpenAPI document: 1.0
 

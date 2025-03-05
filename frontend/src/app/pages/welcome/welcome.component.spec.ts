@@ -6,7 +6,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { UserService, UserServiceError } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
-import { UserAPIService } from '@worm/index';
+import { UserAPIService } from '@inkweld/index';
 import { of } from 'rxjs';
 
 import { WelcomeComponent } from './welcome.component';

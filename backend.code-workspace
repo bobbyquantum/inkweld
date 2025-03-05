@@ -2,7 +2,7 @@
   "folders": [
     {
       "name": "⚙️ Server",
-      "path": "worm-server"
+      "path": "server"
     }
   ],
   "settings": {

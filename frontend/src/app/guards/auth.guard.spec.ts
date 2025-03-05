@@ -8,7 +8,7 @@ import {
   UrlTree,
 } from '@angular/router';
 import { UserService } from '@services/user.service';
-import { UserDto } from '@worm/index';
+import { UserDto } from '@inkweld/index';
 
 import { authGuard } from './auth.guard';
 

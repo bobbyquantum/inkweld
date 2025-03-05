@@ -44,9 +44,9 @@ export class DatabaseConfigService {
         type: 'postgres',
         host: this.configService.get('DB_HOST', 'localhost'),
         port: this.configService.get<number>('DB_PORT', 5432),
-        username: this.configService.get('DB_USERNAME', 'wormuser'),
+        username: this.configService.get('DB_USERNAME', 'user'),
         password: this.configService.get<string>('DB_PASSWORD', 'secret'),
-        database: this.configService.get('DB_NAME', 'wormdb'),
+        database: this.configService.get('DB_NAME', 'db'),
       };
     }
   }

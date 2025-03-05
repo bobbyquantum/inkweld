@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { RouterModule } from '@angular/router';
-import { ProjectDto } from '@worm/index';
+import { ProjectDto } from '@inkweld/index';
 @Component({
   selector: 'app-project-card',
   imports: [MatCardModule, MatButtonModule, RouterModule],

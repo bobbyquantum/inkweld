@@ -20,9 +20,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { ProjectAPIService } from '@inkweld/api/project-api.service';
+import { ProjectDto } from '@inkweld/model/project-dto';
 import { ProjectImportExportService } from '@services/project-import-export.service';
-import { ProjectAPIService } from '@worm/api/project-api.service';
-import { ProjectDto } from '@worm/model/project-dto';
 import { firstValueFrom } from 'rxjs';
 
 @Component({

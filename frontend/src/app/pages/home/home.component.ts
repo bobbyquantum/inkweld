@@ -13,7 +13,7 @@ import { ProjectCardComponent } from '@components/project-card/project-card.comp
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { NewProjectDialogComponent } from '@dialogs/new-project-dialog/new-project-dialog.component';
 import { UserService } from '@services/user.service';
-import { ProjectAPIService, ProjectDto } from '@worm/index';
+import { ProjectAPIService, ProjectDto } from '@inkweld/index';
 import { catchError, EMPTY, Subject, takeUntil } from 'rxjs';
 
 @Component({

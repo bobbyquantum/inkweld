@@ -3,8 +3,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterOutlet } from '@angular/router';
+import { UserAPIService } from '@inkweld/index';
 import { UserService } from '@services/user.service';
-import { UserAPIService } from '@worm/index';
 import { firstValueFrom } from 'rxjs';
 
 import { ThemeService } from '../themes/theme.service';
@@ -23,7 +23,7 @@ import { ThemeService } from '../themes/theme.service';
 })
 export class AppComponent implements OnInit {
   @HostBinding('class') className = '';
-  title = 'worm-frontend';
+  title = 'inkweld-frontend';
 
   protected readonly offlineMode = signal(false);
   protected readonly themeService = inject(ThemeService);

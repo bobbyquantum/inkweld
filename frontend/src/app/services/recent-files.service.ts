@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { ProjectElementDto } from '@worm/index';
+import { ProjectElementDto } from '@inkweld/index';
 
 import { SettingsService } from './settings.service';
 
