@@ -25,10 +25,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { DocumentElementEditorComponent } from '@components/document-element-editor/document-element-editor.component';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
+import { ProjectDto, ProjectElementDto } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
 import { ProjectStateService } from '@services/project-state.service';
-import { ProjectDto, ProjectElementDto } from '@inkweld/index';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 
 import { FolderElementEditorComponent } from '../../components/folder-element-editor/folder-element-editor.component';

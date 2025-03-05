@@ -7,8 +7,8 @@ import {
   RouterStateSnapshot,
   UrlTree,
 } from '@angular/router';
-import { UserService } from '@services/user.service';
 import { UserDto } from '@inkweld/index';
+import { UserService } from '@services/user.service';
 
 import { authGuard } from './auth.guard';
 

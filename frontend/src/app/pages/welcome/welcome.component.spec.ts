@@ -4,9 +4,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
+import { UserAPIService } from '@inkweld/index';
 import { UserService, UserServiceError } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
-import { UserAPIService } from '@inkweld/index';
 import { of } from 'rxjs';
 
 import { WelcomeComponent } from './welcome.component';

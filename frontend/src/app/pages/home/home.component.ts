@@ -12,8 +12,8 @@ import { RouterModule } from '@angular/router';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { NewProjectDialogComponent } from '@dialogs/new-project-dialog/new-project-dialog.component';
-import { UserService } from '@services/user.service';
 import { ProjectAPIService, ProjectDto } from '@inkweld/index';
+import { UserService } from '@services/user.service';
 import { catchError, EMPTY, Subject, takeUntil } from 'rxjs';
 
 @Component({

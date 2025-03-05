@@ -12,7 +12,11 @@ import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
-import { ProjectAPIService, ProjectDto, ProjectElementDto } from '@inkweld/index';
+import {
+  ProjectAPIService,
+  ProjectDto,
+  ProjectElementDto,
+} from '@inkweld/index';
 import { BehaviorSubject, of } from 'rxjs';
 
 import { ProjectStateService } from '../../services/project-state.service';

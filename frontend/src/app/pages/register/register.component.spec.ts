@@ -3,14 +3,14 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
-import { UserService } from '@services/user.service';
-import { XsrfService } from '@services/xsrf.service';
 import {
   UserAPIService,
   UserControllerCheckUsernameAvailability200Response,
   UserDto,
   UserRegisterDto,
 } from '@inkweld/index';
+import { UserService } from '@services/user.service';
+import { XsrfService } from '@services/xsrf.service';
 import { Observable, of, throwError } from 'rxjs';
 
 import { RegisterComponent } from './register.component';

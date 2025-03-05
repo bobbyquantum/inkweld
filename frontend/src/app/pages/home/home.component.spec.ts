@@ -8,13 +8,13 @@ import {
   convertToParamMap,
   provideRouter,
 } from '@angular/router';
-import { ThemeService } from '@themes/theme.service';
 import {
   ProjectAPIService,
   ProjectDto,
   UserAPIService,
   UserDto,
 } from '@inkweld/index';
+import { ThemeService } from '@themes/theme.service';
 import { of, throwError } from 'rxjs';
 
 import { HomeComponent } from './home.component';
