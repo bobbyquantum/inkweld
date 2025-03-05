@@ -4,7 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { UserAPIService } from '@inkweld/index';
+import { AuthService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
@@ -97,7 +97,7 @@ export class OAuthProviderListComponent implements OnInit {
   discordEnabled = signal(false);
   appleEnabled = signal(false);
 
-  private userService = inject(UserAPIService);
+  private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
   private ngZone = inject(NgZone);
 
@@ -121,7 +121,7 @@ export class OAuthProviderListComponent implements OnInit {
 
     try {
       const providers: string[] = await firstValueFrom(
-        this.userService.userControllerGetOAuthProviders()
+        this.authService.authControllerGetOAuthProviders()
       );
       this.enabledProviders.set(providers);
 

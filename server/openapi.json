@@ -344,37 +344,6 @@
         ]
       }
     },
-    "/api/v1/users/oauth2-providers": {
-      "get": {
-        "description": "Retrieves a list of available OAuth2 authentication providers.",
-        "operationId": "UserController_getOAuthProviders",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved OAuth2 providers",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get available OAuth2 providers",
-        "tags": [
-          "User API"
-        ]
-      }
-    },
     "/api/v1/users/check-username": {
       "get": {
         "description": "Checks if a username is available for registration.",
@@ -423,6 +392,101 @@
         "summary": "Check username availability",
         "tags": [
           "User API"
+        ]
+      }
+    },
+    "/login": {
+      "post": {
+        "description": "Authenticates a user using username and password credentials.",
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "User credentials",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully authenticated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          }
+        },
+        "summary": "Login with username and password",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/providers": {
+      "get": {
+        "description": "Retrieves a list of available OAuth2 authentication providers.",
+        "operationId": "AuthController_getOAuthProviders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved OAuth2 providers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get available OAuth2 providers",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/authorization/github": {
+      "get": {
+        "description": "Redirects the user to GitHub for OAuth authentication",
+        "operationId": "AuthController_githubLogin",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Initiate GitHub OAuth login",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/code/github": {
+      "get": {
+        "description": "Handles the callback from GitHub OAuth authentication and redirects the user to the client application",
+        "operationId": "AuthController_githubLoginCallback",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "GitHub OAuth callback endpoint",
+        "tags": [
+          "Auth"
         ]
       }
     },
@@ -826,6 +890,60 @@
           "username",
           "email",
           "password"
+        ]
+      },
+      "LoginRequestDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "johnDoe"
+          },
+          "password": {
+            "type": "string",
+            "example": "password123"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "LoginResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "user-1"
+          },
+          "username": {
+            "type": "string",
+            "example": "johnDoe"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "avatarImageUrl": {
+            "type": "string",
+            "example": "https://example.com/avatar.jpg"
+          },
+          "enabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "sessionId": {
+            "type": "string",
+            "example": "12345abcde"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "name",
+          "avatarImageUrl",
+          "enabled",
+          "sessionId"
         ]
       },
       "ProjectElementDto": {

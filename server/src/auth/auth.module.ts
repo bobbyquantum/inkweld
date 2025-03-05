@@ -11,7 +11,6 @@ import { AuthController } from './auth.controller.js';
 import { UserEntity } from '../user/user.entity.js';
 import { UserSessionEntity } from './session.entity.js';
 import { TypeOrmSessionStore } from './session.store.js';
-import { OAuth2Controller } from './oauth2.controller.js';
 
 @Module({
   imports: [
@@ -20,7 +19,7 @@ import { OAuth2Controller } from './oauth2.controller.js';
     PassportModule,
     TypeOrmModule.forFeature([UserEntity, UserSessionEntity]),
   ],
-  controllers: [AuthController, OAuth2Controller],
+  controllers: [AuthController],
   providers: [
     AuthService,
     LocalStrategy,

@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Provider } from '@angular/core';
 import {
+  AuthService,
   Configuration,
   ProjectAPIService,
   UserAPIService,
@@ -43,5 +44,5 @@ export const API_PROVIDERS: Provider[] = [
   provideApiConfig(),
   createApiServiceProvider(UserAPIService),
   createApiServiceProvider(ProjectAPIService),
-  createApiServiceProvider(ProjectAPIService),
+  createApiServiceProvider(AuthService),
 ];

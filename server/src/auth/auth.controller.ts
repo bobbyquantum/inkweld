@@ -6,13 +6,18 @@ import {
   UnauthorizedException,
   HttpCode,
   HttpStatus,
+  Get,
+  Req,
+  Res,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service.js';
-import { ApiExcludeController } from '@nestjs/swagger';
 import { LocalAuthGuard } from './local-auth.guard.js';
+import type { Response } from 'express';
+import { ApiBody, ApiOkResponse, ApiOperation, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { GithubAuthGuard } from './github-auth.guard.js';
+import { LoginRequestDto, LoginResponseDto } from './auth.dto.js';
 
-@ApiExcludeController()
 @Controller()
 export class AuthController {
   constructor(
@@ -23,6 +28,19 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @UseGuards(LocalAuthGuard)
+  @ApiOperation({
+    summary: 'Login with username and password',
+    description: 'Authenticates a user using username and password credentials.'
+  })
+  @ApiBody({
+    type: LoginRequestDto,
+    description: 'User credentials'
+  })
+  @ApiOkResponse({
+    description: 'Successfully authenticated user',
+    type: LoginResponseDto
+  })
+  @ApiUnauthorizedResponse({ description: 'Authentication failed' })
   async login(@Request() req) {
     if (!req.user) {
       throw new UnauthorizedException('Authentication failed');
@@ -42,4 +60,68 @@ export class AuthController {
 
     return userResponse;
   }
+
+  @Get('providers')
+  @ApiOperation({
+    summary: 'Get available OAuth2 providers',
+    description:
+      'Retrieves a list of available OAuth2 authentication providers.',
+  })
+  @ApiOkResponse({
+    description: 'Successfully retrieved OAuth2 providers',
+    type: [String],
+  })
+  getOAuthProviders(): string[] {
+    const githubEnabled = this.configService.get('GITHUB_ENABLED');
+
+    if (githubEnabled === 'true') {
+      return ['github'];
+    }
+    return [];
+  }
+
+
+  @Get('authorization/github')
+  @UseGuards(GithubAuthGuard)
+  @ApiOperation({
+    summary: 'Initiate GitHub OAuth login',
+    description: 'Redirects the user to GitHub for OAuth authentication'
+  })
+  async githubLogin() {
+    // Initiates GitHub OAuth login
+    // The actual redirection is handled by the passport strategy
+  }
+
+  @Get('code/github')
+  @ApiOperation({
+    summary: 'GitHub OAuth callback endpoint',
+    description: 'Handles the callback from GitHub OAuth authentication and redirects the user to the client application'
+  })
+  @UseGuards(GithubAuthGuard)
+  async githubLoginCallback(@Req() req: any, @Res() res: Response) {
+    try {
+      // The user is already authenticated by the GithubAuthGuard
+      const user = req.user;
+
+      // Get client URL first
+      const clientUrl = this.configService.get('CLIENT_URL');
+      if (!clientUrl) {
+        throw new Error('Client URL not configured');
+      }
+
+      // If user is found or created, log them in
+      if (user) {
+        await this.authService.login(req, user);
+        res.redirect(clientUrl);
+      } else {
+        // Handle authentication failure
+        res.redirect(`${clientUrl}/welcome?error=authentication_failed`);
+      }
+    } catch (_error) {
+      // Handle any errors during login process
+      const clientUrl = this.configService.get('CLIENT_URL') || 'http://localhost:4200';
+      res.redirect(`${clientUrl}/welcome?error=server_error`);
+    }
+  }
+
 }

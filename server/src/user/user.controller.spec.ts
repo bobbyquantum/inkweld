@@ -5,7 +5,7 @@ import { UserController } from './user.controller.js';
 import { UserService } from './user.service.js';
 import { UserRegisterDto } from './user-register.dto.js';
 import { UserEntity } from './user.entity.js';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest, spyOn } from 'bun:test';
 import { AuthService } from '../auth/auth.service.js';
 import { ValidationFilter } from '../common/filters/validation.filter.js';
 import { ValidationPipe, INestApplication, HttpException, HttpStatus } from '@nestjs/common';
@@ -93,7 +93,7 @@ describe('UserController', () => {
         enabled: true,
         avatarImageUrl: 'http://example.com/avatar.jpg',
       };
-      jest.spyOn(userService, 'getCurrentUser').mockResolvedValue(mockUser);
+      spyOn(userService, 'getCurrentUser').mockResolvedValue(mockUser);
 
       const result = await controller.getMe({ user: { id: '1' } });
 
@@ -108,8 +108,7 @@ describe('UserController', () => {
     });
 
     it('should throw an error when user is not found', async () => {
-      jest
-        .spyOn(userService, 'getCurrentUser')
+      spyOn(userService, 'getCurrentUser')
         .mockRejectedValue(new Error('User not found'));
 
       await expect(
@@ -138,8 +137,7 @@ describe('UserController', () => {
         enabled: true,
         avatarImageUrl: null,
       };
-      jest
-        .spyOn(userService, 'registerUser')
+      spyOn(userService, 'registerUser')
         .mockResolvedValue(mockRegisteredUser);
 
       const mockReq = { session: {} } as _MockRequest;
@@ -176,8 +174,7 @@ describe('UserController', () => {
         enabled: true,
         avatarImageUrl: null,
       };
-      jest
-        .spyOn(userService, 'registerUser')
+      spyOn(userService, 'registerUser')
         .mockResolvedValue(mockRegisteredUser);
 
       const mockReq = { session: {} } as _MockRequest;
@@ -301,8 +298,7 @@ describe('UserController', () => {
       };
 
       const mockReq = { session: {} } as _MockRequest;
-      jest
-        .spyOn(userService, 'registerUser')
+      spyOn(userService, 'registerUser')
         .mockRejectedValue(new Error('Registration failed'));
 
       await expect(controller.register(registerDto, mockReq)).rejects.toThrow(
@@ -311,10 +307,4 @@ describe('UserController', () => {
     });
   });
 
-  describe('GET /api/v1/users/oauth2-providers', () => {
-    it('should return available OAuth2 providers', () => {
-      const result = controller.getOAuthProviders();
-      expect(result).toEqual(['github']);
-    });
-  });
 });
