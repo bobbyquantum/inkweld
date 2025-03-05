@@ -3,7 +3,7 @@ import {
   ProjectAPIService,
   ProjectDto,
   ProjectElementDto,
-} from '@inkweld/index.js';
+} from '@inkweld/index';
 import { ProjectElement } from 'app/models/project-element';
 import { nanoid } from 'nanoid';
 import { firstValueFrom } from 'rxjs';
