@@ -5,7 +5,7 @@ import {
   ProjectDto,
   ProjectElementDto,
   UserDto,
-} from '@inkweld/index.js';
+} from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
