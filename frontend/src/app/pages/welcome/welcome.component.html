@@ -30,8 +30,8 @@
         <mat-divider></mat-divider>
 
         <div class="oauth-container">
-          <h3 class="mat-subtitle-1">Or sign in with:</h3>
-          <app-oauth-provider-list></app-oauth-provider-list>
+          <app-oauth-provider-list
+            [isRegisterContext]="false"></app-oauth-provider-list>
         </div>
       </mat-card-content>
       <mat-card-actions>

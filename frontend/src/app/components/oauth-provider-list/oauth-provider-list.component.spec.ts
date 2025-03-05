@@ -38,6 +38,44 @@ describe('OAuthProviderListComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  describe('UI and text behavior', () => {
+    it('should have isRegisterContext set to false by default', () => {
+      expect(component.isRegisterContext).toBe(false);
+    });
+
+    it('should detect when any provider is enabled', () => {
+      // Initially no providers enabled
+      expect(component.hasAnyProviderEnabled()).toBe(false);
+
+      // Enable one provider
+      component.githubEnabled.set(true);
+      expect(component.hasAnyProviderEnabled()).toBe(true);
+
+      // Reset and try another provider
+      component.githubEnabled.set(false);
+      component.googleEnabled.set(true);
+      expect(component.hasAnyProviderEnabled()).toBe(true);
+
+      // Disable all providers
+      component.googleEnabled.set(false);
+      expect(component.hasAnyProviderEnabled()).toBe(false);
+    });
+
+    it('should determine when to show text based on loading state and enabled providers', () => {
+      // When loading, text should not be shown
+      component.isLoadingProviders.set(true);
+      expect(component.shouldShowText()).toBe(false);
+
+      // When loaded but no providers, text should not be shown
+      component.isLoadingProviders.set(false);
+      expect(component.shouldShowText()).toBe(false);
+
+      // When loaded and at least one provider enabled, text should be shown
+      component.githubEnabled.set(true);
+      expect(component.shouldShowText()).toBe(true);
+    });
+  });
+
   describe('initialization', () => {
     it('should load OAuth2 providers on init', async () => {
       const getEnabledOAuth2ProvidersMock =

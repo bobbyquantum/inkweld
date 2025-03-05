@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, NgZone, OnInit, signal } from '@angular/core';
+import {
+  Component,
+  inject,
+  Input,
+  NgZone,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -18,39 +25,49 @@ import { environment } from '../../../environments/environment';
     MatProgressSpinnerModule,
   ],
   template: `
-    @if (isLoadingProviders()) {
-      <div class="loading-spinner">
-        <mat-progress-spinner
-          mode="indeterminate"
-          diameter="24"></mat-progress-spinner>
-        <span>Loading sign-in options...</span>
+    @if (isLoadingProviders() || hasAnyProviderEnabled()) {
+      <div class="oauth-container">
+        @if (shouldShowText()) {
+          <h3 class="mat-subtitle-1">
+            {{ isRegisterContext ? 'Or register with:' : 'Or sign in with:' }}
+          </h3>
+        }
+
+        @if (isLoadingProviders()) {
+          <div class="loading-spinner">
+            <mat-progress-spinner
+              mode="indeterminate"
+              diameter="24"></mat-progress-spinner>
+            <span>Loading sign-in options...</span>
+          </div>
+        } @else {
+          @if (googleEnabled()) {
+            <button mat-raised-button (click)="signInWithProvider('google')">
+              <mat-icon svgIcon="google"></mat-icon> Google
+            </button>
+          }
+          @if (facebookEnabled()) {
+            <button mat-raised-button (click)="signInWithProvider('facebook')">
+              <mat-icon svgIcon="facebook"></mat-icon> Facebook
+            </button>
+          }
+          @if (githubEnabled()) {
+            <button mat-raised-button (click)="signInWithProvider('github')">
+              <mat-icon svgIcon="github"></mat-icon> GitHub
+            </button>
+          }
+          @if (appleEnabled()) {
+            <button mat-raised-button (click)="signInWithProvider('apple')">
+              <mat-icon svgIcon="apple"></mat-icon> Apple
+            </button>
+          }
+          @if (discordEnabled()) {
+            <button mat-raised-button (click)="signInWithProvider('discord')">
+              <mat-icon svgIcon="discord"></mat-icon> Discord
+            </button>
+          }
+        }
       </div>
-    } @else {
-      @if (googleEnabled()) {
-        <button mat-raised-button (click)="signInWithProvider('google')">
-          <mat-icon svgIcon="google"></mat-icon> Google
-        </button>
-      }
-      @if (facebookEnabled()) {
-        <button mat-raised-button (click)="signInWithProvider('facebook')">
-          <mat-icon svgIcon="facebook"></mat-icon> Facebook
-        </button>
-      }
-      @if (githubEnabled()) {
-        <button mat-raised-button (click)="signInWithProvider('github')">
-          <mat-icon svgIcon="github"></mat-icon> GitHub
-        </button>
-      }
-      @if (appleEnabled()) {
-        <button mat-raised-button (click)="signInWithProvider('apple')">
-          <mat-icon svgIcon="apple"></mat-icon> Apple
-        </button>
-      }
-      @if (discordEnabled()) {
-        <button mat-raised-button (click)="signInWithProvider('discord')">
-          <mat-icon svgIcon="discord"></mat-icon> Discord
-        </button>
-      }
     }
   `,
   styles: [
@@ -84,10 +101,25 @@ import { environment } from '../../../environments/environment';
           font-size: 0.9em;
         }
       }
+
+      .oauth-container {
+        margin-top: 16px;
+      }
+
+      h3 {
+        text-align: center;
+        margin-bottom: 16px;
+      }
     `,
   ],
 })
 export class OAuthProviderListComponent implements OnInit {
+  /**
+   * Whether this component is being used in the register context.
+   * If false, it's assumed to be in the sign-in context.
+   */
+  @Input() isRegisterContext = false;
+
   isLoadingProviders = signal(false);
   enabledProviders = signal<string[]>([]);
 
@@ -101,8 +133,29 @@ export class OAuthProviderListComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private ngZone = inject(NgZone);
 
+  /**
+   * Returns true if any provider is enabled, false otherwise
+   */
+  hasAnyProviderEnabled(): boolean {
+    return (
+      this.githubEnabled() ||
+      this.googleEnabled() ||
+      this.facebookEnabled() ||
+      this.discordEnabled() ||
+      this.appleEnabled()
+    );
+  }
+
   ngOnInit(): void {
     void this.loadOAuth2Providers();
+  }
+
+  /**
+   * Returns true if the component should display the "Or sign in/register with:" text.
+   * The text should only be shown if providers are loaded and at least one is enabled.
+   */
+  shouldShowText(): boolean {
+    return !this.isLoadingProviders() && this.hasAnyProviderEnabled();
   }
 
   signInWithProvider(provider: string): void {
