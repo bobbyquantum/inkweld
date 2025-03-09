@@ -29,6 +29,11 @@ import { SessionAuthGuard } from '../auth/session-auth.guard.js';
 import { UserDto } from './user.dto.js';
 import { UserRegisterDto } from './user-register.dto.js';
 
+interface PagedRequest {
+  page?: number;
+  pageSize?: number;
+}
+
 @ApiTags('User API')
 @ApiBearerAuth()
 @Controller('api/v1/users')
@@ -66,6 +71,42 @@ export class UserController {
       this.logger.error('Error getting user', error);
       throw error;
     }
+  }
+
+  @Get()
+  @ApiOperation({
+    summary: 'Get paged list of users',
+    description: 'Retrieves a paginated list of users.',
+  })
+  @ApiOkResponse({
+    description: 'Successfully retrieved paged list of users',
+    type: [UserDto], // Assuming UserDto is used for user representation
+  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication' })
+  @ApiBadRequestResponse({ description: 'Invalid pagination parameters' })
+  async getUsers(@Query() query: PagedRequest) {
+    const page = query.page || 1; // Default to page 1
+    const pageSize = query.pageSize || 10; // Default page size to 10
+    return this.userService.getPagedUsers({ page, pageSize });
+  }
+
+  @Get('search')
+  @ApiOperation({
+    summary: 'Search users with pagination',
+    description:
+      'Searches for users based on a search term and returns a paginated list.',
+  })
+  @ApiOkResponse({
+    description:
+      'Successfully retrieved paged list of users based on search term',
+    type: [UserDto], // Assuming UserDto is used for user representation
+  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication' })
+  @ApiBadRequestResponse({ description: 'Invalid search parameters' })
+  async searchUsers(@Query('term') term: string, @Query() query: PagedRequest) {
+    const page = query.page || 1; // Default to page 1
+    const pageSize = query.pageSize || 10; // Default page size to 10
+    return this.userService.pagedSearchUsers({ term, page, pageSize });
   }
 
   @Post('register')
@@ -111,7 +152,7 @@ export class UserController {
       message: 'User registered and logged in',
       userId: user?.id,
       username: user?.username,
-      name: user?.name
+      name: user?.name,
     };
   }
 
@@ -128,24 +169,23 @@ export class UserController {
         available: { type: 'boolean' },
         suggestions: {
           type: 'array',
-          items: { type: 'string' }
-        }
-      }
-    }
+          items: { type: 'string' },
+        },
+      },
+    },
   })
   @ApiBadRequestResponse({ description: 'Invalid username format' })
-  async checkUsernameAvailability(
-    @Query('username') username: string
-  ) {
+  async checkUsernameAvailability(@Query('username') username: string) {
     if (!username || username.length < 3) {
       throw new BadRequestException('Username must be at least 3 characters');
     }
 
-    const { available, suggestions } = await this.userService.checkUsernameAvailability(username);
+    const { available, suggestions } =
+      await this.userService.checkUsernameAvailability(username);
 
     return {
       available,
-      suggestions: available ? [] : suggestions
+      suggestions: available ? [] : suggestions,
     };
   }
 }

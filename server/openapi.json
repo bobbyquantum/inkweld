@@ -303,6 +303,89 @@
         ]
       }
     },
+    "/api/v1/users": {
+      "get": {
+        "description": "Retrieves a paginated list of users.",
+        "operationId": "UserController_getUsers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved paged list of users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination parameters"
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get paged list of users",
+        "tags": [
+          "User API"
+        ]
+      }
+    },
+    "/api/v1/users/search": {
+      "get": {
+        "description": "Searches for users based on a search term and returns a paginated list.",
+        "operationId": "UserController_searchUsers",
+        "parameters": [
+          {
+            "name": "term",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved paged list of users based on search term",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid search parameters"
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search users with pagination",
+        "tags": [
+          "User API"
+        ]
+      }
+    },
     "/api/v1/users/register": {
       "post": {
         "description": "Creates a new user account with the provided registration details.",
