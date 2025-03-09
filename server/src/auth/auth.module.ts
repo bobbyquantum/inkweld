@@ -26,7 +26,10 @@ import { TypeOrmSessionStore } from './session.store.js';
     {
       provide: GithubStrategy,
       useFactory: (userService: UserService) => {
-        if (process.env.GITHUB_ENABLED && process.env.GITHUB_ENABLED === 'true') {
+        if (
+          process.env.GITHUB_ENABLED &&
+          process.env.GITHUB_ENABLED === 'true'
+        ) {
           return new GithubStrategy(userService);
         }
         return null;

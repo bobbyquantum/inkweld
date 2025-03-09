@@ -14,7 +14,12 @@ import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service.js';
 import { LocalAuthGuard } from './local-auth.guard.js';
 import type { Response } from 'express';
-import { ApiBody, ApiOkResponse, ApiOperation, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { GithubAuthGuard } from './github-auth.guard.js';
 import { LoginRequestDto, LoginResponseDto } from './auth.dto.js';
 
@@ -22,7 +27,7 @@ import { LoginRequestDto, LoginResponseDto } from './auth.dto.js';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
   ) {}
 
   @Post('login')
@@ -30,15 +35,16 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @ApiOperation({
     summary: 'Login with username and password',
-    description: 'Authenticates a user using username and password credentials.'
+    description:
+      'Authenticates a user using username and password credentials.',
   })
   @ApiBody({
     type: LoginRequestDto,
-    description: 'User credentials'
+    description: 'User credentials',
   })
   @ApiOkResponse({
     description: 'Successfully authenticated user',
-    type: LoginResponseDto
+    type: LoginResponseDto,
   })
   @ApiUnauthorizedResponse({ description: 'Authentication failed' })
   async login(@Request() req) {
@@ -55,7 +61,7 @@ export class AuthController {
       name: req.user.name,
       avatarImageUrl: req.user.avatarImageUrl,
       enabled: req.user.enabled,
-      sessionId: req.sessionID
+      sessionId: req.sessionID,
     };
 
     return userResponse;
@@ -80,12 +86,11 @@ export class AuthController {
     return [];
   }
 
-
   @Get('authorization/github')
   @UseGuards(GithubAuthGuard)
   @ApiOperation({
     summary: 'Initiate GitHub OAuth login',
-    description: 'Redirects the user to GitHub for OAuth authentication'
+    description: 'Redirects the user to GitHub for OAuth authentication',
   })
   async githubLogin() {
     // Initiates GitHub OAuth login
@@ -95,7 +100,8 @@ export class AuthController {
   @Get('code/github')
   @ApiOperation({
     summary: 'GitHub OAuth callback endpoint',
-    description: 'Handles the callback from GitHub OAuth authentication and redirects the user to the client application'
+    description:
+      'Handles the callback from GitHub OAuth authentication and redirects the user to the client application',
   })
   @UseGuards(GithubAuthGuard)
   async githubLoginCallback(@Req() req: any, @Res() res: Response) {
@@ -119,9 +125,9 @@ export class AuthController {
       }
     } catch (_error) {
       // Handle any errors during login process
-      const clientUrl = this.configService.get('CLIENT_URL') || 'http://localhost:4200';
+      const clientUrl =
+        this.configService.get('CLIENT_URL') || 'http://localhost:4200';
       res.redirect(`${clientUrl}/welcome?error=server_error`);
     }
   }
-
 }

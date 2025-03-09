@@ -11,7 +11,10 @@ import { ValidationException } from '../exceptions/validation.exception.js';
 
 @Catch(ValidationError, ValidationException)
 export class ValidationFilter implements ExceptionFilter {
-  catch(exception: ValidationError | ValidationError[] | ValidationException, host: ArgumentsHost) {
+  catch(
+    exception: ValidationError | ValidationError[] | ValidationException,
+    host: ArgumentsHost,
+  ) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
@@ -30,7 +33,9 @@ export class ValidationFilter implements ExceptionFilter {
     });
   }
 
-  private transformValidationErrors(exception: ValidationError | ValidationError[]) {
+  private transformValidationErrors(
+    exception: ValidationError | ValidationError[],
+  ) {
     const errors = {};
 
     if (isArray(exception)) {

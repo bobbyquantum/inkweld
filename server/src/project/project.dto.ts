@@ -3,8 +3,6 @@ import { ProjectEntity } from './project.entity.js';
 import { UserDto } from '../user/user.dto.js';
 
 export class ProjectDto {
-
-
   @ApiProperty({ example: 'my-project-id', required: false })
   id: string;
 

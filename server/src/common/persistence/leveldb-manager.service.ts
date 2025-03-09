@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { LeveldbPersistence } from 'y-leveldb';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -22,19 +27,29 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {
     // Get configuration from environment
     this.basePath = this.configService.get<string>('DATA_PATH', './data');
-    this.maxIdleTime = this.configService.get<number>('LEVELDB_MAX_IDLE_TIME', 1000 * 60 * 30); // Default: 30 minutes
+    this.maxIdleTime = this.configService.get<number>(
+      'LEVELDB_MAX_IDLE_TIME',
+      1000 * 60 * 30,
+    ); // Default: 30 minutes
 
     // Ensure base directory exists
     if (!fs.existsSync(this.basePath)) {
       fs.mkdirSync(this.basePath, { recursive: true });
-      this.logger.log(`Created base directory for project databases: ${this.basePath}`);
+      this.logger.log(
+        `Created base directory for project databases: ${this.basePath}`,
+      );
     }
   }
 
   async onModuleInit() {
     // Start cleanup timer to close idle database connections
-    this.cleanupInterval = setInterval(() => this.cleanupIdleDatabases(), 1000 * 60 * 5); // Check every 5 minutes
-    this.logger.log(`LevelDB Manager initialized with base path: ${this.basePath}`);
+    this.cleanupInterval = setInterval(
+      () => this.cleanupIdleDatabases(),
+      1000 * 60 * 5,
+    ); // Check every 5 minutes
+    this.logger.log(
+      `LevelDB Manager initialized with base path: ${this.basePath}`,
+    );
   }
 
   async onModuleDestroy() {
@@ -62,7 +77,10 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
    * Get a LevelDB instance for a specific project.
    * Creates the database if it doesn't exist.
    */
-  async getProjectDatabase(username: string, projectSlug: string): Promise<LeveldbPersistence> {
+  async getProjectDatabase(
+    username: string,
+    projectSlug: string,
+  ): Promise<LeveldbPersistence> {
     const projectKey = this.getProjectKey(username, projectSlug);
     this.updateActivityTimestamp(projectKey);
 
@@ -80,14 +98,21 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
           levelOptions: {
             createIfMissing: true,
             errorIfExists: false,
-          }
+          },
         });
 
         this.projectDatabases.set(projectKey, db);
-        this.logger.log(`Created new LevelDB instance for project ${projectKey} at ${dbPath}`);
+        this.logger.log(
+          `Created new LevelDB instance for project ${projectKey} at ${dbPath}`,
+        );
       } catch (error) {
-        this.logger.error(`Failed to create LevelDB instance for project ${projectKey}:`, error);
-        throw new Error(`Database initialization failed for project ${projectKey}`);
+        this.logger.error(
+          `Failed to create LevelDB instance for project ${projectKey}:`,
+          error,
+        );
+        throw new Error(
+          `Database initialization failed for project ${projectKey}`,
+        );
       }
     }
 
@@ -98,7 +123,10 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
    * Close a specific project database.
    * Usually called when a project is deleted or on very low memory situations.
    */
-  async closeProjectDatabase(username: string, projectSlug: string): Promise<void> {
+  async closeProjectDatabase(
+    username: string,
+    projectSlug: string,
+  ): Promise<void> {
     const projectKey = this.getProjectKey(username, projectSlug);
 
     if (this.projectDatabases.has(projectKey)) {
@@ -111,7 +139,10 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
    * Delete a project database entirely.
    * This should be called when a project is deleted.
    */
-  async deleteProjectDatabase(username: string, projectSlug: string): Promise<void> {
+  async deleteProjectDatabase(
+    username: string,
+    projectSlug: string,
+  ): Promise<void> {
     await this.closeProjectDatabase(username, projectSlug);
 
     const dbPath = this.getProjectPath(username, projectSlug);
@@ -120,7 +151,9 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
     // In production, you'd want to properly delete all LevelDB files
     if (fs.existsSync(dbPath)) {
       fs.rmSync(dbPath, { recursive: true, force: true });
-      this.logger.log(`Deleted database for project ${username}/${projectSlug} at ${dbPath}`);
+      this.logger.log(
+        `Deleted database for project ${username}/${projectSlug} at ${dbPath}`,
+      );
     }
   }
 
@@ -133,7 +166,9 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
     // In production, you'd want to parse directory names more carefully
     try {
       const dirs = fs.readdirSync(this.basePath);
-      return dirs.filter(dir => fs.statSync(path.join(this.basePath, dir)).isDirectory());
+      return dirs.filter((dir) =>
+        fs.statSync(path.join(this.basePath, dir)).isDirectory(),
+      );
     } catch (error) {
       this.logger.error('Failed to list project databases:', error);
       return [];
@@ -173,7 +208,10 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
     const now = Date.now();
 
     for (const [key, timestamp] of this.dbActivityTimestamps.entries()) {
-      if (now - timestamp > this.maxIdleTime && this.projectDatabases.has(key)) {
+      if (
+        now - timestamp > this.maxIdleTime &&
+        this.projectDatabases.has(key)
+      ) {
         const db = this.projectDatabases.get(key);
         await this.closeDatabase(key, db);
         this.logger.log(`Closed idle database connection for ${key}`);
@@ -184,7 +222,10 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
   /**
    * Helper to close a database connection.
    */
-  private async closeDatabase(key: string, _db: LeveldbPersistence): Promise<void> {
+  private async closeDatabase(
+    key: string,
+    _db: LeveldbPersistence,
+  ): Promise<void> {
     try {
       // Access the underlying leveldb instance to close it properly
       // This is a simplification - actual implementation would depend on the LeveldbPersistence API

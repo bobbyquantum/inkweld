@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseConfigService } from './database.config.js';
 import * as path from 'path';
-import { beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { beforeEach, describe, expect, it, spyOn } from 'bun:test';
 
 describe('DatabaseConfigService', () => {
   let service: DatabaseConfigService;

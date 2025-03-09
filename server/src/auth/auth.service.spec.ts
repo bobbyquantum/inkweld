@@ -11,7 +11,9 @@ import { UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 // Mock Bun.password methods using spyOn
-jest.spyOn(Bun.password, 'hash').mockImplementation(async (pass) => `hashed_${pass}`);
+jest
+  .spyOn(Bun.password, 'hash')
+  .mockImplementation(async (pass) => `hashed_${pass}`);
 jest.spyOn(Bun.password, 'verify').mockImplementation(async () => true);
 
 describe('AuthService', () => {
