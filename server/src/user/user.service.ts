@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { ValidationException } from '../common/exceptions/validation.exception.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -37,7 +34,6 @@ export class UserService {
         'Password must contain at least one special character',
       ];
     }
-
 
     if (Object.keys(errors).length > 0) {
       throw new ValidationException(errors);
@@ -95,7 +91,10 @@ export class UserService {
   ): Promise<void> {
     const user = await this.getCurrentUser(userId);
 
-    const passwordMatches = await Bun.password.verify(oldPassword, user.password);
+    const passwordMatches = await Bun.password.verify(
+      oldPassword,
+      user.password,
+    );
     if (!passwordMatches) {
       throw new BadRequestException('Old password is incorrect');
     }
@@ -174,18 +173,56 @@ export class UserService {
     if (!existing) {
       return {
         available: true,
-        suggestions: []
+        suggestions: [],
       };
     }
 
     // Generate suggestions by appending numbers
-    const suggestions = Array.from({ length: 3 }, (_, i) =>
-      `${username}${i + 1}`
+    const suggestions = Array.from(
+      { length: 3 },
+      (_, i) => `${username}${i + 1}`,
     );
 
     return {
       available: false,
-      suggestions
+      suggestions,
     };
+  }
+
+  async getPagedUsers({
+    page,
+    pageSize,
+  }: {
+    page: number;
+    pageSize: number;
+  }): Promise<{ users: UserEntity[]; total: number }> {
+    const skip = (page - 1) * pageSize;
+    const [users, total] = await this.userRepo.findAndCount({
+      skip,
+      take: pageSize,
+    });
+    return { users, total };
+  }
+
+  async pagedSearchUsers({
+    term,
+    page,
+    pageSize,
+  }: {
+    term: string;
+    page: number;
+    pageSize: number;
+  }): Promise<{ users: UserEntity[]; total: number }> {
+    const skip = (page - 1) * pageSize;
+    const [users, total] = await this.userRepo
+      .createQueryBuilder('user')
+      .where(
+        'user.username LIKE :term OR user.name LIKE :term OR user.email LIKE :term',
+        { term: `%${term}%` },
+      )
+      .skip(skip)
+      .take(pageSize)
+      .getManyAndCount();
+    return { users, total };
   }
 }

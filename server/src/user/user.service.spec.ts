@@ -11,12 +11,15 @@ import {
   expect,
   it,
   jest,
-} from '@jest/globals';
+  spyOn,
+} from 'bun:test';
 import { BadRequestException } from '@nestjs/common';
 
 // Mock Bun.password methods using spyOn
-jest.spyOn(Bun.password, 'hash').mockImplementation(async (pass) => `hashed_${pass}`);
-jest.spyOn(Bun.password, 'verify').mockImplementation(async () => true);
+spyOn(Bun.password, 'hash').mockImplementation(
+  async (pass) => `hashed_${pass}`,
+);
+spyOn(Bun.password, 'verify').mockImplementation(async () => true);
 
 describe('UserService', () => {
   let userService: UserService;
@@ -28,6 +31,8 @@ describe('UserService', () => {
     create: jest.fn<() => any>(),
     save: jest.fn<() => any>(),
     remove: jest.fn<() => any>(),
+    findAndCount: jest.fn<() => any>(), // Mock findAndCount
+    createQueryBuilder: jest.fn<() => any>(), // Mock createQueryBuilder
   };
 
   beforeEach(async () => {
@@ -47,7 +52,9 @@ describe('UserService', () => {
     );
 
     // Reset Bun password mock implementations before each test
-    (Bun.password.hash as jest.Mock).mockImplementation(async (pass) => `hashed_${pass}`);
+    (Bun.password.hash as jest.Mock).mockImplementation(
+      async (pass) => `hashed_${pass}`,
+    );
     (Bun.password.verify as jest.Mock).mockImplementation(async () => true);
   });
 
@@ -141,13 +148,12 @@ describe('UserService', () => {
     });
 
     it('should successfully update password', async () => {
-      await userService.updatePassword(
-        '1',
-        'OldPass123!',
-        'NewPass123!'
-      );
+      await userService.updatePassword('1', 'OldPass123!', 'NewPass123!');
 
-      expect(Bun.password.verify).toHaveBeenCalledWith('OldPass123!', OLD_HASHED_PASSWORD);
+      expect(Bun.password.verify).toHaveBeenCalledWith(
+        'OldPass123!',
+        OLD_HASHED_PASSWORD,
+      );
       expect(Bun.password.hash).toHaveBeenCalledWith('NewPass123!');
       expect(mockUserRepository.save).toHaveBeenCalledWith({
         id: '1',
@@ -160,19 +166,25 @@ describe('UserService', () => {
       (Bun.password.verify as jest.Mock).mockImplementation(async () => false);
 
       await expect(
-        userService.updatePassword('1', 'WrongPass123!', 'NewPass123!')
+        userService.updatePassword('1', 'WrongPass123!', 'NewPass123!'),
       ).rejects.toThrow(BadRequestException);
 
-      expect(Bun.password.verify).toHaveBeenCalledWith('WrongPass123!', OLD_HASHED_PASSWORD);
+      expect(Bun.password.verify).toHaveBeenCalledWith(
+        'WrongPass123!',
+        OLD_HASHED_PASSWORD,
+      );
       expect(Bun.password.hash).not.toHaveBeenCalled();
     });
 
     it('should throw error if new password is weak', async () => {
       await expect(
-        userService.updatePassword('1', 'OldPass123!', 'weak')
+        userService.updatePassword('1', 'OldPass123!', 'weak'),
       ).rejects.toThrow('Validation failed');
 
-      expect(Bun.password.verify).toHaveBeenCalledWith('OldPass123!', OLD_HASHED_PASSWORD);
+      expect(Bun.password.verify).toHaveBeenCalledWith(
+        'OldPass123!',
+        OLD_HASHED_PASSWORD,
+      );
       expect(Bun.password.hash).not.toHaveBeenCalled();
     });
   });
@@ -184,7 +196,7 @@ describe('UserService', () => {
         id: '1',
         githubId,
         username: 'githubuser',
-      };
+      } as UserEntity;
 
       mockUserRepository.findOne.mockResolvedValue(mockUser);
 
@@ -263,6 +275,74 @@ describe('UserService', () => {
 
       // Restore original Date.now
       Date.now = realDateNow;
+    });
+  });
+
+  describe('getPagedUsers', () => {
+    it('should return a paged list of users', async () => {
+      const page = 1;
+      const pageSize = 10;
+      const mockUsers = Array.from({ length: 15 }, (_, i) => ({
+        id: `${i + 1}`,
+        username: `user${i + 1}`,
+      })) as UserEntity[];
+      const mockFindAndCountResult = [
+        mockUsers.slice(0, pageSize),
+        mockUsers.length,
+      ];
+
+      mockUserRepository.findAndCount.mockResolvedValue(mockFindAndCountResult);
+
+      const result = await userService.getPagedUsers({ page, pageSize });
+
+      expect(mockUserRepository.findAndCount).toHaveBeenCalledWith({
+        skip: 0,
+        take: pageSize,
+      });
+      expect(result.users).toEqual(mockUsers.slice(0, pageSize));
+      expect(result.total).toBe(mockUsers.length);
+    });
+  });
+
+  describe('pagedSearchUsers', () => {
+    it('should return a paged list of users based on search term', async () => {
+      const term = 'user';
+      const page = 1;
+      const pageSize = 10;
+      const mockUsers = Array.from({ length: 5 }, (_, i) => ({
+        id: `${i + 1}`,
+        username: `user${i + 1}`,
+      })) as UserEntity[];
+      const mockGetManyAndCountResult = [mockUsers, mockUsers.length];
+
+      const mockCreateQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue(mockGetManyAndCountResult),
+      };
+      mockUserRepository.createQueryBuilder = jest.fn(
+        () => mockCreateQueryBuilder,
+      );
+
+      const result = await userService.pagedSearchUsers({
+        term,
+        page,
+        pageSize,
+      });
+
+      expect(mockUserRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'user',
+      );
+      expect(mockCreateQueryBuilder.where).toHaveBeenCalledWith(
+        'user.username LIKE :term OR user.name LIKE :term OR user.email LIKE :term',
+        { term: `%${term}%` },
+      );
+      expect(mockCreateQueryBuilder.skip).toHaveBeenCalledWith(0);
+      expect(mockCreateQueryBuilder.take).toHaveBeenCalledWith(pageSize);
+      expect(mockCreateQueryBuilder.getManyAndCount).toHaveBeenCalled();
+      expect(result.users).toEqual(mockUsers);
+      expect(result.total).toBe(mockUsers.length);
     });
   });
 });

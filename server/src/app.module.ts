@@ -1,8 +1,4 @@
-import {
-  Module,
-  NestModule,
-  Logger,
-} from '@nestjs/common';
+import { Module, NestModule, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { AuthModule } from './auth/auth.module.js';
@@ -31,10 +27,12 @@ import { cwd } from 'process';
       useFactory: () => {
         return [
           {
-            rootPath: path.resolve(path.join(cwd(),'../frontend/dist/browser')),
+            rootPath: path.resolve(
+              path.join(cwd(), '../frontend/dist/browser'),
+            ),
             serveStaticOptions: {
-                preCompressed: true,
-            }
+              preCompressed: true,
+            },
           },
         ];
       },
@@ -48,12 +46,8 @@ import { cwd } from 'process';
     WsModule,
     McpModule,
   ],
-  providers: [
-    LevelDBManagerService
-  ],
-  exports: [
-    LevelDBManagerService
-  ],
+  providers: [LevelDBManagerService],
+  exports: [LevelDBManagerService],
   controllers: [],
 })
 export class AppModule implements NestModule {

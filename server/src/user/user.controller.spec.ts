@@ -8,7 +8,12 @@ import { UserEntity } from './user.entity.js';
 import { beforeEach, describe, expect, it, jest, spyOn } from 'bun:test';
 import { AuthService } from '../auth/auth.service.js';
 import { ValidationFilter } from '../common/filters/validation.filter.js';
-import { ValidationPipe, INestApplication, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  ValidationPipe,
+  INestApplication,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 
 interface _MockRequest extends Request {
   session: Session & {
@@ -57,13 +62,16 @@ describe('UserController', () => {
             acc[err.property] = Object.values(err.constraints);
             return acc;
           }, {});
-          return new HttpException({
-            statusCode: HttpStatus.BAD_REQUEST,
-            message: 'Validation failed',
-            errors: formattedErrors
-          }, HttpStatus.BAD_REQUEST);
-        }
-      })
+          return new HttpException(
+            {
+              statusCode: HttpStatus.BAD_REQUEST,
+              message: 'Validation failed',
+              errors: formattedErrors,
+            },
+            HttpStatus.BAD_REQUEST,
+          );
+        },
+      }),
     );
     app.useGlobalFilters(new ValidationFilter());
     await app.init();
@@ -108,8 +116,9 @@ describe('UserController', () => {
     });
 
     it('should throw an error when user is not found', async () => {
-      spyOn(userService, 'getCurrentUser')
-        .mockRejectedValue(new Error('User not found'));
+      spyOn(userService, 'getCurrentUser').mockRejectedValue(
+        new Error('User not found'),
+      );
 
       await expect(
         controller.getMe({ user: { id: 'nonexistent' } }),
@@ -137,8 +146,7 @@ describe('UserController', () => {
         enabled: true,
         avatarImageUrl: null,
       };
-      spyOn(userService, 'registerUser')
-        .mockResolvedValue(mockRegisteredUser);
+      spyOn(userService, 'registerUser').mockResolvedValue(mockRegisteredUser);
 
       const mockReq = { session: {} } as _MockRequest;
       const result = await controller.register(registerDto, mockReq);
@@ -147,7 +155,7 @@ describe('UserController', () => {
         message: 'User registered and logged in',
         userId: '2',
         username: 'newuser',
-        name: 'New User'
+        name: 'New User',
       });
       expect(userService.registerUser).toHaveBeenCalledWith(
         'newuser',
@@ -155,7 +163,10 @@ describe('UserController', () => {
         'password123',
         'New User',
       );
-      expect(authService.login).toHaveBeenCalledWith(mockReq, mockRegisteredUser);
+      expect(authService.login).toHaveBeenCalledWith(
+        mockReq,
+        mockRegisteredUser,
+      );
     });
 
     it('should register a new user without optional name field', async () => {
@@ -174,8 +185,7 @@ describe('UserController', () => {
         enabled: true,
         avatarImageUrl: null,
       };
-      spyOn(userService, 'registerUser')
-        .mockResolvedValue(mockRegisteredUser);
+      spyOn(userService, 'registerUser').mockResolvedValue(mockRegisteredUser);
 
       const mockReq = { session: {} } as _MockRequest;
       const result = await controller.register(registerDto, mockReq);
@@ -184,7 +194,7 @@ describe('UserController', () => {
         message: 'User registered and logged in',
         userId: '2',
         username: 'newuser',
-        name: null
+        name: null,
       });
       expect(userService.registerUser).toHaveBeenCalledWith(
         'newuser',
@@ -192,7 +202,10 @@ describe('UserController', () => {
         'password123',
         undefined,
       );
-      expect(authService.login).toHaveBeenCalledWith(mockReq, mockRegisteredUser);
+      expect(authService.login).toHaveBeenCalledWith(
+        mockReq,
+        mockRegisteredUser,
+      );
     });
 
     it('should return validation errors for empty username', async () => {
@@ -213,8 +226,8 @@ describe('UserController', () => {
           statusCode: 400,
           message: 'Validation failed',
           errors: {
-            username: ['Username is required']
-          }
+            username: ['Username is required'],
+          },
         });
       }
     });
@@ -236,8 +249,8 @@ describe('UserController', () => {
           statusCode: 400,
           message: 'Validation failed',
           errors: {
-            email: ['Invalid email format']
-          }
+            email: ['Invalid email format'],
+          },
         });
       }
     });
@@ -259,8 +272,8 @@ describe('UserController', () => {
           statusCode: 400,
           message: 'Validation failed',
           errors: {
-            password: ['Password must be at least 8 characters long']
-          }
+            password: ['Password must be at least 8 characters long'],
+          },
         });
       }
     });
@@ -284,8 +297,8 @@ describe('UserController', () => {
           errors: {
             username: ['Username is required'],
             email: ['Invalid email format'],
-            password: ['Password must be at least 8 characters long']
-          }
+            password: ['Password must be at least 8 characters long'],
+          },
         });
       }
     });
@@ -298,13 +311,13 @@ describe('UserController', () => {
       };
 
       const mockReq = { session: {} } as _MockRequest;
-      spyOn(userService, 'registerUser')
-        .mockRejectedValue(new Error('Registration failed'));
+      spyOn(userService, 'registerUser').mockRejectedValue(
+        new Error('Registration failed'),
+      );
 
       await expect(controller.register(registerDto, mockReq)).rejects.toThrow(
         'Registration failed',
       );
     });
   });
-
 });
