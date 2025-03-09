@@ -1,7 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GithubStrategy } from './github.strategy.js';
 import { UserService } from '../user/user.service.js';
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 describe('GithubStrategy', () => {
   let strategy: GithubStrategy;
   let userService: jest.Mocked<UserService>;
@@ -45,7 +52,10 @@ describe('GithubStrategy', () => {
             GithubStrategy,
             {
               provide: UserService,
-              useValue: { findByGithubId: jest.fn(), createGithubUser: jest.fn() },
+              useValue: {
+                findByGithubId: jest.fn(),
+                createGithubUser: jest.fn(),
+              },
             },
           ],
         }).compile(),
@@ -63,7 +73,10 @@ describe('GithubStrategy', () => {
             GithubStrategy,
             {
               provide: UserService,
-              useValue: { findByGithubId: jest.fn(), createGithubUser: jest.fn() },
+              useValue: {
+                findByGithubId: jest.fn(),
+                createGithubUser: jest.fn(),
+              },
             },
           ],
         }).compile(),
@@ -97,7 +110,9 @@ describe('GithubStrategy', () => {
 
       // Mock logger to avoid console output in tests
       jest.spyOn(strategy['logger'], 'log').mockImplementation(() => undefined);
-      jest.spyOn(strategy['logger'], 'error').mockImplementation(() => undefined);
+      jest
+        .spyOn(strategy['logger'], 'error')
+        .mockImplementation(() => undefined);
 
       expect(strategy).toBeDefined();
     });

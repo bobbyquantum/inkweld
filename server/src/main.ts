@@ -16,9 +16,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 export function createOpenAPIConfig() {
   return new DocumentBuilder()
     .setTitle('Inkweld API')
-    .setDescription(
-      'API for managing projects and user data',
-    )
+    .setDescription('API for managing projects and user data')
     .setVersion(process.env.INKWELD_VERSION || '1.0')
     .addTag(
       'User API',

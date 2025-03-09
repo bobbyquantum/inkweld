@@ -8,7 +8,11 @@ import { LevelDBManagerService } from '../../common/persistence/leveldb-manager.
 @Module({
   imports: [UserModule],
   controllers: [ProjectElementController],
-  providers: [ProjectElementService, ImageStorageService, LevelDBManagerService],
+  providers: [
+    ProjectElementService,
+    ImageStorageService,
+    LevelDBManagerService,
+  ],
   exports: [ProjectElementService, ImageStorageService],
 })
 export class ProjectElementModule {}

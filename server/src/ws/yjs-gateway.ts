@@ -7,10 +7,7 @@ import {
 } from '@nestjs/websockets';
 import type { Server as WSServer, WebSocket } from 'ws';
 import type { Request } from 'express';
-import {
-  setupWSConnection,
-  setPersistence,
-} from './y-websocket-utils.js';
+import { setupWSConnection, setPersistence } from './y-websocket-utils.js';
 import { Logger, Injectable } from '@nestjs/common';
 import { TypeOrmSessionStore } from '../auth/session.store.js';
 import { ConfigService } from '@nestjs/config';
@@ -25,7 +22,7 @@ import { LeveldbPersistence } from 'y-leveldb';
 class PerProjectPersistence {
   constructor(
     private readonly levelDBManager: LevelDBManagerService,
-    private readonly logger: Logger
+    private readonly logger: Logger,
   ) {
     this.logger.log('Initialized per-project LevelDB persistence adapter');
   }
@@ -34,11 +31,16 @@ class PerProjectPersistence {
    * Parse a docName to extract username and project slug
    * Expected format: "documentName:username:projectSlug"
    */
-  private parseDocName(docName: string): { username: string; projectSlug: string } {
+  private parseDocName(docName: string): {
+    username: string;
+    projectSlug: string;
+  } {
     const parts = docName.split(':');
     if (parts.length < 3) {
       // Default to a safe value if we can't parse
-      this.logger.warn(`Invalid document name format: ${docName}. Using default parsing.`);
+      this.logger.warn(
+        `Invalid document name format: ${docName}. Using default parsing.`,
+      );
       return { username: 'default', projectSlug: 'default' };
     }
     // First part is the document type, rest should be username and project
@@ -217,7 +219,7 @@ export class YjsGateway
     // Initialize per-project persistence adapter
     this.perProjectPersistence = new PerProjectPersistence(
       this.levelDBManager,
-      new Logger('PerProjectPersistence')
+      new Logger('PerProjectPersistence'),
     );
 
     // Register our persistence with y-websocket utils
@@ -280,11 +282,18 @@ export class YjsGateway
       }
 
       // Check & enforce doc ownership
-      const ownerId = await this.perProjectPersistence.getMeta(docId, 'ownerId');
+      const ownerId = await this.perProjectPersistence.getMeta(
+        docId,
+        'ownerId',
+      );
 
       // If no owner is set, the first user to open the doc becomes the owner
       if (!ownerId) {
-        await this.perProjectPersistence.setMeta(docId, 'ownerId', session.userId);
+        await this.perProjectPersistence.setMeta(
+          docId,
+          'ownerId',
+          session.userId,
+        );
         this.logger.log(
           `Doc "${docId}" had no owner; set owner to user ${session.userId}`,
         );

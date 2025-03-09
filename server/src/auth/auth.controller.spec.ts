@@ -43,7 +43,6 @@ describe('AuthController', () => {
       canActivate: jest.fn<() => any>().mockResolvedValue(true),
     }));
 
-
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
@@ -68,7 +67,6 @@ describe('AuthController', () => {
   });
 
   describe('login', () => {
-
     it('should handle authentication failure', async () => {
       // Mock request object without user (authentication failed)
       const mockRequest = {};
@@ -141,7 +139,7 @@ describe('AuthController', () => {
 
       expect(authService.login).toHaveBeenCalledWith(mockRequest, mockUser);
       expect(mockResponse.redirect).toHaveBeenCalled();
-   });
+    });
 
     it('should handle missing client URL', async () => {
       mockConfigService.get.mockReturnValueOnce(null);
@@ -150,7 +148,7 @@ describe('AuthController', () => {
 
       // In the catch block, it falls back to default URL
       expect(mockResponse.redirect).toHaveBeenCalled();
-   });
+    });
 
     it('should handle missing user', async () => {
       mockRequest.user = undefined;
@@ -159,7 +157,7 @@ describe('AuthController', () => {
 
       expect(authService.login).not.toHaveBeenCalled();
       expect(mockResponse.redirect).toHaveBeenCalled();
-   });
+    });
 
     it('should handle login service failure', async () => {
       authService.login.mockRejectedValue(new Error('Login failed'));
@@ -168,6 +166,6 @@ describe('AuthController', () => {
 
       expect(authService.login).toHaveBeenCalledWith(mockRequest, mockUser);
       expect(mockResponse.redirect).toHaveBeenCalled();
-   });
+    });
   });
 });

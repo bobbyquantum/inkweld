@@ -2,12 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { MockTypeOrmModule } from './mocks/typeorm.mock.js';
-import {
-  beforeEach,
-  afterEach,
-  describe,
-  it,
-} from '@jest/globals';
+import { beforeEach, afterEach, describe, it } from '@jest/globals';
 describe('AppController (e2e)', () => {
   let app: INestApplication;
 

@@ -8,7 +8,11 @@ import { UserModule } from '../user/user.module.js';
 import { ProjectElementModule } from './element/project-element.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ProjectEntity, UserEntity]), UserModule, ProjectElementModule],
+  imports: [
+    TypeOrmModule.forFeature([ProjectEntity, UserEntity]),
+    UserModule,
+    ProjectElementModule,
+  ],
   controllers: [ProjectController],
   providers: [ProjectService],
   exports: [ProjectService],

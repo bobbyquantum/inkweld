@@ -33,14 +33,21 @@ export class ProjectElementService {
   /**
    * Get the LevelDB instance for a specific project.
    */
-  private async getProjectLevelDB(username: string, slug: string): Promise<LeveldbPersistence> {
+  private async getProjectLevelDB(
+    username: string,
+    slug: string,
+  ): Promise<LeveldbPersistence> {
     return await this.levelDBManager.getProjectDatabase(username, slug);
   }
 
   /**
    * Save a given doc's current state back to LevelDB.
    */
-  private async persistDoc(doc: Y.Doc, username: string, slug: string): Promise<void> {
+  private async persistDoc(
+    doc: Y.Doc,
+    username: string,
+    slug: string,
+  ): Promise<void> {
     const docId = this.getDocId(username, slug);
     const ldb = await this.getProjectLevelDB(username, slug);
     if (!ldb) {
@@ -48,7 +55,9 @@ export class ProjectElementService {
     }
 
     await ldb.storeUpdate(docId, Y.encodeStateAsUpdate(doc));
-    this.logger.debug(`Persisted doc ${docId}, state: ${JSON.stringify(doc.getMap('data').toJSON())}`);
+    this.logger.debug(
+      `Persisted doc ${docId}, state: ${JSON.stringify(doc.getMap('data').toJSON())}`,
+    );
   }
 
   /**
@@ -59,7 +68,9 @@ export class ProjectElementService {
     const dataMap = doc.getMap<any>('data');
     const docId = this.getDocId(username, slug);
 
-    this.logger.debug(`Loading doc ${docId}, current state: ${JSON.stringify(dataMap.toJSON())}`);
+    this.logger.debug(
+      `Loading doc ${docId}, current state: ${JSON.stringify(dataMap.toJSON())}`,
+    );
     if (!dataMap.has('elements')) {
       dataMap.set('elements', new Y.Array());
     }
@@ -70,7 +81,11 @@ export class ProjectElementService {
   /**
    * Replace project elements (similar to dinsert).
    */
-  async replaceProjectElements(username: string, slug: string, incomingElements: any[]) {
+  async replaceProjectElements(
+    username: string,
+    slug: string,
+    incomingElements: any[],
+  ) {
     const doc = await this.loadDoc(username, slug);
 
     doc.transact(() => {
@@ -93,7 +108,10 @@ export class ProjectElementService {
     return `projectElements:${username}:${slug}`;
   }
 
-  private async findElementById(doc: Y.Doc, elementId: string): Promise<{ element: any; index: number }> {
+  private async findElementById(
+    doc: Y.Doc,
+    elementId: string,
+  ): Promise<{ element: any; index: number }> {
     this.logger.debug(`Finding element with ID: ${elementId}`);
     const dataMap = doc.getMap<any>('data');
     if (!dataMap.has('elements')) {
@@ -105,9 +123,11 @@ export class ProjectElementService {
     const elements = elementsArray.toArray();
     this.logger.debug(`Found ${elements.length} elements in array`);
     elements.forEach((e, i) => {
-      this.logger.debug(`Element ${i}: id=${e?.id}, type=${e?.type}, raw=${JSON.stringify(e)}`);
+      this.logger.debug(
+        `Element ${i}: id=${e?.id}, type=${e?.type}, raw=${JSON.stringify(e)}`,
+      );
     });
-    const index = elements.findIndex(e => e.id === elementId);
+    const index = elements.findIndex((e) => e.id === elementId);
     if (index === -1) {
       throw new Error(`Element not found: ${elementId}`);
     }
@@ -124,7 +144,9 @@ export class ProjectElementService {
     const doc = await this.loadDoc(username, slug);
     const docId = this.getDocId(username, slug);
 
-    this.logger.debug(`Starting upload for doc ${docId}, current state: ${JSON.stringify(doc.getMap('data').toJSON())}`);
+    this.logger.debug(
+      `Starting upload for doc ${docId}, current state: ${JSON.stringify(doc.getMap('data').toJSON())}`,
+    );
     let existingElement;
     let existingIndex = -1;
     try {
@@ -132,11 +154,19 @@ export class ProjectElementService {
       existingElement = result.element;
       existingIndex = result.index;
     } catch (_error) {
-      this.logger.debug(`Element ${elementId} not found, will create new element`);
+      this.logger.debug(
+        `Element ${elementId} not found, will create new element`,
+      );
     }
 
     // Save the image file
-    const finalFilename = await this.imageStorageService.saveImage(username, slug, elementId, file, filename);
+    const finalFilename = await this.imageStorageService.saveImage(
+      username,
+      slug,
+      elementId,
+      file,
+      filename,
+    );
     this.logger.debug(`Saved image file with name: ${finalFilename}`);
 
     let wasUpdated = false;
@@ -154,14 +184,16 @@ export class ProjectElementService {
         size: file.byteLength,
         lastModified: new Date(),
         originalFilename: filename,
-        storedFilename: finalFilename
+        storedFilename: finalFilename,
       };
 
       if (existingIndex >= 0) {
         const updatedElement = { ...existingElement, metadata };
         elementsArray.delete(existingIndex, 1);
         elementsArray.insert(existingIndex, [updatedElement]);
-        this.logger.debug(`Updated existing element ${elementId} with new metadata`);
+        this.logger.debug(
+          `Updated existing element ${elementId} with new metadata`,
+        );
         wasUpdated = true;
       } else {
         const newElement = {
@@ -170,18 +202,24 @@ export class ProjectElementService {
           name: path.basename(filename),
           metadata,
           position: elementsArray.length,
-          level: 0
+          level: 0,
         };
         elementsArray.push([newElement]);
         wasUpdated = true;
-        this.logger.debug(`Created new element ${elementId} for uploaded image`);
+        this.logger.debug(
+          `Created new element ${elementId} for uploaded image`,
+        );
       }
     });
 
     if (wasUpdated) {
       await this.persistDoc(doc, username, slug);
-      this.logger.debug(`After update state: ${JSON.stringify(doc.getMap('data').toJSON())}`);
-      this.logger.debug(`Persisted doc changes for element ${elementId} to doc ${docId}`);
+      this.logger.debug(
+        `After update state: ${JSON.stringify(doc.getMap('data').toJSON())}`,
+      );
+      this.logger.debug(
+        `Persisted doc changes for element ${elementId} to doc ${docId}`,
+      );
     }
   }
 
@@ -210,8 +248,14 @@ export class ProjectElementService {
       throw new Error('No image file associated with this element');
     }
 
-    this.logger.debug(`Attempting to read image with filename: ${element.metadata.storedFilename}`);
-    return this.imageStorageService.readImage(username, slug, element.metadata.storedFilename);
+    this.logger.debug(
+      `Attempting to read image with filename: ${element.metadata.storedFilename}`,
+    );
+    return this.imageStorageService.readImage(
+      username,
+      slug,
+      element.metadata.storedFilename,
+    );
   }
 
   async deleteImage(
@@ -228,7 +272,11 @@ export class ProjectElementService {
     }
 
     // Delete the image file
-    await this.imageStorageService.deleteImage(username, slug, element.metadata.storedFilename);
+    await this.imageStorageService.deleteImage(
+      username,
+      slug,
+      element.metadata.storedFilename,
+    );
 
     // Update the element metadata in Yjs
     doc.transact(() => {
@@ -240,11 +288,12 @@ export class ProjectElementService {
       const elementsArray = dataMap.get('elements') as Y.Array<any>;
 
       // Remove image-related metadata but keep other metadata fields
-      const { storedFilename, contentType, size, ...remainingMetadata } = element.metadata;
+      const { storedFilename, contentType, size, ...remainingMetadata } =
+        element.metadata;
       element.metadata = {
         ...remainingMetadata,
         version: (element.metadata.version || 0) + 1,
-        lastModified: new Date()
+        lastModified: new Date(),
       };
 
       elementsArray.delete(index, 1);

@@ -3,22 +3,30 @@ import { ConfigService } from '@nestjs/config';
 import { LevelDBManagerService } from './leveldb-manager.service.js';
 import * as fs from 'fs';
 import * as path from 'path';
-import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test';
 
 // Mock the y-leveldb module before importing
 const mockDB = {
   close: mock(() => Promise.resolve()),
   get: mock(() => undefined),
   set: mock(() => undefined),
-  del: mock(() => undefined)
+  del: mock(() => undefined),
 };
 
 // Mock the LeveldbPersistence constructor
 const mockLeveldbPersistence = mock(() => mockDB);
 
 // Use Bun's module mocking system
-mock.module("y-leveldb", () => ({
-  LeveldbPersistence: mockLeveldbPersistence
+mock.module('y-leveldb', () => ({
+  LeveldbPersistence: mockLeveldbPersistence,
 }));
 
 describe('LevelDBManagerService', () => {
@@ -47,8 +55,13 @@ describe('LevelDBManagerService', () => {
       return false;
     });
     spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
-    spyOn(fs, 'readdirSync').mockReturnValue(['user1', 'user2'] as unknown as fs.Dirent[]);
-    spyOn(fs, 'statSync').mockReturnValue({ isDirectory: () => true } as unknown as fs.Stats);
+    spyOn(fs, 'readdirSync').mockReturnValue([
+      'user1',
+      'user2',
+    ] as unknown as fs.Dirent[]);
+    spyOn(fs, 'statSync').mockReturnValue({
+      isDirectory: () => true,
+    } as unknown as fs.Stats);
     spyOn(fs, 'rmSync').mockImplementation(() => undefined);
 
     const module: TestingModule = await Test.createTestingModule({
@@ -79,7 +92,9 @@ describe('LevelDBManagerService', () => {
     // Re-initialize the service
     service = new LevelDBManagerService(mockConfigService as ConfigService);
 
-    expect(fs.mkdirSync).toHaveBeenCalledWith(testBasePath, { recursive: true });
+    expect(fs.mkdirSync).toHaveBeenCalledWith(testBasePath, {
+      recursive: true,
+    });
   });
 
   it('should get a project database and cache it', async () => {
@@ -94,7 +109,7 @@ describe('LevelDBManagerService', () => {
           createIfMissing: true,
           errorIfExists: false,
         }),
-      })
+      }),
     );
     expect(db1).toBe(mockDB);
 
@@ -113,7 +128,7 @@ describe('LevelDBManagerService', () => {
     // Verify the path was sanitized
     expect(mockLeveldbPersistence).toHaveBeenCalledWith(
       path.join(testBasePath, 'user_1', 'project_1', 'leveldb'),
-      expect.anything()
+      expect.anything(),
     );
   });
 
@@ -161,7 +176,7 @@ describe('LevelDBManagerService', () => {
     // Verify fs.rmSync was called with the project path
     expect(fs.rmSync).toHaveBeenCalledWith(
       path.join(testBasePath, 'user1', 'project1', 'leveldb'),
-      { recursive: true, force: true }
+      { recursive: true, force: true },
     );
   });
 

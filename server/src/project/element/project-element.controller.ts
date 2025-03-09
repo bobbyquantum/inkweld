@@ -1,7 +1,30 @@
-import { Controller, Get, Put, Param, Body, Headers, UseGuards, Logger, Post, StreamableFile, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Param,
+  Body,
+  Headers,
+  UseGuards,
+  Logger,
+  Post,
+  StreamableFile,
+  Delete,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadedFile, UseInterceptors } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiNotFoundResponse, ApiHeader, ApiBadRequestResponse, ApiForbiddenResponse, ApiOkResponse, ApiBody, ApiProduces, ApiConsumes } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiNotFoundResponse,
+  ApiHeader,
+  ApiBadRequestResponse,
+  ApiForbiddenResponse,
+  ApiOkResponse,
+  ApiBody,
+  ApiProduces,
+  ApiConsumes,
+} from '@nestjs/swagger';
 import { SessionAuthGuard } from '../../auth/session-auth.guard.js';
 import { ProjectElementDto } from './project-element.dto.js';
 import { ProjectElementService } from './project-element.service.js';
@@ -97,9 +120,15 @@ export class ProjectElementController {
   ): Promise<void> {
     this.logger.log(
       `Uploading image ${file.originalname} for element ${elementId}`,
-      { username, slug, elementId, size: file.size }
+      { username, slug, elementId, size: file.size },
     );
-    await this.yjsService.uploadImage(username, slug, elementId, file.buffer, file.originalname);
+    await this.yjsService.uploadImage(
+      username,
+      slug,
+      elementId,
+      file.buffer,
+      file.originalname,
+    );
   }
 
   @Get(':elementId/image')
@@ -107,18 +136,24 @@ export class ProjectElementController {
   @ApiProduces('image/*')
   @ApiOkResponse({
     description: 'Image file stream',
-    type: StreamableFile
+    type: StreamableFile,
   })
   @ApiNotFoundResponse({ description: 'Image not found' })
   async downloadImage(
     @Param('username') username: string,
     @Param('slug') slug: string,
     @Param('elementId') elementId: string,
-  ): Promise<StreamableFile> { // Return StreamableFile
+  ): Promise<StreamableFile> {
+    // Return StreamableFile
     this.logger.log(
       `Downloading image for project element ${username}/${slug}/${elementId}`,
-      { username, slug, elementId },    );
-    const imageStream = await this.yjsService.downloadImage(username, slug, elementId);
+      { username, slug, elementId },
+    );
+    const imageStream = await this.yjsService.downloadImage(
+      username,
+      slug,
+      elementId,
+    );
     return new StreamableFile(imageStream as any); // Wrap stream in StreamableFile
   }
 
@@ -133,7 +168,8 @@ export class ProjectElementController {
   ): Promise<void> {
     this.logger.log(
       `Deleting image for project element ${username}/${slug}/${elementId}`,
-      { username, slug, elementId },    );
+      { username, slug, elementId },
+    );
     await this.yjsService.deleteImage(username, slug, elementId);
   }
 }

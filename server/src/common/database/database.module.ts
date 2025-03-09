@@ -17,11 +17,7 @@ import { DatabaseConfigService } from './database.config.js';
       inject: [ConfigService],
     }),
   ],
-  providers: [
-    DatabaseConfigService,
-  ],
-  exports: [
-    DatabaseConfigService,
-  ],
+  providers: [DatabaseConfigService],
+  exports: [DatabaseConfigService],
 })
 export class DatabaseModule {}
