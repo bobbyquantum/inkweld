@@ -47,7 +47,7 @@ describe('ProjectTreeComponent', () => {
   const setupTestBed = async () => {
     Object.defineProperty(window, 'location', {
       value: {
-        pathname: '/project/testuser/testproject',
+        pathname: '/testuser/testproject',
       },
       writable: true,
     });

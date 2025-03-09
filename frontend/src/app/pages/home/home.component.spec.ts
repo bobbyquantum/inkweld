@@ -66,7 +66,7 @@ describe('HomeComponent', () => {
       providers: [
         provideRouter([
           { path: '', component: HomeComponent },
-          { path: 'project/:id', component: HomeComponent },
+          { path: ':id', component: HomeComponent },
         ]),
         provideLocationMocks(),
         { provide: ThemeService, useValue: themeService },

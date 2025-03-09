@@ -34,11 +34,7 @@
   <mat-card-actions>
     <button
       mat-button
-      [routerLink]="[
-        '/project',
-        project.user?.username || '',
-        project.slug || '',
-      ]">
+      [routerLink]="[project.user?.username || '', project.slug || '']">
       OPEN
     </button>
   </mat-card-actions>
