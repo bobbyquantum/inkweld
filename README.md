@@ -1,5 +1,7 @@
 # Inkweld
 
+![Inkweld Logo](frontend/public/logo.png)
+
 Inkweld is a collaborative document editing platform designed for creative writing, worldbuilding, and technical documentation. Built with Angular (frontend) and NestJS (backend), Inkweld provides real-time collaboration features similar to Google Docs, but with enhanced organization capabilities tailored for complex projects.
 
 ## About
