@@ -28,7 +28,16 @@ export const routes: Routes = [
     title: 'Register',
   },
   {
-    path: 'project/:username/:slug',
+    path: 'unavailable',
+    loadComponent: () =>
+      import('./pages/unavailable/unavailable.component').then(
+        m => m.UnavailableComponent
+      ),
+    title: 'Service Unavailable',
+  },
+  // Project route (GitHub style: /:username/:slug)
+  {
+    path: ':username/:slug',
     loadComponent: () =>
       import('./pages/project/project.component').then(m => m.ProjectComponent),
     title: 'Project',
@@ -38,13 +47,15 @@ export const routes: Routes = [
         inject(CanDeactivateProjectGuard).canDeactivate(component),
     ],
   },
+  // User profile route
   {
-    path: 'unavailable',
+    path: ':username',
     loadComponent: () =>
-      import('./pages/unavailable/unavailable.component').then(
-        m => m.UnavailableComponent
+      import('./pages/user-profile/user-profile.component').then(
+        m => m.UserProfileComponent
       ),
-    title: 'Service Unavailable',
+    title: 'User Profile',
+    canActivate: [authGuard],
   },
   {
     matcher: url => {
