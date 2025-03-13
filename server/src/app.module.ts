@@ -1,4 +1,4 @@
-import { Module, NestModule, Logger } from '@nestjs/common';
+import { Module, NestModule, Logger, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { AuthModule } from './auth/auth.module.js';
@@ -11,6 +11,7 @@ import { LevelDBManagerService } from './common/persistence/leveldb-manager.serv
 import * as path from 'path';
 import { DatabaseModule } from './common/database/database.module.js';
 import { cwd } from 'process';
+import { BaseHrefMiddleware } from './common/middleware/base-href.middleware.js';
 
 @Module({
   imports: [
@@ -53,5 +54,8 @@ import { cwd } from 'process';
 export class AppModule implements NestModule {
   private readonly logger = new Logger(AppModule.name);
 
-  configure() {}
+  configure(consumer: MiddlewareConsumer) {
+    // Apply the BaseHrefMiddleware to all routes
+    consumer.apply(BaseHrefMiddleware).forRoutes('*');
+  }
 }
