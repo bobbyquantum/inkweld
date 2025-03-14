@@ -137,7 +137,7 @@ describe('DocumentElementEditorComponent', () => {
     expect(component.tooltips.contentWidth).toBe('Content width: 17.0cm');
   });
 
-  it('should handle drag end for page width', () => {
+  it('should handle drag end for page width increase', () => {
     const mockEvent: CdkDragEnd = {
       source: {
         getFreeDragPosition: () => ({ x: 37.795275591, y: 0 }),
@@ -153,7 +153,26 @@ describe('DocumentElementEditorComponent', () => {
     expect(mockEvent.source.reset).toHaveBeenCalled();
   });
 
-  it('should handle drag end for margins', () => {
+  it('should handle drag end for page width decrease', () => {
+    const mockEvent: CdkDragEnd = {
+      source: {
+        getFreeDragPosition: () => ({ x: 37.795275591, y: 0 }),
+        reset: jest.fn(),
+      } as any,
+      distance: { x: 0, y: 0 },
+      dropPoint: { x: 0, y: 0 },
+      event: new MouseEvent('mouseup'),
+    };
+
+    // Set initial width to test decrease
+    component.dimensions.pageWidth = 21;
+    component.onDragEnd(mockEvent, 'pageLeft');
+    // Decreasing means -delta, so 21 - 1 = 20
+    expect(component.dimensions.pageWidth).toBe(20);
+    expect(mockEvent.source.reset).toHaveBeenCalled();
+  });
+
+  it('should handle drag end for left margin', () => {
     const mockEvent: CdkDragEnd = {
       source: {
         getFreeDragPosition: () => ({ x: 37.795275591, y: 0 }),
@@ -167,6 +186,63 @@ describe('DocumentElementEditorComponent', () => {
     component.onDragEnd(mockEvent, 'marginLeft');
     expect(component.dimensions.leftMargin).toBe(3);
     expect(mockEvent.source.reset).toHaveBeenCalled();
+  });
+
+  it('should handle drag end for right margin', () => {
+    const mockEvent: CdkDragEnd = {
+      source: {
+        getFreeDragPosition: () => ({ x: 37.795275591, y: 0 }),
+        reset: jest.fn(),
+      } as any,
+      distance: { x: 0, y: 0 },
+      dropPoint: { x: 0, y: 0 },
+      event: new MouseEvent('mouseup'),
+    };
+
+    component.dimensions = {
+      pageWidth: 21,
+      leftMargin: 2,
+      rightMargin: 2,
+    };
+    component.onDragEnd(mockEvent, 'marginRight');
+    // For marginRight, we use -delta, so 2 - 1 = 1
+    expect(component.dimensions.rightMargin).toBe(1);
+    expect(mockEvent.source.reset).toHaveBeenCalled();
+  });
+
+  it('should adjust margins when page width is reduced too much', () => {
+    // Set up a state where margins need adjustment
+    component.dimensions = {
+      pageWidth: 15, // Starting with 15cm
+      leftMargin: 5, // 5cm left margin
+      rightMargin: 6, // 6cm right margin
+      // Total margins (11cm) exceed pageWidth - 5cm (10cm), so they should be adjusted
+    };
+
+    // Simulate reducing width to 12cm, which will trigger adjustMarginsForNewWidth
+    const mockEvent: CdkDragEnd = {
+      source: {
+        getFreeDragPosition: () => ({ x: -113.3858, y: 0 }), // About -3cm
+        reset: jest.fn(),
+      } as any,
+      distance: { x: 0, y: 0 },
+      dropPoint: { x: 0, y: 0 },
+      event: new MouseEvent('mouseup'),
+    };
+
+    component.onDragEnd(mockEvent, 'pageRight');
+
+    // Check that the width was reduced
+    expect(component.dimensions.pageWidth).toBe(12);
+
+    // Check that margins were adjusted to fit with at least 5cm for content
+    expect(
+      component.dimensions.leftMargin + component.dimensions.rightMargin
+    ).toBeLessThanOrEqual(7); // 12cm - 5cm = 7cm max total margins
+
+    // Verify that each margin is at least 0.5cm
+    expect(component.dimensions.leftMargin).toBeGreaterThanOrEqual(0.5);
+    expect(component.dimensions.rightMargin).toBeGreaterThanOrEqual(0.5);
   });
 
   it('should get tooltip text for different drag points', () => {
