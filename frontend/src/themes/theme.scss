@@ -129,37 +129,41 @@ $_palettes: (
 $_rest: (
   secondary: map.get($_palettes, secondary),
   neutral: map.get($_palettes, neutral),
-  neutral-variant: map.get($_palettes,  neutral-variant),
+  neutral-variant: map.get($_palettes, neutral-variant),
   error: map.get($_palettes, error),
 );
 $_primary: map.merge(map.get($_palettes, primary), $_rest);
 $_tertiary: map.merge(map.get($_palettes, tertiary), $_rest);
 
-$light-theme: mat.define-theme((
-  color: (
-    theme-type: light,
-    primary: $_primary,
-    tertiary: $_tertiary,
-  ),
-  density: (
-    scale: 0,
+$light-theme: mat.define-theme(
+  (
+    color: (
+      theme-type: light,
+      primary: $_primary,
+      tertiary: $_tertiary,
+    ),
+    density: (
+      scale: 0,
+    ),
   )
-));
+);
 
-$dark-theme: mat.define-theme((
-  color: (
-    theme-type: dark,
-    primary: $_primary,
-    tertiary: $_tertiary,
-    use-system-variables: true,
-  ),
-  typography: (
+$dark-theme: mat.define-theme(
+  (
+    color: (
+      theme-type: dark,
+      primary: $_primary,
+      tertiary: $_tertiary,
       use-system-variables: true,
-  ),
-  density: (
-    scale: -5,
+    ),
+    typography: (
+      use-system-variables: true,
+    ),
+    density: (
+      scale: -5,
+    ),
   )
-));
+);
 
 @import '@angular/cdk/overlay-prebuilt.css';
 
@@ -168,7 +172,7 @@ $dark-theme: mat.define-theme((
   @include mat.system-level-colors($light-theme);
   @include mat.system-level-typography($dark-theme);
   & {
-    --card-background-color: var(--mat-sys-secondary-container);
+    --card-background-color: var(--mat-sys-surface-container-high);
     --ngx-editor-border-radius: 4px;
     --ngx-editor-background-color: #fff;
     --ngx-editor-text-color: #000;
@@ -201,45 +205,46 @@ $dark-theme: mat.define-theme((
 
 /* ProseMirror-yjs cursor styles for light theme */
 :root .ProseMirror > .ProseMirror-yjs-cursor:first-child {
-    margin-top: 16px;
+  margin-top: 16px;
+}
+
+.ProseMirror p:first-child,
+.ProseMirror h1:first-child,
+.ProseMirror h2:first-child,
+.ProseMirror h3:first-child,
+.ProseMirror h4:first-child,
+.ProseMirror h5:first-child,
+.ProseMirror h6:first-child {
+  margin-top: 16px;
+}
+
+.ProseMirror-yjs-cursor {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 2px solid var(--mat-sys-tertiary);
+  border-right: 2px solid var(--mat-sys-tertiary);
+  word-break: normal;
+  pointer-events: none;
+
+  > div {
+    position: absolute;
+    top: -1.4em;
+    left: -1px;
+    font-size: 12px;
+    background-color: var(--mat-sys-tertiary);
+    font-family: var(--mat-ref-typeface-plain);
+    font-style: normal;
+    font-weight: normal;
+    line-height: normal;
+    -webkit-user-select: none;
+    user-select: none;
+    color: var(--mat-sys-on-tertiary);
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    opacity: 0.9;
   }
-
-  .ProseMirror p:first-child,
-  .ProseMirror h1:first-child,
-  .ProseMirror h2:first-child,
-  .ProseMirror h3:first-child,
-  .ProseMirror h4:first-child,
-  .ProseMirror h5:first-child,
-  .ProseMirror h6:first-child {
-    margin-top: 16px;
-  }
-
-  .ProseMirror-yjs-cursor {
-    position: relative;
-    margin-left: -1px;
-    margin-right: -1px;
-    border-left: 2px solid var(--mat-sys-tertiary);
-    border-right: 2px solid var(--mat-sys-tertiary);
-    word-break: normal;
-    pointer-events: none;
-
-    > div {
-      position: absolute;
-      top: -1.4em;
-      left: -1px;
-      font-size: 12px;
-      background-color: var(--mat-sys-tertiary);
-      font-family: var(--mat-ref-typeface-plain);
-      font-style: normal;
-      font-weight: normal;
-      line-height: normal;
-      user-select: none;
-      color: var(--mat-sys-on-tertiary);
-      padding: 2px 6px;
-      border-radius: 3px;
-      white-space: nowrap;
-      opacity: 0.9;
-    }
 }
 
 .dark-theme {
@@ -247,16 +252,18 @@ $dark-theme: mat.define-theme((
   @include mat.system-level-colors($dark-theme);
   @include mat.system-level-typography($dark-theme);
   & {
-    --card-background-color: var(--mat-sys-secondary-container);
+    --card-background-color: var(--mat-sys-surface-container-high);
     --ngx-editor-border-radius: 0;
     --ngx-editor-background-color: var(--mat-sys-surface-container-high);
     --ngx-editor-text-color: --mat-sys-on-surface;
     --ngx-editor-placeholder-color: #6c757d;
-    --ngx-editor-border-color: rgba(0, 0, 0, 0.0);
+    --ngx-editor-border-color: rgba(0, 0, 0, 0);
     --ngx-editor-wrapper-border-color: rgba(0, 0, 0, 0.2);
     --ngx-editor-menu-item-border-radius: 50%;
     --ngx-editor-menubar-bg-color: var(--mat-sys-surface-container-high);
-    --ngx-editor-menu-item-hover-bg-color: var(--mat-sys-surface-container-highest);
+    --ngx-editor-menu-item-hover-bg-color: var(
+      --mat-sys-surface-container-highest
+    );
     --ngx-editor-menubar-padding: 3px;
     --ngx-editor-menubar-height: 30px;
     --ngx-editor-blockquote-color: #ddd;
@@ -280,13 +287,13 @@ $dark-theme: mat.define-theme((
 
 /* ProseMirror-yjs cursor styles for dark theme */
 .dark-theme .ProseMirror-yjs-cursor {
-    border-left-color: var(--mat-sys-tertiary);
-    border-right-color: var(--mat-sys-tertiary);
+  border-left-color: var(--mat-sys-tertiary);
+  border-right-color: var(--mat-sys-tertiary);
 
-    > div {
-      background-color: var(--mat-sys-tertiary);
-      color: var(--mat-sys-on-tertiary);
-    }
+  > div {
+    background-color: var(--mat-sys-tertiary);
+    color: var(--mat-sys-on-tertiary);
+  }
 }
 
 body {
@@ -298,14 +305,20 @@ body {
   background-color: var(--mat-app-background-color);
   color: var(--mat-app-text-color);
 }
-html, body { height: 100% }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+}
 
 body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
   background-color: var(--mat-app-background-color);
   color: var(--mat-app-text-color);
 }
