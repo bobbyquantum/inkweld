@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { ProjectAPIService } from '../../../api-client/api/project-api.service';
 import { ProjectStateService } from '../../services/project-state.service';
@@ -66,6 +66,67 @@ describe('ImageElementEditorComponent', () => {
       mockProjectApiService.projectElementControllerDownloadImage
     ).toHaveBeenCalled();
     expect(component.imageUrl).toBeTruthy();
+  });
+
+  it('should handle error when downloading image fails', () => {
+    // Setup spy to console.error
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    // Make the API call return an error using throwError
+    mockProjectApiService.projectElementControllerDownloadImage.mockReturnValue(
+      throwError(() => new Error('Download failed'))
+    );
+
+    component.elementId = '123';
+    component.ngOnInit();
+    fixture.detectChanges();
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Error downloading image',
+      expect.any(Error)
+    );
+
+    // Clean up
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should not download image when project is null', () => {
+    mockProjectStateService.project = jest.fn(() => null);
+
+    component.elementId = '123';
+    component.ngOnInit();
+
+    expect(
+      mockProjectApiService.projectElementControllerDownloadImage
+    ).not.toHaveBeenCalled();
+  });
+
+  it('should not download image when project.user is null', () => {
+    mockProjectStateService.project = jest.fn(() => ({
+      user: null,
+      slug: 'test-project',
+    }));
+
+    component.elementId = '123';
+    component.ngOnInit();
+
+    expect(
+      mockProjectApiService.projectElementControllerDownloadImage
+    ).not.toHaveBeenCalled();
+  });
+
+  it('should not download image when project.slug is null', () => {
+    mockProjectStateService.project = jest.fn(() => ({
+      user: { username: 'testuser' },
+      slug: null,
+    }));
+
+    component.elementId = '123';
+    component.ngOnInit();
+
+    expect(
+      mockProjectApiService.projectElementControllerDownloadImage
+    ).not.toHaveBeenCalled();
   });
 
   it('should have a ProjectAPIService injected', () => {
