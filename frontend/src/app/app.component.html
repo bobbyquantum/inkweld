@@ -1,6 +1,6 @@
 @if (userService.error()?.code === 'SESSION_EXPIRED' && !offlineMode()) {
   <mat-toolbar color="warn" class="auth-error-bar">
-    <span>Your session has expired. Please re-authenticate to continue.</span>
+    <span>Your session has expired.</span>
     <div class="auth-error-actions">
       <button mat-button (click)="handleReAuthenticate()">
         Re-authenticate

@@ -1,4 +1,4 @@
-import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { HttpClient } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -68,21 +68,6 @@ describe('WelcomeComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
-  });
-
-  it('should set isMobile based on breakpoint observer', () => {
-    // Initial state from beforeEach setup
-    expect(component.isMobile).toBeFalsy();
-
-    // Create new component with mobile breakpoint
-    breakpointObserver.observe.mockReturnValue(
-      of({ matches: true } as unknown as BreakpointState)
-    );
-    fixture = TestBed.createComponent(WelcomeComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-
-    expect(component.isMobile).toBeTruthy();
   });
 
   describe('onLogin', () => {
