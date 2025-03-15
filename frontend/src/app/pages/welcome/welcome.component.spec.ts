@@ -70,6 +70,13 @@ describe('WelcomeComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('should render the logo image', () => {
+    const logoElement = fixture.nativeElement.querySelector('.logo-image');
+    expect(logoElement).toBeTruthy();
+    expect(logoElement.src).toContain('logo.png');
+    expect(logoElement.alt).toBe('Inkweld Logo');
+  });
+
   describe('onLogin', () => {
     beforeEach(() => {
       component.username = 'testuser';
