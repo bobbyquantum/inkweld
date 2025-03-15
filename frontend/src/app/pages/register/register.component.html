@@ -1,8 +1,13 @@
 <div class="register-container" [class.mobile]="isMobile">
   <div class="content-wrapper">
     <mat-card>
-      <mat-card-header><h2>Register for Inkweld</h2></mat-card-header>
-      <mat-card-content>
+      <div class="logo-container">
+        <img src="/logo.png" alt="Inkweld Logo" class="logo-image" />
+      </div>
+
+      <div class="card-content">
+        <h2 class="title">Register for Inkweld</h2>
+
         <form (ngSubmit)="onRegister()">
           <mat-form-field appearance="outline">
             <mat-label>Username</mat-label>
@@ -84,7 +89,11 @@
               required
               aria-label="Confirm Password" />
           </mat-form-field>
-          <button mat-raised-button color="primary" type="submit">
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            class="register-button">
             Register
           </button>
         </form>
@@ -95,12 +104,16 @@
           <app-oauth-provider-list
             [isRegisterContext]="true"></app-oauth-provider-list>
         </div>
-      </mat-card-content>
-      <mat-card-actions>
-        <button mat-button routerLink="/welcome">
+
+        <button
+          mat-raised-button
+          color="primary"
+          type="button"
+          routerLink="/welcome"
+          class="login-button">
           Already have an account? Login here
         </button>
-      </mat-card-actions>
+      </div>
     </mat-card>
   </div>
 </div>

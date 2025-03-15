@@ -1,16 +1,70 @@
 .register-container {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start; // Changed from center to flex-start
   min-height: 100vh;
   padding: 20px;
   box-sizing: border-box;
+  background-image: url('/background1.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  overflow-y: auto; // Add overflow handling
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(
+      255,
+      255,
+      255,
+      0.1
+    ); // Very light overlay for light mode
+    z-index: 0;
+  }
+
+  // Dark mode styling
+  .dark-theme & {
+    &::before {
+      background-color: rgba(0, 0, 0, 0.6); // Darker overlay for dark mode
+      // Apply vendor prefixes and provide proper browser support for backdrop-filter
+      -webkit-backdrop-filter: saturate(70%);
+      backdrop-filter: saturate(
+        70%
+      ); // Reduces saturation to wash out the image
+      @supports not (
+        (backdrop-filter: saturate(70%)) or
+          (-webkit-backdrop-filter: saturate(70%))
+      ) {
+        // Fallback for browsers that don't support backdrop-filter
+        background-color: rgba(
+          0,
+          0,
+          0,
+          0.7
+        ); // Slightly darker overlay as fallback
+      }
+    }
+  }
 }
 
 .content-wrapper {
   width: 100%;
   max-width: 400px;
   text-align: center;
+  position: relative;
+  z-index: 1; // Ensure content is above the overlay
+  margin-top: 60px; // Add top margin to make room for the logo
+  padding-top: 20px; // Add top padding for better spacing
+}
+
+h1 {
+  margin-bottom: 24px;
 }
 
 mat-card {
@@ -18,6 +72,30 @@ mat-card {
   padding: 24px;
   box-shadow: var(--mdc-elevated-card-container-elevation);
   background-color: var(--card-background-color);
+  position: relative;
+}
+
+.logo-container {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.logo-image {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+}
+
+.card-content {
+  padding-top: 50px; // Add padding to make room for the logo
+}
+
+.title {
+  margin-top: 16px;
+  margin-bottom: 24px;
 }
 
 form {
@@ -65,6 +143,11 @@ mat-divider {
   margin: 24px 0;
 }
 
+.register-button,
+.login-button {
+  width: 100%;
+}
+
 .mobile {
   .content-wrapper {
     max-width: 100%;
@@ -81,7 +164,7 @@ mat-divider {
   }
 }
 
-// New styles for username suggestions
+// Styles for username suggestions
 mat-hint {
   display: block;
   margin-top: 8px;
