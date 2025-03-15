@@ -8,7 +8,6 @@ import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
 import { UserAPIService } from '../../api-client/api/user-api.service';
 import { UserDto } from '../../api-client/model/user-dto';
-import { environment } from '../../environments/environment';
 import { StorageService } from './storage.service';
 
 export class UserServiceError extends Error {
@@ -160,19 +159,15 @@ export class UserService {
     this.error.set(undefined);
 
     try {
-      this.authService.authControllerLogin({ username, password });
-      const user = await firstValueFrom(
-        this.http.post<UserDto>(
-          `${environment.apiUrl}/login`,
-          {
-            username,
-            password,
-          },
-          { withCredentials: true }
-        )
+      const response = await firstValueFrom(
+        this.authService.authControllerLogin({ username, password })
       );
 
-      await this.setCurrentUser(user);
+      await this.setCurrentUser({
+        name: response.name,
+        avatarImageUrl: response.avatarImageUrl,
+        username: response.username,
+      });
       await this.router.navigate(['/']);
     } catch (err) {
       const error = this.formatError(err);

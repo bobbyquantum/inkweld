@@ -1,9 +1,15 @@
 import 'fake-indexeddb/auto';
 
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { UserDto } from '@inkweld/index';
+import { MatDialog } from '@angular/material/dialog';
+import { Router } from '@angular/router';
+import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
+import { AuthService, UserDto } from '@inkweld/index';
 import { UserAPIService } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 
@@ -26,9 +32,20 @@ const TEST_USER: UserDto = {
 describe('UserService', () => {
   let service: UserService;
   let storageService: StorageService;
+  let httpTestingController: HttpTestingController;
+  let authServiceMock: { authControllerLogin: jest.Mock };
+  let dialogMock: { open: jest.Mock };
+  let routerMock: { navigate: jest.Mock };
 
   beforeEach(() => {
     userServiceMock.userControllerGetMe.mockReturnValue(of(TEST_USER));
+    authServiceMock = { authControllerLogin: jest.fn() };
+    dialogMock = { open: jest.fn() };
+    routerMock = { navigate: jest.fn() };
+
+    dialogMock.open.mockReturnValue({
+      afterClosed: () => of(true),
+    });
 
     TestBed.configureTestingModule({
       providers: [
@@ -40,15 +57,29 @@ describe('UserService', () => {
           provide: UserAPIService,
           useValue: userServiceMock,
         },
+        {
+          provide: AuthService,
+          useValue: authServiceMock,
+        },
+        {
+          provide: MatDialog,
+          useValue: dialogMock,
+        },
+        {
+          provide: Router,
+          useValue: routerMock,
+        },
       ],
     });
 
     service = TestBed.inject(UserService);
     storageService = TestBed.inject(StorageService);
+    httpTestingController = TestBed.inject(HttpTestingController);
   });
 
   afterEach(() => {
     indexedDB = new IDBFactory();
+    httpTestingController.verify();
   });
 
   it('should be created', () => {
@@ -148,6 +179,145 @@ describe('UserService', () => {
         .mockRejectedValue(new Error('Storage error'));
       await expect(service.setCurrentUser(TEST_USER)).resolves.not.toThrow();
       expect(service.currentUser()).toEqual(TEST_USER);
+    });
+  });
+
+  describe('login', () => {
+    it('should login successfully', async () => {
+      const username = 'testuser';
+      const password = 'password123';
+
+      authServiceMock.authControllerLogin.mockReturnValue(of(TEST_USER));
+
+      await service.login(username, password);
+
+      // Verify the auth service was called
+      expect(authServiceMock.authControllerLogin).toHaveBeenCalledWith({
+        username,
+        password,
+      });
+
+      // Verify user was set and navigation happened
+      expect(service.currentUser()).toEqual(TEST_USER);
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/']);
+    });
+
+    it('should handle login failure with invalid credentials', async () => {
+      const username = 'wronguser';
+      const password = 'wrongpass';
+
+      const errorResponse = new HttpErrorResponse({
+        error: {
+          message: 'Invalid username or password',
+          error: 'Unauthorized',
+          statusCode: 401,
+        },
+        status: 401,
+        statusText: 'Unauthorized',
+      });
+
+      authServiceMock.authControllerLogin.mockReturnValue(
+        throwError(() => errorResponse)
+      );
+
+      const loginPromise = service.login(username, password);
+
+      await expect(loginPromise).rejects.toThrow(UserServiceError);
+      expect(service.error()?.code).toBe('LOGIN_FAILED');
+      expect(service.isLoading()).toBe(false);
+    });
+  });
+
+  describe('hasCachedUser', () => {
+    it('should return false when storage is not available', async () => {
+      jest.spyOn(storageService, 'isAvailable').mockReturnValue(false);
+      const result = await service.hasCachedUser();
+      expect(result).toBe(false);
+    });
+
+    it('should return true when cached user exists', async () => {
+      // First, set a user to cache it
+      await service.setCurrentUser(TEST_USER);
+
+      const result = await service.hasCachedUser();
+      expect(result).toBe(true);
+    });
+
+    it('should return false when no cached user exists', async () => {
+      // Clear any existing user
+      await service.clearCurrentUser();
+
+      const result = await service.hasCachedUser();
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('openSettingsDialog', () => {
+    it('should open settings dialog and handle success', async () => {
+      await service.openSettingsDialog();
+
+      expect(dialogMock.open).toHaveBeenCalledWith(
+        UserSettingsDialogComponent,
+        {
+          width: '700px',
+          disableClose: true,
+        }
+      );
+      expect(service.isLoading()).toBe(false);
+    });
+
+    it('should handle errors when opening settings dialog', async () => {
+      // Mock dialog to throw error
+      dialogMock.open.mockReturnValue({
+        afterClosed: () => throwError(() => new Error('Dialog error')),
+      });
+
+      await expect(service.openSettingsDialog()).rejects.toThrow(
+        UserServiceError
+      );
+      expect(service.isLoading()).toBe(false);
+    });
+  });
+
+  describe('formatError', () => {
+    it('should handle login failure errors', () => {
+      const httpError = new HttpErrorResponse({
+        error: {
+          message: 'Invalid username or password',
+          error: 'Unauthorized',
+          statusCode: 401,
+        },
+        status: 401,
+        statusText: 'Unauthorized',
+      });
+
+      // We need to access the private method through a workaround
+      const error = (service as any).formatError(httpError);
+
+      expect(error).toBeInstanceOf(UserServiceError);
+      expect(error.code).toBe('LOGIN_FAILED');
+    });
+
+    it('should handle general server errors', () => {
+      const httpError = new HttpErrorResponse({
+        error: new Error('Internal Server Error'),
+        status: 500,
+        statusText: 'Internal Server Error',
+      });
+
+      const error = (service as any).formatError(httpError);
+
+      expect(error).toBeInstanceOf(UserServiceError);
+      expect(error.code).toBe('SERVER_ERROR');
+    });
+
+    it('should handle non-HTTP errors', () => {
+      const genericError = new Error('Generic error');
+
+      const error = (service as any).formatError(genericError);
+
+      expect(error).toBeInstanceOf(UserServiceError);
+      expect(error.code).toBe('SERVER_ERROR');
     });
   });
 });
