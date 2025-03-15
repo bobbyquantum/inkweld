@@ -5,6 +5,10 @@
   min-height: 100vh;
   padding: 20px;
   box-sizing: border-box;
+  background-image: url('/background1.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .content-wrapper {
@@ -54,20 +58,4 @@ mat-divider {
 
 .register-link {
   margin-top: 16px;
-}
-
-.mobile {
-  .content-wrapper {
-    max-width: 100%;
-  }
-
-  mat-card {
-    padding: 16px;
-  }
-
-  .oauth-container {
-    button {
-      padding: 8px 16px;
-    }
-  }
 }
