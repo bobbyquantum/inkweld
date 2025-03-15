@@ -12,13 +12,22 @@ import { ProjectStateService } from './project-state.service';
 jest.mock('yjs', () => ({
   Doc: jest.fn(() => ({
     getXmlFragment: jest.fn(() => ({
-      toJSON: jest.fn(),
+      toJSON: jest.fn(() => ({ content: 'mocked content' })),
       insert: jest.fn(),
       delete: jest.fn(),
+      push: jest.fn(),
+      length: 10,
     })),
     destroy: jest.fn(),
   })),
   XmlFragment: jest.fn(),
+  XmlElement: jest.fn(() => ({
+    insert: jest.fn(),
+  })),
+  XmlText: jest.fn(() => ({
+    insert: jest.fn(),
+  })),
+  transact: jest.fn((doc, fn) => fn()),
 }));
 jest.mock('y-indexeddb');
 jest.mock('y-websocket');
@@ -207,6 +216,62 @@ describe('DocumentService', () => {
         DocumentSyncState.Offline
       );
     });
+
+    it('should initialize with Offline status', () => {
+      const syncStatus$ = service.getSyncStatus(testDocumentId);
+      let currentStatus: DocumentSyncState | undefined;
+      syncStatus$.subscribe(status => (currentStatus = status));
+
+      expect(currentStatus).toBe(DocumentSyncState.Offline);
+    });
+  });
+
+  describe('Document Import/Export', () => {
+    beforeEach(async () => {
+      await service.setupCollaboration(mockEditor, testDocumentId);
+    });
+
+    it('should export document content', done => {
+      service.exportDocument(testDocumentId).subscribe(content => {
+        expect(content).toEqual({ content: 'mocked content' });
+        done();
+      });
+    });
+
+    it('should throw error when exporting non-existent document', () => {
+      expect(() => service.exportDocument('non-existent')).toThrow(
+        'No connection found for document non-existent'
+      );
+    });
+
+    it('should import document content', () => {
+      const mockContent = '<p>Test content</p>';
+      service.importDocument(testDocumentId, mockContent);
+
+      // Verify Y.transact was called to update the document
+      expect(Y.transact).toHaveBeenCalled();
+    });
+
+    it('should throw error when importing to non-existent document', () => {
+      const mockContent = '<p>Test content</p>';
+      expect(() => service.importDocument('non-existent', mockContent)).toThrow(
+        'No connection found for document non-existent'
+      );
+    });
+
+    it('should import XML string into document fragment', () => {
+      // Setup
+      const testDoc = new Y.Doc();
+      const testFragment = testDoc.getXmlFragment('test');
+      const xmlContent = '<p>Test paragraph</p>';
+
+      // Call the method
+      service.importXmlString(testDoc, testFragment, xmlContent);
+
+      // Verify Y.transact was called to update the document
+      expect(Y.transact).toHaveBeenCalledWith(testDoc, expect.any(Function));
+      expect(testFragment.delete).toHaveBeenCalledWith(0, testFragment.length);
+    });
   });
 
   describe('Collaboration Setup', () => {
@@ -229,6 +294,25 @@ describe('DocumentService', () => {
         service.setupCollaboration(mockEditor, testDocumentId)
       ).rejects.toThrow('Editor Yjs not properly initialized');
     });
+
+    it('should throw error when connection is not properly initialized', async () => {
+      await service.setupCollaboration(mockEditor, testDocumentId);
+
+      // Corrupt the connection by removing the type
+      const connection = {
+        provider: mockWebSocketProvider,
+        ydoc: mockYDoc,
+        indexeddbProvider: mockIndexedDbProvider,
+        type: null,
+      };
+
+      // @ts-expect-error - Accessing private property for testing
+      service['connections'].set(testDocumentId, connection);
+
+      await expect(
+        service.setupCollaboration(mockEditor, testDocumentId)
+      ).rejects.toThrow('Editor Yjs not properly initialized');
+    });
   });
 
   describe('Network Handling', () => {
@@ -241,6 +325,23 @@ describe('DocumentService', () => {
       );
 
       expect(mockWebSocketProvider.connect).toHaveBeenCalled();
+    });
+
+    it('should handle WebSocket provider events', async () => {
+      // Setup
+      const statusHandler = jest.fn();
+      const errorHandler = jest.fn();
+
+      mockWebSocketProvider.on.mockImplementation((event, callback) => {
+        if (event === 'status') statusHandler(callback);
+        if (event === 'connection-error') errorHandler(callback);
+        return () => {};
+      });
+
+      await service.setupCollaboration(mockEditor, testDocumentId);
+
+      expect(statusHandler).toHaveBeenCalled();
+      expect(errorHandler).toHaveBeenCalled();
     });
   });
 });
