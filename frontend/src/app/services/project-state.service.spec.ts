@@ -498,6 +498,207 @@ describe('ProjectStateService', () => {
         expect(service.isValidDrop(image, image.level)).toBe(true); // Same level
         expect(service.isValidDrop(image, image.level + 1)).toBe(false); // Can't nest under image
       });
+
+      describe('getValidDropLevels', () => {
+        it('should handle case with no nodes', () => {
+          const result = service.getValidDropLevels(null, null);
+          expect(result.levels).toEqual([0]);
+          expect(result.defaultLevel).toBe(0);
+        });
+
+        it('should handle case with only nodeBelow', async () => {
+          await service.loadProject('testuser', 'test-project');
+          await service.addElement(ProjectElementDto.TypeEnum.Item, 'Item');
+          const nodeBelow = service.elements()[0];
+
+          const result = service.getValidDropLevels(null, nodeBelow);
+          expect(result.levels).toContain(nodeBelow.level);
+          expect(result.defaultLevel).toBe(nodeBelow.level);
+        });
+
+        it('should handle case with only nodeAbove', async () => {
+          await service.loadProject('testuser', 'test-project');
+          await service.addElement(ProjectElementDto.TypeEnum.Folder, 'Folder');
+          const folderAbove = service.elements()[0];
+
+          const result = service.getValidDropLevels(folderAbove, null);
+          // Should allow current level and child level for folders
+          expect(result.levels).toContain(folderAbove.level);
+          expect(result.levels).toContain(folderAbove.level + 1);
+          expect(result.defaultLevel).toBe(Math.min(...result.levels));
+
+          // Test with item above
+          await service.addElement(ProjectElementDto.TypeEnum.Item, 'Item');
+          const itemAbove = service.elements()[1];
+
+          const resultItem = service.getValidDropLevels(itemAbove, null);
+          // Should only allow current level for items
+          expect(resultItem.levels).toContain(itemAbove.level);
+        });
+
+        it('should handle nodeAbove with lower level than nodeBelow', async () => {
+          await service.loadProject('testuser', 'test-project');
+          await service.addElement(ProjectElementDto.TypeEnum.Folder, 'Folder');
+          const folderAbove = service.elements()[0];
+
+          await service.addElement(
+            ProjectElementDto.TypeEnum.Item,
+            'Child',
+            folderAbove.id
+          );
+          const nodeBelow = service.elements()[1];
+
+          const result = service.getValidDropLevels(folderAbove, nodeBelow);
+          expect(result.levels).toContain(nodeBelow.level);
+        });
+
+        it('should handle nodeAbove with same level as nodeBelow', async () => {
+          await service.loadProject('testuser', 'test-project');
+          await service.addElement(
+            ProjectElementDto.TypeEnum.Folder,
+            'Folder1'
+          );
+          const folderAbove = service.elements()[0];
+
+          await service.addElement(
+            ProjectElementDto.TypeEnum.Folder,
+            'Folder2'
+          );
+          const nodeBelow = service.elements()[1];
+
+          const result = service.getValidDropLevels(folderAbove, nodeBelow);
+          // Should allow same level and child level for folders
+          expect(result.levels).toContain(folderAbove.level);
+          expect(result.levels).toContain(folderAbove.level + 1);
+        });
+
+        it('should handle nodeAbove with higher level than nodeBelow', async () => {
+          await service.loadProject('testuser', 'test-project');
+          await service.addElement(ProjectElementDto.TypeEnum.Folder, 'Root');
+          const rootNode = service.elements()[0];
+
+          await service.addElement(
+            ProjectElementDto.TypeEnum.Folder,
+            'Child',
+            rootNode.id
+          );
+          const nodeAbove = service.elements()[1];
+
+          await service.addElement(
+            ProjectElementDto.TypeEnum.Item,
+            'Next Root'
+          );
+          const nodeBelow = service.elements()[2];
+
+          const result = service.getValidDropLevels(nodeAbove, nodeBelow);
+          // Should allow levels between the two nodes
+          expect(result.levels).toContain(nodeAbove.level);
+          expect(result.levels).toContain(nodeBelow.level);
+        });
+      });
+
+      describe('getDropInsertIndex', () => {
+        it('should return 0 for drop at root level with no nodeAbove', () => {
+          const index = service.getDropInsertIndex(null, 0);
+          expect(index).toBe(0);
+        });
+
+        it('should insert after nodeAbove when dropping at a deeper level', async () => {
+          await service.loadProject('testuser', 'test-project');
+          await service.addElement(ProjectElementDto.TypeEnum.Folder, 'Folder');
+          const folderNode = service.elements()[0];
+
+          const index = service.getDropInsertIndex(
+            folderNode,
+            folderNode.level + 1
+          );
+          expect(index).toBe(1); // Insert right after the folder
+        });
+
+        it('should insert after the entire subtree when dropping at same level', async () => {
+          await service.loadProject('testuser', 'test-project');
+          await service.addElement(ProjectElementDto.TypeEnum.Folder, 'Parent');
+          const parentNode = service.elements()[0];
+
+          await service.addElement(
+            ProjectElementDto.TypeEnum.Item,
+            'Child1',
+            parentNode.id
+          );
+          await service.addElement(
+            ProjectElementDto.TypeEnum.Item,
+            'Child2',
+            parentNode.id
+          );
+
+          const index = service.getDropInsertIndex(
+            parentNode,
+            parentNode.level
+          );
+          expect(index).toBe(3); // Insert after parent and its 2 children
+        });
+      });
+    });
+  });
+
+  describe('Tree Node Expansion', () => {
+    it('should toggle expanded state', async () => {
+      await service.loadProject('testuser', 'test-project');
+      await service.addElement(ProjectElementDto.TypeEnum.Folder, 'Folder');
+      const folder = service.elements()[0];
+
+      // Initial state should be collapsed
+      expect(service.isExpanded(folder.id)).toBe(false);
+
+      // Toggle to expanded
+      service.toggleExpanded(folder.id);
+      expect(service.isExpanded(folder.id)).toBe(true);
+
+      // Toggle back to collapsed
+      service.toggleExpanded(folder.id);
+      expect(service.isExpanded(folder.id)).toBe(false);
+    });
+
+    it('should explicitly set expanded state', async () => {
+      await service.loadProject('testuser', 'test-project');
+      await service.addElement(ProjectElementDto.TypeEnum.Folder, 'Folder');
+      const folder = service.elements()[0];
+
+      service.setExpanded(folder.id, true);
+      expect(service.isExpanded(folder.id)).toBe(true);
+
+      service.setExpanded(folder.id, false);
+      expect(service.isExpanded(folder.id)).toBe(false);
+    });
+  });
+
+  describe('Dialog Operations', () => {
+    it('should open new element dialog', () => {
+      const mockDialogResult = {
+        type: ProjectElementDto.TypeEnum.Folder,
+        name: 'New Test Folder',
+      };
+
+      service['dialogGateway'] = {
+        openNewElementDialog: jest.fn().mockResolvedValue(mockDialogResult),
+      } as any;
+
+      service.showNewElementDialog();
+
+      expect(service['dialogGateway'].openNewElementDialog).toHaveBeenCalled();
+    });
+
+    it('should handle dialog cancellation', () => {
+      const initialElements = service.elements();
+
+      service['dialogGateway'] = {
+        openNewElementDialog: jest.fn().mockResolvedValue(null),
+      } as any;
+
+      service.showNewElementDialog();
+
+      // No new elements should be added
+      expect(service.elements()).toEqual(initialElements);
     });
   });
 

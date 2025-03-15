@@ -1,7 +1,7 @@
 import { CdkDrag, CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { HttpClient } from '@angular/common/http';
-import { signal } from '@angular/core';
+import { ElementRef, signal } from '@angular/core';
 import {
   ComponentFixture,
   fakeAsync,
@@ -9,9 +9,11 @@ import {
   tick,
 } from '@angular/core/testing';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { MatSidenav } from '@angular/material/sidenav';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Title } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   ProjectAPIService,
   ProjectDto,
@@ -19,7 +21,12 @@ import {
 } from '@inkweld/index';
 import { BehaviorSubject, of } from 'rxjs';
 
+import { DocumentSyncState } from '../../models/document-sync-state';
+import { DialogGatewayService } from '../../services/dialog-gateway.service';
+import { DocumentService } from '../../services/document.service';
+import { ProjectImportExportService } from '../../services/project-import-export.service';
 import { ProjectStateService } from '../../services/project-state.service';
+import { RecentFilesService } from '../../services/recent-files.service';
 import { ProjectComponent } from './project.component';
 
 // Mock IndexedDB
@@ -59,6 +66,12 @@ describe('ProjectComponent', () => {
   let routeParams: BehaviorSubject<{ username: string; slug: string }>;
   let breakpointObserverMock: jest.Mocked<BreakpointObserver>;
   let mockDialogRef: MatDialogRef<unknown>;
+  let routerMock: jest.Mocked<Router>;
+  let recentFilesServiceMock: jest.Mocked<RecentFilesService>;
+  let documentServiceMock: jest.Mocked<DocumentService>;
+  let dialogGatewayServiceMock: jest.Mocked<DialogGatewayService>;
+  let titleServiceMock: jest.Mocked<Title>;
+  let importExportServiceMock: jest.Mocked<ProjectImportExportService>;
 
   const mockProject: ProjectDto = {
     id: '1',
@@ -148,6 +161,41 @@ describe('ProjectComponent', () => {
       showEditProjectDialog: jest.fn(),
     };
 
+    // Mock Router
+    routerMock = {
+      navigate: jest.fn().mockResolvedValue(true),
+    } as unknown as jest.Mocked<Router>;
+
+    // Mock RecentFilesService
+    recentFilesServiceMock = {
+      addRecentFile: jest.fn(),
+      getRecentFiles: jest.fn().mockReturnValue([]),
+      getRecentFilesForProject: jest.fn().mockReturnValue([]),
+    } as unknown as jest.Mocked<RecentFilesService>;
+
+    // Mock DocumentService
+    documentServiceMock = {
+      getSyncStatus: jest.fn().mockReturnValue(of(DocumentSyncState.Synced)),
+      disconnect: jest.fn(),
+    } as unknown as jest.Mocked<DocumentService>;
+
+    // Mock DialogGatewayService
+    dialogGatewayServiceMock = {
+      openConfirmationDialog: jest.fn().mockResolvedValue(true),
+      openEditProjectDialog: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<DialogGatewayService>;
+
+    // Mock Title service
+    titleServiceMock = {
+      setTitle: jest.fn(),
+    } as unknown as jest.Mocked<Title>;
+
+    // Mock ProjectImportExportService
+    importExportServiceMock = {
+      exportProjectZip: jest.fn().mockResolvedValue(undefined),
+      importProjectZip: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<ProjectImportExportService>;
+
     // Mock MatSnackBar
     snackBarMock = {
       open: jest.fn(),
@@ -187,6 +235,15 @@ describe('ProjectComponent', () => {
         { provide: ProjectStateService, useValue: projectStateServiceMock },
         { provide: MatSnackBar, useValue: snackBarMock },
         { provide: BreakpointObserver, useValue: breakpointObserverMock },
+        { provide: Router, useValue: routerMock },
+        { provide: RecentFilesService, useValue: recentFilesServiceMock },
+        { provide: DocumentService, useValue: documentServiceMock },
+        { provide: DialogGatewayService, useValue: dialogGatewayServiceMock },
+        { provide: Title, useValue: titleServiceMock },
+        {
+          provide: ProjectImportExportService,
+          useValue: importExportServiceMock,
+        },
         {
           provide: ActivatedRoute,
           useValue: { params: routeParams.asObservable() },
@@ -422,4 +479,210 @@ describe('ProjectComponent', () => {
       expect(projectStateServiceMock.showEditProjectDialog).toHaveBeenCalled();
     });
   });
+
+  // New tests to increase code coverage
+  describe('Navigation and guard methods', () => {
+    it('should navigate to home when exitProject is called', () => {
+      component.exitProject();
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/']);
+    });
+
+    it('should allow deactivation when no unsaved changes exist', async () => {
+      documentServiceMock.getSyncStatus.mockReturnValue(
+        of(DocumentSyncState.Synced)
+      );
+      const result = await component.canDeactivate();
+      expect(result).toBe(true);
+      expect(
+        dialogGatewayServiceMock.openConfirmationDialog
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should prompt for confirmation when unsaved changes exist', async () => {
+      // Set up unsaved changes
+      documentServiceMock.getSyncStatus.mockReturnValue(
+        of(DocumentSyncState.Offline)
+      );
+      projectStateServiceMock.openFiles?.set([mockElements[0]]);
+      fixture.detectChanges();
+
+      // Wait for the effect to run
+      await fixture.whenStable();
+
+      // Reset mock to test actual call in canDeactivate
+      dialogGatewayServiceMock.openConfirmationDialog.mockClear();
+      dialogGatewayServiceMock.openConfirmationDialog.mockResolvedValue(false);
+
+      const result = await component.canDeactivate();
+
+      expect(
+        dialogGatewayServiceMock.openConfirmationDialog
+      ).toHaveBeenCalledWith({
+        title: 'Unsaved Changes',
+        message: 'You have unsaved changes. Are you sure you want to leave?',
+        confirmText: 'Leave',
+        cancelText: 'Stay',
+      });
+      expect(result).toBe(false);
+    });
+
+    it('should handle beforeunload event correctly', () => {
+      // Setup for no unsaved changes
+      documentServiceMock.getSyncStatus.mockReturnValue(
+        of(DocumentSyncState.Synced)
+      );
+      const eventNoChanges = new Event('beforeunload') as BeforeUnloadEvent;
+      eventNoChanges.preventDefault = jest.fn();
+
+      const resultNoChanges = component.onBeforeUnload(eventNoChanges);
+      expect(resultNoChanges).toBe(true);
+      expect(eventNoChanges.preventDefault).not.toHaveBeenCalled();
+
+      // Setup for unsaved changes
+      documentServiceMock.getSyncStatus.mockReturnValue(
+        of(DocumentSyncState.Offline)
+      );
+      projectStateServiceMock.openFiles?.set([mockElements[0]]);
+      fixture.detectChanges();
+
+      const eventWithChanges = new Event('beforeunload') as BeforeUnloadEvent;
+      eventWithChanges.preventDefault = jest.fn();
+      Object.defineProperty(eventWithChanges, 'returnValue', {
+        writable: true,
+        value: '',
+      });
+
+      const resultWithChanges = component.onBeforeUnload(eventWithChanges);
+      expect(resultWithChanges).toBe('');
+      expect(eventWithChanges.preventDefault).toHaveBeenCalled();
+    });
+  });
+
+  describe('Sidenav interactions', () => {
+    it('should toggle sidenav when toggleSidenav is called', async () => {
+      // Mock the sidenav
+      component.sidenav = {
+        toggle: jest.fn().mockResolvedValue(undefined),
+      } as unknown as MatSidenav;
+
+      await component.toggleSidenav();
+      expect(component.sidenav.toggle).toHaveBeenCalled();
+    });
+  });
+
+  describe('Recent files functionality', () => {
+    it('should open a file when clicked in recent files', () => {
+      const fileId = '1';
+      projectStateServiceMock.elements?.set(mockElements);
+
+      component.onRecentFileClick(fileId);
+
+      expect(projectStateServiceMock.openFile).toHaveBeenCalledWith(
+        mockElements[0]
+      );
+    });
+
+    it('should open a file when Enter key is pressed in recent files', () => {
+      const fileId = '1';
+      projectStateServiceMock.elements?.set(mockElements);
+
+      const event = new KeyboardEvent('keydown', { key: 'Enter' });
+      component.onRecentFileKeydown(event, fileId);
+
+      expect(projectStateServiceMock.openFile).toHaveBeenCalledWith(
+        mockElements[0]
+      );
+    });
+
+    it('should open a file when Space key is pressed in recent files', () => {
+      const fileId = '1';
+      projectStateServiceMock.elements?.set(mockElements);
+
+      const event = new KeyboardEvent('keydown', { key: ' ' });
+      component.onRecentFileKeydown(event, fileId);
+
+      expect(projectStateServiceMock.openFile).toHaveBeenCalledWith(
+        mockElements[0]
+      );
+    });
+
+    it('should not open a file when other keys are pressed in recent files', () => {
+      const fileId = '1';
+      projectStateServiceMock.elements?.set(mockElements);
+
+      const event = new KeyboardEvent('keydown', { key: 'a' });
+      component.onRecentFileKeydown(event, fileId);
+
+      expect(projectStateServiceMock.openFile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Import and Export functionality', () => {
+    it('should trigger project export when onExportClick is called', () => {
+      projectStateServiceMock.project?.set(mockProject);
+
+      component.onExportClick();
+
+      expect(importExportServiceMock.exportProjectZip).toHaveBeenCalled();
+    });
+
+    it('should trigger file input click when onImportClick is called', () => {
+      // Mock the file input element
+      component.fileInput = {
+        nativeElement: { click: jest.fn() },
+      } as unknown as ElementRef<HTMLInputElement>;
+
+      component.onImportClick();
+
+      expect(component.fileInput.nativeElement.click).toHaveBeenCalled();
+    });
+
+    it('should import project when file is selected', () => {
+      projectStateServiceMock.project?.set(mockProject);
+
+      const file = new File(['dummy content'], 'project.zip', {
+        type: 'application/zip',
+      });
+      const event = { target: { files: [file] } } as unknown as Event;
+
+      component.onFileSelected(event);
+
+      expect(importExportServiceMock.importProjectZip).toHaveBeenCalledWith(
+        file
+      );
+    });
+
+    it('should not import if no file is selected', () => {
+      projectStateServiceMock.project?.set(mockProject);
+
+      const event = { target: { files: [] } } as unknown as Event;
+
+      component.onFileSelected(event);
+
+      expect(importExportServiceMock.importProjectZip).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Project editing', () => {
+    it('should open edit project dialog through dialog gateway', () => {
+      projectStateServiceMock.project?.set(mockProject);
+
+      component.openEditDialog();
+
+      expect(
+        dialogGatewayServiceMock.openEditProjectDialog
+      ).toHaveBeenCalledWith(mockProject);
+    });
+  });
+
+  describe('Title setting', () => {
+    it('should update document title when project changes', () => {
+      projectStateServiceMock.project?.set(mockProject);
+      fixture.detectChanges();
+
+      expect(titleServiceMock.setTitle).toHaveBeenCalledWith('Test Project');
+    });
+  });
+
+  // Existing code sections can remain as they are
 });

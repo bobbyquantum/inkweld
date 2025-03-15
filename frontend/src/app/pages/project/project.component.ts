@@ -259,14 +259,8 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   openEditDialog() {
-    console.log(
-      'projectState.project() in openEditDialog:',
-      this.projectState.project()
-    );
     const project = this.projectState.project();
-    if (!project) return;
-
-    void this.dialogGateway.openEditProjectDialog(project);
+    void this.dialogGateway.openEditProjectDialog(project!);
   }
 
   private getSidenavWidth = (): number => {
