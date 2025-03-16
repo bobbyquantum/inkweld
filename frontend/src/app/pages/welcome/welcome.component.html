@@ -15,6 +15,7 @@
               matInput
               type="text"
               [(ngModel)]="username"
+              (ngModelChange)="onUsernameChange()"
               name="username"
               required
               aria-label="Username" />
@@ -26,17 +27,26 @@
               matInput
               type="password"
               [(ngModel)]="password"
+              (ngModelChange)="onPasswordChange()"
               name="password"
               required
               aria-label="Password" />
           </mat-form-field>
-
+          
+          <!-- Custom error message with icon -->
+          <div *ngIf="passwordError" class="password-error-message">
+            <mat-icon class="error-icon">error_outline</mat-icon>
+            <span>{{ passwordError }}</span>
+          </div>
+          
           <button
             mat-raised-button
             color="primary"
             type="submit"
+            [disabled]="isLoginButtonDisabled()"
             class="login-button">
-            Login
+            <span *ngIf="!isLoggingIn">Login</span>
+            <span *ngIf="isLoggingIn">Logging in...</span>
           </button>
         </form>
 

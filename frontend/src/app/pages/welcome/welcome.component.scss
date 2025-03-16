@@ -127,3 +127,30 @@ mat-divider {
 .register-button {
   width: 100%;
 }
+
+// Updated password error message with proper Material Design styling
+.password-error-message {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin: -4px 0 12px 0;
+  border-radius: 4px;
+  background-color: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.15px;
+  
+  // Add a subtle border for better definition
+  border: 1px solid var(--mat-sys-error);
+  
+  // Style the error icon
+  .error-icon {
+    margin-right: 8px;
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+    color: var(--mat-sys-on-error-container);
+  }
+}
