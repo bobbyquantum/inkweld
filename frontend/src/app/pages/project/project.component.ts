@@ -32,7 +32,6 @@ import { ProjectStateService } from '@services/project-state.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 
 import { FolderElementEditorComponent } from '../../components/folder-element-editor/folder-element-editor.component';
-import { ImageElementEditorComponent } from '../../components/image-element-editor/image-element-editor.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { RecentFilesService } from '../../services/recent-files.service';
@@ -53,7 +52,6 @@ import { RecentFilesService } from '../../services/recent-files.service';
     DocumentElementEditorComponent,
     CommonModule,
     UserMenuComponent,
-    ImageElementEditorComponent,
     FolderElementEditorComponent,
   ],
   standalone: true,

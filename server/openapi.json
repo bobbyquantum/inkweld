@@ -272,6 +272,320 @@
         ]
       }
     },
+    "/api/v1/projects/{username}/{slug}/elements": {
+      "get": {
+        "operationId": "ProjectElementController_getProjectElements",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved elements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectElementDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Doc not found (unlikely with Yjs)"
+          }
+        },
+        "summary": "Get all elements for a project (from Yjs doc)",
+        "tags": [
+          "Project API"
+        ]
+      },
+      "put": {
+        "operationId": "ProjectElementController_replaceProjectElements",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-XSRF-TOKEN",
+            "required": true,
+            "in": "header",
+            "description": "CSRF token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProjectElementDto"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Elements replaced in the Y.Doc",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectElementDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation errors"
+          },
+          "403": {
+            "description": "User not permitted"
+          },
+          "404": {
+            "description": "Doc not found"
+          }
+        },
+        "summary": "Replace the entire elements array in the Yjs doc",
+        "tags": [
+          "Project API"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{projectSlug}/files": {
+      "post": {
+        "operationId": "ProjectFilesController_uploadFile",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-XSRF-TOKEN",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "File uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileUploadResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Upload a file to project",
+        "tags": [
+          "project-files"
+        ]
+      },
+      "get": {
+        "operationId": "ProjectFilesController_listFiles",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of files in the project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileMetadataDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List all files in a project",
+        "tags": [
+          "project-files"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{projectSlug}/files/{storedName}": {
+      "get": {
+        "operationId": "ProjectFilesController_getFile",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "storedName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File stream"
+          }
+        },
+        "summary": "Download a file from project",
+        "tags": [
+          "project-files"
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectFilesController_deleteFile",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "storedName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-XSRF-TOKEN",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileDeleteResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Delete a file from project",
+        "tags": [
+          "project-files"
+        ]
+      }
+    },
     "/api/v1/users/me": {
       "get": {
         "description": "Retrieves the profile information of the authenticated user.",
@@ -573,270 +887,6 @@
         ]
       }
     },
-    "/api/v1/projects/{username}/{slug}/elements": {
-      "get": {
-        "operationId": "ProjectElementController_getProjectElements",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved elements",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ProjectElementDto"
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Doc not found (unlikely with Yjs)"
-          }
-        },
-        "summary": "Get all elements for a project (from Yjs doc)",
-        "tags": [
-          "Project API"
-        ]
-      },
-      "put": {
-        "operationId": "ProjectElementController_replaceProjectElements",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "X-XSRF-TOKEN",
-            "required": true,
-            "in": "header",
-            "description": "CSRF token",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ProjectElementDto"
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Elements replaced in the Y.Doc",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ProjectElementDto"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation errors"
-          },
-          "403": {
-            "description": "User not permitted"
-          },
-          "404": {
-            "description": "Doc not found"
-          }
-        },
-        "summary": "Replace the entire elements array in the Yjs doc",
-        "tags": [
-          "Project API"
-        ]
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/elements/{elementId}/image": {
-      "post": {
-        "operationId": "ProjectElementController_uploadImage",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "elementId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Image successfully uploaded"
-          },
-          "404": {
-            "description": "Element not found"
-          }
-        },
-        "summary": "Upload image for project element",
-        "tags": [
-          "Project API"
-        ]
-      },
-      "get": {
-        "operationId": "ProjectElementController_downloadImage",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "elementId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Image file stream",
-            "content": {
-              "image/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/StreamableFile"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Image not found"
-          }
-        },
-        "summary": "Download image for project element",
-        "tags": [
-          "Project API"
-        ]
-      },
-      "delete": {
-        "operationId": "ProjectElementController_deleteImage",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "elementId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Image successfully deleted"
-          },
-          "404": {
-            "description": "Image not found"
-          }
-        },
-        "summary": "Delete image for project element",
-        "tags": [
-          "Project API"
-        ]
-      }
-    },
     "/mcp/sse": {
       "get": {
         "operationId": "McpController_getSse",
@@ -945,6 +995,148 @@
           "updatedDate"
         ]
       },
+      "ProjectElementDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier of the element",
+            "example": "d42200be-2a40-4c3e-9c35-47c8f641c8ea"
+          },
+          "version": {
+            "type": "number",
+            "description": "Version for optimistic locking"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the element",
+            "example": "Chapter 1"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of the element (FOLDER/ITEM/IMAGE)",
+            "enum": [
+              "FOLDER",
+              "ITEM"
+            ],
+            "example": "FOLDER"
+          },
+          "position": {
+            "type": "number",
+            "description": "Position for ordering elements",
+            "example": 1
+          },
+          "level": {
+            "type": "number",
+            "description": "Level in the tree hierarchy",
+            "example": 0
+          },
+          "expandable": {
+            "type": "boolean",
+            "description": "Whether the element can be expanded (computed from type)"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Metadata associated with the project element"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "name",
+          "type",
+          "position",
+          "level",
+          "expandable",
+          "metadata"
+        ]
+      },
+      "FileUploadResponseDto": {
+        "type": "object",
+        "properties": {
+          "originalName": {
+            "type": "string",
+            "description": "Original filename provided by the user"
+          },
+          "storedName": {
+            "type": "string",
+            "description": "System-generated unique name for storage"
+          },
+          "contentType": {
+            "type": "string",
+            "description": "Content type/extension of the file"
+          },
+          "size": {
+            "type": "number",
+            "description": "Size of the file in bytes"
+          },
+          "uploadDate": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Date when the file was uploaded"
+          },
+          "fileUrl": {
+            "type": "string",
+            "description": "URL to access the file"
+          }
+        },
+        "required": [
+          "originalName",
+          "storedName",
+          "contentType",
+          "size",
+          "uploadDate",
+          "fileUrl"
+        ]
+      },
+      "FileMetadataDto": {
+        "type": "object",
+        "properties": {
+          "originalName": {
+            "type": "string",
+            "description": "Original filename provided by the user"
+          },
+          "storedName": {
+            "type": "string",
+            "description": "System-generated unique name for storage"
+          },
+          "contentType": {
+            "type": "string",
+            "description": "Content type/extension of the file"
+          },
+          "size": {
+            "type": "number",
+            "description": "Size of the file in bytes"
+          },
+          "uploadDate": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Date when the file was uploaded"
+          }
+        },
+        "required": [
+          "originalName",
+          "storedName",
+          "contentType",
+          "size",
+          "uploadDate"
+        ]
+      },
+      "FileDeleteResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Status message for the deletion operation"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
       "UserRegisterDto": {
         "type": "object",
         "properties": {
@@ -1028,70 +1220,6 @@
           "enabled",
           "sessionId"
         ]
-      },
-      "ProjectElementDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique identifier of the element",
-            "example": "d42200be-2a40-4c3e-9c35-47c8f641c8ea"
-          },
-          "version": {
-            "type": "number",
-            "description": "Version for optimistic locking"
-          },
-          "name": {
-            "type": "string",
-            "description": "Name of the element",
-            "example": "Chapter 1"
-          },
-          "type": {
-            "type": "string",
-            "description": "Type of the element (FOLDER/ITEM/IMAGE)",
-            "enum": [
-              "FOLDER",
-              "ITEM",
-              "IMAGE"
-            ],
-            "example": "FOLDER"
-          },
-          "position": {
-            "type": "number",
-            "description": "Position for ordering elements",
-            "example": 1
-          },
-          "level": {
-            "type": "number",
-            "description": "Level in the tree hierarchy",
-            "example": 0
-          },
-          "expandable": {
-            "type": "boolean",
-            "description": "Whether the element can be expanded (computed from type)"
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "Metadata associated with the project element"
-          }
-        },
-        "required": [
-          "id",
-          "version",
-          "name",
-          "type",
-          "position",
-          "level",
-          "expandable",
-          "metadata"
-        ]
-      },
-      "StreamableFile": {
-        "type": "object",
-        "properties": {}
       }
     }
   }

@@ -16,12 +16,10 @@ import { ProjectElementDto } from '../../../api-client/model/project-element-dto
 interface NewElementForm {
   name: FormControl<string>;
   type: FormControl<ProjectElementDto.TypeEnum>;
-  file: FormControl<File | null>;
 }
 export interface NewElementDialogResult {
   name: string;
   type: ProjectElementDto.TypeEnum;
-  file: File | null;
 }
 @Component({
   selector: 'app-new-element-dialog',
@@ -40,7 +38,6 @@ export class NewElementDialogComponent {
   readonly elementTypes: ProjectElementDto.TypeEnum[] = [
     ProjectElementDto.TypeEnum.Folder,
     ProjectElementDto.TypeEnum.Item,
-    ProjectElementDto.TypeEnum.Image,
   ];
 
   readonly form: FormGroup<NewElementForm>;
@@ -61,16 +58,8 @@ export class NewElementDialogComponent {
           validators: [Validators.required],
         }
       ),
-      file: new FormControl<File | null>(null),
     });
   }
-
-  onFileChange = (event: Event): void => {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (file) {
-      this.form.controls.file.setValue(file);
-    }
-  };
 
   onCancel = (): void => {
     this.dialogRef.close();
@@ -81,7 +70,6 @@ export class NewElementDialogComponent {
       const result: NewElementDialogResult = {
         name: this.form.controls.name.value,
         type: this.form.controls.type.value,
-        file: this.form.controls.file.value,
       };
       this.dialogRef.close(result);
     }
