@@ -33,17 +33,75 @@ import { Subject } from 'rxjs';
 export class WelcomeComponent {
   username = '';
   password = '';
+  passwordError: string | null = null;
+  isLoggingIn = false;
+  lastAttemptedPassword = '';
 
   private snackBar = inject(MatSnackBar);
   private userService = inject(UserService);
   private destroy$ = new Subject<void>();
 
+  // Clear error when username is changed
+  onUsernameChange(): void {
+    if (this.passwordError) {
+      this.passwordError = null;
+    }
+  }
+
+  // Clear error when password is changed
+  onPasswordChange(): void {
+    if (this.passwordError) {
+      this.passwordError = null;
+    }
+    
+    // If password is different from the last attempt, clear the lastAttemptedPassword
+    if (this.password !== this.lastAttemptedPassword) {
+      this.lastAttemptedPassword = '';
+    }
+  }
+
+  // Check if form is valid and can be submitted
+  isFormValid(): boolean {
+    // Basic form validation - fields must not be empty
+    const basicValidation = this.username.trim() !== '' && this.password.trim() !== '';
+    
+    // Don't allow resubmitting the same failing password
+    const notSameFailedPassword = this.password !== this.lastAttemptedPassword || this.lastAttemptedPassword === '';
+    
+    return basicValidation && notSameFailedPassword;
+  }
+
+  // Check if login button should be disabled
+  isLoginButtonDisabled(): boolean {
+    return !this.isFormValid() || this.isLoggingIn;
+  }
+
   async onLogin(): Promise<void> {
+    // Clear previous error messages
+    this.passwordError = null;
+
+    // Validate form before submission
+    if (!this.isFormValid()) {
+      this.passwordError = 'Please enter both username and password.';
+      return;
+    }
+
+    // Set loading state
+    this.isLoggingIn = true;
+
     try {
       await this.userService.login(this.username, this.password);
+      // Login successful - no need to do anything here as user will be redirected
     } catch (error) {
       if (error instanceof UserServiceError) {
         if (error.code === 'LOGIN_FAILED') {
+          // Remember the failed password attempt
+          this.lastAttemptedPassword = this.password;
+          
+          // Set form-level error for password field
+          this.passwordError = 'Invalid username or password. Please check your credentials.';
+
+          // Also keep the snackbar notification for accessibility
           this.snackBar.open(
             'Invalid username or password. Please check your credentials.',
             'Close',
@@ -66,6 +124,9 @@ export class WelcomeComponent {
           }
         );
       }
+    } finally {
+      // Always reset loading state when done
+      this.isLoggingIn = false;
     }
   }
 }
