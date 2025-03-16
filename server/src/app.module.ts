@@ -4,7 +4,6 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { AuthModule } from './auth/auth.module.js';
 import { PassportModule } from '@nestjs/passport';
 import { ProjectModule } from './project/project.module.js';
-import { ProjectElementModule } from './project/element/project-element.module.js';
 import { WsModule } from './ws/ws.module.js';
 import { McpModule } from './mcp/mcp.module.js';
 import { LevelDBManagerService } from './common/persistence/leveldb-manager.service.js';
