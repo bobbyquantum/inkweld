@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,7 +15,6 @@ import { Subject } from 'rxjs';
 @Component({
   selector: 'app-welcome',
   imports: [
-    CommonModule,
     FormsModule,
     RouterLink,
     MatCardModule,
@@ -53,7 +51,7 @@ export class WelcomeComponent {
     if (this.passwordError) {
       this.passwordError = null;
     }
-    
+
     // If password is different from the last attempt, clear the lastAttemptedPassword
     if (this.password !== this.lastAttemptedPassword) {
       this.lastAttemptedPassword = '';
@@ -63,11 +61,14 @@ export class WelcomeComponent {
   // Check if form is valid and can be submitted
   isFormValid(): boolean {
     // Basic form validation - fields must not be empty
-    const basicValidation = this.username.trim() !== '' && this.password.trim() !== '';
-    
+    const basicValidation =
+      this.username.trim() !== '' && this.password.trim() !== '';
+
     // Don't allow resubmitting the same failing password
-    const notSameFailedPassword = this.password !== this.lastAttemptedPassword || this.lastAttemptedPassword === '';
-    
+    const notSameFailedPassword =
+      this.password !== this.lastAttemptedPassword ||
+      this.lastAttemptedPassword === '';
+
     return basicValidation && notSameFailedPassword;
   }
 
@@ -97,9 +98,10 @@ export class WelcomeComponent {
         if (error.code === 'LOGIN_FAILED') {
           // Remember the failed password attempt
           this.lastAttemptedPassword = this.password;
-          
+
           // Set form-level error for password field
-          this.passwordError = 'Invalid username or password. Please check your credentials.';
+          this.passwordError =
+            'Invalid username or password. Please check your credentials.';
 
           // Also keep the snackbar notification for accessibility
           this.snackBar.open(
