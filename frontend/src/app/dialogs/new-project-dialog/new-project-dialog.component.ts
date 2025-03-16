@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, effect, inject } from '@angular/core';
 import {
   FormBuilder,
@@ -25,7 +24,6 @@ import { UserService } from '../../services/user.service';
   styleUrls: ['./new-project-dialog.component.scss'],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,

@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   Component,
   inject,
@@ -18,12 +17,7 @@ import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-oauth-provider-list',
-  imports: [
-    CommonModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-  ],
+  imports: [MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   template: `
     @if (isLoadingProviders() || hasAnyProviderEnabled()) {
       <div class="oauth-container">

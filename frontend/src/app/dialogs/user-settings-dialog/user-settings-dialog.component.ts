@@ -7,7 +7,6 @@ import {
   trigger,
 } from '@angular/animations';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { CommonModule } from '@angular/common';
 import { Component, inject, Input, OnDestroy, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -58,7 +57,6 @@ const slideAnimation = trigger('slideAnimation', [
 @Component({
   selector: 'app-user-settings-dialog',
   imports: [
-    CommonModule,
     MatDialogTitle,
     MatDialogContent,
     MatDialogClose,

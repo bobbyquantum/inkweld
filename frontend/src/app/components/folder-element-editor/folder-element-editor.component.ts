@@ -4,7 +4,6 @@ import {
   CdkDropList,
   DragDropModule,
 } from '@angular/cdk/drag-drop';
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -33,7 +32,6 @@ type ViewMode = 'grid' | 'list';
   selector: 'app-folder-element-editor',
   standalone: true,
   imports: [
-    CommonModule,
     MatButtonModule,
     MatButtonToggleModule,
     MatCardModule,

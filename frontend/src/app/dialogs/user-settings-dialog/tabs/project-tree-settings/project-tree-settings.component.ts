@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -8,7 +7,7 @@ import { SettingsService } from '@services/settings.service';
 @Component({
   selector: 'app-project-tree-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatCheckboxModule, MatFormFieldModule],
+  imports: [FormsModule, MatCheckboxModule, MatFormFieldModule],
   templateUrl: './project-tree-settings.component.html',
   styleUrl: './project-tree-settings.component.scss',
 })

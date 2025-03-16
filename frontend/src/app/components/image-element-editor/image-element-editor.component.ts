@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -15,7 +14,7 @@ import { ProjectStateService } from '../../services/project-state.service';
 @Component({
   selector: 'app-image-element-editor',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './image-element-editor.component.html',
   styleUrl: './image-element-editor.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

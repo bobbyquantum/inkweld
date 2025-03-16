@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   Component,
   ElementRef,
@@ -31,7 +30,6 @@ import { firstValueFrom } from 'rxjs';
   styleUrls: ['./edit-project-dialog.component.scss'],
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatFormFieldModule,

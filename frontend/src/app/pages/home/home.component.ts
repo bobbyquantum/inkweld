@@ -1,5 +1,4 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { CommonModule } from '@angular/common';
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -19,7 +18,6 @@ import { catchError, EMPTY, Subject, takeUntil } from 'rxjs';
 @Component({
   selector: 'app-home',
   imports: [
-    CommonModule,
     UserMenuComponent,
     ProjectCardComponent,
     MatToolbarModule,
