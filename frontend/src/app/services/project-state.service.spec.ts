@@ -130,7 +130,6 @@ describe('ProjectStateService', () => {
       projectControllerGetProjectByUsernameAndSlug: jest
         .fn()
         .mockReturnValue(of(mockProject)),
-      projectElementControllerUploadImage: jest.fn().mockReturnValue(of({})),
     } as unknown as jest.Mocked<ProjectAPIService>;
 
     mockWebsocketProvider = {
@@ -344,50 +343,6 @@ describe('ProjectStateService', () => {
       expect(service.isExpanded(parent.id)).toBe(true);
     });
 
-    it('should handle image upload when adding image element', async () => {
-      const imageFile = new File(['test'], 'test.png', { type: 'image/png' });
-      service.project.set(mockProject);
-      await service.loadProject('testuser', 'test-project');
-
-      await service.addElement(
-        ProjectElementDto.TypeEnum.Image,
-        'New Image',
-        undefined,
-        imageFile
-      );
-
-      expect(
-        mockProjectAPI.projectElementControllerUploadImage
-      ).toHaveBeenCalledWith(
-        mockProject.user!.username,
-        mockProject.slug,
-        expect.any(String),
-        imageFile
-      );
-    });
-
-    it('should handle image upload failure', async () => {
-      const imageFile = new File(['test'], 'test.png', { type: 'image/png' });
-      service.project.set(mockProject);
-      await service.loadProject('testuser', 'test-project');
-
-      mockProjectAPI.projectElementControllerUploadImage.mockReturnValue(
-        throwError(() => new Error('Upload failed'))
-      );
-
-      await expect(
-        service.addElement(
-          ProjectElementDto.TypeEnum.Image,
-          'New Image',
-          undefined,
-          imageFile
-        )
-      ).rejects.toThrow('Failed to upload image');
-
-      // Verify the element was removed after failed upload
-      expect(service.elements()).toHaveLength(0);
-    });
-
     it('should maintain correct positions when adding elements', async () => {
       await service.loadProject('testuser', 'test-project');
 
@@ -488,15 +443,6 @@ describe('ProjectStateService', () => {
 
         expect(service.isValidDrop(item, item.level)).toBe(true); // Same level
         expect(service.isValidDrop(item, item.level + 1)).toBe(false); // Can't nest under item
-      });
-
-      it('should validate drops relative to images', async () => {
-        await service.loadProject('testuser', 'test-project');
-        await service.addElement(ProjectElementDto.TypeEnum.Image, 'Image');
-        const image = service.elements()[0];
-
-        expect(service.isValidDrop(image, image.level)).toBe(true); // Same level
-        expect(service.isValidDrop(image, image.level + 1)).toBe(false); // Can't nest under image
       });
 
       describe('getValidDropLevels', () => {

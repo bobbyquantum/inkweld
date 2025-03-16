@@ -5,11 +5,15 @@ api/api.ts
 api/auth.service.ts
 api/mcp.service.ts
 api/project-api.service.ts
+api/project-files.service.ts
 api/user-api.service.ts
 configuration.ts
 encoder.ts
 git_push.sh
 index.ts
+model/file-delete-response-dto.ts
+model/file-metadata-dto.ts
+model/file-upload-response-dto.ts
 model/login-request-dto.ts
 model/login-response-dto.ts
 model/models.ts

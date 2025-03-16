@@ -48,7 +48,6 @@ describe('NewElementDialogComponent', () => {
     expect(component.form.get('type')?.value).toBe(
       ProjectElementDto.TypeEnum.Item
     );
-    expect(component.form.get('file')?.value).toBeNull();
   });
 
   it('should validate required fields', () => {
@@ -62,15 +61,6 @@ describe('NewElementDialogComponent', () => {
     expect(component.form.valid).toBeTruthy();
   });
 
-  it('should handle file selection', () => {
-    const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
-    const event = { target: { files: [file] } } as unknown as Event;
-
-    component.onFileChange(event);
-
-    expect(component.form.get('file')?.value).toBe(file);
-  });
-
   it('should close dialog on cancel', () => {
     component.onCancel();
     expect(dialogRef.close).toHaveBeenCalled();
@@ -80,7 +70,6 @@ describe('NewElementDialogComponent', () => {
     const formValue = {
       name: 'Test Element',
       type: ProjectElementDto.TypeEnum.Item,
-      file: null,
     };
 
     component.form.patchValue(formValue);
@@ -92,16 +81,5 @@ describe('NewElementDialogComponent', () => {
   it('should not close dialog on create when invalid', () => {
     component.onCreate();
     expect(dialogRef.close).not.toHaveBeenCalled();
-  });
-
-  it('should show file upload section only for IMAGE type', () => {
-    fixture.detectChanges();
-    let fileUpload = fixture.nativeElement.querySelector('.file-upload');
-    expect(fileUpload).toBeNull();
-
-    component.form.patchValue({ type: ProjectElementDto.TypeEnum.Image });
-    fixture.detectChanges();
-    fileUpload = fixture.nativeElement.querySelector('.file-upload');
-    expect(fileUpload).toBeTruthy();
   });
 });
