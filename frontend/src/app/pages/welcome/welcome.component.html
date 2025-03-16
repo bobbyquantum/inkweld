@@ -32,21 +32,27 @@
               required
               aria-label="Password" />
           </mat-form-field>
-          
+
           <!-- Custom error message with icon -->
-          <div *ngIf="passwordError" class="password-error-message">
-            <mat-icon class="error-icon">error_outline</mat-icon>
-            <span>{{ passwordError }}</span>
-          </div>
-          
+          @if (passwordError) {
+            <div class="password-error-message">
+              <mat-icon class="error-icon">error_outline</mat-icon>
+              <span>{{ passwordError }}</span>
+            </div>
+          }
+
           <button
             mat-raised-button
             color="primary"
             type="submit"
             [disabled]="isLoginButtonDisabled()"
             class="login-button">
-            <span *ngIf="!isLoggingIn">Login</span>
-            <span *ngIf="isLoggingIn">Logging in...</span>
+            @if (!isLoggingIn) {
+              <span>Login</span>
+            }
+            @if (isLoggingIn) {
+              <span>Logging in...</span>
+            }
           </button>
         </form>
 
