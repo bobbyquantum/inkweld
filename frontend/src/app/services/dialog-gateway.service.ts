@@ -8,6 +8,7 @@ import {
   ConfirmationDialogData,
 } from '../dialogs/confirmation-dialog/confirmation-dialog.component';
 import { EditProjectDialogComponent } from '../dialogs/edit-project-dialog/edit-project-dialog.component';
+import { FileUploadComponent } from '../dialogs/file-upload/file-upload.component';
 import {
   NewElementDialogComponent,
   NewElementDialogResult,
@@ -62,6 +63,14 @@ export class DialogGatewayService {
       data,
       disableClose: true,
       width: '400px',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openFileUploadDialog(): Promise<File | null> {
+    const dialogRef = this.dialog.open(FileUploadComponent, {
+      width: '500px',
+      disableClose: true,
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

@@ -44,11 +44,10 @@ export interface ProjectElementDto {
     metadata: { [key: string]: string; };
 }
 export namespace ProjectElementDto {
-    export type TypeEnum = 'FOLDER' | 'ITEM' | 'IMAGE';
+    export type TypeEnum = 'FOLDER' | 'ITEM';
     export const TypeEnum = {
         Folder: 'FOLDER' as TypeEnum,
-        Item: 'ITEM' as TypeEnum,
-        Image: 'IMAGE' as TypeEnum
+        Item: 'ITEM' as TypeEnum
     };
 }
 

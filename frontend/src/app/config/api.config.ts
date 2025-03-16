@@ -4,6 +4,7 @@ import {
   AuthService,
   Configuration,
   ProjectAPIService,
+  ProjectFilesService,
   UserAPIService,
 } from '@inkweld/index';
 
@@ -44,5 +45,6 @@ export const API_PROVIDERS: Provider[] = [
   provideApiConfig(),
   createApiServiceProvider(UserAPIService),
   createApiServiceProvider(ProjectAPIService),
+  createApiServiceProvider(ProjectFilesService),
   createApiServiceProvider(AuthService),
 ];

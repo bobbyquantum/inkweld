@@ -196,12 +196,11 @@ export class ProjectStateService {
     this.getSyncState();
   }
   // Tree Operations
-  async addElement(
+  addElement(
     type: ProjectElementDto['type'],
     name: string,
-    parentId?: string,
-    file?: File
-  ): Promise<void> {
+    parentId?: string
+  ): void {
     const elements = this.elements();
     const parentIndex = parentId
       ? elements.findIndex(e => e.id === parentId)
@@ -222,11 +221,6 @@ export class ProjectStateService {
     const newElements = [...elements];
     newElements.splice(parentIndex + 1, 0, newElement);
     this.updateElements(this.recomputePositions(newElements));
-
-    // Handle image upload if needed
-    if (type === 'IMAGE' && file) {
-      await this.uploadImageFile(newElement.id, file);
-    }
 
     // Auto-expand parent when adding new element
     if (parentId) {
@@ -250,11 +244,6 @@ export class ProjectStateService {
 
     // Folders can only have children one level deeper
     if (nodeAbove.type === 'FOLDER' && targetLevel > nodeAbove.level + 1) {
-      return false;
-    }
-
-    // Images can't have children
-    if (nodeAbove.type === 'IMAGE' && targetLevel > nodeAbove.level) {
       return false;
     }
 
@@ -461,12 +450,7 @@ export class ProjectStateService {
   showNewElementDialog(parentElement?: ProjectElementDto): void {
     void this.dialogGateway.openNewElementDialog().then(result => {
       if (result) {
-        void this.addElement(
-          result.type,
-          result.name,
-          parentElement?.id,
-          result.file ?? undefined
-        );
+        void this.addElement(result.type, result.name, parentElement?.id);
       }
     });
   }
@@ -480,28 +464,7 @@ export class ProjectStateService {
         }
       });
   }
-  private async uploadImageFile(elementId: string, file: File): Promise<void> {
-    const project = this.project();
-    if (!project?.user?.username || !project?.slug) {
-      throw new Error('Project information not available');
-    }
 
-    try {
-      await firstValueFrom(
-        this.projectAPIService.projectElementControllerUploadImage(
-          project.user.username,
-          project.slug,
-          elementId,
-          file
-        )
-      );
-    } catch (error) {
-      console.error('Failed to upload image:', error);
-      // Optionally: Remove the element if upload failed
-      this.deleteElement(elementId);
-      throw new Error('Failed to upload image');
-    }
-  }
   private getSubtree(
     elements: ProjectElementDto[],
     startIndex: number

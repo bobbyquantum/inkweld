@@ -2,7 +2,6 @@
 export enum ElementType {
   FOLDER = 'FOLDER',
   ITEM = 'ITEM',
-  IMAGE = 'IMAGE', // Added IMAGE type
 }
 
 // Optional helper:

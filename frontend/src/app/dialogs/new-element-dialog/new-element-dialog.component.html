@@ -23,23 +23,6 @@
         <mat-error> Type is required </mat-error>
       }
     </mat-form-field>
-
-    @if (form.controls.type.value === 'IMAGE') {
-      <div class="file-upload">
-        <input
-          type="file"
-          accept="image/*"
-          (change)="onFileChange($event)"
-          #fileInput
-          style="display: none" />
-        <button type="button" mat-stroked-button (click)="fileInput.click()">
-          Choose Image
-        </button>
-        @if (form.controls.file.value) {
-          <span class="file-name">{{ form.controls.file.value.name }}</span>
-        }
-      </div>
-    }
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">

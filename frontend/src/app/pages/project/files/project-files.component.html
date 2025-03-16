@@ -1,0 +1,59 @@
+<div class="files-container">
+  <div class="header">
+    <button
+      mat-icon-button
+      color="primary"
+      (click)="navigateToProject()"
+      aria-label="Back to project">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>Project Files</h1>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading project files...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-container">
+      <mat-icon color="warn">error</mat-icon>
+      <p>{{ error() }}</p>
+      <button mat-raised-button color="primary" (click)="retryLoading()">
+        Retry
+      </button>
+    </div>
+  } @else {
+    @if (files() && files()!.length > 0) {
+      <app-file-list
+        [files]="files() ?? []"
+        (deleteFile)="confirmDeleteFile($event)" />
+    } @else {
+      <div class="empty-container">
+        <mat-icon class="empty-icon">folder_open</mat-icon>
+        <p>No files available for this project</p>
+        <button mat-raised-button color="primary" (click)="openUploadDialog()">
+          Upload Your First File
+        </button>
+      </div>
+    }
+  }
+
+  <button
+    mat-fab
+    color="primary"
+    class="upload-fab"
+    (click)="openUploadDialog()"
+    aria-label="Upload file">
+    <mat-icon>add</mat-icon>
+  </button>
+</div>
+
+@if (snackbarMessage()) {
+  <div class="snackbar {{ snackbarType() }}">
+    <mat-icon>{{
+      snackbarType() === 'success' ? 'check_circle' : 'error'
+    }}</mat-icon>
+    <span>{{ snackbarMessage() }}</span>
+  </div>
+}
