@@ -8,6 +8,7 @@ import {
   ConfirmationDialogData,
 } from '../dialogs/confirmation-dialog/confirmation-dialog.component';
 import { EditProjectDialogComponent } from '../dialogs/edit-project-dialog/edit-project-dialog.component';
+import { FileUploadComponent } from '../dialogs/file-upload/file-upload.component';
 import {
   NewElementDialogComponent,
   NewElementDialogResult,
@@ -91,7 +92,6 @@ describe('DialogGatewayService', () => {
     const dialogResult: NewElementDialogResult = {
       name: 'New Element',
       type: 'ITEM',
-      file: null,
     };
     (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(of(dialogResult));
 
@@ -135,6 +135,19 @@ describe('DialogGatewayService', () => {
       width: '400px',
     });
     expect(result).toBe('New Name');
+  });
+
+  it('should open file upload dialog', async () => {
+    const testFile = new File(['test'], 'test.txt', { type: 'text/plain' });
+    (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(of(testFile));
+
+    const result = await service.openFileUploadDialog();
+
+    expect(dialogMock.open).toHaveBeenCalledWith(FileUploadComponent, {
+      disableClose: true,
+      width: '500px',
+    });
+    expect(result).toEqual(testFile);
   });
 
   it('should handle dialog cancellation', async () => {

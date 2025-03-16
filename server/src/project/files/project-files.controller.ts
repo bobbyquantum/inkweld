@@ -9,10 +9,9 @@ import {
   Res,
   HttpStatus,
   UseGuards,
-  Request,
+  Request
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Response } from 'express';
 import { FileStorageService } from './file-storage.service.js';
 import { FileMetadataDto, FileUploadResponseDto, FileDeleteResponseDto } from './file.dto.js';
 import { SessionAuthGuard } from '../../auth/session-auth.guard.js';
@@ -121,7 +120,7 @@ export class ProjectFilesController {
     @Param('username') username: string,
     @Param('projectSlug') projectSlug: string,
     @Param('storedName') storedName: string,
-    @Res() res: Response,
+    @Res() res,
     @Request() req,
   ) {
     // Verify user has access to this project

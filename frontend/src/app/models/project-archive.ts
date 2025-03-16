@@ -16,7 +16,7 @@ export interface ProjectArchive {
   elements: Array<{
     id?: string;
     name: string;
-    type: 'FOLDER' | 'ITEM' | 'IMAGE';
+    type: 'FOLDER' | 'ITEM';
     position: number;
     level: number;
     version?: number;

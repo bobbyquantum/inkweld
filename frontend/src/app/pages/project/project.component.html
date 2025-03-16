@@ -173,10 +173,7 @@
               </button>
             </div>
           </ng-template>
-          @if (file.type === 'IMAGE') {
-            <app-image-element-editor
-              [elementId]="file.id"></app-image-element-editor>
-          } @else if (file.type === 'FOLDER') {
+          @if (file.type === 'FOLDER') {
             <app-folder-element-editor
               [elementId]="file.id"></app-folder-element-editor>
           } @else {

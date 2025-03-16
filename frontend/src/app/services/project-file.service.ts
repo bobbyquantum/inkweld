@@ -1,6 +1,10 @@
-import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import {
+  FileMetadataDto,
+  FileUploadResponseDto,
+  ProjectFilesService,
+} from '@inkweld/index';
+import { map, Observable } from 'rxjs';
 
 export interface ProjectFile {
   originalName: string;
@@ -19,16 +23,22 @@ export interface FileDeleteResponse {
   providedIn: 'root',
 })
 export class ProjectFileService {
-  private http = inject(HttpClient);
-  private apiUrl = '/api/v1/projects';
+  private projectFilesService = inject(ProjectFilesService);
 
   getProjectFiles(
     username: string,
     projectSlug: string
   ): Observable<ProjectFile[]> {
-    return this.http.get<ProjectFile[]>(
-      `${this.apiUrl}/${username}/${projectSlug}/files`
-    );
+    return this.projectFilesService
+      .projectFilesControllerListFiles(username, projectSlug)
+      .pipe(
+        map((files: FileMetadataDto[]) =>
+          files.map(file => ({
+            ...file,
+            uploadDate: new Date(file.uploadDate), // Convert string to Date
+          }))
+        )
+      );
   }
 
   uploadFile(
@@ -36,13 +46,24 @@ export class ProjectFileService {
     projectSlug: string,
     file: File
   ): Observable<ProjectFile> {
-    const formData = new FormData();
-    formData.append('file', file);
+    // Get XSRF token from cookies
+    const xsrfToken = document.cookie
+      .split(';')
+      .find(c => c.trim().startsWith('XSRF-TOKEN='))
+      ?.split('=')[1];
 
-    return this.http.post<ProjectFile>(
-      `${this.apiUrl}/${username}/${projectSlug}/files`,
-      formData
-    );
+    if (!xsrfToken) {
+      throw new Error('XSRF token not found in cookies');
+    }
+
+    return this.projectFilesService
+      .projectFilesControllerUploadFile(username, projectSlug, xsrfToken, file)
+      .pipe(
+        map((response: FileUploadResponseDto) => ({
+          ...response,
+          uploadDate: new Date(response.uploadDate), // Convert string to Date
+        }))
+      );
   }
 
   deleteFile(
@@ -50,9 +71,28 @@ export class ProjectFileService {
     projectSlug: string,
     storedName: string
   ): Observable<FileDeleteResponse> {
-    return this.http.delete<FileDeleteResponse>(
-      `${this.apiUrl}/${username}/${projectSlug}/files/${storedName}`
-    );
+    // Get XSRF token from cookies
+    const xsrfToken = document.cookie
+      .split(';')
+      .find(c => c.trim().startsWith('XSRF-TOKEN='))
+      ?.split('=')[1];
+
+    if (!xsrfToken) {
+      throw new Error('XSRF token not found in cookies');
+    }
+
+    return this.projectFilesService
+      .projectFilesControllerDeleteFile(
+        username,
+        projectSlug,
+        storedName,
+        xsrfToken
+      )
+      .pipe(
+        map(response => ({
+          message: response.message || 'File deleted successfully',
+        }))
+      );
   }
 
   getFileUrl(
@@ -60,7 +100,10 @@ export class ProjectFileService {
     projectSlug: string,
     storedName: string
   ): string {
-    return `${this.apiUrl}/${username}/${projectSlug}/files/${storedName}`;
+    return (
+      this.projectFilesService.configuration.basePath +
+      `/api/v1/projects/${username}/${projectSlug}/files/${storedName}`
+    );
   }
 
   formatFileSize(bytes: number): string {
