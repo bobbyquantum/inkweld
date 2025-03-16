@@ -42,7 +42,6 @@ import { BaseHrefMiddleware } from './common/middleware/base-href.middleware.js'
     DatabaseModule,
     PassportModule.register({ session: true }),
     ProjectModule,
-    ProjectElementModule,
     AuthModule,
     WsModule,
     McpModule,
