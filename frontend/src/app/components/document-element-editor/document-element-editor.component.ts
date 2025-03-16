@@ -1,6 +1,5 @@
 import { CdkDragEnd } from '@angular/cdk/drag-drop';
 import { DragDropModule } from '@angular/cdk/drag-drop';
-import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   Component,
@@ -32,7 +31,6 @@ type DragPoint = 'pageLeft' | 'pageRight' | 'marginLeft' | 'marginRight';
 @Component({
   selector: 'app-document-element-editor',
   imports: [
-    CommonModule,
     MatButtonModule,
     MatIconModule,
     NgxEditorModule,

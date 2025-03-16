@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -19,7 +18,6 @@ import { firstValueFrom } from 'rxjs';
 @Component({
   selector: 'app-register',
   imports: [
-    CommonModule,
     FormsModule,
     RouterModule,
     MatCardModule,
