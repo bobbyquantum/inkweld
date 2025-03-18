@@ -55,6 +55,20 @@
   right: 20px;
 }
 
+.user-menu-fab {
+  position: fixed;
+  bottom: 20px;
+  left: 40px;
+  z-index: 10;
+  min-width: 0;
+  padding: 0;
+
+  ::ng-deep .mat-mdc-button-touch-target {
+    height: 100%;
+    width: 100%;
+  }
+}
+
 .loading-state {
   display: flex;
   flex-direction: column;

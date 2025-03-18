@@ -9,7 +9,6 @@
   }
   <span>{{ 'Projects' }}</span>
   <span class="toolbar-spacer"></span>
-  <app-user-menu [user]="userService.currentUser()" [miniMode]="true" />
 </mat-toolbar>
 
 <div class="content-container" [class.is-mobile]="isMobile">
@@ -75,3 +74,8 @@
     New Project
   </button>
 }
+
+<!-- Add user menu FAB -->
+<button mat-fab class="user-menu-fab" aria-label="User menu">
+  <app-user-menu [user]="userService.currentUser()" [miniMode]="false" />
+</button>
