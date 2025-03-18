@@ -48,7 +48,7 @@
     "@angular/cli": "19.2.3",
     "@angular/compiler-cli": "19.2.2",
     "@jest/globals": "29.7.0",
-    "@playwright/test": "1.51.0",
+    "@playwright/test": "1.51.1",
     "@types/jest": "29.5.14",
     "angular-eslint": "19.2.1",
     "esbuild": "0.25.1",
