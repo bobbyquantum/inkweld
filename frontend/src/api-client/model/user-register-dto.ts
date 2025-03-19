@@ -17,7 +17,7 @@ export interface UserRegisterDto {
     /**
      * Email address for the new user
      */
-    email: string;
+    email?: string;
     /**
      * Password for the new user
      */

@@ -19,10 +19,11 @@ export class UserRegisterDto {
   @ApiProperty({
     description: 'Email address for the new user',
     example: 'john.doe@example.com',
+    required: false,
   })
-  @IsNotEmpty({ message: 'Email is required' })
+  @IsOptional()
   @IsEmail({}, { message: 'Invalid email format' })
-  email: string;
+  email?: string;
 
   @ApiProperty({
     description: 'Password for the new user',
