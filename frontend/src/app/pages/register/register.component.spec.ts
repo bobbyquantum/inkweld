@@ -223,12 +223,15 @@ describe('RegisterComponent', () => {
 
       await component.onRegister();
 
-      expect(userService.userControllerRegister).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        name: 'Test User',
-        password: 'password123',
-        username: 'testuser',
-      });
+      expect(userService.userControllerRegister).toHaveBeenCalledWith(
+        'mock-xsrf-token',
+        {
+          email: 'test@example.com',
+          name: 'Test User',
+          password: 'password123',
+          username: 'testuser',
+        }
+      );
       expect(snackBar.open).toHaveBeenCalledWith(
         'Registration successful!',
         'Close',

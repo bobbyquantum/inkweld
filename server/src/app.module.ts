@@ -11,6 +11,7 @@ import * as path from 'path';
 import { DatabaseModule } from './common/database/database.module.js';
 import { cwd } from 'process';
 import { BaseHrefMiddleware } from './common/middleware/base-href.middleware.js';
+import { CommonHttpModule } from './common/http/common-http.module.js';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { BaseHrefMiddleware } from './common/middleware/base-href.middleware.js'
     AuthModule,
     WsModule,
     McpModule,
+    CommonHttpModule,
   ],
   providers: [LevelDBManagerService],
   exports: [LevelDBManagerService],
@@ -53,7 +55,6 @@ export class AppModule implements NestModule {
   private readonly logger = new Logger(AppModule.name);
 
   configure(consumer: MiddlewareConsumer) {
-    // Apply the BaseHrefMiddleware to all routes
     consumer.apply(BaseHrefMiddleware).forRoutes('*');
   }
 }

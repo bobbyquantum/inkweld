@@ -12,21 +12,18 @@ import { ProjectFilesController } from './files/project-files.controller.js';
 import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([ProjectEntity, UserEntity]),
-    UserModule,
+  imports: [TypeOrmModule.forFeature([ProjectEntity, UserEntity]), UserModule],
+  controllers: [
+    ProjectController,
+    ProjectElementController,
+    ProjectFilesController,
   ],
-  controllers: [ProjectController, ProjectElementController, ProjectFilesController],
   providers: [
     ProjectService,
     ProjectElementService,
     FileStorageService,
     LevelDBManagerService,
   ],
-  exports: [
-    ProjectService,
-    ProjectElementService,
-    FileStorageService,
-  ],
+  exports: [ProjectService, ProjectElementService, FileStorageService],
 })
 export class ProjectModule {}

@@ -9,9 +9,7 @@ import { LeveldbPersistence } from 'y-leveldb';
 export class ProjectElementService {
   private readonly logger = new Logger(ProjectElementService.name);
 
-  constructor(
-    private readonly levelDBManager: LevelDBManagerService,
-  ) {}
+  constructor(private readonly levelDBManager: LevelDBManagerService) {}
 
   /**
    * Load the Y.Doc for the given project using per-project LevelDB.

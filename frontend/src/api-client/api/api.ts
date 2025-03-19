@@ -1,5 +1,7 @@
 export * from './auth.service';
 import { AuthService } from './auth.service';
+export * from './csrf.service';
+import { CSRFService } from './csrf.service';
 export * from './mcp.service';
 import { McpService } from './mcp.service';
 export * from './project-api.service';
@@ -8,4 +10,4 @@ export * from './project-files.service';
 import { ProjectFilesService } from './project-files.service';
 export * from './user-api.service';
 import { UserAPIService } from './user-api.service';
-export const APIS = [AuthService, McpService, ProjectAPIService, ProjectFilesService, UserAPIService];
+export const APIS = [AuthService, CSRFService, McpService, ProjectAPIService, ProjectFilesService, UserAPIService];

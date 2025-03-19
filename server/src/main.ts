@@ -8,9 +8,6 @@ import { TypeOrmSessionStore } from './auth/session.store.js';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { INestApplication } from '@nestjs/common';
 import { ValidationFilter } from './common/filters/validation.filter.js';
-// import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-// import compression from '@fastify/compress';
-
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
 export function createOpenAPIConfig() {
@@ -51,7 +48,7 @@ async function bootstrap() {
       }
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    allowedHeaders: 'Content-Type, Accept, Authorization, x-xsrf-token',
+    allowedHeaders: 'Content-Type, Accept, Authorization, x-csrf-token',
     credentials: true, // Important for session cookies
   });
 
@@ -74,7 +71,7 @@ async function bootstrap() {
   app.useWebSocketAdapter(new WsAdapter(app));
 
   app.useGlobalFilters(new ValidationFilter());
-
+  // CSRF is configured in the CommonHttpModule
   await setupSwagger(app);
   await app.listen(process.env.PORT ?? 8333, '0.0.0.0');
 }

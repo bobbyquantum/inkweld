@@ -66,7 +66,10 @@ export class RegisterComponent implements OnInit {
       };
 
       await firstValueFrom(
-        this.userService.userControllerRegister(registerRequest)
+        this.userService.userControllerRegister(
+          this.xsrfService.getXsrfToken(),
+          registerRequest
+        )
       );
 
       // Automatically log in after successful registration

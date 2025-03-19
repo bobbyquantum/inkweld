@@ -276,19 +276,26 @@ export class AuthService {
     /**
      * Login with username and password
      * Authenticates a user using username and password credentials.
+     * @param xCSRFTOKEN CSRF token
      * @param loginRequestDto User credentials
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public authControllerLogin(loginRequestDto: LoginRequestDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<LoginResponseDto>;
-    public authControllerLogin(loginRequestDto: LoginRequestDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<LoginResponseDto>>;
-    public authControllerLogin(loginRequestDto: LoginRequestDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<LoginResponseDto>>;
-    public authControllerLogin(loginRequestDto: LoginRequestDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public authControllerLogin(xCSRFTOKEN: string, loginRequestDto: LoginRequestDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<LoginResponseDto>;
+    public authControllerLogin(xCSRFTOKEN: string, loginRequestDto: LoginRequestDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<LoginResponseDto>>;
+    public authControllerLogin(xCSRFTOKEN: string, loginRequestDto: LoginRequestDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<LoginResponseDto>>;
+    public authControllerLogin(xCSRFTOKEN: string, loginRequestDto: LoginRequestDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (xCSRFTOKEN === null || xCSRFTOKEN === undefined) {
+            throw new Error('Required parameter xCSRFTOKEN was null or undefined when calling authControllerLogin.');
+        }
         if (loginRequestDto === null || loginRequestDto === undefined) {
             throw new Error('Required parameter loginRequestDto was null or undefined when calling authControllerLogin.');
         }
 
         let localVarHeaders = this.defaultHeaders;
+        if (xCSRFTOKEN !== undefined && xCSRFTOKEN !== null) {
+            localVarHeaders = localVarHeaders.set('X-CSRF-TOKEN', String(xCSRFTOKEN));
+        }
 
         let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
         if (localVarHttpHeaderAcceptSelected === undefined) {

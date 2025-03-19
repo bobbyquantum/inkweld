@@ -10,7 +10,8 @@ export class BaseHrefMiddleware implements NestMiddleware {
   private readonly indexHtmlPath: string;
   private originalIndexHtml: string | null = null;
   // Cache modified HTML by ingressPath to improve performance
-  private htmlCache: Map<string, { html: string, timestamp: number }> = new Map();
+  private htmlCache: Map<string, { html: string; timestamp: number }> =
+    new Map();
   // Cache TTL in milliseconds (5 minutes)
   private readonly cacheTtl = 5 * 60 * 1000;
 
@@ -18,7 +19,7 @@ export class BaseHrefMiddleware implements NestMiddleware {
     this.indexHtmlPath = path.resolve(
       path.join(cwd(), '../frontend/dist/browser/index.html'),
     );
-    this.loadIndexHtml().catch(err => {
+    this.loadIndexHtml().catch((err) => {
       const errorMessage = err instanceof Error ? err.message : String(err);
       this.logger.error(`Failed to load initial index.html: ${errorMessage}`);
     });
@@ -32,7 +33,8 @@ export class BaseHrefMiddleware implements NestMiddleware {
       );
       this.logger.log('Original index.html loaded successfully');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.error(`Error loading index.html: ${errorMessage}`);
       throw error;
     }
@@ -54,13 +56,15 @@ export class BaseHrefMiddleware implements NestMiddleware {
       if (ingressPath) {
         try {
           // Normalize the ingress path
-          const basePath = ingressPath.endsWith('/') ? ingressPath : `${ingressPath}/`;
+          const basePath = ingressPath.endsWith('/')
+            ? ingressPath
+            : `${ingressPath}/`;
 
           // Check cache first
           const cachedEntry = this.htmlCache.get(basePath);
           const now = Date.now();
 
-          if (cachedEntry && (now - cachedEntry.timestamp) < this.cacheTtl) {
+          if (cachedEntry && now - cachedEntry.timestamp < this.cacheTtl) {
             // Use cached version if it exists and is not expired
             this.logger.debug(`Using cached HTML for base path: ${basePath}`);
             return res
@@ -87,7 +91,8 @@ export class BaseHrefMiddleware implements NestMiddleware {
             .header('Cache-Control', 'no-cache')
             .send(modifiedHtml);
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
           this.logger.error(`Error modifying index.html: ${errorMessage}`);
           return next();
         }

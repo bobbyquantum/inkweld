@@ -3,6 +3,7 @@ import { Provider } from '@angular/core';
 import {
   AuthService,
   Configuration,
+  CSRFService,
   ProjectAPIService,
   ProjectFilesService,
   UserAPIService,
@@ -47,4 +48,5 @@ export const API_PROVIDERS: Provider[] = [
   createApiServiceProvider(ProjectAPIService),
   createApiServiceProvider(ProjectFilesService),
   createApiServiceProvider(AuthService),
+  createApiServiceProvider(CSRFService),
 ];

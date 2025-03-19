@@ -23,6 +23,7 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { UserService } from './user.service.js';
 import { SessionAuthGuard } from '../auth/session-auth.guard.js';
@@ -128,6 +129,11 @@ export class UserController {
     summary: 'Register a new user',
     description:
       'Creates a new user account with the provided registration details.',
+  })
+  @ApiHeader({
+    name: 'X-CSRF-TOKEN',
+    description: 'CSRF token',
+    required: true,
   })
   @ApiCreatedResponse({
     description: 'User successfully registered',

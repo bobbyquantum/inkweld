@@ -16,6 +16,7 @@ import { LocalAuthGuard } from './local-auth.guard.js';
 import type { Response } from 'express';
 import {
   ApiBody,
+  ApiHeader,
   ApiOkResponse,
   ApiOperation,
   ApiUnauthorizedResponse,
@@ -37,6 +38,11 @@ export class AuthController {
     summary: 'Login with username and password',
     description:
       'Authenticates a user using username and password credentials.',
+  })
+  @ApiHeader({
+    name: 'X-CSRF-TOKEN',
+    description: 'CSRF token',
+    required: true,
   })
   @ApiBody({
     type: LoginRequestDto,

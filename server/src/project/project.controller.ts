@@ -108,14 +108,14 @@ export class ProjectController {
   @ApiForbiddenResponse({ description: 'Invalid CSRF token' })
   @ApiBody({ type: ProjectDto })
   @ApiHeader({
-    name: 'X-XSRF-TOKEN',
+    name: 'X-CSRF-TOKEN',
     description: 'CSRF token',
     required: true,
   })
   async createProject(
     @Request() req,
     @Body() projectData: ProjectDto,
-    @Headers('X-XSRF-TOKEN') csrfToken: string,
+    @Headers('X-CSRF-TOKEN') csrfToken: string,
   ): Promise<ProjectDto> {
     // In a real app, you'd validate the CSRF token with a guard or middleware
     if (!csrfToken) {
@@ -157,7 +157,7 @@ export class ProjectController {
   @ApiNotFoundResponse({ description: 'Project not found' })
   @ApiBody({ type: ProjectDto })
   @ApiHeader({
-    name: 'X-XSRF-TOKEN',
+    name: 'X-CSRF-TOKEN',
     description: 'CSRF token',
     required: true,
   })
@@ -165,7 +165,7 @@ export class ProjectController {
     @Param('username') username: string,
     @Param('slug') slug: string,
     @Body() projectDto: ProjectDto,
-    @Headers('X-XSRF-TOKEN') csrfToken: string,
+    @Headers('X-CSRF-TOKEN') csrfToken: string,
   ): Promise<ProjectDto> {
     // TODO: Validate CSRF token
     // if (!csrfToken) {
@@ -196,14 +196,14 @@ export class ProjectController {
   })
   @ApiNotFoundResponse({ description: 'Project not found' })
   @ApiHeader({
-    name: 'X-XSRF-TOKEN',
+    name: 'X-CSRF-TOKEN',
     description: 'CSRF token',
     required: true,
   })
   async deleteProject(
     @Param('username') username: string,
     @Param('slug') slug: string,
-    @Headers('X-XSRF-TOKEN') csrfToken: string,
+    @Headers('X-CSRF-TOKEN') csrfToken: string,
   ): Promise<void> {
     if (!csrfToken) {
       throw new ForbiddenException('Missing CSRF token');

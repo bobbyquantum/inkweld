@@ -39,7 +39,7 @@
         "operationId": "ProjectController_createProject",
         "parameters": [
           {
-            "name": "X-XSRF-TOKEN",
+            "name": "X-CSRF-TOKEN",
             "required": true,
             "in": "header",
             "description": "CSRF token",
@@ -164,7 +164,7 @@
             }
           },
           {
-            "name": "X-XSRF-TOKEN",
+            "name": "X-CSRF-TOKEN",
             "required": true,
             "in": "header",
             "description": "CSRF token",
@@ -238,7 +238,7 @@
             }
           },
           {
-            "name": "X-XSRF-TOKEN",
+            "name": "X-CSRF-TOKEN",
             "required": true,
             "in": "header",
             "description": "CSRF token",
@@ -336,7 +336,7 @@
             }
           },
           {
-            "name": "X-XSRF-TOKEN",
+            "name": "X-CSRF-TOKEN",
             "required": true,
             "in": "header",
             "description": "CSRF token",
@@ -409,7 +409,7 @@
             }
           },
           {
-            "name": "X-XSRF-TOKEN",
+            "name": "X-CSRF-TOKEN",
             "in": "header",
             "description": "CSRF token",
             "required": true,
@@ -559,7 +559,7 @@
             }
           },
           {
-            "name": "X-XSRF-TOKEN",
+            "name": "X-CSRF-TOKEN",
             "in": "header",
             "description": "CSRF token",
             "required": true,
@@ -704,7 +704,17 @@
       "post": {
         "description": "Creates a new user account with the provided registration details.",
         "operationId": "UserController_register",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -796,7 +806,17 @@
       "post": {
         "description": "Authenticates a user using username and password credentials.",
         "operationId": "AuthController_login",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "description": "User credentials",
@@ -910,6 +930,21 @@
         },
         "tags": [
           "Mcp"
+        ]
+      }
+    },
+    "/csrf/token": {
+      "get": {
+        "operationId": "CsrfController_getCsrfToken",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get a CSRF token for form submissions",
+        "tags": [
+          "CSRF"
         ]
       }
     }
