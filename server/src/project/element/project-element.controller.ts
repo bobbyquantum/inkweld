@@ -61,14 +61,14 @@ export class ProjectElementController {
   @ApiBadRequestResponse({ description: 'Validation errors' })
   @ApiForbiddenResponse({ description: 'User not permitted' })
   @ApiHeader({
-    name: 'X-XSRF-TOKEN',
+    name: 'X-CSRF-TOKEN',
     description: 'CSRF token',
     required: true,
   })
   async replaceProjectElements(
     @Param('username') username: string,
     @Param('slug') slug: string,
-    @Headers('X-XSRF-TOKEN') csrfToken: string,
+    @Headers('X-CSRF-TOKEN') csrfToken: string,
     @Body() elements: ProjectElementDto[],
   ): Promise<ProjectElementDto[]> {
     this.logger.log(

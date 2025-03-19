@@ -1,17 +1,31 @@
 import { DOCUMENT } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
+import { CSRFService } from '@inkweld/index';
+import { of } from 'rxjs';
 
 import { XsrfService } from './xsrf.service';
 
 describe('XsrfService', () => {
   let service: XsrfService;
-  let mockDocument: { cookie: string };
+  let mockCsrfService: { csrfControllerGetCsrfToken: jest.Mock };
 
   beforeEach(() => {
-    mockDocument = { cookie: '' };
+    mockCsrfService = {
+      csrfControllerGetCsrfToken: jest
+        .fn()
+        .mockReturnValue(of({ token: 'test-token' })),
+    };
 
     TestBed.configureTestingModule({
-      providers: [{ provide: DOCUMENT, useValue: mockDocument }],
+      providers: [
+        {
+          provide: DOCUMENT,
+          useValue: { cookie: '' },
+        },
+        { provide: CSRFService, useValue: mockCsrfService },
+        { provide: HttpClient, useValue: {} },
+      ],
     });
     service = TestBed.inject(XsrfService);
   });
@@ -20,42 +34,37 @@ describe('XsrfService', () => {
     expect(service).toBeTruthy();
   });
 
-  describe('getXsrfToken()', () => {
-    it('should return token when XSRF cookie exists', () => {
-      mockDocument.cookie = 'XSRF-TOKEN=abc123; other-cookie=value';
-      expect(service.getXsrfToken()).toBe('abc123');
+  describe('refreshToken()', () => {
+    it('should fetch token using CSRFService', async () => {
+      mockCsrfService.csrfControllerGetCsrfToken.mockReturnValue(
+        of({ token: 'new-token' })
+      );
+
+      const token = await service.refreshToken();
+
+      expect(mockCsrfService.csrfControllerGetCsrfToken).toHaveBeenCalled();
+      expect(token).toBe('new-token');
     });
 
-    //TODO: real XSRF
-    it('should return empty string when XSRF cookie does not exist', () => {
-      mockDocument.cookie = 'other-cookie=value';
-      expect(service.getXsrfToken()).toBe('fake');
-    });
+    it('should return empty string when API fails and no cookie exists', async () => {
+      mockCsrfService.csrfControllerGetCsrfToken.mockImplementation(() => {
+        throw new Error('API error');
+      });
 
-    //TODO: real XSRF
-    it('should return empty string when cookies are empty', () => {
-      mockDocument.cookie = '';
-      expect(service.getXsrfToken()).toBe('fake');
+      const token = await service.refreshToken();
+      expect(token).toBe('');
     });
+  });
 
-    it('should handle malformed cookie string', () => {
-      mockDocument.cookie = 'XSRF-TOKEN=; =value; malformed';
-      expect(service.getXsrfToken()).toBe('');
-    });
+  describe('getToken()', () => {
+    it('should refresh token when none exists', async () => {
+      // Spy on refreshToken method
+      jest.spyOn(service, 'refreshToken').mockResolvedValue('new-token');
 
-    it('should return first token when multiple XSRF cookies exist', () => {
-      mockDocument.cookie = 'XSRF-TOKEN=first; XSRF-TOKEN=second';
-      expect(service.getXsrfToken()).toBe('first');
-    });
+      const token = await service.getToken();
 
-    it('should handle cookie with spaces', () => {
-      mockDocument.cookie = '  XSRF-TOKEN  =  tokenValue  ';
-      expect(service.getXsrfToken()).toBe('tokenValue');
-    });
-
-    it('should return empty string for malformed cookie', () => {
-      mockDocument.cookie = 'XSRF-TOKEN=';
-      expect(service.getXsrfToken()).toBe('');
+      expect(service.refreshToken).toHaveBeenCalled();
+      expect(token).toBe('new-token');
     });
   });
 });

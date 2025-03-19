@@ -95,25 +95,25 @@ export class ProjectAPIService {
     /**
      * Create a new project
      * Creates a new project for the authenticated user. Requires a valid CSRF token.
-     * @param xXSRFTOKEN CSRF token
+     * @param xCSRFTOKEN CSRF token
      * @param projectDto 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public projectControllerCreateProject(xXSRFTOKEN: string, projectDto: ProjectDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ProjectDto>;
-    public projectControllerCreateProject(xXSRFTOKEN: string, projectDto: ProjectDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ProjectDto>>;
-    public projectControllerCreateProject(xXSRFTOKEN: string, projectDto: ProjectDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ProjectDto>>;
-    public projectControllerCreateProject(xXSRFTOKEN: string, projectDto: ProjectDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
-            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling projectControllerCreateProject.');
+    public projectControllerCreateProject(xCSRFTOKEN: string, projectDto: ProjectDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ProjectDto>;
+    public projectControllerCreateProject(xCSRFTOKEN: string, projectDto: ProjectDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ProjectDto>>;
+    public projectControllerCreateProject(xCSRFTOKEN: string, projectDto: ProjectDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ProjectDto>>;
+    public projectControllerCreateProject(xCSRFTOKEN: string, projectDto: ProjectDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (xCSRFTOKEN === null || xCSRFTOKEN === undefined) {
+            throw new Error('Required parameter xCSRFTOKEN was null or undefined when calling projectControllerCreateProject.');
         }
         if (projectDto === null || projectDto === undefined) {
             throw new Error('Required parameter projectDto was null or undefined when calling projectControllerCreateProject.');
         }
 
         let localVarHeaders = this.defaultHeaders;
-        if (xXSRFTOKEN !== undefined && xXSRFTOKEN !== null) {
-            localVarHeaders = localVarHeaders.set('X-XSRF-TOKEN', String(xXSRFTOKEN));
+        if (xCSRFTOKEN !== undefined && xCSRFTOKEN !== null) {
+            localVarHeaders = localVarHeaders.set('X-CSRF-TOKEN', String(xCSRFTOKEN));
         }
 
         let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
@@ -179,27 +179,27 @@ export class ProjectAPIService {
      * Removes a project by username and slug for the authenticated user. Requires CSRF.
      * @param username 
      * @param slug 
-     * @param xXSRFTOKEN CSRF token
+     * @param xCSRFTOKEN CSRF token
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public projectControllerDeleteProject(username: string, slug: string, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any>;
-    public projectControllerDeleteProject(username: string, slug: string, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
-    public projectControllerDeleteProject(username: string, slug: string, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
-    public projectControllerDeleteProject(username: string, slug: string, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public projectControllerDeleteProject(username: string, slug: string, xCSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any>;
+    public projectControllerDeleteProject(username: string, slug: string, xCSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
+    public projectControllerDeleteProject(username: string, slug: string, xCSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
+    public projectControllerDeleteProject(username: string, slug: string, xCSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
             throw new Error('Required parameter username was null or undefined when calling projectControllerDeleteProject.');
         }
         if (slug === null || slug === undefined) {
             throw new Error('Required parameter slug was null or undefined when calling projectControllerDeleteProject.');
         }
-        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
-            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling projectControllerDeleteProject.');
+        if (xCSRFTOKEN === null || xCSRFTOKEN === undefined) {
+            throw new Error('Required parameter xCSRFTOKEN was null or undefined when calling projectControllerDeleteProject.');
         }
 
         let localVarHeaders = this.defaultHeaders;
-        if (xXSRFTOKEN !== undefined && xXSRFTOKEN !== null) {
-            localVarHeaders = localVarHeaders.set('X-XSRF-TOKEN', String(xXSRFTOKEN));
+        if (xCSRFTOKEN !== undefined && xCSRFTOKEN !== null) {
+            localVarHeaders = localVarHeaders.set('X-CSRF-TOKEN', String(xCSRFTOKEN));
         }
 
         let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
@@ -384,31 +384,31 @@ export class ProjectAPIService {
      * Updates details of an existing project for the authenticated user. Requires CSRF.
      * @param username 
      * @param slug 
-     * @param xXSRFTOKEN CSRF token
+     * @param xCSRFTOKEN CSRF token
      * @param projectDto 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public projectControllerUpdateProject(username: string, slug: string, xXSRFTOKEN: string, projectDto: ProjectDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ProjectDto>;
-    public projectControllerUpdateProject(username: string, slug: string, xXSRFTOKEN: string, projectDto: ProjectDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ProjectDto>>;
-    public projectControllerUpdateProject(username: string, slug: string, xXSRFTOKEN: string, projectDto: ProjectDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ProjectDto>>;
-    public projectControllerUpdateProject(username: string, slug: string, xXSRFTOKEN: string, projectDto: ProjectDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public projectControllerUpdateProject(username: string, slug: string, xCSRFTOKEN: string, projectDto: ProjectDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ProjectDto>;
+    public projectControllerUpdateProject(username: string, slug: string, xCSRFTOKEN: string, projectDto: ProjectDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ProjectDto>>;
+    public projectControllerUpdateProject(username: string, slug: string, xCSRFTOKEN: string, projectDto: ProjectDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ProjectDto>>;
+    public projectControllerUpdateProject(username: string, slug: string, xCSRFTOKEN: string, projectDto: ProjectDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
             throw new Error('Required parameter username was null or undefined when calling projectControllerUpdateProject.');
         }
         if (slug === null || slug === undefined) {
             throw new Error('Required parameter slug was null or undefined when calling projectControllerUpdateProject.');
         }
-        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
-            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling projectControllerUpdateProject.');
+        if (xCSRFTOKEN === null || xCSRFTOKEN === undefined) {
+            throw new Error('Required parameter xCSRFTOKEN was null or undefined when calling projectControllerUpdateProject.');
         }
         if (projectDto === null || projectDto === undefined) {
             throw new Error('Required parameter projectDto was null or undefined when calling projectControllerUpdateProject.');
         }
 
         let localVarHeaders = this.defaultHeaders;
-        if (xXSRFTOKEN !== undefined && xXSRFTOKEN !== null) {
-            localVarHeaders = localVarHeaders.set('X-XSRF-TOKEN', String(xXSRFTOKEN));
+        if (xCSRFTOKEN !== undefined && xCSRFTOKEN !== null) {
+            localVarHeaders = localVarHeaders.set('X-CSRF-TOKEN', String(xCSRFTOKEN));
         }
 
         let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
@@ -541,31 +541,31 @@ export class ProjectAPIService {
      * Replace the entire elements array in the Yjs doc
      * @param username 
      * @param slug 
-     * @param xXSRFTOKEN CSRF token
+     * @param xCSRFTOKEN CSRF token
      * @param projectElementDto 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public projectElementControllerReplaceProjectElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<ProjectElementDto>>;
-    public projectElementControllerReplaceProjectElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<ProjectElementDto>>>;
-    public projectElementControllerReplaceProjectElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<ProjectElementDto>>>;
-    public projectElementControllerReplaceProjectElements(username: string, slug: string, xXSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public projectElementControllerReplaceProjectElements(username: string, slug: string, xCSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<ProjectElementDto>>;
+    public projectElementControllerReplaceProjectElements(username: string, slug: string, xCSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<ProjectElementDto>>>;
+    public projectElementControllerReplaceProjectElements(username: string, slug: string, xCSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<ProjectElementDto>>>;
+    public projectElementControllerReplaceProjectElements(username: string, slug: string, xCSRFTOKEN: string, projectElementDto: Array<ProjectElementDto>, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
             throw new Error('Required parameter username was null or undefined when calling projectElementControllerReplaceProjectElements.');
         }
         if (slug === null || slug === undefined) {
             throw new Error('Required parameter slug was null or undefined when calling projectElementControllerReplaceProjectElements.');
         }
-        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
-            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling projectElementControllerReplaceProjectElements.');
+        if (xCSRFTOKEN === null || xCSRFTOKEN === undefined) {
+            throw new Error('Required parameter xCSRFTOKEN was null or undefined when calling projectElementControllerReplaceProjectElements.');
         }
         if (projectElementDto === null || projectElementDto === undefined) {
             throw new Error('Required parameter projectElementDto was null or undefined when calling projectElementControllerReplaceProjectElements.');
         }
 
         let localVarHeaders = this.defaultHeaders;
-        if (xXSRFTOKEN !== undefined && xXSRFTOKEN !== null) {
-            localVarHeaders = localVarHeaders.set('X-XSRF-TOKEN', String(xXSRFTOKEN));
+        if (xCSRFTOKEN !== undefined && xCSRFTOKEN !== null) {
+            localVarHeaders = localVarHeaders.set('X-CSRF-TOKEN', String(xCSRFTOKEN));
         }
 
         let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;

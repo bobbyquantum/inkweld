@@ -9,13 +9,24 @@ import {
   Res,
   HttpStatus,
   UseGuards,
-  Request
+  Request,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FileStorageService } from './file-storage.service.js';
-import { FileMetadataDto, FileUploadResponseDto, FileDeleteResponseDto } from './file.dto.js';
+import {
+  FileMetadataDto,
+  FileUploadResponseDto,
+  FileDeleteResponseDto,
+} from './file.dto.js';
 import { SessionAuthGuard } from '../../auth/session-auth.guard.js';
-import { ApiTags, ApiConsumes, ApiBody, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiConsumes,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiHeader,
+} from '@nestjs/swagger';
 
 // Define MulterFile interface for Bun environment
 interface MulterFile {
@@ -56,7 +67,7 @@ export class ProjectFilesController {
     type: FileUploadResponseDto,
   })
   @ApiHeader({
-    name: 'X-XSRF-TOKEN',
+    name: 'X-CSRF-TOKEN',
     description: 'CSRF token',
     required: true,
   })
@@ -142,17 +153,17 @@ export class ProjectFilesController {
 
       // Set common MIME types
       const mimeTypes = {
-        'png': 'image/png',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'gif': 'image/gif',
-        'svg': 'image/svg+xml',
-        'pdf': 'application/pdf',
-        'json': 'application/json',
-        'txt': 'text/plain',
-        'html': 'text/html',
-        'css': 'text/css',
-        'js': 'application/javascript',
+        png: 'image/png',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        gif: 'image/gif',
+        svg: 'image/svg+xml',
+        pdf: 'application/pdf',
+        json: 'application/json',
+        txt: 'text/plain',
+        html: 'text/html',
+        css: 'text/css',
+        js: 'application/javascript',
       };
 
       if (ext in mimeTypes) {
@@ -180,7 +191,7 @@ export class ProjectFilesController {
     type: FileDeleteResponseDto,
   })
   @ApiHeader({
-    name: 'X-XSRF-TOKEN',
+    name: 'X-CSRF-TOKEN',
     description: 'CSRF token',
     required: true,
   })
@@ -196,11 +207,7 @@ export class ProjectFilesController {
       throw new Error('Unauthorized to delete files from this project');
     }
 
-    await this.fileStorageService.deleteFile(
-      username,
-      projectSlug,
-      storedName,
-    );
+    await this.fileStorageService.deleteFile(username, projectSlug, storedName);
 
     return { message: 'File deleted successfully' };
   }

@@ -192,7 +192,7 @@ describe('UserService', () => {
       await service.login(username, password);
 
       // Verify the auth service was called
-      expect(authServiceMock.authControllerLogin).toHaveBeenCalledWith({
+      expect(authServiceMock.authControllerLogin).toHaveBeenCalledWith('', {
         username,
         password,
       });

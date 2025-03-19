@@ -291,19 +291,26 @@ export class UserAPIService {
     /**
      * Register a new user
      * Creates a new user account with the provided registration details.
+     * @param xCSRFTOKEN CSRF token
      * @param userRegisterDto 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public userControllerRegister(userRegisterDto: UserRegisterDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<UserDto>;
-    public userControllerRegister(userRegisterDto: UserRegisterDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<UserDto>>;
-    public userControllerRegister(userRegisterDto: UserRegisterDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<UserDto>>;
-    public userControllerRegister(userRegisterDto: UserRegisterDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public userControllerRegister(xCSRFTOKEN: string, userRegisterDto: UserRegisterDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<UserDto>;
+    public userControllerRegister(xCSRFTOKEN: string, userRegisterDto: UserRegisterDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<UserDto>>;
+    public userControllerRegister(xCSRFTOKEN: string, userRegisterDto: UserRegisterDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<UserDto>>;
+    public userControllerRegister(xCSRFTOKEN: string, userRegisterDto: UserRegisterDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (xCSRFTOKEN === null || xCSRFTOKEN === undefined) {
+            throw new Error('Required parameter xCSRFTOKEN was null or undefined when calling userControllerRegister.');
+        }
         if (userRegisterDto === null || userRegisterDto === undefined) {
             throw new Error('Required parameter userRegisterDto was null or undefined when calling userControllerRegister.');
         }
 
         let localVarHeaders = this.defaultHeaders;
+        if (xCSRFTOKEN !== undefined && xCSRFTOKEN !== null) {
+            localVarHeaders = localVarHeaders.set('X-CSRF-TOKEN', String(xCSRFTOKEN));
+        }
 
         let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
         if (localVarHttpHeaderAcceptSelected === undefined) {

@@ -32,7 +32,11 @@ export class FileStorageService {
     await fsPromises.mkdir(projectDir, { recursive: true });
 
     // Generate a unique filename based on hash and timestamp
-    const hash = crypto.createHash('md5').update(file).digest('hex').substring(0, 8);
+    const hash = crypto
+      .createHash('md5')
+      .update(file)
+      .digest('hex')
+      .substring(0, 8);
     const storedName = `${hash}-${Date.now()}${path.extname(filename)}`;
     const filePath = path.join(projectDir, storedName);
 
@@ -102,9 +106,7 @@ export class FileStorageService {
     userId: string,
     projectSlug: string,
   ): Promise<FileMetadata[]> {
-    this.logger.log(
-      `Listing files for user ${userId}, project ${projectSlug}`,
-    );
+    this.logger.log(`Listing files for user ${userId}, project ${projectSlug}`);
     const projectDir = path.join(this.dataDir, userId, projectSlug, 'files');
 
     try {

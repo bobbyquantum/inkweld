@@ -112,14 +112,14 @@ export class ProjectFilesService {
      * @param username 
      * @param projectSlug 
      * @param storedName 
-     * @param xXSRFTOKEN CSRF token
+     * @param xCSRFTOKEN CSRF token
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public projectFilesControllerDeleteFile(username: string, projectSlug: string, storedName: string, xXSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<FileDeleteResponseDto>;
-    public projectFilesControllerDeleteFile(username: string, projectSlug: string, storedName: string, xXSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<FileDeleteResponseDto>>;
-    public projectFilesControllerDeleteFile(username: string, projectSlug: string, storedName: string, xXSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<FileDeleteResponseDto>>;
-    public projectFilesControllerDeleteFile(username: string, projectSlug: string, storedName: string, xXSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public projectFilesControllerDeleteFile(username: string, projectSlug: string, storedName: string, xCSRFTOKEN: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<FileDeleteResponseDto>;
+    public projectFilesControllerDeleteFile(username: string, projectSlug: string, storedName: string, xCSRFTOKEN: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<FileDeleteResponseDto>>;
+    public projectFilesControllerDeleteFile(username: string, projectSlug: string, storedName: string, xCSRFTOKEN: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<FileDeleteResponseDto>>;
+    public projectFilesControllerDeleteFile(username: string, projectSlug: string, storedName: string, xCSRFTOKEN: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
             throw new Error('Required parameter username was null or undefined when calling projectFilesControllerDeleteFile.');
         }
@@ -129,13 +129,13 @@ export class ProjectFilesService {
         if (storedName === null || storedName === undefined) {
             throw new Error('Required parameter storedName was null or undefined when calling projectFilesControllerDeleteFile.');
         }
-        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
-            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling projectFilesControllerDeleteFile.');
+        if (xCSRFTOKEN === null || xCSRFTOKEN === undefined) {
+            throw new Error('Required parameter xCSRFTOKEN was null or undefined when calling projectFilesControllerDeleteFile.');
         }
 
         let localVarHeaders = this.defaultHeaders;
-        if (xXSRFTOKEN !== undefined && xXSRFTOKEN !== null) {
-            localVarHeaders = localVarHeaders.set('X-XSRF-TOKEN', String(xXSRFTOKEN));
+        if (xCSRFTOKEN !== undefined && xCSRFTOKEN !== null) {
+            localVarHeaders = localVarHeaders.set('X-CSRF-TOKEN', String(xCSRFTOKEN));
         }
 
         let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;
@@ -329,28 +329,28 @@ export class ProjectFilesService {
      * Upload a file to project
      * @param username 
      * @param projectSlug 
-     * @param xXSRFTOKEN CSRF token
+     * @param xCSRFTOKEN CSRF token
      * @param file 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public projectFilesControllerUploadFile(username: string, projectSlug: string, xXSRFTOKEN: string, file?: Blob, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<FileUploadResponseDto>;
-    public projectFilesControllerUploadFile(username: string, projectSlug: string, xXSRFTOKEN: string, file?: Blob, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<FileUploadResponseDto>>;
-    public projectFilesControllerUploadFile(username: string, projectSlug: string, xXSRFTOKEN: string, file?: Blob, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<FileUploadResponseDto>>;
-    public projectFilesControllerUploadFile(username: string, projectSlug: string, xXSRFTOKEN: string, file?: Blob, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public projectFilesControllerUploadFile(username: string, projectSlug: string, xCSRFTOKEN: string, file?: Blob, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<FileUploadResponseDto>;
+    public projectFilesControllerUploadFile(username: string, projectSlug: string, xCSRFTOKEN: string, file?: Blob, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<FileUploadResponseDto>>;
+    public projectFilesControllerUploadFile(username: string, projectSlug: string, xCSRFTOKEN: string, file?: Blob, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<FileUploadResponseDto>>;
+    public projectFilesControllerUploadFile(username: string, projectSlug: string, xCSRFTOKEN: string, file?: Blob, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
             throw new Error('Required parameter username was null or undefined when calling projectFilesControllerUploadFile.');
         }
         if (projectSlug === null || projectSlug === undefined) {
             throw new Error('Required parameter projectSlug was null or undefined when calling projectFilesControllerUploadFile.');
         }
-        if (xXSRFTOKEN === null || xXSRFTOKEN === undefined) {
-            throw new Error('Required parameter xXSRFTOKEN was null or undefined when calling projectFilesControllerUploadFile.');
+        if (xCSRFTOKEN === null || xCSRFTOKEN === undefined) {
+            throw new Error('Required parameter xCSRFTOKEN was null or undefined when calling projectFilesControllerUploadFile.');
         }
 
         let localVarHeaders = this.defaultHeaders;
-        if (xXSRFTOKEN !== undefined && xXSRFTOKEN !== null) {
-            localVarHeaders = localVarHeaders.set('X-XSRF-TOKEN', String(xXSRFTOKEN));
+        if (xCSRFTOKEN !== undefined && xCSRFTOKEN !== null) {
+            localVarHeaders = localVarHeaders.set('X-CSRF-TOKEN', String(xCSRFTOKEN));
         }
 
         let localVarHttpHeaderAcceptSelected: string | undefined = options && options.httpHeaderAccept;

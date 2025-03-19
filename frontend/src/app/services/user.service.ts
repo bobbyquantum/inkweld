@@ -9,6 +9,7 @@ import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 import { UserAPIService } from '../../api-client/api/user-api.service';
 import { UserDto } from '../../api-client/model/user-dto';
 import { StorageService } from './storage.service';
+import { XsrfService } from './xsrf.service';
 
 export class UserServiceError extends Error {
   constructor(
@@ -47,6 +48,7 @@ export class UserService {
 
   private readonly dialog = inject(MatDialog);
   private readonly userApi = inject(UserAPIService);
+  private readonly xsrfService = inject(XsrfService);
   private readonly authService = inject(AuthService);
   private readonly storage = inject(StorageService);
   private readonly http = inject(HttpClient);
@@ -160,7 +162,10 @@ export class UserService {
 
     try {
       const response = await firstValueFrom(
-        this.authService.authControllerLogin({ username, password })
+        this.authService.authControllerLogin(this.xsrfService.getXsrfToken(), {
+          username,
+          password,
+        })
       );
 
       await this.setCurrentUser({

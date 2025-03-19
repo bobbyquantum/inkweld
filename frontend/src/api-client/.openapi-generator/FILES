@@ -3,6 +3,7 @@ README.md
 api.module.ts
 api/api.ts
 api/auth.service.ts
+api/csrf.service.ts
 api/mcp.service.ts
 api/project-api.service.ts
 api/project-files.service.ts
