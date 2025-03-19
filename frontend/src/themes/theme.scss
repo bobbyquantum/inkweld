@@ -171,6 +171,12 @@ $dark-theme: mat.define-theme(
   @include mat.all-component-themes($light-theme);
   @include mat.system-level-colors($light-theme);
   @include mat.system-level-typography($dark-theme);
+
+  /* Scrollbar styles for light theme */
+  --scrollbar-thumb-color: #006874; /* primary-40 */
+  --scrollbar-thumb-hover-color: #008391; /* primary-50 */
+  --scrollbar-track-color: #eff1f1; /* neutral-95 */
+
   & {
     --card-background-color: var(--mat-sys-surface-container-high);
     --ngx-editor-border-radius: 4px;
@@ -251,6 +257,12 @@ $dark-theme: mat.define-theme(
   @include mat.all-component-colors($dark-theme);
   @include mat.system-level-colors($dark-theme);
   @include mat.system-level-typography($dark-theme);
+
+  /* Scrollbar styles for dark theme */
+  --scrollbar-thumb-color: #22bccf; /* primary-70 */
+  --scrollbar-thumb-hover-color: #00a0b0; /* primary-60 */
+  --scrollbar-track-color: #2e3132; /* neutral-20 */
+
   & {
     --card-background-color: var(--mat-sys-surface-container-high);
     --ngx-editor-border-radius: 0;
@@ -321,4 +333,36 @@ body {
   font-family: Roboto, 'Helvetica Neue', sans-serif;
   background-color: var(--mat-app-background-color);
   color: var(--mat-app-text-color);
+}
+
+/* Custom scrollbar styles */
+/* For WebKit browsers (Chrome, Safari, newer versions of Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb-color);
+  border-radius: 4px;
+  opacity: 0.7;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover-color);
+  opacity: 0.9;
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track-color);
+}
+
+/* For Firefox */
+* {
+  scrollbar-color: var(--scrollbar-thumb-color) var(--scrollbar-track-color);
+  scrollbar-width: thin;
 }
