@@ -116,7 +116,7 @@ describe('RegisterComponent', () => {
       expect(component.registerForm.valid).toBeFalsy();
 
       // Form with username and password should be invalid without confirmPassword
-      component.registerForm.get('password')?.setValue('password123');
+      component.registerForm.get('password')?.setValue('Test123@');
       expect(component.registerForm.valid).toBeFalsy();
 
       // Form with mismatched passwords should be invalid
@@ -124,7 +124,7 @@ describe('RegisterComponent', () => {
       expect(component.registerForm.valid).toBeFalsy();
 
       // Form with matching passwords should be valid
-      component.registerForm.get('confirmPassword')?.setValue('password123');
+      component.registerForm.get('confirmPassword')?.setValue('Test123@');
       expect(component.registerForm.valid).toBeTruthy();
     });
 
@@ -285,11 +285,97 @@ describe('RegisterComponent', () => {
     });
   });
 
+  describe('password validation', () => {
+    it('should initialize password requirements as not met', () => {
+      expect(
+        Object.values(component.passwordRequirements).every(req => !req.met)
+      ).toBe(true);
+    });
+
+    it('should update password requirements when password changes', () => {
+      const password = 'Test123@';
+      component.registerForm.get('password')?.setValue(password);
+
+      expect(component.passwordRequirements.minLength.met).toBe(true);
+      expect(component.passwordRequirements.uppercase.met).toBe(true);
+      expect(component.passwordRequirements.lowercase.met).toBe(true);
+      expect(component.passwordRequirements.number.met).toBe(true);
+      expect(component.passwordRequirements.special.met).toBe(true);
+    });
+
+    it('should validate minimum length requirement', () => {
+      const shortPassword = 'Test1@';
+      component.registerForm.get('password')?.setValue(shortPassword);
+
+      expect(component.passwordRequirements.minLength.met).toBe(false);
+      expect(
+        component.registerForm.get('password')?.errors?.['minLength']
+      ).toBeTruthy();
+    });
+
+    it('should validate uppercase requirement', () => {
+      const noUppercase = 'test123@';
+      component.registerForm.get('password')?.setValue(noUppercase);
+
+      expect(component.passwordRequirements.uppercase.met).toBe(false);
+      expect(
+        component.registerForm.get('password')?.errors?.['uppercase']
+      ).toBeTruthy();
+    });
+
+    it('should validate lowercase requirement', () => {
+      const noLowercase = 'TEST123@';
+      component.registerForm.get('password')?.setValue(noLowercase);
+
+      expect(component.passwordRequirements.lowercase.met).toBe(false);
+      expect(
+        component.registerForm.get('password')?.errors?.['lowercase']
+      ).toBeTruthy();
+    });
+
+    it('should validate number requirement', () => {
+      const noNumber = 'TestTest@';
+      component.registerForm.get('password')?.setValue(noNumber);
+
+      expect(component.passwordRequirements.number.met).toBe(false);
+      expect(
+        component.registerForm.get('password')?.errors?.['number']
+      ).toBeTruthy();
+    });
+
+    it('should validate special character requirement', () => {
+      const noSpecial = 'Test1234';
+      component.registerForm.get('password')?.setValue(noSpecial);
+
+      expect(component.passwordRequirements.special.met).toBe(false);
+      expect(
+        component.registerForm.get('password')?.errors?.['special']
+      ).toBeTruthy();
+    });
+
+    it('should consider password valid when all requirements are met', () => {
+      const validPassword = 'Test123@';
+      component.registerForm.get('password')?.setValue(validPassword);
+
+      expect(component.isPasswordValid()).toBe(true);
+      expect(component.registerForm.get('password')?.errors).toBeNull();
+    });
+
+    it('should handle password with multiple missing requirements', () => {
+      const weakPassword = 'test';
+      component.registerForm.get('password')?.setValue(weakPassword);
+
+      const errors = component.registerForm.get('password')?.errors || {};
+      expect(Object.keys(errors).length).toBeGreaterThan(1);
+      expect(component.isPasswordValid()).toBe(false);
+    });
+  });
+
   describe('registration', () => {
     beforeEach(() => {
       component.registerForm.get('username')?.setValue('testuser');
-      component.registerForm.get('password')?.setValue('password123');
-      component.registerForm.get('confirmPassword')?.setValue('password123');
+      component.registerForm.get('password')?.setValue('Test123@');
+      component.registerForm.get('confirmPassword')?.setValue('Test123@');
       component.usernameAvailability = 'available';
     });
 
@@ -339,7 +425,7 @@ describe('RegisterComponent', () => {
         'mock-xsrf-token',
         {
           username: 'testuser',
-          password: 'password123',
+          password: 'Test123@',
         }
       );
 
