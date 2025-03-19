@@ -60,6 +60,27 @@
             <mat-error>{{ getPasswordErrorMessage() }}</mat-error>
           </mat-form-field>
 
+          <div class="password-validation-checklist">
+            <div class="validation-checklist-heading">
+              Password requirements:
+            </div>
+            <ul class="validation-checklist-list">
+              @for (
+                requirement of passwordRequirements | keyvalue;
+                track requirement.key
+              ) {
+                <li
+                  class="validation-checklist-item"
+                  [class.met]="requirement.value.met">
+                  <mat-icon class="validation-checklist-icon">
+                    {{ requirement.value.met ? 'check_circle' : 'cancel' }}
+                  </mat-icon>
+                  <span>{{ requirement.value.message }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+
           @if (
             serverValidationErrors['password'] &&
             serverValidationErrors['password'].length > 0

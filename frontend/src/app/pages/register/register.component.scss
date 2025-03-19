@@ -264,3 +264,63 @@ mat-divider {
     font-size: 0.9em;
   }
 }
+
+// Password validation checklist styling
+.password-validation-checklist {
+  margin-top: -8px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+
+  .dark-theme & {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+.validation-checklist-heading {
+  font-weight: 500;
+  font-size: 0.9em;
+  margin-bottom: 8px;
+  color: var(--mdc-theme-text-secondary-on-background);
+}
+
+.validation-checklist-list {
+  margin: 0;
+  padding-left: 0;
+  list-style-type: none;
+}
+
+.validation-checklist-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 0.85em;
+  color: var(--mdc-theme-text-secondary-on-background);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &.met {
+    color: var(--mdc-theme-success, #4caf50);
+    .validation-checklist-icon {
+      color: var(--mdc-theme-success, #4caf50);
+    }
+  }
+
+  &:not(.met) {
+    .validation-checklist-icon {
+      color: var(--mdc-theme-error, #f44336);
+    }
+  }
+}
+
+.validation-checklist-icon {
+  margin-right: 8px;
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+}

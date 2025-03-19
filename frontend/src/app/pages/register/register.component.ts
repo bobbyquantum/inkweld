@@ -1,3 +1,4 @@
+import { KeyValuePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import {
@@ -7,6 +8,7 @@ import {
   FormsModule,
   ReactiveFormsModule,
   ValidationErrors,
+  ValidatorFn,
   Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -36,6 +38,7 @@ import { firstValueFrom, Subject, takeUntil } from 'rxjs';
     MatDividerModule,
     MatIconModule,
     OAuthProviderListComponent,
+    KeyValuePipe,
   ],
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss',
@@ -47,6 +50,29 @@ export class RegisterComponent implements OnInit, OnDestroy {
   usernameSuggestions: string[] | undefined = [];
   usernameAvailability: 'available' | 'unavailable' | 'unknown' = 'unknown';
   serverValidationErrors: { [key: string]: string[] } = {};
+
+  passwordRequirements = {
+    minLength: {
+      met: false,
+      message: 'At least 8 characters long',
+    },
+    uppercase: {
+      met: false,
+      message: 'At least one uppercase letter',
+    },
+    lowercase: {
+      met: false,
+      message: 'At least one lowercase letter',
+    },
+    number: {
+      met: false,
+      message: 'At least one number',
+    },
+    special: {
+      met: false,
+      message: 'At least one special character (@$!%*?&)',
+    },
+  };
 
   private userService = inject(UserAPIService);
   private snackBar = inject(MatSnackBar);
@@ -60,7 +86,14 @@ export class RegisterComponent implements OnInit, OnDestroy {
     this.registerForm = this.fb.group(
       {
         username: ['', [Validators.required, Validators.minLength(3)]],
-        password: ['', [Validators.required, Validators.minLength(8)]],
+        password: [
+          '',
+          [
+            Validators.required,
+            Validators.minLength(8),
+            this.createPasswordValidator(),
+          ],
+        ],
         confirmPassword: ['', [Validators.required]],
       },
       {
@@ -73,9 +106,15 @@ export class RegisterComponent implements OnInit, OnDestroy {
       .get('username')
       ?.valueChanges.pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        // Reset availability status but keep suggestions visible
-        // so that users can still click on them after trying a taken username
         this.usernameAvailability = 'unknown';
+      });
+
+    // Listen for password changes to update requirements status
+    this.registerForm
+      .get('password')
+      ?.valueChanges.pipe(takeUntil(this.destroy$))
+      .subscribe((password: string) => {
+        this.updatePasswordRequirements(password);
       });
   }
 
@@ -109,6 +148,16 @@ export class RegisterComponent implements OnInit, OnDestroy {
     return password && confirmPassword && password !== confirmPassword
       ? { passwordMismatch: true }
       : null;
+  }
+
+  isPasswordValid(): boolean {
+    return Object.values(this.passwordRequirements).every(req => req.met);
+  }
+
+  selectSuggestion(suggestion: string): void {
+    this.registerForm.get('username')?.setValue(suggestion);
+    this.usernameSuggestions = [];
+    void this.checkUsernameAvailability();
   }
 
   // Check if username is available
@@ -153,12 +202,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
     }
   }
 
-  selectSuggestion(suggestion: string): void {
-    this.registerForm.get('username')?.setValue(suggestion);
-    this.usernameSuggestions = [];
-    void this.checkUsernameAvailability();
-  }
-
   // Error message getters
   getUsernameErrorMessage(): string {
     const control = this.usernameControl;
@@ -181,6 +224,18 @@ export class RegisterComponent implements OnInit, OnDestroy {
     }
     if (control?.hasError('minlength')) {
       return 'Password must be at least 8 characters';
+    }
+    if (control?.hasError('uppercase')) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (control?.hasError('lowercase')) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (control?.hasError('number')) {
+      return 'Password must contain at least one number';
+    }
+    if (control?.hasError('special')) {
+      return 'Password must contain at least one special character (@$!%*?&)';
     }
     // Don't show server validation errors here - they'll be shown in the dedicated list
     return '';
@@ -276,6 +331,42 @@ export class RegisterComponent implements OnInit, OnDestroy {
     }
   }
 
+  private createPasswordValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const password = control.value as string;
+      if (!password) {
+        return null;
+      }
+
+      const errors: ValidationErrors = {};
+
+      if (password.length < 8) {
+        errors['minLength'] = true;
+      }
+      if (!/[A-Z]/.test(password)) {
+        errors['uppercase'] = true;
+      }
+      if (!/[a-z]/.test(password)) {
+        errors['lowercase'] = true;
+      }
+      if (!/\d/.test(password)) {
+        errors['number'] = true;
+      }
+      if (!/[@$!%*?&]/.test(password)) {
+        errors['special'] = true;
+      }
+
+      return Object.keys(errors).length === 0 ? null : errors;
+    };
+  }
+
+  private updatePasswordRequirements(password: string): void {
+    this.passwordRequirements.minLength.met = password.length >= 8;
+    this.passwordRequirements.uppercase.met = /[A-Z]/.test(password);
+    this.passwordRequirements.lowercase.met = /[a-z]/.test(password);
+    this.passwordRequirements.number.met = /\d/.test(password);
+    this.passwordRequirements.special.met = /[@$!%*?&]/.test(password);
+  }
   private showGeneralError(error: HttpErrorResponse): void {
     this.snackBar.open(`Registration failed: ${error.message}`, 'Close', {
       duration: 5000,
