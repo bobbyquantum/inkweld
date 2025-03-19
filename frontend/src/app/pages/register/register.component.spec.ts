@@ -1,5 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ReactiveFormsModule } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
@@ -59,7 +60,7 @@ describe('RegisterComponent', () => {
     } as unknown as jest.Mocked<UserService>;
 
     await TestBed.configureTestingModule({
-      imports: [RegisterComponent, NoopAnimationsModule],
+      imports: [RegisterComponent, NoopAnimationsModule, ReactiveFormsModule],
       providers: [
         { provide: HttpClient, useValue: httpClient },
         { provide: Router, useValue: router },
@@ -105,24 +106,83 @@ describe('RegisterComponent', () => {
     expect(component.isMobile).toBeFalsy();
   });
 
-  describe('password validation', () => {
-    it('should show error when passwords do not match', async () => {
-      component.password = 'password123';
-      component.confirmPassword = 'password456';
+  describe('form validation', () => {
+    it('should validate form correctly', () => {
+      // Empty form should be invalid
+      expect(component.registerForm.valid).toBeFalsy();
 
-      await component.onRegister();
+      // Form with just username should be invalid
+      component.registerForm.get('username')?.setValue('testuser');
+      expect(component.registerForm.valid).toBeFalsy();
 
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Passwords do not match',
-        'Close',
-        expect.any(Object)
+      // Form with username and password should be invalid without confirmPassword
+      component.registerForm.get('password')?.setValue('password123');
+      expect(component.registerForm.valid).toBeFalsy();
+
+      // Form with mismatched passwords should be invalid
+      component.registerForm.get('confirmPassword')?.setValue('password456');
+      expect(component.registerForm.valid).toBeFalsy();
+
+      // Form with matching passwords should be valid
+      component.registerForm.get('confirmPassword')?.setValue('password123');
+      expect(component.registerForm.valid).toBeTruthy();
+    });
+
+    it('should have appropriate error messages for form controls', () => {
+      // Username required
+      component.registerForm.get('username')?.setValue('');
+      component.registerForm.get('username')?.markAsTouched();
+      expect(component.getUsernameErrorMessage()).toBe('Username is required');
+
+      // Username too short
+      component.registerForm.get('username')?.setValue('ab');
+      component.registerForm.get('username')?.markAsTouched();
+      expect(component.getUsernameErrorMessage()).toBe(
+        'Username must be at least 3 characters'
       );
-      expect(userService.userControllerRegister).not.toHaveBeenCalled();
+
+      // Username taken
+      component.registerForm.get('username')?.setValue('testuser');
+      component.registerForm
+        .get('username')
+        ?.setErrors({ usernameTaken: true });
+      expect(component.getUsernameErrorMessage()).toBe(
+        'Username already taken. Please choose another.'
+      );
+
+      // Password required
+      component.registerForm.get('password')?.setValue('');
+      component.registerForm.get('password')?.markAsTouched();
+      expect(component.getPasswordErrorMessage()).toBe('Password is required');
+
+      // Password too short
+      component.registerForm.get('password')?.setValue('1234');
+      component.registerForm.get('password')?.markAsTouched();
+      expect(component.getPasswordErrorMessage()).toBe(
+        'Password must be at least 8 characters'
+      );
+
+      // Confirm password required
+      component.registerForm.get('confirmPassword')?.setValue('');
+      component.registerForm.get('confirmPassword')?.markAsTouched();
+      expect(component.getConfirmPasswordErrorMessage()).toBe(
+        'Please confirm your password'
+      );
+    });
+
+    it('should detect password mismatch', () => {
+      component.registerForm.get('password')?.setValue('password123');
+      component.registerForm.get('confirmPassword')?.setValue('password456');
+      expect(component.registerForm.hasError('passwordMismatch')).toBeTruthy();
+
+      // Fix the mismatch
+      component.registerForm.get('confirmPassword')?.setValue('password123');
+      expect(component.registerForm.hasError('passwordMismatch')).toBeFalsy();
     });
   });
 
   describe('username availability', () => {
-    it('should check username availability when username length >= 3', async () => {
+    it('should check username availability when username is valid', async () => {
       const checkUsernameAvailabilityMock =
         userService.userControllerCheckUsernameAvailability as unknown as jest.MockedFunction<
           (
@@ -136,7 +196,7 @@ describe('RegisterComponent', () => {
       };
       checkUsernameAvailabilityMock.mockReturnValue(of(mockResponse));
 
-      component.username = 'testuser';
+      component.registerForm.get('username')?.setValue('testuser');
       await component.checkUsernameAvailability();
 
       expect(
@@ -144,9 +204,10 @@ describe('RegisterComponent', () => {
       ).toHaveBeenCalledWith('testuser');
       expect(component.usernameAvailability).toBe('available');
       expect(component.usernameSuggestions).toEqual([]);
+      expect(component.registerForm.get('username')?.errors).toBeNull();
     });
 
-    it('should handle unavailable username', async () => {
+    it('should mark username as unavailable when taken', async () => {
       const checkUsernameAvailabilityMock =
         userService.userControllerCheckUsernameAvailability as unknown as jest.MockedFunction<
           (
@@ -160,16 +221,19 @@ describe('RegisterComponent', () => {
       };
       checkUsernameAvailabilityMock.mockReturnValue(of(mockResponse));
 
-      component.username = 'testuser';
+      component.registerForm.get('username')?.setValue('testuser');
       await component.checkUsernameAvailability();
 
       expect(component.usernameAvailability).toBe('unavailable');
       expect(component.usernameSuggestions).toEqual(['testuser1', 'testuser2']);
+      expect(
+        component.registerForm.get('username')?.hasError('usernameTaken')
+      ).toBeTruthy();
     });
 
-    it('should not check availability for username shorter than 3 characters', () => {
-      component.username = 'te';
-      void component.checkUsernameAvailability();
+    it('should not check availability for username shorter than 3 characters', async () => {
+      component.registerForm.get('username')?.setValue('te');
+      await component.checkUsernameAvailability();
 
       expect(
         userService.userControllerCheckUsernameAvailability
@@ -189,36 +253,84 @@ describe('RegisterComponent', () => {
         throwError(() => new Error('Network error'))
       );
 
-      component.username = 'testuser';
+      component.registerForm.get('username')?.setValue('testuser');
       await component.checkUsernameAvailability();
 
       expect(component.usernameAvailability).toBe('unknown');
+      expect(snackBar.open).toHaveBeenCalled();
+    });
+
+    it('should select a suggested username', () => {
+      const checkUsernameAvailabilityMock =
+        userService.userControllerCheckUsernameAvailability as unknown as jest.MockedFunction<
+          (
+            username: string,
+            observe: 'body'
+          ) => Observable<UserControllerCheckUsernameAvailability200Response>
+        >;
+      const mockResponse: UserControllerCheckUsernameAvailability200Response = {
+        available: true,
+        suggestions: [],
+      };
+      checkUsernameAvailabilityMock.mockReturnValue(of(mockResponse));
+
+      component.selectSuggestion('suggested_username');
+
+      expect(component.registerForm.get('username')?.value).toBe(
+        'suggested_username'
+      );
+      expect(
+        userService.userControllerCheckUsernameAvailability
+      ).toHaveBeenCalledWith('suggested_username');
     });
   });
 
   describe('registration', () => {
     beforeEach(() => {
-      component.username = 'testuser';
-      component.name = 'Test User';
-      component.email = 'test@example.com';
-      component.password = 'password123';
-      component.confirmPassword = 'password123';
+      component.registerForm.get('username')?.setValue('testuser');
+      component.registerForm.get('password')?.setValue('password123');
+      component.registerForm.get('confirmPassword')?.setValue('password123');
+      component.usernameAvailability = 'available';
+    });
+
+    it('should not submit if form is invalid', async () => {
+      // Make the form invalid
+      component.registerForm.get('password')?.setValue('');
+
+      await component.onRegister();
+
+      expect(userService.userControllerRegister).not.toHaveBeenCalled();
+    });
+
+    it('should show error for password mismatch', async () => {
+      component.registerForm.get('confirmPassword')?.setValue('password456');
+
+      await component.onRegister();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Passwords do not match',
+        'Close',
+        expect.any(Object)
+      );
+      expect(userService.userControllerRegister).not.toHaveBeenCalled();
     });
 
     it('should successfully register user', async () => {
       const registerUserMock =
         userService.userControllerRegister as unknown as jest.MockedFunction<
           (
-            request: UserRegisterDto,
             token: string,
+            request: UserRegisterDto,
             observe: 'body'
           ) => Observable<UserDto>
         >;
+
       const mockUser: UserDto = {
         username: 'testuser',
-        name: 'Test User',
+        name: '',
         avatarImageUrl: '',
       };
+
       registerUserMock.mockReturnValue(of(mockUser));
 
       await component.onRegister();
@@ -226,17 +338,17 @@ describe('RegisterComponent', () => {
       expect(userService.userControllerRegister).toHaveBeenCalledWith(
         'mock-xsrf-token',
         {
-          email: 'test@example.com',
-          name: 'Test User',
-          password: 'password123',
           username: 'testuser',
+          password: 'password123',
         }
       );
+
       expect(snackBar.open).toHaveBeenCalledWith(
         'Registration successful!',
         'Close',
         expect.any(Object)
       );
+
       expect(userAuthService.loadCurrentUser).toHaveBeenCalled();
       expect(router.navigate).toHaveBeenCalledWith(['/']);
     });
@@ -245,8 +357,8 @@ describe('RegisterComponent', () => {
       const registerUserMock =
         userService.userControllerRegister as unknown as jest.MockedFunction<
           (
-            request: UserRegisterDto,
             token: string,
+            request: UserRegisterDto,
             observe: 'body'
           ) => Observable<UserDto>
         >;
@@ -271,8 +383,8 @@ describe('RegisterComponent', () => {
       const registerUserMock =
         userService.userControllerRegister as unknown as jest.MockedFunction<
           (
-            request: UserRegisterDto,
             token: string,
+            request: UserRegisterDto,
             observe: 'body'
           ) => Observable<UserDto>
         >;
@@ -288,6 +400,37 @@ describe('RegisterComponent', () => {
         expect.any(Object)
       );
       expect(router.navigate).not.toHaveBeenCalled();
+    });
+
+    it('should reset isRegistering flag after registration attempt', async () => {
+      const registerUserMock =
+        userService.userControllerRegister as unknown as jest.MockedFunction<
+          (
+            token: string,
+            request: UserRegisterDto,
+            observe: 'body'
+          ) => Observable<UserDto>
+        >;
+
+      // Success case
+      const mockUser: UserDto = {
+        username: 'testuser',
+        name: '',
+        avatarImageUrl: '',
+      };
+
+      registerUserMock.mockReturnValue(of(mockUser));
+
+      await component.onRegister();
+      expect(component.isRegistering).toBeFalsy();
+
+      // Error case
+      registerUserMock.mockReturnValue(
+        throwError(() => new Error('Test error'))
+      );
+
+      await component.onRegister();
+      expect(component.isRegistering).toBeFalsy();
     });
   });
 });
