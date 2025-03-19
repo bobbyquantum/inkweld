@@ -25,19 +25,40 @@ export class UserService {
       errors['username'] = ['Username already exists'];
     }
 
-    if (!this.isPasswordStrong(password)) {
-      errors['password'] = [
-        'Password must contain at least 8 characters',
-        'Password must contain at least one uppercase letter',
-        'Password must contain at least one lowercase letter',
-        'Password must contain at least one number',
-        'Password must contain at least one special character',
-      ];
+    const passwordErrors = this.getPasswordErrors(password);
+    if (passwordErrors.length > 0) {
+      errors['password'] = passwordErrors;
     }
 
     if (Object.keys(errors).length > 0) {
       throw new ValidationException(errors);
     }
+  }
+
+  private getPasswordErrors(password: string): string[] {
+    const errors: string[] = [];
+
+    if (password.length < 8) {
+      errors.push('Password must contain at least 8 characters');
+    }
+    if (!/[A-Z]/.test(password)) {
+      errors.push('Password must contain at least one uppercase letter');
+    }
+    if (!/[a-z]/.test(password)) {
+      errors.push('Password must contain at least one lowercase letter');
+    }
+    if (!/\d/.test(password)) {
+      errors.push('Password must contain at least one number');
+    }
+    if (!/[@$!%*?&]/.test(password)) {
+      errors.push('Password must contain at least one special character');
+    }
+
+    return errors;
+  }
+
+  private isPasswordStrong(password: string): boolean {
+    return this.getPasswordErrors(password).length === 0;
   }
 
   async registerUser(
@@ -101,13 +122,7 @@ export class UserService {
 
     if (!this.isPasswordStrong(newPassword)) {
       throw new ValidationException({
-        newPassword: [
-          'Password must contain at least 8 characters',
-          'Password must contain at least one uppercase letter',
-          'Password must contain at least one lowercase letter',
-          'Password must contain at least one number',
-          'Password must contain at least one special character',
-        ],
+        newPassword: this.getPasswordErrors(newPassword),
       });
     }
 
@@ -154,12 +169,6 @@ export class UserService {
     });
 
     return this.userRepo.save(user);
-  }
-
-  private isPasswordStrong(password: string): boolean {
-    const passwordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
-    return passwordRegex.test(password);
   }
 
   async checkUsernameAvailability(username: string): Promise<{
