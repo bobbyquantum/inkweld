@@ -48,7 +48,7 @@ describe('LevelDBManagerService', () => {
     };
 
     // Mock the fs module
-    spyOn(fs, 'existsSync').mockImplementation((dirPath: string) => {
+    spyOn(fs, 'existsSync').mockImplementation((dirPath: any) => {
       // Base path already exists
       if (dirPath === testBasePath || dirPath.includes('leveldb')) return true;
       // Project paths don't exist initially

@@ -84,20 +84,33 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
     const projectKey = this.getProjectKey(username, projectSlug);
     this.updateActivityTimestamp(projectKey);
 
-    if (!this.projectDatabases.has(projectKey)) {
-      const dbPath = this.getProjectPath(username, projectSlug);
+    // If we already have this database open, return it
+    if (this.projectDatabases.has(projectKey)) {
+      return this.projectDatabases.get(projectKey);
+    }
 
-      // Ensure project directory exists before initializing LevelDB
-      if (!fs.existsSync(dbPath)) {
-        fs.mkdirSync(dbPath, { recursive: true });
-        this.logger.log(`Created directory for project database: ${dbPath}`);
-      }
+    // Database not open, we need to create a new instance
+    const dbPath = this.getProjectPath(username, projectSlug);
 
+    // Ensure project directory exists before initializing LevelDB
+    if (!fs.existsSync(dbPath)) {
+      fs.mkdirSync(dbPath, { recursive: true });
+      this.logger.log(`Created directory for project database: ${dbPath}`);
+    }
+
+    // Try to open/create the database with retries for concurrent access
+    let retries = 3;
+    let db: LeveldbPersistence = null;
+
+    while (retries > 0 && !db) {
       try {
-        const db = new LeveldbPersistence(dbPath, {
+        db = new LeveldbPersistence(dbPath, {
           levelOptions: {
             createIfMissing: true,
             errorIfExists: false,
+            // Add options to help with concurrent access issues
+            lockTimeout: 10000, // 10 seconds
+            retryTimeout: 2000, // 2 seconds
           },
         });
 
@@ -106,17 +119,35 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
           `Created new LevelDB instance for project ${projectKey} at ${dbPath}`,
         );
       } catch (error) {
+        retries--;
+
+        // Check if it's a lock file error (Type-safe error handling)
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        if (errorMessage.includes('LOCK')) {
+          this.logger.warn(
+            `LockFile issue for project ${projectKey} (${retries} retries left):`,
+            errorMessage,
+          );
+
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 500 * (4 - retries)));
+
+          // If we still have retries, continue to the next attempt
+          if (retries > 0) continue;
+        }
+
         this.logger.error(
           `Failed to create LevelDB instance for project ${projectKey}:`,
           error,
         );
         throw new Error(
-          `Database initialization failed for project ${projectKey}`,
+          `Database initialization failed for project ${projectKey}: ${errorMessage}`,
         );
       }
     }
 
-    return this.projectDatabases.get(projectKey);
+    return db;
   }
 
   /**
@@ -224,19 +255,27 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
    */
   private async closeDatabase(
     key: string,
-    _db: LeveldbPersistence,
+    db: LeveldbPersistence,
   ): Promise<void> {
     try {
       // Access the underlying leveldb instance to close it properly
-      // This is a simplification - actual implementation would depend on the LeveldbPersistence API
-      // if (db._db && typeof db._db.close === 'function') {
-      //   await db._db.close();
-      // }
+      // Unfortunately LeveldbPersistence doesn't expose a clean API for closing
+      // So we need to access the internal _db property
+      const anyDb = db as any;
+      if (anyDb._db && typeof anyDb._db.close === 'function') {
+        await anyDb._db.close();
+        this.logger.log(`Explicitly closed database connection for ${key}`);
+      } else {
+        // Alternative approach - rely on garbage collection
+        this.logger.warn(`Could not explicitly close database for ${key} - relying on garbage collection`);
+      }
 
+      // Remove from our tracking maps
       this.projectDatabases.delete(key);
       this.dbActivityTimestamps.delete(key);
     } catch (error) {
-      this.logger.error(`Error closing database ${key}:`, error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error closing database ${key}: ${errorMessage}`, error);
     }
   }
 }
