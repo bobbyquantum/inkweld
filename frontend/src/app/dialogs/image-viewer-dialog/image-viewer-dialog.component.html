@@ -1,0 +1,11 @@
+<div class="image-viewer-dialog">
+  <div class="dialog-header">
+    <h2 class="image-title">{{ data.fileName }}</h2>
+    <button mat-icon-button (click)="closeDialog()" aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+  <div class="image-container">
+    <img [src]="data.imageUrl" [alt]="data.fileName" />
+  </div>
+</div>

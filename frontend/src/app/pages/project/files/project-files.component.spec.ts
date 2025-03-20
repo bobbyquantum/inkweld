@@ -30,7 +30,6 @@ describe('ProjectFilesComponent', () => {
       storedName: 'stored-test-file.pdf',
       size: 1024,
       contentType: 'application/pdf',
-      fileUrl: 'http://example.com/test-file.pdf',
       uploadDate: uploadDate,
     },
   ];
@@ -54,6 +53,11 @@ describe('ProjectFilesComponent', () => {
         .mockReturnValue(
           of({ success: true, message: 'File deleted successfully' })
         ),
+      getFileUrl: jest
+        .fn()
+        .mockImplementation((username, projectSlug, storedName) => {
+          return `http://example.com/${username}/${projectSlug}/files/${storedName}`;
+        }),
     };
 
     routerMock = {
@@ -99,7 +103,15 @@ describe('ProjectFilesComponent', () => {
       'testuser',
       'test-project'
     );
-    expect(component.files()).toEqual(testFiles);
+
+    // We need to check just the relevant properties, since the component adds the fileUrl
+    const filesData = component.files();
+    expect(filesData).not.toBeNull();
+    expect(filesData?.length).toBe(1);
+    expect(filesData?.[0].originalName).toBe('test-file.pdf');
+    expect(filesData?.[0].storedName).toBe('stored-test-file.pdf');
+    expect(filesData?.[0].contentType).toBe('application/pdf');
+
     expect(component.loading()).toBeFalsy();
     expect(component.error()).toBeNull();
   });

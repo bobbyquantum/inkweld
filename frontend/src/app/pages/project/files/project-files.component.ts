@@ -173,7 +173,16 @@ export class ProjectFilesComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: files => {
-          this.files.set(files);
+          // Add file URLs to each file before setting the state
+          const filesWithUrls = files.map(file => ({
+            ...file,
+            fileUrl: this.fileService.getFileUrl(
+              this.username,
+              this.projectSlug,
+              file.storedName
+            ),
+          }));
+          this.files.set(filesWithUrls);
         },
         error: () => {
           // Reset files to null on error

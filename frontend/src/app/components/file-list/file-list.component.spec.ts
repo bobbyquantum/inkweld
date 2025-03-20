@@ -6,6 +6,7 @@ import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { FileSizePipe } from '../../pipes/file-size.pipe';
+import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { ProjectFile } from '../../services/project-file.service';
 import { FileListComponent } from './file-list.component';
 
@@ -24,6 +25,11 @@ describe('FileListComponent', () => {
     },
   ];
 
+  // Mock DialogGatewayService
+  const mockDialogGateway = {
+    openImageViewerDialog: jest.fn(),
+  };
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [
@@ -34,10 +40,16 @@ describe('FileListComponent', () => {
         NoopAnimationsModule,
         FileSizePipe,
       ],
+      providers: [
+        { provide: DialogGatewayService, useValue: mockDialogGateway },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(FileListComponent);
     component = fixture.componentInstance;
+
+    // Reset mock before each test
+    jest.clearAllMocks();
   });
 
   it('should create', () => {
@@ -78,5 +90,51 @@ describe('FileListComponent', () => {
     deleteButton.triggerEventHandler('click', null);
 
     expect(spy).toHaveBeenCalledWith(mockFiles[0]);
+  });
+
+  it('should detect image files correctly', () => {
+    // Test proper MIME types
+    expect(
+      component.isImage({ contentType: 'image/jpeg' } as ProjectFile)
+    ).toBe(true);
+    expect(component.isImage({ contentType: 'image/png' } as ProjectFile)).toBe(
+      true
+    );
+
+    // Test file extensions without MIME prefix
+    expect(component.isImage({ contentType: 'jpeg' } as ProjectFile)).toBe(
+      true
+    );
+    expect(component.isImage({ contentType: 'png' } as ProjectFile)).toBe(true);
+    expect(component.isImage({ contentType: 'gif' } as ProjectFile)).toBe(true);
+
+    // Test non-image content types
+    expect(
+      component.isImage({ contentType: 'text/plain' } as ProjectFile)
+    ).toBe(false);
+    expect(
+      component.isImage({ contentType: 'application/pdf' } as ProjectFile)
+    ).toBe(false);
+    expect(component.isImage({ contentType: 'txt' } as ProjectFile)).toBe(
+      false
+    );
+  });
+
+  it('should open image viewer dialog when viewImage is called', () => {
+    const imageFile: ProjectFile = {
+      originalName: 'test.jpg',
+      storedName: 'stored-test.jpg',
+      contentType: 'image/jpeg',
+      size: 1024,
+      uploadDate: new Date(),
+      fileUrl: 'http://example.com/test.jpg',
+    };
+
+    component.viewImage(imageFile);
+
+    expect(mockDialogGateway.openImageViewerDialog).toHaveBeenCalledWith({
+      imageUrl: 'http://example.com/test.jpg',
+      fileName: 'test.jpg',
+    });
   });
 });
