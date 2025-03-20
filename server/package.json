@@ -67,7 +67,7 @@
     "@openapitools/openapi-generator-cli": "2.18.4",
     "@types/bun": "1.2.5",
     "@types/cookie": "1.0.0",
-    "@types/express": "5.0.0",
+    "@types/express": "5.0.1",
     "@types/express-session": "1.18.1",
     "@types/multer": "^1.4.12",
     "@types/node": "22.13.10",
