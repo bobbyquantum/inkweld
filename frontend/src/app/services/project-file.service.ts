@@ -6,6 +6,8 @@ import {
 } from '@inkweld/index';
 import { map, Observable } from 'rxjs';
 
+import { XsrfService } from './xsrf.service';
+
 export interface ProjectFile {
   originalName: string;
   storedName: string;
@@ -24,7 +26,7 @@ export interface FileDeleteResponse {
 })
 export class ProjectFileService {
   private projectFilesService = inject(ProjectFilesService);
-
+  private xsrfService = inject(XsrfService);
   getProjectFiles(
     username: string,
     projectSlug: string
@@ -46,16 +48,10 @@ export class ProjectFileService {
     projectSlug: string,
     file: File
   ): Observable<ProjectFile> {
-    // Get XSRF token from cookies
-    const xsrfToken = document.cookie
-      .split(';')
-      .find(c => c.trim().startsWith('XSRF-TOKEN='))
-      ?.split('=')[1];
-
+    const xsrfToken = this.xsrfService.getXsrfToken();
     if (!xsrfToken) {
       throw new Error('XSRF token not found in cookies');
     }
-
     return this.projectFilesService
       .projectFilesControllerUploadFile(username, projectSlug, xsrfToken, file)
       .pipe(
@@ -71,16 +67,10 @@ export class ProjectFileService {
     projectSlug: string,
     storedName: string
   ): Observable<FileDeleteResponse> {
-    // Get XSRF token from cookies
-    const xsrfToken = document.cookie
-      .split(';')
-      .find(c => c.trim().startsWith('XSRF-TOKEN='))
-      ?.split('=')[1];
-
+    const xsrfToken = this.xsrfService.getXsrfToken();
     if (!xsrfToken) {
       throw new Error('XSRF token not found in cookies');
     }
-
     return this.projectFilesService
       .projectFilesControllerDeleteFile(
         username,

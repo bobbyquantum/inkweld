@@ -8,10 +8,12 @@ import {
 import { of } from 'rxjs';
 
 import { ProjectFileService } from './project-file.service';
+import { XsrfService } from './xsrf.service';
 
 describe('ProjectFileService', () => {
   let service: ProjectFileService;
   let projectFilesServiceMock: jest.Mocked<ProjectFilesService>;
+  let xsrfServiceMock: jest.Mocked<XsrfService>;
 
   // Simple ISO date string for testing
   const testDate = '2025-03-16T10:00:00.000Z';
@@ -41,7 +43,7 @@ describe('ProjectFileService', () => {
   beforeEach(() => {
     const mockData = createMockData();
 
-    // Create a simplified mock
+    // Create a simplified mock for ProjectFilesService
     projectFilesServiceMock = {
       projectFilesControllerListFiles: jest
         .fn()
@@ -58,20 +60,22 @@ describe('ProjectFileService', () => {
       },
     } as unknown as jest.Mocked<ProjectFilesService>;
 
+    // Create a mock for XsrfService
+    xsrfServiceMock = {
+      getXsrfToken: jest.fn().mockReturnValue('test-token'),
+      getToken: jest.fn().mockResolvedValue('test-token'),
+      refreshToken: jest.fn().mockResolvedValue('test-token'),
+    } as unknown as jest.Mocked<XsrfService>;
+
     TestBed.configureTestingModule({
       providers: [
         ProjectFileService,
         { provide: ProjectFilesService, useValue: projectFilesServiceMock },
+        { provide: XsrfService, useValue: xsrfServiceMock },
       ],
     });
 
     service = TestBed.inject(ProjectFileService);
-
-    // Mock document.cookie
-    Object.defineProperty(document, 'cookie', {
-      writable: true,
-      value: 'XSRF-TOKEN=test-token',
-    });
   });
 
   afterEach(() => {
@@ -147,8 +151,8 @@ describe('ProjectFileService', () => {
   });
 
   it('should handle XSRF token validation', () => {
-    // Remove cookie for this test
-    Object.defineProperty(document, 'cookie', { value: '' });
+    // Make XsrfService return empty token for this test
+    xsrfServiceMock.getXsrfToken.mockReturnValue('');
 
     const testFile = new File(['t'], 'test.jpg', { type: 'image/jpeg' });
 
