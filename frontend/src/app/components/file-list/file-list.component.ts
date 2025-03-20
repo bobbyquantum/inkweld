@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 
 import { FileSizePipe } from '../../pipes/file-size.pipe';
+import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { ProjectFile } from '../../services/project-file.service';
 
 @Component({
@@ -25,4 +26,32 @@ export class FileListComponent {
   @Output() deleteFile = new EventEmitter<ProjectFile>();
 
   protected columns = ['name', 'size', 'type', 'actions'];
+
+  private dialogGateway = inject(DialogGatewayService);
+
+  /**
+   * Check if a file is an image based on its content type
+   */
+  isImage(file: ProjectFile): boolean {
+    // Check for proper MIME types
+    if (file.contentType.startsWith('image/')) {
+      return true;
+    }
+
+    // Also check for common image extensions that might not have proper MIME types
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp'];
+    return imageExtensions.includes(file.contentType.toLowerCase());
+  }
+
+  /**
+   * Open image viewer dialog for image files
+   */
+  viewImage(file: ProjectFile): void {
+    if (this.isImage(file) && file.fileUrl) {
+      this.dialogGateway.openImageViewerDialog({
+        imageUrl: file.fileUrl,
+        fileName: file.originalName,
+      });
+    }
+  }
 }

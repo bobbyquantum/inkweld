@@ -10,6 +10,10 @@ import {
 import { EditProjectDialogComponent } from '../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { FileUploadComponent } from '../dialogs/file-upload/file-upload.component';
 import {
+  ImageViewerDialogComponent,
+  ImageViewerDialogData,
+} from '../dialogs/image-viewer-dialog/image-viewer-dialog.component';
+import {
   NewElementDialogComponent,
   NewElementDialogResult,
 } from '../dialogs/new-element-dialog/new-element-dialog.component';
@@ -73,5 +77,14 @@ export class DialogGatewayService {
       disableClose: true,
     });
     return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openImageViewerDialog(data: ImageViewerDialogData): void {
+    this.dialog.open(ImageViewerDialogComponent, {
+      data,
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      panelClass: 'image-viewer-dialog-panel',
+    });
   }
 }

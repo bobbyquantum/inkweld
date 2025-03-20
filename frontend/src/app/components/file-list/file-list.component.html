@@ -5,7 +5,16 @@
     <ng-container matColumnDef="name">
       <th mat-header-cell *matHeaderCellDef>Name</th>
       <td mat-cell *matCellDef="let file">
-        <a [href]="file.fileUrl" target="_blank">{{ file.originalName }}</a>
+        @if (isImage(file)) {
+          <button
+            class="file-name-button"
+            (click)="viewImage(file)"
+            [attr.aria-label]="'View ' + file.originalName">
+            {{ file.originalName }}
+          </button>
+        } @else {
+          <a [href]="file.fileUrl" target="_blank">{{ file.originalName }}</a>
+        }
       </td>
     </ng-container>
 
@@ -22,6 +31,14 @@
     <ng-container matColumnDef="actions">
       <th mat-header-cell *matHeaderCellDef>Actions</th>
       <td mat-cell *matCellDef="let file">
+        @if (isImage(file)) {
+          <button mat-icon-button (click)="viewImage(file)" title="View image">
+            <mat-icon>visibility</mat-icon>
+          </button>
+        }
+        <a mat-icon-button [href]="file.fileUrl" download title="Download file">
+          <mat-icon>download</mat-icon>
+        </a>
         <button
           mat-icon-button
           (click)="deleteFile.emit(file)"
