@@ -37,11 +37,16 @@ class PerProjectPersistence {
   } {
     const parts = docName.split(':');
     if (parts.length < 3) {
-      // Default to a safe value if we can't parse
+      // Generate a unique identifier based on the document name
+      // instead of using 'default:default' which causes lock conflicts
+      const sanitizedName = docName.replace(/[^a-zA-Z0-9-_]/g, '_');
+      const uniqueUsername = `doc_${sanitizedName}`;
+      const uniqueProjectSlug = `instance_${Date.now().toString(36)}`;
+
       this.logger.warn(
-        `Invalid document name format: ${docName}. Using default parsing.`,
+        `Invalid document name format: ${docName}. Using generated unique values instead of defaults.`,
       );
-      return { username: 'default', projectSlug: 'default' };
+      return { username: uniqueUsername, projectSlug: uniqueProjectSlug };
     }
     // First part is the document type, rest should be username and project
     const username = parts[1];
