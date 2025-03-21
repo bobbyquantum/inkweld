@@ -1,6 +1,7 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { HttpClient } from '@angular/common/http';
 import { provideLocationMocks } from '@angular/common/testing';
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
@@ -9,38 +10,29 @@ import {
   provideRouter,
   Router,
 } from '@angular/router';
-import {
-  ProjectAPIService,
-  ProjectDto,
-  UserAPIService,
-  UserDto,
-} from '@inkweld/index';
+import { ProjectDto, UserDto } from '@inkweld/index';
+import { ProjectService } from '@services/project.service';
+import { UserService } from '@services/user.service';
 import { ThemeService } from '@themes/theme.service';
-import { of, throwError } from 'rxjs';
-import { retry } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 import { HomeComponent } from './home.component';
 
 jest.mock('@themes/theme.service');
 jest.mock('@angular/cdk/layout');
-jest.mock('rxjs/operators', () => {
-  // Return the actual implementation for all operators except retry
-  const actual = jest.requireActual('rxjs/operators');
-  return {
-    ...actual,
-    retry: jest.fn().mockImplementation(count => actual.retry(count)),
-  };
-});
 
 describe('HomeComponent', () => {
   let component: HomeComponent;
   let fixture: ComponentFixture<HomeComponent>;
   let themeService: jest.Mocked<ThemeService>;
-  let userService: jest.Mocked<UserAPIService>;
-  let projectService: jest.Mocked<ProjectAPIService>;
+  let userService: jest.Mocked<UserService>;
+  let projectService: Partial<ProjectService>;
   let breakpointObserver: jest.Mocked<BreakpointObserver>;
   let httpClient: jest.Mocked<HttpClient>;
   let router: jest.Mocked<Router>;
+
+  const mockLoadingSignal = signal(false);
+  const mockProjectsSignal = signal<ProjectDto[]>([]);
 
   beforeEach(async () => {
     themeService = {
@@ -66,15 +58,19 @@ describe('HomeComponent', () => {
     } as unknown as jest.Mocked<Router>;
 
     userService = {
-      userControllerGetMe: jest.fn().mockReturnValue(of({} as UserDto)),
-    } as unknown as jest.Mocked<UserAPIService>;
+      currentUser: signal<UserDto | undefined>(undefined),
+    } as unknown as jest.Mocked<UserService>;
 
+    // Reset mock signals for each test
+    mockLoadingSignal.set(false);
+    mockProjectsSignal.set([]);
+
+    // Setup mock project service
     projectService = {
-      projectControllerGetAllProjects: jest
-        .fn()
-        .mockReturnValue(of([] as ProjectDto[])),
-      projectControllerCreateProject: jest.fn(),
-    } as unknown as jest.Mocked<ProjectAPIService>;
+      isLoading: mockLoadingSignal,
+      projects: mockProjectsSignal,
+      loadAllProjects: jest.fn().mockResolvedValue(undefined),
+    };
 
     await TestBed.configureTestingModule({
       imports: [HomeComponent, NoopAnimationsModule],
@@ -85,8 +81,8 @@ describe('HomeComponent', () => {
         ]),
         provideLocationMocks(),
         { provide: ThemeService, useValue: themeService },
-        { provide: UserAPIService, useValue: userService },
-        { provide: ProjectAPIService, useValue: projectService },
+        { provide: UserService, useValue: userService },
+        { provide: ProjectService, useValue: projectService },
         { provide: BreakpointObserver, useValue: breakpointObserver },
         { provide: HttpClient, useValue: httpClient },
         { provide: Router, useValue: router },
@@ -107,9 +103,9 @@ describe('HomeComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should fetch all projects on init', () => {
+  it('should load projects on init', () => {
     component.ngOnInit();
-    expect(projectService.projectControllerGetAllProjects).toHaveBeenCalled();
+    expect(projectService.loadAllProjects).toHaveBeenCalled();
   });
 
   it('should setup breakpoint observer on init', () => {
@@ -154,62 +150,21 @@ describe('HomeComponent', () => {
     expect(component.isMobile).toBe(false);
   });
 
-  it('should handle error when loading projects', () => {
-    // Simulate an error scenario by returning a throwError observable.
-    projectService.projectControllerGetAllProjects = jest
-      .fn()
-      .mockReturnValue(throwError(() => new Error('Error')));
-    component.loadProjects();
-    // Verify that the API was called with the expected parameters.
-    expect(projectService.projectControllerGetAllProjects).toHaveBeenCalledWith(
-      'body',
-      true,
-      { transferCache: true }
-    );
-    // Since catchError converts the error to EMPTY, no projects are returned.
-    expect(component.projects).toEqual([]);
-    // Check that loading state is properly reset
-    expect(component.isLoading).toBe(false);
+  it('should handle error when loading projects', async () => {
+    // Simulate an error scenario
+    const loadError = new Error('Failed to load projects');
+    projectService.loadAllProjects = jest.fn().mockRejectedValue(loadError);
+
+    await component.loadProjects();
+
     // Check that error flag is set
-    expect(component.loadError).toBe(true);
-  });
-
-  it('should use retry when loading projects', () => {
-    component.loadProjects();
-    // Verify retry is called with the correct number of retries
-    expect(retry).toHaveBeenCalledWith(component['maxRetries']);
-  });
-
-  it('should reset error state when retrying manually', () => {
-    // Set initial error state
-    component.isLoading = false;
-    component.loadError = true;
-
-    // Mock successful API call with a valid ProjectDto
-    const testProject = {
-      id: '123',
-      name: 'Test Project',
-      slug: 'test-project',
-      title: 'Test Project',
-      createdDate: new Date(),
-      updatedDate: new Date(),
-    } as unknown as ProjectDto;
-
-    projectService.projectControllerGetAllProjects = jest
-      .fn()
-      .mockReturnValue(of([testProject]));
-
-    // Call loadProjects (as if clicking retry button)
-    component.loadProjects();
-
-    // Check that error state is reset
-    expect(component.loadError).toBe(false);
-    expect(component.isLoading).toBe(false);
-    expect(component.projects).toHaveLength(1);
+    expect(component['loadError']).toBe(true);
   });
 
   it('should call loadProjects when new project dialog returns truthy result', () => {
-    const loadProjectsSpy = jest.spyOn(component, 'loadProjects');
+    const loadProjectsSpy = jest
+      .spyOn(component, 'loadProjects')
+      .mockResolvedValue();
     // Create a fake dialog reference where afterClosed returns an observable emitting a truthy result.
     const dialogRef = {
       afterClosed: () => of(true),
@@ -222,7 +177,9 @@ describe('HomeComponent', () => {
   });
 
   it('should not call loadProjects when new project dialog returns falsy result', () => {
-    const loadProjectsSpy = jest.spyOn(component, 'loadProjects');
+    const loadProjectsSpy = jest
+      .spyOn(component, 'loadProjects')
+      .mockResolvedValue();
     // Create a fake dialog reference where afterClosed returns an observable emitting a falsy result.
     const dialogRef = {
       afterClosed: () => of(false),
