@@ -260,31 +260,41 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
     key: string,
     db: LeveldbPersistence,
   ): Promise<void> {
-    try {
-      // Access the underlying leveldb instance to close it properly
-      // Unfortunately LeveldbPersistence doesn't expose a clean API for closing
-      // So we need to access the internal _db property
-      const anyDb = db as any;
-      if (anyDb._db && typeof anyDb._db.close === 'function') {
-        await anyDb._db.close();
-        this.logger.log(`Explicitly closed database connection for ${key}`);
-      } else {
-        // Alternative approach - rely on garbage collection
-        this.logger.warn(
-          `Could not explicitly close database for ${key} - relying on garbage collection`,
-        );
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        const anyDb = db as any;
+        if (anyDb._db && typeof anyDb._db.close === 'function') {
+          await anyDb._db.close();
+          this.logger.log(`Explicitly closed database connection for ${key}`);
+        } else {
+          this.logger.warn(
+            `Could not explicitly close database for ${key} - relying on garbage collection`,
+          );
+        }
+        this.projectDatabases.delete(key);
+        this.dbActivityTimestamps.delete(key);
+        return;
+      } catch (error) {
+        retries--;
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('LOCK') && retries > 0) {
+          this.logger.warn(
+            `LockFile issue while closing database ${key} (${retries} retries left):`,
+            errorMessage,
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, 500 * (4 - retries)),
+          );
+        } else {
+          this.logger.error(
+            `Error closing database ${key}: ${errorMessage}`,
+            error,
+          );
+          throw error;
+        }
       }
-
-      // Remove from our tracking maps
-      this.projectDatabases.delete(key);
-      this.dbActivityTimestamps.delete(key);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Error closing database ${key}: ${errorMessage}`,
-        error,
-      );
     }
   }
 }
