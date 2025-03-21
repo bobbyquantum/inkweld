@@ -16,11 +16,20 @@ import {
 } from '@inkweld/index';
 import { ThemeService } from '@themes/theme.service';
 import { of, throwError } from 'rxjs';
+import { retry } from 'rxjs/operators';
 
 import { HomeComponent } from './home.component';
 
 jest.mock('@themes/theme.service');
 jest.mock('@angular/cdk/layout');
+jest.mock('rxjs/operators', () => {
+  // Return the actual implementation for all operators except retry
+  const actual = jest.requireActual('rxjs/operators');
+  return {
+    ...actual,
+    retry: jest.fn().mockImplementation(count => actual.retry(count)),
+  };
+});
 
 describe('HomeComponent', () => {
   let component: HomeComponent;
@@ -136,9 +145,9 @@ describe('HomeComponent', () => {
 
   it('should handle error when loading projects', () => {
     // Simulate an error scenario by returning a throwError observable.
-    projectService.projectControllerGetAllProjects.mockReturnValue(
-      throwError(() => new Error('Error'))
-    );
+    projectService.projectControllerGetAllProjects = jest
+      .fn()
+      .mockReturnValue(throwError(() => new Error('Error')));
     component.loadProjects();
     // Verify that the API was called with the expected parameters.
     expect(projectService.projectControllerGetAllProjects).toHaveBeenCalledWith(
@@ -148,8 +157,44 @@ describe('HomeComponent', () => {
     );
     // Since catchError converts the error to EMPTY, no projects are returned.
     expect(component.projects).toEqual([]);
-    // Note: isLoading remains true because the subscription’s 'next' callback was never invoked.
-    expect(component.isLoading).toBe(true);
+    // Check that loading state is properly reset
+    expect(component.isLoading).toBe(false);
+    // Check that error flag is set
+    expect(component.loadError).toBe(true);
+  });
+
+  it('should use retry when loading projects', () => {
+    component.loadProjects();
+    // Verify retry is called with the correct number of retries
+    expect(retry).toHaveBeenCalledWith(component['maxRetries']);
+  });
+
+  it('should reset error state when retrying manually', () => {
+    // Set initial error state
+    component.isLoading = false;
+    component.loadError = true;
+
+    // Mock successful API call with a valid ProjectDto
+    const testProject = {
+      id: '123',
+      name: 'Test Project',
+      slug: 'test-project',
+      title: 'Test Project',
+      createdDate: new Date(),
+      updatedDate: new Date(),
+    } as unknown as ProjectDto;
+
+    projectService.projectControllerGetAllProjects = jest
+      .fn()
+      .mockReturnValue(of([testProject]));
+
+    // Call loadProjects (as if clicking retry button)
+    component.loadProjects();
+
+    // Check that error state is reset
+    expect(component.loadError).toBe(false);
+    expect(component.isLoading).toBe(false);
+    expect(component.projects).toHaveLength(1);
   });
 
   it('should call loadProjects when new project dialog returns truthy result', () => {

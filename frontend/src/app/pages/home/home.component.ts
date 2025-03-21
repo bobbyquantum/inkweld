@@ -13,7 +13,8 @@ import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { NewProjectDialogComponent } from '@dialogs/new-project-dialog/new-project-dialog.component';
 import { ProjectAPIService, ProjectDto } from '@inkweld/index';
 import { UserService } from '@services/user.service';
-import { catchError, EMPTY, Subject, takeUntil } from 'rxjs';
+import { EMPTY, Subject } from 'rxjs';
+import { catchError, retry, takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-home',
@@ -35,6 +36,7 @@ import { catchError, EMPTY, Subject, takeUntil } from 'rxjs';
 export class HomeComponent implements OnInit, OnDestroy {
   projects: ProjectDto[] = [];
   isLoading = true;
+  loadError = false;
   selectedProject: ProjectDto | null = null;
   isMobile = false;
   dialog = inject(MatDialog);
@@ -45,6 +47,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   protected user = this.userService.currentUser;
 
   protected destroy$ = new Subject<void>();
+  private maxRetries = 2;
 
   ngOnInit() {
     this.loadProjects();
@@ -53,11 +56,16 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   loadProjects() {
     this.isLoading = true;
+    this.loadError = false;
+
     this.projectAPIService
       .projectControllerGetAllProjects('body', true, { transferCache: true })
       .pipe(
         takeUntil(this.destroy$),
+        retry(this.maxRetries),
         catchError(() => {
+          this.loadError = true;
+          this.isLoading = false;
           return EMPTY;
         })
       )

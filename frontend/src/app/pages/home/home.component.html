@@ -17,6 +17,16 @@
       <mat-spinner diameter="40" />
       <p>Loading projects...</p>
     </div>
+  } @else if (loadError) {
+    <div class="error-state">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <h2>Failed to load projects</h2>
+      <p>There was a problem connecting to the server</p>
+      <button mat-raised-button color="primary" (click)="loadProjects()">
+        <mat-icon>refresh</mat-icon>
+        Retry
+      </button>
+    </div>
   } @else if (projects.length === 0) {
     <div class="empty-state">
       <mat-icon class="empty-icon">add_circle_outline</mat-icon>
