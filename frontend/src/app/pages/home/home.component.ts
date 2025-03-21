@@ -1,5 +1,13 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  OnDestroy,
+  OnInit,
+  signal,
+} from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -15,7 +23,7 @@ import { ProjectDto } from '@inkweld/index';
 import { ProjectService } from '@services/project.service';
 import { UserService } from '@services/user.service';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { debounceTime, takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-home',
@@ -30,14 +38,19 @@ import { takeUntil } from 'rxjs/operators';
     RouterModule,
     MatDialogModule,
     MatProgressSpinnerModule,
+    ReactiveFormsModule,
   ],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit, OnDestroy {
+  // Component state
   loadError = false;
   selectedProject: ProjectDto | null = null;
   isMobile = false;
+  searchControl = new FormControl('');
+
+  // Injected services
   dialog = inject(MatDialog);
   protected router = inject(Router);
   protected userService = inject(UserService);
@@ -48,14 +61,38 @@ export class HomeComponent implements OnInit, OnDestroy {
   protected isLoading = this.projectService.isLoading;
   protected destroy$ = new Subject<void>();
 
-  // Use the projects signal directly
-  protected get projects(): ProjectDto[] {
-    return this.projectService.projects();
-  }
+  // Computed state
+  protected filteredProjects = computed(() => {
+    const term = this.searchTerm().toLowerCase();
+    if (!term) {
+      return this.projectService.projects();
+    }
+
+    return this.projectService.projects().filter(project => {
+      return (
+        project.title.toLowerCase().includes(term) ||
+        project.slug.toLowerCase().includes(term) ||
+        project.description?.toLowerCase().includes(term) ||
+        project.user?.username?.toLowerCase().includes(term)
+      );
+    });
+  });
+
+  // Private state
+  private searchTerm = signal('');
 
   ngOnInit() {
     void this.loadProjects();
     this.setupBreakpointObserver();
+    this.setupSearchObserver();
+  }
+
+  setupSearchObserver() {
+    this.searchControl.valueChanges
+      .pipe(debounceTime(300), takeUntil(this.destroy$))
+      .subscribe(value => {
+        this.searchTerm.set(value || '');
+      });
   }
 
   async loadProjects() {

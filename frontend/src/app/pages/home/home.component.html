@@ -14,7 +14,7 @@
         Retry
       </button>
     </div>
-  } @else if (projects.length === 0) {
+  } @else if (filteredProjects().length === 0 && !searchControl.value) {
     <div class="empty-state">
       <mat-icon class="empty-icon">add_circle_outline</mat-icon>
       <h2>Create Your First Project</h2>
@@ -26,28 +26,48 @@
   } @else {
     <div class="search-container">
       <mat-form-field appearance="outline" class="custom-search-field">
-        <input matInput placeholder="Search" />
+        <input
+          matInput
+          placeholder="Search projects"
+          [formControl]="searchControl" />
         <mat-icon matPrefix>search</mat-icon>
+        @if (searchControl.value) {
+          <button
+            matSuffix
+            mat-icon-button
+            aria-label="Clear"
+            (click)="searchControl.setValue('')">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
       </mat-form-field>
     </div>
 
-    <div class="projects-grid">
-      @for (project of projects; track project.slug) {
-        <div
-          (click)="selectProject(project)"
-          (keyup.enter)="selectProject(project)"
-          tabindex="0"
-          role="button"
-          class="project-card-wrapper"
-          title="Select {{ project.title }}">
-          <app-project-card [project]="project" />
-        </div>
-      }
-    </div>
+    @if (filteredProjects().length === 0 && searchControl.value) {
+      <div class="empty-search-results">
+        <mat-icon>search_off</mat-icon>
+        <h3>No projects found</h3>
+        <p>Try a different search term</p>
+      </div>
+    } @else {
+      <div class="projects-grid">
+        @for (project of filteredProjects(); track project.slug) {
+          <div
+            (click)="selectProject(project)"
+            (keyup.enter)="selectProject(project)"
+            tabindex="0"
+            role="button"
+            class="project-card-wrapper"
+            title="Select {{ project.title }}">
+            <app-project-card [project]="project" />
+          </div>
+        }
+      </div>
+    }
   }
 </div>
 
-@if (projects.length > 0) {
+@if (projectService.projects().length > 0) {
   <button
     mat-fab
     extended
