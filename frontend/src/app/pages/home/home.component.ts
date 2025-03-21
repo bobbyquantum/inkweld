@@ -11,10 +11,11 @@ import { Router, RouterModule } from '@angular/router';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { NewProjectDialogComponent } from '@dialogs/new-project-dialog/new-project-dialog.component';
-import { ProjectAPIService, ProjectDto } from '@inkweld/index';
+import { ProjectDto } from '@inkweld/index';
+import { ProjectService } from '@services/project.service';
 import { UserService } from '@services/user.service';
-import { EMPTY, Subject } from 'rxjs';
-import { catchError, retry, takeUntil } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-home',
@@ -34,46 +35,37 @@ import { catchError, retry, takeUntil } from 'rxjs/operators';
   styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit, OnDestroy {
-  projects: ProjectDto[] = [];
-  isLoading = true;
   loadError = false;
   selectedProject: ProjectDto | null = null;
   isMobile = false;
   dialog = inject(MatDialog);
   protected router = inject(Router);
   protected userService = inject(UserService);
-  protected projectAPIService = inject(ProjectAPIService);
+  protected projectService = inject(ProjectService);
   protected breakpointObserver = inject(BreakpointObserver);
 
   protected user = this.userService.currentUser;
-
+  protected isLoading = this.projectService.isLoading;
   protected destroy$ = new Subject<void>();
-  private maxRetries = 2;
+
+  // Use the projects signal directly
+  protected get projects(): ProjectDto[] {
+    return this.projectService.projects();
+  }
 
   ngOnInit() {
-    this.loadProjects();
+    void this.loadProjects();
     this.setupBreakpointObserver();
   }
 
-  loadProjects() {
-    this.isLoading = true;
+  async loadProjects() {
     this.loadError = false;
-
-    this.projectAPIService
-      .projectControllerGetAllProjects('body', true, { transferCache: true })
-      .pipe(
-        takeUntil(this.destroy$),
-        retry(this.maxRetries),
-        catchError(() => {
-          this.loadError = true;
-          this.isLoading = false;
-          return EMPTY;
-        })
-      )
-      .subscribe(projects => {
-        this.projects = projects;
-        this.isLoading = false;
-      });
+    try {
+      await this.projectService.loadAllProjects();
+    } catch (error) {
+      this.loadError = true;
+      console.error('Failed to load projects:', error);
+    }
   }
 
   setupBreakpointObserver() {
@@ -105,7 +97,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.loadProjects();
+        void this.loadProjects();
       }
     });
   }

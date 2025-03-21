@@ -1,5 +1,5 @@
 <div class="content-container" [class.is-mobile]="isMobile">
-  @if (isLoading) {
+  @if (isLoading()) {
     <div class="loading-state">
       <mat-spinner diameter="40" />
       <p>Loading projects...</p>
