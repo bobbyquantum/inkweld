@@ -49,9 +49,6 @@ export class ProjectFileService {
     file: File
   ): Observable<ProjectFile> {
     const xsrfToken = this.xsrfService.getXsrfToken();
-    if (!xsrfToken) {
-      throw new Error('XSRF token not found in cookies');
-    }
     return this.projectFilesService
       .projectFilesControllerUploadFile(username, projectSlug, xsrfToken, file)
       .pipe(
@@ -68,9 +65,6 @@ export class ProjectFileService {
     storedName: string
   ): Observable<FileDeleteResponse> {
     const xsrfToken = this.xsrfService.getXsrfToken();
-    if (!xsrfToken) {
-      throw new Error('XSRF token not found in cookies');
-    }
     return this.projectFilesService
       .projectFilesControllerDeleteFile(
         username,

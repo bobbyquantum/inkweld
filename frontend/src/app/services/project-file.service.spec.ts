@@ -149,21 +149,4 @@ describe('ProjectFileService', () => {
       expect(service.formatFileSize(testCase.input)).toBe(testCase.expected);
     });
   });
-
-  it('should handle XSRF token validation', () => {
-    // Make XsrfService return empty token for this test
-    xsrfServiceMock.getXsrfToken.mockReturnValue('');
-
-    const testFile = new File(['t'], 'test.jpg', { type: 'image/jpeg' });
-
-    // Test upload token validation
-    expect(() => service.uploadFile('user1', 'project1', testFile)).toThrow(
-      'XSRF token not found in cookies'
-    );
-
-    // Test delete token validation
-    expect(() =>
-      service.deleteFile('user1', 'project1', 'stored-test.jpg')
-    ).toThrow('XSRF token not found in cookies');
-  });
 });
