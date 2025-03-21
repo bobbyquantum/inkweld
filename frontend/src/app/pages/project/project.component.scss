@@ -230,20 +230,75 @@ mat-sidenav-content {
   @media (min-width: 760px) {
     flex-direction: column; // Keep column layout for desktop
   }
-}
 
-.home-column {
-  flex: 1;
-  min-width: 300px;
-  margin-bottom: 20px;
-
-  .home-column-header {
+  .columns-container {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-    h3 {
-      margin: 0;
+    flex-direction: row;
+    gap: 30px;
+    flex-wrap: wrap;
+
+    @media (max-width: 760px) {
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .home-column {
+      flex: 1;
+      min-width: 300px;
+      margin-bottom: 20px;
+
+      .home-column-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        h3 {
+          margin: 0;
+        }
+      }
+
+      .recent-files-list.vertical {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 16px;
+
+        .recent-file-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 8px 12px;
+          border-radius: 8px;
+          transition: background-color 0.2s ease;
+          cursor: pointer;
+
+          &:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+          }
+
+          mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+          }
+
+          .recent-file-name {
+            flex: 1;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+        }
+      }
+
+      .no-recent-files {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 16px;
+        font-style: italic;
+      }
     }
   }
 }
@@ -268,18 +323,6 @@ mat-sidenav-content {
     p {
       margin-bottom: 0;
     }
-  }
-}
-
-.columns-container {
-  display: flex;
-  flex-direction: row;
-  gap: 30px;
-  flex-wrap: wrap;
-
-  @media (max-width: 760px) {
-    flex-direction: column;
-    gap: 20px;
   }
 }
 
@@ -315,7 +358,6 @@ mat-sidenav-content {
 }
 
 .no-recent-files {
-  color: #666;
   font-style: italic;
   padding: 8px 12px;
 }
