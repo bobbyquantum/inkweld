@@ -7,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { NewProjectDialogComponent } from '@dialogs/new-project-dialog/new-project-dialog.component';
@@ -40,6 +40,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   selectedProject: ProjectDto | null = null;
   isMobile = false;
   dialog = inject(MatDialog);
+  protected router = inject(Router);
   protected userService = inject(UserService);
   protected projectAPIService = inject(ProjectAPIService);
   protected breakpointObserver = inject(BreakpointObserver);
@@ -85,7 +86,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   selectProject(project: ProjectDto) {
-    this.selectedProject = project;
+    // Navigate directly to the project instead of showing a preview
+    void this.router.navigate([
+      project.user?.username || '',
+      project.slug || '',
+    ]);
   }
 
   backToList() {

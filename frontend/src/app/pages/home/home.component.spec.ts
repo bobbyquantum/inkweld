@@ -7,6 +7,7 @@ import {
   ActivatedRoute,
   convertToParamMap,
   provideRouter,
+  Router,
 } from '@angular/router';
 import {
   ProjectAPIService,
@@ -39,6 +40,7 @@ describe('HomeComponent', () => {
   let projectService: jest.Mocked<ProjectAPIService>;
   let breakpointObserver: jest.Mocked<BreakpointObserver>;
   let httpClient: jest.Mocked<HttpClient>;
+  let router: jest.Mocked<Router>;
 
   beforeEach(async () => {
     themeService = {
@@ -58,6 +60,10 @@ describe('HomeComponent', () => {
       put: jest.fn(),
       delete: jest.fn(),
     } as unknown as jest.Mocked<HttpClient>;
+
+    router = {
+      navigate: jest.fn(),
+    } as unknown as jest.Mocked<Router>;
 
     userService = {
       userControllerGetMe: jest.fn().mockReturnValue(of({} as UserDto)),
@@ -83,6 +89,7 @@ describe('HomeComponent', () => {
         { provide: ProjectAPIService, useValue: projectService },
         { provide: BreakpointObserver, useValue: breakpointObserver },
         { provide: HttpClient, useValue: httpClient },
+        { provide: Router, useValue: router },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -113,13 +120,17 @@ describe('HomeComponent', () => {
     ]);
   });
 
-  it('should select a project', () => {
+  it('should navigate to project when selecting a project', () => {
     const project = {
       id: '123',
       name: 'Test Project',
+      slug: 'test-project',
+      user: {
+        username: 'testuser',
+      },
     } as unknown as ProjectDto;
     component.selectProject(project);
-    expect(component.selectedProject).toEqual(project);
+    expect(router.navigate).toHaveBeenCalledWith(['testuser', 'test-project']);
   });
 
   it('should back to list', () => {
