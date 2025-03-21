@@ -21,7 +21,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Title } from '@angular/platform-browser';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { DocumentElementEditorComponent } from '@components/document-element-editor/document-element-editor.component';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
@@ -51,6 +51,7 @@ import { RecentFilesService } from '../../services/recent-files.service';
     ProjectTreeComponent,
     DocumentElementEditorComponent,
     CommonModule,
+    RouterModule,
     UserMenuComponent,
     FolderElementEditorComponent,
   ],
