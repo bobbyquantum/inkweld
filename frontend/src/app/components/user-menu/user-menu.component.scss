@@ -3,11 +3,12 @@
 }
 .menu-container {
   margin: 0 10px;
+  display: contents; /* Avoid adding extra container dimensions */
 }
 .user-menu {
   width: 100%;
   flex: 1;
-
+  min-width: 164px;
   gap: 8px;
   padding: 0 16px;
   justify-content: start;
@@ -17,6 +18,7 @@
     width: 32px; /* Match avatar size */
     height: 32px; /* Match avatar size */
     border-radius: 50%;
+    min-width: unset;
     overflow: hidden; /* Ensure icon button stays within circle */
   }
 }

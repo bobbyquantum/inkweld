@@ -89,15 +89,11 @@
 .user-menu-fab {
   position: fixed;
   bottom: 20px;
-  left: 40px;
+  left: 20px;
   z-index: 10;
-  min-width: 0;
+  min-width: 164px;
   padding: 0;
-
-  ::ng-deep .mat-mdc-button-touch-target {
-    height: 100%;
-    width: 100%;
-  }
+  overflow: visible; /* Allow content to overflow */
 }
 
 .loading-state {
