@@ -122,7 +122,8 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
         retries--;
 
         // Check if it's a lock file error (Type-safe error handling)
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
 
         if (errorMessage.includes('LOCK')) {
           this.logger.warn(
@@ -131,7 +132,9 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
           );
 
           // Wait a bit before retrying
-          await new Promise(resolve => setTimeout(resolve, 500 * (4 - retries)));
+          await new Promise((resolve) =>
+            setTimeout(resolve, 500 * (4 - retries)),
+          );
 
           // If we still have retries, continue to the next attempt
           if (retries > 0) continue;
@@ -267,15 +270,21 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
         this.logger.log(`Explicitly closed database connection for ${key}`);
       } else {
         // Alternative approach - rely on garbage collection
-        this.logger.warn(`Could not explicitly close database for ${key} - relying on garbage collection`);
+        this.logger.warn(
+          `Could not explicitly close database for ${key} - relying on garbage collection`,
+        );
       }
 
       // Remove from our tracking maps
       this.projectDatabases.delete(key);
       this.dbActivityTimestamps.delete(key);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Error closing database ${key}: ${errorMessage}`, error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Error closing database ${key}: ${errorMessage}`,
+        error,
+      );
     }
   }
 }
