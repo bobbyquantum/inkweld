@@ -37,16 +37,14 @@ class PerProjectPersistence {
   } {
     const parts = docName.split(':');
     if (parts.length < 3) {
-      // Generate a unique identifier based on the document name
-      // instead of using 'default:default' which causes lock conflicts
-      const sanitizedName = docName.replace(/[^a-zA-Z0-9-_]/g, '_');
-      const uniqueUsername = `doc_${sanitizedName}`;
-      const uniqueProjectSlug = `instance_${Date.now().toString(36)}`;
-
-      this.logger.warn(
-        `Invalid document name format: ${docName}. Using generated unique values instead of defaults.`,
+      // Instead of generating fallback identifiers, throw an error
+      // This will help identify and fix the root cause of improperly formatted document names
+      this.logger.error(
+        `Invalid document name format: ${docName}. Expected format: "documentName:username:projectSlug"`,
       );
-      return { username: uniqueUsername, projectSlug: uniqueProjectSlug };
+      throw new Error(
+        `Invalid document name format: ${docName}. Expected format: "documentName:username:projectSlug"`,
+      );
     }
     // First part is the document type, rest should be username and project
     const username = parts[1];
