@@ -47,7 +47,7 @@ export class DocumentElementEditorComponent
 {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
-  @Input() documentId = 'default';
+  @Input() documentId = 'invalid';
   editor!: Editor;
   toolbar: Toolbar = [
     ['bold', 'italic'],

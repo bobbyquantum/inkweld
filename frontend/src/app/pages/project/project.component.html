@@ -161,26 +161,31 @@
           <ng-template mat-tab-label>
             <div class="tab-label">
               {{ file.name }}
-              @switch (documentService.getSyncStatus(file.id) | async) {
-                @case (DocumentSyncState.Unavailable) {
-                  <div
-                    class="connection-status unavailable"
-                    title="Document not found locally"></div>
-                }
-                @case (DocumentSyncState.Offline) {
-                  <div
-                    class="connection-status offline"
-                    title="Document available offline"></div>
-                }
-                @case (DocumentSyncState.Syncing) {
-                  <div
-                    class="connection-status syncing"
-                    title="Syncing with server..."></div>
-                }
-                @case (DocumentSyncState.Synced) {
-                  <div
-                    class="connection-status synced"
-                    title="Connected and synced"></div>
+
+              @if (file.type !== 'FOLDER') {
+                @switch (
+                  documentService.getSyncStatus(`${file.id}:${projectState.project()?.user?.username}:${projectState.project()?.slug}`) | async
+                ) {
+                  @case (DocumentSyncState.Unavailable) {
+                    <div
+                      class="connection-status unavailable"
+                      title="Document not found locally"></div>
+                  }
+                  @case (DocumentSyncState.Offline) {
+                    <div
+                      class="connection-status offline"
+                      title="Document available offline"></div>
+                  }
+                  @case (DocumentSyncState.Syncing) {
+                    <div
+                      class="connection-status syncing"
+                      title="Syncing with server..."></div>
+                  }
+                  @case (DocumentSyncState.Synced) {
+                    <div
+                      class="connection-status synced"
+                      title="Connected and synced"></div>
+                  }
                 }
               }
               <button
@@ -195,7 +200,7 @@
               [elementId]="file.id"></app-folder-element-editor>
           } @else {
             <app-document-element-editor
-              [documentId]="file.id"></app-document-element-editor>
+              [documentId]="`${file.id}:${projectState.project()?.user?.username}:${projectState.project()?.slug}`"></app-document-element-editor>
           }
         </mat-tab>
       }
