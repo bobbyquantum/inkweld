@@ -56,9 +56,9 @@
       <div
         class="node-title"
         tabindex="0"
-        (click)="onOpenFile(node)"
-        (keyup.enter)="onOpenFile(node)"
-        (dblclick)="onOpenFile(node)">
+        (click)="onOpenDocument(node)"
+        (keyup.enter)="onOpenDocument(node)"
+        (dblclick)="onOpenDocument(node)">
         {{ node.name }}
       </div>
 
@@ -104,9 +104,9 @@
         class="context-menu-item"
         cdkMenuItem
         [disabled]="isLoading()"
-        (click)="onOpenFile(node)">
+        (click)="onOpenDocument(node)">
         <mat-icon>open_in_new</mat-icon>
-        <span class="context-menu-item-title">Open File</span>
+        <span class="context-menu-item-title">Open Document</span>
       </button>
     }
     <button

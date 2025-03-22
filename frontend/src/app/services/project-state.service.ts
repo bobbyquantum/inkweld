@@ -26,7 +26,7 @@ export class ProjectStateService {
   // Core state signals
   readonly project = signal<ProjectDto | undefined>(undefined);
   readonly elements = signal<ProjectElementDto[]>([]);
-  readonly openFiles = signal<ProjectElementDto[]>([]);
+  readonly openDocuments = signal<ProjectElementDto[]>([]);
   readonly selectedTabIndex = signal<number>(0);
   readonly isLoading = signal<boolean>(false);
   readonly isSaving = signal<boolean>(false);
@@ -104,7 +104,7 @@ export class ProjectStateService {
       );
       this.project.set(projectDto);
 
-      this.docId = `projectElements:${username}:${slug}`;
+      this.docId = `${username}:${slug}:elements`;
       this.doc = new Y.Doc();
 
       // Initialize IndexedDB persistence
@@ -408,13 +408,13 @@ export class ProjectStateService {
     void this.updateElements(this.recomputePositions(newElements));
   }
 
-  // File Operations
-  openFile(element: ProjectElementDto): void {
-    const files = this.openFiles();
+  // Document Operations
+  openDocument(element: ProjectElementDto): void {
+    const documents = this.openDocuments();
 
-    // Add to recent files if we have a project
+    // Add to recent documents if we have a project
     const project = this.project();
-    console.log('Opening file:', element.name, 'Project:', project);
+    console.log('Opening document:', element.name, 'Project:', project);
 
     this.recentFilesService.addRecentFile(
       element,
@@ -429,20 +429,23 @@ export class ProjectStateService {
       )
     );
 
-    if (!files.some(f => f.id === element.id)) {
-      this.openFiles.set([...files, element]);
+    if (!documents.some(d => d.id === element.id)) {
+      this.openDocuments.set([...documents, element]);
     }
-    const index = this.openFiles().findIndex(f => f.id === element.id);
+    const index = this.openDocuments().findIndex(d => d.id === element.id);
     this.selectedTabIndex.set(index + 1);
   }
 
-  closeFile(index: number): void {
-    const files = this.openFiles();
-    const newFiles = [...files.slice(0, index), ...files.slice(index + 1)];
-    this.openFiles.set(newFiles);
+  closeDocument(index: number): void {
+    const documents = this.openDocuments();
+    const newDocuments = [
+      ...documents.slice(0, index),
+      ...documents.slice(index + 1),
+    ];
+    this.openDocuments.set(newDocuments);
 
-    if (this.selectedTabIndex() >= newFiles.length) {
-      this.selectedTabIndex.set(Math.max(0, newFiles.length - 1));
+    if (this.selectedTabIndex() >= newDocuments.length) {
+      this.selectedTabIndex.set(Math.max(0, newDocuments.length - 1));
     }
   }
 

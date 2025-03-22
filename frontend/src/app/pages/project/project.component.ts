@@ -74,18 +74,18 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly importExportService = inject(ProjectImportExportService);
 
   protected destroy$ = new Subject<void>();
-  private readonly dialogGateway = inject(DialogGatewayService);
-  private paramsSubscription?: Subscription;
-  private syncSubscription?: Subscription;
-  private hasUnsavedChanges = false;
-  private startWidth = 0;
-
-  private readonly errorEffect = effect(() => {
+  protected readonly errorEffect = effect(() => {
     const error = this.projectState.error();
     if (error) {
       this.snackBar.open(error, 'Close', { duration: 5000 });
     }
   });
+
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private paramsSubscription?: Subscription;
+  private syncSubscription?: Subscription;
+  private hasUnsavedChanges = false;
+  private startWidth = 0;
 
   constructor() {
     effect(() => {
@@ -96,15 +96,13 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 
     effect(() => {
-      const openFiles = this.projectState.openFiles();
-      const currentFile = openFiles[0];
-
+      const openDocuments = this.projectState.openDocuments();
+      const currentDocument = openDocuments[0];
       // Clean up previous subscription
       this.syncSubscription?.unsubscribe();
-
-      if (currentFile?.id) {
+      if (currentDocument?.id) {
         this.syncSubscription = this.documentService
-          .getSyncStatus(currentFile.id)
+          .getSyncStatus(currentDocument.id)
           .subscribe(state => {
             this.hasUnsavedChanges = state === DocumentSyncState.Offline;
           });
@@ -207,32 +205,32 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     event.source._dragRef.reset();
   }
 
-  onFileOpened = (element: ProjectElementDto) => {
-    this.projectState.openFile(element);
+  onDocumentOpened = (element: ProjectElementDto) => {
+    this.projectState.openDocument(element);
     if (this.isMobile()) {
       void this.sidenav.close();
     }
   };
 
   closeTab = (index: number) => {
-    this.projectState.closeFile(index);
+    this.projectState.closeDocument(index);
   };
 
   exitProject() {
     void this.router.navigate(['/']);
   }
 
-  onRecentFileClick(fileId: string): void {
+  onRecentDocumentClick(documentId: string): void {
     const elements = this.projectState.elements();
-    const element = elements.find(e => e.id === fileId);
+    const element = elements.find(e => e.id === documentId);
     if (element) {
-      this.projectState.openFile(element);
+      this.projectState.openDocument(element);
     }
   }
 
-  onRecentFileKeydown(event: KeyboardEvent, fileId: string): void {
+  onRecentDocumentKeydown(event: KeyboardEvent, documentId: string): void {
     if (event.key === 'Enter' || event.key === ' ') {
-      this.onRecentFileClick(fileId);
+      this.onRecentDocumentClick(documentId);
     }
   }
 

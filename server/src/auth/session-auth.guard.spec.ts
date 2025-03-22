@@ -2,10 +2,11 @@ import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from '../user/user.service.js';
 import { SessionAuthGuard } from './session-auth.guard.js';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from 'bun:test';
+import { Mocked } from '../common/test/bun-test-utils.js';
 describe('SessionAuthGuard', () => {
   let guard: SessionAuthGuard;
-  let userService: jest.Mocked<UserService>;
+  let userService: Mocked<UserService>;
 
   const mockUser = {
     id: 'test-user-id',

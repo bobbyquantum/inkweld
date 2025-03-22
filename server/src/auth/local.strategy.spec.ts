@@ -2,10 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { LocalStrategy } from './local.strategy.js';
 import { AuthService } from './auth.service.js';
 import { UnauthorizedException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from 'bun:test';
+import { Mocked } from '../common/test/bun-test-utils.js';
+
 describe('LocalStrategy', () => {
   let strategy: LocalStrategy;
-  let authService: jest.Mocked<AuthService>;
+  let authService: Mocked<AuthService>;
 
   const mockUser = {
     id: 'user-1',

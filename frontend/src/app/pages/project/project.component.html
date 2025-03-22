@@ -127,44 +127,48 @@
               ) {
                 <div class="recent-files-list">
                   @for (
-                    file of recentFilesService.getRecentFilesForProject(
+                    document of recentFilesService.getRecentFilesForProject(
                       projectState.project()!.user?.username!,
                       projectState.project()!.slug!
                     );
-                    track file.id
+                    track document.id
                   ) {
                     <div
                       tabindex="0"
                       class="recent-file-item"
                       role="button"
-                      (keydown)="onRecentFileKeydown($event, file.id)"
-                      (click)="onRecentFileClick(file.id)">
+                      (keydown)="onRecentDocumentKeydown($event, document.id)"
+                      (click)="onRecentDocumentClick(document.id)">
                       <mat-icon>{{
-                        file.type === 'IMAGE' ? 'image' : 'description'
+                        document.type === 'IMAGE' ? 'image' : 'description'
                       }}</mat-icon>
-                      <span class="recent-file-name">{{ file.name }}</span>
+                      <span class="recent-file-name">{{ document.name }}</span>
                     </div>
                   }
                 </div>
               } @else {
                 <p class="no-recent-files">
                   <mat-icon>info</mat-icon>
-                  No recent elements yet. Open files to see them here.
+                  No recent elements yet. Open documents to see them here.
                 </p>
               }
             </div>
           </div>
         </div>
       </mat-tab>
-      @for (file of projectState.openFiles(); track file.id; let i = $index) {
+      @for (
+        document of projectState.openDocuments();
+        track document.id;
+        let i = $index
+      ) {
         <mat-tab>
           <ng-template mat-tab-label>
             <div class="tab-label">
-              {{ file.name }}
+              {{ document.name }}
 
-              @if (file.type !== 'FOLDER') {
+              @if (document.type !== 'FOLDER') {
                 @switch (
-                  documentService.getSyncStatus(`${file.id}:${projectState.project()?.user?.username}:${projectState.project()?.slug}`) | async
+                  documentService.getSyncStatus(`${document.id}:${projectState.project()?.user?.username}:${projectState.project()?.slug}`) | async
                 ) {
                   @case (DocumentSyncState.Unavailable) {
                     <div
@@ -195,12 +199,12 @@
               </button>
             </div>
           </ng-template>
-          @if (file.type === 'FOLDER') {
+          @if (document.type === 'FOLDER') {
             <app-folder-element-editor
-              [elementId]="file.id"></app-folder-element-editor>
+              [elementId]="document.id"></app-folder-element-editor>
           } @else {
             <app-document-element-editor
-              [documentId]="`${file.id}:${projectState.project()?.user?.username}:${projectState.project()?.slug}`"></app-document-element-editor>
+              [documentId]="`${document.id}:${projectState.project()?.user?.username}:${projectState.project()?.slug}`"></app-document-element-editor>
           }
         </mat-tab>
       }

@@ -69,7 +69,7 @@ describe('FolderElementEditorComponent', () => {
       elements: jest.fn().mockReturnValue(mockElements),
       isLoading: signal(false),
       error: signal(undefined),
-      openFile: jest.fn(),
+      openDocument: jest.fn(),
       updateElements: jest.fn(),
       showNewElementDialog: jest.fn(),
     };
@@ -120,7 +120,7 @@ describe('FolderElementEditorComponent', () => {
     const element = mockElements[1]; // Test Item 1
     component.openElement(element);
 
-    expect(mockProjectStateService.openFile).toHaveBeenCalledWith(element);
+    expect(mockProjectStateService.openDocument).toHaveBeenCalledWith(element);
   });
 
   it('should handle drop events for reordering', () => {

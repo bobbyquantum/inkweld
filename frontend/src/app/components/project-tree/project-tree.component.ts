@@ -361,10 +361,10 @@ export class ProjectTreeComponent {
   }
 
   /**
-   * Opens a file in the editor.
+   * Opens a document in the editor.
    * @param node The node to open.
    */
-  public onOpenFile(node: ProjectElement) {
+  public onOpenDocument(node: ProjectElement) {
     // Convert ProjectElement back to ProjectElementDto
     const dto: ProjectElementDto = {
       id: node.id ?? '',
@@ -376,6 +376,6 @@ export class ProjectTreeComponent {
       expandable: node.expandable || false,
       metadata: {},
     };
-    this.projectStateService.openFile(dto);
+    this.projectStateService.openDocument(dto);
   }
 }

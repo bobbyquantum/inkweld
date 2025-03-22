@@ -1,10 +1,12 @@
 import { EntityManager, QueryRunner, Repository } from 'typeorm';
 import { UserSessionEntity } from './session.entity.js';
 import { TypeOrmSessionStore } from './session.store.js';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest, spyOn } from 'bun:test';
+import { Mocked } from '../common/test/bun-test-utils.js';
+
 describe('TypeOrmSessionStore', () => {
   let store: TypeOrmSessionStore;
-  let repository: jest.Mocked<Repository<UserSessionEntity>>;
+  let repository: Mocked<Repository<UserSessionEntity>>;
 
   const mockSession = {
     id: 'test-session-id',
@@ -46,7 +48,7 @@ describe('TypeOrmSessionStore', () => {
       upsert: jest.fn(),
       clear: jest.fn(),
       extend: jest.fn(),
-    } as unknown as jest.Mocked<Repository<UserSessionEntity>>;
+    } as unknown as Mocked<Repository<UserSessionEntity>>;
 
     store = new TypeOrmSessionStore(repository, {});
   });
@@ -156,7 +158,7 @@ describe('TypeOrmSessionStore', () => {
     it('should save session with default expiration when no cookie expires', async () => {
       const sessionWithoutExpires = { ...mockSession.data };
       const now = Date.now();
-      jest.spyOn(Date, 'now').mockImplementation(() => now);
+      spyOn(Date, 'now').mockImplementation(() => now);
 
       await new Promise<void>((resolve) => {
         store.set(mockSession.id, sessionWithoutExpires, (err) => {
@@ -235,7 +237,7 @@ describe('TypeOrmSessionStore', () => {
     it('should update session expiration with default expiration when no cookie expires', async () => {
       const sessionWithoutExpires = {};
       const now = Date.now();
-      jest.spyOn(Date, 'now').mockImplementation(() => now);
+      spyOn(Date, 'now').mockImplementation(() => now);
 
       await new Promise<void>((resolve) => {
         store.touch(mockSession.id, sessionWithoutExpires, (err) => {

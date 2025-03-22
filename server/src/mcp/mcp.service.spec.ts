@@ -1,28 +1,30 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { McpService } from './mcp.service.js';
 import { ProjectService } from '../project/project.service.js';
-import { YjsGateway } from '../ws/yjs-gateway.js';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { DocumentGateway } from '../document/document.gateway.js';
+import { beforeEach, describe, expect, it, jest } from 'bun:test';
+import { Mocked } from '../common/test/bun-test-utils.js';
+
 describe('McpService', () => {
   let service: McpService;
-  let mockProjectService: jest.Mocked<ProjectService>;
-  let mockYjsGateway: jest.Mocked<YjsGateway>;
+  let mockProjectService: Mocked<ProjectService>;
+  let mockYjsGateway: Mocked<DocumentGateway>;
 
   beforeEach(async () => {
     mockProjectService = {
       findAllForCurrentUser: jest.fn(),
       findAll: jest.fn(),
-    } as unknown as jest.Mocked<ProjectService>;
+    } as unknown as Mocked<ProjectService>;
 
     mockYjsGateway = {
       updateDocument: jest.fn(),
-    } as unknown as jest.Mocked<YjsGateway>;
+    } as unknown as Mocked<DocumentGateway>;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         McpService,
         { provide: ProjectService, useValue: mockProjectService },
-        { provide: YjsGateway, useValue: mockYjsGateway },
+        { provide: DocumentGateway, useValue: mockYjsGateway },
       ],
     }).compile();
 
@@ -80,7 +82,7 @@ describe('McpService', () => {
     it('should update document successfully', async () => {
       const documentId = 'test-doc';
       const content = 'new content';
-      mockYjsGateway.updateDocument.mockResolvedValue();
+      mockYjsGateway.updateDocument.mockResolvedValue(undefined);
 
       const result = await service['handleUpdateDocument']({
         documentId,

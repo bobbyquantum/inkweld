@@ -1,0 +1,109 @@
+<div class="documents-container">
+  <div class="documents-header">
+    <h1>Project Documents</h1>
+    <button
+      mat-raised-button
+      color="primary"
+      [routerLink]="['../editor', 'new']">
+      <mat-icon>add</mat-icon>
+      New Document
+    </button>
+  </div>
+
+  <!-- Loading state -->
+  @if (isLoading) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading documents...</p>
+    </div>
+  }
+
+  <!-- Error state -->
+  @if (error && !isLoading) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <mat-icon color="warn">error</mat-icon>
+        <p>{{ error }}</p>
+        <button mat-button color="primary" (click)="loadDocuments()">
+          Try Again
+        </button>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Empty state -->
+  @if (!isLoading && !error && documents.length === 0) {
+    <mat-card class="empty-card">
+      <mat-card-content>
+        <mat-icon>description</mat-icon>
+        <p>No documents found in this project.</p>
+        <button
+          mat-raised-button
+          color="primary"
+          [routerLink]="['../editor', 'new']">
+          Create Your First Document
+        </button>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Documents table -->
+  @if (!isLoading && !error && documents.length > 0) {
+    <div class="table-container">
+      <table mat-table [dataSource]="documents" class="documents-table">
+        <!-- Name Column -->
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Name</th>
+          <td mat-cell *matCellDef="let doc">
+            <a [routerLink]="['../editor', doc.id]" class="document-name">
+              <mat-icon class="document-icon">description</mat-icon>
+              {{ doc.name }}
+            </a>
+          </td>
+        </ng-container>
+
+        <!-- Last Modified Column -->
+        <ng-container matColumnDef="lastModified">
+          <th mat-header-cell *matHeaderCellDef>Last Modified</th>
+          <td mat-cell *matCellDef="let doc">
+            {{ formatDate(doc.lastModified) }}
+          </td>
+        </ng-container>
+
+        <!-- Sync Status Column -->
+        <ng-container matColumnDef="syncStatus">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let doc">
+            <mat-icon
+              [matTooltip]="getSyncStatusTooltip(doc.id)"
+              class="status-icon">
+              {{ getSyncStatusIcon(doc.id) }}
+            </mat-icon>
+          </td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let doc">
+            <button
+              mat-icon-button
+              [routerLink]="['../editor', doc.id]"
+              matTooltip="Open Document">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button matTooltip="Download Document">
+              <mat-icon>download</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" matTooltip="Delete Document">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+  }
+</div>

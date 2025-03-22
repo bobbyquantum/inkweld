@@ -2,7 +2,7 @@ import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { AuthGuard } from '@nestjs/passport';
 import { GithubAuthGuard } from './github-auth.guard.js';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest, spyOn } from 'bun:test';
 describe('GithubAuthGuard', () => {
   let guard: GithubAuthGuard;
   let mockContext: ExecutionContext;
@@ -22,15 +22,14 @@ describe('GithubAuthGuard', () => {
     guard = module.get<GithubAuthGuard>(GithubAuthGuard);
 
     // Mock parent AuthGuard's canActivate
-    jest
-      .spyOn(AuthGuard('github').prototype, 'canActivate')
+    spyOn(AuthGuard('github').prototype, 'canActivate')
       .mockImplementation(async () => true);
 
     // Mock Logger
-    jest.spyOn(guard['logger'], 'verbose').mockImplementation(() => ({}));
-    jest.spyOn(guard['logger'], 'log').mockImplementation(() => ({}));
-    jest.spyOn(guard['logger'], 'error').mockImplementation(() => ({}));
-    jest.spyOn(guard['logger'], 'warn').mockImplementation(() => ({}));
+    spyOn(guard['logger'], 'verbose').mockImplementation(() => ({}));
+    spyOn(guard['logger'], 'log').mockImplementation(() => ({}));
+    spyOn(guard['logger'], 'error').mockImplementation(() => ({}));
+    spyOn(guard['logger'], 'warn').mockImplementation(() => ({}));
 
     // Setup mock request and context
     mockRequest = {
@@ -67,8 +66,7 @@ describe('GithubAuthGuard', () => {
 
     it('should handle failed GitHub authentication', async () => {
       // Mock failed authentication
-      jest
-        .spyOn(AuthGuard('github').prototype, 'canActivate')
+      spyOn(AuthGuard('github').prototype, 'canActivate')
         .mockImplementation(async () => {
           throw new UnauthorizedException('Authentication failed');
         });
@@ -80,8 +78,7 @@ describe('GithubAuthGuard', () => {
 
     it('should handle null/undefined authentication result', async () => {
       // Mock undefined authentication result
-      jest
-        .spyOn(AuthGuard('github').prototype, 'canActivate')
+      spyOn(AuthGuard('github').prototype, 'canActivate')
         .mockImplementation(async () => undefined);
 
       const result = await guard.canActivate(mockContext);
@@ -120,7 +117,7 @@ describe('GithubAuthGuard', () => {
 
   describe('logging', () => {
     it('should log request details during authentication', async () => {
-      const loggerSpy = jest.spyOn(guard['logger'], 'verbose');
+      const loggerSpy = spyOn(guard['logger'], 'verbose');
 
       await guard.canActivate(mockContext);
 
@@ -131,7 +128,7 @@ describe('GithubAuthGuard', () => {
     });
 
     it('should log authentication result', async () => {
-      const loggerSpy = jest.spyOn(guard['logger'], 'log');
+      const loggerSpy = spyOn(guard['logger'], 'log');
 
       await guard.canActivate(mockContext);
 
@@ -142,11 +139,10 @@ describe('GithubAuthGuard', () => {
     });
 
     it('should log errors during authentication', async () => {
-      const loggerSpy = jest.spyOn(guard['logger'], 'error');
+      const loggerSpy = spyOn(guard['logger'], 'error');
 
       // Mock failed authentication
-      jest
-        .spyOn(AuthGuard('github').prototype, 'canActivate')
+      spyOn(AuthGuard('github').prototype, 'canActivate')
         .mockImplementation(async () => {
           throw new UnauthorizedException('Authentication failed');
         });

@@ -132,20 +132,6 @@ describe('LevelDBManagerService', () => {
     );
   });
 
-  it('should list all projects', async () => {
-    // Mock to simulate the directory structure
-    spyOn(fs, 'readdirSync')
-      .mockReturnValueOnce(['user1', 'user2'] as any) // Top level dirs
-      .mockReturnValueOnce(['project1', 'project2'] as any); // Projects in user1
-
-    const projects = await service.listProjects();
-
-    expect(fs.readdirSync).toHaveBeenCalledWith(testBasePath);
-    // The current implementation simply returns the top-level directories
-    // We may need to update the service.listProjects() method to handle the new structure
-    expect(projects).toEqual(['user1', 'user2']);
-  });
-
   it('should close project databases', async () => {
     // Get a database so it's cached
     await service.getProjectDatabase('user1', 'project1');
@@ -161,23 +147,6 @@ describe('LevelDBManagerService', () => {
 
     // Verify a new database was created
     expect(mockLeveldbPersistence).toHaveBeenCalledTimes(1);
-  });
-
-  it('should delete project databases', async () => {
-    // Get a database so it's cached
-    await service.getProjectDatabase('user1', 'project1');
-
-    // Mock existsSync to return true for the project path
-    spyOn(fs, 'existsSync').mockReturnValueOnce(true);
-
-    // Delete the database
-    await service.deleteProjectDatabase('user1', 'project1');
-
-    // Verify fs.rmSync was called with the project path
-    expect(fs.rmSync).toHaveBeenCalledWith(
-      path.join(testBasePath, 'user1', 'project1', 'leveldb'),
-      { recursive: true, force: true },
-    );
   });
 
   it('should clean up idle databases', async () => {

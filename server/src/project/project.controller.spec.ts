@@ -7,13 +7,15 @@ import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { UserEntity } from '../user/user.entity.js';
 import { UserService } from '../user/user.service.js';
 import { SessionAuthGuard } from '../auth/session-auth.guard.js';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from 'bun:test';
+import { Mocked } from '../common/test/bun-test-utils.js';
+
 describe('ProjectController', () => {
   const mockUserService = {
     getCurrentUser: jest.fn<() => Promise<UserEntity>>(),
   };
   let controller: ProjectController;
-  let projectService: jest.Mocked<ProjectService>;
+  let projectService: Mocked<ProjectService>;
 
   const mockUser: UserEntity = {
     id: 'user-1',

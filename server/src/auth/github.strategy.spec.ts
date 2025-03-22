@@ -8,10 +8,13 @@ import {
   expect,
   it,
   jest,
-} from '@jest/globals';
+  spyOn
+} from 'bun:test';
+import { Mocked } from '../common/test/bun-test-utils.js';
+
 describe('GithubStrategy', () => {
   let strategy: GithubStrategy;
-  let userService: jest.Mocked<UserService>;
+  let userService: Mocked<UserService>;
 
   const mockFullUser = {
     id: 'user-1',
@@ -109,9 +112,8 @@ describe('GithubStrategy', () => {
       userService = module.get(UserService);
 
       // Mock logger to avoid console output in tests
-      jest.spyOn(strategy['logger'], 'log').mockImplementation(() => undefined);
-      jest
-        .spyOn(strategy['logger'], 'error')
+      spyOn(strategy['logger'], 'log').mockImplementation(() => undefined);
+      spyOn(strategy['logger'], 'error')
         .mockImplementation(() => undefined);
 
       expect(strategy).toBeDefined();
@@ -145,8 +147,8 @@ describe('GithubStrategy', () => {
     userService = module.get(UserService);
 
     // Mock logger to avoid console output in tests
-    jest.spyOn(strategy['logger'], 'log').mockImplementation(() => undefined);
-    jest.spyOn(strategy['logger'], 'error').mockImplementation(() => undefined);
+    spyOn(strategy['logger'], 'log').mockImplementation(() => undefined);
+    spyOn(strategy['logger'], 'error').mockImplementation(() => undefined);
   });
 
   afterEach(() => {

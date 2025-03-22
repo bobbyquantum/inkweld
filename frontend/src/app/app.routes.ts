@@ -3,6 +3,7 @@ import { Routes } from '@angular/router';
 
 import { authGuard } from './guards/auth.guard';
 import { CanDeactivateProjectGuard } from './guards/can-deactivate-project.guard';
+import { DocumentsComponent } from './pages/project/documents/documents.component';
 import { ProjectFilesComponent } from './pages/project/files/project-files.component';
 import { ProjectComponent } from './pages/project/project.component';
 
@@ -51,6 +52,10 @@ export const routes: Routes = [
   {
     path: ':username/:slug/files',
     component: ProjectFilesComponent,
+  },
+  {
+    path: ':username/:slug/documents',
+    component: DocumentsComponent,
   },
   // User profile route
   {

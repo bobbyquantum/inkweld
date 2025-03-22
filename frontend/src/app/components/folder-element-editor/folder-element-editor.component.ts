@@ -94,7 +94,7 @@ export class FolderElementEditorComponent implements OnInit {
    * @param element The element to open
    */
   openElement(element: ProjectElement): void {
-    this.projectStateService.openFile(element);
+    this.projectStateService.openDocument(element);
   }
 
   /**

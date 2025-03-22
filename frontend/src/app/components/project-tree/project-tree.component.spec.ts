@@ -71,7 +71,7 @@ describe('ProjectTreeComponent', () => {
       project: signal({ title: 'Test Project' }),
       saveProjectElements: jest.fn().mockResolvedValue(undefined),
       showEditProjectDialog: jest.fn(),
-      openFile: jest.fn(),
+      openDocument: jest.fn(),
       updateProject: jest.fn(),
       showNewElementDialog: jest.fn(),
       toggleExpanded: jest.fn(),
@@ -425,12 +425,12 @@ describe('ProjectTreeComponent', () => {
         expect(component.contextItem).toBeNull();
       });
 
-      it('should open file through context menu', () => {
+      it('should open document through context menu', () => {
         const node = fileNode;
         expect(node.type).toBe('ITEM');
 
-        component.onOpenFile(node);
-        expect(projectStateService.openFile).toHaveBeenCalledWith({
+        component.onOpenDocument(node);
+        expect(projectStateService.openDocument).toHaveBeenCalledWith({
           ...node,
           expandable: false,
           expanded: undefined,
