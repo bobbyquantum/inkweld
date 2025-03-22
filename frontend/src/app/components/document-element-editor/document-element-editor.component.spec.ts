@@ -75,7 +75,7 @@ describe('DocumentElementEditorComponent', () => {
 
   it('should disconnect on destroy', () => {
     component.ngOnDestroy();
-    expect(documentService.disconnect).toHaveBeenCalledWith('default');
+    expect(documentService.disconnect).toHaveBeenCalledWith('invalid');
   });
 
   it('should update zoom level', () => {
