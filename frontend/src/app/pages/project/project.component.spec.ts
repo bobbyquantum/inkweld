@@ -140,7 +140,7 @@ describe('ProjectComponent', () => {
     const elementsSignal = signal<ProjectElementDto[]>([]);
     const visibleElementsSignal = signal<ProjectElementDto[]>([]);
 
-    const openFilesSignal = signal<ProjectElementDto[]>([]);
+    const openDocumentsSignal = signal<ProjectElementDto[]>([]);
     const selectedTabIndexSignal = signal<number>(0);
     const isLoadingSignal = signal<boolean>(false);
     const isSavingSignal = signal<boolean>(false);
@@ -150,14 +150,14 @@ describe('ProjectComponent', () => {
       project: projectSignal,
       elements: elementsSignal,
       visibleElements: visibleElementsSignal,
-      openFiles: openFilesSignal,
+      openDocuments: openDocumentsSignal,
       selectedTabIndex: selectedTabIndexSignal,
       isLoading: isLoadingSignal,
       isSaving: isSavingSignal,
       error: errorSignal,
       loadProject: jest.fn().mockResolvedValue(undefined),
-      openFile: jest.fn(),
-      closeFile: jest.fn(),
+      openDocument: jest.fn(),
+      closeDocument: jest.fn(),
       showEditProjectDialog: jest.fn(),
     };
 
@@ -298,7 +298,7 @@ describe('ProjectComponent', () => {
     );
   });
 
-  it('should open a file when onFileOpened is called', () => {
+  it('should open a document when onDocumentOpened is called', () => {
     const mockElement: ProjectElementDto = {
       id: '3',
       name: 'New Element',
@@ -309,8 +309,10 @@ describe('ProjectComponent', () => {
       expandable: false,
       metadata: {},
     };
-    component.onFileOpened(mockElement);
-    expect(projectStateServiceMock.openFile).toHaveBeenCalledWith(mockElement);
+    component.onDocumentOpened(mockElement);
+    expect(projectStateServiceMock.openDocument).toHaveBeenCalledWith(
+      mockElement
+    );
   });
 
   it('should display folder-element-editor when a folder is opened', () => {
@@ -321,7 +323,7 @@ describe('ProjectComponent', () => {
     }
 
     // Set up the component to show a folder element
-    projectStateServiceMock.openFiles?.set([folderElement]);
+    projectStateServiceMock.openDocuments?.set([folderElement]);
     projectStateServiceMock.selectedTabIndex?.set(1);
     fixture.detectChanges();
 
@@ -333,7 +335,7 @@ describe('ProjectComponent', () => {
 
   it('should close a tab when closeTab is called', () => {
     component.closeTab(1);
-    expect(projectStateServiceMock.closeFile).toHaveBeenCalledWith(1);
+    expect(projectStateServiceMock.closeDocument).toHaveBeenCalledWith(1);
   });
 
   it('should display loading state based on isLoading signal', () => {
@@ -503,7 +505,7 @@ describe('ProjectComponent', () => {
       documentServiceMock.getSyncStatus.mockReturnValue(
         of(DocumentSyncState.Offline)
       );
-      projectStateServiceMock.openFiles?.set([mockElements[0]]);
+      projectStateServiceMock.openDocuments?.set([mockElements[0]]);
       fixture.detectChanges();
 
       // Wait for the effect to run
@@ -542,7 +544,7 @@ describe('ProjectComponent', () => {
       documentServiceMock.getSyncStatus.mockReturnValue(
         of(DocumentSyncState.Offline)
       );
-      projectStateServiceMock.openFiles?.set([mockElements[0]]);
+      projectStateServiceMock.openDocuments?.set([mockElements[0]]);
       fixture.detectChanges();
 
       const eventWithChanges = new Event('beforeunload') as BeforeUnloadEvent;
@@ -570,50 +572,50 @@ describe('ProjectComponent', () => {
     });
   });
 
-  describe('Recent files functionality', () => {
-    it('should open a file when clicked in recent files', () => {
-      const fileId = '1';
+  describe('Recent documents functionality', () => {
+    it('should open a document when clicked in recent files', () => {
+      const documentId = '1';
       projectStateServiceMock.elements?.set(mockElements);
 
-      component.onRecentFileClick(fileId);
+      component.onRecentDocumentClick(documentId);
 
-      expect(projectStateServiceMock.openFile).toHaveBeenCalledWith(
+      expect(projectStateServiceMock.openDocument).toHaveBeenCalledWith(
         mockElements[0]
       );
     });
 
-    it('should open a file when Enter key is pressed in recent files', () => {
-      const fileId = '1';
+    it('should open a document when Enter key is pressed in recent files', () => {
+      const documentId = '1';
       projectStateServiceMock.elements?.set(mockElements);
 
       const event = new KeyboardEvent('keydown', { key: 'Enter' });
-      component.onRecentFileKeydown(event, fileId);
+      component.onRecentDocumentKeydown(event, documentId);
 
-      expect(projectStateServiceMock.openFile).toHaveBeenCalledWith(
+      expect(projectStateServiceMock.openDocument).toHaveBeenCalledWith(
         mockElements[0]
       );
     });
 
-    it('should open a file when Space key is pressed in recent files', () => {
-      const fileId = '1';
+    it('should open a document when Space key is pressed in recent files', () => {
+      const documentId = '1';
       projectStateServiceMock.elements?.set(mockElements);
 
       const event = new KeyboardEvent('keydown', { key: ' ' });
-      component.onRecentFileKeydown(event, fileId);
+      component.onRecentDocumentKeydown(event, documentId);
 
-      expect(projectStateServiceMock.openFile).toHaveBeenCalledWith(
+      expect(projectStateServiceMock.openDocument).toHaveBeenCalledWith(
         mockElements[0]
       );
     });
 
-    it('should not open a file when other keys are pressed in recent files', () => {
-      const fileId = '1';
+    it('should not open a document when other keys are pressed in recent files', () => {
+      const documentId = '1';
       projectStateServiceMock.elements?.set(mockElements);
 
       const event = new KeyboardEvent('keydown', { key: 'a' });
-      component.onRecentFileKeydown(event, fileId);
+      component.onRecentDocumentKeydown(event, documentId);
 
-      expect(projectStateServiceMock.openFile).not.toHaveBeenCalled();
+      expect(projectStateServiceMock.openDocument).not.toHaveBeenCalled();
     });
   });
 

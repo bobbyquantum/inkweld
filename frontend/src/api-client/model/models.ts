@@ -1,3 +1,4 @@
+export * from './document-dto';
 export * from './file-delete-response-dto';
 export * from './file-metadata-dto';
 export * from './file-upload-response-dto';

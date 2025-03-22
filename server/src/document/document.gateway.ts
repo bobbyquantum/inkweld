@@ -29,7 +29,7 @@ class PerProjectPersistence {
 
   /**
    * Parse a docName to extract username and project slug
-   * Expected format: "documentName:username:projectSlug"
+   * Expected format: "username:slug:documentId"
    */
   private parseDocName(docName: string): {
     username: string;
@@ -37,18 +37,16 @@ class PerProjectPersistence {
   } {
     const parts = docName.split(':');
     if (parts.length < 3) {
-      // Instead of generating fallback identifiers, throw an error
-      // This will help identify and fix the root cause of improperly formatted document names
       this.logger.error(
-        `Invalid document name format: ${docName}. Expected format: "documentName:username:projectSlug"`,
+        `Invalid document name format: ${docName}. Expected format: "username:slug:documentId"`,
       );
       throw new Error(
-        `Invalid document name format: ${docName}. Expected format: "documentName:username:projectSlug"`,
+        `Invalid document name format: ${docName}. Expected format: "username:slug:documentId"`,
       );
     }
-    // First part is the document type, rest should be username and project
-    const username = parts[1];
-    const projectSlug = parts[2];
+
+    const username = parts[0];
+    const projectSlug = parts[1];
     return { username, projectSlug };
   }
 
@@ -153,7 +151,7 @@ class PerProjectPersistence {
 
 @WebSocketGateway({ path: '/ws/yjs' })
 @Injectable()
-export class YjsGateway
+export class DocumentGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
 {
   async updateDocument(documentId: string, content: string): Promise<void> {
@@ -195,7 +193,7 @@ export class YjsGateway
     await persistenceProvider.storeUpdate(doc.guid, update);
   }
 
-  private readonly logger = new Logger(YjsGateway.name);
+  private readonly logger = new Logger(DocumentGateway.name);
   private readonly allowedOrigins: string[];
   private perProjectPersistence: PerProjectPersistence;
 
@@ -269,19 +267,16 @@ export class YjsGateway
         connection.close(1008, 'Invalid session');
         return;
       }
+
       // Determine doc name (e.g. from ?documentId=xyz)
       const url = new URL(`http://localhost${req.url}`);
       const docId = url.searchParams.get('documentId') || 'default';
 
-      // Determine username and project slug
-      const _username = session.userId;
-      let _projectSlug = 'default';
-
-      if (docId.includes(':')) {
-        const parts = docId.split(':');
-        if (parts.length >= 3) {
-          _projectSlug = parts[2];
-        }
+      // Check document ID format
+      if (!docId.includes(':')) {
+        this.logger.warn(`Invalid document ID format: ${docId}. Expected format: "username:slug:documentId"`);
+        connection.close(1008, 'Invalid document ID format');
+        return;
       }
 
       // Check & enforce doc ownership

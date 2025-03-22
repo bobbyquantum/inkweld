@@ -207,27 +207,24 @@ describe('ProjectStateService', () => {
     });
   });
 
-  describe('File Management', () => {
-    it('should open a file in editor tabs', () => {
-      service.openFile(mockElementDto);
-
-      expect(service.openFiles()).toContain(mockElementDto);
+  describe('Document Management', () => {
+    it('should open a document in editor tabs', () => {
+      service.openDocument(mockElementDto);
+      expect(service.openDocuments()).toContain(mockElementDto);
       expect(service.selectedTabIndex()).toBe(1);
     });
 
-    it('should not duplicate already open files', () => {
-      service.openFile(mockElementDto);
-      service.openFile(mockElementDto);
-
-      expect(service.openFiles()).toHaveLength(1);
+    it('should not duplicate already open documents', () => {
+      service.openDocument(mockElementDto);
+      service.openDocument(mockElementDto);
+      expect(service.openDocuments()).toHaveLength(1);
     });
 
-    it('should close a file and update selected tab', () => {
-      service.openFile(mockElementDto);
+    it('should close a document and update selected tab', () => {
+      service.openDocument(mockElementDto);
       service.selectedTabIndex.set(0);
-      service.closeFile(0);
-
-      expect(service.openFiles()).toHaveLength(0);
+      service.closeDocument(0);
+      expect(service.openDocuments()).toHaveLength(0);
       expect(service.selectedTabIndex()).toBe(0);
     });
   });
@@ -472,7 +469,7 @@ describe('ProjectStateService', () => {
 
         it('should handle nodeAbove with lower level than nodeBelow', async () => {
           await service.loadProject('testuser', 'test-project');
-          service.addElement(ProjectElementDto.TypeEnum.Folder, 'Folder');
+          service.addElement(ProjectElementDto.TypeEnum.Folder, 'Parent');
           const folderAbove = service.elements()[0];
 
           service.addElement(

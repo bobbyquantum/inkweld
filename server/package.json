@@ -20,7 +20,6 @@
     "test:e2e": "bun test ./test/app.e2e-spec.ts",
     "bun:start": "bun run dist/main.js",
     "bun:dev": "bun --watch src/main.ts",
-    "bun:build": "bun build src/main.ts --target=node --outfile=dist/main.js",
     "generate:openapi": "bun run build && bun dist/scripts/generate-openapi.js",
     "generate:angular-client": "bun run build && bun dist/scripts/generate-angular-client.js"
   },

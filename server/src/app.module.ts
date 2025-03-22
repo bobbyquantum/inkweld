@@ -4,7 +4,6 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { AuthModule } from './auth/auth.module.js';
 import { PassportModule } from '@nestjs/passport';
 import { ProjectModule } from './project/project.module.js';
-import { WsModule } from './ws/ws.module.js';
 import { McpModule } from './mcp/mcp.module.js';
 import { LevelDBManagerService } from './common/persistence/leveldb-manager.service.js';
 import * as path from 'path';
@@ -12,6 +11,7 @@ import { DatabaseModule } from './common/database/database.module.js';
 import { cwd } from 'process';
 import { BaseHrefMiddleware } from './common/middleware/base-href.middleware.js';
 import { CommonHttpModule } from './common/http/common-http.module.js';
+import { DocumentModule } from 'document/document.module.js';
 
 @Module({
   imports: [
@@ -43,7 +43,7 @@ import { CommonHttpModule } from './common/http/common-http.module.js';
     PassportModule.register({ session: true }),
     ProjectModule,
     AuthModule,
-    WsModule,
+    DocumentModule,
     McpModule,
     CommonHttpModule,
   ],

@@ -11,3 +11,5 @@ typescript = true
 timeout = 5000
 # Include e2e test files
 include = ["**/*.spec.ts", "**/*.e2e-spec.ts"]
+coverage = true
+coverageSkipTestFiles = true

@@ -11,7 +11,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { ProjectService } from '../project/project.service.js';
-import { YjsGateway } from '../ws/yjs-gateway.js';
+import { DocumentGateway } from '../document/document.gateway.js';
 
 @Injectable()
 export class McpService implements OnModuleInit {
@@ -24,7 +24,7 @@ export class McpService implements OnModuleInit {
 
   constructor(
     private readonly projectService: ProjectService,
-    private readonly yjsGateway: YjsGateway,
+    private readonly yjsGateway: DocumentGateway,
   ) {}
 
   async onModuleInit() {

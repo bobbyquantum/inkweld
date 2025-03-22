@@ -8,13 +8,12 @@ import { UserService } from '../user/user.service.js';
 import { UserEntity } from '../user/user.entity.js';
 import { TypeOrmSessionStore } from './session.store.js';
 import { UnauthorizedException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest, spyOn } from 'bun:test';
 
 // Mock Bun.password methods using spyOn
-jest
-  .spyOn(Bun.password, 'hash')
+spyOn(Bun.password, 'hash')
   .mockImplementation(async (pass) => `hashed_${pass}`);
-jest.spyOn(Bun.password, 'verify').mockImplementation(async () => true);
+spyOn(Bun.password, 'verify').mockImplementation(async () => true);
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -80,7 +79,7 @@ describe('AuthService', () => {
 
   describe('validateUser', () => {
     it('should throw UnauthorizedException for non-existent user', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+      spyOn(userRepository, 'findOne').mockResolvedValue(null);
 
       await expect(
         service.validateUser('nonexistent', 'password'),
@@ -88,7 +87,7 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException for disabled user', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue({
+      spyOn(userRepository, 'findOne').mockResolvedValue({
         ...mockUser,
         enabled: false,
       });
@@ -99,7 +98,7 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException for invalid password', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
+      spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
       (Bun.password.verify as jest.Mock).mockImplementation(async () => false);
 
       await expect(
@@ -108,7 +107,7 @@ describe('AuthService', () => {
     });
 
     it('should return user data for valid credentials', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
+      spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
       (Bun.password.verify as jest.Mock).mockImplementation(async () => true);
 
       const result = await service.validateUser('testuser', 'correctpassword');
@@ -227,15 +226,15 @@ describe('AuthService', () => {
 
     it('should return existing user if found by GitHub ID', async () => {
       const existingUser = { ...mockUser, githubId: '12345' };
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(existingUser);
+      spyOn(userRepository, 'findOne').mockResolvedValue(existingUser);
 
       const result = await service.findOrCreateGithubUser(mockGithubProfile);
       expect(result).toEqual(existingUser);
     });
 
     it('should create new user if not found', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
-      jest.spyOn(userRepository, 'create').mockReturnValue({
+      spyOn(userRepository, 'findOne').mockResolvedValue(null);
+      spyOn(userRepository, 'create').mockReturnValue({
         ...mockUser,
         githubId: '12345',
         username: 'githubuser',
@@ -244,9 +243,8 @@ describe('AuthService', () => {
         avatarImageUrl: 'https://github.com/photo.jpg',
         password: null,
       });
-      jest
-        .spyOn(userRepository, 'save')
-        .mockImplementation(async (user) => user as UserEntity);
+      spyOn(userRepository, 'save')
+        .mockImplementation(async (user) => user);
 
       const result = await service.findOrCreateGithubUser(mockGithubProfile);
 
@@ -269,8 +267,8 @@ describe('AuthService', () => {
         username: 'githubuser',
       };
 
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
-      jest.spyOn(userRepository, 'create').mockReturnValue({
+      spyOn(userRepository, 'findOne').mockResolvedValue(null);
+      spyOn(userRepository, 'create').mockReturnValue({
         ...mockUser,
         githubId: '12345',
         username: 'githubuser',
@@ -279,9 +277,8 @@ describe('AuthService', () => {
         avatarImageUrl: null,
         password: null,
       });
-      jest
-        .spyOn(userRepository, 'save')
-        .mockImplementation(async (user) => user as UserEntity);
+      spyOn(userRepository, 'save')
+        .mockImplementation(async (user) => user);
 
       const result = await service.findOrCreateGithubUser(minimalProfile);
 

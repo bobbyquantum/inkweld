@@ -24,6 +24,9 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
   ///we're bun based so avoid nodejs types
   private cleanupInterval: Timer;
 
+  // Document key prefix used by y-leveldb for storing documents
+  private readonly DOC_KEY_PREFIX = 'doc:';
+
   constructor(private readonly configService: ConfigService) {
     // Get configuration from environment
     this.basePath = this.configService.get<string>('DATA_PATH', './data');
@@ -170,41 +173,31 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Delete a project database entirely.
-   * This should be called when a project is deleted.
+   * List all documents stored in a project's database using the LevelDB API
+   *
+   * This method uses the y-leveldb API's getAllDocNames method to directly
+   * retrieve document names from the database without file scanning.
+   *
+   * @param username The owner of the project
+   * @param projectSlug The project identifier
+   * @returns Array of document IDs
    */
-  async deleteProjectDatabase(
+  async listProjectDocuments(
     username: string,
     projectSlug: string,
-  ): Promise<void> {
-    await this.closeProjectDatabase(username, projectSlug);
+  ): Promise<string[]> {
+    this.logger.log(`Listing documents for project ${username}/${projectSlug}`);
 
-    const dbPath = this.getProjectPath(username, projectSlug);
-
-    // Delete the entire directory - this is a simplification
-    // In production, you'd want to properly delete all LevelDB files
-    if (fs.existsSync(dbPath)) {
-      fs.rmSync(dbPath, { recursive: true, force: true });
-      this.logger.log(
-        `Deleted database for project ${username}/${projectSlug} at ${dbPath}`,
-      );
-    }
-  }
-
-  /**
-   * List all projects that have a database.
-   * This can be used for maintenance and admin tasks.
-   */
-  async listProjects(): Promise<string[]> {
-    // This is a simplistic implementation
-    // In production, you'd want to parse directory names more carefully
     try {
-      const dirs = fs.readdirSync(this.basePath);
-      return dirs.filter((dir) =>
-        fs.statSync(path.join(this.basePath, dir)).isDirectory(),
-      );
+      // Get database instance
+      const db = await this.getProjectDatabase(username, projectSlug);
+      const docNames = await db.getAllDocNames();
+      return docNames;
     } catch (error) {
-      this.logger.error('Failed to list project databases:', error);
+      this.logger.error(
+        `Failed to list documents for ${username}/${projectSlug}:`,
+        error,
+      );
       return [];
     }
   }

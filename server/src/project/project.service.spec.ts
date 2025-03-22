@@ -5,7 +5,7 @@ import { ProjectService } from './project.service.js';
 import { ProjectEntity } from './project.entity.js';
 import { UserEntity } from '../user/user.entity.js';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest, spyOn } from 'bun:test';
 describe('ProjectService', () => {
   let service: ProjectService;
   let projectRepository: Repository<ProjectEntity>;
@@ -71,7 +71,7 @@ describe('ProjectService', () => {
   describe('findAllForCurrentUser', () => {
     it('should return all projects for a user', async () => {
       const projects = [mockProject];
-      jest.spyOn(projectRepository, 'find').mockResolvedValue(projects);
+      spyOn(projectRepository, 'find').mockResolvedValue(projects);
 
       const result = await service.findAllForCurrentUser(mockUser.id);
       expect(result).toEqual(projects);
@@ -84,7 +84,7 @@ describe('ProjectService', () => {
 
   describe('findByUsernameAndSlug', () => {
     it('should return a project when found', async () => {
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(mockProject);
+      spyOn(projectRepository, 'findOne').mockResolvedValue(mockProject);
 
       const result = await service.findByUsernameAndSlug(
         'testuser',
@@ -97,7 +97,7 @@ describe('ProjectService', () => {
     });
 
     it('should throw NotFoundException when project not found', async () => {
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(null);
+      spyOn(projectRepository, 'findOne').mockResolvedValue(null);
 
       await expect(
         service.findByUsernameAndSlug('testuser', 'non-existent'),
@@ -107,9 +107,9 @@ describe('ProjectService', () => {
 
   describe('create', () => {
     it('should create a new project', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(null);
-      jest.spyOn(projectRepository, 'save').mockResolvedValue(mockProject);
+      spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
+      spyOn(projectRepository, 'findOne').mockResolvedValue(null);
+      spyOn(projectRepository, 'save').mockResolvedValue(mockProject);
 
       const result = await service.create(mockUser.id, mockProject);
       expect(result).toEqual(mockProject);
@@ -120,7 +120,7 @@ describe('ProjectService', () => {
     });
 
     it('should throw ForbiddenException when user not found', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(null);
+      spyOn(userRepository, 'findOne').mockResolvedValue(null);
 
       await expect(service.create(mockUser.id, mockProject)).rejects.toThrow(
         ForbiddenException,
@@ -128,8 +128,8 @@ describe('ProjectService', () => {
     });
 
     it('should throw ForbiddenException when project already exists', async () => {
-      jest.spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(mockProject);
+      spyOn(userRepository, 'findOne').mockResolvedValue(mockUser);
+      spyOn(projectRepository, 'findOne').mockResolvedValue(mockProject);
 
       await expect(service.create(mockUser.id, mockProject)).rejects.toThrow(
         ForbiddenException,
@@ -145,8 +145,8 @@ describe('ProjectService', () => {
     };
 
     it('should update an existing project', async () => {
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(mockProject);
-      jest.spyOn(projectRepository, 'save').mockResolvedValue(updatedProject);
+      spyOn(projectRepository, 'findOne').mockResolvedValue(mockProject);
+      spyOn(projectRepository, 'save').mockResolvedValue(updatedProject);
 
       const result = await service.update(
         'testuser',
@@ -158,7 +158,7 @@ describe('ProjectService', () => {
     });
 
     it('should throw NotFoundException when project not found', async () => {
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(null);
+      spyOn(projectRepository, 'findOne').mockResolvedValue(null);
 
       await expect(
         service.update('testuser', 'non-existent', updatedProject),
@@ -168,15 +168,15 @@ describe('ProjectService', () => {
 
   describe('delete', () => {
     it('should delete an existing project', async () => {
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(mockProject);
-      jest.spyOn(projectRepository, 'remove').mockResolvedValue(mockProject);
+      spyOn(projectRepository, 'findOne').mockResolvedValue(mockProject);
+      spyOn(projectRepository, 'remove').mockResolvedValue(mockProject);
 
       await service.delete('testuser', 'test-project');
       expect(projectRepository.remove).toHaveBeenCalledWith(mockProject);
     });
 
     it('should throw NotFoundException when project not found', async () => {
-      jest.spyOn(projectRepository, 'findOne').mockResolvedValue(null);
+      spyOn(projectRepository, 'findOne').mockResolvedValue(null);
 
       await expect(service.delete('testuser', 'non-existent')).rejects.toThrow(
         NotFoundException,

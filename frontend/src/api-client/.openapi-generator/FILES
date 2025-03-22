@@ -4,6 +4,7 @@ api.module.ts
 api/api.ts
 api/auth.service.ts
 api/csrf.service.ts
+api/document-api.service.ts
 api/mcp.service.ts
 api/project-api.service.ts
 api/project-files.service.ts
@@ -12,6 +13,7 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
+model/document-dto.ts
 model/file-delete-response-dto.ts
 model/file-metadata-dto.ts
 model/file-upload-response-dto.ts

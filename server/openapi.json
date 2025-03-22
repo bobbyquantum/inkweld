@@ -907,6 +907,132 @@
         ]
       }
     },
+    "/api/v1/projects/{username}/{projectSlug}/docs": {
+      "get": {
+        "description": "Retrieves a list of all documents in the specified project.",
+        "operationId": "DocumentController_listDocuments",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "description": "The username of the project owner",
+            "schema": {
+              "example": "testuser",
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "description": "The slug identifier of the project",
+            "schema": {
+              "example": "my-project",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "403": {
+            "description": "User does not have permission to access this project"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List all documents in a project",
+        "tags": [
+          "Document API"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{projectSlug}/docs/{docId}": {
+      "get": {
+        "description": "Retrieves metadata for a specific document in a project.",
+        "operationId": "DocumentController_getDocumentInfo",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "description": "The username of the project owner",
+            "schema": {
+              "example": "testuser",
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "description": "The slug identifier of the project",
+            "schema": {
+              "example": "my-project",
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "required": true,
+            "in": "path",
+            "description": "The document identifier",
+            "schema": {
+              "example": "document1",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the document information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get document information",
+        "tags": [
+          "Document API"
+        ]
+      }
+    },
     "/mcp/sse": {
       "get": {
         "operationId": "McpController_getSse",
@@ -1253,6 +1379,49 @@
           "avatarImageUrl",
           "enabled",
           "sessionId"
+        ]
+      },
+      "DocumentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the document",
+            "example": "doc1:testuser:project-name"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the document",
+            "example": "My Document"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "The user ID of the document owner",
+            "example": "testuser"
+          },
+          "username": {
+            "type": "string",
+            "description": "The username part of the document ID",
+            "example": "testuser"
+          },
+          "projectSlug": {
+            "type": "string",
+            "description": "The project slug part of the document ID",
+            "example": "project-name"
+          },
+          "lastModified": {
+            "type": "string",
+            "description": "Timestamp when the document was last modified",
+            "example": "2025-03-22T10:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "ownerId",
+          "username",
+          "projectSlug",
+          "lastModified"
         ]
       }
     }
