@@ -6,7 +6,6 @@ import {
   OnGatewayInit,
 } from '@nestjs/websockets';
 import type { Server as WSServer, WebSocket } from 'ws';
-import type { Request } from 'express';
 import { setupWSConnection, setPersistence } from './y-websocket-utils.js';
 import { Logger, Injectable } from '@nestjs/common';
 import { TypeOrmSessionStore } from '../auth/session.store.js';
@@ -238,7 +237,7 @@ export class DocumentGateway
    *  - Check doc ownership
    *  - Attach the user to the doc via setupWSConnection
    */
-  async handleConnection(connection: WebSocket, req: Request): Promise<void> {
+  async handleConnection(connection: WebSocket, req): Promise<void> {
     this.logger.log(`New Yjs WebSocket connection requested..`);
 
     try {
@@ -378,7 +377,7 @@ export class DocumentGateway
    * Helper: tries to extract a session token from query params, cookies,
    * or Authorization headers.
    */
-  private extractSessionToken(req: Request): string | null {
+  private extractSessionToken(req): string | null {
     this.logger.debug('Attempting to extract session token', {
       testHeaders: Object.keys(req.headers || {}),
       cookiesHeader: req.headers?.cookie ?? 'missing',
