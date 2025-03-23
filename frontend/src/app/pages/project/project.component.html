@@ -115,6 +115,17 @@
                   <mat-icon>folder</mat-icon>
                   Project Files
                 </button>
+                <button
+                  mat-button
+                  color="primary"
+                  [routerLink]="[
+                    '/' + projectState.project()?.username,
+                    projectState.project()?.slug,
+                    'documents',
+                  ]">
+                  <mat-icon>folder</mat-icon>
+                  Project Documents
+                </button>
               </div>
             </div>
             <div class="home-column">

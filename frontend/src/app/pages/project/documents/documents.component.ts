@@ -1,11 +1,11 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 
@@ -42,7 +42,7 @@ export class DocumentsComponent implements OnInit, OnDestroy {
     'actions',
   ];
   documentSyncStates = new Map<string, DocumentSyncState>();
-
+  private router = inject(Router);
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -57,6 +57,9 @@ export class DocumentsComponent implements OnInit, OnDestroy {
       this.projectSlug = params['slug'] as string;
       void this.loadDocuments();
     });
+  }
+  navigateToProject(): void {
+    void this.router.navigate([this.username, this.projectSlug]);
   }
 
   ngOnDestroy(): void {
