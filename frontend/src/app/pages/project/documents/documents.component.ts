@@ -44,12 +44,9 @@ export class DocumentsComponent implements OnInit, OnDestroy {
   documentSyncStates = new Map<string, DocumentSyncState>();
   private router = inject(Router);
   private destroy$ = new Subject<void>();
-
-  constructor(
-    private route: ActivatedRoute,
-    private documentApiService: DocumentAPIService,
-    private documentService: DocumentService
-  ) {}
+  private route = inject(ActivatedRoute);
+  private documentApiService = inject(DocumentAPIService);
+  private documentService = inject(DocumentService);
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
@@ -132,5 +129,17 @@ export class DocumentsComponent implements OnInit, OnDestroy {
 
   formatDate(dateString: string): string {
     return new Date(dateString).toLocaleString();
+  }
+
+  /**
+   * Opens a document as HTML in a new browser tab
+   * @param doc - The document to open
+   */
+  openDocumentAsHtml(doc: DocumentDto): void {
+    this.documentService.openDocumentAsHtml(
+      this.username,
+      this.projectSlug,
+      doc.id
+    );
   }
 }

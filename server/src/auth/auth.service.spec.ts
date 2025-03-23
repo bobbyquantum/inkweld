@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Request } from 'express';
 import { Session } from 'express-session';
 import { AuthService } from './auth.service.js';
 import { UserService } from '../user/user.service.js';
@@ -123,11 +122,11 @@ describe('AuthService', () => {
         userId: undefined,
         username: undefined,
         userData: undefined,
-      } as unknown as Session;
+      } as any;
 
       const mockReq = {
         session: mockSession,
-      } as Request;
+      };
 
       const result = await service.login(mockReq as any, mockUser);
 
@@ -152,11 +151,11 @@ describe('AuthService', () => {
       const mockSession = {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
         regenerate: jest.fn((cb: Function) => cb(new Error('Session error'))),
-      } as unknown as Session;
+      } as any;
 
       const mockReq = {
         session: mockSession,
-      } as Request;
+      };
 
       await expect(service.login(mockReq as any, mockUser)).rejects.toThrow(
         'Session error',
@@ -173,7 +172,7 @@ describe('AuthService', () => {
 
       const mockReq = {
         session: mockSession,
-      } as Request;
+      };
 
       await expect(service.login(mockReq as any, mockUser)).rejects.toThrow(
         'Save error',
@@ -185,11 +184,11 @@ describe('AuthService', () => {
     it('should destroy session successfully', async () => {
       const mockSession = {
         destroy: jest.fn<(cb: (err: any) => void) => void>((cb) => cb(null)),
-      } as unknown as Session;
+      } as any;
 
       const mockReq = {
         session: mockSession,
-      } as Request;
+      };
 
       const result = await service.logout(mockReq as any);
       expect(result).toEqual({ message: 'Logout successful' });
@@ -205,9 +204,9 @@ describe('AuthService', () => {
 
       const mockReq = {
         session: mockSession,
-      } as Request;
+      } as any;
 
-      await expect(service.logout(mockReq as any)).rejects.toThrow(
+      await expect(service.logout(mockReq)).rejects.toThrow(
         'Destroy error',
       );
     });

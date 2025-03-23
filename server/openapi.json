@@ -1129,6 +1129,71 @@
         ]
       }
     },
+    "/api/v1/projects/{username}/{projectSlug}/docs/{docId}/html": {
+      "get": {
+        "description": "Renders a ProseMirror document as static HTML.",
+        "operationId": "DocumentController_renderHtml",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "description": "The username of the project owner",
+            "schema": {
+              "example": "testuser",
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "description": "The slug identifier of the project",
+            "schema": {
+              "example": "my-project",
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "required": true,
+            "in": "path",
+            "description": "The document identifier",
+            "schema": {
+              "example": "document1",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully rendered the document as HTML",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Render document as HTML",
+        "tags": [
+          "Document API"
+        ]
+      }
+    },
     "/mcp/sse": {
       "get": {
         "operationId": "McpController_getSse",

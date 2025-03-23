@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { DocumentAPIService } from '@inkweld/index';
 import { Editor } from 'ngx-editor';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
@@ -47,6 +48,7 @@ jest.mock('ngx-editor', () => ({
 describe('DocumentService', () => {
   let service: DocumentService;
   let mockProjectStateService: jest.Mocked<ProjectStateService>;
+  let mockDocumentApiService: jest.Mocked<DocumentAPIService>;
   let mockYDoc: jest.Mocked<Y.Doc>;
   let mockWebSocketProvider: jest.Mocked<WebsocketProvider>;
   let mockIndexedDbProvider: jest.Mocked<IndexeddbPersistence>;
@@ -86,11 +88,20 @@ describe('DocumentService', () => {
       updateSyncState: jest.fn(),
     } as unknown as jest.Mocked<ProjectStateService>;
 
+    // Mock DocumentAPIService
+    mockDocumentApiService = {
+      getDocument: jest.fn().mockReturnValue({
+        content: '<p>Mocked document content</p>',
+      }),
+      saveDocument: jest.fn().mockReturnValue(Promise.resolve()),
+    } as unknown as jest.Mocked<DocumentAPIService>;
+
     // Configure TestBed
     TestBed.configureTestingModule({
       providers: [
         DocumentService,
         { provide: ProjectStateService, useValue: mockProjectStateService },
+        { provide: DocumentAPIService, useValue: mockDocumentApiService },
       ],
     });
 
