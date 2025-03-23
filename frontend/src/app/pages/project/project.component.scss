@@ -137,9 +137,6 @@ mat-sidenav-content {
     height: calc(100vh - 114px);
   }
 
-  app-user-menu {
-    margin-top: auto; /* Push user menu to the bottom */
-  }
 }
 
 .project-toolbar {
@@ -201,7 +198,9 @@ mat-sidenav-content {
     width: 100%;
   }
 }
-
+::ng-deep .mat-mdc-tab-labels {
+  padding-right: 80px; /* Adjust this value to the width of your icon container */
+}
 .empty-container {
   padding: 20px;
   position: fixed;
@@ -360,4 +359,12 @@ mat-sidenav-content {
 .no-recent-files {
   font-style: italic;
   padding: 8px 12px;
+}
+
+.desktop-user-menu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 12;
+  padding: 8px;
 }

@@ -30,7 +30,6 @@
     }
 
     @if (!isMobile()) {
-      <app-user-menu [miniMode]="false"></app-user-menu>
       <div
         cdkDrag
         cdkDragLockAxis="x"
@@ -52,8 +51,11 @@
         <!-- Add more mobile-specific actions here -->
         <app-user-menu [miniMode]="true"></app-user-menu>
       </mat-toolbar>
+    } @else {
+      <div class="desktop-user-menu">
+        <app-user-menu [miniMode]="true"></app-user-menu>
+      </div>
     }
-
     <mat-tab-group
       [selectedIndex]="projectState.selectedTabIndex()"
       class="tab-bars"
