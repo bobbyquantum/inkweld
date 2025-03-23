@@ -19,6 +19,7 @@ jest.mock('yjs', () => ({
       length: 10,
     })),
     destroy: jest.fn(),
+    on: jest.fn(),
   })),
   XmlFragment: jest.fn(),
   XmlElement: jest.fn(() => ({
@@ -342,6 +343,91 @@ describe('DocumentService', () => {
 
       expect(statusHandler).toHaveBeenCalled();
       expect(errorHandler).toHaveBeenCalled();
+    });
+  });
+
+  describe('Unsynced Changes Tracking', () => {
+    it('should track unsynced changes when document is modified locally', async () => {
+      await service.setupCollaboration(mockEditor, testDocumentId);
+
+      // Get the update handler that was registered
+      const updateHandler = mockYDoc.on.mock.calls.find(
+        call => call[0] === 'update'
+      )?.[1] as any;
+      if (!updateHandler) {
+        fail('Update handler was not registered');
+        return;
+      }
+
+      // Simulate a local update (origin !== provider)
+      updateHandler(new Uint8Array(), 'local', mockYDoc, new Set());
+
+      expect(service.hasUnsyncedChanges(testDocumentId)).toBe(true);
+    });
+
+    it('should not track changes from the provider as unsynced', async () => {
+      await service.setupCollaboration(mockEditor, testDocumentId);
+
+      // Get the update handler
+      const updateHandler = mockYDoc.on.mock.calls.find(
+        call => call[0] === 'update'
+      )?.[1] as any;
+      if (!updateHandler) {
+        fail('Update handler was not registered');
+        return;
+      }
+
+      // Simulate an update from the provider (origin === provider)
+      updateHandler(
+        new Uint8Array(),
+        mockWebSocketProvider,
+        mockYDoc,
+        new Set()
+      );
+
+      expect(service.hasUnsyncedChanges(testDocumentId)).toBe(false);
+    });
+
+    it('should clear unsynced changes when reconnecting', async () => {
+      await service.setupCollaboration(mockEditor, testDocumentId);
+
+      // First simulate a local change
+      const updateHandler = mockYDoc.on.mock.calls.find(
+        call => call[0] === 'update'
+      )?.[1] as any;
+      if (!updateHandler) {
+        fail('Update handler was not registered');
+        return;
+      }
+      updateHandler(new Uint8Array(), 'local', mockYDoc, new Set());
+      expect(service.hasUnsyncedChanges(testDocumentId)).toBe(true);
+
+      // Now simulate reconnection
+      const statusHandler = mockWebSocketProvider.on.mock.calls.find(
+        call => call[0] === 'status'
+      )?.[1];
+      if (!statusHandler) {
+        fail('Status handler was not registered');
+        return;
+      }
+      const mockEvent = new CloseEvent('close', {
+        code: 1000,
+        reason: '',
+        wasClean: true,
+        bubbles: true,
+        cancelable: true,
+      }) as CloseEvent & {
+        status: 'connected' | 'disconnected' | 'connecting';
+      } & boolean;
+      mockEvent.status = 'connected';
+      Object.assign(mockEvent, { valueOf: () => true });
+      statusHandler(mockEvent, mockWebSocketProvider);
+
+      expect(service.hasUnsyncedChanges(testDocumentId)).toBe(false);
+    });
+
+    it('should return false for hasUnsyncedChanges on non-existent document', () => {
+      expect(service.hasUnsyncedChanges('non-existent')).toBe(false);
     });
   });
 });
