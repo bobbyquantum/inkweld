@@ -4,7 +4,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from '../user/user.entity.js';
 import { TypeOrmSessionStore } from './session.store.js';
-import type { Request } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -36,12 +35,11 @@ export class AuthService {
     }
 
     // Remove password from returned user object
-
     const { password: _, ...result } = user;
     return result;
   }
 
-  async login(req: Request, user: Partial<UserEntity>) {
+  async login(req, user: Partial<UserEntity>) {
     return new Promise((resolve, reject) => {
       // Regenerate session to prevent session fixation
       req.session.regenerate((err) => {
@@ -56,7 +54,6 @@ export class AuthService {
         // Optional: Add additional user details
         req.session.userData = {
           name: user.name,
-          avatarImageUrl: user.avatarImageUrl,
           enabled: user.enabled,
         };
 
@@ -77,7 +74,7 @@ export class AuthService {
     });
   }
 
-  async logout(req: Request) {
+  async logout(req) {
     return new Promise((resolve, reject) => {
       // Destroy the session
       req.session.destroy((err) => {
@@ -106,12 +103,24 @@ export class AuthService {
         email: emails && emails.length > 0 ? emails[0].value : null,
         name: displayName ?? null,
         githubId: id.toString(),
-        avatarImageUrl: photos && photos.length > 0 ? photos[0].value : null,
         enabled: true,
         password: null, // GitHub users don't have a local password
       });
 
       user = await this.userRepo.save(user);
+
+      // If photos are available, download and save the avatar
+      if (photos && photos.length > 0 && photos[0].value) {
+        try {
+          const response = await fetch(photos[0].value);
+          if (response.ok) {
+            const buffer = Buffer.from(await response.arrayBuffer());
+            await this.userService.saveUserAvatar(user.username, buffer);
+          }
+        } catch (error: any) {
+          console.error(`Failed to download GitHub avatar: ${error.message}`);
+        }
+      }
     }
 
     return user;
@@ -125,7 +134,6 @@ declare module 'express-session' {
     username?: string;
     userData?: {
       name?: string;
-      avatarImageUrl?: string;
       enabled?: boolean;
     };
   }

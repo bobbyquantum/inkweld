@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -16,7 +15,7 @@ export interface ImageViewerDialogData {
 @Component({
   selector: 'app-image-viewer-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule],
+  imports: [MatDialogModule, MatButtonModule, MatIconModule],
   templateUrl: './image-viewer-dialog.component.html',
   styleUrl: './image-viewer-dialog.component.scss',
 })

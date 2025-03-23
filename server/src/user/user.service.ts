@@ -1,16 +1,31 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ValidationException } from '../common/exceptions/validation.exception.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from './user.entity.js';
 import { UserDto } from './user.dto.js';
+import * as fs from 'fs';
+import * as path from 'path';
+import sharp from 'sharp';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UserService {
+  private readonly dataDir: string;
+
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    // Get the data directory from environment or use default
+    this.dataDir = path.resolve(this.configService.get<string>('DATA_PATH', './data'));
+
+    // Ensure the data directory exists
+    if (!fs.existsSync(this.dataDir)) {
+      fs.mkdirSync(this.dataDir, { recursive: true });
+    }
+  }
 
   private async validateUserInput(
     username: string,
@@ -105,8 +120,6 @@ export class UserService {
     const user = await this.getCurrentUser(userId);
 
     if (dto.name !== undefined) user.name = dto.name;
-    if (dto.avatarImageUrl !== undefined)
-      user.avatarImageUrl = dto.avatarImageUrl;
 
     return this.userRepo.save(user);
   }
@@ -152,7 +165,7 @@ export class UserService {
     username: string;
     email: string;
     name?: string;
-    avatarImageUrl?: string;
+    avatarUrl?: string;
   }): Promise<UserEntity> {
     // Check if username already exists
     const existingUser = await this.userRepo.findOne({
@@ -168,13 +181,28 @@ export class UserService {
       username: userData.username,
       email: userData.email,
       name: userData.name || null,
-      avatarImageUrl: userData.avatarImageUrl || null,
       githubId: userData.githubId,
       enabled: true,
       password: null, // GitHub users don't have a local password
     });
 
-    return this.userRepo.save(user);
+    // Save the user
+    const savedUser = await this.userRepo.save(user);
+
+    // If avatar URL is provided, download and save it
+    if (userData.avatarUrl) {
+      try {
+        const response = await fetch(userData.avatarUrl);
+        if (response.ok) {
+          const buffer = Buffer.from(await response.arrayBuffer());
+          await this.saveUserAvatar(userData.username, buffer);
+        }
+      } catch (error: any) {
+        console.error(`Failed to download GitHub avatar: ${error.message}`);
+      }
+    }
+
+    return savedUser;
   }
 
   async checkUsernameAvailability(username: string): Promise<{
@@ -239,5 +267,67 @@ export class UserService {
       .take(pageSize)
       .getManyAndCount();
     return { users, total };
+  }
+
+  /**
+   * Returns the filesystem path to the user's avatar image
+   */
+  getUserAvatarPath(username: string): string {
+    const userDir = path.join(this.dataDir, username);
+    return path.join(userDir, 'avatar.png');
+  }
+
+  /**
+   * Checks if a user has an avatar image
+   */
+  async hasUserAvatar(username: string): Promise<boolean> {
+    const avatarPath = this.getUserAvatarPath(username);
+    return fs.existsSync(avatarPath);
+  }
+
+  /**
+   * Saves a user avatar, formatting it to a 460x460 PNG
+   */
+  async saveUserAvatar(username: string, imageBuffer: Buffer): Promise<void> {
+    // Create user directory if it doesn't exist
+    const userDir = path.join(this.dataDir, username);
+    if (!fs.existsSync(userDir)) {
+      fs.mkdirSync(userDir, { recursive: true });
+    }
+
+    const avatarPath = this.getUserAvatarPath(username);
+
+    // Process image: resize to 460x460 and convert to PNG
+    await sharp(imageBuffer)
+      .resize(460, 460, {
+        fit: 'cover',
+        position: 'center',
+      })
+      .png()
+      .toFile(avatarPath);
+  }
+
+  /**
+   * Gets the avatar of a user as a readable stream
+   */
+  async getUserAvatar(username: string): Promise<fs.ReadStream> {
+    const avatarPath = this.getUserAvatarPath(username);
+
+    if (!fs.existsSync(avatarPath)) {
+      throw new NotFoundException('Avatar not found');
+    }
+
+    return fs.createReadStream(avatarPath);
+  }
+
+  /**
+   * Deletes a user's avatar if it exists
+   */
+  async deleteUserAvatar(username: string): Promise<void> {
+    const avatarPath = this.getUserAvatarPath(username);
+
+    if (fs.existsSync(avatarPath)) {
+      fs.unlinkSync(avatarPath);
+    }
   }
 }

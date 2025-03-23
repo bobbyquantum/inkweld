@@ -31,7 +31,7 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
 
   async validate(_accessToken: string, _refreshToken: string, profile: any) {
     this.logger.log('GitHub profile validation', profile?.username);
-    const { id, username, emails, photos } = profile;
+    const { id, username, emails, _photos } = profile;
 
     try {
       // First, try to find an existing user by GitHub ID
@@ -44,7 +44,6 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
           username: username,
           email: emails && emails.length > 0 ? emails[0].value : null,
           name: profile.displayName,
-          avatarImageUrl: photos && photos.length > 0 ? photos[0].value : null,
         });
       }
 
@@ -53,7 +52,6 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
         id: user.id,
         username: user.username,
         name: user.name,
-        avatarImageUrl: user.avatarImageUrl,
         githubId: user.githubId,
       };
     } catch (error) {

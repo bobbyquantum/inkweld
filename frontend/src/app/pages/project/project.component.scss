@@ -227,6 +227,7 @@ mat-sidenav-content {
   gap: 20px; // Reduced gap for better vertical spacing
 
   @media (min-width: 760px) {
+
     flex-direction: column; // Keep column layout for desktop
   }
 

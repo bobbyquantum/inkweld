@@ -53,7 +53,6 @@ describe('authGuard', () => {
     const user: UserDto = {
       username: 'test',
       name: 'Test User',
-      avatarImageUrl: 'https://example.com/avatar.png',
     };
     mockCurrentUser.set(user);
 

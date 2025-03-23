@@ -292,6 +292,7 @@ export class ProjectImportExportService {
       title: archive.project.title,
       description: archive.project.description || '',
       slug: archive.project.slug,
+      username: 'not set',
       createdDate: new Date().toISOString(),
       updatedDate: new Date().toISOString(),
     };

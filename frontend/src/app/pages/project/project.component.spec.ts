@@ -78,6 +78,7 @@ describe('ProjectComponent', () => {
     title: 'Test Project',
     description: 'A test project',
     slug: 'test-project',
+    username: 'testuser',
     createdDate: new Date().toISOString(),
     updatedDate: new Date().toISOString(),
   };

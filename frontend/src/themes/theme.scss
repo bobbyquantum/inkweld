@@ -168,14 +168,16 @@ $dark-theme: mat.define-theme(
 @import '@angular/cdk/overlay-prebuilt.css';
 
 :root {
-  @include mat.all-component-themes($light-theme);
-  @include mat.system-level-colors($light-theme);
-  @include mat.system-level-typography($dark-theme);
-
   /* Scrollbar styles for light theme */
   --scrollbar-thumb-color: #006874; /* primary-40 */
   --scrollbar-thumb-hover-color: #008391; /* primary-50 */
   --scrollbar-track-color: #eff1f1; /* neutral-95 */
+
+  @include mat.all-component-themes($light-theme);
+  @include mat.system-level-colors($light-theme);
+  @include mat.system-level-typography($dark-theme);
+
+
 
   & {
     --card-background-color: var(--mat-sys-surface-container-high);
@@ -254,14 +256,15 @@ $dark-theme: mat.define-theme(
 }
 
 .dark-theme {
-  @include mat.all-component-colors($dark-theme);
-  @include mat.system-level-colors($dark-theme);
-  @include mat.system-level-typography($dark-theme);
 
   /* Scrollbar styles for dark theme */
   --scrollbar-thumb-color: #22bccf; /* primary-70 */
   --scrollbar-thumb-hover-color: #00a0b0; /* primary-60 */
   --scrollbar-track-color: #2e3132; /* neutral-20 */
+
+  @include mat.all-component-colors($dark-theme);
+  @include mat.system-level-colors($dark-theme);
+  @include mat.system-level-typography($dark-theme);
 
   & {
     --card-background-color: var(--mat-sys-surface-container-high);

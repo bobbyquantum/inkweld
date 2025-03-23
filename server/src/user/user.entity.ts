@@ -22,7 +22,4 @@ export class UserEntity {
 
   @Column({ default: false })
   enabled: boolean;
-
-  @Column({ name: 'avatar_image_url', nullable: true })
-  avatarImageUrl: string | null;
 }

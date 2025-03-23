@@ -418,13 +418,13 @@ export class ProjectStateService {
 
     this.recentFilesService.addRecentFile(
       element,
-      project!.user!.username,
+      project!.username,
       project!.slug
     );
     console.log(
       'Added to recent files. Current recent files:',
       this.recentFilesService.getRecentFilesForProject(
-        project!.user!.username,
+        project!.username,
         project!.slug
       )
     );

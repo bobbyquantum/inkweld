@@ -56,7 +56,6 @@ export class DocumentController {
   @ApiOkResponse({
     description: 'Successfully retrieved the list of documents',
     type: [DocumentDto],
-    isArray: true,
   })
   @ApiUnauthorizedResponse({
     description: 'Invalid or missing authentication'
@@ -70,7 +69,7 @@ export class DocumentController {
   async listDocuments(
     @Param('username') username: string,
     @Param('projectSlug') projectSlug: string,
-  ) {
+  ): Promise<DocumentDto[]> {
     try {
       this.logger.log(`Listing documents for project ${username}/${projectSlug}`);
 

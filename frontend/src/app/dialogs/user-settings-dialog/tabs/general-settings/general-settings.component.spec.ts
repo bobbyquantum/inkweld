@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ThemeOption, ThemeService } from '@themes/theme.service';
@@ -25,7 +27,11 @@ describe('GeneralSettingsComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [GeneralSettingsComponent, NoopAnimationsModule],
-      providers: [{ provide: ThemeService, useValue: themeService }],
+      providers: [
+        { provide: ThemeService, useValue: themeService },
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(GeneralSettingsComponent);

@@ -414,7 +414,6 @@ describe('RegisterComponent', () => {
       const mockUser: UserDto = {
         username: 'testuser',
         name: '',
-        avatarImageUrl: '',
       };
 
       registerUserMock.mockReturnValue(of(mockUser));
@@ -502,7 +501,6 @@ describe('RegisterComponent', () => {
       const mockUser: UserDto = {
         username: 'testuser',
         name: '',
-        avatarImageUrl: '',
       };
 
       registerUserMock.mockReturnValue(of(mockUser));

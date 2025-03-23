@@ -121,9 +121,8 @@ describe('HomeComponent', () => {
       id: '123',
       name: 'Test Project',
       slug: 'test-project',
-      user: {
-        username: 'testuser',
-      },
+
+      username: 'testuser',
     } as unknown as ProjectDto;
     component.selectProject(project);
     expect(router.navigate).toHaveBeenCalledWith(['testuser', 'test-project']);

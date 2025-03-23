@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ProjectEntity } from './project.entity.js';
-import { UserDto } from '../user/user.dto.js';
 
 export class ProjectDto {
   @ApiProperty({ example: 'my-project-id', required: false })
@@ -15,8 +14,8 @@ export class ProjectDto {
   @ApiProperty({ example: 'This is a cool project.', required: false })
   description?: string;
 
-  @ApiProperty({ type: UserDto, required: false })
-  user?: UserDto;
+  @ApiProperty({example: 'user-1', required: true })
+  username: string;
 
   @ApiProperty({ type: Date, example: '2023-01-01T00:00:00.000Z' })
   createdDate: Date;
@@ -31,12 +30,7 @@ export class ProjectDto {
       this.description = entity.description;
       this.createdDate = entity.createdDate;
       this.updatedDate = entity.updatedDate;
-      if (entity.user) {
-        this.user = {
-          username: entity.user.username,
-          name: entity.user.name,
-        };
-      }
+      this.username = entity.user.username;
     }
   }
 

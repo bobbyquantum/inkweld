@@ -108,7 +108,7 @@
                   mat-button
                   color="primary"
                   [routerLink]="[
-                    '/' + projectState.project()?.user?.username,
+                    '/' + projectState.project()?.username,
                     projectState.project()?.slug,
                     'files',
                   ]">
@@ -124,14 +124,14 @@
               @if (
                 projectState.project() &&
                 recentFilesService.getRecentFilesForProject(
-                  projectState.project()!.user?.username!,
+                  projectState.project()!.username!,
                   projectState.project()!.slug!
                 ).length > 0
               ) {
                 <div class="recent-files-list">
                   @for (
                     document of recentFilesService.getRecentFilesForProject(
-                      projectState.project()!.user?.username!,
+                      projectState.project()!.username!,
                       projectState.project()!.slug!
                     );
                     track document.id
@@ -170,7 +170,7 @@
               {{ document.name }}
               @if (document.type !== 'FOLDER') {
                 @switch (
-                  documentService.getSyncStatus(`${projectState.project()?.user?.username}:${projectState.project()?.slug}:${document.id}`) | async
+                  documentService.getSyncStatus(`${projectState.project()?.username}:${projectState.project()?.slug}:${document.id}`) | async
                 ) {
                   @case (DocumentSyncState.Unavailable) {
                     <div
@@ -206,7 +206,7 @@
               [elementId]="document.id"></app-folder-element-editor>
           } @else {
             <app-document-element-editor
-              [documentId]="`${projectState.project()!.user!.username}:${projectState.project()!.slug}:${document.id}`"></app-document-element-editor>
+              [documentId]="`${projectState.project()!.username}:${projectState.project()!.slug}:${document.id}`"></app-document-element-editor>
           }
         </mat-tab>
       }

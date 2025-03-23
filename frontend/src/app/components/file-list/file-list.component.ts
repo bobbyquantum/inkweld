@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,13 +10,7 @@ import { ProjectFile } from '../../services/project-file.service';
 @Component({
   selector: 'app-file-list',
   standalone: true,
-  imports: [
-    CommonModule,
-    MatTableModule,
-    MatButtonModule,
-    MatIconModule,
-    FileSizePipe,
-  ],
+  imports: [MatTableModule, MatButtonModule, MatIconModule, FileSizePipe],
   templateUrl: './file-list.component.html',
   styleUrls: ['./file-list.component.scss'],
 })

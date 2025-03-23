@@ -19,7 +19,6 @@ describe('ProjectService', () => {
     name: 'Test User',
     email: 'test@example.com',
     enabled: true,
-    avatarImageUrl: null,
   };
 
   const mockProject: ProjectEntity = {

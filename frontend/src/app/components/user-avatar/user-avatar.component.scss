@@ -1,0 +1,57 @@
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+
+  &.small {
+    width: 24px;
+    height: 24px;
+    img, svg {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  &.medium {
+    width: 32px;
+    height: 32px;
+    img, svg {
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  &.large {
+    width: 48px;
+    height: 48px;
+    img, svg {
+      width: 48px;
+      height: 48px;
+    }
+  }
+
+  .skeleton {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 50%;
+  }
+}
+.rounded-full {
+  border-radius: 50%;
+    width: 100%;
+      height: 100%;
+        object-fit: cover;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

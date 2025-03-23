@@ -4,9 +4,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { UserDto } from '@inkweld/index';
 import { UserService } from '@services/user.service';
+
+import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 
 interface LogoutResponse {
   message: string;
@@ -15,7 +17,15 @@ interface LogoutResponse {
 
 @Component({
   selector: 'app-user-menu',
-  imports: [MatButtonModule, MatMenuModule, MatIconModule, MatDividerModule],
+  standalone: true,
+  imports: [
+    MatButtonModule,
+    MatMenuModule,
+    MatIconModule,
+    MatDividerModule,
+    UserAvatarComponent,
+    RouterModule,
+  ],
   templateUrl: './user-menu.component.html',
   styleUrl: './user-menu.component.scss',
 })

@@ -32,7 +32,6 @@ describe('NewProjectDialogComponent', () => {
   const mockUser: UserDto = {
     username: 'testuser',
     name: 'Test User',
-    avatarImageUrl: '',
   };
 
   beforeEach(async () => {

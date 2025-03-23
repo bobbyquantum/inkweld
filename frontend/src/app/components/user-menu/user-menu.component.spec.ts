@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { UserDto } from '@inkweld/index';
 import { UserService } from '@services/user.service';
 import { of, throwError } from 'rxjs';
@@ -13,6 +13,9 @@ describe('UserMenuComponent', () => {
   let httpClientMock: jest.Mocked<HttpClient>;
   let routerMock: jest.Mocked<Router>;
   let userServiceMock: jest.Mocked<UserService>;
+  const activatedRouteMock = {
+    params: of({ username: 'testuser' }),
+  };
 
   beforeEach(async () => {
     httpClientMock = {
@@ -28,11 +31,11 @@ describe('UserMenuComponent', () => {
 
     userServiceMock = {
       openSettingsDialog: jest.fn().mockReturnValue(of(true)),
+      getUserAvatar: jest.fn().mockReturnValue(of('')),
       currentUser: jest.fn().mockReturnValue(
         of({
           username: 'testuser',
           name: 'Test User',
-          avatarImageUrl: 'https://example.com/avatar.png',
         })
       ),
     } as unknown as jest.Mocked<UserService>;
@@ -43,6 +46,7 @@ describe('UserMenuComponent', () => {
         { provide: HttpClient, useValue: httpClientMock },
         { provide: Router, useValue: routerMock },
         { provide: UserService, useValue: userServiceMock },
+        { provide: ActivatedRoute, useValue: activatedRouteMock },
       ],
     }).compileComponents();
 
@@ -106,7 +110,6 @@ describe('UserMenuComponent', () => {
       const mockUser: UserDto = {
         username: 'testuser',
         name: 'Test User',
-        avatarImageUrl: 'https://example.com/avatar.png',
       };
 
       component.user = mockUser;
