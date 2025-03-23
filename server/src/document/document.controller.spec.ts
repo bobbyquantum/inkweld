@@ -41,7 +41,6 @@ describe('DocumentController', () => {
         id: 'user123',
         username: 'testuser',
         name: 'Test User',
-        avatarImageUrl: 'https://example.com/avatar.jpg'
       })
     };
 
@@ -62,7 +61,6 @@ describe('DocumentController', () => {
           id: 'user123',
           username: 'testuser',
           name: 'Test User',
-          avatarImageUrl: 'https://example.com/avatar.jpg'
         };
 
         return true;
@@ -107,7 +105,7 @@ describe('DocumentController', () => {
     controller.listDocuments = async (username, projectSlug) => {
       // Mock implementation
       if (projectSlug === 'nonexistent-project') {
-        return { documents: [] };
+        return [];
       }
 
       if (projectSlug === 'error-project') {
@@ -118,8 +116,7 @@ describe('DocumentController', () => {
       await levelDBManager.getProjectDatabase(username, projectSlug);
 
       // Return mock documents
-      return {
-        documents: [
+      return [
           new DocumentDto({
             id: `doc1:${username}:${projectSlug}`,
             ownerId: 'testuser',
@@ -136,8 +133,7 @@ describe('DocumentController', () => {
             username,
             projectSlug
           })
-        ]
-      };
+        ];
     };
 
     // Define the environment variables
@@ -158,8 +154,7 @@ describe('DocumentController', () => {
       const result = await controller.listDocuments(username, projectSlug);
 
       // Assert
-      expect(result).toHaveProperty('documents');
-      expect(result.documents).toBeInstanceOf(Array);
+      expect(result).toBeArray();
       expect(levelDBManager.getProjectDatabase).toHaveBeenCalledWith(username, projectSlug);
     });
 
@@ -172,8 +167,7 @@ describe('DocumentController', () => {
       const result = await controller.listDocuments(username, projectSlug);
 
       // Assert
-      expect(result).toHaveProperty('documents');
-      expect(result.documents).toEqual([]);
+      expect(result).toBeArrayOfSize(0);
     });
 
     it('should handle errors when reading the document database', async () => {

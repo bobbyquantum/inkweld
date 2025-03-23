@@ -11,6 +11,10 @@ import {
   Req,
   Query,
   BadRequestException,
+  Param,
+  Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ValidationException } from '../common/exceptions/validation.exception.js';
 import { AuthService } from '../auth/auth.service.js';
@@ -24,11 +28,26 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiHeader,
+  ApiParam,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import { UserService } from './user.service.js';
 import { SessionAuthGuard } from '../auth/session-auth.guard.js';
 import { UserDto } from './user.dto.js';
 import { UserRegisterDto } from './user-register.dto.js';
+import { FileInterceptor } from '@nestjs/platform-express';
+// Define MulterFile interface for Bun environment
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  destination?: string;
+  filename?: string;
+  path?: string;
+  buffer?: Buffer;
+}
 
 interface PagedRequest {
   page?: number;
@@ -65,7 +84,6 @@ export class UserController {
         id: user.id,
         username: user.username,
         name: user.name,
-        avatarImageUrl: user.avatarImageUrl,
         enabled: user.enabled,
       };
     } catch (error) {
@@ -81,7 +99,7 @@ export class UserController {
   })
   @ApiOkResponse({
     description: 'Successfully retrieved paged list of users',
-    type: [UserDto], // Assuming UserDto is used for user representation
+    type: [UserDto],
   })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication' })
   @ApiBadRequestResponse({ description: 'Invalid pagination parameters' })
@@ -100,7 +118,7 @@ export class UserController {
   @ApiOkResponse({
     description:
       'Successfully retrieved paged list of users based on search term',
-    type: [UserDto], // Assuming UserDto is used for user representation
+    type: [UserDto],
   })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication' })
   @ApiBadRequestResponse({ description: 'Invalid search parameters' })
@@ -193,5 +211,128 @@ export class UserController {
       available,
       suggestions: available ? [] : suggestions,
     };
+  }
+
+  @Get(':username/avatar')
+  @ApiOperation({
+    summary: 'Get user avatar',
+    description: 'Retrieves a user\'s avatar image as a PNG file.',
+  })
+  @ApiParam({
+    name: 'username',
+    description: 'Username of the user whose avatar to retrieve',
+  })
+  @ApiOkResponse({
+    description: 'User avatar image',
+    content: {
+      'image/png': {},
+    },
+  })
+  async getUserAvatar(
+    @Param('username') username: string,
+    @Res() res,
+  ) {
+    try {
+      const hasAvatar = await this.userService.hasUserAvatar(username);
+
+      if (!hasAvatar) {
+        // Return a 404 response or default avatar
+        return res.status(404).send('Avatar not found');
+      }
+
+      const avatarStream = await this.userService.getUserAvatar(username);
+
+      res.set({
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
+      });
+
+      return avatarStream.pipe(res);
+    } catch (error) {
+      this.logger.error(`Error getting avatar for ${username}`, error);
+      return res.status(404).send('Avatar not found');
+    }
+  }
+
+  @Post('avatar')
+  @UseGuards(SessionAuthGuard)
+  @UseInterceptors(FileInterceptor('avatar'))
+  @ApiOperation({
+    summary: 'Upload user avatar',
+    description: 'Uploads and updates the authenticated user\'s avatar image.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        avatar: {
+          type: 'string',
+          format: 'binary',
+          description: 'Avatar image file (PNG, JPEG, GIF, or WebP)',
+        },
+      },
+    },
+  })
+  @ApiCreatedResponse({
+    description: 'Avatar successfully uploaded',
+  })
+  @ApiBadRequestResponse({ description: 'Invalid file format or size' })
+  async uploadAvatar(
+    @Request() req,
+    @UploadedFile() file: MulterFile,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    // Get the current user
+    const user = await this.userService.getCurrentUser(req.user.id);
+
+    if (!user || !user.username) {
+      throw new BadRequestException('User not found');
+    }
+
+    try {
+      // Save the avatar
+      await this.userService.saveUserAvatar(user.username, file.buffer);
+
+      return {
+        message: 'Avatar uploaded successfully',
+      };
+    } catch (error) {
+      this.logger.error('Error uploading avatar', error);
+      throw new BadRequestException('Failed to process avatar image');
+    }
+  }
+
+  @Post('avatar/delete')
+  @UseGuards(SessionAuthGuard)
+  @ApiOperation({
+    summary: 'Delete user avatar',
+    description: 'Deletes the authenticated user\'s avatar image.',
+  })
+  @ApiOkResponse({
+    description: 'Avatar successfully deleted',
+  })
+  async deleteAvatar(@Request() req) {
+    // Get the current user
+    const user = await this.userService.getCurrentUser(req.user.id);
+
+    if (!user || !user.username) {
+      throw new BadRequestException('User not found');
+    }
+
+    try {
+      // Delete the avatar
+      await this.userService.deleteUserAvatar(user.username);
+
+      return {
+        message: 'Avatar deleted successfully',
+      };
+    } catch (error) {
+      this.logger.error('Error deleting avatar', error);
+      throw new BadRequestException('Failed to delete avatar');
+    }
   }
 }

@@ -12,6 +12,5 @@
 export interface UserDto { 
     username: string;
     name: string;
-    avatarImageUrl: string;
 }
 

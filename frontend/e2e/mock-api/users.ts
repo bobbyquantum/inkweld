@@ -8,7 +8,6 @@ export interface MockUserDto {
   id: string;
   username: string;
   name: string;
-  avatarImageUrl: string;
   roles?: string[];
 }
 
@@ -22,13 +21,11 @@ class MockUsers {
       id: '1',
       username: 'testuser',
       name: 'Test User',
-      avatarImageUrl: 'https://example.com/avatar.png',
     },
     {
       id: '2',
       username: 'adminuser',
       name: 'Admin User',
-      avatarImageUrl: 'https://example.com/admin-avatar.png',
       roles: ['admin']
     }
   ];
@@ -67,13 +64,11 @@ class MockUsers {
         id: '1',
         username: 'testuser',
         name: 'Test User',
-        avatarImageUrl: 'https://example.com/avatar.png',
       },
       {
         id: '2',
         username: 'adminuser',
         name: 'Admin User',
-        avatarImageUrl: 'https://example.com/admin-avatar.png',
         roles: ['admin']
       }
     ];

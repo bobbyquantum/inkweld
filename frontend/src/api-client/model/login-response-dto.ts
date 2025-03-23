@@ -13,7 +13,6 @@ export interface LoginResponseDto {
     id: string;
     username: string;
     name: string;
-    avatarImageUrl: string;
     enabled: boolean;
     sessionId: string;
 }

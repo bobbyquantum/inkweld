@@ -7,7 +7,6 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { UserDto } from './user-dto';
 
 
 export interface ProjectDto { 
@@ -15,7 +14,7 @@ export interface ProjectDto {
     slug: string;
     title: string;
     description?: string;
-    user?: UserDto;
+    username: string;
     createdDate: string;
     updatedDate: string;
 }

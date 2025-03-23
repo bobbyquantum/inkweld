@@ -3,6 +3,7 @@ import { UserService } from './user.service.js';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserEntity } from './user.entity.js';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import {
   afterAll,
   afterEach,
@@ -25,6 +26,8 @@ describe('UserService', () => {
   let userService: UserService;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let userRepository: Repository<UserEntity>;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let configService: ConfigService;
 
   const mockUserRepository = {
     findOne: jest.fn<() => any>(),
@@ -35,6 +38,13 @@ describe('UserService', () => {
     createQueryBuilder: jest.fn<() => any>(), // Mock createQueryBuilder
   };
 
+  const mockConfigService = {
+    get: jest.fn((key: string) => {
+      if (key === 'DATA_PATH') return './test-data';
+      return undefined;
+    }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -43,6 +53,10 @@ describe('UserService', () => {
           provide: getRepositoryToken(UserEntity),
           useValue: mockUserRepository,
         },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
+        },
       ],
     }).compile();
 
@@ -50,6 +64,7 @@ describe('UserService', () => {
     userRepository = module.get<Repository<UserEntity>>(
       getRepositoryToken(UserEntity),
     );
+    configService = module.get<ConfigService>(ConfigService);
 
     // Reset Bun password mock implementations before each test
     (Bun.password.hash as jest.Mock).mockImplementation(
@@ -216,7 +231,6 @@ describe('UserService', () => {
         username: 'githubuser',
         email: 'github@example.com',
         name: 'GitHub User',
-        avatarImageUrl: 'http://example.com/avatar.jpg',
       };
 
       mockUserRepository.findOne.mockResolvedValue(null);

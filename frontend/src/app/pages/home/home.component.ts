@@ -73,7 +73,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         project.title.toLowerCase().includes(term) ||
         project.slug.toLowerCase().includes(term) ||
         project.description?.toLowerCase().includes(term) ||
-        project.user?.username?.toLowerCase().includes(term)
+        project.username.toLowerCase().includes(term)
       );
     });
   });
@@ -116,10 +116,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   selectProject(project: ProjectDto) {
     // Navigate directly to the project instead of showing a preview
-    void this.router.navigate([
-      project.user?.username || '',
-      project.slug || '',
-    ]);
+    void this.router.navigate([project.username || '', project.slug || '']);
   }
 
   backToList() {

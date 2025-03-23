@@ -27,7 +27,6 @@ describe('AuthService', () => {
     email: 'test@example.com',
     enabled: true,
     githubId: null,
-    avatarImageUrl: null,
   };
 
   const mockSessionStore = {
@@ -145,7 +144,6 @@ describe('AuthService', () => {
       expect(mockReq.session.username).toBe(mockUser.username);
       expect(mockReq.session.userData).toEqual({
         name: mockUser.name,
-        avatarImageUrl: mockUser.avatarImageUrl,
         enabled: mockUser.enabled,
       });
     });
@@ -240,7 +238,6 @@ describe('AuthService', () => {
         username: 'githubuser',
         email: 'github@example.com',
         name: 'GitHub User',
-        avatarImageUrl: 'https://github.com/photo.jpg',
         password: null,
       });
       spyOn(userRepository, 'save')
@@ -253,7 +250,6 @@ describe('AuthService', () => {
         email: 'github@example.com',
         name: 'GitHub User',
         githubId: '12345',
-        avatarImageUrl: 'https://github.com/photo.jpg',
         enabled: true,
         password: null,
       });
@@ -274,7 +270,6 @@ describe('AuthService', () => {
         username: 'githubuser',
         email: null,
         name: null,
-        avatarImageUrl: null,
         password: null,
       });
       spyOn(userRepository, 'save')
@@ -287,7 +282,6 @@ describe('AuthService', () => {
         email: null,
         name: null,
         githubId: '12345',
-        avatarImageUrl: null,
         enabled: true,
         password: null,
       });

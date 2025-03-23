@@ -24,7 +24,6 @@ describe('EditProjectDialogComponent', () => {
   const mockUser: UserDto = {
     username: 'testuser',
     name: 'Test User',
-    avatarImageUrl: 'https://example.com/avatar.png',
   };
 
   const mockProject: ProjectDto = {
@@ -34,7 +33,7 @@ describe('EditProjectDialogComponent', () => {
     slug: 'test-project',
     createdDate: '2025-02-12T15:30:00.000Z',
     updatedDate: '2025-02-12T15:30:00.000Z',
-    user: mockUser,
+    username: mockUser.username,
   };
 
   beforeEach(async () => {

@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Request } from 'express';
 import { Session } from 'express-session';
 import { UserController } from './user.controller.js';
 import { UserService } from './user.service.js';
@@ -99,7 +98,6 @@ describe('UserController', () => {
         password: 'password',
         githubId: null,
         enabled: true,
-        avatarImageUrl: 'http://example.com/avatar.jpg',
       };
       spyOn(userService, 'getCurrentUser').mockResolvedValue(mockUser);
 
@@ -109,7 +107,6 @@ describe('UserController', () => {
         id: '1',
         username: 'testuser',
         name: 'Test User',
-        avatarImageUrl: 'http://example.com/avatar.jpg',
         enabled: true,
       });
       expect(userService.getCurrentUser).toHaveBeenCalledWith('1');
@@ -144,7 +141,6 @@ describe('UserController', () => {
         password: 'password123',
         githubId: null,
         enabled: true,
-        avatarImageUrl: null,
       };
       spyOn(userService, 'registerUser').mockResolvedValue(mockRegisteredUser);
 
@@ -183,7 +179,6 @@ describe('UserController', () => {
         password: 'password123',
         githubId: null,
         enabled: true,
-        avatarImageUrl: null,
       };
       spyOn(userService, 'registerUser').mockResolvedValue(mockRegisteredUser);
 
@@ -219,7 +214,7 @@ describe('UserController', () => {
 
       try {
         await controller.register(registerDto as UserRegisterDto, mockReq);
-      } catch (error) {
+      } catch (error: any) {
         console.log(error);
         expect(error.getStatus()).toBe(400);
         expect(error.getResponse()).toEqual({
@@ -243,7 +238,7 @@ describe('UserController', () => {
 
       try {
         await controller.register(registerDto as UserRegisterDto, mockReq);
-      } catch (error) {
+      } catch (error: any) {
         expect(error.getStatus()).toBe(400);
         expect(error.getResponse()).toEqual({
           statusCode: 400,
@@ -266,7 +261,7 @@ describe('UserController', () => {
 
       try {
         await controller.register(registerDto as UserRegisterDto, mockReq);
-      } catch (error) {
+      } catch (error: any) {
         expect(error.getStatus()).toBe(400);
         expect(error.getResponse()).toEqual({
           statusCode: 400,
@@ -289,7 +284,7 @@ describe('UserController', () => {
 
       try {
         await controller.register(registerDto as UserRegisterDto, mockReq);
-      } catch (error) {
+      } catch (error: any) {
         expect(error.getStatus()).toBe(400);
         expect(error.getResponse()).toEqual({
           statusCode: 400,

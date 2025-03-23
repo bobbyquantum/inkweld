@@ -63,7 +63,6 @@ describe('McpService', () => {
             password: 'hashedpassword',
             githubId: '12345',
             enabled: true,
-            avatarImageUrl: 'https://example.com/avatar.png',
           },
           elements: [],
         },

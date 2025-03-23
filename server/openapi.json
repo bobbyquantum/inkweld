@@ -802,6 +802,102 @@
         ]
       }
     },
+    "/api/v1/users/{username}/avatar": {
+      "get": {
+        "description": "Retrieves a user's avatar image as a PNG file.",
+        "operationId": "UserController_getUserAvatar",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "description": "Username of the user whose avatar to retrieve",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User avatar image",
+            "content": {
+              "image/png": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get user avatar",
+        "tags": [
+          "User API"
+        ]
+      }
+    },
+    "/api/v1/users/avatar": {
+      "post": {
+        "description": "Uploads and updates the authenticated user's avatar image.",
+        "operationId": "UserController_uploadAvatar",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Avatar image file (PNG, JPEG, GIF, or WebP)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Avatar successfully uploaded"
+          },
+          "400": {
+            "description": "Invalid file format or size"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload user avatar",
+        "tags": [
+          "User API"
+        ]
+      }
+    },
+    "/api/v1/users/avatar/delete": {
+      "post": {
+        "description": "Deletes the authenticated user's avatar image.",
+        "operationId": "UserController_deleteAvatar",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Avatar successfully deleted"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete user avatar",
+        "tags": [
+          "User API"
+        ]
+      }
+    },
     "/login": {
       "post": {
         "description": "Authenticates a user using username and password credentials.",
@@ -1094,28 +1190,6 @@
   "servers": [],
   "components": {
     "schemas": {
-      "UserDto": {
-        "type": "object",
-        "properties": {
-          "username": {
-            "type": "string",
-            "example": "johnDoe"
-          },
-          "name": {
-            "type": "string",
-            "example": "John Doe"
-          },
-          "avatarImageUrl": {
-            "type": "string",
-            "example": "https://example.com/avatar.jpg"
-          }
-        },
-        "required": [
-          "username",
-          "name",
-          "avatarImageUrl"
-        ]
-      },
       "ProjectDto": {
         "type": "object",
         "properties": {
@@ -1135,8 +1209,9 @@
             "type": "string",
             "example": "This is a cool project."
           },
-          "user": {
-            "$ref": "#/components/schemas/UserDto"
+          "username": {
+            "type": "string",
+            "example": "user-1"
           },
           "createdDate": {
             "format": "date-time",
@@ -1152,6 +1227,7 @@
         "required": [
           "slug",
           "title",
+          "username",
           "createdDate",
           "updatedDate"
         ]
@@ -1298,6 +1374,23 @@
           "message"
         ]
       },
+      "UserDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "johnDoe"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          }
+        },
+        "required": [
+          "username",
+          "name"
+        ]
+      },
       "UserRegisterDto": {
         "type": "object",
         "properties": {
@@ -1359,10 +1452,6 @@
             "type": "string",
             "example": "John Doe"
           },
-          "avatarImageUrl": {
-            "type": "string",
-            "example": "https://example.com/avatar.jpg"
-          },
           "enabled": {
             "type": "boolean",
             "example": true
@@ -1376,7 +1465,6 @@
           "id",
           "username",
           "name",
-          "avatarImageUrl",
           "enabled",
           "sessionId"
         ]

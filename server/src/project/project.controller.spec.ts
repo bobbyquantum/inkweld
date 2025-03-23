@@ -25,7 +25,6 @@ describe('ProjectController', () => {
     password: '',
     githubId: '',
     enabled: false,
-    avatarImageUrl: '',
   };
   const mockProject: ProjectEntity = {
     id: 'project-1',

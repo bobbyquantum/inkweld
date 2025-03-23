@@ -55,7 +55,6 @@ export function setupAuthHandlers(): void {
       id: Date.now().toString(),
       username: body.username,
       name: body.name || body.username,
-      avatarImageUrl: body.avatarImageUrl || 'https://example.com/default-avatar.png',
     };
 
     try {
@@ -122,9 +121,10 @@ export function setupAuthHandlers(): void {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({         name: user.name,
+        body: JSON.stringify({
+          name: user.name,
           username: user.username,
-          avatarImageUrl: user.avatarImageUrl, })
+        })
       });
     });
     // Generate mock token
@@ -138,7 +138,6 @@ export function setupAuthHandlers(): void {
         token,
         name: user.name,
         username: user.username,
-        avatarImageUrl: user.avatarImageUrl,
         ...(user.roles && { roles: user.roles })
       })
     });
@@ -174,7 +173,6 @@ export function setupAuthHandlers(): void {
         id: `oauth-${provider}-${Date.now()}`,
         username: `${provider}-user`,
         name: `${provider.charAt(0).toUpperCase() + provider.slice(1)} User`,
-        avatarImageUrl: `https://example.com/${provider}-avatar.png`,
       };
 
       // Add to users if not exists
@@ -189,7 +187,6 @@ export function setupAuthHandlers(): void {
         if (existing) {
           oauthUser.id = existing.id;
           oauthUser.name = existing.name;
-          oauthUser.avatarImageUrl = existing.avatarImageUrl;
         }
       }
 
@@ -204,7 +201,6 @@ export function setupAuthHandlers(): void {
           token,
           name: oauthUser.name,
           username: oauthUser.username,
-          avatarImageUrl: oauthUser.avatarImageUrl
         })
       });
     } else {

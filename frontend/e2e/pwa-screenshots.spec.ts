@@ -50,7 +50,6 @@ test.describe('PWA Screenshots', () => {
         json: {
           username: 'testuser',
           name: 'Test User',
-          avatarImageUrl: 'https://example.com/avatar.png',
         },
       });
     });
@@ -82,7 +81,6 @@ test.describe('PWA Screenshots', () => {
         json: {
           username: 'testuser',
           name: 'Test User',
-          avatarImageUrl: 'https://example.com/avatar.png',
         },
       });
     });

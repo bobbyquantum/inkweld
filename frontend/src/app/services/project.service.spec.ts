@@ -21,17 +21,14 @@ describe('ProjectService', () => {
       id: '1',
       title: 'Project 1',
       slug: 'project-1',
-      user: {
-        username: 'testuser',
-      },
+
+      username: 'testuser',
     } as ProjectDto,
     {
       id: '2',
       title: 'Project 2',
       slug: 'project-2',
-      user: {
-        username: 'testuser',
-      },
+      username: 'testuser',
     } as ProjectDto,
   ];
 
@@ -39,9 +36,7 @@ describe('ProjectService', () => {
     id: '1',
     title: 'Project 1',
     slug: 'project-1',
-    user: {
-      username: 'testuser',
-    },
+    username: 'testuser',
   } as ProjectDto;
 
   beforeEach(() => {

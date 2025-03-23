@@ -137,7 +137,6 @@ describe('AppComponent', () => {
       const mockUser = {
         username: 'testuser',
         name: 'Test User',
-        avatarImageUrl: 'https://example.com/avatar.png',
       };
       userServiceMock.userControllerGetMe.mockReturnValue(of(mockUser));
       const router = TestBed.inject(Router);

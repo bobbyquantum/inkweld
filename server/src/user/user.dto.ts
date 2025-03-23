@@ -6,7 +6,4 @@ export class UserDto {
 
   @ApiProperty({ example: 'John Doe' })
   name: string;
-
-  @ApiProperty({ example: 'https://example.com/avatar.jpg' })
-  avatarImageUrl?: string;
 }

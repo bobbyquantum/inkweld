@@ -65,7 +65,6 @@ export class AuthController {
       id: req.user.id,
       username: req.user.username,
       name: req.user.name,
-      avatarImageUrl: req.user.avatarImageUrl,
       enabled: req.user.enabled,
       sessionId: req.sessionID,
     };

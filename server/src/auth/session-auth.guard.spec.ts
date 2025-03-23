@@ -12,8 +12,6 @@ describe('SessionAuthGuard', () => {
     id: 'test-user-id',
     username: 'testuser',
     name: 'Test User',
-    avatarImageUrl: 'https://example.com/avatar.png',
-    // Add other required user properties that aren't used by the guard
     email: 'test@example.com',
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -69,7 +67,6 @@ describe('SessionAuthGuard', () => {
       id: mockUser.id,
       username: mockUser.username,
       name: mockUser.name,
-      avatarImageUrl: mockUser.avatarImageUrl,
     });
   });
 

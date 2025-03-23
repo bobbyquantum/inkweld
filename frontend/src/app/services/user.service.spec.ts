@@ -26,7 +26,6 @@ if (!globalThis.structuredClone) {
 const TEST_USER: UserDto = {
   username: 'testuser',
   name: 'Test User',
-  avatarImageUrl: 'https://example.com/avatar.png',
 };
 
 describe('UserService', () => {
@@ -88,7 +87,10 @@ describe('UserService', () => {
 
   describe('initialization', () => {
     it('should initialize with undefined user', () => {
-      expect(service.currentUser()).toBeUndefined();
+      expect(service.currentUser()).toStrictEqual({
+        name: 'anonymous',
+        username: 'anonymous',
+      });
       expect(service.isLoading()).toBe(false);
       expect(service.error()).toBeUndefined();
       expect(service.isAuthenticated()).toBe(false);
@@ -163,7 +165,10 @@ describe('UserService', () => {
       expect(service.isAuthenticated()).toBe(true);
 
       await service.clearCurrentUser();
-      expect(service.currentUser()).toBeUndefined();
+      expect(service.currentUser()).toStrictEqual({
+        name: 'anonymous',
+        username: 'anonymous',
+      });
       expect(service.isAuthenticated()).toBe(false);
     });
 

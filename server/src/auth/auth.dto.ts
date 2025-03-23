@@ -18,9 +18,6 @@ export class LoginResponseDto {
   @ApiProperty({ example: 'John Doe' })
   name: string;
 
-  @ApiProperty({ example: 'https://example.com/avatar.jpg' })
-  avatarImageUrl: string;
-
   @ApiProperty({ example: true })
   enabled: boolean;
 

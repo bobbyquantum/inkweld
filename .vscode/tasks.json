@@ -35,13 +35,44 @@
       "label": "🎯 Start Stack",
       "type": "shell",
       "command": "echo '🚀 Stack dependencies started and ready!'",
-      "dependsOn": ["🚀 Start Frontend Dev Server"],
+      "dependsOn": [
+        "🚀 Start Frontend Dev Server"
+      ],
       "dependsOrder": "sequence"
     },
     {
       "label": "⏹️ Stop All Tasks",
       "command": "${command:workbench.action.tasks.terminateAll}",
       "type": "shell"
+    },
+    {
+      "label": "Lint Backend",
+      "type": "shell",
+      "command": "bun run lint",
+      "options": {
+        "cwd": "${workspaceFolder}/server"
+      },
+      "problemMatcher": "$eslint-stylish"
+    },
+    {
+      "label": "Lint Frontend",
+      "type": "shell",
+      "command": "bun run lint",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": "$eslint-stylish"
+    },
+    {
+      "label": "Lint All",
+      "dependsOn": [
+        "Lint Backend",
+        "Lint Frontend"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": [
+        "$eslint-stylish"
+      ]
     }
   ]
 }

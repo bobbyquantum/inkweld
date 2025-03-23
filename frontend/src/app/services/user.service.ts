@@ -4,7 +4,13 @@ import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
 import { AuthService } from '@inkweld/index';
-import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
+import {
+  catchError,
+  firstValueFrom,
+  Observable,
+  retry,
+  throwError,
+} from 'rxjs';
 
 import { UserAPIService } from '../../api-client/api/user-api.service';
 import { UserDto } from '../../api-client/model/user-dto';
@@ -40,10 +46,15 @@ const MAX_RETRIES = 3;
   providedIn: 'root',
 })
 export class UserService {
-  readonly currentUser = signal<UserDto | undefined>(undefined);
+  readonly currentUser = signal<UserDto>({
+    name: 'anonymous',
+    username: 'anonymous',
+  });
   readonly isLoading = signal(false);
   readonly error = signal<UserServiceError | undefined>(undefined);
-  readonly isAuthenticated = computed(() => !!this.currentUser());
+  readonly isAuthenticated = computed(
+    () => !!this.currentUser() && this.currentUser().username !== 'anonymous'
+  );
   readonly initialized = signal(false);
 
   private readonly dialog = inject(MatDialog);
@@ -170,7 +181,6 @@ export class UserService {
 
       await this.setCurrentUser({
         name: response.name,
-        avatarImageUrl: response.avatarImageUrl,
         username: response.username,
       });
       await this.router.navigate(['/']);
@@ -192,7 +202,24 @@ export class UserService {
         console.warn('Failed to clear cached user:', error);
       }
     }
-    this.currentUser.set(undefined);
+    this.currentUser.set({
+      name: 'anonymous',
+      username: 'anonymous',
+    });
+  }
+
+  getUserAvatar(username: string): Observable<Blob> {
+    return this.userApi.userControllerGetUserAvatar(
+      username
+    ) as Observable<Blob>;
+  }
+
+  uploadAvatar(file: File): Observable<void> {
+    return this.userApi.userControllerUploadAvatar(file) as Observable<void>;
+  }
+
+  deleteAvatar(): Observable<void> {
+    return this.userApi.userControllerDeleteAvatar() as Observable<void>;
   }
 
   private formatError(error: unknown): UserServiceError {

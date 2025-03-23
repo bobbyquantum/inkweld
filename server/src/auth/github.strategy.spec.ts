@@ -20,7 +20,6 @@ describe('GithubStrategy', () => {
     id: 'user-1',
     username: 'testuser',
     name: 'Test User',
-    avatarImageUrl: 'https://example.com/avatar.jpg',
     githubId: '12345',
     email: null,
     password: null,
@@ -31,7 +30,6 @@ describe('GithubStrategy', () => {
     id: 'user-1',
     username: 'testuser',
     name: 'Test User',
-    avatarImageUrl: 'https://example.com/avatar.jpg',
     githubId: '12345',
   };
 
@@ -190,7 +188,6 @@ describe('GithubStrategy', () => {
         username: 'testuser',
         email: 'test@example.com',
         name: 'Test User',
-        avatarImageUrl: 'https://example.com/avatar.jpg',
       });
     });
 
@@ -211,7 +208,6 @@ describe('GithubStrategy', () => {
         username: 'testuser',
         email: null,
         name: 'Test User',
-        avatarImageUrl: null,
       });
     });
 

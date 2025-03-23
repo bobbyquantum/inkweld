@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -19,7 +18,6 @@ import { DocumentService } from '../../../services/document.service';
   selector: 'app-documents',
   standalone: true,
   imports: [
-    CommonModule,
     MatTableModule,
     MatIconModule,
     MatButtonModule,

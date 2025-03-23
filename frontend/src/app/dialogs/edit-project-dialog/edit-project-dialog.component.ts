@@ -104,7 +104,7 @@ export class EditProjectDialogComponent implements OnInit {
 
       const response = await firstValueFrom(
         this.projectAPIService.projectControllerUpdateProject(
-          updatedProject.user!.username,
+          updatedProject.username,
           updatedProject.slug,
           xsrfToken,
           {

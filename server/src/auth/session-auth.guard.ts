@@ -39,7 +39,6 @@ export class SessionAuthGuard implements CanActivate {
         id: user.id,
         username: user.username,
         name: user.name,
-        avatarImageUrl: user.avatarImageUrl,
       };
 
       return true;

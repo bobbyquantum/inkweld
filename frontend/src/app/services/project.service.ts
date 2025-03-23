@@ -232,7 +232,7 @@ export class ProjectService {
       // Update the project in the projects list if it exists
       const currentProjects = this.projects();
       const updatedProjects = currentProjects.map(p =>
-        p.slug === slug && p.user?.username === username ? project : p
+        p.slug === slug && p.username === username ? project : p
       );
       await this.setProjects(updatedProjects);
 
@@ -285,7 +285,7 @@ export class ProjectService {
       // Remove the project from the projects list
       const currentProjects = this.projects();
       const updatedProjects = currentProjects.filter(
-        p => !(p.slug === slug && p.user?.username === username)
+        p => !(p.slug === slug && p.username === username)
       );
       await this.setProjects(updatedProjects);
     } catch (err) {
@@ -312,11 +312,11 @@ export class ProjectService {
         // sophisticated approach to clear all keys from the store
         const currentProjects = this.projects();
         for (const project of currentProjects) {
-          if (project.user?.username && project.slug) {
+          if (project.username && project.slug) {
             await this.storage.delete(
               db,
               'projects',
-              `${project.user.username}/${project.slug}`
+              `${project.username}/${project.slug}`
             );
           }
         }
@@ -340,9 +340,9 @@ export class ProjectService {
 
         // Also cache individual projects for faster access
         for (const project of projects) {
-          if (project.user?.username && project.slug) {
+          if (project.username && project.slug) {
             await this.setCachedProject(
-              `${project.user.username}/${project.slug}`,
+              `${project.username}/${project.slug}`,
               project
             );
           }
