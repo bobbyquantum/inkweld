@@ -1,5 +1,4 @@
 import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
-import { Request, Response, NextFunction } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import { cwd } from 'process';
@@ -47,7 +46,7 @@ export class BaseHrefMiddleware implements NestMiddleware {
     return this.originalIndexHtml!;
   }
 
-  async use(req: Request, res: Response, next: NextFunction) {
+  async use(req, res, next) {
     // Only process index.html requests or requests that would be handled by the catch-all Angular route
     if (!req.path.includes('.') || req.path.endsWith('/index.html')) {
       // Check if X-Ingress-Path header is present
