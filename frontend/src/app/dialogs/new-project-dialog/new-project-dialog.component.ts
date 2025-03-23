@@ -73,7 +73,7 @@ export class NewProjectDialogComponent {
 
     effect(() => {
       const user = this.userService.currentUser();
-      this.username = user!.username;
+      this.username = user.username;
       this.updateProjectUrl();
     });
   }
