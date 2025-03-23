@@ -104,7 +104,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
         this.syncSubscription = this.documentService
           .getSyncStatus(currentDocument.id)
           .subscribe(state => {
-            this.hasUnsavedChanges = state === DocumentSyncState.Offline;
+            // Only consider changes as "unsynced" when user is working offline AND has pending changes
+            this.hasUnsavedChanges =
+              state === DocumentSyncState.Offline &&
+              this.documentService.hasUnsyncedChanges(currentDocument.id);
           });
       } else {
         this.hasUnsavedChanges = false;
@@ -129,8 +132,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     const confirmed = await this.dialogGateway.openConfirmationDialog({
-      title: 'Unsaved Changes',
-      message: 'You have unsaved changes. Are you sure you want to leave?',
+      title: 'Unsynced Changes',
+      message:
+        "You have changes that haven't been synced to the server yet. Are you sure you want to leave?",
       confirmText: 'Leave',
       cancelText: 'Stay',
     });

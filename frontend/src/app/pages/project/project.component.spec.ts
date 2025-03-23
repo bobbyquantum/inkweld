@@ -178,6 +178,7 @@ describe('ProjectComponent', () => {
     documentServiceMock = {
       getSyncStatus: jest.fn().mockReturnValue(of(DocumentSyncState.Synced)),
       disconnect: jest.fn(),
+      hasUnsyncedChanges: jest.fn().mockReturnValue(false),
     } as unknown as jest.Mocked<DocumentService>;
 
     // Mock DialogGatewayService
@@ -502,10 +503,11 @@ describe('ProjectComponent', () => {
     });
 
     it('should prompt for confirmation when unsaved changes exist', async () => {
-      // Set up unsaved changes
+      // Set up unsaved changes - both offline and has unsynced changes
       documentServiceMock.getSyncStatus.mockReturnValue(
         of(DocumentSyncState.Offline)
       );
+      documentServiceMock.hasUnsyncedChanges.mockReturnValue(true);
       projectStateServiceMock.openDocuments?.set([mockElements[0]]);
       fixture.detectChanges();
 
@@ -521,8 +523,9 @@ describe('ProjectComponent', () => {
       expect(
         dialogGatewayServiceMock.openConfirmationDialog
       ).toHaveBeenCalledWith({
-        title: 'Unsaved Changes',
-        message: 'You have unsaved changes. Are you sure you want to leave?',
+        title: 'Unsynced Changes',
+        message:
+          "You have changes that haven't been synced to the server yet. Are you sure you want to leave?",
         confirmText: 'Leave',
         cancelText: 'Stay',
       });
@@ -534,6 +537,7 @@ describe('ProjectComponent', () => {
       documentServiceMock.getSyncStatus.mockReturnValue(
         of(DocumentSyncState.Synced)
       );
+      documentServiceMock.hasUnsyncedChanges.mockReturnValue(false);
       const eventNoChanges = new Event('beforeunload') as BeforeUnloadEvent;
       eventNoChanges.preventDefault = jest.fn();
 
@@ -541,10 +545,11 @@ describe('ProjectComponent', () => {
       expect(resultNoChanges).toBe(true);
       expect(eventNoChanges.preventDefault).not.toHaveBeenCalled();
 
-      // Setup for unsaved changes
+      // Setup for unsaved changes - both offline and has unsynced changes
       documentServiceMock.getSyncStatus.mockReturnValue(
         of(DocumentSyncState.Offline)
       );
+      documentServiceMock.hasUnsyncedChanges.mockReturnValue(true);
       projectStateServiceMock.openDocuments?.set([mockElements[0]]);
       fixture.detectChanges();
 

@@ -42,6 +42,7 @@ export class DocumentService {
     string,
     BehaviorSubject<DocumentSyncState>
   >();
+  private unsyncedChanges = new Map<string, boolean>();
 
   /**
    * Gets the current sync status for a document
@@ -56,6 +57,15 @@ export class DocumentService {
       );
     }
     return this.syncStatusSubjects.get(documentId)!.asObservable();
+  }
+
+  /**
+   * Checks if a document has unsynced changes
+   * @param documentId - The document ID to check
+   * @returns True if there are changes that haven't been synced to the server
+   */
+  hasUnsyncedChanges(documentId: string): boolean {
+    return this.unsyncedChanges.get(documentId) || false;
   }
 
   /**
@@ -175,15 +185,38 @@ export class DocumentService {
         }
       );
 
+      // Track unsynced changes by listening to Yjs document updates
+      this.unsyncedChanges.set(documentId, false);
+      ydoc.on(
+        'update',
+        (
+          update: Uint8Array,
+          origin: unknown,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          doc: Y.Doc,
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          transaction: unknown
+        ) => {
+          // Only mark as unsynced if the change originated locally
+          if (origin !== provider) {
+            this.unsyncedChanges.set(documentId, true);
+          }
+        }
+      );
+
       // Handle connection status
       provider.on('status', ({ status }: { status: string }) => {
         console.log(`WebSocket status for document ${documentId}:`, status);
-        this.updateSyncStatus(
-          documentId,
+        const newState =
           status === 'connected'
             ? DocumentSyncState.Synced
-            : DocumentSyncState.Offline
-        );
+            : DocumentSyncState.Offline;
+        this.updateSyncStatus(documentId, newState);
+
+        // When we reconnect successfully, clear the unsynced changes flag
+        if (newState === DocumentSyncState.Synced) {
+          this.unsyncedChanges.set(documentId, false);
+        }
       });
 
       // Handle connection errors gracefully
