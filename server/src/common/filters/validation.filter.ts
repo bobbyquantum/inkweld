@@ -5,7 +5,6 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
-import { Response } from 'express';
 import { isArray } from 'class-validator';
 import { ValidationException } from '../exceptions/validation.exception.js';
 
@@ -16,7 +15,7 @@ export class ValidationFilter implements ExceptionFilter {
     host: ArgumentsHost,
   ) {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
+    const response = ctx.getResponse();
 
     let errors: Record<string, string[]>;
 

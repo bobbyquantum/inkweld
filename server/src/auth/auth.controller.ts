@@ -13,7 +13,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service.js';
 import { LocalAuthGuard } from './local-auth.guard.js';
-import type { Response } from 'express';
 import {
   ApiBody,
   ApiHeader,
@@ -109,7 +108,7 @@ export class AuthController {
       'Handles the callback from GitHub OAuth authentication and redirects the user to the client application',
   })
   @UseGuards(GithubAuthGuard)
-  async githubLoginCallback(@Req() req: any, @Res() res: Response) {
+  async githubLoginCallback(@Req() req: any, @Res() res) {
     try {
       // The user is already authenticated by the GithubAuthGuard
       const user = req.user;

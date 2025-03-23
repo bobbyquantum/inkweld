@@ -1,5 +1,4 @@
 import { Controller, Get, Post, Req, Res, Body, Logger } from '@nestjs/common';
-import type { Request, Response } from 'express';
 import { McpService } from './mcp.service.js';
 
 @Controller('mcp')
@@ -13,7 +12,7 @@ export class McpController {
    * The client will keep this open to receive push messages from the server.
    */
   @Get('sse')
-  public getSse(@Req() _req: Request, @Res() res: Response) {
+  public getSse(@Req() _req, @Res() res) {
     this.logger.log('SSE GET request received');
 
     // Cast from Express's Response to Node.js `ServerResponse`
