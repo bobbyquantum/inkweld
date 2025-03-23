@@ -94,7 +94,7 @@ export class DocumentController {
 
           // Parse the document ID to extract components
           const parts = docId.split(':');
-          const name = parts.length > 0 ? parts[0] : 'Untitled';
+          const name = parts.length === 3 ? parts[2] : 'Untitled';
 
           // Create the document dto
           const docDto = new DocumentDto({
