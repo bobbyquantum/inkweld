@@ -18,11 +18,17 @@ export class UserService {
   ): Promise<void> {
     const errors: Record<string, string[]> = {};
 
+    // Validate username format - only allow alphanumeric characters, underscores, and hyphens
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      errors['username'] = ['Username must only contain letters, numbers, underscores, and hyphens'];
+    }
+
     const existing = await this.userRepo.findOne({
       where: { username: username },
     });
     if (existing) {
-      errors['username'] = ['Username already exists'];
+      errors['username'] = errors['username'] || [];
+      errors['username'].push('Username already exists');
     }
 
     const passwordErrors = this.getPasswordErrors(password);

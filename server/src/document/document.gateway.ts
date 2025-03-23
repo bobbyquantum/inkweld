@@ -270,12 +270,21 @@ export class DocumentGateway
 
       // Determine doc name (e.g. from ?documentId=xyz)
       const url = new URL(`http://localhost${req.url}`);
-      const docId = url.searchParams.get('documentId') || 'default';
+      const rawDocId = url.searchParams.get('documentId') || 'default';
+      const docId = rawDocId.startsWith('/') ? rawDocId.substring(1) : rawDocId;
 
       // Check document ID format
       if (!docId.includes(':')) {
         this.logger.warn(`Invalid document ID format: ${docId}. Expected format: "username:slug:documentId"`);
         connection.close(1008, 'Invalid document ID format');
+        return;
+      }
+
+      // Validate the username part of the document ID
+      const username = docId.split(':')[0];
+      if (!this.isValidUsername(username)) {
+        this.logger.warn(`Rejected document ID with invalid username: ${docId}`);
+        connection.close(1008, 'Document ID contains invalid username characters');
         return;
       }
 
@@ -304,7 +313,7 @@ export class DocumentGateway
         return;
       }
 
-      // // Attach user info if desired
+      // Attach user info if desired
       const connectionOptions = {
         docName: docId,
         user: session.userId,
@@ -454,5 +463,41 @@ export class DocumentGateway
         resolve(session);
       });
     });
+  }
+
+  /**
+   * Validates if a document ID contains characters that could pose security risks
+   * Rejects IDs with potentially dangerous characters instead of stripping them
+   */
+  private isValidDocumentId(docId: string): boolean {
+    // Check for leading '/' which is a common issue
+    if (docId.startsWith('/')) {
+      return false;
+    }
+
+    // If the docId doesn't include ':', we can't parse it into username:slug:documentId format
+    if (!docId.includes(':')) {
+      return false;
+    }
+
+    // Parse the docId to extract username
+    const parts = docId.split(':');
+    const username = parts[0];
+
+    // Check username for invalid/dangerous characters
+    // Only allow alphanumeric characters, underscores, and hyphens in usernames
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Validates if a username contains only allowed characters
+   * Only alphanumeric characters, underscores, and hyphens are allowed
+   */
+  private isValidUsername(username: string): boolean {
+    return /^[a-zA-Z0-9_-]+$/.test(username);
   }
 }

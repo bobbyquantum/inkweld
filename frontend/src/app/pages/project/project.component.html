@@ -165,10 +165,9 @@
           <ng-template mat-tab-label>
             <div class="tab-label">
               {{ document.name }}
-
               @if (document.type !== 'FOLDER') {
                 @switch (
-                  documentService.getSyncStatus(`${document.id}:${projectState.project()?.user?.username}:${projectState.project()?.slug}`) | async
+                  documentService.getSyncStatus(`${projectState.project()?.user?.username}:${projectState.project()?.slug}:${document.id}`) | async
                 ) {
                   @case (DocumentSyncState.Unavailable) {
                     <div
@@ -204,7 +203,7 @@
               [elementId]="document.id"></app-folder-element-editor>
           } @else {
             <app-document-element-editor
-              [documentId]="`${document.id}:${projectState.project()?.user?.username}:${projectState.project()?.slug}`"></app-document-element-editor>
+              [documentId]="`${projectState.project()!.user!.username}:${projectState.project()!.slug}:${document.id}`"></app-document-element-editor>
           }
         </mat-tab>
       }
