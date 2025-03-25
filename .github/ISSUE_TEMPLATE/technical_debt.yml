@@ -1,0 +1,98 @@
+name: Technical Debt
+description: Report code that needs refactoring or improvements
+title: "[TECH DEBT]: "
+labels: ["technical-debt", "refactor"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to report technical debt, code that needs refactoring, or areas for technical improvement.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the application is affected?
+      options:
+        - Frontend (Angular)
+        - Backend (NestJS)
+        - Database
+        - API
+        - Build/CI/CD
+        - Testing Infrastructure
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the technical debt or code that needs improvement
+      placeholder: Explain the current implementation and why it's problematic
+    validations:
+      required: true
+
+  - type: textarea
+    id: location
+    attributes:
+      label: Code Location
+      description: Where is the affected code located?
+      placeholder: |
+        - File path(s): e.g., src/app/services/document.service.ts
+        - Functions/classes: e.g., DocumentService.loadDocument()
+    validations:
+      required: true
+
+  - type: textarea
+    id: problems
+    attributes:
+      label: Current Problems
+      description: What problems does this technical debt cause?
+      placeholder: |
+        - Hard to maintain
+        - Performance issues
+        - Prevents adding new features
+        - Testing difficulties
+        - Other issues...
+    validations:
+      required: true
+
+  - type: textarea
+    id: improvement
+    attributes:
+      label: Suggested Improvements
+      description: How could this be improved?
+      placeholder: Describe your proposed solution or approach
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgent is addressing this technical debt?
+      options:
+        - High (blocking new work)
+        - Medium (significant pain point)
+        - Low (minor improvement)
+    validations:
+      required: true
+
+  - type: textarea
+    id: effort
+    attributes:
+      label: Estimated Effort
+      description: How much work would it take to fix this?
+      placeholder: Small (< 1 day), Medium (few days), Large (week+)
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context about the technical debt here
+      placeholder: Any additional information that might help
+    validations:
+      required: false
