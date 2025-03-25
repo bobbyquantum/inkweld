@@ -1,7 +1,7 @@
 ---
 name: Feature
 about: Add a new feature to the project
-title: '[FEATURE] '
+title: 'feat: '
 labels: enhancement
 ---
 

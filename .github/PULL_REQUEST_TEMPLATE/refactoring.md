@@ -1,7 +1,7 @@
 ---
 name: Refactoring
 about: Code refactoring that doesn't add features or fix bugs
-title: '[REFACTOR] '
+title: 'chore(refactor): '
 labels: refactor
 ---
 

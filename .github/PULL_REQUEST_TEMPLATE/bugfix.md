@@ -1,7 +1,7 @@
 ---
 name: Bug Fix
 about: Fix an existing issue or bug
-title: '[FIX] '
+title: 'fix: '
 labels: bug
 ---
 

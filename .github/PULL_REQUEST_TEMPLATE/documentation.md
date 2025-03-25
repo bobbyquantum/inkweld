@@ -1,7 +1,7 @@
 ---
 name: Documentation
 about: Update documentation or comments
-title: '[DOCS] '
+title: 'chore(docs): '
 labels: documentation
 ---
 
