@@ -9,7 +9,6 @@
 > - Bug Fix PR - For fixing bugs and issues
 > - Refactoring PR - For code improvements without adding features
 > - Documentation PR - For documentation updates
-> - Infrastructure PR - For CI/CD and infrastructure changes
 >
 > If you don't see the template options, you can directly access them by adding `?template=feature.md`
 > (or another template name) to the end of the PR creation URL.
