@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module, forwardRef, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { UserService } from '../user/user.service.js';
 import { ConfigModule } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
@@ -11,6 +11,8 @@ import { AuthController } from './auth.controller.js';
 import { UserEntity } from '../user/user.entity.js';
 import { UserSessionEntity } from './session.entity.js';
 import { TypeOrmSessionStore } from './session.store.js';
+import { CsrfController } from './csrf/csrf.controller.js';
+import { CsrfMiddleware } from './csrf/csrf.middleware.js';
 
 @Module({
   imports: [
@@ -19,7 +21,7 @@ import { TypeOrmSessionStore } from './session.store.js';
     PassportModule,
     TypeOrmModule.forFeature([UserEntity, UserSessionEntity]),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, CsrfController],
   providers: [
     AuthService,
     LocalStrategy,
@@ -46,4 +48,9 @@ import { TypeOrmSessionStore } from './session.store.js';
   ],
   exports: [AuthService, TypeOrmSessionStore],
 })
-export class AuthModule {}
+export class AuthModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply the CSRF middleware to all routes
+    consumer.apply(CsrfMiddleware).forRoutes('*');
+  }
+}

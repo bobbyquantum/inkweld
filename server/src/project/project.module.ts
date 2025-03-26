@@ -10,6 +10,8 @@ import { ProjectElementService } from './element/project-element.service.js';
 import { FileStorageService } from './files/file-storage.service.js';
 import { ProjectFilesController } from './files/project-files.controller.js';
 import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
+import { DocumentGateway } from './document/document.gateway.js';
+import { DocumentController } from './document/document.controller.js';
 
 @Module({
   imports: [TypeOrmModule.forFeature([ProjectEntity, UserEntity]), UserModule],
@@ -17,13 +19,15 @@ import { LevelDBManagerService } from '../common/persistence/leveldb-manager.ser
     ProjectController,
     ProjectElementController,
     ProjectFilesController,
+    DocumentController,
   ],
   providers: [
     ProjectService,
     ProjectElementService,
     FileStorageService,
     LevelDBManagerService,
+    DocumentGateway,
   ],
-  exports: [ProjectService, ProjectElementService, FileStorageService],
+  exports: [ProjectService, ProjectElementService, FileStorageService, DocumentGateway],
 })
 export class ProjectModule {}

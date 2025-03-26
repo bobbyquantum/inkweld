@@ -11,7 +11,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { ProjectService } from '../project/project.service.js';
-import { DocumentGateway } from '../document/document.gateway.js';
+import { DocumentGateway } from '../project/document/document.gateway.js';
 
 @Injectable()
 export class McpService implements OnModuleInit {

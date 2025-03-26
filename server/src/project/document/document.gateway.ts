@@ -8,11 +8,11 @@ import {
 import type { Server as WSServer, WebSocket } from 'ws';
 import { setupWSConnection, setPersistence } from './y-websocket-utils.js';
 import { Logger, Injectable } from '@nestjs/common';
-import { TypeOrmSessionStore } from '../auth/session.store.js';
+import { TypeOrmSessionStore } from '../../auth/session.store.js';
 import { ConfigService } from '@nestjs/config';
 import * as cookie from 'cookie';
 import { Doc, encodeStateAsUpdate, applyUpdate } from 'yjs';
-import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
+import { LevelDBManagerService } from '../../common/persistence/leveldb-manager.service.js';
 import { LeveldbPersistence } from 'y-leveldb';
 
 /**

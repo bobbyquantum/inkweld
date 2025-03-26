@@ -20,9 +20,9 @@ import {
   ApiCookieAuth,
   ApiProduces,
 } from '@nestjs/swagger';
-import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
+import { LevelDBManagerService } from '../../common/persistence/leveldb-manager.service.js';
 import { DocumentDto } from './document.dto.js';
-import { SessionAuthGuard } from '../auth/session-auth.guard.js';
+import { SessionAuthGuard } from '../../auth/session-auth.guard.js';
 import { Doc } from 'yjs';
 
 @ApiTags('Document API')
