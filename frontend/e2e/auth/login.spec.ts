@@ -8,11 +8,11 @@ test.describe('User Login', () => {
     await page.goto('/welcome');
 
     // Fill login form with valid credentials
-    await page.fill('input[name="username"]', 'testuser');
-    await page.fill('input[name="password"]', 'correct-password');
+    await page.getByTestId('username-input').fill('testuser');
+    await page.getByTestId('password-input').fill('correct-password');
 
     // Submit the form
-    await page.click('button[type="submit"]');
+    await page.getByTestId('login-button').click();
 
     // Should redirect to home after successful login
     await expect(page).toHaveURL('/');
@@ -25,14 +25,15 @@ test.describe('User Login', () => {
     await page.goto('/welcome');
 
     // Fill login form with wrong password
-    await page.fill('input[name="username"]', 'testuser');
-    await page.fill('input[name="password"]', 'wrong-password');
+    await page.getByTestId('username-input').fill('testuser');
+    await page.getByTestId('password-input').fill('wrong-password');
 
-    // Submit the form
-    await page.click('button[type="submit"]');
+    // Submit the form - wait for network request to complete
+    await page.getByTestId('login-button').click();
 
-    // Should show error message in snackbar
-    await expect(page.locator('.mat-mdc-snack-bar-container')).toContainText(
+    // Should show error message
+    await expect(page.getByTestId('password-error')).toBeVisible();
+    await expect(page.getByTestId('password-error')).toContainText(
       'Invalid username or password'
     );
 
@@ -47,14 +48,15 @@ test.describe('User Login', () => {
     await page.goto('/welcome');
 
     // Fill login form with non-existent user
-    await page.fill('input[name="username"]', 'nonexistent-user');
-    await page.fill('input[name="password"]', 'correct-password');
+    await page.getByTestId('username-input').fill('nonexistent-user');
+    await page.getByTestId('password-input').fill('correct-password');
 
-    // Submit the form
-    await page.click('button[type="submit"]');
+    // Submit the form - wait for network request to complete
+    await page.getByTestId('login-button').click();
 
-    // Should show error message in snackbar
-    await expect(page.locator('.mat-mdc-snack-bar-container')).toContainText(
+    // Should show error message
+    await expect(page.getByTestId('password-error')).toBeVisible();
+    await expect(page.getByTestId('password-error')).toContainText(
       'Invalid username or password'
     );
 
@@ -68,29 +70,31 @@ test.describe('User Login', () => {
     // Go to welcome page where login is available
     await page.goto('/welcome');
 
-    // Submit empty form
-    await page.click('button[type="submit"]');
-
-    // Should show validation errors (could be form validation or snackbar)
-    // Look for either native form validation or snackbar error
-    await expect(
-      page.locator('.mat-mdc-snack-bar-container, input:invalid')
-    ).toBeVisible();
+    // Check that login button is disabled when form is empty
+    await expect(page.getByTestId('login-button')).toBeDisabled();
 
     // Should still be on the welcome page
     await expect(page).toHaveURL('/welcome');
+
+    // Let's also test partial form filling - only username
+    await page.getByTestId('username-input').fill('testuser');
+    await expect(page.getByTestId('login-button')).toBeDisabled();
+
+    // Clear username and only fill password
+    await page.getByTestId('username-input').fill('');
+    await page.getByTestId('password-input').fill('password123');
+    await expect(page.getByTestId('login-button')).toBeDisabled();
+
+    // Fill both to verify button becomes enabled
+    await page.getByTestId('username-input').fill('testuser');
+    await expect(page.getByTestId('login-button')).toBeEnabled();
   });
 
   test('should maintain authentication state after refresh', async ({
-    anonymousPage: page,
+    authenticatedPage: page, // Use authenticatedPage fixture
   }) => {
-    // Login on welcome page
-    await page.goto('/welcome');
-    await page.fill('input[name="username"]', 'testuser');
-    await page.fill('input[name="password"]', 'correct-password');
-    await page.click('button[type="submit"]');
-
-    // Verify we're on home page
+    // authenticatedPage fixture already navigates to '/' after setting cookie
+    // Verify we are initially on the home page
     await expect(page).toHaveURL('/');
 
     // Refresh page

@@ -7,6 +7,19 @@ import { mockUsers, MockUserDto } from './users';
  * Handles login, registration and OAuth flows
  */
 export function setupAuthHandlers(): void {
+  // GET /csrf/token - CSRF Token endpoint
+  mockApi.addHandler('**/csrf/token', async (route: Route) => {
+    // Return a mock CSRF token
+    const csrfToken = `mock-csrf-${Date.now()}`;
+    console.log(`Providing CSRF token: ${csrfToken}`);
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ token: csrfToken })
+    });
+  });
+
   // GET /api/providers - OAuth Providers List
   mockApi.addHandler('**/providers', async (route: Route) => {
     // Return a list of available OAuth providers
@@ -116,26 +129,20 @@ export function setupAuthHandlers(): void {
       });
       return;
     }
-    mockApi.addHandler('**/api/v1/users/me', async (route: Route) => {
-      // Just return success
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          name: user.name,
-          username: user.username,
-        })
-      });
-    });
-    // Generate mock token
-    const token = `mock-token-${user.username}-${Date.now()}`;
+    // Generate mock session ID
+    const sessionId = `mock-session-${user.username}-${Date.now()}`;
+    const cookieValue = `${sessionId}`; // Simple value for testing
 
-    console.log(`Login successful for user: ${user.username}`);
+    console.log(`Login successful for user: ${user.username}, setting mock cookie`);
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
+      headers: {
+        // Set a mock session cookie
+        'Set-Cookie': `mockSessionId=${cookieValue}; Path=/; HttpOnly; SameSite=Lax`
+      },
       body: JSON.stringify({
-        token,
+        // The actual login response might not include a token if cookie-based
         name: user.name,
         username: user.username,
         ...(user.roles && { roles: user.roles })
@@ -152,9 +159,6 @@ export function setupAuthHandlers(): void {
       body: JSON.stringify({ success: true })
     });
   });
-
-
-
 
   // All OAuth endpoints
   mockApi.addHandler('**/api/auth/oauth/**', async (route: Route) => {

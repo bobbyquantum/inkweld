@@ -61,23 +61,22 @@ export const test = base.extend<TestFixtures>({
 
     console.log('Setting up page for authenticated user');
 
-    // First navigate to the base URL
+    // Set up auth state by adding a mock session cookie
+    const sessionId = `mock-session-testuser-${Date.now()}`;
+    await page.context().addCookies([
+      {
+        name: 'mockSessionId',
+        value: sessionId,
+        domain: 'localhost', // Ensure this matches the domain used by the app
+        path: '/',
+        httpOnly: true,
+        sameSite: 'Lax'
+      }
+    ]);
+    console.log('Mock session cookie set for authenticated user');
+
+    // Navigate to the base URL *after* setting the cookie
     await page.goto('/');
-
-    // Set up auth state by storing auth token in localStorage
-    try {
-      await page.evaluate(() => {
-        localStorage.setItem('authToken', 'mock-token-testuser-123');
-
-        // Add auth headers to all future requests to ensure API calls work
-        // This is a fallback in case localStorage access doesn't work for auth
-        (window as any).testAuthToken = 'mock-token-testuser-123';
-      });
-      console.log('Auth token set for authenticated user');
-    } catch (error) {
-      console.warn('Failed to set localStorage auth token:', error);
-      // We'll rely on API mocking directly instead
-    }
 
     await use(page);
   },
@@ -89,23 +88,22 @@ export const test = base.extend<TestFixtures>({
 
     console.log('Setting up page for admin user');
 
-    // First navigate to the base URL
+    // Set up admin auth state by adding a mock session cookie
+    const sessionId = `mock-session-adminuser-${Date.now()}`;
+    await page.context().addCookies([
+      {
+        name: 'mockSessionId',
+        value: sessionId,
+        domain: 'localhost', // Ensure this matches the domain used by the app
+        path: '/',
+        httpOnly: true,
+        sameSite: 'Lax'
+      }
+    ]);
+    console.log('Mock session cookie set for admin user');
+
+    // Navigate to the base URL *after* setting the cookie
     await page.goto('/');
-
-    // Set up admin auth state
-    try {
-      await page.evaluate(() => {
-        localStorage.setItem('authToken', 'mock-token-adminuser-123');
-
-        // Add auth headers to all future requests to ensure API calls work
-        // This is a fallback in case localStorage access doesn't work for auth
-        (window as any).testAuthToken = 'mock-token-adminuser-123';
-      });
-      console.log('Auth token set for admin user');
-    } catch (error) {
-      console.warn('Failed to set localStorage auth token:', error);
-      // We'll rely on API mocking directly instead
-    }
 
     await use(page);
   },
