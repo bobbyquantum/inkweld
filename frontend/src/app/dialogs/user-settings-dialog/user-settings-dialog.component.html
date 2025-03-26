@@ -44,6 +44,18 @@
         <mat-icon matListItemIcon>account_tree</mat-icon>
         <span matListItemTitle>Project Tree</span>
       </a>
+      <a
+        mat-list-item
+        role="tab"
+        (click)="selectCategory('project')"
+        (keydown.enter)="selectCategory('project')"
+        [attr.aria-selected]="selectedCategory === 'project'"
+        [class.active]="selectedCategory === 'project'"
+        tabindex="3"
+        aria-label="Project settings">
+        <mat-icon matListItemIcon>description</mat-icon>
+        <span matListItemTitle>Project</span>
+      </a>
     </mat-nav-list>
 
     <div
@@ -60,6 +72,9 @@
         }
         @case ('project-tree') {
           <app-project-tree-settings />
+        }
+        @case ('project') {
+          <app-project-settings />
         }
       }
     </div>

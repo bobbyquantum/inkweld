@@ -4,6 +4,26 @@
   </div>
 }
 
+<!-- Zen mode overlay -->
+@if (isZenMode()) {
+  <div class="zen-mode-overlay">
+    <div class="zen-mode-editor-container">
+      <button
+        mat-icon-button
+        class="zen-mode-close-button"
+        (click)="toggleZenMode()">
+        <mat-icon>close</mat-icon>
+      </button>
+      @if (getCurrentDocumentId()) {
+        <app-document-element-editor
+          [documentId]="getCurrentDocumentId()!"
+          [zenMode]="true">
+        </app-document-element-editor>
+      }
+    </div>
+  </div>
+}
+
 <mat-sidenav-container class="main-container">
   <mat-sidenav
     [mode]="isMobile() ? 'over' : 'side'"
@@ -48,11 +68,31 @@
         <span class="project-title">{{ projectState.project()?.title }}</span>
         <!-- Space for additional mobile actions -->
         <span class="toolbar-spacer"></span>
-        <!-- Add more mobile-specific actions here -->
+        <!-- Zen mode button -->
+        @if (canEnableZenMode() || isZenMode()) {
+          <button
+            mat-icon-button
+            (click)="toggleZenMode()"
+            matTooltip="Toggle Zen Mode"
+            class="zen-mode-button"
+            [class.active]="isZenMode()">
+            <mat-icon>{{ getZenModeIcon() }}</mat-icon>
+          </button>
+        }
         <app-user-menu [miniMode]="true"></app-user-menu>
       </mat-toolbar>
     } @else {
       <div class="desktop-user-menu">
+        @if (canEnableZenMode() || isZenMode()) {
+          <button
+            mat-icon-button
+            (click)="toggleZenMode()"
+            matTooltip="Toggle Zen Mode"
+            class="zen-mode-button"
+            [class.active]="isZenMode()">
+            <mat-icon>{{ getZenModeIcon() }}</mat-icon>
+          </button>
+        }
         <app-user-menu [miniMode]="true"></app-user-menu>
       </div>
     }

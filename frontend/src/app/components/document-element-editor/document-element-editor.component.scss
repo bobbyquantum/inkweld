@@ -16,6 +16,15 @@
   align-items: center;
   gap: 8px;
   background-color: var(--ngx-editor-menubar-bg-color);
+  transition: opacity 0.3s ease;
+
+  // Hide toolbar in zen mode
+  .zen-mode & {
+    opacity: 0;
+    visibility: hidden;
+    height: 0;
+    overflow: hidden;
+  }
 }
 
 .editor-container {
@@ -27,6 +36,60 @@
   overflow-x: hidden;
   width: 100%;
   height: calc(100vh - 122px);
+
+  // Zen mode adjustments
+  &.zen-mode-container {
+    height: 100vh;
+    padding: 0;
+    margin: 0;
+    transition: all 0.3s ease;
+    background-color: transparent !important;
+
+    .editor-content {
+      max-width: 90%;
+      margin: 0 auto;
+      transition: max-width 0.3s ease;
+      // Ensure editor content remains visible in zen mode
+      display: block !important;
+      visibility: visible !important;
+      background-color: #1e1e1e !important;
+      color: #eaeaea !important;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.5) !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    // Hide all UI elements in zen mode
+    .page-guide,
+    .margin-guide,
+    .ruler,
+    .horizontal-ruler {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
+    // Ensure ngx-editor is properly styled
+    ::ng-deep {
+      ngx-editor {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+
+        .NgxEditor {
+          background-color: transparent !important;
+          border: none !important;
+
+          .NgxEditor__Content {
+            background-color: transparent !important;
+            color: #eaeaea !important;
+            padding: 2rem !important;
+            h1, h2, h3, h4, h5, h6, p, li, blockquote {
+              color: #eaeaea !important;
+            }
+          }
+        }
+      }
+    }
+  }
 
   &.fit-width {
     .scaled-content {
@@ -49,7 +112,7 @@
       border: none;
       box-shadow: none;
       background-color: var(--mat-sys-surface-container);
-      border-radius: 12px;
+      border-radius: 0;
     }
 
     .page-guide,

@@ -20,6 +20,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject, takeUntil } from 'rxjs';
 
 import { GeneralSettingsComponent } from './tabs/general-settings/general-settings.component';
+import { ProjectSettingsComponent } from './tabs/project-settings/project-settings.component';
 import { ProjectTreeSettingsComponent } from './tabs/project-tree-settings/project-tree-settings.component';
 
 const slideAnimation = trigger('slideAnimation', [
@@ -66,14 +67,20 @@ const slideAnimation = trigger('slideAnimation', [
     MatTooltipModule,
     GeneralSettingsComponent,
     ProjectTreeSettingsComponent,
+    ProjectSettingsComponent,
   ],
   animations: [slideAnimation],
   templateUrl: './user-settings-dialog.component.html',
   styleUrl: './user-settings-dialog.component.scss',
 })
 export class UserSettingsDialogComponent implements OnInit, OnDestroy {
-  @Input() selectedCategory: 'general' | 'account' | 'project-tree' = 'general';
-  previousCategory: 'general' | 'account' | 'project-tree' = 'general';
+  @Input() selectedCategory:
+    | 'general'
+    | 'account'
+    | 'project-tree'
+    | 'project' = 'general';
+  previousCategory: 'general' | 'account' | 'project-tree' | 'project' =
+    'general';
   isMobile = false;
   private destroyed = new Subject<void>();
   private breakpointObserver = inject(BreakpointObserver);
@@ -92,7 +99,7 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
     this.destroyed.complete();
   }
 
-  selectCategory(category: 'general' | 'account' | 'project-tree') {
+  selectCategory(category: 'general' | 'account' | 'project-tree' | 'project') {
     this.previousCategory = this.selectedCategory;
     this.selectedCategory = category;
   }
@@ -102,7 +109,9 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
       (this.selectedCategory === 'account' &&
         this.previousCategory === 'general') ||
       (this.selectedCategory === 'project-tree' &&
-        this.previousCategory === 'account');
+        this.previousCategory === 'account') ||
+      (this.selectedCategory === 'project' &&
+        this.previousCategory === 'project-tree');
     return {
       value: this.selectedCategory,
       params: {
