@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DocumentController } from './document.controller.js';
-import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
+import { LevelDBManagerService } from '../../common/persistence/leveldb-manager.service.js';
 import { DocumentDto } from './document.dto.js';
 import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest, afterEach } from 'bun:test';
-import { SessionAuthGuard } from '../auth/session-auth.guard.js';
-import { UserService } from '../user/user.service.js';
-import { Mocked } from '../common/test/bun-test-utils.js';
+import { SessionAuthGuard } from '../../auth/session-auth.guard.js';
+import { UserService } from '../../user/user.service.js';
+import { Mocked } from '../../common/test/bun-test-utils.js';
 
 describe('DocumentController', () => {
   let controller: DocumentController;
