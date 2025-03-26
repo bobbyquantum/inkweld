@@ -33,6 +33,7 @@ export class WelcomeComponent {
   password = '';
   passwordError: string | null = null;
   isLoggingIn = false;
+  lastAttemptedUsername = '';
   lastAttemptedPassword = '';
 
   private snackBar = inject(MatSnackBar);
@@ -43,6 +44,11 @@ export class WelcomeComponent {
   onUsernameChange(): void {
     if (this.passwordError) {
       this.passwordError = null;
+    }
+
+    // If username is different from the last attempt, clear the lastAttemptedUsername
+    if (this.username !== this.lastAttemptedUsername) {
+      this.lastAttemptedUsername = '';
     }
   }
 
@@ -96,7 +102,8 @@ export class WelcomeComponent {
     } catch (error) {
       if (error instanceof UserServiceError) {
         if (error.code === 'LOGIN_FAILED') {
-          // Remember the failed password attempt
+          // Remember the failed username and password attempt
+          this.lastAttemptedUsername = this.username;
           this.lastAttemptedPassword = this.password;
 
           // Set form-level error for password field
