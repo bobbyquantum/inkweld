@@ -8,7 +8,7 @@
       <div class="card-content">
         <h2 class="title">Inkweld</h2>
 
-        <form (ngSubmit)="onLogin()">
+        <form (ngSubmit)="onLogin()" data-testid="login-form">
           <mat-form-field appearance="outline">
             <mat-label>Username</mat-label>
             <input
@@ -18,6 +18,7 @@
               (ngModelChange)="onUsernameChange()"
               name="username"
               required
+              data-testid="username-input"
               aria-label="Username" />
           </mat-form-field>
 
@@ -30,12 +31,13 @@
               (ngModelChange)="onPasswordChange()"
               name="password"
               required
+              data-testid="password-input"
               aria-label="Password" />
           </mat-form-field>
 
           <!-- Custom error message with icon -->
           @if (passwordError) {
-            <div class="password-error-message">
+            <div class="password-error-message" data-testid="password-error">
               <mat-icon class="error-icon">error_outline</mat-icon>
               <span>{{ passwordError }}</span>
             </div>
@@ -46,6 +48,7 @@
             color="primary"
             type="submit"
             [disabled]="isLoginButtonDisabled()"
+            data-testid="login-button"
             class="login-button">
             @if (!isLoggingIn) {
               <span>Login</span>
@@ -68,6 +71,7 @@
           color="primary"
           type="button"
           routerLink="/register"
+          data-testid="register-link"
           class="register-button">
           Don't have an account? Register here
         </button>

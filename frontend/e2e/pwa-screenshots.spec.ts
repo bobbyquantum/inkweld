@@ -1,35 +1,16 @@
-import { test } from '@playwright/test';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
 
+import { test } from './fixtures';
+
 test.describe('PWA Screenshots', () => {
   const mockProject = {
     id: '123',
-    name: 'Demo Project',
+    title: 'Demo Project',
     description: 'A sample project for PWA screenshots',
     username: 'testuser',
     slug: 'demo-project',
-    elements: [
-      {
-        id: '1',
-        name: 'Root',
-        type: 'container',
-        children: ['2', '3'],
-      },
-      {
-        id: '2',
-        name: 'Header',
-        type: 'text',
-        content: 'Welcome to Demo Project',
-      },
-      {
-        id: '3',
-        name: 'Content',
-        type: 'text',
-        content: 'This is a sample project content.',
-      },
-    ],
   };
 
   test.beforeAll(async () => {
@@ -40,27 +21,17 @@ test.describe('PWA Screenshots', () => {
     }
   });
 
-  test('capture desktop screenshot', async ({ page }) => {
+  test('capture desktop screenshot', async ({ authenticatedPage: page }) => {
     // Set viewport to desktop size
     await page.setViewportSize({ width: 1920, height: 1080 });
 
-    // Mock user endpoint to bypass auth guard
-    await page.route('**/api/users/me', async route => {
-      await route.fulfill({
-        json: {
-          username: 'testuser',
-          name: 'Test User',
-        },
-      });
-    });
-
     // Mock API response for project data
-    await page.route('**/api/projects/**', async route => {
+    await page.route('**/api/v1/projects/**', async route => {
       await route.fulfill({ json: mockProject });
     });
 
     // Navigate to project page
-    await page.goto(`/project/${mockProject.username}/${mockProject.slug}`);
+    await page.goto(`/${mockProject.username}/${mockProject.slug}`);
     await page.waitForSelector('text=Demo Project', { state: 'visible' });
     await page.waitForTimeout(1000); // Wait for any animations
 
@@ -71,30 +42,20 @@ test.describe('PWA Screenshots', () => {
     });
   });
 
-  test('capture mobile screenshot', async ({ page }) => {
+  test('capture mobile screenshot', async ({ authenticatedPage: page }) => {
     // Set viewport to mobile size
     await page.setViewportSize({ width: 750, height: 1334 });
 
-    // Mock user endpoint to bypass auth guard
-    await page.route('**/api/users/me', async route => {
-      await route.fulfill({
-        json: {
-          username: 'testuser',
-          name: 'Test User',
-        },
-      });
-    });
-
     // Mock API response for project data
-    await page.route('**/api/projects/**', async route => {
+    await page.route('**/api/v1/projects/**', async route => {
       await route.fulfill({ json: mockProject });
     });
 
     // Navigate to project page
-    await page.goto(`/project/${mockProject.username}/${mockProject.slug}`);
+    await page.goto(`/${mockProject.username}/${mockProject.slug}`);
 
     // Wait for content to load and any animations to complete
-    // await page.waitForSelector('text=Demo Project');
+    await page.waitForSelector('text=Demo Project', { state: 'visible' });
     await page.waitForTimeout(1000); // Wait for any animations
 
     // Take screenshot
