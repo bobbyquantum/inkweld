@@ -12,9 +12,19 @@ import { ProjectFilesController } from './files/project-files.controller.js';
 import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
 import { DocumentGateway } from './document/document.gateway.js';
 import { DocumentController } from './document/document.controller.js';
+import { TypeOrmSessionStore } from '../auth/session.store.js';
+import { ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
+import { UserSessionEntity } from '../auth/session.entity.js';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ProjectEntity, UserEntity]), UserModule],
+  imports: [
+    TypeOrmModule.forFeature([ProjectEntity, UserEntity, UserSessionEntity]), 
+    UserModule,
+    ConfigModule
+  ],
   controllers: [
     ProjectController,
     ProjectElementController,
@@ -27,6 +37,14 @@ import { DocumentController } from './document/document.controller.js';
     FileStorageService,
     LevelDBManagerService,
     DocumentGateway,
+    {
+      provide: TypeOrmSessionStore,
+      useFactory: (sessionRepository: Repository<UserSessionEntity>) => {
+        return new TypeOrmSessionStore(sessionRepository, { expiration: 30 * 24 * 60 * 60 * 1000 });
+      },
+      inject: [getRepositoryToken(UserSessionEntity)]
+    },
+    ConfigService,
   ],
   exports: [ProjectService, ProjectElementService, FileStorageService, DocumentGateway],
 })
