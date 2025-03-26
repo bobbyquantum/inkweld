@@ -48,6 +48,7 @@ export class DocumentElementEditorComponent
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   @Input() documentId = 'invalid';
+  @Input() zenMode = false;
   editor!: Editor;
   toolbar: Toolbar = [
     ['bold', 'italic'],
@@ -120,7 +121,9 @@ export class DocumentElementEditorComponent
     this.destroy$.next();
     this.destroy$.complete();
     this.editor.destroy();
-    this.documentService.disconnect(this.documentId);
+    if (!this.zenMode) {
+      this.documentService.disconnect(this.documentId);
+    }
   }
 
   increaseZoom(): void {

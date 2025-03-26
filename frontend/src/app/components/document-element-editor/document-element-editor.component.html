@@ -1,22 +1,28 @@
-<div class="editor-toolbar">
-  <ngx-editor-menu
-    [editor]="editor"
-    [toolbar]="toolbar"
-    [colorPresets]="colorPresets"
-    [customMenuRef]="customMenu">
-  </ngx-editor-menu>
-</div>
-<ng-template #customMenu>
-  <app-editor-controls-menu
-    [editor]="editor"
-    [viewMode]="viewMode"
-    [zoomLevel]="zoomLevel"
-    (viewModeChange)="setViewMode($event)"
-    (zoomLevelChange)="onZoomLevelChange($event)">
-  </app-editor-controls-menu>
-</ng-template>
+<!-- Only show toolbar when not in zen mode -->
+@if (!zenMode) {
+  <div class="editor-toolbar">
+    <ngx-editor-menu
+      [editor]="editor"
+      [toolbar]="toolbar"
+      [colorPresets]="colorPresets"
+      [customMenuRef]="customMenu">
+    </ngx-editor-menu>
+  </div>
+  <ng-template #customMenu>
+    <app-editor-controls-menu
+      [editor]="editor"
+      [viewMode]="viewMode"
+      [zoomLevel]="zoomLevel"
+      (viewModeChange)="setViewMode($event)"
+      (zoomLevelChange)="onZoomLevelChange($event)">
+    </app-editor-controls-menu>
+  </ng-template>
+}
 
-<div class="editor-container" [class.fit-width]="viewMode === 'fitWidth'">
+<div
+  class="editor-container"
+  [class.fit-width]="viewMode === 'fitWidth'"
+  [class.zen-mode-container]="zenMode">
   <div class="scaled-content">
     @if (viewMode === 'page') {
       <div class="ruler horizontal-ruler">

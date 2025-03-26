@@ -29,6 +29,7 @@ import { ProjectDto, ProjectElementDto } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
 import { ProjectStateService } from '@services/project-state.service';
+import { SettingsService } from '@services/settings.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 
 import { FolderElementEditorComponent } from '../../components/folder-element-editor/folder-element-editor.component';
@@ -62,6 +63,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   public readonly isMobile = signal(false);
+  public readonly isZenMode = signal(false);
   protected readonly projectState = inject(ProjectStateService);
   protected readonly DocumentSyncState = DocumentSyncState;
   protected readonly documentService = inject(DocumentService);
@@ -82,10 +84,12 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   });
 
   private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly settingsService = inject(SettingsService);
   private paramsSubscription?: Subscription;
   private syncSubscription?: Subscription;
   private hasUnsavedChanges = false;
   private startWidth = 0;
+  private fullscreenListener?: () => void;
 
   constructor() {
     effect(() => {
@@ -112,6 +116,21 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       } else {
         this.hasUnsavedChanges = false;
       }
+    });
+
+    // Disable zen mode when switching tabs or closing documents
+    effect(() => {
+      // Check if current tab can support zen mode
+      if (this.isZenMode() && !this.canEnableZenMode()) {
+        this.isZenMode.set(false);
+      }
+
+      // Trigger on tab changes - access to watch for changes
+
+      this.projectState.selectedTabIndex();
+      // Trigger on document count changes - access to watch for changes
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      this.projectState.openDocuments().length;
     });
   }
 
@@ -152,6 +171,15 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
         void this.projectState.loadProject(username, slug);
       }
     });
+
+    // Add fullscreenchange event listener to handle when user presses Escape to exit fullscreen
+    this.fullscreenListener = () => {
+      // If fullscreen was exited and we're in zen mode, also exit zen mode
+      if (!document.fullscreenElement && this.isZenMode()) {
+        this.isZenMode.set(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', this.fullscreenListener);
   }
 
   ngAfterViewInit() {
@@ -185,6 +213,11 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     this.errorEffect.destroy();
     this.destroy$.next();
     this.destroy$.complete();
+
+    // Remove fullscreenchange event listener
+    if (this.fullscreenListener) {
+      document.removeEventListener('fullscreenchange', this.fullscreenListener);
+    }
   }
 
   isLoading = () => this.projectState.isLoading();
@@ -262,6 +295,81 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   openEditDialog() {
     const project = this.projectState.project();
     void this.dialogGateway.openEditProjectDialog(project!);
+  }
+
+  toggleZenMode(): void {
+    // Only allow toggling zen mode if we can enable it
+    if (!this.canEnableZenMode() && !this.isZenMode()) {
+      return;
+    }
+
+    this.isZenMode.update(current => {
+      const newValue = !current;
+
+      // Check if fullscreen is enabled in settings
+      const fullscreenEnabled = this.settingsService.getSetting<boolean>(
+        'zenModeFullscreen',
+        true
+      );
+
+      // Handle fullscreen based on zen mode state and user settings
+      if (newValue && fullscreenEnabled) {
+        // Entering zen mode - request fullscreen if enabled in settings
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn('Error attempting to enable fullscreen:', err);
+        });
+      } else if (!newValue && document.fullscreenElement) {
+        // Exiting zen mode - exit fullscreen if we're in it
+        document.exitFullscreen().catch(err => {
+          console.warn('Error attempting to exit fullscreen:', err);
+        });
+      }
+
+      return newValue;
+    });
+  }
+
+  canEnableZenMode(): boolean {
+    // Zen mode should only be enabled when:
+    // 1. A document element is open for editing
+    // 2. It's the current selected tab
+    const currentTabIndex = this.projectState.selectedTabIndex();
+    const openDocuments = this.projectState.openDocuments();
+
+    // If the home tab is selected (index 0), or no documents are open, zen mode cannot be enabled
+    if (currentTabIndex === 0 || openDocuments.length === 0) {
+      return false;
+    }
+
+    // Get the current document
+    const currentDocument = openDocuments[currentTabIndex - 1]; // Adjust for home tab
+
+    // Zen mode should only be available for document elements, not folders
+    return currentDocument && currentDocument.type !== 'FOLDER';
+  }
+
+  getZenModeIcon(): string {
+    return 'self_improvement';
+  }
+
+  getCurrentDocumentId(): string | null {
+    const currentTabIndex = this.projectState.selectedTabIndex();
+    const openDocuments = this.projectState.openDocuments();
+
+    // If the home tab is selected (index 0), or no documents are open, return null
+    if (currentTabIndex === 0 || openDocuments.length === 0) {
+      return null;
+    }
+
+    // Get the current document
+    const currentDocument = openDocuments[currentTabIndex - 1]; // Adjust for home tab
+
+    // Return document ID for non-folder documents only
+    if (currentDocument && currentDocument.type !== 'FOLDER') {
+      return `${this.projectState.project()!.username}:${this.projectState.project()!.slug}:${currentDocument.id}`;
+    }
+
+    return null;
   }
 
   private getSidenavWidth = (): number => {
