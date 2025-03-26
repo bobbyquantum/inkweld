@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { McpService } from './mcp.service.js';
 import { ProjectService } from '../project/project.service.js';
-import { DocumentGateway } from '../document/document.gateway.js';
+import { DocumentGateway } from '../project/document/document.gateway.js';
 import { beforeEach, describe, expect, it, jest } from 'bun:test';
 import { Mocked } from '../common/test/bun-test-utils.js';
 

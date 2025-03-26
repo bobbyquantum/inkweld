@@ -10,8 +10,6 @@ import * as path from 'path';
 import { DatabaseModule } from './common/database/database.module.js';
 import { cwd } from 'process';
 import { BaseHrefMiddleware } from './common/middleware/base-href.middleware.js';
-import { CommonHttpModule } from './common/http/common-http.module.js';
-import { DocumentModule } from 'document/document.module.js';
 
 @Module({
   imports: [
@@ -43,9 +41,7 @@ import { DocumentModule } from 'document/document.module.js';
     PassportModule.register({ session: true }),
     ProjectModule,
     AuthModule,
-    DocumentModule,
     McpModule,
-    CommonHttpModule,
   ],
   providers: [LevelDBManagerService],
   exports: [LevelDBManagerService],
