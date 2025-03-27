@@ -73,6 +73,7 @@ describe('ProjectTreeComponent', () => {
       showEditProjectDialog: jest.fn(),
       openDocument: jest.fn(),
       updateProject: jest.fn(),
+      renameNode: jest.fn(),
       showNewElementDialog: jest.fn(),
       toggleExpanded: jest.fn(),
       moveElement: jest.fn().mockResolvedValue(undefined),
