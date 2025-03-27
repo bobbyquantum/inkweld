@@ -51,8 +51,7 @@ export class AppComponent implements OnInit {
       await firstValueFrom(this.userAPIService.userControllerGetMe());
       await this.userService.loadCurrentUser();
     } catch (e) {
-      console.log('Auth expired, clearing user from local db', e);
-      await this.userService.clearCurrentUser();
+      console.log('Load user fail.. this needs better handling', e);
     }
   }
 }

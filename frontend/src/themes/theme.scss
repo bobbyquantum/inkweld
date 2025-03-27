@@ -269,7 +269,7 @@ $dark-theme: mat.define-theme(
   & {
     --card-background-color: var(--mat-sys-surface-container-high);
     --ngx-editor-border-radius: 0;
-    --ngx-editor-background-color: var(--mat-sys-surface-container-highest);
+    --ngx-editor-background-color: var(--mat-sys-surface-container);
     --ngx-editor-text-color: var(--mat-sys-on-surface);
     --ngx-editor-placeholder-color: #6c757d;
     --ngx-editor-border-color: rgba(0, 0, 0, 0);
