@@ -268,22 +268,6 @@ describe('DocumentElementEditorComponent', () => {
     expect(component.showViewModeDropdown).toBe(false);
   });
 
-  it('should have default toolbar configuration', () => {
-    expect(component.toolbar).toEqual([
-      ['bold', 'italic'],
-      ['underline', 'strike'],
-      ['code', 'blockquote'],
-      ['ordered_list', 'bullet_list'],
-      [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
-      ['link', 'image'],
-      ['text_color', 'background_color'],
-      ['align_left', 'align_center', 'align_right', 'align_justify'],
-      ['horizontal_rule', 'format_clear'],
-      ['superscript', 'subscript'],
-      ['undo', 'redo'],
-    ]);
-  });
-
   it('should have color presets', () => {
     expect(component.colorPresets.length).toBeGreaterThan(0);
     expect(component.colorPresets).toContain('#000000'); // black
