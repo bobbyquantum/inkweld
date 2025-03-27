@@ -318,8 +318,7 @@ export class ProjectTreeComponent {
     });
 
     if (newName) {
-      // await this.projectStateService.renameTreeElement(node, newName);
-      // await this.saveChanges();
+      this.projectStateService.renameNode(node, newName);
     }
   }
 

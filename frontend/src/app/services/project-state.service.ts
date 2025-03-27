@@ -157,7 +157,15 @@ export class ProjectStateService {
       elementsArray.insert(0, elements);
     });
   }
+  renameNode(node: ProjectElement, newName: string) {
+    const elements = this.elements();
+    const index = elements.findIndex(e => e.id === node.id);
+    if (index === -1) return;
 
+    const newElements = [...elements];
+    newElements[index] = { ...newElements[index], name: newName };
+    this.updateElements(this.recomputePositions(newElements));
+  }
   updateProject(project: ProjectDto): void {
     if (!this.doc) return;
 
