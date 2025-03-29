@@ -225,7 +225,7 @@ mat-sidenav-content {
   flex-direction: column; // Changed to column for full-width header
   padding: 20px;
   gap: 20px; // Reduced gap for better vertical spacing
-
+  background-color: var(--mat-sys-surface);
   @media (min-width: 760px) {
 
     flex-direction: column; // Keep column layout for desktop
