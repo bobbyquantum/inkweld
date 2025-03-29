@@ -89,6 +89,7 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
 
     // If we already have this database open, return it
     if (this.projectDatabases.has(projectKey)) {
+      this.logger.log(`Reusing existing database for ${projectKey}`);
       return this.projectDatabases.get(projectKey);
     }
 

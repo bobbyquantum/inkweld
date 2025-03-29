@@ -137,6 +137,8 @@
   overflow-y: auto;
   width: 100%;
   padding-top: var(--ruler-size);
+  background-color: var(--mat-sys-background);
+
 }
 
 .ruler {
@@ -336,7 +338,7 @@
 .editor-content {
   width: var(--page-width);
   max-width: var(--editor-max-width, none);
-  background-color: var(--mat-sys-surface-container-high);
+  background-color: var(--mat-sys-surface-container);
   padding-top: 1rem;
   padding-bottom: 1rem;
   margin-top: 20px;
