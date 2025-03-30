@@ -16,6 +16,7 @@ import {
 // Mock the y-leveldb module before importing
 const mockDB = {
   close: mock(() => Promise.resolve()),
+  destroy: mock(() => Promise.resolve()),
   get: mock(() => undefined),
   set: mock(() => undefined),
   del: mock(() => undefined),
