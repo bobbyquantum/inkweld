@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, jest, afterEach } from 'bun:test';
 import { SessionAuthGuard } from '../../auth/session-auth.guard.js';
 import { UserService } from '../../user/user.service.js';
 import { Mocked } from '../../common/test/bun-test-utils.js';
+import { DocumentRendererService } from './document-renderer.service.js';
 
 describe('DocumentController', () => {
   let controller: DocumentController;
@@ -35,6 +36,10 @@ describe('DocumentController', () => {
       getMeta: jest.fn(),
     };
 
+
+    const mockRenderService = {
+      renderDocumentAsHtml: jest.fn().mockResolvedValue('<html></html>'),
+    };
     // Mock UserService required by SessionAuthGuard
     const mockUserService = {
       getCurrentUser: jest.fn().mockResolvedValue({
@@ -82,6 +87,10 @@ describe('DocumentController', () => {
         {
           provide: UserService,
           useValue: mockUserService,
+        },
+        {
+          provide: DocumentRendererService,
+          useValue: mockRenderService,
         }
       ],
     }).compile();

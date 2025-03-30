@@ -18,10 +18,11 @@ import { ConfigModule } from '@nestjs/config';
 import { UserSessionEntity } from '../auth/session.entity.js';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { DocumentRendererService } from './document/document-renderer.service.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ProjectEntity, UserEntity, UserSessionEntity]), 
+    TypeOrmModule.forFeature([ProjectEntity, UserEntity, UserSessionEntity]),
     UserModule,
     ConfigModule
   ],
@@ -37,6 +38,7 @@ import { Repository } from 'typeorm';
     FileStorageService,
     LevelDBManagerService,
     DocumentGateway,
+    DocumentRendererService,
     {
       provide: TypeOrmSessionStore,
       useFactory: (sessionRepository: Repository<UserSessionEntity>) => {
