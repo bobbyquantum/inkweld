@@ -41,7 +41,7 @@ export default tseslint.config(
       '@typescript-eslint/unbound-method': 'off',
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
-      '@typescript-eslint/member-ordering': 'error',
+      '@typescript-eslint/member-ordering': ['off'],
     },
   },
   {

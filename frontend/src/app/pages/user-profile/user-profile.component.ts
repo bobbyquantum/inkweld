@@ -9,8 +9,10 @@ import { debounceTime, Subject, takeUntil } from 'rxjs';
   styleUrl: './user-profile.component.scss',
 })
 export class UserProfileComponent implements OnInit, OnDestroy {
-  username: string | null = null;
   private route = inject(ActivatedRoute);
+
+  username: string | null = null;
+
   private destroy$ = new Subject<void>();
 
   ngOnInit(): void {

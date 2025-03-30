@@ -59,13 +59,8 @@ import { RecentFilesService } from '../../services/recent-files.service';
   standalone: true,
 })
 export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
-  @ViewChild(MatSidenav) sidenav!: MatSidenav;
-  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
-
-  public readonly isMobile = signal(false);
-  public readonly isZenMode = signal(false);
   protected readonly projectState = inject(ProjectStateService);
-  protected readonly DocumentSyncState = DocumentSyncState;
+
   protected readonly documentService = inject(DocumentService);
   protected readonly recentFilesService = inject(RecentFilesService);
   protected readonly breakpointObserver = inject(BreakpointObserver);
@@ -74,6 +69,14 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly title = inject(Title);
   protected readonly router = inject(Router);
   protected readonly importExportService = inject(ProjectImportExportService);
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly settingsService = inject(SettingsService);
+
+  @ViewChild(MatSidenav) sidenav!: MatSidenav;
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+
+  public readonly isMobile = signal(false);
+  public readonly isZenMode = signal(false);
 
   protected destroy$ = new Subject<void>();
   protected readonly errorEffect = effect(() => {
@@ -82,9 +85,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       this.snackBar.open(error, 'Close', { duration: 5000 });
     }
   });
-
-  private readonly dialogGateway = inject(DialogGatewayService);
-  private readonly settingsService = inject(SettingsService);
+  protected readonly DocumentSyncState = DocumentSyncState;
   private paramsSubscription?: Subscription;
   private syncSubscription?: Subscription;
   private hasUnsavedChanges = false;

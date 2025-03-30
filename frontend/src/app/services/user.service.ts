@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
@@ -46,6 +46,13 @@ const MAX_RETRIES = 3;
   providedIn: 'root',
 })
 export class UserService {
+  private readonly dialog = inject(MatDialog);
+  private readonly userApi = inject(UserAPIService);
+  private readonly xsrfService = inject(XsrfService);
+  private readonly authService = inject(AuthService);
+  private readonly storage = inject(StorageService);
+  private readonly router = inject(Router);
+
   readonly currentUser = signal<UserDto>({
     name: 'anonymous',
     username: 'anonymous',
@@ -57,13 +64,6 @@ export class UserService {
   );
   readonly initialized = signal(false);
 
-  private readonly dialog = inject(MatDialog);
-  private readonly userApi = inject(UserAPIService);
-  private readonly xsrfService = inject(XsrfService);
-  private readonly authService = inject(AuthService);
-  private readonly storage = inject(StorageService);
-  private readonly http = inject(HttpClient);
-  private readonly router = inject(Router);
   private db: Promise<IDBDatabase>;
 
   constructor() {

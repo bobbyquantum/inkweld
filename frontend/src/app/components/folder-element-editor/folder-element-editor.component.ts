@@ -49,9 +49,9 @@ type ViewMode = 'grid' | 'list';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FolderElementEditorComponent implements OnInit {
-  @Input() elementId?: string;
-
   projectStateService = inject(ProjectStateService);
+
+  @Input() elementId?: string;
 
   // State signals
   readonly viewMode = signal<ViewMode>('grid');

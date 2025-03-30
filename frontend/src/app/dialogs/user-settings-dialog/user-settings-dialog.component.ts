@@ -74,6 +74,8 @@ const slideAnimation = trigger('slideAnimation', [
   styleUrl: './user-settings-dialog.component.scss',
 })
 export class UserSettingsDialogComponent implements OnInit, OnDestroy {
+  private breakpointObserver = inject(BreakpointObserver);
+
   @Input() selectedCategory:
     | 'general'
     | 'account'
@@ -83,7 +85,6 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
     'general';
   isMobile = false;
   private destroyed = new Subject<void>();
-  private breakpointObserver = inject(BreakpointObserver);
 
   ngOnInit() {
     this.breakpointObserver

@@ -58,6 +58,8 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
   styleUrls: ['./project-tree.component.scss'],
 })
 export class ProjectTreeComponent {
+  private dialogGateway = inject(DialogGatewayService);
+
   @ViewChild('tree') treeEl!: MatTree<ProjectElement>;
   @ViewChild('treeContainer', { static: true })
   treeContainer!: ElementRef<HTMLElement>;
@@ -85,7 +87,6 @@ export class ProjectTreeComponent {
   levelWidth = 24; // Width in pixels for each level of indentation
 
   contextItem: ProjectElement | null = null;
-  private dialogGateway = inject(DialogGatewayService);
 
   constructor() {
     this.dataSource = new ArrayDataSource<ProjectElement>([]);

@@ -4,7 +4,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { FileUploadComponent } from './file-upload.component';
 
-describe('FileUploadDialogComponent', () => {
+describe('FileUploadComponent', () => {
   let component: FileUploadComponent;
   let fixture: ComponentFixture<FileUploadComponent>;
   let dialogRef: jest.Mocked<MatDialogRef<FileUploadComponent>>;

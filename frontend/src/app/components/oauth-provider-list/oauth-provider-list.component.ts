@@ -108,6 +108,10 @@ import { environment } from '../../../environments/environment';
   ],
 })
 export class OAuthProviderListComponent implements OnInit {
+  private authService = inject(AuthService);
+  private snackBar = inject(MatSnackBar);
+  private ngZone = inject(NgZone);
+
   /**
    * Whether this component is being used in the register context.
    * If false, it's assumed to be in the sign-in context.
@@ -122,10 +126,6 @@ export class OAuthProviderListComponent implements OnInit {
   facebookEnabled = signal(false);
   discordEnabled = signal(false);
   appleEnabled = signal(false);
-
-  private authService = inject(AuthService);
-  private snackBar = inject(MatSnackBar);
-  private ngZone = inject(NgZone);
 
   /**
    * Returns true if any provider is enabled, false otherwise

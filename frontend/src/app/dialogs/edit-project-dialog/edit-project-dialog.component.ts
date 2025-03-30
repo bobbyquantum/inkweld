@@ -6,7 +6,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import {
-  FormBuilder,
+  FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators,
@@ -40,25 +40,21 @@ import { firstValueFrom } from 'rxjs';
   ],
 })
 export class EditProjectDialogComponent implements OnInit {
-  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
-
-  form: FormGroup;
-  isSaving = false;
-  project!: ProjectDto;
   readonly importExportService = inject(ProjectImportExportService);
-
-  private fb = inject(FormBuilder);
   private dialogRef = inject(MatDialogRef<EditProjectDialogComponent>);
   private projectAPIService = inject(ProjectAPIService);
   private dialogData = inject<ProjectDto>(MAT_DIALOG_DATA);
   private snackBar = inject(MatSnackBar);
 
-  constructor() {
-    this.form = this.fb.group({
-      title: ['', Validators.required],
-      description: [''],
-    });
-  }
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+
+  form = new FormGroup({
+    title: new FormControl('', Validators.required),
+    description: new FormControl(''),
+  });
+
+  isSaving = false;
+  project!: ProjectDto;
 
   ngOnInit(): void {
     this.project = this.dialogData;

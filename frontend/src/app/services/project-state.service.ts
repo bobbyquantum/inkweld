@@ -23,6 +23,10 @@ export interface ValidDropLevels {
   providedIn: 'root',
 })
 export class ProjectStateService {
+  private projectAPIService = inject(ProjectAPIService);
+  private dialogGateway = inject(DialogGatewayService);
+  private recentFilesService = inject(RecentFilesService);
+
   // Core state signals
   readonly project = signal<ProjectDto | undefined>(undefined);
   readonly elements = signal<ProjectElementDto[]>([]);
@@ -84,11 +88,6 @@ export class ProjectStateService {
   private provider: WebsocketProvider | null = null;
   private indexeddbProvider: IndexeddbPersistence | null = null;
   private docId: string | null = null;
-
-  // Services
-  private projectAPIService = inject(ProjectAPIService);
-  private dialogGateway = inject(DialogGatewayService);
-  private recentFilesService = inject(RecentFilesService);
 
   // Project Loading and Initialization
   async loadProject(username: string, slug: string): Promise<void> {

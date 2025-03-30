@@ -1,4 +1,4 @@
-import { Component, HostBinding, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -22,14 +22,11 @@ import { ThemeService } from '../themes/theme.service';
   styleUrl: './app.component.scss',
 })
 export class AppComponent implements OnInit {
-  @HostBinding('class') className = '';
-  title = 'inkweld-frontend';
-
   protected readonly offlineMode = signal(false);
   protected readonly themeService = inject(ThemeService);
   protected readonly userAPIService = inject(UserAPIService);
   protected readonly userService = inject(UserService);
-  private readonly router = inject(Router);
+  protected readonly router = inject(Router);
 
   ngOnInit(): void {
     this.themeService.initTheme();

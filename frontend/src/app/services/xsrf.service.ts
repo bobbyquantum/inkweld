@@ -23,6 +23,7 @@ interface CsrfTokenResponse {
 export class XsrfService {
   private readonly csrfService = inject(CSRFService);
   private readonly document = inject(DOCUMENT);
+
   private csrfToken = '';
   private readonly apiUrl = environment.apiUrl || '';
   private lastRefreshTime = 0;

@@ -30,12 +30,12 @@ interface LogoutResponse {
   styleUrl: './user-menu.component.scss',
 })
 export class UserMenuComponent {
-  @Input() user: UserDto | undefined = undefined;
-  @Input() miniMode = false;
-
   protected userService = inject(UserService);
   private router = inject(Router);
   private http = inject(HttpClient);
+
+  @Input() user: UserDto | undefined = undefined;
+  @Input() miniMode = false;
 
   onLogout() {
     this.http

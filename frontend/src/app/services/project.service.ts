@@ -37,15 +37,16 @@ const MAX_RETRIES = 3;
   providedIn: 'root',
 })
 export class ProjectService {
+  private readonly projectApi = inject(ProjectAPIService);
+  private readonly storage = inject(StorageService);
+  private readonly xsrfService = inject(XsrfService);
+
   readonly projects = signal<ProjectDto[]>([]);
   readonly isLoading = signal(false);
   readonly error = signal<ProjectServiceError | undefined>(undefined);
   readonly hasProjects = computed(() => this.projects().length > 0);
   readonly initialized = signal(false);
 
-  private readonly projectApi = inject(ProjectAPIService);
-  private readonly storage = inject(StorageService);
-  private readonly xsrfService = inject(XsrfService);
   private db: Promise<IDBDatabase>;
 
   constructor() {

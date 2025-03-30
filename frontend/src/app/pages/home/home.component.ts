@@ -44,18 +44,17 @@ import { debounceTime, takeUntil } from 'rxjs/operators';
   styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit, OnDestroy {
-  // Component state
-  loadError = false;
-  selectedProject: ProjectDto | null = null;
-  isMobile = false;
-  searchControl = new FormControl('');
-
-  // Injected services
   dialog = inject(MatDialog);
   protected router = inject(Router);
   protected userService = inject(UserService);
   protected projectService = inject(ProjectService);
   protected breakpointObserver = inject(BreakpointObserver);
+
+  // Component state
+  loadError = false;
+  selectedProject: ProjectDto | null = null;
+  isMobile = false;
+  searchControl = new FormControl('');
 
   protected user = this.userService.currentUser;
   protected isLoading = this.projectService.isLoading;

@@ -1,5 +1,6 @@
 import {
   Component,
+  inject,
   Input,
   OnChanges,
   OnInit,
@@ -17,17 +18,15 @@ import { firstValueFrom } from 'rxjs';
   styleUrls: ['./user-avatar.component.scss'],
 })
 export class UserAvatarComponent implements OnInit, OnChanges {
+  private userService = inject(UserService);
+  private sanitizer = inject(DomSanitizer);
+
   @Input() username!: string;
   @Input() size: 'small' | 'medium' | 'large' = 'medium';
 
   protected avatarUrl: SafeUrl | undefined;
   protected isLoading = false;
   protected error = false;
-
-  constructor(
-    private userService: UserService,
-    private sanitizer: DomSanitizer
-  ) {}
 
   ngOnInit() {
     void this.loadAvatar();

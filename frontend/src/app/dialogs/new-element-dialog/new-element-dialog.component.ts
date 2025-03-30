@@ -35,15 +35,16 @@ export interface NewElementDialogResult {
   ],
 })
 export class NewElementDialogComponent {
+  private readonly dialogRef = inject(
+    MatDialogRef<NewElementDialogComponent, NewElementDialogResult>
+  );
+
   readonly elementTypes: ProjectElementDto.TypeEnum[] = [
     ProjectElementDto.TypeEnum.Folder,
     ProjectElementDto.TypeEnum.Item,
   ];
 
   readonly form: FormGroup<NewElementForm>;
-  private readonly dialogRef = inject(
-    MatDialogRef<NewElementDialogComponent, NewElementDialogResult>
-  );
 
   constructor() {
     this.form = new FormGroup<NewElementForm>({

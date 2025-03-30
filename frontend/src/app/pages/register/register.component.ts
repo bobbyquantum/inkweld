@@ -44,7 +44,15 @@ import { firstValueFrom, Subject, takeUntil } from 'rxjs';
   styleUrl: './register.component.scss',
 })
 export class RegisterComponent implements OnInit, OnDestroy {
-  registerForm: FormGroup;
+  private userService = inject(UserAPIService);
+  private snackBar = inject(MatSnackBar);
+  private router = inject(Router);
+  private xsrfService = inject(XsrfService);
+  private authService = inject(UserService);
+  private fb = inject(FormBuilder);
+
+  // Declare registerForm without initializing here
+  registerForm!: FormGroup;
   isMobile = false;
   isRegistering = false;
   usernameSuggestions: string[] | undefined = [];
@@ -74,15 +82,23 @@ export class RegisterComponent implements OnInit, OnDestroy {
     },
   };
 
-  private userService = inject(UserAPIService);
-  private snackBar = inject(MatSnackBar);
-  private router = inject(Router);
-  private xsrfService = inject(XsrfService);
-  private authService = inject(UserService);
-  private fb = inject(FormBuilder);
   private destroy$ = new Subject<void>();
 
-  constructor() {
+  get usernameControl() {
+    return this.registerForm.get('username');
+  }
+
+  get passwordControl() {
+    return this.registerForm.get('password');
+  }
+
+  get confirmPasswordControl() {
+    return this.registerForm.get('confirmPassword');
+  }
+
+  ngOnInit(): void {
+    this.isMobile = window.innerWidth < 768;
+
     this.registerForm = this.fb.group(
       {
         username: ['', [Validators.required, Validators.minLength(3)]],
@@ -116,23 +132,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
       .subscribe((password: string) => {
         this.updatePasswordRequirements(password);
       });
-  }
-
-  // Helper methods for the template
-  get usernameControl() {
-    return this.registerForm.get('username');
-  }
-
-  get passwordControl() {
-    return this.registerForm.get('password');
-  }
-
-  get confirmPasswordControl() {
-    return this.registerForm.get('confirmPassword');
-  }
-
-  ngOnInit(): void {
-    this.isMobile = window.innerWidth < 768;
   }
 
   ngOnDestroy(): void {
