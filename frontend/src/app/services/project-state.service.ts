@@ -397,7 +397,16 @@ export class ProjectStateService {
   isExpanded(elementId: string): boolean {
     return this.expandedNodeIds().has(elementId);
   }
+  async publishProject(project: ProjectDto) {
+    const response = await firstValueFrom(
+      this.projectAPIService.projectPublishEpubControllerPublishEpub(
+        project.username,
+        project.slug
+      )
+    );
 
+    console.log('Project published successfully:', response);
+  }
   deleteElement(elementId: string): void {
     const elements = this.elements();
     const index = elements.findIndex(e => e.id === elementId);

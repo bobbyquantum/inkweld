@@ -19,6 +19,8 @@ import { UserSessionEntity } from '../auth/session.entity.js';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DocumentRendererService } from './document/document-renderer.service.js';
+import { ProjectPublishEpubService } from './epub/project-publish-epub.service.js';
+import { ProjectPublishEpubController } from './epub/project-publish-epub.controller.js';
 
 @Module({
   imports: [
@@ -31,6 +33,7 @@ import { DocumentRendererService } from './document/document-renderer.service.js
     ProjectElementController,
     ProjectFilesController,
     DocumentController,
+    ProjectPublishEpubController,
   ],
   providers: [
     ProjectService,
@@ -39,6 +42,7 @@ import { DocumentRendererService } from './document/document-renderer.service.js
     LevelDBManagerService,
     DocumentGateway,
     DocumentRendererService,
+    ProjectPublishEpubService,
     {
       provide: TypeOrmSessionStore,
       useFactory: (sessionRepository: Repository<UserSessionEntity>) => {
@@ -48,6 +52,6 @@ import { DocumentRendererService } from './document/document-renderer.service.js
     },
     ConfigService,
   ],
-  exports: [ProjectService, ProjectElementService, FileStorageService, DocumentGateway],
+  exports: [ProjectService, ProjectElementService, FileStorageService, DocumentGateway, ProjectPublishEpubService],
 })
 export class ProjectModule {}
