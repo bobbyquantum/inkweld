@@ -30,6 +30,11 @@ import { DocumentService } from '../../../services/document.service';
   styleUrl: './documents.component.scss',
 })
 export class DocumentsComponent implements OnInit, OnDestroy {
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private documentApiService = inject(DocumentAPIService);
+  private documentService = inject(DocumentService);
+
   documents: DocumentDto[] = [];
   isLoading = true;
   error: string | null = null;
@@ -42,11 +47,8 @@ export class DocumentsComponent implements OnInit, OnDestroy {
     'actions',
   ];
   documentSyncStates = new Map<string, DocumentSyncState>();
-  private router = inject(Router);
+
   private destroy$ = new Subject<void>();
-  private route = inject(ActivatedRoute);
-  private documentApiService = inject(DocumentAPIService);
-  private documentService = inject(DocumentService);
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
