@@ -586,6 +586,252 @@
         ]
       }
     },
+    "/api/v1/projects/{username}/{projectSlug}/docs": {
+      "get": {
+        "description": "Retrieves a list of all documents in the specified project.",
+        "operationId": "DocumentController_listDocuments",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "description": "The username of the project owner",
+            "schema": {
+              "example": "testuser",
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "description": "The slug identifier of the project",
+            "schema": {
+              "example": "my-project",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "403": {
+            "description": "User does not have permission to access this project"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List all documents in a project",
+        "tags": [
+          "Document API"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{projectSlug}/docs/{docId}": {
+      "get": {
+        "description": "Retrieves metadata for a specific document in a project.",
+        "operationId": "DocumentController_getDocumentInfo",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "description": "The username of the project owner",
+            "schema": {
+              "example": "testuser",
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "description": "The slug identifier of the project",
+            "schema": {
+              "example": "my-project",
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "required": true,
+            "in": "path",
+            "description": "The document identifier",
+            "schema": {
+              "example": "document1",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the document information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get document information",
+        "tags": [
+          "Document API"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{projectSlug}/docs/{docId}/html": {
+      "get": {
+        "description": "Renders a ProseMirror document as static HTML.",
+        "operationId": "DocumentController_renderHtml",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "description": "The username of the project owner",
+            "schema": {
+              "example": "testuser",
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectSlug",
+            "required": true,
+            "in": "path",
+            "description": "The slug identifier of the project",
+            "schema": {
+              "example": "my-project",
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "required": true,
+            "in": "path",
+            "description": "The document identifier",
+            "schema": {
+              "example": "document1",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully rendered the document as HTML",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Render document as HTML",
+        "tags": [
+          "Document API"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/epub": {
+      "post": {
+        "description": "Converts project elements to an EPUB file and returns file metadata",
+        "operationId": "ProjectPublishEpubController_publishEpub",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "description": "Username of the project owner",
+            "schema": {
+              "example": "testuser",
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "description": "Project slug identifier",
+            "schema": {
+              "example": "my-novel",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully published project as EPUB",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishEpubResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User not authorized"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Publish project as EPUB",
+        "tags": [
+          "Project API"
+        ]
+      }
+    },
     "/api/v1/users/me": {
       "get": {
         "description": "Retrieves the profile information of the authenticated user.",
@@ -1003,194 +1249,18 @@
         ]
       }
     },
-    "/api/v1/projects/{username}/{projectSlug}/docs": {
+    "/csrf/token": {
       "get": {
-        "description": "Retrieves a list of all documents in the specified project.",
-        "operationId": "DocumentController_listDocuments",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "description": "The username of the project owner",
-            "schema": {
-              "example": "testuser",
-              "type": "string"
-            }
-          },
-          {
-            "name": "projectSlug",
-            "required": true,
-            "in": "path",
-            "description": "The slug identifier of the project",
-            "schema": {
-              "example": "my-project",
-              "type": "string"
-            }
-          }
-        ],
+        "operationId": "CsrfController_getCsrfToken",
+        "parameters": [],
         "responses": {
           "200": {
-            "description": "Successfully retrieved the list of documents",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DocumentDto"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing authentication"
-          },
-          "403": {
-            "description": "User does not have permission to access this project"
-          },
-          "404": {
-            "description": "Project not found"
+            "description": ""
           }
         },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "List all documents in a project",
+        "summary": "Get a CSRF token for form submissions",
         "tags": [
-          "Document API"
-        ]
-      }
-    },
-    "/api/v1/projects/{username}/{projectSlug}/docs/{docId}": {
-      "get": {
-        "description": "Retrieves metadata for a specific document in a project.",
-        "operationId": "DocumentController_getDocumentInfo",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "description": "The username of the project owner",
-            "schema": {
-              "example": "testuser",
-              "type": "string"
-            }
-          },
-          {
-            "name": "projectSlug",
-            "required": true,
-            "in": "path",
-            "description": "The slug identifier of the project",
-            "schema": {
-              "example": "my-project",
-              "type": "string"
-            }
-          },
-          {
-            "name": "docId",
-            "required": true,
-            "in": "path",
-            "description": "The document identifier",
-            "schema": {
-              "example": "document1",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved the document information",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocumentDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing authentication"
-          },
-          "404": {
-            "description": "Document not found"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Get document information",
-        "tags": [
-          "Document API"
-        ]
-      }
-    },
-    "/api/v1/projects/{username}/{projectSlug}/docs/{docId}/html": {
-      "get": {
-        "description": "Renders a ProseMirror document as static HTML.",
-        "operationId": "DocumentController_renderHtml",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "description": "The username of the project owner",
-            "schema": {
-              "example": "testuser",
-              "type": "string"
-            }
-          },
-          {
-            "name": "projectSlug",
-            "required": true,
-            "in": "path",
-            "description": "The slug identifier of the project",
-            "schema": {
-              "example": "my-project",
-              "type": "string"
-            }
-          },
-          {
-            "name": "docId",
-            "required": true,
-            "in": "path",
-            "description": "The document identifier",
-            "schema": {
-              "example": "document1",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully rendered the document as HTML",
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or missing authentication"
-          },
-          "404": {
-            "description": "Document not found"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Render document as HTML",
-        "tags": [
-          "Document API"
+          "CSRF"
         ]
       }
     },
@@ -1217,21 +1287,6 @@
         },
         "tags": [
           "Mcp"
-        ]
-      }
-    },
-    "/csrf/token": {
-      "get": {
-        "operationId": "CsrfController_getCsrfToken",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get a CSRF token for form submissions",
-        "tags": [
-          "CSRF"
         ]
       }
     }
@@ -1439,6 +1494,87 @@
           "message"
         ]
       },
+      "DocumentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the document",
+            "example": "doc1:testuser:project-name"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the document",
+            "example": "My Document"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "The user ID of the document owner",
+            "example": "testuser"
+          },
+          "username": {
+            "type": "string",
+            "description": "The username part of the document ID",
+            "example": "testuser"
+          },
+          "projectSlug": {
+            "type": "string",
+            "description": "The project slug part of the document ID",
+            "example": "project-name"
+          },
+          "lastModified": {
+            "type": "string",
+            "description": "Timestamp when the document was last modified",
+            "example": "2025-03-22T10:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "ownerId",
+          "username",
+          "projectSlug",
+          "lastModified"
+        ]
+      },
+      "PublishEpubResponseDto": {
+        "type": "object",
+        "properties": {
+          "originalName": {
+            "type": "string",
+            "description": "Original filename of the EPUB file",
+            "example": "my-project-2025-03-30.epub"
+          },
+          "storedName": {
+            "type": "string",
+            "description": "Stored filename of the EPUB file",
+            "example": "a1b2c3d4-1717171717.epub"
+          },
+          "contentType": {
+            "type": "string",
+            "description": "MIME type of the file",
+            "example": "application/epub+zip"
+          },
+          "size": {
+            "type": "number",
+            "description": "Size of the file in bytes",
+            "example": 12345
+          },
+          "uploadDate": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Date when the file was created",
+            "example": "2025-03-30T12:34:56.789Z"
+          }
+        },
+        "required": [
+          "originalName",
+          "storedName",
+          "contentType",
+          "size",
+          "uploadDate"
+        ]
+      },
       "UserDto": {
         "type": "object",
         "properties": {
@@ -1532,49 +1668,6 @@
           "name",
           "enabled",
           "sessionId"
-        ]
-      },
-      "DocumentDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique identifier for the document",
-            "example": "doc1:testuser:project-name"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the document",
-            "example": "My Document"
-          },
-          "ownerId": {
-            "type": "string",
-            "description": "The user ID of the document owner",
-            "example": "testuser"
-          },
-          "username": {
-            "type": "string",
-            "description": "The username part of the document ID",
-            "example": "testuser"
-          },
-          "projectSlug": {
-            "type": "string",
-            "description": "The project slug part of the document ID",
-            "example": "project-name"
-          },
-          "lastModified": {
-            "type": "string",
-            "description": "Timestamp when the document was last modified",
-            "example": "2025-03-22T10:30:00.000Z"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "ownerId",
-          "username",
-          "projectSlug",
-          "lastModified"
         ]
       }
     }
