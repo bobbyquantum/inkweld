@@ -2,9 +2,9 @@
   "name": "inkweld-server",
   "version": "0.0.1",
   "description": "",
-  "author": "",
+  "author": "bobbyquantum",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
