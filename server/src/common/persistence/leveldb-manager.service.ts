@@ -258,17 +258,15 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
     let retries = 3;
     while (retries > 0) {
       try {
-        const anyDb = db as any;
-        if (anyDb._db && typeof anyDb._db.close === 'function') {
-          await anyDb._db.close();
-          this.logger.log(`Explicitly closed database connection for ${key}`);
-        } else {
-          this.logger.warn(
-            `Could not explicitly close database for ${key} - relying on garbage collection`,
-          );
-        }
+        // Use the public destroy() method provided by LeveldbPersistence
+        this.logger.log(`Attempting to destroy LeveldbPersistence for ${key}...`);
+        await db.destroy(); // This should call the underlying db.close()
+        this.logger.log(`Successfully destroyed LeveldbPersistence for ${key}.`);
+
+        // Remove references after successful destruction
         this.projectDatabases.delete(key);
         this.dbActivityTimestamps.delete(key);
+        this.logger.log(`Removed references for ${key} from internal maps.`);
         return;
       } catch (error) {
         retries--;
