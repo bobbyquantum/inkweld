@@ -112,6 +112,7 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
           levelOptions: {
             createIfMissing: true,
             errorIfExists: false,
+            multithreading: true,
             // Add options to help with concurrent access issues
             lockTimeout: 10000, // 10 seconds
             retryTimeout: 2000, // 2 seconds
