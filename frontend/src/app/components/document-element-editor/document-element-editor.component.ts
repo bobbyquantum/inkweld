@@ -45,6 +45,7 @@ type DragPoint = 'pageLeft' | 'pageRight' | 'marginLeft' | 'marginRight';
 export class DocumentElementEditorComponent
   implements OnInit, OnDestroy, AfterViewInit
 {
+  private documentService = inject(DocumentService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   @Input() documentId = 'invalid';
@@ -102,9 +103,6 @@ export class DocumentElementEditorComponent
   rulerMeasurements = Array.from({ length: 30 }, (_, i) => i);
 
   private destroy$ = new Subject<void>();
-  private documentService = inject(DocumentService);
-
-  constructor() {}
 
   ngOnInit(): void {
     this.editor = new Editor({

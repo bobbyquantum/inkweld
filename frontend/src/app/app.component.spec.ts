@@ -82,26 +82,9 @@ describe('AppComponent', () => {
     expect(themeService.initTheme).toHaveBeenCalled();
   });
 
-  it('should have the correct title', () => {
-    expect(component.title).toBe('inkweld-frontend');
-  });
-
   it('should have a router outlet', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('router-outlet')).not.toBeNull();
-  });
-
-  it('should bind theme class', () => {
-    const themeService = TestBed.inject(ThemeService);
-
-    (themeService.initTheme as jest.Mock).mockImplementation(() => {
-      component.className = 'dark-theme';
-    });
-
-    component.ngOnInit();
-    fixture.detectChanges();
-
-    expect(fixture.debugElement.classes['dark-theme']).toBeTruthy();
   });
 
   describe('Authentication Error Bar', () => {

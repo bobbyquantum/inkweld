@@ -15,12 +15,12 @@ import { ProjectFile } from '../../services/project-file.service';
   styleUrls: ['./file-list.component.scss'],
 })
 export class FileListComponent {
+  private dialogGateway = inject(DialogGatewayService);
+
   @Input({ required: true }) files: ProjectFile[] = [];
   @Output() deleteFile = new EventEmitter<ProjectFile>();
 
   protected columns = ['name', 'size', 'type', 'actions'];
-
-  private dialogGateway = inject(DialogGatewayService);
 
   /**
    * Check if a file is an image based on its content type

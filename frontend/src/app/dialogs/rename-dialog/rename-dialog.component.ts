@@ -61,16 +61,13 @@ export interface RenameDialogData {
   ],
 })
 export class RenameDialogComponent {
-  readonly nameControl: FormControl<string | null>;
   protected readonly data = inject<RenameDialogData>(MAT_DIALOG_DATA);
   private readonly dialogRef = inject(MatDialogRef<RenameDialogComponent>);
 
-  constructor() {
-    this.nameControl = new FormControl(this.data.currentName, [
-      Validators.required,
-      Validators.minLength(1),
-    ]);
-  }
+  readonly nameControl: FormControl<string | null> = new FormControl(
+    this.data.currentName,
+    [Validators.required, Validators.minLength(1)]
+  );
 
   onCancel(): void {
     this.dialogRef.close();

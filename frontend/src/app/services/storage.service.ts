@@ -20,12 +20,8 @@ export class StorageError extends Error {
   providedIn: 'root',
 })
 export class StorageService {
-  readonly isAvailable = signal(false);
+  readonly isAvailable = signal(typeof indexedDB !== 'undefined');
   private dbConnections = new Map<string, Promise<IDBDatabase>>();
-
-  constructor() {
-    this.isAvailable.set(typeof indexedDB !== 'undefined');
-  }
 
   async initializeDatabase(config: StorageConfig): Promise<IDBDatabase> {
     if (!this.isAvailable()) {

@@ -37,9 +37,11 @@ interface DocumentConnection {
   providedIn: 'root',
 })
 export class DocumentService {
-  private connections: Map<string, DocumentConnection> = new Map();
   private readonly projectState = inject(ProjectStateService);
   private readonly documentApiService = inject(DocumentAPIService);
+
+  private connections: Map<string, DocumentConnection> = new Map();
+
   private syncStatusSubjects = new Map<
     string,
     BehaviorSubject<DocumentSyncState>

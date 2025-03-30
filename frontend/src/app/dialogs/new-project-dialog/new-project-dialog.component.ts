@@ -1,6 +1,5 @@
 import { Component, effect, inject } from '@angular/core';
 import {
-  FormBuilder,
   FormControl,
   FormGroup,
   ReactiveFormsModule,
@@ -34,6 +33,12 @@ import { UserService } from '../../services/user.service';
   ],
 })
 export class NewProjectDialogComponent {
+  private projectAPIService = inject(ProjectAPIService);
+  private userService = inject(UserService);
+  private xsrfService = inject(XsrfService);
+  private dialogRef = inject(MatDialogRef<NewProjectDialogComponent>);
+  private snackBar = inject(MatSnackBar);
+
   projectForm = new FormGroup({
     title: new FormControl('', [Validators.required]),
     slug: new FormControl('', [
@@ -46,13 +51,6 @@ export class NewProjectDialogComponent {
   baseUrl: string;
   username = '';
   isSaving = false;
-
-  private fb = inject(FormBuilder);
-  private projectAPIService = inject(ProjectAPIService);
-  private userService = inject(UserService);
-  private xsrfService = inject(XsrfService);
-  private dialogRef = inject(MatDialogRef<NewProjectDialogComponent>);
-  private snackBar = inject(MatSnackBar);
 
   constructor() {
     this.baseUrl = window.location.origin;

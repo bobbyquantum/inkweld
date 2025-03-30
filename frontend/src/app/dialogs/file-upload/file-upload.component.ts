@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -79,9 +79,9 @@ import { FileSizePipe } from '../../pipes/file-size.pipe';
   ],
 })
 export class FileUploadComponent {
-  selectedFile: File | null = null;
+  dialogRef = inject(MatDialogRef<FileUploadComponent>);
 
-  constructor(private dialogRef: MatDialogRef<FileUploadComponent>) {}
+  selectedFile: File | null = null;
 
   onDragOver(event: DragEvent) {
     event.preventDefault();

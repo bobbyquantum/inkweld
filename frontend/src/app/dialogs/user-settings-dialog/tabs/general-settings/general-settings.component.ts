@@ -23,13 +23,14 @@ import { firstValueFrom, Subscription } from 'rxjs';
   styleUrl: './general-settings.component.scss',
 })
 export class GeneralSettingsComponent implements OnInit, OnDestroy {
+  private themeService = inject(ThemeService);
+  private userService = inject(UserService);
+
   selectedTheme!: ThemeOption;
   avatarUrl: string | null = null;
   isUploadingAvatar = false;
 
   private themeSubscription!: Subscription;
-  private themeService = inject(ThemeService);
-  private userService = inject(UserService);
 
   ngOnInit() {
     this.themeSubscription = this.themeService

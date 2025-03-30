@@ -10,7 +10,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
 import { UserService, UserServiceError } from '@services/user.service';
-import { Subject } from 'rxjs';
 
 @Component({
   selector: 'app-welcome',
@@ -29,16 +28,15 @@ import { Subject } from 'rxjs';
   styleUrl: './welcome.component.scss',
 })
 export class WelcomeComponent {
+  private snackBar = inject(MatSnackBar);
+  private userService = inject(UserService);
+
   username = '';
   password = '';
   passwordError: string | null = null;
   isLoggingIn = false;
   lastAttemptedUsername = '';
   lastAttemptedPassword = '';
-
-  private snackBar = inject(MatSnackBar);
-  private userService = inject(UserService);
-  private destroy$ = new Subject<void>();
 
   // Clear error when username is changed
   onUsernameChange(): void {

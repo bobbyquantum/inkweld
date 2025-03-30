@@ -17,6 +17,9 @@ const CURRENT_ARCHIVE_VERSION = 1;
   providedIn: 'root',
 })
 export class ProjectImportExportService {
+  private projectStateService = inject(ProjectStateService);
+  private documentService = inject(DocumentService);
+
   /** Progress of the current import/export operation (0-100) */
   readonly progress = signal<number>(0);
 
@@ -25,9 +28,6 @@ export class ProjectImportExportService {
 
   /** Any error that occurred during import/export */
   readonly error = signal<string | undefined>(undefined);
-
-  private projectStateService = inject(ProjectStateService);
-  private documentService = inject(DocumentService);
 
   /**
    * Exports the current project as a downloadable JSON file
