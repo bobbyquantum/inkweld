@@ -398,14 +398,19 @@ export class ProjectStateService {
     return this.expandedNodeIds().has(elementId);
   }
   async publishProject(project: ProjectDto) {
-    const response = await firstValueFrom(
-      this.projectAPIService.projectPublishEpubControllerPublishEpub(
-        project.username,
-        project.slug
-      )
-    );
+    try {
+      const response = await firstValueFrom(
+        this.projectAPIService.projectPublishEpubControllerPublishEpub(
+          project.username,
+          project.slug
+        )
+      );
 
-    console.log('Project published successfully:', response);
+      console.log('Project published successfully:', response);
+    } catch (error) {
+      console.error('Failed to publish project:', error);
+      this.error.set('Failed to publish project. Please try again later.');
+    }
   }
   deleteElement(elementId: string): void {
     const elements = this.elements();
