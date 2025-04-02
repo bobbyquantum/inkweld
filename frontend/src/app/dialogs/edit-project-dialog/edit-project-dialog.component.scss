@@ -14,6 +14,48 @@ mat-form-field {
   width: 100%;
 }
 
+.dialog-content {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.cover-image-section {
+  margin-top: 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  padding-top: 1rem;
+
+  h3 {
+    margin-top: 0;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .current-image {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+
+    .cover-preview {
+      max-width: 100%;
+      height: auto;
+      object-fit: contain;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      flex: 1;
+    }
+
+    button {
+      margin-left: 0.5rem;
+    }
+  }
+
+  p {
+    margin-bottom: 1rem;
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 0.9rem;
+  }
+}
+
 .import-export-section {
   border-top: 1px solid rgba(0, 0, 0, 0.12);
   padding-top: 1.5rem;

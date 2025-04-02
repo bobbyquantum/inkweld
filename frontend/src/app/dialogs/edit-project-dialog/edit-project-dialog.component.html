@@ -1,4 +1,4 @@
-<mat-dialog-content>
+<mat-dialog-content class="dialog-content">
   <form [formGroup]="form">
     <mat-form-field appearance="outline">
       <mat-label>Title</mat-label>
@@ -13,6 +13,53 @@
       <textarea matInput formControlName="description"></textarea>
     </mat-form-field>
   </form>
+
+  <div class="cover-image-section">
+    <h3>Cover Image</h3>
+
+    @if (isLoadingCover) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    }
+
+    @if (coverImageUrl) {
+      <div class="current-image">
+        <img
+          [src]="coverImageUrl"
+          alt="Project cover image"
+          class="cover-preview" />
+        <button
+          mat-icon-button
+          color="warn"
+          (click)="removeCoverImage()"
+          [disabled]="isLoadingCover"
+          aria-label="Remove cover image">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    } @else {
+      <p>
+        No cover image set. Add an image with a 1.6:1 aspect ratio (e.g.,
+        1600x1000 pixels).
+      </p>
+    }
+
+    <button
+      mat-stroked-button
+      color="primary"
+      (click)="openCoverImageSelector()"
+      [disabled]="isLoadingCover">
+      <mat-icon>add_photo_alternate</mat-icon>
+      {{ coverImageUrl ? 'Change Cover Image' : 'Add Cover Image' }}
+    </button>
+
+    <!-- Hidden file input for cover image selection -->
+    <input
+      #coverImageInput
+      type="file"
+      accept="image/jpeg,image/jpg,image/png"
+      style="display: none"
+      (change)="onCoverImageSelected($event)" />
+  </div>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">

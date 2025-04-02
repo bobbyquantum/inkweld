@@ -272,6 +272,141 @@
         ]
       }
     },
+    "/api/v1/projects/{username}/{slug}/cover": {
+      "post": {
+        "description": "Uploads a cover image for a project. Must have a 1.6:1 aspect ratio and minimum width of 1000px.",
+        "operationId": "ProjectController_uploadCover",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cover": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Cover image file (will be converted to JPEG)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cover image successfully uploaded"
+          },
+          "400": {
+            "description": "Invalid file format, size, or dimensions"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Upload project cover image",
+        "tags": [
+          "Project API"
+        ]
+      },
+      "get": {
+        "description": "Retrieves a project's cover image as a JPEG file.",
+        "operationId": "ProjectController_getProjectCover",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project cover image",
+            "content": {
+              "image/jpeg": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get project cover image",
+        "tags": [
+          "Project API"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/cover/delete": {
+      "post": {
+        "description": "Deletes the cover image for a project.",
+        "operationId": "ProjectController_deleteCover",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cover image successfully deleted"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Delete project cover image",
+        "tags": [
+          "Project API"
+        ]
+      }
+    },
     "/api/v1/projects/{username}/{slug}/elements": {
       "get": {
         "operationId": "ProjectElementController_getProjectElements",
