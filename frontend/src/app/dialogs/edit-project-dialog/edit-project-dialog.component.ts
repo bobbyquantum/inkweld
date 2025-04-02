@@ -23,7 +23,6 @@ import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ProjectAPIService } from '@inkweld/api/project-api.service';
 import { ProjectDto } from '@inkweld/model/project-dto';
 import { ProjectImportExportService } from '@services/project-import-export.service';
-import { firstValueFrom } from 'rxjs';
 
 import { ProjectService } from '../../services/project.service';
 
@@ -182,25 +181,13 @@ export class EditProjectDialogComponent implements OnInit {
       if (!updatedProject.slug) {
         throw new Error('Project slug is required');
       }
-
-      // Get XSRF token from cookies
-      const xsrfToken =
-        document.cookie
-          .split('; ')
-          .find(row => row.startsWith('XSRF-TOKEN='))
-          ?.split('=')[1] || '';
-
-      // First update the project metadata
-      const response = await firstValueFrom(
-        this.projectAPIService.projectControllerUpdateProject(
-          updatedProject.username,
-          updatedProject.slug,
-          xsrfToken,
-          {
-            title: updatedProject.title,
-            description: updatedProject.description,
-          } as ProjectDto
-        )
+      const response = await this.projectService.updateProject(
+        updatedProject.username,
+        updatedProject.slug,
+        {
+          title: updatedProject.title,
+          description: updatedProject.description,
+        } as ProjectDto
       );
 
       // Handle cover image upload if we have a new image

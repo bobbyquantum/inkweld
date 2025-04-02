@@ -235,7 +235,7 @@ export class ProjectController {
   @UseInterceptors(FileInterceptor('cover'))
   @ApiOperation({
     summary: 'Upload project cover image',
-    description: 'Uploads a cover image for a project. Must have a 1.6:1 aspect ratio and minimum width of 1000px.',
+    description: 'Uploads a cover image for a project. Must have a 1:1.6 aspect ratio and minimum width of 1000px.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -278,14 +278,14 @@ export class ProjectController {
         throw new BadRequestException('Image width must be at least 1000px');
       }
 
-      // Calculate target dimensions for 1.6:1 aspect ratio
-      const targetHeight = Math.round(imageMetadata.width / 1.6);
+      // Calculate target dimensions for 1:1.6 aspect ratio (height is 1.6 times the width)
+      const targetHeight = Math.round(imageMetadata.width * 1.6);
 
       // Determine crop settings if necessary
       let processedImage;
 
-      if (Math.abs(imageMetadata.width / imageMetadata.height - 1.6) > 0.01) {
-        // Aspect ratio is different from 1.6:1, crop it
+      if (Math.abs(imageMetadata.height / imageMetadata.width - 1.6) > 0.01) {
+        // Aspect ratio is different from 1:1.6, crop it
         this.logger.log(`Cropping image from ${imageMetadata.width}x${imageMetadata.height} to ${imageMetadata.width}x${targetHeight}`);
 
         processedImage = await sharp(file.buffer)
@@ -296,7 +296,7 @@ export class ProjectController {
           .jpeg({ quality: 90 })
           .toBuffer();
       } else {
-        // Aspect ratio is already close to 1.6:1, just convert to JPEG
+        // Aspect ratio is already close to 1:1.6, just convert to JPEG
         processedImage = await sharp(file.buffer)
           .jpeg({ quality: 90 })
           .toBuffer();

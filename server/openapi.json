@@ -165,9 +165,9 @@
           },
           {
             "name": "X-CSRF-TOKEN",
-            "required": true,
             "in": "header",
             "description": "CSRF token",
+            "required": true,
             "schema": {
               "type": "string"
             }

@@ -1,64 +1,73 @@
 <mat-dialog-content class="dialog-content">
-  <form [formGroup]="form">
-    <mat-form-field appearance="outline">
-      <mat-label>Title</mat-label>
-      <input matInput formControlName="title" required />
-      @if (form.get('title')?.hasError('required')) {
-        <mat-error>Title is required</mat-error>
+  <div class="dialog-layout">
+    <!-- Left column: Cover image -->
+    <div class="cover-column">
+      @if (isLoadingCover) {
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
       }
-    </mat-form-field>
 
-    <mat-form-field appearance="outline">
-      <mat-label>Description</mat-label>
-      <textarea matInput formControlName="description"></textarea>
-    </mat-form-field>
-  </form>
+      @if (coverImageUrl) {
+        <div class="cover-image-wrapper">
+          <img
+            [src]="coverImageUrl"
+            alt="Project cover image"
+            class="cover-preview" />
+          <button
+            mat-mini-fab
+            color="warn"
+            class="remove-image-btn"
+            (click)="removeCoverImage()"
+            [disabled]="isLoadingCover"
+            aria-label="Remove cover image">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      } @else {
+        <div class="placeholder-wrapper">
+          <mat-icon class="placeholder-icon">image</mat-icon>
+          <p class="placeholder-text">No cover image</p>
+          <p class="placeholder-text">1.6:1 ratio</p>
+        </div>
+      }
+    </div>
 
-  <div class="cover-image-section">
-    <h3>Cover Image</h3>
+    <!-- Right column: Form -->
+    <div class="form-column">
+      <form [formGroup]="form">
+        <mat-form-field appearance="outline">
+          <mat-label>Title</mat-label>
+          <input matInput formControlName="title" required />
+          @if (form.get('title')?.hasError('required')) {
+            <mat-error>Title is required</mat-error>
+          }
+        </mat-form-field>
 
-    @if (isLoadingCover) {
-      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-    }
+        <mat-form-field appearance="outline">
+          <mat-label>Description</mat-label>
+          <textarea matInput formControlName="description" rows="4"></textarea>
+        </mat-form-field>
 
-    @if (coverImageUrl) {
-      <div class="current-image">
-        <img
-          [src]="coverImageUrl"
-          alt="Project cover image"
-          class="cover-preview" />
-        <button
-          mat-icon-button
-          color="warn"
-          (click)="removeCoverImage()"
-          [disabled]="isLoadingCover"
-          aria-label="Remove cover image">
-          <mat-icon>delete</mat-icon>
-        </button>
-      </div>
-    } @else {
-      <p>
-        No cover image set. Add an image with a 1.6:1 aspect ratio (e.g.,
-        1600x1000 pixels).
-      </p>
-    }
+        <div class="cover-image-controls">
+          <h3>Cover Image</h3>
+          <button
+            mat-stroked-button
+            color="primary"
+            (click)="openCoverImageSelector()"
+            [disabled]="isLoadingCover">
+            <mat-icon>add_photo_alternate</mat-icon>
+            {{ coverImageUrl ? 'Change Cover Image' : 'Add Cover Image' }}
+          </button>
+        </div>
+      </form>
 
-    <button
-      mat-stroked-button
-      color="primary"
-      (click)="openCoverImageSelector()"
-      [disabled]="isLoadingCover">
-      <mat-icon>add_photo_alternate</mat-icon>
-      {{ coverImageUrl ? 'Change Cover Image' : 'Add Cover Image' }}
-    </button>
-
-    <!-- Hidden file input for cover image selection -->
-    <input
-      #coverImageInput
-      type="file"
-      accept="image/jpeg,image/jpg,image/png"
-      style="display: none"
-      (change)="onCoverImageSelected($event)" />
+      <!-- Hidden file input for cover image selection -->
+      <input
+        #coverImageInput
+        type="file"
+        accept="image/jpeg,image/jpg,image/png"
+        style="display: none"
+        (change)="onCoverImageSelected($event)" />
+    </div>
   </div>
 </mat-dialog-content>
 
