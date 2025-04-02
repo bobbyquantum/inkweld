@@ -27,11 +27,8 @@
       "editor.defaultFormatter": "esbenp.prettier-vscode",
       "editor.formatOnSave": true
     },
-    "jest.disabledWorkspaceFolders": [
-      "✨ Root"
-    ],
-    "github-actions.workflows.pinned.workflows": [
-      "✨ Root/.github/workflows/ci.yml"
-    ]
+    "jest.disabledWorkspaceFolders": ["✨ Root"],
+    "github-actions.workflows.pinned.workflows": [".github/workflows/ci.yml"],
+    "github-actions.workflows.pinned.refresh.enabled": true
   }
 }
