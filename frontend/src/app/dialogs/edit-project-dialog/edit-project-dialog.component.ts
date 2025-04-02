@@ -19,10 +19,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ProjectAPIService } from '@inkweld/api/project-api.service';
 import { ProjectDto } from '@inkweld/model/project-dto';
 import { ProjectImportExportService } from '@services/project-import-export.service';
-import { firstValueFrom } from 'rxjs';
+
+import { ProjectService } from '../../services/project.service';
 
 @Component({
   selector: 'app-edit-project-dialog',
@@ -43,10 +45,13 @@ export class EditProjectDialogComponent implements OnInit {
   readonly importExportService = inject(ProjectImportExportService);
   private dialogRef = inject(MatDialogRef<EditProjectDialogComponent>);
   private projectAPIService = inject(ProjectAPIService);
+  private projectService = inject(ProjectService);
   private dialogData = inject<ProjectDto>(MAT_DIALOG_DATA);
   private snackBar = inject(MatSnackBar);
+  private sanitizer = inject(DomSanitizer);
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('coverImageInput') coverImageInput!: ElementRef<HTMLInputElement>;
 
   form = new FormGroup({
     title: new FormControl('', Validators.required),
@@ -54,7 +59,11 @@ export class EditProjectDialogComponent implements OnInit {
   });
 
   isSaving = false;
+  isLoadingCover = false;
   project!: ProjectDto;
+  coverImage?: Blob;
+  coverImageUrl?: SafeUrl;
+  private hasCoverImage = false;
 
   ngOnInit(): void {
     this.project = this.dialogData;
@@ -64,6 +73,88 @@ export class EditProjectDialogComponent implements OnInit {
       title: this.project.title,
       description: this.project.description,
     });
+
+    // Load cover image if available
+    if (this.project.username && this.project.slug) {
+      void this.loadCoverImage();
+    }
+  }
+
+  async loadCoverImage(): Promise<void> {
+    this.isLoadingCover = true;
+    try {
+      const coverBlob = await this.projectService.getProjectCover(
+        this.project.username,
+        this.project.slug
+      );
+      this.coverImage = coverBlob;
+      this.coverImageUrl = this.sanitizer.bypassSecurityTrustUrl(
+        URL.createObjectURL(coverBlob)
+      );
+      this.hasCoverImage = true;
+    } catch (error) {
+      // Check if this is a "Cover image not found" error, which is expected
+      if (error instanceof Error && error.message === 'Cover image not found') {
+        // This is normal for projects without a cover image
+        console.log('No cover image set for this project');
+      } else {
+        // Log other errors that might be unexpected
+        console.warn('Error loading cover image:', error);
+      }
+      this.coverImage = undefined;
+      this.coverImageUrl = undefined;
+      this.hasCoverImage = false;
+    } finally {
+      this.isLoadingCover = false;
+    }
+  }
+
+  onCoverImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      if (this.isValidImageFile(file)) {
+        this.coverImage = file;
+        this.coverImageUrl = this.sanitizer.bypassSecurityTrustUrl(
+          URL.createObjectURL(file)
+        );
+      } else {
+        this.showError(
+          'Invalid image file. Please select a JPEG or PNG file with 1.6:1 aspect ratio.'
+        );
+      }
+    }
+  }
+
+  openCoverImageSelector(): void {
+    this.coverImageInput.nativeElement.click();
+  }
+
+  async removeCoverImage(): Promise<void> {
+    if (!this.project.username || !this.project.slug) return;
+
+    this.isLoadingCover = true;
+    try {
+      await this.projectService.deleteProjectCover(
+        this.project.username,
+        this.project.slug
+      );
+      this.coverImage = undefined;
+      this.coverImageUrl = undefined;
+      this.hasCoverImage = false;
+      this.showSuccess('Cover image removed successfully');
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.showError(`Failed to remove cover image: ${errorMessage}`);
+    } finally {
+      this.isLoadingCover = false;
+    }
+  }
+
+  private isValidImageFile(file: File): boolean {
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    return validTypes.includes(file.type);
   }
 
   onCancel(): void {
@@ -90,25 +181,35 @@ export class EditProjectDialogComponent implements OnInit {
       if (!updatedProject.slug) {
         throw new Error('Project slug is required');
       }
-
-      // Get XSRF token from cookies
-      const xsrfToken =
-        document.cookie
-          .split('; ')
-          .find(row => row.startsWith('XSRF-TOKEN='))
-          ?.split('=')[1] || '';
-
-      const response = await firstValueFrom(
-        this.projectAPIService.projectControllerUpdateProject(
-          updatedProject.username,
-          updatedProject.slug,
-          xsrfToken,
-          {
-            title: updatedProject.title,
-            description: updatedProject.description,
-          } as ProjectDto
-        )
+      const response = await this.projectService.updateProject(
+        updatedProject.username,
+        updatedProject.slug,
+        {
+          title: updatedProject.title,
+          description: updatedProject.description,
+        } as ProjectDto
       );
+
+      // Handle cover image upload if we have a new image
+      if (this.coverImage && updatedProject.username && updatedProject.slug) {
+        try {
+          await this.projectService.uploadProjectCover(
+            updatedProject.username,
+            updatedProject.slug,
+            this.coverImage
+          );
+          this.showSuccess('Project and cover image updated successfully');
+        } catch (imageError) {
+          const errorMessage =
+            imageError instanceof Error ? imageError.message : 'Unknown error';
+          this.showError(
+            `Project updated but failed to upload cover image: ${errorMessage}`
+          );
+          console.error('Failed to upload cover image:', errorMessage);
+          // Continue - we still want to close the dialog even if the image upload failed
+        }
+      }
+
       this.dialogRef.close(response);
     } catch (error: unknown) {
       const errorMessage =
