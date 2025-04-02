@@ -90,7 +90,7 @@ describe('ProjectController', () => {
     size: 12345,
     buffer: Buffer.from('test-image-data'),
   };
-  const mockImageMetadataDefault = { width: 1600, height: 1000 }; // Correct 1.6 ratio
+  const mockImageMetadataDefault = { width: 1000, height: 1600 }; // Correct 1:1.6 ratio
   const mockProcessedBuffer = Buffer.from('processed-image-data');
 
   // Mock response object for getProjectCover
@@ -436,13 +436,13 @@ describe('ProjectController', () => {
       ).rejects.toThrow(/Image width must be at least 1000px/);
     });
 
-    it('should crop the image if aspect ratio is not 1.6:1', async () => {
+    it('should crop the image if aspect ratio is not 1:1.6', async () => {
       // Spy on the saveProjectCover method
       const saveSpy = spyOn(controller as any, 'saveProjectCover')
         .mockResolvedValueOnce(undefined);
 
       // Override the metadata mock for this test with a 4:3 ratio image
-      mockSharpInstance.metadata.mockResolvedValueOnce({ width: 1600, height: 1200 });
+      mockSharpInstance.metadata.mockResolvedValueOnce({ width: 1000, height: 750 });
 
       await controller.uploadCover(
         'testuser',
@@ -451,10 +451,10 @@ describe('ProjectController', () => {
         mockUserReq
       );
 
-      // Should resize to maintain 1.6:1 ratio (1600/1.6 = 1000)
+      // Should resize to maintain 1:1.6 ratio (width * 1.6 = height)
       expect(mockSharpInstance.resize).toHaveBeenCalledWith(
-        1600,
         1000,
+        1600,
         expect.objectContaining({ fit: 'cover', position: 'center' })
       );
       expect(mockSharpInstance.jpeg).toHaveBeenCalled();
