@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,6 +11,7 @@ import { UserEntity } from '../user/user.entity.js';
 
 @Injectable()
 export class ProjectService {
+  private readonly logger = new Logger(ProjectService.name);
   constructor(
     @InjectRepository(ProjectEntity)
     private readonly projectRepo: Repository<ProjectEntity>,
@@ -69,7 +71,7 @@ export class ProjectService {
     slug: string,
     projectData: ProjectEntity,
   ): Promise<ProjectEntity> {
-    // Find existing project
+    this.logger.log('Updating project', { username, slug, projectData });
     const existing = await this.findByUsernameAndSlug(username, slug);
     // Optionally check if the user is the same (or do it in the controller)
     // Overwrite fields

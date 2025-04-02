@@ -103,6 +103,12 @@ export class DocumentController {
           const parts = docId.split(':');
           const name = parts.length === 3 ? parts[2] : 'Untitled';
 
+          // skio "elements"
+          if (name === 'elements') {
+            this.logger.warn(`Skipping document ${docId} as it is an internal element document`);
+            continue;
+          }
+
           // Create the document dto
           const docDto = new DocumentDto({
             id: docId,

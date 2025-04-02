@@ -283,6 +283,14 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     this.fileInput?.nativeElement.click();
   }
 
+  public onPublishClick(): void {
+    const project = this.projectState.project();
+    console.log('Publishing project:', project);
+    if (project) {
+      void this.projectState.publishProject(project);
+    }
+  }
+
   public onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {

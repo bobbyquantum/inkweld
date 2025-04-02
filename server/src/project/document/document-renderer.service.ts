@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Doc } from 'yjs';
+import { Doc, XmlElement, XmlText } from 'yjs'; // Import XmlElement and XmlText
 
 /**
  * Service for rendering ProseMirror documents as HTML
@@ -17,22 +17,22 @@ export class DocumentRendererService {
    */
   public renderDocumentAsHtml(ydoc: Doc, docId: string): string {
     this.logger.debug(`Rendering document ${docId} as HTML`);
-    
+
     // Extract ProseMirror content from Y.Doc
     const prosemirrorXmlFragment = ydoc.getXmlFragment('prosemirror');
     this.logger.debug(`Prosemirror XML Fragment: ${prosemirrorXmlFragment}`);
-    
-    // Handle empty documents
-    if (!prosemirrorXmlFragment) {
-      this.logger.warn(`Document ${docId} does not contain content`);
+
+    // Handle empty documents - check if fragment exists AND has content
+    if (!prosemirrorXmlFragment || prosemirrorXmlFragment.length === 0) {
+      this.logger.warn(`Document ${docId} does not contain content or is empty`);
       return this.wrapInHtml('<div class="document-content">No content available</div>', docId);
     }
 
     // Convert XML content to HTML
     let htmlContent = '';
     try {
-      const xmlString = prosemirrorXmlFragment.toString();
-      htmlContent = this.parseAndConvertXml(xmlString);
+      // Use the correct function to convert the Yjs XML fragment directly
+      htmlContent = this.convertXmlFragmentToHtml(prosemirrorXmlFragment);
     } catch (e) {
       this.logger.error(`Failed to convert XML fragment to HTML: ${e}`);
       htmlContent = '<p>Error rendering document content</p>';
@@ -74,24 +74,6 @@ export class DocumentRendererService {
     }
     a {
       color: #0074d9;
-    }
-    code {
-      background: #f5f5f5;
-      padding: 0.2em 0.4em;
-      border-radius: 3px;
-      font-family: monospace;
-    }
-    pre {
-      background: #f5f5f5;
-      padding: 1em;
-      border-radius: 3px;
-      overflow-x: auto;
-    }
-    blockquote {
-      border-left: 4px solid #ddd;
-      padding-left: 1em;
-      margin-left: 0;
-      color: #666;
     }
     img {
       max-width: 100%;
@@ -169,127 +151,31 @@ export class DocumentRendererService {
         case 'paragraph':
           // Convert paragraph to HTML <p> tag
           { let paragraphContent = '';
-
-          // Get text content directly from the node if available
-          if (xmlNode.toString) {
-            // The toString() method returns the text content of the node
-            const textContent = xmlNode.toString();
-            if (textContent) {
-              paragraphContent = this.escapeHtml(textContent);
-            }
-          } else if (xmlNode.childNodes && xmlNode.childNodes.length > 0) {
-            // Process child nodes if available
-            for (const child of xmlNode.childNodes) {
-              if (child.nodeType === 3) { // Text node
-                paragraphContent += this.escapeHtml(child.textContent || '');
-              } else {
-                paragraphContent += this.processXmlNode(child);
-              }
-            }
+          // Always process child nodes using forEach
+          if (typeof xmlNode.forEach === 'function') {
+             xmlNode.forEach((child: any) => {
+               paragraphContent += this.processXmlNode(child);
+             });
           }
-
-          html += `<p>${paragraphContent}</p>`;
+          // Handle empty paragraphs specifically - use &nbsp; to ensure rendering
+          if (paragraphContent === '') {
+             html += `<p>&nbsp;</p>`; // Match test expectation for empty paragraphs
+          } else {
+             html += `<p>${paragraphContent}</p>`;
+          }
           break; }
 
         case 'heading':
           // Convert heading to HTML <h1>-<h6> tags
           { const level = xmlNode.getAttribute('level') || '1';
           let headingContent = '';
-
-          if (xmlNode.toString) {
-            const textContent = xmlNode.toString();
-            if (textContent) {
-              headingContent = this.escapeHtml(textContent);
-            }
-          } else if (xmlNode.childNodes && xmlNode.childNodes.length > 0) {
-            for (const child of xmlNode.childNodes) {
-              if (child.nodeType === 3) { // Text node
-                headingContent += this.escapeHtml(child.textContent || '');
-              } else {
-                headingContent += this.processXmlNode(child);
-              }
-            }
+          // Always process child nodes using forEach
+          if (typeof xmlNode.forEach === 'function') {
+            xmlNode.forEach((child: any) => {
+              headingContent += this.processXmlNode(child);
+            });
           }
-
           html += `<h${level}>${headingContent}</h${level}>`;
-          break; }
-
-        case 'blockquote':
-          { let blockquoteContent = '';
-
-          if (xmlNode.toString) {
-            const textContent = xmlNode.toString();
-            if (textContent) {
-              blockquoteContent = this.escapeHtml(textContent);
-            }
-          } else if (xmlNode.childNodes && xmlNode.childNodes.length > 0) {
-            for (const child of xmlNode.childNodes) {
-              blockquoteContent += this.processXmlNode(child);
-            }
-          }
-
-          html += `<blockquote>${blockquoteContent}</blockquote>`;
-          break; }
-
-        case 'code_block':
-          { const language = xmlNode.getAttribute('language') || '';
-          let codeContent = '';
-
-          if (xmlNode.toString) {
-            const textContent = xmlNode.toString();
-            if (textContent) {
-              codeContent = this.escapeHtml(textContent);
-            }
-          } else if (xmlNode.childNodes && xmlNode.childNodes.length > 0) {
-            for (const child of xmlNode.childNodes) {
-              if (child.nodeType === 3) { // Text node
-                codeContent += this.escapeHtml(child.textContent || '');
-              }
-            }
-          }
-
-          html += `<pre><code class="language-${language}">${codeContent}</code></pre>`;
-          break; }
-
-        case 'bullet_list':
-          { let bulletListContent = '';
-
-          if (xmlNode.childNodes && xmlNode.childNodes.length > 0) {
-            for (const child of xmlNode.childNodes) {
-              bulletListContent += this.processXmlNode(child);
-            }
-          }
-
-          html += `<ul>${bulletListContent}</ul>`;
-          break; }
-
-        case 'ordered_list':
-          { let orderedListContent = '';
-
-          if (xmlNode.childNodes && xmlNode.childNodes.length > 0) {
-            for (const child of xmlNode.childNodes) {
-              orderedListContent += this.processXmlNode(child);
-            }
-          }
-
-          html += `<ol>${orderedListContent}</ol>`;
-          break; }
-
-        case 'list_item':
-          { let listItemContent = '';
-
-          if (xmlNode.toString) {
-            const textContent = xmlNode.toString();
-            if (textContent) {
-              listItemContent = this.escapeHtml(textContent);
-            }
-          } else if (xmlNode.childNodes && xmlNode.childNodes.length > 0) {
-            for (const child of xmlNode.childNodes) {
-              listItemContent += this.processXmlNode(child);
-            }
-          }
-
-          html += `<li>${listItemContent}</li>`;
           break; }
 
         case 'horizontal_rule':
@@ -322,50 +208,81 @@ export class DocumentRendererService {
    * @returns HTML string
    */
   private processXmlNode(xmlNode: any): string {
+    this.logger.debug(`Processing node: ${xmlNode?.constructor?.name}`); // Log node type
+
     if (!xmlNode) {
+      this.logger.debug('Node is null/undefined, returning empty string.');
       return '';
     }
 
-    // For text nodes, just return the escaped content
-    if (xmlNode.nodeType === 3) { // Text node
-      return this.escapeHtml(xmlNode.textContent || '');
+    // Handle Yjs Text nodes
+    if (xmlNode instanceof XmlText) {
+      const textContent = xmlNode.toString();
+      this.logger.debug(`Processing XmlText, content: "${textContent}"`);
+      const escapedContent = this.escapeHtml(textContent);
+      this.logger.debug(`Returning escaped text: "${escapedContent}"`);
+      return escapedContent;
     }
 
-    const nodeName = xmlNode.nodeName;
-    let content = '';
+    // Handle Yjs Element nodes
+    if (xmlNode instanceof XmlElement) {
+      const nodeName = xmlNode.nodeName;
+      this.logger.debug(`Processing XmlElement: <${nodeName}>`);
+      let content = '';
 
-    // Process child nodes if any
-    if (xmlNode.childNodes && xmlNode.childNodes.length > 0) {
-      for (const child of xmlNode.childNodes) {
-        content += this.processXmlNode(child);
+      // Iterate through children using forEach if available
+      if (typeof xmlNode.forEach === 'function') {
+        this.logger.debug(`Iterating children of <${nodeName}>...`);
+        xmlNode.forEach((child: any) => {
+          const childHtml = this.processXmlNode(child);
+          this.logger.debug(`  Child (${child?.constructor?.name}) processed, adding: "${childHtml}"`);
+          content += childHtml;
+        });
+        this.logger.debug(`Finished iterating children of <${nodeName}>. Accumulated content: "${content}"`);
+      } else {
+        this.logger.warn(`Cannot iterate over children of node: ${nodeName}`);
       }
+
+      // Convert node based on type (inline elements primarily)
+      let resultHtml = '';
+      switch (nodeName) {
+        case 'strong':
+          resultHtml = `<strong>${content}</strong>`; break;
+        case 'em':
+          resultHtml = `<em>${content}</em>`; break;
+        case 'link':
+          { const href = xmlNode.getAttribute('href') || '#';
+          resultHtml = `<a href="${this.escapeHtml(href)}">${content}</a>`; break; }
+        case 'code': // Inline code
+          resultHtml = `<code>${content}</code>`; break;
+        case 'strike':
+          resultHtml = `<s>${content}</s>`; break;
+        case 'underline':
+          resultHtml = `<u>${content}</u>`; break;
+        case 'br': // Self-closing, no content
+          resultHtml = '<br>'; break;
+        case 'image': // Self-closing, uses attributes
+          { const src = xmlNode.getAttribute('src') || '';
+          const alt = xmlNode.getAttribute('alt') || '';
+          resultHtml = `<img src="${this.escapeHtml(src)}" alt="${this.escapeHtml(alt)}">`; break; }
+        // Block elements are handled in convertXmlFragmentToHtml,
+        // but if encountered here, just return content.
+        case 'paragraph':
+        case 'heading':
+        case 'horizontal_rule':
+          this.logger.debug(`Passing content through for block element <${nodeName}>: "${content}"`);
+          resultHtml = content; break; // Pass content through
+        default:
+          this.logger.warn(`Unhandled XML element type in processXmlNode: ${nodeName}`);
+          resultHtml = content; break; // Return content for unhandled
+      }
+      this.logger.debug(`Returning HTML for <${nodeName}>: "${resultHtml}"`);
+      return resultHtml;
     }
 
-    // Convert node based on type
-    switch (nodeName) {
-      case 'strong':
-        return `<strong>${content}</strong>`;
-      case 'em':
-        return `<em>${content}</em>`;
-      case 'link':
-        { const href = xmlNode.getAttribute('href') || '#';
-        return `<a href="${this.escapeHtml(href)}">${content}</a>`; }
-      case 'code':
-        return `<code>${content}</code>`;
-      case 'strike':
-        return `<s>${content}</s>`;
-      case 'underline':
-        return `<u>${content}</u>`;
-      case 'br':
-        return '<br>';
-      case 'image':
-        { const src = xmlNode.getAttribute('src') || '';
-        const alt = xmlNode.getAttribute('alt') || '';
-        return `<img src="${this.escapeHtml(src)}" alt="${this.escapeHtml(alt)}">`; }
-      default:
-        // For unhandled nodes, just return their content
-        return content;
-    }
+    // Fallback for unknown node types
+    this.logger.warn(`Unknown node type encountered in processXmlNode: ${typeof xmlNode}, constructor: ${xmlNode?.constructor?.name}`);
+    return '';
   }
 
   /**
@@ -417,106 +334,10 @@ export class DocumentRendererService {
           break;
         }
 
-        case 'blockquote':
-          // Blockquote
-          if (node.content && Array.isArray(node.content)) {
-            const content = node.content.map(child => renderNode(child)).join('');
-            html = `<blockquote>${content}</blockquote>`;
-          } else {
-            html = '<blockquote></blockquote>';
-          }
-          break;
-
-        case 'bulletList':
-          // Unordered list
-          if (node.content && Array.isArray(node.content)) {
-            const content = node.content.map(child => renderNode(child)).join('');
-            html = `<ul>${content}</ul>`;
-          } else {
-            html = '<ul></ul>';
-          }
-          break;
-
-        case 'orderedList':
-          // Ordered list
-          if (node.content && Array.isArray(node.content)) {
-            const content = node.content.map(child => renderNode(child)).join('');
-            html = `<ol>${content}</ol>`;
-          } else {
-            html = '<ol></ol>';
-          }
-          break;
-
-        case 'listItem':
-          // List item
-          if (node.content && Array.isArray(node.content)) {
-            const content = node.content.map(child => renderNode(child)).join('');
-            html = `<li>${content}</li>`;
-          } else {
-            html = '<li></li>';
-          }
-          break;
-
         case 'horizontalRule':
           // Horizontal rule
           html = '<hr>';
           break;
-
-        case 'table':
-          // Table
-          if (node.content && Array.isArray(node.content)) {
-            const content = node.content.map(child => renderNode(child)).join('');
-            html = `<table>${content}</table>`;
-          } else {
-            html = '<table></table>';
-          }
-          break;
-
-        case 'tableRow':
-          // Table row
-          if (node.content && Array.isArray(node.content)) {
-            const content = node.content.map(child => renderNode(child)).join('');
-            html = `<tr>${content}</tr>`;
-          } else {
-            html = '<tr></tr>';
-          }
-          break;
-
-        case 'tableCell': {
-          // Table cell
-          const tag = node.attrs?.header ? 'th' : 'td';
-          if (node.content && Array.isArray(node.content)) {
-            const content = node.content.map(child => renderNode(child)).join('');
-            html = `<${tag}>${content}</${tag}>`;
-          } else {
-            html = `<${tag}></${tag}>`;
-          }
-          break;
-        }
-
-        case 'codeBlock': {
-          // Code block
-          const language = node.attrs?.language || '';
-          if (node.content && Array.isArray(node.content)) {
-            let content = node.content.map(child => {
-              // For code blocks, we typically just want the text content
-              if (child.type === 'text') {
-                return this.escapeHtml(child.text || '');
-              }
-              return renderNode(child);
-            }).join('');
-
-            // If no line breaks, preserve them
-            if (!content.includes('\n')) {
-              content = content.replace(/\n/g, '<br>');
-            }
-
-            html = `<pre><code class="language-${language}">${content}</code></pre>`;
-          } else {
-            html = `<pre><code class="language-${language}"></code></pre>`;
-          }
-          break;
-        }
 
         case 'image': {
           // Image

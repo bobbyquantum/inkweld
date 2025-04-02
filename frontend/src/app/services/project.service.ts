@@ -302,6 +302,134 @@ export class ProjectService {
     }
   }
 
+  async getProjectCover(username: string, slug: string): Promise<Blob> {
+    this.error.set(undefined);
+
+    try {
+      return await firstValueFrom(
+        this.projectApi.projectControllerGetProjectCover(username, slug).pipe(
+          retry(MAX_RETRIES),
+          catchError((error: unknown) => {
+            const projectError = this.formatError(error);
+            this.error.set(projectError);
+            return throwError(() => projectError);
+          })
+        )
+      );
+    } catch (err) {
+      // For cover images, a 404 is expected when no cover image exists yet
+      // So we should handle it specially
+      if (
+        err instanceof ProjectServiceError &&
+        err.code === 'PROJECT_NOT_FOUND'
+      ) {
+        // Create a more specific error
+        const coverError = new ProjectServiceError(
+          'PROJECT_NOT_FOUND',
+          'Cover image not found'
+        );
+        this.error.set(coverError);
+        console.warn('Project cover image not found:', coverError);
+        throw coverError;
+      } else {
+        const error =
+          err instanceof ProjectServiceError
+            ? err
+            : new ProjectServiceError(
+                'SERVER_ERROR',
+                'Failed to get project cover image'
+              );
+        this.error.set(error);
+        console.error('Project cover image loading error:', error);
+        throw error;
+      }
+    }
+  }
+
+  async deleteProjectCover(username: string, slug: string): Promise<void> {
+    this.isLoading.set(true);
+    this.error.set(undefined);
+
+    try {
+      await firstValueFrom(
+        this.projectApi.projectControllerDeleteCover(username, slug).pipe(
+          retry(MAX_RETRIES),
+          catchError((error: unknown) => {
+            const projectError = this.formatError(error);
+            this.error.set(projectError);
+            return throwError(() => projectError);
+          })
+        )
+      );
+
+      // Update the project in the projects list if it exists to reflect no cover
+      const currentProjects = this.projects();
+      const projectIndex = currentProjects.findIndex(
+        p => p.slug === slug && p.username === username
+      );
+
+      if (projectIndex >= 0) {
+        // We don't need to modify anything specific for the cover image
+        // as the API response doesn't include that information
+        // Just refresh the project data
+        await this.loadAllProjects();
+      }
+    } catch (err) {
+      const error =
+        err instanceof ProjectServiceError
+          ? err
+          : new ProjectServiceError(
+              'SERVER_ERROR',
+              'Failed to delete project cover image'
+            );
+      this.error.set(error);
+      console.error('Project cover deletion error:', error);
+      throw error;
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  async uploadProjectCover(
+    username: string,
+    slug: string,
+    coverImage: Blob
+  ): Promise<void> {
+    this.isLoading.set(true);
+    this.error.set(undefined);
+
+    try {
+      await firstValueFrom(
+        this.projectApi
+          .projectControllerUploadCover(username, slug, coverImage)
+          .pipe(
+            retry(MAX_RETRIES),
+            catchError((error: unknown) => {
+              const projectError = this.formatError(error);
+              this.error.set(projectError);
+              return throwError(() => projectError);
+            })
+          )
+      );
+
+      // Refresh projects to get updated data
+      await this.loadAllProjects();
+    } catch (err) {
+      const error =
+        err instanceof ProjectServiceError
+          ? err
+          : new ProjectServiceError(
+              'SERVER_ERROR',
+              'Failed to upload project cover image'
+            );
+      this.error.set(error);
+      console.error('Project cover upload error:', error);
+      throw error;
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
   async clearCache(): Promise<void> {
     if (this.storage.isAvailable()) {
       try {
