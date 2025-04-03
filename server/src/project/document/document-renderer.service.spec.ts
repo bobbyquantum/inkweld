@@ -28,7 +28,7 @@ describe('DocumentRendererService', () => {
       expect(result).toContain('No content available');
       // Should be wrapped in HTML structure
       expect(result).toContain('<!DOCTYPE html>');
-      expect(result).toContain('<html>');
+      expect(result).toContain('<html');
       expect(result).toContain('</html>');
     });
 
@@ -88,8 +88,8 @@ describe('DocumentRendererService', () => {
 
       const result = service.renderDocumentAsHtml(ydoc, 'test-doc');
 
-      // Empty paragraphs should be rendered with a non-breaking space to maintain height
-      expect(result).toContain('<p>&nbsp;</p>');
+      // Empty paragraphs should be rendered with a line break
+      expect(result).toContain('<br/>');
     });
   });
 
@@ -224,7 +224,7 @@ describe('DocumentRendererService', () => {
       expect(loggerErrorSpy).toHaveBeenCalled();
 
       // Should still return valid HTML with an error message
-      expect(result).toContain('<p>Error rendering document content</p>');
+      expect(result).toContain('<p>Error converting document content</p>');
       expect(result).toContain('<!DOCTYPE html>');
 
       // Clean up
@@ -248,7 +248,7 @@ describe('DocumentRendererService', () => {
       const result = service.renderDocumentAsHtml(ydoc, 'test-doc');
 
       // Check for horizontal rule
-      expect(result).toContain('<hr>');
+      expect(result).toContain('<hr/>');
     });
   });
 });

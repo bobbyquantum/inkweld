@@ -6,15 +6,23 @@ import { FileStorageService, FileMetadata } from '../files/file-storage.service.
 import { ProjectService } from '../project.service.js';
 import { ElementType } from '../element/element-type.enum.js';
 import { ProjectElementDto } from '../element/project-element.dto.js';
+import { DocumentRendererService } from '../document/document-renderer.service.js';
+import { LevelDBManagerService } from '../../common/persistence/leveldb-manager.service.js';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class ProjectPublishEpubService {
   private readonly logger = new Logger(ProjectPublishEpubService.name);
+  private currentUsername = '';
+  private currentSlug = '';
 
   constructor(
     private readonly projectElementService: ProjectElementService,
     private readonly fileStorageService: FileStorageService,
     private readonly projectService: ProjectService,
+    private readonly documentRenderer: DocumentRendererService,
+    private readonly levelDBManager: LevelDBManagerService,
   ) {}
 
   /**
@@ -28,6 +36,10 @@ export class ProjectPublishEpubService {
     slug: string,
   ): Promise<FileMetadata> {
     this.logger.log(`Publishing project ${username}/${slug} as EPUB`);
+
+    // Store the current username and slug for use in other methods
+    this.currentUsername = username;
+    this.currentSlug = slug;
 
     // Get project details to use as metadata
     const project = await this.projectService.findByUsernameAndSlug(
@@ -44,26 +56,35 @@ export class ProjectPublishEpubService {
       username,
       slug,
     );
+    this.logger.log(
+      `Found ${elements.length} elements for project ${username}/${slug}`,
+    );
     const language = {
       toString: () => "en-US",
       textInfo: { direction: "ltr" }
     } as Intl.Locale;
+
     // Create a new EPUB
     const epub = await Epub.create({
       title: project.title || `${username}/${slug}`,
       language: language,
       identifier: randomUUID(),
-      // creators: [({ name: username } as DcCreator)],
-      // date: new Date(),
     });
 
-    // Add cover page
-    // await this.addCoverPage(epub, project.title || `${username}/${slug}`);
+    // Add cover image if it exists
+    const projectPath = this.projectService.getProjectPath(username, slug);
+    const coverImagePath = path.join(projectPath, 'cover.jpg');
 
-    // // Add table of contents
+    if (fs.existsSync(coverImagePath)) {
+      const coverImageBuffer = await fs.promises.readFile(coverImagePath);
+      await epub.setCoverImage('Images/cover.jpg', new Uint8Array(coverImageBuffer));
+      this.logger.log('Added cover image to EPUB');
+    }
+
+    // Add table of contents first
     // await this.addTableOfContents(epub, elements);
 
-    // Add chapters from project elements
+    // // Add chapters from project elements
     await this.addChaptersFromElements(epub, elements);
 
     // Generate EPUB file as byte array
@@ -88,32 +109,6 @@ export class ProjectPublishEpubService {
     );
 
     return fileMetadata;
-  }
-
-  /**
-   * Adds a cover page to the EPUB
-   */
-  private async addCoverPage(epub: Epub, title: string): Promise<void> {
-    const coverItem: ManifestItem = {
-      id: 'cover',
-      href: 'XHTML/cover.xhtml',
-      mediaType: 'application/xhtml+xml',
-      properties: ['cover-image'],
-    };
-
-    const coverContent = await epub.createXhtmlDocument([
-      Epub.createXmlElement('div', { style: 'text-align: center; padding-top: 20%' }, [
-        Epub.createXmlElement('h1', { style: 'font-size: 2em' }, [
-          Epub.createXmlTextNode(title),
-        ]),
-        Epub.createXmlElement('p', { style: 'margin-top: 2em' }, [
-          Epub.createXmlTextNode('Created with InkWeld'),
-        ]),
-      ]),
-    ]);
-
-    await epub.addManifestItem(coverItem, coverContent, 'xml');
-    await epub.addSpineItem(coverItem.id);
   }
 
   /**
@@ -159,6 +154,8 @@ export class ProjectPublishEpubService {
 
   /**
    * Adds chapters to the EPUB from project elements
+   * @param epub The EPUB object to add chapters to
+   * @param elements The project elements to process
    */
   private async addChaptersFromElements(
     epub: Epub,
@@ -169,11 +166,21 @@ export class ProjectPublishEpubService {
       (element) => element.type === ElementType.ITEM,
     );
 
+    this.logger.log(`Adding ${chapterElements.length} chapters to EPUB`);
+
+    // Get the database for this project to access document content
+    const db = await this.levelDBManager.getProjectDatabase(
+      this.currentUsername,
+      this.currentSlug
+    );
+
     // Add each chapter
     for (let i = 0; i < chapterElements.length; i++) {
       const element = chapterElements[i];
       const chapterId = `chapter-${i + 1}`;
       const chapterTitle = element.name || `Chapter ${i + 1}`;
+
+      this.logger.log(`Processing chapter ${i + 1}: ${chapterTitle} (Element ID: ${element.id})`);
 
       const chapterItem: ManifestItem = {
         id: chapterId,
@@ -181,21 +188,28 @@ export class ProjectPublishEpubService {
         mediaType: 'application/xhtml+xml',
       };
 
-      // For now, we'll create simple chapter content
-      // In a real implementation, you would fetch the actual content from a document store
-      const chapterContent = await epub.createXhtmlDocument([
-        Epub.createXmlElement('h1', {}, [
-          Epub.createXmlTextNode(chapterTitle),
-        ]),
-        Epub.createXmlElement('p', {}, [
-          Epub.createXmlTextNode(
-            `This is the content for ${chapterTitle}. In a real implementation, this would be fetched from the document store.`,
-          ),
-        ]),
-      ]);
+      const documentId = `${this.currentUsername}:${this.currentSlug}:${element.id}`;
 
-      await epub.addManifestItem(chapterItem, chapterContent, 'xml');
-      await epub.addSpineItem(chapterItem.id);
+      try {
+        // Load the Y.Doc for this chapter from the database
+        const ydoc = await db.getYDoc(documentId);
+        this.logger.debug(`Successfully retrieved document: ${documentId}`);
+
+
+
+        const htmlString = this.documentRenderer.renderDocumentAsHtml(ydoc, chapterTitle);
+
+        await epub.addManifestItem(chapterItem, htmlString, 'utf-8');
+        await epub.addSpineItem(chapterId);
+        this.logger.debug(`Successfully created XHTML content for chapter: ${chapterTitle}`);
+      } catch (error) {
+        this.logger.warn(
+          `Error retrieving content for chapter ${chapterTitle}`, error
+        );
+
+      }
+
     }
   }
+
 }

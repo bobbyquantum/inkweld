@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProjectEntity } from './project.entity.js';
 import { UserEntity } from '../user/user.entity.js';
+import * as path from 'path';
 
 @Injectable()
 export class ProjectService {
@@ -84,5 +85,15 @@ export class ProjectService {
   async delete(username: string, slug: string): Promise<void> {
     const existing = await this.findByUsernameAndSlug(username, slug);
     await this.projectRepo.remove(existing);
+  }
+
+  /**
+   * Gets the absolute path to a project directory
+   * @param username The owner of the project
+   * @param slug The project slug
+   * @returns The path to the project directory
+   */
+  getProjectPath(username: string, slug: string): string {
+    return path.join(process.env.DATA_PATH || './data', username, slug);
   }
 }
