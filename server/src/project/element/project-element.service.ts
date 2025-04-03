@@ -59,47 +59,23 @@ export class ProjectElementService {
    */
   async getProjectElements(username: string, slug: string) {
     const doc = await this.loadDoc(username, slug);
-    const dataMap = doc.getMap<any>('data');
-    const docId = this.getDocId(username, slug);
-
-    this.logger.debug(
-      `Loading doc ${docId}, current state: ${JSON.stringify(dataMap.toJSON())}`,
-    );
-    if (!dataMap.has('elements')) {
-      dataMap.set('elements', new Y.Array());
-    }
-    const elementsArray = dataMap.get('elements') as Y.Array<any>;
-    return elementsArray.toArray();
+    const dataMap = doc.getArray<any>('elements');
+    return dataMap.toArray();
   }
 
   /**
    * Replace project elements (similar to dinsert).
    */
   async replaceProjectElements(
-    username: string,
-    slug: string,
-    incomingElements: any[],
+    _username: string,
+    _slug: string,
+    _incomingElements: any[],
   ) {
-    const doc = await this.loadDoc(username, slug);
-
-    doc.transact(() => {
-      const dataMap = doc.getMap<any>('data');
-      if (!dataMap.has('elements')) {
-        dataMap.set('elements', new Y.Array());
-      }
-      const elementsArray = dataMap.get('elements') as Y.Array<any>;
-      elementsArray.delete(0, elementsArray.length); // Clear existing
-      for (const elem of incomingElements) {
-        elementsArray.push([elem]); // Insert incoming
-      }
-    });
-
-    await this.persistDoc(doc, username, slug);
-    return incomingElements; // Return updated data
+    throw new Error('Not implemented yet');
   }
 
   private getDocId(username: string, slug: string): string {
-    return `projectElements:${username}:${slug}`;
+    return `${username}:${slug}:elements`;
   }
 
   private async findElementById(

@@ -51,11 +51,10 @@ export class DocumentRendererService {
   private wrapInHtml(content: string, title: string): string {
     return `
 <!DOCTYPE html>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <title>${this.escapeHtml(title)}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
@@ -116,7 +115,7 @@ export class DocumentRendererService {
       const content = match[1].trim();
       // Add a non-breaking space in empty paragraphs to preserve spacing
       if (content === '') {
-        html += `<p>&nbsp;</p>\n`;
+        html += `<br/>\n`;
       } else {
         html += `<p>${content}</p>\n`;
       }
@@ -137,67 +136,138 @@ export class DocumentRendererService {
    */
   private convertXmlFragmentToHtml(xmlFragment: any): string {
     if (!xmlFragment) {
+      this.logger.warn('XML fragment is null or undefined');
       return '';
     }
 
+    this.logger.debug(`Converting XML fragment to HTML. Fragment type: ${typeof xmlFragment}, constructor: ${xmlFragment.constructor?.name}`);
+
     let html = '';
 
-    // Iterate through the XML fragment nodes
-    xmlFragment.forEach((xmlNode: any) => {
-      // Handle each type of node
-      const nodeName = xmlNode.nodeName;
+    try {
+      // Iterate through the XML fragment nodes
+      this.logger.debug(`Starting iteration through XML fragment with ${xmlFragment.length} nodes`);
 
-      switch (nodeName) {
-        case 'paragraph':
-          // Convert paragraph to HTML <p> tag
-          { let paragraphContent = '';
-          // Always process child nodes using forEach
-          if (typeof xmlNode.forEach === 'function') {
-             xmlNode.forEach((child: any) => {
-               paragraphContent += this.processXmlNode(child);
-             });
-          }
-          // Handle empty paragraphs specifically - use &nbsp; to ensure rendering
-          if (paragraphContent === '') {
-             html += `<p>&nbsp;</p>`; // Match test expectation for empty paragraphs
-          } else {
-             html += `<p>${paragraphContent}</p>`;
-          }
-          break; }
+      xmlFragment.forEach((xmlNode: any, index: number) => {
+        // Log node details
+        const nodeName = xmlNode?.nodeName;
+        const nodeType = typeof xmlNode;
+        const nodeConstructor = xmlNode?.constructor?.name;
 
-        case 'heading':
-          // Convert heading to HTML <h1>-<h6> tags
-          { const level = xmlNode.getAttribute('level') || '1';
-          let headingContent = '';
-          // Always process child nodes using forEach
-          if (typeof xmlNode.forEach === 'function') {
-            xmlNode.forEach((child: any) => {
-              headingContent += this.processXmlNode(child);
-            });
-          }
-          html += `<h${level}>${headingContent}</h${level}>`;
-          break; }
+        this.logger.debug(`Processing fragment node [${index}]: type=${nodeType}, constructor=${nodeConstructor}, nodeName=${nodeName}`);
 
-        case 'horizontal_rule':
-          html += '<hr>';
-          break;
-
-        default:
-          // For unhandled node types, try to get direct text or process children
-          if (xmlNode.toString) {
-            const textContent = xmlNode.toString();
-            if (textContent) {
-              html += this.escapeHtml(textContent);
+        switch (nodeName) {
+          case 'paragraph':
+            this.logger.debug(`[${index}] Processing paragraph node`);
+            // Convert paragraph to HTML <p> tag
+            { let paragraphContent = '';
+            // Always process child nodes using forEach
+            if (typeof xmlNode.forEach === 'function') {
+               this.logger.debug(`[${index}] Paragraph has children, processing them`);
+               xmlNode.forEach((child: any, childIndex: number) => {
+                 this.logger.debug(`[${index}.${childIndex}] Processing paragraph child`);
+                 const childContent = this.processXmlNode(child);
+                 this.logger.debug(`[${index}.${childIndex}] Child content: "${childContent}"`);
+                 paragraphContent += childContent;
+               });
+               this.logger.debug(`[${index}] Final paragraph content: "${paragraphContent}"`);
+            } else {
+               this.logger.warn(`[${index}] Paragraph node doesn't have forEach method`);
             }
-          } else if (xmlNode.childNodes && xmlNode.childNodes.length > 0) {
-            for (const child of xmlNode.childNodes) {
-              html += this.processXmlNode(child);
+            // Handle empty paragraphs specifically - use br to ensure rendering
+            if (paragraphContent === '') {
+               this.logger.debug(`[${index}] Empty paragraph, using br`);
+               html += `<br/>\n`;
+            } else {
+               this.logger.debug(`[${index}] Adding paragraph: <p>${paragraphContent}</p>`);
+               html += `<p>${paragraphContent}</p>\n`;
             }
-          } else if (xmlNode.nodeType === 3) { // Text node
-            html += this.escapeHtml(xmlNode.textContent || '');
-          }
-      }
-    });
+            break; }
+
+          case 'heading':
+            this.logger.debug(`[${index}] Processing heading node`);
+            // Convert heading to HTML <h1>-<h6> tags
+            {
+              // Safely extract the level attribute and ensure it's a string
+              let level: string;
+              try {
+                const rawLevel = xmlNode.getAttribute('level');
+                this.logger.debug(`[${index}] Raw heading level: ${rawLevel}, type: ${typeof rawLevel}`);
+
+                // Convert to string and ensure it's between 1-6
+                level = String(rawLevel || 1);
+                // Validate level is between 1-6
+                const numLevel = parseInt(level, 10);
+                if (isNaN(numLevel) || numLevel < 1 || numLevel > 6) {
+                  this.logger.warn(`[${index}] Invalid heading level ${level}, defaulting to 1`);
+                  level = '1';
+                }
+              } catch (error) {
+                this.logger.error(`[${index}] Error getting heading level: ${error}, defaulting to 1`);
+                level = '1';
+              }
+
+              let headingContent = '';
+              // Always process child nodes using forEach
+              if (typeof xmlNode.forEach === 'function') {
+                this.logger.debug(`[${index}] Heading has children, processing them`);
+                xmlNode.forEach((child: any, childIndex: number) => {
+                  this.logger.debug(`[${index}.${childIndex}] Processing heading child`);
+                  const childContent = this.processXmlNode(child);
+                  this.logger.debug(`[${index}.${childIndex}] Child content: "${childContent}"`);
+                  headingContent += childContent;
+                });
+                this.logger.debug(`[${index}] Final heading content: "${headingContent}"`);
+              } else {
+                this.logger.warn(`[${index}] Heading node doesn't have forEach method`);
+              }
+
+              this.logger.debug(`[${index}] Adding heading: <h${level}>${headingContent}</h${level}>`);
+              html += `<h${level}>${headingContent}</h${level}>\n`;
+              break;
+            }
+
+          case 'horizontal_rule':
+            this.logger.debug(`[${index}] Adding horizontal rule`);
+            html += '<hr/>\n';
+            break;
+
+          default:
+            this.logger.debug(`[${index}] Processing default/unknown node type: ${nodeName}`);
+            // For unhandled node types, try to get direct text or process children
+            if (xmlNode.toString) {
+              const textContent = xmlNode.toString();
+              this.logger.debug(`[${index}] Node has toString method, content: "${textContent}"`);
+              if (textContent) {
+                const escapedContent = this.escapeHtml(textContent);
+                this.logger.debug(`[${index}] Adding escaped text: "${escapedContent}"`);
+                html += escapedContent;
+              }
+            } else if (xmlNode.childNodes && xmlNode.childNodes.length > 0) {
+              this.logger.debug(`[${index}] Node has ${xmlNode.childNodes.length} childNodes`);
+              for (const child of xmlNode.childNodes) {
+                const childContent = this.processXmlNode(child);
+                this.logger.debug(`[${index}] Child node content: "${childContent}"`);
+                html += childContent;
+              }
+            } else if (xmlNode.nodeType === 3) { // Text node
+              const textContent = xmlNode.textContent || '';
+              this.logger.debug(`[${index}] Text node content: "${textContent}"`);
+              const escapedContent = this.escapeHtml(textContent);
+              this.logger.debug(`[${index}] Adding escaped text node content: "${escapedContent}"`);
+              html += escapedContent;
+            } else {
+              this.logger.warn(`[${index}] Unhandled node type with no processing method`);
+            }
+        }
+      });
+
+      this.logger.debug(`Fragment conversion complete. Final HTML length: ${html.length}`);
+    } catch (error) {
+      this.logger.error(`Error during XML fragment conversion: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(`Error stack: ${error instanceof Error ? error.stack : 'No stack available'}`);
+      return '<p>Error converting document content</p>';
+    }
 
     return html;
   }
@@ -208,7 +278,9 @@ export class DocumentRendererService {
    * @returns HTML string
    */
   private processXmlNode(xmlNode: any): string {
-    this.logger.debug(`Processing node: ${xmlNode?.constructor?.name}`); // Log node type
+    const nodeType = typeof xmlNode;
+    const nodeConstructor = xmlNode?.constructor?.name;
+    this.logger.debug(`Processing node: type=${nodeType}, constructor=${nodeConstructor}`);
 
     if (!xmlNode) {
       this.logger.debug('Node is null/undefined, returning empty string.');
@@ -217,71 +289,128 @@ export class DocumentRendererService {
 
     // Handle Yjs Text nodes
     if (xmlNode instanceof XmlText) {
-      const textContent = xmlNode.toString();
-      this.logger.debug(`Processing XmlText, content: "${textContent}"`);
-      const escapedContent = this.escapeHtml(textContent);
-      this.logger.debug(`Returning escaped text: "${escapedContent}"`);
-      return escapedContent;
+      try {
+        const textContent = xmlNode.toString();
+        this.logger.debug(`Processing XmlText, content: "${textContent}"`);
+        const escapedContent = this.escapeHtml(textContent);
+        this.logger.debug(`Returning escaped text: "${escapedContent}"`);
+        return escapedContent;
+      } catch (error) {
+        this.logger.error(`Error processing XmlText node: ${error instanceof Error ? error.message : String(error)}`);
+        return '';
+      }
     }
 
     // Handle Yjs Element nodes
     if (xmlNode instanceof XmlElement) {
-      const nodeName = xmlNode.nodeName;
-      this.logger.debug(`Processing XmlElement: <${nodeName}>`);
-      let content = '';
+      try {
+        const nodeName = xmlNode.nodeName;
+        this.logger.debug(`Processing XmlElement: <${nodeName}>`);
+        let content = '';
 
-      // Iterate through children using forEach if available
-      if (typeof xmlNode.forEach === 'function') {
-        this.logger.debug(`Iterating children of <${nodeName}>...`);
-        xmlNode.forEach((child: any) => {
-          const childHtml = this.processXmlNode(child);
-          this.logger.debug(`  Child (${child?.constructor?.name}) processed, adding: "${childHtml}"`);
-          content += childHtml;
-        });
-        this.logger.debug(`Finished iterating children of <${nodeName}>. Accumulated content: "${content}"`);
-      } else {
-        this.logger.warn(`Cannot iterate over children of node: ${nodeName}`);
-      }
+        // Log element attributes if available
+        try {
+          if (typeof xmlNode.getAttributes === 'function') {
+            const attrs = xmlNode.getAttributes();
+            this.logger.debug(`Element attributes: ${JSON.stringify(attrs)}`);
+          }
+        } catch (attrError) {
+          this.logger.warn(`Failed to get attributes: ${attrError instanceof Error ? attrError.message : String(attrError)}`);
+        }
 
-      // Convert node based on type (inline elements primarily)
-      let resultHtml = '';
-      switch (nodeName) {
-        case 'strong':
-          resultHtml = `<strong>${content}</strong>`; break;
-        case 'em':
-          resultHtml = `<em>${content}</em>`; break;
-        case 'link':
-          { const href = xmlNode.getAttribute('href') || '#';
-          resultHtml = `<a href="${this.escapeHtml(href)}">${content}</a>`; break; }
-        case 'code': // Inline code
-          resultHtml = `<code>${content}</code>`; break;
-        case 'strike':
-          resultHtml = `<s>${content}</s>`; break;
-        case 'underline':
-          resultHtml = `<u>${content}</u>`; break;
-        case 'br': // Self-closing, no content
-          resultHtml = '<br>'; break;
-        case 'image': // Self-closing, uses attributes
-          { const src = xmlNode.getAttribute('src') || '';
-          const alt = xmlNode.getAttribute('alt') || '';
-          resultHtml = `<img src="${this.escapeHtml(src)}" alt="${this.escapeHtml(alt)}">`; break; }
-        // Block elements are handled in convertXmlFragmentToHtml,
-        // but if encountered here, just return content.
-        case 'paragraph':
-        case 'heading':
-        case 'horizontal_rule':
-          this.logger.debug(`Passing content through for block element <${nodeName}>: "${content}"`);
-          resultHtml = content; break; // Pass content through
-        default:
-          this.logger.warn(`Unhandled XML element type in processXmlNode: ${nodeName}`);
-          resultHtml = content; break; // Return content for unhandled
+        // Iterate through children using forEach if available
+        if (typeof xmlNode.forEach === 'function') {
+          this.logger.debug(`Iterating children of <${nodeName}>...`);
+          let childCount = 0;
+
+          xmlNode.forEach((child: any) => {
+            this.logger.debug(`Processing child ${childCount} of <${nodeName}>`);
+            try {
+              const childHtml = this.processXmlNode(child);
+              this.logger.debug(`Child ${childCount} of <${nodeName}> processed, content: "${childHtml}"`);
+              content += childHtml;
+              childCount++;
+            } catch (childError) {
+              this.logger.error(`Error processing child ${childCount} of <${nodeName}>: ${childError instanceof Error ? childError.message : String(childError)}`);
+            }
+          });
+
+          this.logger.debug(`Processed ${childCount} children of <${nodeName}>. Accumulated content: "${content}"`);
+        } else {
+          this.logger.warn(`Cannot iterate over children of node: ${nodeName} (no forEach method)`);
+        }
+
+        // Convert node based on type (inline elements primarily)
+        let resultHtml = '';
+        switch (nodeName) {
+          case 'strong':
+            this.logger.debug(`Converting <strong> element with content: "${content}"`);
+            resultHtml = `<strong>${content}</strong>`;
+            break;
+          case 'em':
+            this.logger.debug(`Converting <em> element with content: "${content}"`);
+            resultHtml = `<em>${content}</em>`;
+            break;
+          case 'link':
+            try {
+              const href = xmlNode.getAttribute('href') || '#';
+              this.logger.debug(`Converting <link> element with href="${href}", content: "${content}"`);
+              resultHtml = `<a href="${this.escapeHtml(href)}">${content}</a>`;
+            } catch (linkError) {
+              this.logger.error(`Error processing link attributes: ${linkError instanceof Error ? linkError.message : String(linkError)}`);
+              resultHtml = content; // Fallback to just the content
+            }
+            break;
+          case 'code': // Inline code
+            this.logger.debug(`Converting <code> element with content: "${content}"`);
+            resultHtml = `<code>${content}</code>`;
+            break;
+          case 'strike':
+            this.logger.debug(`Converting <strike> element with content: "${content}"`);
+            resultHtml = `<s>${content}</s>`;
+            break;
+          case 'underline':
+            this.logger.debug(`Converting <underline> element with content: "${content}"`);
+            resultHtml = `<u>${content}</u>`;
+            break;
+          case 'br': // Self-closing, no content
+            this.logger.debug(`Converting <br> element`);
+            resultHtml = '<br>';
+            break;
+          case 'image': // Self-closing, uses attributes
+            try {
+              const src = xmlNode.getAttribute('src') || '';
+              const alt = xmlNode.getAttribute('alt') || '';
+              this.logger.debug(`Converting <image> element with src="${src}", alt="${alt}"`);
+              resultHtml = `<img src="${this.escapeHtml(src)}" alt="${this.escapeHtml(alt)}">`;
+            } catch (imgError) {
+              this.logger.error(`Error processing image attributes: ${imgError instanceof Error ? imgError.message : String(imgError)}`);
+              resultHtml = '[image]'; // Fallback placeholder
+            }
+            break;
+          // Block elements are handled in convertXmlFragmentToHtml,
+          // but if encountered here, just return content.
+          case 'paragraph':
+          case 'heading':
+          case 'horizontal_rule':
+            this.logger.debug(`Passing content through for block element <${nodeName}>: "${content}"`);
+            resultHtml = content; // Pass content through
+            break;
+          default:
+            this.logger.warn(`Unhandled XML element type in processXmlNode: ${nodeName}, using content as-is`);
+            resultHtml = content; // Return content for unhandled
+        }
+
+        this.logger.debug(`Processed <${nodeName}>, final HTML: "${resultHtml}"`);
+        return resultHtml;
+      } catch (elementError) {
+        this.logger.error(`Error processing XML element: ${elementError instanceof Error ? elementError.message : String(elementError)}`);
+        return '';
       }
-      this.logger.debug(`Returning HTML for <${nodeName}>: "${resultHtml}"`);
-      return resultHtml;
     }
 
     // Fallback for unknown node types
-    this.logger.warn(`Unknown node type encountered in processXmlNode: ${typeof xmlNode}, constructor: ${xmlNode?.constructor?.name}`);
+    this.logger.warn(`Unknown node type encountered in processXmlNode: ${nodeType}, constructor: ${nodeConstructor}`);
     return '';
   }
 
