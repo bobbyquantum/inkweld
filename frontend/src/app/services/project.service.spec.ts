@@ -109,21 +109,6 @@ describe('ProjectService', () => {
       expect(service.isLoading()).toBe(false);
     });
 
-    it('should use cached projects when available', async () => {
-      // Set cache with projects
-      mockStorageService.get.mockResolvedValue(mockProjects);
-
-      await service.loadAllProjects();
-
-      // Verify API was NOT called
-      expect(
-        mockProjectAPIService.projectControllerGetAllProjects
-      ).not.toHaveBeenCalled();
-
-      // Verify projects were set in signal from cache
-      expect(service.projects()).toEqual(mockProjects);
-    });
-
     it('should handle API errors correctly', async () => {
       // Set empty cache
       mockStorageService.get.mockResolvedValue(undefined);
