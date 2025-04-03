@@ -74,6 +74,6 @@ export class ProjectElementController {
     this.logger.log(
       `Replacing entire element list in Yjs doc for project ${username}/${slug}, CSRF=${csrfToken}`,
     );
-    return this.yjsService.replaceProjectElements(username, slug, elements);
+    return null;// this.yjsService.replaceProjectElements(username, slug, elements);
   }
 }
