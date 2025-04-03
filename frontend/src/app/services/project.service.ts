@@ -70,29 +70,50 @@ export class ProjectService {
     this.error.set(undefined);
 
     try {
-      // Try cached projects first if storage is available
+      let cachedProjects: ProjectDto[] | undefined;
+
+      // Get cached projects if available to display immediately
       if (this.storage.isAvailable()) {
-        const cachedProjects = await this.getCachedProjects();
+        cachedProjects = await this.getCachedProjects();
         if (cachedProjects && cachedProjects.length > 0) {
           this.projects.set(cachedProjects);
-          return;
+          // Don't return - continue to fetch fresh data
         }
       }
 
-      // Fallback to API with retry mechanism
-      const projects = await firstValueFrom(
-        this.projectApi.projectControllerGetAllProjects().pipe(
-          retry(MAX_RETRIES),
-          catchError((error: unknown) => {
-            const projectError = this.formatError(error);
-            this.error.set(projectError);
-            return throwError(() => projectError);
-          })
-        )
-      );
+      // Always fetch from API to get fresh data
+      try {
+        const projects = await firstValueFrom(
+          this.projectApi.projectControllerGetAllProjects().pipe(
+            retry(MAX_RETRIES),
+            catchError((error: unknown) => {
+              // If we have cached data, log the error but don't propagate it
+              if (cachedProjects && cachedProjects.length > 0) {
+                console.warn(
+                  'Failed to refresh projects, using cached data:',
+                  error
+                );
+                return throwError(() => error);
+              }
 
-      if (projects) {
-        await this.setProjects(projects);
+              // Otherwise, handle error normally
+              const projectError = this.formatError(error);
+              this.error.set(projectError);
+              return throwError(() => projectError);
+            })
+          )
+        );
+
+        if (projects) {
+          await this.setProjects(projects);
+        }
+      } catch (err) {
+        // If we have cached data, we can survive API errors
+        if (!cachedProjects || cachedProjects.length === 0) {
+          throw err; // Re-throw if we don't have cache data
+        }
+        // Otherwise just log the error
+        console.warn('Using cached projects due to API error:', err);
       }
     } catch (err) {
       const error =
@@ -117,17 +138,26 @@ export class ProjectService {
     this.isLoading.set(true);
     this.error.set(undefined);
 
+    const cacheKey = `${username}/${slug}`;
+    let cachedProject: ProjectDto | undefined;
+
     try {
       // Try to find project in cached projects first
       if (this.storage.isAvailable()) {
-        const cacheKey = `${username}/${slug}`;
-        const cachedProject = await this.getCachedProject(cacheKey);
+        cachedProject = await this.getCachedProject(cacheKey);
         if (cachedProject) {
+          // Return cached project immediately for fast UI response
+          // But continue fetching fresh data in the background
+          setTimeout(
+            () => void this.refreshProjectInBackground(username, slug),
+            0
+          );
+          this.isLoading.set(false);
           return cachedProject;
         }
       }
 
-      // Fallback to API with retry mechanism
+      // No cache available, fetch from API with retry mechanism
       const project = await firstValueFrom(
         this.projectApi
           .projectControllerGetProjectByUsernameAndSlug(username, slug)
@@ -143,7 +173,7 @@ export class ProjectService {
 
       if (project) {
         // Cache the individual project
-        await this.setCachedProject(`${username}/${slug}`, project);
+        await this.setCachedProject(cacheKey, project);
       }
 
       return project;
@@ -157,6 +187,54 @@ export class ProjectService {
       throw error;
     } finally {
       this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Refreshes a project in the background without blocking UI
+   * This helps keep cached data fresh without disrupting the user experience
+   */
+  private async refreshProjectInBackground(
+    username: string,
+    slug: string
+  ): Promise<void> {
+    const cacheKey = `${username}/${slug}`;
+
+    try {
+      const project = await firstValueFrom(
+        this.projectApi
+          .projectControllerGetProjectByUsernameAndSlug(username, slug)
+          .pipe(
+            retry(MAX_RETRIES),
+            catchError((error: unknown) => {
+              console.warn(
+                `Background refresh failed for project ${cacheKey}:`,
+                error
+              );
+              return throwError(() => error);
+            })
+          )
+      );
+
+      if (project) {
+        // Update the cache with fresh data
+        await this.setCachedProject(cacheKey, project);
+
+        // Also update the project in the projects list if it exists
+        const currentProjects = this.projects();
+        const projectIndex = currentProjects.findIndex(
+          p => p.slug === slug && p.username === username
+        );
+
+        if (projectIndex >= 0) {
+          const updatedProjects = [...currentProjects];
+          updatedProjects[projectIndex] = project;
+          this.projects.set(updatedProjects);
+        }
+      }
+    } catch (error) {
+      // Just log errors for background operations
+      console.warn(`Background refresh failed for project ${cacheKey}:`, error);
     }
   }
 
