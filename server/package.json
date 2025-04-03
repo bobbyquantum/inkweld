@@ -41,6 +41,7 @@
     "dotenv": "16.4.7",
     "express-session": "1.18.1",
     "http-proxy-middleware": "3.0.3",
+    "lodash.debounce": "4.0.8",
     "nest-winston": "^1.10.2",
     "passport": "0.7.0",
     "passport-github": "1.1.0",
@@ -56,6 +57,7 @@
     "swagger-ui-express": "5.0.1",
     "typeorm": "0.3.21",
     "ws": "8.18.1",
+    "y-leveldb": "0.1.2",
     "y-websocket": "3.0.0"
   },
   "devDependencies": {
