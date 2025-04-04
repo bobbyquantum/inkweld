@@ -274,7 +274,7 @@
     },
     "/api/v1/projects/{username}/{slug}/cover": {
       "post": {
-        "description": "Uploads a cover image for a project. Must have a 1.6:1 aspect ratio and minimum width of 1000px.",
+        "description": "Uploads a cover image for a project. Must have a 1:1.6 aspect ratio and minimum width of 1000px.",
         "operationId": "ProjectController_uploadCover",
         "parameters": [
           {
@@ -447,77 +447,6 @@
           }
         },
         "summary": "Get all elements for a project (from Yjs doc)",
-        "tags": [
-          "Project API"
-        ]
-      },
-      "put": {
-        "operationId": "ProjectElementController_replaceProjectElements",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "X-CSRF-TOKEN",
-            "required": true,
-            "in": "header",
-            "description": "CSRF token",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ProjectElementDto"
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Elements replaced in the Y.Doc",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ProjectElementDto"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation errors"
-          },
-          "403": {
-            "description": "User not permitted"
-          },
-          "404": {
-            "description": "Doc not found"
-          }
-        },
-        "summary": "Replace the entire elements array in the Yjs doc",
         "tags": [
           "Project API"
         ]
