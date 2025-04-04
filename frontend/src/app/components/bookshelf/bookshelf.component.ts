@@ -331,7 +331,17 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
     if (this.recentlyDragged) {
       return;
     }
-    this.projectSelected.emit(project);
+
+    // Find the index of the clicked project
+    const clickedIndex = this.projects.findIndex(p => p.slug === project.slug);
+
+    // If the clicked card isn't the active one, scroll to it first
+    if (clickedIndex !== -1 && clickedIndex !== this.activeCardIndex()) {
+      this.scrollToCard(clickedIndex);
+    } else {
+      // If it's already the active card, emit the selection immediately
+      this.projectSelected.emit(project);
+    }
   }
 
   ngOnDestroy() {
