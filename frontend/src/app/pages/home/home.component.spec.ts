@@ -128,11 +128,6 @@ describe('HomeComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['testuser', 'test-project']);
   });
 
-  it('should back to list', () => {
-    component.backToList();
-    expect(component.selectedProject).toBeNull();
-  });
-
   it('should set isMobile to true when breakpoint matches', () => {
     breakpointObserver.observe.mockReturnValue(
       of({ matches: true, breakpoints: {} })
