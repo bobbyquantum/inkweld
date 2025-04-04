@@ -191,7 +191,12 @@ export class EditProjectDialogComponent implements OnInit {
       );
 
       // Handle cover image upload if we have a new image
-      if (this.coverImage && updatedProject.username && updatedProject.slug) {
+      if (
+        this.coverImage instanceof File &&
+        updatedProject.username &&
+        updatedProject.slug
+      ) {
+        // Check if it's a File
         try {
           await this.projectService.uploadProjectCover(
             updatedProject.username,
