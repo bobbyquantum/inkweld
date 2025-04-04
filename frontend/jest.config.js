@@ -9,6 +9,7 @@ const config = {
     '@services/(.*)': '<rootDir>/src/app/services/$1',
     '@themes/(.*)': '<rootDir>/src/themes/$1',
     '@inkweld/(.*)': '<rootDir>/src/api-client/$1',
+    '^lodash-es$': 'lodash',
   },
   roots: ['<rootDir>/src/'],
   testMatch: ['**/+(*.)+(spec).+(ts)'],
