@@ -50,57 +50,10 @@
         <p>Try a different search term</p>
       </div>
     } @else {
-      <!-- Add a center element reference marker -->
-      <div class="center-selector"></div>
-
-      <div class="bookshelf-container">
-        <div
-          #projectsGrid
-          cdkDrag
-          [cdkDragLockAxis]="'x'"
-          (cdkDragStarted)="onDragStarted()"
-          (cdkDragMoved)="onDragMoved()"
-          (cdkDragEnded)="onDragEnded($event)"
-          class="projects-grid bookshelf">
-          @for (
-            project of filteredProjects();
-            track project.slug;
-            let i = $index
-          ) {
-            <div
-              (click)="selectProject(project)"
-              (keyup.enter)="selectProject(project)"
-              tabindex="0"
-              role="button"
-              class="project-card-wrapper"
-              [class.centered]="activeCardIndex() === i"
-              [attr.data-index]="i"
-              title="Select {{ project.title }}">
-              <app-project-card [project]="project" />
-            </div>
-          }
-        </div>
-
-        <!-- Optional navigation controls for the bookshelf -->
-        @if (filteredProjects().length > 4) {
-          <div class="bookshelf-nav">
-            <button
-              mat-mini-fab
-              class="nav-prev"
-              aria-label="Previous book"
-              (click)="scrollToPrevious()">
-              <mat-icon>chevron_left</mat-icon>
-            </button>
-            <button
-              mat-mini-fab
-              class="nav-next"
-              aria-label="Next book"
-              (click)="scrollToNext()">
-              <mat-icon>chevron_right</mat-icon>
-            </button>
-          </div>
-        }
-      </div>
+      <app-bookshelf
+        [projects]="filteredProjects()"
+        (projectSelected)="selectProject($event)">
+      </app-bookshelf>
     }
   }
 </div>
