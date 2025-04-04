@@ -93,7 +93,11 @@ export class ProjectService {
                   'Failed to refresh projects, using cached data:',
                   error
                 );
-                return throwError(() => error);
+                // Return an empty observable or rethrow a specific error if needed,
+                // but avoid throwing the original error to prevent breaking the outer try/catch
+                return throwError(
+                  () => new Error('Refresh failed, using cache')
+                ); // Use a distinct error/signal
               }
 
               // Otherwise, handle error normally
@@ -105,12 +109,21 @@ export class ProjectService {
         );
 
         if (projects) {
+          // Assume projects is ProjectDto[]
           await this.setProjects(projects);
         }
       } catch (err) {
         // If we have cached data, we can survive API errors
         if (!cachedProjects || cachedProjects.length === 0) {
-          throw err; // Re-throw if we don't have cache data
+          // Only re-throw if it's not the specific 'Refresh failed' error
+          if (
+            !(
+              err instanceof Error &&
+              err.message === 'Refresh failed, using cache'
+            )
+          ) {
+            throw err; // Re-throw actual API errors if no cache
+          }
         }
         // Otherwise just log the error
         console.warn('Using cached projects due to API error:', err);
@@ -175,9 +188,8 @@ export class ProjectService {
         // Cache the individual project
         await this.setCachedProject(cacheKey, project);
       }
-
       return project;
-    } catch (err) {
+    } catch (err: unknown) {
       const error =
         err instanceof ProjectServiceError
           ? err
@@ -211,7 +223,8 @@ export class ProjectService {
                 `Background refresh failed for project ${cacheKey}:`,
                 error
               );
-              return throwError(() => error);
+              // Don't re-throw, just complete the observable chain
+              return throwError(() => error); // Or return EMPTY
             })
           )
       );
@@ -229,10 +242,10 @@ export class ProjectService {
         if (projectIndex >= 0) {
           const updatedProjects = [...currentProjects];
           updatedProjects[projectIndex] = project;
-          this.projects.set(updatedProjects);
+          await this.setProjects(updatedProjects); // Update list and cache
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       // Just log errors for background operations
       console.warn(`Background refresh failed for project ${cacheKey}:`, error);
     }
@@ -263,9 +276,8 @@ export class ProjectService {
       const currentProjects = this.projects();
       const updatedProjects = [...currentProjects, project];
       await this.setProjects(updatedProjects);
-
       return project;
-    } catch (err) {
+    } catch (err: unknown) {
       const error =
         err instanceof ProjectServiceError
           ? err
@@ -314,9 +326,8 @@ export class ProjectService {
         p.slug === slug && p.username === username ? project : p
       );
       await this.setProjects(updatedProjects);
-
       return project;
-    } catch (err) {
+    } catch (err: unknown) {
       const error =
         err instanceof ProjectServiceError
           ? err
@@ -367,7 +378,7 @@ export class ProjectService {
         p => !(p.slug === slug && p.username === username)
       );
       await this.setProjects(updatedProjects);
-    } catch (err) {
+    } catch (err: unknown) {
       const error =
         err instanceof ProjectServiceError
           ? err
@@ -389,12 +400,16 @@ export class ProjectService {
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
             const projectError = this.formatError(error);
-            this.error.set(projectError);
-            return throwError(() => projectError);
+            // Don't set error here if it's a 404, let the outer catch handle it
+            if (projectError.code !== 'PROJECT_NOT_FOUND') {
+              this.error.set(projectError);
+            }
+            return throwError(() => projectError); // Always rethrow formatted error
           })
         )
       );
-    } catch (err) {
+    } catch (err: unknown) {
+      // Add type annotation
       // For cover images, a 404 is expected when no cover image exists yet
       // So we should handle it specially
       if (
@@ -429,6 +444,7 @@ export class ProjectService {
     this.error.set(undefined);
 
     try {
+      // Assume delete returns void or similar
       await firstValueFrom(
         this.projectApi.projectControllerDeleteCover(username, slug).pipe(
           retry(MAX_RETRIES),
@@ -452,7 +468,7 @@ export class ProjectService {
         // Just refresh the project data
         await this.loadAllProjects();
       }
-    } catch (err) {
+    } catch (err: unknown) {
       const error =
         err instanceof ProjectServiceError
           ? err
@@ -478,10 +494,12 @@ export class ProjectService {
 
     try {
       await firstValueFrom(
+        // Upload might return 200 OK or 204 No Content
         this.projectApi
           .projectControllerUploadCover(username, slug, coverImage)
           .pipe(
             retry(MAX_RETRIES),
+            // No map needed
             catchError((error: unknown) => {
               const projectError = this.formatError(error);
               this.error.set(projectError);
@@ -492,7 +510,7 @@ export class ProjectService {
 
       // Refresh projects to get updated data
       await this.loadAllProjects();
-    } catch (err) {
+    } catch (err: unknown) {
       const error =
         err instanceof ProjectServiceError
           ? err
@@ -527,7 +545,8 @@ export class ProjectService {
             );
           }
         }
-      } catch (error) {
+      } catch (error: unknown) {
+        // Keep type annotation
         console.warn('Failed to clear project cache:', error);
       }
     }
@@ -616,7 +635,7 @@ export class ProjectService {
     }
     return new ProjectServiceError(
       'SERVER_ERROR',
-      'Failed to load project data'
+      error instanceof Error ? error.message : 'An unexpected error occurred'
     );
   }
 }
