@@ -18,10 +18,11 @@
   h3 {
     margin-bottom: 0.5rem;
     font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
   }
 
   p {
-    color: rgba(0, 0, 0, 0.6);
+    color: rgba(255, 255, 255, 0.7);
   }
 }
 
@@ -40,9 +41,23 @@
   flex-direction: column;
   align-items: center;
   height: 100vh;
-  overflow: hidden; /* Prevent any scrolling */
-  padding: 60px 20px 80px 20px; /* Reduced padding */
-  box-sizing: border-box; /* Include padding in height calculations */
+  overflow: hidden;
+  background-image: url('/home_background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+  }
+  padding: 60px 20px 80px 20px;
+  box-sizing: border-box;
 }
 
 .search-container {
@@ -56,17 +71,15 @@
   right: 0;
   z-index: 100;
   padding: 16px 0;
-  /* Make search bar stand out against dark background */
   background-color: rgba(18, 18, 18, 0.8);
   backdrop-filter: blur(5px);
 }
 
-/* Center selector element - used as a reference point for centering books */
 .center-selector {
   position: fixed;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%); /* Ensure exact center positioning */
+  transform: translate(-50%, -50%);
   width: 2px;
   height: 2px;
   z-index: 101;
@@ -89,18 +102,15 @@
   flex-direction: row;
   gap: 24px;
   width: max-content;
-  opacity: 0; // Start invisible
-  transition: opacity 0.5s ease-in-out; // Fade in smoothly
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
 
   &.initialized {
-    opacity: 1; // Show when initialized
+    opacity: 1;
   }
   min-width: 100%;
   overflow-x: auto;
   overflow-y: visible;
-
-  /* Disable native scroll-snap since we're handling it programmatically */
-  /* scroll-snap-type: x mandatory; */
 
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
@@ -112,19 +122,17 @@
   align-items: center;
   height: 100%;
 
-  /* Ensure the padding matches the card width + gap for consistent layout */
-  padding: 20px calc(50% - 175px); /* Half the container minus half the card width (350px) */
-  padding: 20px calc(50% - 175px); /* Match scroll-padding for consistent behavior */
+  padding: 20px calc(50% - 175px);
+  padding: 20px calc(50% - 175px);
 
   &.dragging {
     cursor: grabbing;
     scroll-behavior: auto;
   }
 
-  /* Hide scrollbar but keep functionality */
-  scrollbar-width: none; /* Firefox */
+  scrollbar-width: none;
   &::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Edge */
+    display: none;
   }
 }
 
@@ -154,45 +162,37 @@
   transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   border-radius: 8px;
   flex: 0 0 auto;
-  width: 350px; /* Fixed width */
+  width: 350px;
   transform-origin: center center;
-  position: absolute; /* Use absolute positioning to control card placement */
-  left: 50%; /* Start at center */
-  /* No default transform here - will be applied by JavaScript */
-  will-change: transform, opacity, scale; /* Optimize for animations */
-  will-change: transform, opacity, scale; /* Optimize for animations */
+  position: absolute;
+  left: 50%;
+  will-change: transform, opacity, scale;
+  will-change: transform, opacity, scale;
 
-  /* Add a subtle shadow by default */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  opacity: 0.7; /* Make non-selected cards slightly transparent */
+  opacity: 0.7;
 
-  /* Card positions - we'll use JavaScript to control these */
   &:nth-child(1) {
-    /* Card 0 (centered if selected) */
     z-index: 10;
   }
 
   &:nth-child(2) {
-    /* Card 1 */
     z-index: 9;
   }
 
   &:nth-child(3) {
-    /* Card 2 */
     z-index: 8;
   }
 
   &:nth-child(4) {
-    /* Card 3 */
     z-index: 7;
   }
 
   &.centered {
-    /* Selected book has blue border */
     border: 4px solid #007bff;
-    z-index: 40; /* Always on top */
-    transform: translateX(-50%) scale(1.1); /* Make it slightly larger */
-    opacity: 1; /* Full opacity */
+    z-index: 40;
+    transform: translateX(-50%) scale(1.1);
+    opacity: 1;
     box-shadow: 0 20px 30px rgba(0, 0, 0, 0.3);
   }
 
@@ -200,7 +200,6 @@
     box-shadow: 0 0 0 3px #007bff;
   }
 
-  /* Add a subtle 3D book-like effect */
   &::before {
     content: '';
     position: absolute;
@@ -229,7 +228,7 @@
   z-index: 10;
   min-width: 164px;
   padding: 0;
-  overflow: visible; /* Allow content to overflow */
+  overflow: visible;
 }
 
 .loading-state {
@@ -241,6 +240,7 @@
 
   p {
     margin-top: 16px;
+    color: rgba(255, 255, 255, 0.9);
   }
 }
 
@@ -263,10 +263,12 @@
   h2 {
     font-size: 24px;
     margin-bottom: 8px;
+    color: rgba(255, 255, 255, 0.9);
   }
 
   p {
     margin-bottom: 24px;
+    color: rgba(255, 255, 255, 0.7);
   }
 
   .create-first-project-btn {
@@ -290,13 +292,13 @@
     height: 64px;
     width: 64px;
     margin-bottom: 16px;
-    color: #f44336; // Material red
+    color: #f44336;
   }
 
   h2 {
     font-size: 24px;
     margin-bottom: 8px;
-    color: #f44336; // Material red
+    color: #f44336;
   }
 
   p {
