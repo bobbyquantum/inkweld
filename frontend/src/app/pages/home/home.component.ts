@@ -1,4 +1,4 @@
-import { CdkDrag, CdkDropList } from '@angular/cdk/drag-drop';
+import { CdkDrag, CdkDragEnd, CdkDropList } from '@angular/cdk/drag-drop';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import {
   AfterViewInit,
@@ -74,6 +74,12 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   // Flags and handlers
   private recentlyDragged = false;
   private scrollTimeout: number | null = null;
+  private dragTargetIndex = -1; // Store the drag target index
+  private isDragging = false;
+  private startX = 0;
+  private lastX = 0;
+  private dragStartActiveIndex = -1; // Store the active index when drag starts
+  private dragPosition = { x: 0, y: 0 }; // Track drag position to prevent jumps
   private dragUpdateTimeout: number | null = null;
   private wheelHandler = (e: WheelEvent) => this.handleWheel(e);
   private scrollHandler = () => this.handleScroll();
@@ -101,29 +107,81 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   // Handle drag events
   onDragStarted() {
     if (this.projectsGrid?.nativeElement) {
-      this.projectsGrid.nativeElement.classList.add('dragging');
+      console.log('[HomeComponent] Drag started');
+
+      // Add dragging class
+      const grid = this.projectsGrid.nativeElement;
+      grid.classList.add('dragging');
+
+      // Reset drag target index at start of new drag
+      this.dragTargetIndex = -1;
+
+      // IMPORTANT: We need to handle the CDK drag's transform while preserving
+      // our absolute positioning of cards. The best approach is to capture the
+      // current state but not modify anything until drag ends.
+
+      // Store current active card for reference during drag
+      this.dragStartActiveIndex = this.activeCardIndex();
+      console.log(
+        `[HomeComponent] Starting drag with active index: ${this.dragStartActiveIndex}`
+      );
     }
   }
 
-  onDragEnded() {
-    if (this.projectsGrid?.nativeElement) {
-      console.log('[HomeComponent] Drag ended');
-      this.projectsGrid.nativeElement.classList.remove('dragging');
+  onDragEnded(event: CdkDragEnd) {
+    if (!this.projectsGrid?.nativeElement) return;
 
-      // Wait longer for drag momentum to settle
-      setTimeout(() => {
+    console.log('[HomeComponent] Drag ended');
+    const grid = this.projectsGrid.nativeElement;
+    grid.classList.remove('dragging');
+
+    // Capture the grid element reference outside the setTimeout
+    // to ensure TypeScript knows it's defined
+
+    // Wait a bit for drag momentum to settle
+    setTimeout(() => {
+      if (!this.projectsGrid?.nativeElement) return;
+      event.source.reset();
+      // Clear ALL transforms from drag
+      grid.style.transform = '';
+      grid.style.webkitTransform = '';
+
+      // Force a reflow to ensure transform is actually cleared
+      void grid.offsetWidth;
+
+      // Get the current drag target if available
+      if (this.dragTargetIndex === -1) {
+        // If not set during drag, find it now
+        this.dragTargetIndex = this.findCenterCardIndex();
+      }
+
+      console.log(
+        `[HomeComponent] Drag ended with target index: ${this.dragTargetIndex}`
+      );
+
+      // Always snap to the dragged-to position
+      if (this.dragTargetIndex >= 0) {
         console.log(
-          '[HomeComponent] Calling snapToNearestCard after drag delay'
+          `[HomeComponent] Using dragTargetIndex: ${this.dragTargetIndex}`
         );
-        this.snapToNearestCard();
-      }, 150); // Increased from 50ms to 150ms
+        this.scrollToCard(this.dragTargetIndex);
+      } else {
+        // Fallback to original position
+        console.log(
+          `[HomeComponent] Falling back to original position: ${this.dragStartActiveIndex}`
+        );
+        this.scrollToCard(this.dragStartActiveIndex);
+      }
 
-      // Set flag to prevent click events right after drag
-      this.recentlyDragged = true;
-      setTimeout(() => {
-        this.recentlyDragged = false;
-      }, 300); // Clear flag after 300ms
-    }
+      // Reset the drag position and drag state
+      this.dragPosition = { x: 0, y: 0 };
+    }, 50);
+
+    // Set flag to prevent click events right after drag
+    this.recentlyDragged = true;
+    setTimeout(() => {
+      this.recentlyDragged = false;
+    }, 300); // Clear flag after 300ms
   }
 
   onDragDropped() {
@@ -131,9 +189,69 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     // Not actually rearranging items
   }
 
-  // No longer updating during drag
+  // Update card selection during drag
   onDragMoved() {
-    // We're not using drag functionality anymore
+    // Debounce the update to avoid excessive calculations
+    if (!this.dragUpdateTimeout) {
+      this.dragUpdateTimeout = window.setTimeout(() => {
+        // Find the center card but don't reposition - just update visuals
+        const centerIndex = this.findCenterCardIndex();
+
+        // Store this index for use when drag ends
+        this.dragTargetIndex = centerIndex;
+
+        // IMPORTANT: The fix is to update the activeCardIndex to match
+        // the card that's currently being dragged to
+        this.activeCardIndex.set(centerIndex);
+
+        console.log(
+          `[HomeComponent] Storing drag target index: ${centerIndex}`
+        );
+
+        if (centerIndex !== this.activeCardIndex()) {
+          console.log(
+            `[HomeComponent] During drag - new center card: ${centerIndex}`
+          );
+          this.updateCardVisuals(centerIndex);
+        }
+
+        this.dragUpdateTimeout = null;
+      }, 50);
+    }
+  }
+
+  // Update card visuals without repositioning
+  private updateCardVisuals(centerIndex: number) {
+    if (!this.projectsGrid?.nativeElement) return;
+
+    const grid = this.projectsGrid.nativeElement;
+    const cards = Array.from(grid.querySelectorAll('.project-card-wrapper'));
+
+    if (centerIndex >= 0 && centerIndex < cards.length) {
+      // Update active index
+      this.activeCardIndex.set(centerIndex);
+
+      // Update visual styles without changing positions
+      cards.forEach((card, i) => {
+        const element = card as HTMLElement;
+
+        // Update z-index and opacity
+        const distance = Math.abs(i - centerIndex);
+        element.style.zIndex =
+          i === centerIndex ? '40' : (10 - distance).toString();
+        element.style.opacity =
+          distance === 0 ? '1' : distance === 1 ? '0.8' : '0.5';
+
+        // Apply/remove centered class
+        if (i === centerIndex) {
+          element.classList.add('centered');
+          element.style.transform = 'translateX(-50%) scale(1.1)';
+        } else {
+          element.classList.remove('centered');
+          element.style.transform = 'translateX(-50%)';
+        }
+      });
+    }
   }
 
   // Helper functions for carousel centering
@@ -162,13 +280,60 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  // Not using snap functionality
+  // After drag ends, find the nearest card and smoothly center it
   snapToNearestCard() {
     console.log(
       '[HomeComponent] snapToNearestCard called - using new positioning approach'
     );
-    // We don't need to find the center index, just keep the currently active one
-    this.scrollToCard(this.activeCardIndex());
+
+    if (!this.projectsGrid?.nativeElement) return;
+
+    const grid = this.projectsGrid.nativeElement;
+
+    // First cancel all CdkDrag transforms which affect positioning
+    grid.style.transform = '';
+    grid.style.webkitTransform = '';
+
+    // Force a browser reflow to ensure the transform is cleared
+    void grid.offsetWidth;
+
+    // Important: Get current drag state BEFORE applying any changes
+    const cards = Array.from(grid.querySelectorAll('.project-card-wrapper'));
+
+    // CRITICAL FIX: Use findCenterCardIndex() but store the result in a local variable
+    // This ensures we get the card that's closest to the center after dragging
+    const centerIndex = this.findCenterCardIndex();
+
+    console.log(`[HomeComponent] Closest card after drag: ${centerIndex}`);
+
+    // Apply transitions for smooth movement
+    cards.forEach(card => {
+      const element = card as HTMLElement;
+      element.style.transition =
+        'left 0.35s ease-out, transform 0.35s ease-out';
+    });
+
+    // Use our absolute positioning to properly align cards
+    console.log(`[HomeComponent] Centering card ${centerIndex} after drag`);
+
+    // CRITICAL FIX: Set the active card index BEFORE calling scrollToCard
+    // This ensures the correct card is selected after drag
+    this.activeCardIndex.set(centerIndex);
+
+    // This will position the cards with the new selected card in the center
+    this.scrollToCard(centerIndex);
+
+    // Remove the transition after animation completes
+    setTimeout(() => {
+      cards.forEach(card => {
+        const element = card as HTMLElement;
+        element.style.transition = '';
+      });
+
+      // Reset the drag target index to avoid affecting future operations
+      this.dragTargetIndex = -1;
+      console.log('[HomeComponent] Reset drag target index');
+    }, 350); // Slightly longer than the transition duration
   }
 
   findCenterCardIndex(): number {
@@ -229,8 +394,20 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
     if (index >= 0 && index < cards.length) {
       console.log(`[HomeComponent] Selecting card ${index}`);
 
-      // First update the active index
-      this.activeCardIndex.set(index);
+      // Clear any lingering transforms or transitions from previous operations
+      cards.forEach(card => {
+        const element = card as HTMLElement;
+        element.style.transition = ''; // Clear transitions before setting new positions
+      });
+
+      // Only update the active index if it wasn't set by snapToNearestCard
+      // This prevents the "snap back to first card" issue after dragging
+      if (this.activeCardIndex() !== index) {
+        this.activeCardIndex.set(index);
+      }
+
+      // Brief pause to ensure transitions are cleared
+      void grid.offsetWidth;
 
       // Card dimensions
       const CARD_WIDTH = 350;

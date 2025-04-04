@@ -60,7 +60,7 @@
           [cdkDragLockAxis]="'x'"
           (cdkDragStarted)="onDragStarted()"
           (cdkDragMoved)="onDragMoved()"
-          (cdkDragEnded)="onDragEnded()"
+          (cdkDragEnded)="onDragEnded($event)"
           class="projects-grid bookshelf">
           @for (
             project of filteredProjects();
