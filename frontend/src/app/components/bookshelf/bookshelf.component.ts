@@ -293,10 +293,18 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
   }
 
   private handleWheel(e: WheelEvent) {
-    if (e.deltaX === 0) return;
+    // Check for vertical scroll (most common with mouse wheels)
+    if (e.deltaY !== 0) {
+      e.preventDefault();
+      this.debouncedWheelHandler(e.deltaY);
+      return;
+    }
 
-    e.preventDefault();
-    this.debouncedWheelHandler(e.deltaX);
+    // Also handle horizontal scroll (trackpads often use this)
+    if (e.deltaX !== 0) {
+      e.preventDefault();
+      this.debouncedWheelHandler(e.deltaX);
+    }
   }
 
   ngAfterViewInit() {
