@@ -1,4 +1,3 @@
-<!-- Add a center element reference marker -->
 <div class="center-selector"></div>
 
 <div class="bookshelf-container">
@@ -24,24 +23,4 @@
       </div>
     }
   </div>
-
-  <!-- Optional navigation controls for the bookshelf -->
-  @if (projects.length > 2) {
-    <div class="bookshelf-nav">
-      <button
-        mat-mini-fab
-        class="nav-prev"
-        aria-label="Previous book"
-        (click)="scrollToPrevious()">
-        <mat-icon>chevron_left</mat-icon>
-      </button>
-      <button
-        mat-mini-fab
-        class="nav-next"
-        aria-label="Next book"
-        (click)="scrollToNext()">
-        <mat-icon>chevron_right</mat-icon>
-      </button>
-    </div>
-  }
 </div>
