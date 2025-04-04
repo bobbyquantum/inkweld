@@ -15,6 +15,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { ProjectDto } from '@inkweld/index';
+import { debounce } from 'lodash-es';
 
 @Component({
   selector: 'app-bookshelf',
@@ -32,11 +33,28 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
   protected activeCardIndex = signal(-1);
 
   private recentlyDragged = false;
-  private scrollTimeout: number | null = null;
   private dragTargetIndex = -1;
   private dragStartActiveIndex = -1;
-  private dragUpdateTimeout: number | null = null;
   private wheelHandler = (e: WheelEvent) => this.handleWheel(e);
+
+  // Debounced functions
+  private debouncedUpdateCenteredItem = debounce(this.updateCenteredItem, 100);
+  private debouncedDragUpdate = debounce(() => {
+    const centerIndex = this.findCenterCardIndex();
+    this.dragTargetIndex = centerIndex;
+    this.activeCardIndex.set(centerIndex);
+
+    if (centerIndex !== this.activeCardIndex()) {
+      this.updateCardVisuals(centerIndex);
+    }
+  }, 50);
+  private debouncedWheelHandler = debounce((deltaX: number) => {
+    if (deltaX > 50) {
+      this.scrollToNext();
+    } else if (deltaX < -50) {
+      this.scrollToPrevious();
+    }
+  }, 100);
 
   onDragStarted() {
     if (this.projectsGrid?.nativeElement) {
@@ -78,19 +96,7 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
   }
 
   onDragMoved() {
-    if (!this.dragUpdateTimeout) {
-      this.dragUpdateTimeout = window.setTimeout(() => {
-        const centerIndex = this.findCenterCardIndex();
-        this.dragTargetIndex = centerIndex;
-        this.activeCardIndex.set(centerIndex);
-
-        if (centerIndex !== this.activeCardIndex()) {
-          this.updateCardVisuals(centerIndex);
-        }
-
-        this.dragUpdateTimeout = null;
-      }, 50);
-    }
+    this.debouncedDragUpdate();
   }
 
   private updateCardVisuals(centerIndex: number) {
@@ -272,13 +278,7 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
   }
 
   private handleScroll() {
-    if (this.scrollTimeout) {
-      window.clearTimeout(this.scrollTimeout);
-    }
-    this.scrollTimeout = window.setTimeout(() => {
-      this.updateCenteredItem();
-      this.scrollTimeout = null;
-    }, 100);
+    this.debouncedUpdateCenteredItem();
   }
 
   @HostListener('window:keydown', ['$event'])
@@ -296,18 +296,7 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
     if (e.deltaX === 0) return;
 
     e.preventDefault();
-    if (this.scrollTimeout) {
-      window.clearTimeout(this.scrollTimeout);
-    }
-
-    this.scrollTimeout = window.setTimeout(() => {
-      if (e.deltaX > 50) {
-        this.scrollToNext();
-      } else if (e.deltaX < -50) {
-        this.scrollToPrevious();
-      }
-      this.scrollTimeout = null;
-    }, 100);
+    this.debouncedWheelHandler(e.deltaX);
   }
 
   ngAfterViewInit() {
@@ -345,11 +334,9 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
       );
     }
 
-    if (this.scrollTimeout) {
-      window.clearTimeout(this.scrollTimeout);
-    }
-    if (this.dragUpdateTimeout) {
-      window.clearTimeout(this.dragUpdateTimeout);
-    }
+    // Cancel any pending debounced operations
+    this.debouncedUpdateCenteredItem.cancel();
+    this.debouncedDragUpdate.cancel();
+    this.debouncedWheelHandler.cancel();
   }
 }
