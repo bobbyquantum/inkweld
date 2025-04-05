@@ -31,6 +31,18 @@
   &.initialized {
     opacity: 1;
   }
+  &.transitioning {
+    cursor: default;
+    pointer-events: none;
+  }
+  &.no-transitions * {
+    transition: none !important;
+  }
+  &.freeze-position * {
+    will-change: left, transform;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+  }
   min-width: 100%;
   overflow-x: auto;
   overflow-y: visible;
@@ -85,14 +97,15 @@
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
               opacity 0.3s ease-in-out,
               border-color 0.3s ease-in-out,
-              box-shadow 0.3s ease-in-out;
+              box-shadow 0.3s ease-in-out,
+              left 0.5s cubic-bezier(0.23, 1, 0.32, 1); /* Added smooth transition for left position */
   border-radius: 8px;
   flex: 0 0 auto;
   width: 350px;
   transform-origin: center center;
   position: absolute;
   left: 50%;
-  will-change: transform, opacity, scale, box-shadow;
+  will-change: transform, opacity, scale, box-shadow, left; /* Added left to will-change */
 
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   opacity: 0.7;
