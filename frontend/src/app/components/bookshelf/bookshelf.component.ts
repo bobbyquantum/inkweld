@@ -42,9 +42,9 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
   private debouncedDragUpdate = debounce(() => {
     const centerIndex = this.findCenterCardIndex();
     this.dragTargetIndex = centerIndex;
-    this.activeCardIndex.set(centerIndex);
 
     if (centerIndex !== this.activeCardIndex()) {
+      this.activeCardIndex.set(centerIndex);
       this.updateCardVisuals(centerIndex);
     }
   }, 50);
@@ -96,6 +96,11 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
   }
 
   onDragMoved() {
+    // Find center card immediately to update visuals while dragging
+    const centerIndex = this.findCenterCardIndex();
+    this.updateCardVisuals(centerIndex);
+
+    // Still use debounced update for state management
     this.debouncedDragUpdate();
   }
 
@@ -114,15 +119,20 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
         const distance = Math.abs(i - centerIndex);
         element.style.zIndex =
           i === centerIndex ? '40' : (10 - distance).toString();
+
+        // Calculate opacity based on distance
         element.style.opacity =
           distance === 0 ? '1' : distance === 1 ? '0.8' : '0.5';
 
+        // Dynamic scaling based on distance
+        const scale = distance === 0 ? 1.1 : distance === 1 ? 0.9 : 0.8;
+
         if (i === centerIndex) {
           element.classList.add('centered');
-          element.style.transform = 'translateX(-50%) scale(1.1)';
+          element.style.transform = `translateX(-50%) scale(${scale})`;
         } else {
           element.classList.remove('centered');
-          element.style.transform = 'translateX(-50%)';
+          element.style.transform = `translateX(-50%) scale(${scale})`;
         }
       });
     }
