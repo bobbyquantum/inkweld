@@ -71,23 +71,81 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
     const grid = this.projectsGrid.nativeElement;
     grid.classList.remove('dragging');
 
+    // Prevent any card transitions during the release handling
+    grid.classList.add('no-transitions');
+
+    // Find the center card index
+    if (this.dragTargetIndex === -1) {
+      this.dragTargetIndex = this.findCenterCardIndex();
+    }
+
+    // Store current visual positions of all cards before any changes
+    const cards = Array.from(grid.querySelectorAll('.project-card-wrapper'));
+
+    // Define type for the card position data
+    interface CardPosition {
+      leftPx: number;
+      width: number;
+    }
+
+    const cardPositions = new Map<HTMLElement, CardPosition>();
+
+    // Capture exact positions and store them in a map for quick access
+    cards.forEach(card => {
+      const element = card as HTMLElement;
+      const rect = element.getBoundingClientRect();
+      cardPositions.set(element, {
+        leftPx: rect.left,
+        width: rect.width,
+      });
+    });
+
+    // We'll freeze all animations temporarily
+    cards.forEach(card => {
+      const element = card as HTMLElement;
+      element.style.transition = 'none';
+    });
+
+    // Reset the drag source but maintain visual positions
+    event.source.reset();
+
+    // Prevent the browser from batching these style changes
+    void grid.offsetWidth;
+
+    // Important: Apply exact release positions immediately
+    cards.forEach(card => {
+      const element = card as HTMLElement;
+      const pos = cardPositions.get(element);
+      if (pos) {
+        // Position each card exactly where it visually was at release
+        element.style.left = `${pos.leftPx + pos.width / 2}px`;
+      }
+    });
+
+    // Apply a class that will freeze everything during this critical time
+    grid.classList.add('freeze-position');
+
+    // Force layout recalculation to ensure positions are applied
+    void grid.offsetWidth;
+
+    // Now we can safely remove the no-transitions class and add transitioning
     setTimeout(() => {
-      if (!this.projectsGrid?.nativeElement) return;
-      event.source.reset();
-      grid.style.transform = '';
-      grid.style.webkitTransform = '';
-      void grid.offsetWidth;
+      grid.classList.remove('no-transitions');
+      grid.classList.add('transitioning');
+      grid.classList.remove('freeze-position');
 
-      if (this.dragTargetIndex === -1) {
-        this.dragTargetIndex = this.findCenterCardIndex();
-      }
-
+      // Now start the smooth animation to the final positions
       if (this.dragTargetIndex >= 0) {
-        this.scrollToCard(this.dragTargetIndex);
+        this.scrollToCard(this.dragTargetIndex, true);
       } else {
-        this.scrollToCard(this.dragStartActiveIndex);
+        this.scrollToCard(this.dragStartActiveIndex, true);
       }
-    }, 50);
+
+      // Remove the transitioning class after animation completes
+      setTimeout(() => {
+        grid.classList.remove('transitioning');
+      }, 500);
+    }, 20); // Small delay to ensure browser renders the frozen positions first
 
     this.recentlyDragged = true;
     setTimeout(() => {
@@ -192,18 +250,13 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
     return closestCardIndex;
   }
 
-  scrollToCard(index: number) {
+  scrollToCard(index: number, smoothTransition = false) {
     if (!this.projectsGrid?.nativeElement) return;
 
     const grid = this.projectsGrid.nativeElement;
     const cards = Array.from(grid.querySelectorAll('.project-card-wrapper'));
 
     if (index >= 0 && index < cards.length) {
-      cards.forEach(card => {
-        const element = card as HTMLElement;
-        element.style.transition = '';
-      });
-
       if (this.activeCardIndex() !== index) {
         this.activeCardIndex.set(index);
       }
@@ -219,15 +272,27 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
       cards.forEach((card, i) => {
         const element = card as HTMLElement;
 
+        // Apply smoother transition when requested
+        if (smoothTransition) {
+          element.style.transition =
+            'transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), ' +
+            'opacity 0.5s ease-in-out, ' +
+            'left 0.5s cubic-bezier(0.23, 1, 0.32, 1)';
+        } else {
+          // Use default transitions from CSS
+          element.style.transition = '';
+        }
+
         const position = viewportCenter + (i - index) * (CARD_WIDTH + CARD_GAP);
 
+        // Apply position and scale
         element.style.left = `${position}px`;
-        element.style.transform =
-          i === index ? 'translateX(-50%) scale(1.1)' : 'translateX(-50%)';
 
         const distance = Math.abs(i - index);
-        element.style.zIndex = i === index ? '40' : (10 - distance).toString();
+        const scale = distance === 0 ? 1.1 : distance === 1 ? 0.9 : 0.8;
 
+        element.style.transform = `translateX(-50%) scale(${scale})`;
+        element.style.zIndex = i === index ? '40' : (10 - distance).toString();
         element.style.opacity =
           distance === 0 ? '1' : distance === 1 ? '0.8' : '0.5';
 
