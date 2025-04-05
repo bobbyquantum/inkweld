@@ -55,12 +55,27 @@ export class DocumentService {
    */
   getSyncStatus(documentId: string): Observable<DocumentSyncState> {
     if (!this.syncStatusSubjects.has(documentId)) {
+      console.log(`Initializing sync status for ${documentId}`);
       this.syncStatusSubjects.set(
         documentId,
         new BehaviorSubject<DocumentSyncState>(DocumentSyncState.Offline)
       );
     }
     return this.syncStatusSubjects.get(documentId)!.asObservable();
+  }
+
+  /**
+   * Initializes sync status for a document without setting up full collaboration
+   * This is used to ensure sync indicators appear in the tab interface
+   */
+  initializeSyncStatus(documentId: string): void {
+    console.log(`Explicitly initializing sync status for ${documentId}`);
+    if (!this.syncStatusSubjects.has(documentId)) {
+      this.syncStatusSubjects.set(
+        documentId,
+        new BehaviorSubject<DocumentSyncState>(DocumentSyncState.Offline)
+      );
+    }
   }
 
   /**

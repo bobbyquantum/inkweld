@@ -1,0 +1,73 @@
+<div class="tab-interface-container">
+  <nav
+    mat-tab-nav-bar
+    [mat-stretch-tabs]="false"
+    [tabPanel]="tabPanel"
+    class="tab-nav-bar">
+    <!-- Home Tab -->
+    <a
+      mat-tab-link
+      [active]="currentTabIndex === 0"
+      (click)="onTabChange(0)"
+      (keydown.enter)="onTabChange(0)"
+      (keydown.space)="onTabChange(0)"
+      tabindex="0">
+      <div class="tab-label home-tab">
+        <mat-icon>home</mat-icon>
+      </div>
+    </a>
+
+    <!-- Document Tabs -->
+    @for (
+      document of projectState.openDocuments();
+      track document.id;
+      let i = $index
+    ) {
+      <a
+        mat-tab-link
+        [active]="currentTabIndex === i + 1"
+        (click)="onTabChange(i + 1)"
+        (keydown.enter)="onTabChange(i + 1)"
+        (keydown.space)="onTabChange(i + 1)"
+        tabindex="0">
+        <div class="tab-label">
+          {{ document.name }}
+          @if (document.type !== 'FOLDER') {
+            @switch (
+              documentService.getSyncStatus(`${projectState.project()?.username}:${projectState.project()?.slug}:${document.id}`) | async
+            ) {
+              @case (DocumentSyncState.Unavailable) {
+                <div
+                  class="connection-status unavailable"
+                  title="Document not found locally"></div>
+              }
+              @case (DocumentSyncState.Offline) {
+                <div
+                  class="connection-status offline"
+                  title="Document available offline"></div>
+              }
+              @case (DocumentSyncState.Syncing) {
+                <div
+                  class="connection-status syncing"
+                  title="Syncing with server..."></div>
+              }
+              @case (DocumentSyncState.Synced) {
+                <div
+                  class="connection-status synced"
+                  title="Connected and synced"></div>
+              }
+            }
+          }
+          <button
+            mat-icon-button
+            class="close-tab-button"
+            (click)="closeTab(i + 1, $event)">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </a>
+    }
+  </nav>
+
+  <mat-tab-nav-panel #tabPanel></mat-tab-nav-panel>
+</div>

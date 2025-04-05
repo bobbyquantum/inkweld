@@ -1,4 +1,3 @@
-import { CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
 import {
@@ -21,7 +20,12 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Title } from '@angular/platform-browser';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import {
+  ActivatedRoute,
+  Router,
+  RouterModule,
+  RouterOutlet,
+} from '@angular/router';
 import { DocumentElementEditorComponent } from '@components/document-element-editor/document-element-editor.component';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
@@ -30,12 +34,13 @@ import { DocumentService } from '@services/document.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
+import { AngularSplitModule, SplitGutterInteractionEvent } from 'angular-split';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 
-import { FolderElementEditorComponent } from '../../components/folder-element-editor/folder-element-editor.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { RecentFilesService } from '../../services/recent-files.service';
+import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
 @Component({
   selector: 'app-project',
@@ -46,7 +51,6 @@ import { RecentFilesService } from '../../services/recent-files.service';
     MatSidenavModule,
     MatTabsModule,
     MatIconModule,
-    DragDropModule,
     MatProgressSpinnerModule,
     MatToolbarModule,
     ProjectTreeComponent,
@@ -54,7 +58,9 @@ import { RecentFilesService } from '../../services/recent-files.service';
     CommonModule,
     RouterModule,
     UserMenuComponent,
-    FolderElementEditorComponent,
+    RouterOutlet,
+    TabInterfaceComponent,
+    AngularSplitModule,
   ],
   standalone: true,
 })
@@ -89,8 +95,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private paramsSubscription?: Subscription;
   private syncSubscription?: Subscription;
   private hasUnsavedChanges = false;
-  private startWidth = 0;
   private fullscreenListener?: () => void;
+
+  // Split size for desktop layout
+  protected splitSize = 25; // Default split size as percentage
 
   constructor() {
     effect(() => {
@@ -127,7 +135,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       }
 
       // Trigger on tab changes - access to watch for changes
-
       this.projectState.selectedTabIndex();
       // Trigger on document count changes - access to watch for changes
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -170,6 +177,28 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       if (username && slug) {
         console.log(`Loading project ${username}/${slug}`);
         void this.projectState.loadProject(username, slug);
+
+        // Ensure we're starting with tab index 0 (home tab)
+        this.projectState.selectedTabIndex.set(0);
+
+        // Check if we have a tabId parameter, which would indicate we should open a document/folder
+        const tabId = this.route.snapshot.paramMap.get('tabId');
+        if (tabId) {
+          const tabType = this.route.snapshot.url.find(
+            segment => segment.path === 'document' || segment.path === 'folder'
+          )?.path;
+
+          console.log(`Opening tab: ${tabType}/${tabId}`);
+
+          // Find the element in the project elements
+          setTimeout(() => {
+            const elements = this.projectState.elements();
+            const element = elements.find(e => e.id === tabId);
+            if (element) {
+              this.projectState.openDocument(element);
+            }
+          }, 500); // Short delay to ensure project is loaded
+        }
       }
     });
 
@@ -196,10 +225,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
         if (!result.matches) {
           this.sidenav.mode = 'side';
           void this.sidenav.open();
-          const storedWidth = localStorage.getItem('sidenavWidth');
-          if (storedWidth) {
-            const width = parseInt(storedWidth, 10);
-            this.updateSidenavWidth(width);
+          // Load saved split size
+          const storedSplitSize = localStorage.getItem('splitSize');
+          if (storedSplitSize) {
+            this.splitSize = parseInt(storedSplitSize, 10);
           }
         } else {
           this.sidenav.mode = 'over';
@@ -227,20 +256,16 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     await this.sidenav.toggle();
   }
 
-  onDragStart() {
-    if (this.isMobile()) return;
-    this.startWidth = this.getSidenavWidth();
-  }
-
-  onDragEnd(event: CdkDragEnd) {
+  // Handle split drag end event
+  onSplitDragEnd(event: SplitGutterInteractionEvent) {
     if (this.isMobile()) return;
 
-    const delta = event.distance.x;
-    const newWidth = Math.max(150, Math.min(600, this.startWidth + delta));
-    this.updateSidenavWidth(newWidth);
-    localStorage.setItem('sidenavWidth', newWidth.toString());
-
-    event.source._dragRef.reset();
+    // Extract the first size which should be the sidebar and ensure it's a number
+    const sizeValue = event.sizes[0];
+    // Convert to number regardless of whether it's a string or number
+    this.splitSize =
+      typeof sizeValue === 'string' ? parseFloat(sizeValue) : Number(sizeValue);
+    localStorage.setItem('splitSize', this.splitSize.toString());
   }
 
   onDocumentOpened = (element: ProjectElementDto) => {
@@ -252,6 +277,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   closeTab = (index: number) => {
     this.projectState.closeDocument(index);
+  };
+
+  onImportClicked = (): void => {
+    this.fileInput?.nativeElement.click();
   };
 
   exitProject() {
@@ -362,6 +391,12 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   getCurrentDocumentId(): string | null {
+    // Check if we're on a document route
+    const url = this.router.url;
+    if (!url.includes('/document/')) {
+      return null;
+    }
+
     const currentTabIndex = this.projectState.selectedTabIndex();
     const openDocuments = this.projectState.openDocuments();
 
@@ -381,19 +416,8 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     return null;
   }
 
-  private getSidenavWidth = (): number => {
-    const sidenavEl = document.querySelector<HTMLElement>('.sidenav-content');
-    return sidenavEl?.offsetWidth ?? 200;
-  };
-
-  private updateSidenavWidth = (width: number): void => {
-    const sidenavEl = document.querySelector<HTMLElement>('.sidenav-content');
-    if (sidenavEl) {
-      sidenavEl.style.width = `${width}px`;
-      document.documentElement.style.setProperty(
-        '--sidenav-width',
-        `${width}px`
-      );
-    }
-  };
+  // Method to determine gutterSize based on mobile state
+  getGutterSize(): number {
+    return this.isMobile() ? 0 : 8;
+  }
 }

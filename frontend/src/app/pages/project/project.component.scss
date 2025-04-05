@@ -1,61 +1,11 @@
-.tab-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  &.home-tab {
-    pointer-events: none; // Make home tab non-closeable
-    cursor: default;
-  }
-
-  .connection-status {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin: 0 4px;
-    transition: background-color 0.2s ease;
-
-    &.unavailable {
-      background-color: #9e9e9e; // Grey for unavailable
-      opacity: 0.5;
-    }
-
-    &.offline {
-      background-color: #fdd835; // Yellow for offline
-    }
-
-    &.syncing {
-      background-color: #2196f3; // Blue for syncing
-      animation: pulse 1.5s infinite;
-    }
-
-    &.synced {
-      background-color: #4caf50; // Green for synced
-    }
-  }
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
+// Main layout structure
 .main-container {
   height: 100vh;
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0; // Shorthand for top, right, bottom, left: 0
 }
 
+// Loading indicator
 .loading-indicator {
   position: fixed;
   top: 50%;
@@ -67,37 +17,71 @@
   align-items: center;
 }
 
-mat-sidenav-content {
+// Angular Split Styles
+as-split {
+  height: 100vh;
+  width: 100%;
+}
+
+// Sidebar content - both split and mobile sidenav
+.sidenav-content, .sidebar-area {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-  position: relative;
+  background-color: var(--mat-sys-surface-container);
+  border-right: 1px solid var(--mat-sys-outline-variant);
 
-  @media (min-width: 760px) {
-    padding-top: 48px;
-  }
-
-  @media (max-width: 767px) {
-    padding-top: 96px; // 48px toolbar + 48px tabs
-  }
-
-  app-element-editor {
+  app-project-tree {
     flex: 1;
-    overflow: auto;
+    overflow-y: auto;
   }
 }
 
+// Mobile sidenav
+.mobile-sidenav {
+  width: 80%;
+  max-width: 300px;
+}
+
+// Project toolbar in sidenav
+.project-toolbar {
+  height: 48px;
+  background-color: var(--mat-sys-surface-container);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+
+  .project-title {
+    flex: 1;
+    font-size: 1.1rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// Desktop content area
+.desktop-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+// Mobile toolbar
 .mobile-toolbar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 48px;
+  height: 56px;
   background-color: var(--mat-sys-surface-container-highest);
-  color: var(--mat-sys-on-surface);
   border-bottom: 1px solid var(--mat-sys-outline-variant);
-  padding: 0 16px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -116,261 +100,72 @@ mat-sidenav-content {
   }
 }
 
-.sidenav-content {
-  width: 250px;
-  min-width: 150px;
-  max-width: 600px;
-  border-radius: 0;
-  position: relative;
-  height: 100%;
-  overflow: visible; // Allow resize handle to extend beyond sidenav
-  background-color: var(--mat-sys-surface-container);
-  border-right: 1px solid var(--mat-sys-outline-variant);
+// Mobile content
+.mobile-content-wrapper {
   display: flex;
   flex-direction: column;
-
-  app-project-tree {
-    /* height: auto; */
-    display: block;
-    overflow-y: auto;
-    flex: 1;
-    height: calc(100vh - 114px);
-  }
-
-}
-
-.project-toolbar {
-  top: 0;
-  height: 48.8px;
-  background-color: var(--mat-sys-surface-container);
-  color: var(--mat-sys-on-surface);
-  border-bottom: 1px solid var(--mat-sys-outline-variant);
-  padding: 0 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  z-index: 2;
-
-  .project-title {
-    flex: 1;
-    font-size: 1.1rem;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
-.resize-handle {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 4px;
   height: 100%;
-  cursor: ew-resize;
-  background-color: transparent;
-  transition: background-color 0.2s;
-  z-index: 100;
-  touch-action: none;
-  transform: translateX(0);
-  margin-right: -2px; // Center the handle on the border
-
-  &:hover,
-  &:active {
-    background-color: var(--mat-sys-primary);
-  }
+  overflow: hidden;
+  padding-top: 56px;
 }
 
-.tab-bars {
-  background-color: var(--mat-sys-surface-container);
-  position: fixed;
-  right: 0;
-  z-index: 10;
-
-  @media (min-width: 760px) {
-    top: 0;
-    left: var(--sidenav-width, 250px);
-  }
-
-  @media (max-width: 759px) {
-    top: 48px; // Below mobile toolbar
-    left: 0;
-    width: 100%;
-  }
-}
-::ng-deep .mat-mdc-tab-labels {
-  padding-right: 80px; /* Adjust this value to the width of your icon container */
-}
-.empty-container {
-  padding: 20px;
-  position: fixed;
-  right: 0;
-  z-index: 10;
-
-  @media (min-width: 760px) {
-    top: 0;
-    left: var(--sidenav-width, 250px);
-  }
-
-  @media (max-width: 759px) {
-    top: 48px; // Below mobile toolbar
-    left: 0;
-    width: 100%;
-    box-sizing: border-box;
-  }
-}
-
-.home-tab-content {
+mat-sidenav-content {
   display: flex;
-  flex-direction: column; // Changed to column for full-width header
-  padding: 20px;
-  gap: 20px; // Reduced gap for better vertical spacing
-  background-color: var(--mat-sys-surface);
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+
+  // Desktop layout
   @media (min-width: 760px) {
-
-    flex-direction: column; // Keep column layout for desktop
-  }
-
-  .columns-container {
-    display: flex;
-    flex-direction: row;
-    gap: 30px;
-    flex-wrap: wrap;
-
-    @media (max-width: 760px) {
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .home-column {
-      flex: 1;
-      min-width: 300px;
-      margin-bottom: 20px;
-
-      .home-column-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 16px;
-        h3 {
-          margin: 0;
-        }
-      }
-
-      .recent-files-list.vertical {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        margin-top: 16px;
-
-        .recent-file-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 8px 12px;
-          border-radius: 8px;
-          transition: background-color 0.2s ease;
-          cursor: pointer;
-
-          &:hover {
-            background-color: rgba(0, 0, 0, 0.05);
-          }
-
-          mat-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
-          }
-
-          .recent-file-name {
-            flex: 1;
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-        }
-      }
-
-      .no-recent-files {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-top: 16px;
-        font-style: italic;
-      }
-    }
+    padding-top: 0;
   }
 }
 
-.full-width-column {
+// Tabs and content layout
+.tabs-header {
+  flex-shrink: 0;
+  z-index: 10;
+  background-color: var(--mat-surface-container);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.content-area {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+// Component styling
+app-document-element-editor,
+app-folder-element-editor,
+app-home-tab {
+  display: block;
   width: 100%;
-  margin-bottom: 20px;
+  height: 100%;
+  overflow: auto;
 }
 
-.full-width-header {
-  margin-bottom: 16px;
-
-  .header-content {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-
-    h2 {
-      margin-top: 0;
-    }
-    p {
-      margin-bottom: 0;
-    }
-  }
-}
-
-// Recent files styles
-.recent-files-list {
-  margin-top: 8px;
-}
-
-.recent-file-item {
-  display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  margin-bottom: 4px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover,
-  &:focus {
-    background-color: rgba(0, 0, 0, 0.04);
-  }
-
-  mat-icon {
-    margin-right: 8px;
-    color: #666;
-  }
-
-  .recent-file-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-.no-recent-files {
-  font-style: italic;
-  padding: 8px 12px;
-}
-
+// User menu on desktop
 .desktop-user-menu {
   position: fixed;
   top: 0;
   right: 0;
   z-index: 12;
-  padding: 8px;
+  height: 40px;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
 }
 
-// Zen mode styles
+// Mobile exit button
+.mobile-exit-button {
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+}
+
+// Zen mode toggle button
 .zen-mode-button {
   margin-right: 8px;
 
@@ -379,13 +174,10 @@ mat-sidenav-content {
   }
 }
 
-// Zen mode overlay styles
+// Zen mode overlay
 .zen-mode-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   z-index: 10000;
   background-color: rgba(0, 0, 0, 0.95);
   display: flex;
@@ -424,5 +216,3 @@ mat-sidenav-content {
     }
   }
 }
-
-// Zen mode overlay styles

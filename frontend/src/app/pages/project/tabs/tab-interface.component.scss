@@ -1,0 +1,101 @@
+:host {
+  display: block;
+  width: 100%;
+  z-index: 10;
+  height: 48px;
+}
+
+.tab-interface-container {
+  width: 100%;
+  position: relative;
+}
+
+.tab-nav-bar {
+  background-color: var(--mat-surface-container);
+  width: 100%;
+}
+
+// Tab label styling
+.tab-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &.home-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none; // Make home tab non-closeable
+    cursor: default;
+  }
+}
+
+// Connection status indicators for document sync
+.connection-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 4px;
+  flex-shrink: 0;
+
+  &.unavailable {
+    background-color: var(--mat-error-color);
+  }
+
+  &.offline {
+    background-color: var(--mat-warning-color);
+  }
+
+  &.syncing {
+    background-color: var(--mat-accent-color);
+    animation: pulse 1.5s infinite;
+  }
+
+  &.synced {
+    background-color: var(--mat-success-color);
+  }
+}
+
+// Close tab button styling
+.close-tab-button {
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  font-size: 18px;
+  flex-shrink: 0;
+
+  .mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+  }
+}
+
+// Pulsing animation for syncing status
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+mat-tab-nav-panel {
+  height: calc(100% - 48px);
+  overflow: hidden;
+}
+
+router-outlet + * {
+  display: block;
+  height: 100%;
+  overflow: hidden;
+}

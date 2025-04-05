@@ -25,50 +25,30 @@
 }
 
 <mat-sidenav-container class="main-container">
-  <mat-sidenav
-    [mode]="isMobile() ? 'over' : 'side'"
-    [opened]="!isMobile()"
-    class="sidenav-content">
-    @if (!isMobile()) {
-      <mat-toolbar class="project-toolbar">
-        <button mat-icon-button (click)="exitProject()">
-          <mat-icon>arrow_back</mat-icon>
-        </button>
-        <span class="project-title">{{ projectState.project()?.title }}</span>
-        <button mat-icon-button (click)="projectState.showNewElementDialog()">
-          <mat-icon>add</mat-icon>
-        </button>
-      </mat-toolbar>
-    }
-    <app-project-tree></app-project-tree>
-    @if (isMobile()) {
+  <!-- Mobile sidenav -->
+  @if (isMobile()) {
+    <mat-sidenav
+      mode="over"
+      [opened]="false"
+      class="sidenav-content mobile-sidenav">
+      <app-project-tree></app-project-tree>
       <div class="mobile-exit-button">
         <button mat-raised-button color="warn" (click)="exitProject()">
           Exit Project
         </button>
       </div>
-    }
-
-    @if (!isMobile()) {
-      <div
-        cdkDrag
-        cdkDragLockAxis="x"
-        [cdkDragBoundary]="'.main-container'"
-        (cdkDragStarted)="onDragStart()"
-        (cdkDragEnded)="onDragEnd($event)"
-        class="resize-handle"></div>
-    }
-  </mat-sidenav>
+    </mat-sidenav>
+  }
   <mat-sidenav-content>
+    <!-- Mobile toolbar -->
     @if (isMobile()) {
       <mat-toolbar class="mobile-toolbar">
         <button mat-icon-button (click)="toggleSidenav()">
           <mat-icon>menu</mat-icon>
         </button>
         <span class="project-title">{{ projectState.project()?.title }}</span>
-        <!-- Space for additional mobile actions -->
+
         <span class="toolbar-spacer"></span>
-        <!-- Zen mode button -->
         @if (canEnableZenMode() || isZenMode()) {
           <button
             mat-icon-button
@@ -81,190 +61,85 @@
         }
         <app-user-menu [miniMode]="true"></app-user-menu>
       </mat-toolbar>
-    } @else {
-      <div class="desktop-user-menu">
-        @if (canEnableZenMode() || isZenMode()) {
-          <button
-            mat-icon-button
-            (click)="toggleZenMode()"
-            matTooltip="Toggle Zen Mode"
-            class="zen-mode-button"
-            [class.active]="isZenMode()">
-            <mat-icon>{{ getZenModeIcon() }}</mat-icon>
-          </button>
-        }
-        <app-user-menu [miniMode]="true"></app-user-menu>
-      </div>
-    }
-    <mat-tab-group
-      [selectedIndex]="projectState.selectedTabIndex()"
-      class="tab-bars"
-      animationDuration="0ms"
-      mat-stretch-tabs="false"
-      mat-align-tabs="start">
-      <mat-tab>
-        <ng-template mat-tab-label>
-          <div class="tab-label home-tab">
-            <mat-icon>home</mat-icon>
-          </div>
-        </ng-template>
-        <div class="home-tab-content">
-          <div class="full-width-column">
-            <div class="full-width-header">
-              <div class="header-content">
-                <div>
-                  <h2>{{ projectState.project()?.title }}</h2>
-                  <p>{{ projectState.project()?.description }}</p>
-                </div>
-                <button
-                  mat-icon-button
-                  (click)="projectState.showEditProjectDialog()">
-                  <mat-icon>edit</mat-icon>
-                </button>
-              </div>
-            </div>
-          </div>
 
-          <div class="columns-container">
-            <div class="home-column">
-              <div class="home-column-header">
-                <h3>Start</h3>
-              </div>
-
-              <div class="start-actions">
-                <button mat-button color="primary">
-                  <mat-icon>note_add</mat-icon>
-                  New File
-                </button>
-                <button mat-button color="primary" (click)="onExportClick()">
-                  <mat-icon>cloud_download</mat-icon>
-                  Export Project
-                </button>
-                <button mat-button color="primary" (click)="onImportClick()">
-                  <mat-icon>cloud_upload</mat-icon>
-                  Import Project
-                </button>
-                <button mat-button color="primary" (click)="onPublishClick()">
-                  <mat-icon>cloud_upload</mat-icon>
-                  Publish Project
-                </button>
-                <button
-                  mat-button
-                  color="primary"
-                  [routerLink]="[
-                    '/' + projectState.project()?.username,
-                    projectState.project()?.slug,
-                    'files',
-                  ]">
-                  <mat-icon>folder</mat-icon>
-                  Project Files
-                </button>
-                <button
-                  mat-button
-                  color="primary"
-                  [routerLink]="[
-                    '/' + projectState.project()?.username,
-                    projectState.project()?.slug,
-                    'documents',
-                  ]">
-                  <mat-icon>folder</mat-icon>
-                  Project Documents
-                </button>
-              </div>
-            </div>
-            <div class="home-column">
-              <div class="home-column-header">
-                <h3>Recent Elements</h3>
-              </div>
-              @if (
-                projectState.project() &&
-                recentFilesService.getRecentFilesForProject(
-                  projectState.project()!.username!,
-                  projectState.project()!.slug!
-                ).length > 0
-              ) {
-                <div class="recent-files-list">
-                  @for (
-                    document of recentFilesService.getRecentFilesForProject(
-                      projectState.project()!.username!,
-                      projectState.project()!.slug!
-                    );
-                    track document.id
-                  ) {
-                    <div
-                      tabindex="0"
-                      class="recent-file-item"
-                      role="button"
-                      (keydown)="onRecentDocumentKeydown($event, document.id)"
-                      (click)="onRecentDocumentClick(document.id)">
-                      <mat-icon>{{
-                        document.type === 'IMAGE' ? 'image' : 'description'
-                      }}</mat-icon>
-                      <span class="recent-file-name">{{ document.name }}</span>
-                    </div>
-                  }
-                </div>
-              } @else {
-                <p class="no-recent-files">
-                  <mat-icon>info</mat-icon>
-                  No recent elements yet. Open documents to see them here.
-                </p>
-              }
-            </div>
-          </div>
+      <!-- Mobile layout with tabs on top, content below -->
+      <div class="mobile-content-wrapper">
+        <!-- Tabs navigation header -->
+        <div class="tabs-header">
+          <app-tab-interface
+            (importRequested)="onImportClicked()"></app-tab-interface>
         </div>
-      </mat-tab>
-      @for (
-        document of projectState.openDocuments();
-        track document.id;
-        let i = $index
-      ) {
-        <mat-tab>
-          <ng-template mat-tab-label>
-            <div class="tab-label">
-              {{ document.name }}
-              @if (document.type !== 'FOLDER') {
-                @switch (
-                  documentService.getSyncStatus(`${projectState.project()?.username}:${projectState.project()?.slug}:${document.id}`) | async
-                ) {
-                  @case (DocumentSyncState.Unavailable) {
-                    <div
-                      class="connection-status unavailable"
-                      title="Document not found locally"></div>
-                  }
-                  @case (DocumentSyncState.Offline) {
-                    <div
-                      class="connection-status offline"
-                      title="Document available offline"></div>
-                  }
-                  @case (DocumentSyncState.Syncing) {
-                    <div
-                      class="connection-status syncing"
-                      title="Syncing with server..."></div>
-                  }
-                  @case (DocumentSyncState.Synced) {
-                    <div
-                      class="connection-status synced"
-                      title="Connected and synced"></div>
-                  }
-                }
-              }
+
+        <!-- Content area -->
+        <div class="content-area">
+          <router-outlet></router-outlet>
+        </div>
+      </div>
+    } @else {
+      <!-- Desktop split layout -->
+      <as-split
+        direction="horizontal"
+        [gutterSize]="getGutterSize()"
+        unit="percent"
+        [useTransition]="true"
+        (dragEnd)="onSplitDragEnd($event)">
+        <!-- Sidebar area -->
+        <as-split-area [size]="splitSize" [minSize]="15" [maxSize]="40">
+          <div class="sidebar-area">
+            <mat-toolbar class="project-toolbar">
+              <button mat-icon-button (click)="exitProject()">
+                <mat-icon>arrow_back</mat-icon>
+              </button>
+              <span class="project-title">{{
+                projectState.project()?.title
+              }}</span>
               <button
                 mat-icon-button
-                (click)="closeTab(i); $event.stopPropagation()">
-                <mat-icon>close</mat-icon>
+                (click)="projectState.showNewElementDialog()">
+                <mat-icon>add</mat-icon>
               </button>
+            </mat-toolbar>
+            <app-project-tree></app-project-tree>
+          </div>
+        </as-split-area>
+
+        <!-- Content area -->
+        <as-split-area [size]="100 - splitSize" [minSize]="60">
+          <div class="desktop-content">
+            <div class="desktop-user-menu">
+              @if (canEnableZenMode() || isZenMode()) {
+                <button
+                  mat-icon-button
+                  (click)="toggleZenMode()"
+                  matTooltip="Toggle Zen Mode"
+                  class="zen-mode-button"
+                  [class.active]="isZenMode()">
+                  <mat-icon>{{ getZenModeIcon() }}</mat-icon>
+                </button>
+              }
+              <app-user-menu [miniMode]="true"></app-user-menu>
             </div>
-          </ng-template>
-          @if (document.type === 'FOLDER') {
-            <app-folder-element-editor
-              [elementId]="document.id"></app-folder-element-editor>
-          } @else {
-            <app-document-element-editor
-              [documentId]="`${projectState.project()!.username}:${projectState.project()!.slug}:${document.id}`"></app-document-element-editor>
-          }
-        </mat-tab>
-      }
-    </mat-tab-group>
+
+            <!-- Tabs and content in desktop view -->
+            <div class="tabs-header">
+              <app-tab-interface
+                (importRequested)="onImportClicked()"></app-tab-interface>
+            </div>
+
+            <div class="content-area">
+              <router-outlet></router-outlet>
+            </div>
+          </div>
+        </as-split-area>
+      </as-split>
+    }
+
+    <!-- Hidden file input for import -->
+    <input
+      type="file"
+      #fileInput
+      style="display: none"
+      accept=".zip"
+      (change)="onFileSelected($event)" />
   </mat-sidenav-content>
 </mat-sidenav-container>
