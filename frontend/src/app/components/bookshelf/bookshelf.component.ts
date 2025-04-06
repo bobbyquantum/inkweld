@@ -410,11 +410,13 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
     // Find the index of the clicked project
     const clickedIndex = this.projects.findIndex(p => p.slug === project.slug);
 
-    // If the clicked card isn't the active one, scroll to it first
+    // If the clicked card isn't the active one, ONLY scroll to it first
     if (clickedIndex !== -1 && clickedIndex !== this.activeCardIndex()) {
       this.scrollToCard(clickedIndex);
+      // DO NOT navigate - just visually center the card
     } else {
-      // If it's already the active card, emit the selection immediately
+      // If it's already the active card, THEN emit the selection for navigation
+      console.log('Navigating to project:', project);
       this.projectSelected.emit(project);
     }
   }

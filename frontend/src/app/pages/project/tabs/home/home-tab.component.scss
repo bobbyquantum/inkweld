@@ -1,0 +1,105 @@
+.home-tab-content {
+  padding: 16px;
+  height: calc(100vh - 80px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.full-width-column {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.full-width-header {
+  margin-bottom: 24px;
+  background-color: var(--mat-primary-color);
+  color: white;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.columns-container {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  width: 100%;
+}
+
+.home-column {
+  flex: 1;
+  min-width: 0; /* Prevents flex items from overflowing */
+  background-color: var(--mat-surface-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+@media (max-width: 768px) {
+  .columns-container {
+    flex-direction: column;
+  }
+
+  .home-column {
+    width: 100%;
+    margin-bottom: 24px;
+  }
+}
+
+.home-column-header {
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--mat-divider-color);
+  padding-bottom: 8px;
+  font-weight: bold;
+}
+
+.start-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%; /* Ensure full width */
+}
+
+.start-actions button {
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* Explicitly set left alignment */
+  gap: 8px;
+  width: 100%; /* Take full width of container */
+  padding-left: 8px; /* Add some padding on the left */
+}
+
+.recent-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recent-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.recent-file-item:hover,
+.recent-file-item:focus {
+  background-color: var(--mat-hover-color);
+}
+
+.no-recent-files {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mat-hint-color);
+  font-style: italic;
+}
