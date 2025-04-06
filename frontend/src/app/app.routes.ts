@@ -6,6 +6,9 @@ import { CanDeactivateProjectGuard } from './guards/can-deactivate-project.guard
 import { DocumentsComponent } from './pages/project/documents/documents.component';
 import { ProjectFilesComponent } from './pages/project/files/project-files.component';
 import { ProjectComponent } from './pages/project/project.component';
+import { DocumentTabComponent } from './pages/project/tabs/document/document-tab.component';
+import { FolderTabComponent } from './pages/project/tabs/folder/folder-tab.component';
+import { HomeTabComponent } from './pages/project/tabs/home/home-tab.component';
 
 export const routes: Routes = [
   {
@@ -48,14 +51,41 @@ export const routes: Routes = [
       (component: ProjectComponent) =>
         inject(CanDeactivateProjectGuard).canDeactivate(component),
     ],
+    data: {
+      reuseComponent: false, // Prevent component reuse
+    },
+    children: [
+      {
+        path: '',
+        component: HomeTabComponent,
+      },
+      {
+        path: 'document/:tabId',
+        component: DocumentTabComponent,
+        data: {
+          reuseComponent: false, // Prevent component reuse
+        },
+      },
+      {
+        path: 'folder/:tabId',
+        component: FolderTabComponent,
+        data: {
+          reuseComponent: false, // Prevent component reuse
+        },
+      },
+    ],
   },
   {
     path: ':username/:slug/files',
     component: ProjectFilesComponent,
+    title: 'Project Files',
+    canActivate: [authGuard],
   },
   {
     path: ':username/:slug/documents',
     component: DocumentsComponent,
+    title: 'Project Documents',
+    canActivate: [authGuard],
   },
   // User profile route
   {

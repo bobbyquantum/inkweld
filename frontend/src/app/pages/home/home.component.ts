@@ -114,8 +114,16 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   selectProject(project: ProjectDto) {
-    // Navigate directly to the project
-    void this.router.navigate([project.username || '', project.slug || '']);
+    // Add logging to debug project navigation
+    console.log('Navigating to project:', project.username, project.slug);
+
+    // Force complete route reload by using onSameUrlNavigation: 'reload' option
+    // and ensuring we're navigating with a unique navigationId
+    void this.router.navigate([project.username || '', project.slug || ''], {
+      onSameUrlNavigation: 'reload',
+      skipLocationChange: false,
+      replaceUrl: false,
+    });
   }
 
   openNewProjectDialog(): void {

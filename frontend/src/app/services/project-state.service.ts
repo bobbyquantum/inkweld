@@ -15,6 +15,17 @@ import { environment } from '../../environments/environment';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { DialogGatewayService } from './dialog-gateway.service';
 import { RecentFilesService } from './recent-files.service';
+import { StorageService } from './storage.service';
+
+// Constants for document cache configuration
+const DOCUMENT_CACHE_CONFIG = {
+  dbName: 'documentCache',
+  version: 1,
+  stores: {
+    openedDocuments: null,
+  },
+};
+
 export interface ValidDropLevels {
   levels: number[];
   defaultLevel: number;
@@ -26,6 +37,12 @@ export class ProjectStateService {
   private projectAPIService = inject(ProjectAPIService);
   private dialogGateway = inject(DialogGatewayService);
   private recentFilesService = inject(RecentFilesService);
+  private storageService = inject(StorageService);
+
+  // Document cache
+  private documentCacheDb: Promise<IDBDatabase> | null = null;
+  private readonly OPEN_DOCUMENTS_KEY = 'openedDocuments';
+  private readonly documentCacheDocId = signal<string | null>(null);
 
   // Core state signals
   readonly project = signal<ProjectDto | undefined>(undefined);
@@ -89,6 +106,24 @@ export class ProjectStateService {
   private indexeddbProvider: IndexeddbPersistence | null = null;
   private docId: string | null = null;
 
+  constructor() {
+    // Initialize document cache database
+    void this.initializeDocumentCache();
+  }
+
+  private initializeDocumentCache(): void {
+    if (this.storageService.isAvailable()) {
+      try {
+        this.documentCacheDb = this.storageService.initializeDatabase(
+          DOCUMENT_CACHE_CONFIG
+        );
+        console.log('Document cache initialized');
+      } catch (error) {
+        console.error('Failed to initialize document cache:', error);
+      }
+    }
+  }
+
   // Project Loading and Initialization
   async loadProject(username: string, slug: string): Promise<void> {
     this.isLoading.set(true);
@@ -138,6 +173,9 @@ export class ProjectStateService {
 
       this.initializeFromDoc();
       this.observeDocChanges();
+
+      // Restore opened documents from cache after project loads
+      await this.restoreOpenedDocumentsFromCache();
     } catch (err) {
       console.error('Failed to load project:', err);
       this.error.set('Failed to load project');
@@ -452,6 +490,8 @@ export class ProjectStateService {
 
     if (!documents.some(d => d.id === element.id)) {
       this.openDocuments.set([...documents, element]);
+      // Save updated opened documents to cache
+      void this.saveOpenedDocumentsToCache();
     }
     const index = this.openDocuments().findIndex(d => d.id === element.id);
     this.selectedTabIndex.set(index + 1);
@@ -467,6 +507,69 @@ export class ProjectStateService {
 
     if (this.selectedTabIndex() >= newDocuments.length) {
       this.selectedTabIndex.set(Math.max(0, newDocuments.length - 1));
+    }
+
+    // Save updated opened documents to cache
+    void this.saveOpenedDocumentsToCache();
+  }
+
+  async saveOpenedDocumentsToCache(): Promise<void> {
+    if (!this.documentCacheDb || !this.storageService.isAvailable()) return;
+
+    const project = this.project();
+    if (!project || !project.username || !project.slug) return;
+
+    const cacheKey = `${project.username}/${project.slug}/documents`;
+
+    try {
+      const db = await this.documentCacheDb;
+      await this.storageService.put(
+        db,
+        'openedDocuments',
+        this.openDocuments(),
+        cacheKey
+      );
+      console.log('Opened documents saved to cache:', cacheKey);
+    } catch (error) {
+      console.error('Failed to save opened documents to cache:', error);
+    }
+  }
+
+  async restoreOpenedDocumentsFromCache(): Promise<void> {
+    if (!this.documentCacheDb || !this.storageService.isAvailable()) return;
+
+    const project = this.project();
+    if (!project || !project.username || !project.slug) return;
+
+    const cacheKey = `${project.username}/${project.slug}/documents`;
+
+    try {
+      const db = await this.documentCacheDb;
+      const documents = await this.storageService.get<ProjectElementDto[]>(
+        db,
+        'openedDocuments',
+        cacheKey
+      );
+
+      if (documents && documents.length > 0) {
+        // Validate that all documents still exist in the current project
+        const currentElements = this.elements();
+        const validDocuments = documents.filter(doc =>
+          currentElements.some(element => element.id === doc.id)
+        );
+
+        if (validDocuments.length > 0) {
+          this.openDocuments.set(validDocuments);
+          // Set the first document as selected
+          this.selectedTabIndex.set(Math.min(1, validDocuments.length));
+          console.log(
+            'Opened documents restored from cache:',
+            validDocuments.length
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Failed to restore opened documents from cache:', error);
     }
   }
 

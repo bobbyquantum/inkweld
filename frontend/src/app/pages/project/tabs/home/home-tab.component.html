@@ -1,0 +1,103 @@
+<div class="home-tab-content">
+  <div class="full-width-column">
+    <div class="full-width-header">
+      <div class="header-content">
+        <div>
+          <h2>{{ projectState.project()?.title }}</h2>
+          <p>{{ projectState.project()?.description }}</p>
+        </div>
+        <button mat-icon-button (click)="projectState.showEditProjectDialog()">
+          <mat-icon>edit</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="columns-container">
+    <div class="home-column">
+      <div class="home-column-header">
+        <h3>Start</h3>
+      </div>
+
+      <div class="start-actions">
+        <button mat-button color="primary">
+          <mat-icon>note_add</mat-icon>
+          New File
+        </button>
+        <button mat-button color="primary" (click)="onExportClick()">
+          <mat-icon>cloud_download</mat-icon>
+          Export Project
+        </button>
+        <button mat-button color="primary" (click)="onImportClick()">
+          <mat-icon>cloud_upload</mat-icon>
+          Import Project
+        </button>
+        <button mat-button color="primary" (click)="onPublishClick()">
+          <mat-icon>cloud_upload</mat-icon>
+          Publish Project
+        </button>
+        <button
+          mat-button
+          color="primary"
+          [routerLink]="[
+            '/' + projectState.project()?.username,
+            projectState.project()?.slug,
+            'files',
+          ]">
+          <mat-icon>folder</mat-icon>
+          Project Files
+        </button>
+        <button
+          mat-button
+          color="primary"
+          [routerLink]="[
+            '/' + projectState.project()?.username,
+            projectState.project()?.slug,
+            'documents',
+          ]">
+          <mat-icon>folder</mat-icon>
+          Project Documents
+        </button>
+      </div>
+    </div>
+    <div class="home-column">
+      <div class="home-column-header">
+        <h3>Recent Elements</h3>
+      </div>
+      @if (
+        projectState.project() &&
+        recentFilesService.getRecentFilesForProject(
+          projectState.project()!.username!,
+          projectState.project()!.slug!
+        ).length > 0
+      ) {
+        <div class="recent-files-list">
+          @for (
+            document of recentFilesService.getRecentFilesForProject(
+              projectState.project()!.username!,
+              projectState.project()!.slug!
+            );
+            track document.id
+          ) {
+            <div
+              tabindex="0"
+              class="recent-file-item"
+              role="button"
+              (keydown)="onRecentDocumentKeydown($event, document.id)"
+              (click)="onRecentDocumentClick(document.id)">
+              <mat-icon>{{
+                document.type === 'IMAGE' ? 'image' : 'description'
+              }}</mat-icon>
+              <span class="recent-file-name">{{ document.name }}</span>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="no-recent-files">
+          <mat-icon>info</mat-icon>
+          No recent elements yet. Open documents to see them here.
+        </p>
+      }
+    </div>
+  </div>
+</div>
