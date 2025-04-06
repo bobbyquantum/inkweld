@@ -83,6 +83,13 @@
         unit="percent"
         [useTransition]="true"
         (dragEnd)="onSplitDragEnd($event)">
+        <!-- Custom gutter template -->
+        <div
+          *asSplitGutter="let isDragged = isDragged"
+          class="inkweld-gutter"
+          [class.dragging]="isDragged">
+          <div class="inkweld-gutter-icon"></div>
+        </div>
         <!-- Sidebar area -->
         <as-split-area [size]="splitSize" [minSize]="15" [maxSize]="40">
           <div class="sidebar-area">
@@ -104,7 +111,7 @@
         </as-split-area>
 
         <!-- Content area -->
-        <as-split-area [size]="100 - splitSize" [minSize]="60">
+        <as-split-area>
           <div class="desktop-content">
             <div class="desktop-user-menu">
               @if (canEnableZenMode() || isZenMode()) {

@@ -34,7 +34,11 @@ import { DocumentService } from '@services/document.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
-import { AngularSplitModule, SplitGutterInteractionEvent } from 'angular-split';
+import {
+  AngularSplitModule,
+  SplitGutterDirective,
+  SplitGutterInteractionEvent,
+} from 'angular-split';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
@@ -61,6 +65,7 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
     RouterOutlet,
     TabInterfaceComponent,
     AngularSplitModule,
+    SplitGutterDirective,
   ],
   standalone: true,
 })
@@ -99,8 +104,17 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // Split size for desktop layout
   protected splitSize = 25; // Default split size as percentage
+  protected splitSizeInPixels = 300; // Default split size in pixels
 
   constructor() {
+    // Load saved split size early in initialization
+    if (!this.isMobile()) {
+      const storedSplitSize = localStorage.getItem('splitSize');
+      if (storedSplitSize) {
+        this.splitSize = parseInt(storedSplitSize, 10);
+      }
+    }
+
     effect(() => {
       const project = this.projectState.project() as ProjectDto | null;
       if (project) {
@@ -225,11 +239,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
         if (!result.matches) {
           this.sidenav.mode = 'side';
           void this.sidenav.open();
-          // Load saved split size
-          const storedSplitSize = localStorage.getItem('splitSize');
-          if (storedSplitSize) {
-            this.splitSize = parseInt(storedSplitSize, 10);
-          }
         } else {
           this.sidenav.mode = 'over';
           void this.sidenav.close();
@@ -260,11 +269,14 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   onSplitDragEnd(event: SplitGutterInteractionEvent) {
     if (this.isMobile()) return;
 
-    // Extract the first size which should be the sidebar and ensure it's a number
+    // Extract the first size which should be the sidebar
     const sizeValue = event.sizes[0];
+
     // Convert to number regardless of whether it's a string or number
     this.splitSize =
       typeof sizeValue === 'string' ? parseFloat(sizeValue) : Number(sizeValue);
+
+    // Save to localStorage for persistence
     localStorage.setItem('splitSize', this.splitSize.toString());
   }
 
