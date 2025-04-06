@@ -51,6 +51,9 @@ export const routes: Routes = [
       (component: ProjectComponent) =>
         inject(CanDeactivateProjectGuard).canDeactivate(component),
     ],
+    data: {
+      reuseComponent: false, // Prevent component reuse
+    },
     children: [
       {
         path: '',
@@ -59,10 +62,16 @@ export const routes: Routes = [
       {
         path: 'document/:tabId',
         component: DocumentTabComponent,
+        data: {
+          reuseComponent: false, // Prevent component reuse
+        },
       },
       {
         path: 'folder/:tabId',
         component: FolderTabComponent,
+        data: {
+          reuseComponent: false, // Prevent component reuse
+        },
       },
     ],
   },

@@ -121,11 +121,14 @@ describe('HomeComponent', () => {
       id: '123',
       name: 'Test Project',
       slug: 'test-project',
-
       username: 'testuser',
     } as unknown as ProjectDto;
     component.selectProject(project);
-    expect(router.navigate).toHaveBeenCalledWith(['testuser', 'test-project']);
+    expect(router.navigate).toHaveBeenCalledWith(['testuser', 'test-project'], {
+      onSameUrlNavigation: 'reload',
+      skipLocationChange: false,
+      replaceUrl: false,
+    });
   });
 
   it('should set isMobile to true when breakpoint matches', () => {

@@ -194,25 +194,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
         // Ensure we're starting with tab index 0 (home tab)
         this.projectState.selectedTabIndex.set(0);
-
-        // Check if we have a tabId parameter, which would indicate we should open a document/folder
-        const tabId = this.route.snapshot.paramMap.get('tabId');
-        if (tabId) {
-          const tabType = this.route.snapshot.url.find(
-            segment => segment.path === 'document' || segment.path === 'folder'
-          )?.path;
-
-          console.log(`Opening tab: ${tabType}/${tabId}`);
-
-          // Find the element in the project elements
-          setTimeout(() => {
-            const elements = this.projectState.elements();
-            const element = elements.find(e => e.id === tabId);
-            if (element) {
-              this.projectState.openDocument(element);
-            }
-          }, 500); // Short delay to ensure project is loaded
-        }
       }
     });
 
@@ -236,12 +217,14 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       .pipe(takeUntil(this.destroy$))
       .subscribe(result => {
         this.isMobile.set(result.matches);
-        if (!result.matches) {
-          this.sidenav.mode = 'side';
-          void this.sidenav.open();
-        } else {
-          this.sidenav.mode = 'over';
-          void this.sidenav.close();
+        if (this.sidenav) {
+          if (!result.matches) {
+            this.sidenav.mode = 'side';
+            void this.sidenav.open();
+          } else {
+            this.sidenav.mode = 'over';
+            void this.sidenav.close();
+          }
         }
       });
   }

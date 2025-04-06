@@ -31,7 +31,7 @@
         (keydown.space)="onTabChange(i + 1)"
         tabindex="0">
         <div class="tab-label">
-          {{ document.name }}
+          <span class="tab-name">{{ document.name }}</span>
           @if (document.type !== 'FOLDER') {
             @switch (
               documentService.getSyncStatus(`${projectState.project()?.username}:${projectState.project()?.slug}:${document.id}`) | async

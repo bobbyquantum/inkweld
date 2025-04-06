@@ -3,11 +3,14 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
 import {
   AfterViewInit,
   Component,
+  effect,
   ElementRef,
   inject,
   Input,
+  OnChanges,
   OnDestroy,
   OnInit,
+  SimpleChanges,
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,6 +18,7 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { DocumentService } from '@services/document.service';
+import { ProjectStateService } from '@services/project-state.service';
 import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
 import { Subject } from 'rxjs';
 
@@ -43,13 +47,15 @@ type DragPoint = 'pageLeft' | 'pageRight' | 'marginLeft' | 'marginRight';
   styleUrl: './document-element-editor.component.scss',
 })
 export class DocumentElementEditorComponent
-  implements OnInit, OnDestroy, AfterViewInit
+  implements OnInit, OnDestroy, AfterViewInit, OnChanges
 {
   private documentService = inject(DocumentService);
+  private projectState = inject(ProjectStateService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   @Input() documentId = 'invalid';
   @Input() zenMode = false;
+  private previousDocumentId = 'invalid';
   editor!: Editor;
   toolbar: Toolbar = [
     ['bold', 'italic'],
@@ -103,8 +109,40 @@ export class DocumentElementEditorComponent
   rulerMeasurements = Array.from({ length: 30 }, (_, i) => i);
 
   private destroy$ = new Subject<void>();
+  // Flag to track if we've already formatted the ID
+  private idFormatted = false;
+
+  constructor() {
+    // Watch for project loading completion
+    effect(() => {
+      const isLoading = this.projectState.isLoading();
+      if (!isLoading && !this.idFormatted) {
+        // Project finished loading, try to format the ID again
+        console.log(
+          '[DocumentEditor] Project loading completed, checking document ID format'
+        );
+        this.ensureProperDocumentId();
+
+        // If ID was formatted and we have the editor, reconnect
+        if (this.idFormatted && this.editor && this.editor.view) {
+          console.log(
+            '[DocumentEditor] Reconnecting with correctly formatted ID'
+          );
+          this.setupCollaboration();
+        }
+      }
+    });
+  }
 
   ngOnInit(): void {
+    console.log(
+      `[DocumentEditor] Initializing editor for document ID: ${this.documentId}`
+    );
+
+    // Try to format the document ID right away
+    this.ensureProperDocumentId();
+    this.previousDocumentId = this.documentId;
+
     this.editor = new Editor({
       history: true,
     });
@@ -112,14 +150,46 @@ export class DocumentElementEditorComponent
   }
 
   ngAfterViewInit(): void {
+    console.log(
+      `[DocumentEditor] Setting up collaboration for document ID: ${this.documentId}`
+    );
     this.setupCollaboration();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Only react to documentId changes after initial setup
+    if (changes['documentId'] && !changes['documentId'].firstChange) {
+      const newDocId = changes['documentId'].currentValue as string;
+      const prevDocId = changes['documentId'].previousValue as string;
+
+      console.log(
+        `[DocumentEditor] Document ID changed from ${prevDocId} to ${newDocId}`
+      );
+
+      // Disconnect from the old document
+      if (prevDocId && prevDocId !== 'invalid') {
+        console.log(
+          `[DocumentEditor] Disconnecting from previous document: ${prevDocId}`
+        );
+        this.documentService.disconnect(prevDocId);
+      }
+
+      // Format the new document ID and setup collaboration
+      this.idFormatted = false; // Reset formatting flag
+      this.ensureProperDocumentId();
+      this.setupCollaboration();
+      this.previousDocumentId = this.documentId;
+    }
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
     this.editor.destroy();
-    if (!this.zenMode) {
+    if (!this.zenMode && this.documentId !== 'invalid') {
+      console.log(
+        `[DocumentEditor] Disconnecting on destroy: ${this.documentId}`
+      );
       this.documentService.disconnect(this.documentId);
     }
   }
@@ -199,6 +269,55 @@ export class DocumentElementEditorComponent
     this.showViewModeDropdown = !this.showViewModeDropdown;
   }
 
+  /**
+   * Ensures the document ID has the proper format (username:project:docId)
+   * This helps especially on page refresh when context may be lost
+   * @returns Whether the ID was successfully formatted or was already correctly formatted
+   */
+  private ensureProperDocumentId(): boolean {
+    // If we've already formatted the ID, no need to do it again
+    if (this.idFormatted) {
+      return true;
+    }
+
+    // Log initial document ID
+    console.log(
+      `[DocumentEditor] Checking document ID format: ${this.documentId}`
+    );
+
+    // If ID already has project context (contains two colons), it's probably already formatted
+    if (
+      this.documentId.includes(':') &&
+      this.documentId.split(':').length === 3
+    ) {
+      console.log(
+        `[DocumentEditor] Document ID already correctly formatted: ${this.documentId}`
+      );
+      this.idFormatted = true;
+      return true;
+    }
+
+    // Get the current project
+    const project = this.projectState.project();
+
+    if (project) {
+      // If we have project data, format the ID now
+      const formattedId = `${project.username}:${project.slug}:${this.documentId}`;
+      console.log(
+        `[DocumentEditor] Reformatting document ID from "${this.documentId}" to "${formattedId}"`
+      );
+      this.documentId = formattedId;
+      this.idFormatted = true;
+      return true;
+    } else {
+      // Project data not available yet
+      console.warn(
+        `[DocumentEditor] Cannot format document ID yet, project not available. Current ID: ${this.documentId}`
+      );
+      return false;
+    }
+  }
+
   private setVariable(name: string, value: string): void {
     document.documentElement.style.setProperty(name, value);
   }
@@ -230,11 +349,44 @@ export class DocumentElementEditorComponent
   }
 
   private setupCollaboration(): void {
+    console.log(
+      `[DocumentEditor] Starting setupCollaboration for document ID: ${this.documentId}`
+    );
+
+    // Skip invalid documents
+    if (this.documentId === 'invalid') {
+      console.log(`[DocumentEditor] Skipping setup for invalid document ID`);
+      return;
+    }
+
+    // Try to ensure proper document ID format before setting up collaboration
+    const isFormatted = this.ensureProperDocumentId();
+
+    // If we couldn't format the ID yet (waiting for project data),
+    // we'll retry when the project loads - see effect() in constructor
+    if (!isFormatted) {
+      console.log(
+        `[DocumentEditor] Delaying collaboration setup until document ID is properly formatted`
+      );
+      return;
+    }
+
+    // We don't need to manually clear content as setting up collaboration will
+    // replace the content with what's in the document
+
     setTimeout(() => {
       this.documentService
         .setupCollaboration(this.editor, this.documentId)
+        .then(() => {
+          console.log(
+            `[DocumentEditor] Collaboration successfully set up for document ID: ${this.documentId}`
+          );
+        })
         .catch(error => {
-          console.error('Failed to setup collaboration:', error);
+          console.error(
+            `[DocumentEditor] Failed to setup collaboration for ${this.documentId}:`,
+            error
+          );
         });
     }, 0);
   }

@@ -7,7 +7,7 @@ import {
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { isDevMode } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideRouter } from '@angular/router';
+import { provideRouter, RouteReuseStrategy } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
 import { XsrfService } from '@services/xsrf.service';
 
@@ -15,6 +15,7 @@ import { ThemeService } from '../themes/theme.service';
 import { routes } from './app.routes';
 import { API_PROVIDERS } from './config/api.config';
 import { CsrfInterceptor } from './interceptors/csrf.interceptor';
+import { CustomRouteReuseStrategy } from './utils/custom-route-reuse-strategy';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -32,6 +33,10 @@ export const appConfig: ApplicationConfig = {
       provide: HTTP_INTERCEPTORS,
       useClass: CsrfInterceptor,
       multi: true,
+    },
+    {
+      provide: RouteReuseStrategy,
+      useClass: CustomRouteReuseStrategy,
     },
     ...API_PROVIDERS,
     ThemeService,

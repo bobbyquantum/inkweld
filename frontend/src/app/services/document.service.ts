@@ -234,9 +234,16 @@ export class DocumentService {
       if (!environment.wssUrl) {
         throw new Error('WebSocket URL is not configured in environment');
       }
+      // Make sure the documentId is properly formatted for WebSocket URL
+      // Remove any leading '/' characters that might cause URL issues
+      const formattedDocId = documentId.replace(/^\/+/, '');
+      console.log(
+        `Setting up WebSocket connection for document: ${formattedDocId}`
+      );
+
       const provider = new WebsocketProvider(
         environment.wssUrl + '/ws/yjs?documentId=',
-        documentId,
+        formattedDocId,
         ydoc,
         {
           connect: true,
@@ -263,9 +270,28 @@ export class DocumentService {
         }
       );
 
-      // Handle connection status
+      // Handle connection status with enhanced logging
       provider.on('status', ({ status }: { status: string }) => {
-        console.log(`WebSocket status for document ${documentId}:`, status);
+        console.log(
+          `[Document] WebSocket status for document ${documentId}:`,
+          status
+        );
+
+        // Log WebSocket URL and connection parameters
+        if (status === 'connecting') {
+          console.log(
+            `[Document] Connecting to WebSocket URL: ${environment.wssUrl}/ws/yjs?documentId=${formattedDocId}`
+          );
+        } else if (status === 'connected') {
+          console.log(
+            `[Document] Successfully connected to WebSocket server for ${documentId}`
+          );
+        } else if (status === 'disconnected') {
+          console.log(
+            `[Document] Disconnected from WebSocket server for ${documentId}. Will attempt reconnect.`
+          );
+        }
+
         const newState =
           status === 'connected'
             ? DocumentSyncState.Synced
@@ -278,7 +304,7 @@ export class DocumentService {
         }
       });
 
-      // Handle connection errors gracefully
+      // Handle connection errors with enhanced debugging
       provider.on('connection-error', (error: Error | string | Event) => {
         const errorMessage =
           error instanceof Error
@@ -286,7 +312,26 @@ export class DocumentService {
             : typeof error === 'string'
               ? error
               : error.type;
-        console.warn('WebSocket connection error:', errorMessage);
+
+        console.warn(
+          `[Document] WebSocket connection error for ${documentId}:`,
+          errorMessage
+        );
+        console.log(
+          `[Document] Connection details: URL=${environment.wssUrl}/ws/yjs?documentId=${formattedDocId}`
+        );
+
+        if (error instanceof Error && error.stack) {
+          console.debug(`[Document] Error stack: ${error.stack}`);
+        }
+
+        // If the error is related to CORS or connection refused, provide more guidance
+        if (errorMessage.includes('CORS') || errorMessage.includes('refused')) {
+          console.error(
+            '[Document] WebSocket connection refused. Check if server is running and CORS is properly configured.'
+          );
+        }
+
         this.updateSyncStatus(documentId, DocumentSyncState.Offline);
       });
 

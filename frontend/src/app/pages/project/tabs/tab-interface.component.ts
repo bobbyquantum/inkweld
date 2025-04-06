@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectorRef,
   Component,
+  effect, // <-- Add effect here
   EventEmitter,
   inject,
   OnDestroy,
@@ -57,26 +58,87 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
   private routerSubscription: Subscription | null = null;
-
+  private initialSyncDone = false; // Flag to ensure initial sync runs only once
   get currentTabIndex(): number {
     return this.projectState.selectedTabIndex();
   }
+  constructor() {
+    // Watch for changes to the selected tab index and navigate accordingly
+    effect(() => {
+      const tabIndex = this.projectState.selectedTabIndex();
+      const openDocuments = this.projectState.openDocuments();
+      const project = this.projectState.project();
+
+      console.log('[TabInterface] Tab index changed to:', tabIndex);
+
+      // Skip navigation during initial load
+      if (!this.initialSyncDone || !project) return;
+
+      // Navigate based on the tab index
+      if (tabIndex === 0) {
+        // Home tab
+        console.log('[TabInterface] Effect: Navigating to home tab');
+        void this.router.navigate(['/', project.username, project.slug]);
+      } else if (tabIndex > 0 && openDocuments.length >= tabIndex) {
+        // Document/folder tab
+        const tabDocument = openDocuments[tabIndex - 1]; // -1 to account for home tab
+        console.log(
+          '[TabInterface] Effect: Navigating to tab document:',
+          tabDocument
+        );
+        void this.router.navigate([
+          '/',
+          project.username,
+          project.slug,
+          tabDocument.type === 'FOLDER' ? 'folder' : 'document',
+          tabDocument.id,
+        ]);
+      }
+    });
+
+    // Effect to handle initial tab synchronization after project state is loaded
+    effect(() => {
+      const isLoading = this.projectState.isLoading();
+      console.log(
+        '[TabInterface] isLoading effect triggered. isLoading:',
+        isLoading,
+        'InitialSyncDone:',
+        this.initialSyncDone
+      );
+      if (!isLoading && !this.initialSyncDone) {
+        console.log(
+          '[TabInterface] Project loaded, performing initial tab sync.'
+        );
+        this.updateSelectedTabFromUrl();
+        this.initialSyncDone = true;
+        this.cdr.detectChanges(); // Trigger change detection after initial sync
+      }
+    });
+  }
 
   ngOnInit(): void {
-    // Subscribe to router events to update the tab selection on navigation
+    // Subscribe to router events to update the tab selection on subsequent navigations
     this.routerSubscription = this.router.events
       .pipe(
         filter(event => event instanceof NavigationEnd),
+        // No need to skip initial NavigationEnd, effect handles initial load
         takeUntil(this.destroy$)
       )
-      .subscribe(() => {
-        this.updateSelectedTabFromUrl();
-        this.cdr.detectChanges(); // Trigger change detection after URL update
+      .subscribe(event => {
+        console.log('[TabInterface] NavigationEnd event:', event);
+        // Avoid redundant sync if initial sync is happening via effect
+        if (this.initialSyncDone) {
+          console.log('[TabInterface] Handling tab update from NavigationEnd.');
+          this.updateSelectedTabFromUrl();
+          this.cdr.detectChanges(); // Trigger change detection after URL update
+        } else {
+          console.log(
+            '[TabInterface] Skipping NavigationEnd update, waiting for initial load effect.'
+          );
+        }
       });
 
-    // Initial selection
-    this.updateSelectedTabFromUrl();
-    this.cdr.detectChanges(); // Trigger change detection after initial update
+    // Initial selection is now handled by the effect
   }
 
   ngOnDestroy(): void {
@@ -88,6 +150,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
   }
 
   updateSelectedTabFromUrl(): void {
+    console.log('[TabInterface] updateSelectedTabFromUrl called');
     // Traverse the route tree to find the deepest activated route with a 'tabId' param
     let currentRoute = this.route.root;
     let tabId: string | null = null;
@@ -104,7 +167,14 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     // Check if we are at the project root (no tabId found in child routes)
     // Simplified check: if no tabId was found, assume home.
     // More robust check might involve verifying the exact URL pattern.
+    console.log('[TabInterface] Extracted tabId from URL:', tabId);
+    console.log(
+      '[TabInterface] Current openDocuments:',
+      this.projectState.openDocuments().map(d => `${d.name} (${d.id})`)
+    );
+
     if (!tabId) {
+      console.log('[TabInterface] No tabId found, setting index to 0 (Home)');
       this.projectState.selectedTabIndex.set(0);
       return;
     }
@@ -114,51 +184,31 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
         .openDocuments()
         .findIndex(doc => doc.id === tabId);
       if (tabIndex !== -1) {
-        this.projectState.selectedTabIndex.set(tabIndex + 1); // +1 to account for home tab
+        const newIndex = tabIndex + 1; // +1 to account for home tab
+        console.log(
+          `[TabInterface] Found tabId ${tabId} at index ${tabIndex}, setting selectedTabIndex to ${newIndex}`
+        );
+        this.projectState.selectedTabIndex.set(newIndex);
       } else {
         console.warn(
-          `Tab ID ${tabId} found in URL, but not in open documents.`
+          `[TabInterface] Tab ID ${tabId} found in URL, but not in open documents. Current index: ${this.projectState.selectedTabIndex()}`
         );
-        // Optional: Fallback to home tab if the document isn't open
+        // Optional: Consider if fallback is needed here, or if state should remain unchanged
         // this.projectState.selectedTabIndex.set(0);
       }
     }
   }
 
   onTabChange(index: number): void {
-    console.log(`Tab change requested to index ${index}`);
+    console.log(`[TabInterface] Tab change requested to index ${index}`);
 
-    // Update the project state first
+    // Update the project state - navigation will be handled by the effect
     this.projectState.selectedTabIndex.set(index);
 
     // Trigger change detection
     this.cdr.detectChanges();
 
-    const project = this.projectState.project();
-    if (!project) return;
-
-    if (index === 0) {
-      // Navigate to project root for home tab
-      console.log('Navigating to project root');
-      void this.router.navigate(['/', project.username, project.slug]);
-    } else {
-      // For document/folder tabs
-      const documents = this.projectState.openDocuments();
-      const tabDocument = documents[index - 1]; // -1 to account for home tab
-
-      if (tabDocument) {
-        console.log(
-          `Navigating to ${tabDocument.type} ${tabDocument.name} (${tabDocument.id})`
-        );
-        void this.router.navigate([
-          '/',
-          project.username,
-          project.slug,
-          tabDocument.type === 'FOLDER' ? 'folder' : 'document',
-          tabDocument.id,
-        ]);
-      }
-    }
+    // Navigation is now handled by the effect that watches projectState.selectedTabIndex
   }
 
   closeTab(index: number, event?: MouseEvent): void {
@@ -186,7 +236,9 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
   }
 
   openDocument(document: ProjectElementDto): void {
-    console.log(`Opening document: ${document.name} (${document.id})`);
+    console.log(
+      `[TabInterface] Opening document: ${document.name} (${document.id})`
+    );
 
     const project = this.projectState.project();
     if (!project) return;
@@ -195,14 +247,14 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     const fullDocId = `${project.username}:${project.slug}:${document.id}`;
     this.documentService.initializeSyncStatus(fullDocId);
 
-    // First open the document in the state service
+    // Open the document in the state service - this will trigger the effect to handle navigation
     this.projectState.openDocument(document);
 
     console.log(
-      `Current selected tab index: ${this.projectState.selectedTabIndex()}`
+      `[TabInterface] Current selected tab index: ${this.projectState.selectedTabIndex()}`
     );
     console.log(
-      `Open documents: ${this.projectState
+      `[TabInterface] Open documents: ${this.projectState
         .openDocuments()
         .map(d => d.name)
         .join(', ')}`
@@ -210,28 +262,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
 
     // Force synchronous change detection to update the view
     this.cdr.detectChanges();
-
-    // Navigate to the document route
-    void this.router
-      .navigate([
-        '/',
-        project.username,
-        project.slug,
-        document.type === 'FOLDER' ? 'folder' : 'document',
-        document.id,
-      ])
-      .then(() => {
-        // After navigation completes, ensure tab is selected and trigger change detection
-        console.log('Navigation completed to document page');
-
-        // Ensure the correct tab is selected
-        const documents = this.projectState.openDocuments();
-        const index = documents.findIndex(d => d.id === document.id);
-        if (index !== -1) {
-          this.projectState.selectedTabIndex.set(index + 1); // +1 to account for home tab
-          this.cdr.detectChanges();
-        }
-      });
   }
 
   onImportRequested(): void {

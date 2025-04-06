@@ -5,8 +5,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
+import { ProjectAPIService } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { NgxEditorModule } from 'ngx-editor';
+import { of } from 'rxjs';
 
 import { DocumentElementEditorComponent } from './document-element-editor.component';
 import { EditorControlsMenuComponent } from './editor-controls-menu.component';
@@ -16,14 +18,27 @@ class MockDocumentService {
   disconnect = jest.fn();
 }
 
+class MockProjectAPIService {
+  projectControllerGetProjectByUsernameAndSlug = jest
+    .fn()
+    .mockReturnValue(
+      of({ name: 'Test Project', description: 'Test description' })
+    );
+  projectElementControllerGetProjectElements = jest
+    .fn()
+    .mockReturnValue(of([]));
+}
+
 describe('DocumentElementEditorComponent', () => {
   let component: DocumentElementEditorComponent;
   let fixture: ComponentFixture<DocumentElementEditorComponent>;
   let documentService: MockDocumentService;
+  let projectApiService: MockProjectAPIService;
   let mockStyle: { [key: string]: string };
 
   beforeEach(async () => {
     documentService = new MockDocumentService();
+    projectApiService = new MockProjectAPIService();
     mockStyle = {};
 
     // Mock document.documentElement
@@ -52,7 +67,10 @@ describe('DocumentElementEditorComponent', () => {
         EditorControlsMenuComponent,
         DragDropModule,
       ],
-      providers: [{ provide: DocumentService, useValue: documentService }],
+      providers: [
+        { provide: DocumentService, useValue: documentService },
+        { provide: ProjectAPIService, useValue: projectApiService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(DocumentElementEditorComponent);
@@ -66,6 +84,8 @@ describe('DocumentElementEditorComponent', () => {
 
   it('should setup collaboration after view init', () => {
     jest.useFakeTimers();
+    // Set a valid documentId to ensure setupCollaboration is called
+    component.documentId = 'test:test:abc123';
     component.ngAfterViewInit();
     jest.runAllTimers();
     expect(documentService.setupCollaboration).toHaveBeenCalled();
@@ -74,8 +94,11 @@ describe('DocumentElementEditorComponent', () => {
   });
 
   it('should disconnect on destroy', () => {
+    // Set a valid documentId and ensure zenMode is false to ensure disconnect is called
+    component.documentId = 'test:test:abc123';
+    component.zenMode = false;
     component.ngOnDestroy();
-    expect(documentService.disconnect).toHaveBeenCalledWith('invalid');
+    expect(documentService.disconnect).toHaveBeenCalledWith('test:test:abc123');
   });
 
   it('should update zoom level', () => {
