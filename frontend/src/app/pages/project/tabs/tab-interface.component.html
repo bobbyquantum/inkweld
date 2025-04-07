@@ -29,35 +29,20 @@
         (click)="onTabChange(i + 1)"
         (keydown.enter)="onTabChange(i + 1)"
         (keydown.space)="onTabChange(i + 1)"
+        [cdkContextMenuTriggerFor]="tabContextMenu"
+        (contextmenu)="onTabContextMenu(i + 1, document)"
+        [style.--mdc-tab-indicator-active-indicator-color]="
+          document.type !== 'FOLDER'
+            ? getSyncStatusColor(
+                projectState.project()?.username,
+                projectState.project()?.slug,
+                document.id
+              )
+            : 'var(--mat-sys-primary-color)'
+        "
         tabindex="0">
         <div class="tab-label">
           <span class="tab-name">{{ document.name }}</span>
-          @if (document.type !== 'FOLDER') {
-            @switch (
-              documentService.getSyncStatus(`${projectState.project()?.username}:${projectState.project()?.slug}:${document.id}`) | async
-            ) {
-              @case (DocumentSyncState.Unavailable) {
-                <div
-                  class="connection-status unavailable"
-                  title="Document not found locally"></div>
-              }
-              @case (DocumentSyncState.Offline) {
-                <div
-                  class="connection-status offline"
-                  title="Document available offline"></div>
-              }
-              @case (DocumentSyncState.Syncing) {
-                <div
-                  class="connection-status syncing"
-                  title="Syncing with server..."></div>
-              }
-              @case (DocumentSyncState.Synced) {
-                <div
-                  class="connection-status synced"
-                  title="Connected and synced"></div>
-              }
-            }
-          }
           <button
             mat-icon-button
             class="close-tab-button"
@@ -71,3 +56,28 @@
 
   <mat-tab-nav-panel #tabPanel></mat-tab-nav-panel>
 </div>
+
+<!-- Tab Context Menu -->
+<ng-template #tabContextMenu>
+  <div class="tab-context-menu" cdkMenu>
+    <!-- Only show rename for document tabs (not for home tab) -->
+    @if (contextDocument) {
+      <button
+        type="button"
+        class="context-menu-item"
+        cdkMenuItem
+        (click)="onRenameTabElement(contextDocument)">
+        <mat-icon>edit_square</mat-icon>
+        <span class="context-menu-item-title">Rename</span>
+      </button>
+      <button
+        type="button"
+        class="context-menu-item"
+        cdkMenuItem
+        (click)="closeTab(contextTabIndex || 0)">
+        <mat-icon>close</mat-icon>
+        <span class="context-menu-item-title">Close</span>
+      </button>
+    }
+  </div>
+</ng-template>

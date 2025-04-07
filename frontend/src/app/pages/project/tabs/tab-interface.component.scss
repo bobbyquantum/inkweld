@@ -11,7 +11,7 @@
 }
 
 .tab-nav-bar {
-  background-color: var(--mat-surface-container);
+  background-color: var(--mat-sys-surface-container);
   width: 100%;
   overflow-x: auto;  // Allow scrolling for many tabs
 
@@ -75,22 +75,45 @@
   }
 }
 
-// Close tab button styling
-.close-tab-button {
-  width: 20px;
-  height: 20px;
-  line-height: 20px;
-  font-size: 18px;
-  flex-shrink: 0;  // Prevent shrinking
-  margin-left: auto;  // Push to the end
-  z-index: 10;  // Ensure it's clickable
+// Tab context menu styling
+.tab-context-menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: 8px 0;
+  background-color: var(--mat-background-color, var(--mat-sys-surface-container));
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
 
-  .mat-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-    line-height: 16px;
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  color: var(--mat-sys-on-surface);
+
+  &:hover {
+    background-color: var(--mat-sys-surface-container-highest);
   }
+
+  &:disabled {
+    color: var(--mat-sys-on-surface-variant);
+    cursor: not-allowed;
+  }
+
+  mat-icon {
+    margin-right: 8px;
+  }
+}
+
+.context-menu-item-title {
+  flex: 1;
 }
 
 // Pulsing animation for syncing status
