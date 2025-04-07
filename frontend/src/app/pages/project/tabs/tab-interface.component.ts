@@ -1,8 +1,9 @@
+import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectorRef,
   Component,
-  effect, // <-- Add effect here
+  effect,
   EventEmitter,
   inject,
   OnDestroy,
@@ -25,9 +26,10 @@ import {
 import { ProjectElementDto } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
-import { filter, Subject, Subscription, takeUntil } from 'rxjs';
+import { filter, Subject, Subscription, take, takeUntil } from 'rxjs';
 
 import { DocumentSyncState } from '../../../models/document-sync-state';
+import { DialogGatewayService } from '../../../services/dialog-gateway.service';
 
 @Component({
   selector: 'app-tab-interface',
@@ -41,6 +43,9 @@ import { DocumentSyncState } from '../../../models/document-sync-state';
     MatButtonModule,
     RouterModule,
     MatMenuModule,
+    CdkContextMenuTrigger,
+    CdkMenu,
+    CdkMenuItem,
   ],
 })
 export class TabInterfaceComponent implements OnInit, OnDestroy {
@@ -55,10 +60,16 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
   protected readonly dialog = inject(MatDialog);
   private readonly cdr = inject(ChangeDetectorRef);
   protected readonly DocumentSyncState = DocumentSyncState;
+  private readonly dialogGateway = inject(DialogGatewayService);
 
   private destroy$ = new Subject<void>();
   private routerSubscription: Subscription | null = null;
   private initialSyncDone = false; // Flag to ensure initial sync runs only once
+
+  // Context menu tracking
+  contextTabIndex: number | null = null;
+  contextDocument: ProjectElementDto | null = null;
+
   get currentTabIndex(): number {
     return this.projectState.selectedTabIndex();
   }
@@ -266,5 +277,89 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
 
   onImportRequested(): void {
     this.importRequested.emit();
+  }
+
+  /**
+   * Opens the tab context menu
+   * @param tabIndex The index of the tab that was right-clicked
+   * @param document The document associated with the tab
+   */
+  onTabContextMenu(tabIndex: number, document?: ProjectElementDto): void {
+    this.contextTabIndex = tabIndex;
+    this.contextDocument = document || null;
+  }
+
+  /**
+   * Closes the tab context menu
+   */
+  onContextMenuClose(): void {
+    this.contextTabIndex = null;
+    this.contextDocument = null;
+  }
+
+  /**
+   * Handles the rename action from the context menu
+   * @param document The document to rename
+   */
+  async onRenameTabElement(document: ProjectElementDto): Promise<void> {
+    // Only proceed if the document exists and is not the home tab
+    if (!document) return;
+
+    const newName = await this.dialogGateway.openRenameDialog({
+      currentName: document.name,
+      title: `Rename ${document.type === 'FOLDER' ? 'Folder' : 'Document'}`,
+    });
+
+    if (newName) {
+      // Use the project state service to rename the element
+      this.projectState.renameNode(document, newName);
+    }
+  }
+
+  /**
+   * Returns the appropriate color for the tab indicator based on sync status
+   * @param username Project username
+   * @param slug Project slug
+   * @param documentId Document ID
+   * @returns CSS color value
+   */
+  getSyncStatusColor(
+    username?: string,
+    slug?: string,
+    documentId?: string
+  ): string {
+    if (!username || !slug || !documentId) {
+      return 'var(--mat-primary-color)';
+    }
+
+    // Full document ID format: username:slug:documentId
+    const fullDocId = `${username}:${slug}:${documentId}`;
+
+    // Get sync status as observable
+    const syncStatus$ = this.documentService.getSyncStatus(fullDocId);
+
+    // Use the value synchronously (will be updated by Angular change detection)
+    let colorVar = 'var(--mat-sys-primary)';
+
+    syncStatus$.pipe(take(1)).subscribe(status => {
+      switch (status) {
+        case DocumentSyncState.Unavailable:
+          colorVar = 'var(--mat-sys-error-container)';
+          break;
+        case DocumentSyncState.Offline:
+          colorVar = 'var(--mat-sys-outline)';
+          break;
+        case DocumentSyncState.Syncing:
+          colorVar = 'var(--mat-sys-accent)';
+          break;
+        case DocumentSyncState.Synced:
+          colorVar = '#4caf50';
+          break;
+        default:
+          colorVar = 'var(--mat-sys-primary)';
+      }
+    });
+
+    return colorVar;
   }
 }
