@@ -16,6 +16,8 @@ import { RecentFilesService } from '../../../../services/recent-files.service';
   imports: [CommonModule, MatButtonModule, MatIconModule, RouterModule],
 })
 export class HomeTabComponent {
+  @Output() importRequested = new EventEmitter<void>();
+
   protected readonly projectState = inject(ProjectStateService);
   protected readonly recentFilesService = inject(RecentFilesService);
   protected readonly importExportService = inject(ProjectImportExportService);
@@ -40,8 +42,6 @@ export class HomeTabComponent {
       void this.importExportService.exportProjectZip();
     }
   }
-
-  @Output() importRequested = new EventEmitter<void>();
 
   onImportClick(): void {
     const project = this.projectState.project();

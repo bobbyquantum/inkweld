@@ -190,23 +190,22 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (tabId) {
-      const tabIndex = this.projectState
-        .openDocuments()
-        .findIndex(doc => doc.id === tabId);
-      if (tabIndex !== -1) {
-        const newIndex = tabIndex + 1; // +1 to account for home tab
-        console.log(
-          `[TabInterface] Found tabId ${tabId} at index ${tabIndex}, setting selectedTabIndex to ${newIndex}`
-        );
-        this.projectState.selectedTabIndex.set(newIndex);
-      } else {
-        console.warn(
-          `[TabInterface] Tab ID ${tabId} found in URL, but not in open documents. Current index: ${this.projectState.selectedTabIndex()}`
-        );
-        // Optional: Consider if fallback is needed here, or if state should remain unchanged
-        // this.projectState.selectedTabIndex.set(0);
-      }
+    // If we reach here, tabId exists
+    const tabIndex = this.projectState
+      .openDocuments()
+      .findIndex(doc => doc.id === tabId);
+    if (tabIndex !== -1) {
+      const newIndex = tabIndex + 1; // +1 to account for home tab
+      console.log(
+        `[TabInterface] Found tabId ${tabId} at index ${tabIndex}, setting selectedTabIndex to ${newIndex}`
+      );
+      this.projectState.selectedTabIndex.set(newIndex);
+    } else {
+      console.warn(
+        `[TabInterface] Tab ID ${tabId} found in URL, but not in open documents. Current index: ${this.projectState.selectedTabIndex()}`
+      );
+      // Optional: Consider if fallback is needed here, or if state should remain unchanged
+      // this.projectState.selectedTabIndex.set(0);
     }
   }
 
@@ -338,9 +337,12 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     // Get sync status as observable
     const syncStatus$ = this.documentService.getSyncStatus(fullDocId);
 
-    // Use the value synchronously (will be updated by Angular change detection)
+    // Using a default color that will be updated via Angular's change detection
+    // when the subscription resolves
     let colorVar = 'var(--mat-sys-primary)';
 
+    // This subscription won't affect the immediate return value,
+    // but will update the component's state for the next change detection cycle
     syncStatus$.pipe(take(1)).subscribe(status => {
       switch (status) {
         case DocumentSyncState.Unavailable:
