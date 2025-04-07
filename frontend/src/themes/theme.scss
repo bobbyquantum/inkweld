@@ -287,8 +287,8 @@ $dark-theme: mat.define-theme(
     --ngx-editor-popup-bg-color: var(--mat-sys-surface-container);
     --ngx-editor-popup-border-radius: 4px;
     --ngx-editor-popup-shadow: rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
-    --ngx-editor-menu-item-active-color: #1a73e8;
-    --ngx-editor-menu-item-active-bg-color: #e8f0fe;
+    --ngx-editor-menu-item-active-color: var(--mat-sys-primary);
+    --ngx-editor-menu-item-active-bg-color: var(--mat-sys-surface-container);
     --ngx-editor-seperator-color: #ccc;
     --ngx-editor-bubble-bg-color: #000;
     --ngx-editor-bubble-text-color: #fff;
