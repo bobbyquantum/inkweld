@@ -42,7 +42,7 @@
       },
       "devDependencies": {
         "@nestjs/cli": "11.0.6",
-        "@nestjs/schematics": "11.0.3",
+        "@nestjs/schematics": "11.0.4",
         "@nestjs/testing": "11.0.13",
         "@openapitools/openapi-generator-cli": "2.18.4",
         "@types/bun": "1.2.8",
@@ -225,7 +225,7 @@
 
     "@nestjs/platform-ws": ["@nestjs/platform-ws@11.0.13", "", { "dependencies": { "tslib": "2.8.1", "ws": "8.18.1" }, "peerDependencies": { "@nestjs/common": "^11.0.0", "@nestjs/websockets": "^11.0.0", "rxjs": "^7.1.0" } }, "sha512-3ZSqbEhvyeDk6qlYcnOJXKE/D3iWMvKwFt+G9mstoYKPSuGqNrKzr08gJBvywmcP2vtK1IVG4I7ptFGwQy+C5Q=="],
 
-    "@nestjs/schematics": ["@nestjs/schematics@11.0.3", "", { "dependencies": { "@angular-devkit/core": "19.2.6", "@angular-devkit/schematics": "19.2.6", "comment-json": "4.2.5", "jsonc-parser": "3.3.1", "pluralize": "8.0.0" }, "peerDependencies": { "typescript": ">=4.8.2" } }, "sha512-enz9Otg1GafzmtpDRB1bs44/kipVKzmoQoJ296rRQMZPivQUBxFlRSwrR+e1jB09n5UVqCf8tUAQnRzxBR5AKw=="],
+    "@nestjs/schematics": ["@nestjs/schematics@11.0.4", "", { "dependencies": { "@angular-devkit/core": "19.2.6", "@angular-devkit/schematics": "19.2.6", "comment-json": "4.2.5", "jsonc-parser": "3.3.1", "pluralize": "8.0.0" }, "peerDependencies": { "typescript": ">=4.8.2" } }, "sha512-DSAdkfEgKsy54eB+iMwalod+dWX3cMNG1xp9QiSGC5GISck/9pJ8Y9/dnYXvC7s2DAwkwL+Jsywi8gXMVl3OGg=="],
 
     "@nestjs/serve-static": ["@nestjs/serve-static@5.0.3", "", { "dependencies": { "path-to-regexp": "8.2.0" }, "peerDependencies": { "@fastify/static": "^8.0.4", "@nestjs/common": "^11.0.2", "@nestjs/core": "^11.0.2", "express": "^5.0.1", "fastify": "^5.2.1" }, "optionalPeers": ["@fastify/static", "express", "fastify"] }, "sha512-0jFjTlSVSLrI+mot8lfm+h2laXtKzCvgsVStv9T1ZBZTDwS26gM5czIhIESmWAod0PfrbCDFiu9C1MglObL8VA=="],
 
@@ -1514,6 +1514,8 @@
     "@jridgewell/gen-mapping/@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.25", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ=="],
 
     "@jridgewell/source-map/@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.25", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ=="],
+
+    "@nestjs/cli/@nestjs/schematics": ["@nestjs/schematics@11.0.3", "", { "dependencies": { "@angular-devkit/core": "19.2.6", "@angular-devkit/schematics": "19.2.6", "comment-json": "4.2.5", "jsonc-parser": "3.3.1", "pluralize": "8.0.0" }, "peerDependencies": { "typescript": ">=4.8.2" } }, "sha512-enz9Otg1GafzmtpDRB1bs44/kipVKzmoQoJ296rRQMZPivQUBxFlRSwrR+e1jB09n5UVqCf8tUAQnRzxBR5AKw=="],
 
     "@nestjs/cli/typescript": ["typescript@5.7.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw=="],
 
