@@ -40,7 +40,7 @@
     "class-validator": "0.14.1",
     "dotenv": "16.4.7",
     "express-session": "1.18.1",
-    "http-proxy-middleware": "3.0.3",
+    "http-proxy-middleware": "3.0.5",
     "lodash.debounce": "4.0.8",
     "nest-winston": "^1.10.2",
     "passport": "0.7.0",
