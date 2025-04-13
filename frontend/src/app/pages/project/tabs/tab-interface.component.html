@@ -17,12 +17,8 @@
       </div>
     </a>
 
-    <!-- Document Tabs -->
-    @for (
-      document of projectState.openDocuments();
-      track document.id;
-      let i = $index
-    ) {
+    <!-- All Other Tabs -->
+    @for (tab of projectState.openTabs(); track tab.id; let i = $index) {
       <a
         mat-tab-link
         [active]="currentTabIndex === i + 1"
@@ -30,19 +26,30 @@
         (keydown.enter)="onTabChange(i + 1)"
         (keydown.space)="onTabChange(i + 1)"
         [cdkContextMenuTriggerFor]="tabContextMenu"
-        (contextmenu)="onTabContextMenu(i + 1, document)"
+        (contextmenu)="onTabContextMenu(i + 1, tab)"
         [style.--mdc-tab-indicator-active-indicator-color]="
-          document.type !== 'FOLDER'
+          tab.type === 'document' && tab.element
             ? getSyncStatusColor(
                 projectState.project()?.username,
                 projectState.project()?.slug,
-                document.id
+                tab.id
               )
             : 'var(--mat-sys-primary-color)'
         "
         tabindex="0">
         <div class="tab-label">
-          <span class="tab-name">{{ document.name }}</span>
+          <mat-icon class="tab-icon">
+            {{
+              tab.type === 'system'
+                ? tab.systemType === 'documents-list'
+                  ? 'description'
+                  : 'folder_special'
+                : tab.type === 'folder'
+                  ? 'folder'
+                  : 'insert_drive_file'
+            }}
+          </mat-icon>
+          <span class="tab-name">{{ tab.name }}</span>
           <button
             mat-icon-button
             class="close-tab-button"
@@ -60,16 +67,18 @@
 <!-- Tab Context Menu -->
 <ng-template #tabContextMenu>
   <div class="tab-context-menu" cdkMenu>
-    <!-- Only show rename for document tabs (not for home tab) -->
-    @if (contextDocument) {
+    <!-- Only show rename for document/folder tabs (not for system tabs) -->
+    @if (contextTab && contextTab.type !== 'system') {
       <button
         type="button"
         class="context-menu-item"
         cdkMenuItem
-        (click)="onRenameTabElement(contextDocument)">
+        (click)="onRenameTabElement(contextTab)">
         <mat-icon>edit_square</mat-icon>
         <span class="context-menu-item-title">Rename</span>
       </button>
+    }
+    @if (contextTab) {
       <button
         type="button"
         class="context-menu-item"

@@ -57,4 +57,18 @@ export class HomeTabComponent {
       void this.projectState.publishProject(project);
     }
   }
+
+  /**
+   * Opens the project files tab
+   */
+  openProjectFilesTab(): void {
+    this.projectState.openSystemTab('project-files');
+  }
+
+  /**
+   * Opens the documents tab
+   */
+  openDocumentsTab(): void {
+    this.projectState.openSystemTab('documents-list');
+  }
 }

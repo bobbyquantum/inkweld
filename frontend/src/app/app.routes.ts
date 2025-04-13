@@ -3,12 +3,12 @@ import { Routes } from '@angular/router';
 
 import { authGuard } from './guards/auth.guard';
 import { CanDeactivateProjectGuard } from './guards/can-deactivate-project.guard';
-import { DocumentsComponent } from './pages/project/documents/documents.component';
-import { ProjectFilesComponent } from './pages/project/files/project-files.component';
 import { ProjectComponent } from './pages/project/project.component';
 import { DocumentTabComponent } from './pages/project/tabs/document/document-tab.component';
+import { DocumentsListTabComponent } from './pages/project/tabs/documents-list/documents-list-tab.component';
 import { FolderTabComponent } from './pages/project/tabs/folder/folder-tab.component';
 import { HomeTabComponent } from './pages/project/tabs/home/home-tab.component';
+import { ProjectFilesTabComponent } from './pages/project/tabs/project-files/project-files-tab.component';
 
 export const routes: Routes = [
   {
@@ -73,20 +73,23 @@ export const routes: Routes = [
           reuseComponent: false, // Prevent component reuse
         },
       },
+      {
+        path: 'documents-list',
+        component: DocumentsListTabComponent,
+        data: {
+          reuseComponent: false,
+        },
+      },
+      {
+        path: 'project-files',
+        component: ProjectFilesTabComponent,
+        data: {
+          reuseComponent: false,
+        },
+      },
     ],
   },
-  {
-    path: ':username/:slug/files',
-    component: ProjectFilesComponent,
-    title: 'Project Files',
-    canActivate: [authGuard],
-  },
-  {
-    path: ':username/:slug/documents',
-    component: DocumentsComponent,
-    title: 'Project Documents',
-    canActivate: [authGuard],
-  },
+  // Old routes for files and documents have been replaced by tab components
   // User profile route
   {
     path: ':username',

@@ -71,7 +71,6 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
 })
 export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly projectState = inject(ProjectStateService);
-
   protected readonly documentService = inject(DocumentService);
   protected readonly recentFilesService = inject(RecentFilesService);
   protected readonly breakpointObserver = inject(BreakpointObserver);
@@ -123,25 +122,36 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 
     effect(() => {
-      const openDocuments = this.projectState.openDocuments();
-      const currentDocument = openDocuments[0];
+      const tabs = this.projectState.openTabs();
+      const currentTabIndex = this.projectState.selectedTabIndex();
+      let currentDocId: string | null = null;
+
+      // Get the current document ID if we're looking at a document tab
+      if (currentTabIndex > 0 && tabs.length >= currentTabIndex) {
+        const currentTab = tabs[currentTabIndex - 1]; // -1 for home tab
+        if (currentTab.type === 'document' && currentTab.element) {
+          currentDocId = currentTab.element.id;
+        }
+      }
+
       // Clean up previous subscription
       this.syncSubscription?.unsubscribe();
-      if (currentDocument?.id) {
+
+      if (currentDocId) {
         this.syncSubscription = this.documentService
-          .getSyncStatus(currentDocument.id)
+          .getSyncStatus(currentDocId)
           .subscribe(state => {
             // Only consider changes as "unsynced" when user is working offline AND has pending changes
             this.hasUnsavedChanges =
               state === DocumentSyncState.Offline &&
-              this.documentService.hasUnsyncedChanges(currentDocument.id);
+              this.documentService.hasUnsyncedChanges(currentDocId);
           });
       } else {
         this.hasUnsavedChanges = false;
       }
     });
 
-    // Disable zen mode when switching tabs or closing documents
+    // Disable zen mode when switching tabs or closing tabs
     effect(() => {
       // Check if current tab can support zen mode
       if (this.isZenMode() && !this.canEnableZenMode()) {
@@ -150,9 +160,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
       // Trigger on tab changes - access to watch for changes
       this.projectState.selectedTabIndex();
-      // Trigger on document count changes - access to watch for changes
+      // Trigger on tab count changes - access to watch for changes
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      this.projectState.openDocuments().length;
+      this.projectState.openTabs().length;
     });
   }
 
@@ -271,7 +281,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   };
 
   closeTab = (index: number) => {
-    this.projectState.closeDocument(index);
+    this.projectState.closeTab(index);
   };
 
   onImportClicked = (): void => {
@@ -367,18 +377,20 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     // 1. A document element is open for editing
     // 2. It's the current selected tab
     const currentTabIndex = this.projectState.selectedTabIndex();
-    const openDocuments = this.projectState.openDocuments();
+    const tabs = this.projectState.openTabs();
 
-    // If the home tab is selected (index 0), or no documents are open, zen mode cannot be enabled
-    if (currentTabIndex === 0 || openDocuments.length === 0) {
+    // If the home tab is selected (index 0), or no tabs are open, zen mode cannot be enabled
+    if (currentTabIndex === 0 || tabs.length === 0) {
       return false;
     }
 
-    // Get the current document
-    const currentDocument = openDocuments[currentTabIndex - 1]; // Adjust for home tab
+    // Get the current tab
+    const currentTab = tabs[currentTabIndex - 1]; // Adjust for home tab
 
-    // Zen mode should only be available for document elements, not folders
-    return currentDocument && currentDocument.type !== 'FOLDER';
+    // Zen mode should only be available for document elements, not folders or system tabs
+    return (
+      currentTab && currentTab.type === 'document' && currentTab.element != null
+    );
   }
 
   getZenModeIcon(): string {
@@ -393,19 +405,19 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     const currentTabIndex = this.projectState.selectedTabIndex();
-    const openDocuments = this.projectState.openDocuments();
+    const tabs = this.projectState.openTabs();
 
-    // If the home tab is selected (index 0), or no documents are open, return null
-    if (currentTabIndex === 0 || openDocuments.length === 0) {
+    // If the home tab is selected (index 0), or no tabs are open, return null
+    if (currentTabIndex === 0 || tabs.length === 0) {
       return null;
     }
 
-    // Get the current document
-    const currentDocument = openDocuments[currentTabIndex - 1]; // Adjust for home tab
+    // Get the current tab
+    const currentTab = tabs[currentTabIndex - 1]; // Adjust for home tab
 
-    // Return document ID for non-folder documents only
-    if (currentDocument && currentDocument.type !== 'FOLDER') {
-      return `${this.projectState.project()!.username}:${this.projectState.project()!.slug}:${currentDocument.id}`;
+    // Return document ID for document tabs only
+    if (currentTab && currentTab.type === 'document' && currentTab.element) {
+      return `${this.projectState.project()!.username}:${this.projectState.project()!.slug}:${currentTab.id}`;
     }
 
     return null;

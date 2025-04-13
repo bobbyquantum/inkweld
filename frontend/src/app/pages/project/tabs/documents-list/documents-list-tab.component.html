@@ -1,24 +1,14 @@
 <div class="documents-container">
   <div class="documents-header">
-    <button
-      mat-icon-button
-      color="primary"
-      (click)="navigateToProject()"
-      aria-label="Back to project">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
     <h1>Project Documents</h1>
-    <button
-      mat-raised-button
-      color="primary"
-      [routerLink]="['../editor', 'new']">
+    <button mat-raised-button color="primary" (click)="createNewDocument()">
       <mat-icon>add</mat-icon>
       New Document
     </button>
   </div>
 
   <!-- Loading state -->
-  @if (isLoading) {
+  @if (isLoading()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
       <p>Loading documents...</p>
@@ -26,11 +16,11 @@
   }
 
   <!-- Error state -->
-  @if (error && !isLoading) {
+  @if (error() && !isLoading()) {
     <mat-card class="error-card">
       <mat-card-content>
         <mat-icon color="warn">error</mat-icon>
-        <p>{{ error }}</p>
+        <p>{{ error() }}</p>
         <button mat-button color="primary" (click)="loadDocuments()">
           Try Again
         </button>
@@ -39,15 +29,12 @@
   }
 
   <!-- Empty state -->
-  @if (!isLoading && !error && documents.length === 0) {
+  @if (!isLoading() && !error() && documents().length === 0) {
     <mat-card class="empty-card">
       <mat-card-content>
         <mat-icon>description</mat-icon>
         <p>No documents found in this project.</p>
-        <button
-          mat-raised-button
-          color="primary"
-          [routerLink]="['../editor', 'new']">
+        <button mat-raised-button color="primary" (click)="createNewDocument()">
           Create Your First Document
         </button>
       </mat-card-content>
@@ -55,17 +42,20 @@
   }
 
   <!-- Documents table -->
-  @if (!isLoading && !error && documents.length > 0) {
+  @if (!isLoading() && !error() && documents().length > 0) {
     <div class="table-container">
-      <table mat-table [dataSource]="documents" class="documents-table">
+      <table mat-table [dataSource]="documents()" class="documents-table">
         <!-- Name Column -->
         <ng-container matColumnDef="name">
           <th mat-header-cell *matHeaderCellDef>Name</th>
           <td mat-cell *matCellDef="let doc">
-            <a [routerLink]="['../editor', doc.id]" class="document-name">
+            <button
+              (click)="openDocument(doc)"
+              class="document-name"
+              mat-button>
               <mat-icon class="document-icon">description</mat-icon>
               {{ doc.name }}
-            </a>
+            </button>
           </td>
         </ng-container>
 
@@ -73,7 +63,7 @@
         <ng-container matColumnDef="lastModified">
           <th mat-header-cell *matHeaderCellDef>Last Modified</th>
           <td mat-cell *matCellDef="let doc">
-            {{ formatDate(doc.lastModified) }}
+            {{ formatDate(doc.metadata?.lastModified) }}
           </td>
         </ng-container>
 
@@ -95,7 +85,7 @@
           <td mat-cell *matCellDef="let doc">
             <button
               mat-icon-button
-              [routerLink]="['../editor', doc.id]"
+              (click)="openDocument(doc)"
               matTooltip="Open Document">
               <mat-icon>edit</mat-icon>
             </button>
@@ -104,12 +94,6 @@
               (click)="openDocumentAsHtml(doc)"
               matTooltip="View as HTML">
               <mat-icon>preview</mat-icon>
-            </button>
-            <button mat-icon-button matTooltip="Download Document">
-              <mat-icon>download</mat-icon>
-            </button>
-            <button mat-icon-button color="warn" matTooltip="Delete Document">
-              <mat-icon>delete</mat-icon>
             </button>
           </td>
         </ng-container>

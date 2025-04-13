@@ -25,7 +25,7 @@ import {
 } from '@angular/router';
 import { ProjectElementDto } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
-import { ProjectStateService } from '@services/project-state.service';
+import { AppTab, ProjectStateService } from '@services/project-state.service';
 import { filter, Subject, Subscription, take, takeUntil } from 'rxjs';
 
 import { DocumentSyncState } from '../../../models/document-sync-state';
@@ -68,7 +68,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
 
   // Context menu tracking
   contextTabIndex: number | null = null;
-  contextDocument: ProjectElementDto | null = null;
+  contextTab: AppTab | null = null;
 
   get currentTabIndex(): number {
     return this.projectState.selectedTabIndex();
@@ -77,7 +77,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     // Watch for changes to the selected tab index and navigate accordingly
     effect(() => {
       const tabIndex = this.projectState.selectedTabIndex();
-      const openDocuments = this.projectState.openDocuments();
       const project = this.projectState.project();
 
       console.log('[TabInterface] Tab index changed to:', tabIndex);
@@ -85,25 +84,38 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
       // Skip navigation during initial load
       if (!this.initialSyncDone || !project) return;
 
+      // Get available tabs
+      const tabs = this.projectState.openTabs();
+
       // Navigate based on the tab index
       if (tabIndex === 0) {
         // Home tab
         console.log('[TabInterface] Effect: Navigating to home tab');
         void this.router.navigate(['/', project.username, project.slug]);
-      } else if (tabIndex > 0 && openDocuments.length >= tabIndex) {
-        // Document/folder tab
-        const tabDocument = openDocuments[tabIndex - 1]; // -1 to account for home tab
-        console.log(
-          '[TabInterface] Effect: Navigating to tab document:',
-          tabDocument
-        );
-        void this.router.navigate([
-          '/',
-          project.username,
-          project.slug,
-          tabDocument.type === 'FOLDER' ? 'folder' : 'document',
-          tabDocument.id,
-        ]);
+      } else if (tabIndex > 0 && tabs.length >= tabIndex) {
+        // Get the tab info
+        const tab = tabs[tabIndex - 1]; // -1 to account for home tab
+        console.log('[TabInterface] Effect: Navigating to tab:', tab);
+
+        // Handle different tab types
+        if (tab.type === 'system') {
+          // System tab (documents list or project files)
+          void this.router.navigate([
+            '/',
+            project.username,
+            project.slug,
+            tab.systemType, // 'documents-list' or 'project-files'
+          ]);
+        } else {
+          // Document or folder tab
+          void this.router.navigate([
+            '/',
+            project.username,
+            project.slug,
+            tab.type, // 'document' or 'folder'
+            tab.id,
+          ]);
+        }
       }
     });
 
@@ -162,38 +174,80 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
 
   updateSelectedTabFromUrl(): void {
     console.log('[TabInterface] updateSelectedTabFromUrl called');
-    // Traverse the route tree to find the deepest activated route with a 'tabId' param
+    // Get current route URL
     let currentRoute = this.route.root;
     let tabId: string | null = null;
-    while (currentRoute.firstChild) {
-      currentRoute = currentRoute.firstChild;
-      if (
-        currentRoute.outlet === PRIMARY_OUTLET &&
-        currentRoute.snapshot.paramMap.has('tabId')
-      ) {
-        tabId = currentRoute.snapshot.paramMap.get('tabId');
+    let systemRoute: string | null = null;
+
+    // First check if we're on a system route
+    const url = this.router.url;
+    const project = this.projectState.project();
+    if (project) {
+      const projectBaseUrl = `/${project.username}/${project.slug}`;
+      if (url === `${projectBaseUrl}/documents-list`) {
+        systemRoute = 'documents-list';
+      } else if (url === `${projectBaseUrl}/project-files`) {
+        systemRoute = 'project-files';
       }
     }
 
-    // Check if we are at the project root (no tabId found in child routes)
-    // Simplified check: if no tabId was found, assume home.
-    // More robust check might involve verifying the exact URL pattern.
-    console.log('[TabInterface] Extracted tabId from URL:', tabId);
+    // If not a system route, check for tabId param
+    if (!systemRoute) {
+      while (currentRoute.firstChild) {
+        currentRoute = currentRoute.firstChild;
+        if (
+          currentRoute.outlet === PRIMARY_OUTLET &&
+          currentRoute.snapshot.paramMap.has('tabId')
+        ) {
+          tabId = currentRoute.snapshot.paramMap.get('tabId');
+        }
+      }
+    }
+
+    console.log('[TabInterface] URL analysis:', { tabId, systemRoute, url });
     console.log(
-      '[TabInterface] Current openDocuments:',
-      this.projectState.openDocuments().map(d => `${d.name} (${d.id})`)
+      '[TabInterface] Current openTabs:',
+      this.projectState.openTabs().map(t => `${t.name} (${t.id}) - ${t.type}`)
     );
 
-    if (!tabId) {
-      console.log('[TabInterface] No tabId found, setting index to 0 (Home)');
+    // Check if we are at the project root (home tab)
+    if (!tabId && !systemRoute) {
+      console.log(
+        '[TabInterface] No tab identifiers found, setting index to 0 (Home)'
+      );
       this.projectState.selectedTabIndex.set(0);
       return;
     }
 
-    // If we reach here, tabId exists
-    const tabIndex = this.projectState
-      .openDocuments()
-      .findIndex(doc => doc.id === tabId);
+    // Find the tab index
+    let tabIndex = -1;
+
+    if (systemRoute) {
+      // Find the system tab
+      tabIndex = this.projectState
+        .openTabs()
+        .findIndex(
+          tab => tab.type === 'system' && tab.systemType === systemRoute
+        );
+
+      // If system tab not found in the existing tabs, create it
+      if (tabIndex === -1) {
+        this.projectState.openSystemTab(
+          systemRoute as 'documents-list' | 'project-files'
+        );
+        // Re-find the tab index after creating
+        tabIndex = this.projectState
+          .openTabs()
+          .findIndex(
+            tab => tab.type === 'system' && tab.systemType === systemRoute
+          );
+      }
+    } else if (tabId) {
+      // Find tab with the specific ID
+      tabIndex = this.projectState
+        .openTabs()
+        .findIndex(tab => tab.id === tabId);
+    }
     if (tabIndex !== -1) {
       const newIndex = tabIndex + 1; // +1 to account for home tab
       console.log(
@@ -230,19 +284,14 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     // Don't close the home tab
     if (index === 0) return;
 
-    const documents = this.projectState.openDocuments();
-    const tabDocument = documents[index - 1]; // -1 to account for home tab
-
-    if (tabDocument) {
-      // If closing the current tab, navigate to the previous tab
-      if (this.currentTabIndex === index) {
-        const newIndex = Math.max(0, index - 1);
-        this.onTabChange(newIndex);
-      }
-
-      // Close the tab in the state service
-      this.projectState.closeDocument(index - 1);
+    // If closing the current tab, navigate to the previous tab first
+    if (this.currentTabIndex === index) {
+      const newIndex = Math.max(0, index - 1);
+      this.onTabChange(newIndex);
     }
+
+    // Close the tab in the state service
+    this.projectState.closeTab(index - 1);
   }
 
   openDocument(document: ProjectElementDto): void {
@@ -279,13 +328,22 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Opens a system tab for documents-list or project-files
+   * @param type The type of system tab to open
+   */
+  openSystemTab(type: 'documents-list' | 'project-files'): void {
+    console.log(`[TabInterface] Opening system tab: ${type}`);
+    this.projectState.openSystemTab(type);
+  }
+
+  /**
    * Opens the tab context menu
    * @param tabIndex The index of the tab that was right-clicked
-   * @param document The document associated with the tab
+   * @param tab The tab that was right-clicked
    */
-  onTabContextMenu(tabIndex: number, document?: ProjectElementDto): void {
+  onTabContextMenu(tabIndex: number, tab: AppTab): void {
     this.contextTabIndex = tabIndex;
-    this.contextDocument = document || null;
+    this.contextTab = tab;
   }
 
   /**
@@ -293,25 +351,25 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
    */
   onContextMenuClose(): void {
     this.contextTabIndex = null;
-    this.contextDocument = null;
+    this.contextTab = null;
   }
 
   /**
    * Handles the rename action from the context menu
-   * @param document The document to rename
+   * @param tab The tab to rename
    */
-  async onRenameTabElement(document: ProjectElementDto): Promise<void> {
-    // Only proceed if the document exists and is not the home tab
-    if (!document) return;
+  async onRenameTabElement(tab: AppTab): Promise<void> {
+    // Only proceed if this is a document or folder tab with an element
+    if (!tab || tab.type === 'system' || !tab.element) return;
 
     const newName = await this.dialogGateway.openRenameDialog({
-      currentName: document.name,
-      title: `Rename ${document.type === 'FOLDER' ? 'Folder' : 'Document'}`,
+      currentName: tab.element.name,
+      title: `Rename ${tab.element.type === 'FOLDER' ? 'Folder' : 'Document'}`,
     });
 
     if (newName) {
       // Use the project state service to rename the element
-      this.projectState.renameNode(document, newName);
+      this.projectState.renameNode(tab.element, newName);
     }
   }
 
