@@ -4,7 +4,6 @@ import {
   ProjectAPIService,
   ProjectDto,
   ProjectElementDto,
-  UserDto,
 } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -83,16 +82,12 @@ describe('ProjectStateService', () => {
 
   const mockDate = new Date('2025-02-22T22:43:16.240Z');
 
-  const mockUser: UserDto = {
-    username: 'testuser',
-  } as unknown as UserDto;
-
   const mockProject: ProjectDto = {
     id: '1',
     title: 'Test Project',
     slug: 'test-project',
     description: 'Test Description',
-    user: mockUser,
+    username: 'testuser', // Replace user with username property
     createdDate: mockDate.toISOString(),
     updatedDate: mockDate.toISOString(),
   };
@@ -211,6 +206,7 @@ describe('ProjectStateService', () => {
     it('should open a document in editor tabs', () => {
       service.openDocument(mockElementDto);
       expect(service.openDocuments()).toContain(mockElementDto);
+      // Tab index is 1-based with 0 = home tab, 1 = first document tab
       expect(service.selectedTabIndex()).toBe(1);
     });
 

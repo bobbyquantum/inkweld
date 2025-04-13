@@ -36,26 +36,12 @@
           <mat-icon>cloud_upload</mat-icon>
           Publish Project
         </button>
-        <button
-          mat-button
-          color="primary"
-          [routerLink]="[
-            '/' + projectState.project()?.username,
-            projectState.project()?.slug,
-            'files',
-          ]">
-          <mat-icon>folder</mat-icon>
+        <button mat-button color="primary" (click)="openProjectFilesTab()">
+          <mat-icon>folder_special</mat-icon>
           Project Files
         </button>
-        <button
-          mat-button
-          color="primary"
-          [routerLink]="[
-            '/' + projectState.project()?.username,
-            projectState.project()?.slug,
-            'documents',
-          ]">
-          <mat-icon>folder</mat-icon>
+        <button mat-button color="primary" (click)="openDocumentsTab()">
+          <mat-icon>description</mat-icon>
           Project Documents
         </button>
       </div>

@@ -30,6 +30,16 @@ export interface ValidDropLevels {
   levels: number[];
   defaultLevel: number;
 }
+
+// Interfaces for tab management
+export interface AppTab {
+  id: string;
+  name: string;
+  type: 'document' | 'folder' | 'system';
+  systemType?: 'documents-list' | 'project-files';
+  element?: ProjectElementDto;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -48,6 +58,7 @@ export class ProjectStateService {
   readonly project = signal<ProjectDto | undefined>(undefined);
   readonly elements = signal<ProjectElementDto[]>([]);
   readonly openDocuments = signal<ProjectElementDto[]>([]);
+  readonly openTabs = signal<AppTab[]>([]);
   readonly selectedTabIndex = signal<number>(0);
   readonly isLoading = signal<boolean>(false);
   readonly isSaving = signal<boolean>(false);
@@ -194,7 +205,8 @@ export class ProjectStateService {
       elementsArray.insert(0, elements);
     });
   }
-  renameNode(node: ProjectElement, newName: string) {
+
+  renameNode(node: ProjectElement, newName: string): void {
     const elements = this.elements();
     const index = elements.findIndex(e => e.id === node.id);
     if (index === -1) return;
@@ -203,6 +215,7 @@ export class ProjectStateService {
     newElements[index] = { ...newElements[index], name: newName };
     this.updateElements(this.recomputePositions(newElements));
   }
+
   updateProject(project: ProjectDto): void {
     if (!this.doc) return;
 
@@ -240,6 +253,7 @@ export class ProjectStateService {
     // Trigger change detection
     this.getSyncState();
   }
+
   // Tree Operations
   addElement(
     type: ProjectElementDto['type'],
@@ -363,6 +377,7 @@ export class ProjectStateService {
       defaultLevel,
     };
   }
+
   getDropInsertIndex(
     nodeAbove: ProjectElementDto | null,
     targetLevel: number
@@ -386,6 +401,7 @@ export class ProjectStateService {
     const subtree = this.getSubtree(elements, nodeAboveIndex);
     return nodeAboveIndex + subtree.length;
   }
+
   moveElement(elementId: string, targetIndex: number, newLevel: number): void {
     const elements = this.elements();
     const elementIndex = elements.findIndex(e => e.id === elementId);
@@ -435,7 +451,8 @@ export class ProjectStateService {
   isExpanded(elementId: string): boolean {
     return this.expandedNodeIds().has(elementId);
   }
-  async publishProject(project: ProjectDto) {
+
+  async publishProject(project: ProjectDto): Promise<void> {
     try {
       const response = await firstValueFrom(
         this.projectAPIService.projectPublishEpubControllerPublishEpub(
@@ -450,6 +467,7 @@ export class ProjectStateService {
       this.error.set('Failed to publish project. Please try again later.');
     }
   }
+
   deleteElement(elementId: string): void {
     const elements = this.elements();
     const index = elements.findIndex(e => e.id === elementId);
@@ -467,9 +485,10 @@ export class ProjectStateService {
     void this.updateElements(this.recomputePositions(newElements));
   }
 
-  // Document Operations
+  // Tab Operations
   openDocument(element: ProjectElementDto): void {
     const documents = this.openDocuments();
+    const tabs = this.openTabs();
 
     // Add to recent documents if we have a project
     const project = this.project();
@@ -490,27 +509,117 @@ export class ProjectStateService {
 
     if (!documents.some(d => d.id === element.id)) {
       this.openDocuments.set([...documents, element]);
+
+      // Add to tabs
+      const newTab: AppTab = {
+        id: element.id,
+        name: element.name,
+        type: element.type === 'FOLDER' ? 'folder' : 'document',
+        element: element,
+      };
+
+      if (!tabs.some(t => t.id === element.id)) {
+        this.openTabs.set([...tabs, newTab]);
+      }
+
       // Save updated opened documents to cache
       void this.saveOpenedDocumentsToCache();
     }
-    const index = this.openDocuments().findIndex(d => d.id === element.id);
-    this.selectedTabIndex.set(index + 1);
+
+    // Find the tab and select it
+    const index = this.openTabs().findIndex(t => t.id === element.id);
+    if (index !== -1) {
+      // Set index+1 because index 0 is reserved for home tab in the TabInterfaceComponent
+      this.selectedTabIndex.set(index + 1);
+      console.log(
+        `Document tab "${element.name}" selected at index ${index + 1} (zero-based index: ${index})`
+      );
+    }
   }
 
-  closeDocument(index: number): void {
-    const documents = this.openDocuments();
-    const newDocuments = [
-      ...documents.slice(0, index),
-      ...documents.slice(index + 1),
-    ];
-    this.openDocuments.set(newDocuments);
+  /**
+   * Opens a system tab like documents list or project files
+   */
+  openSystemTab(type: 'documents-list' | 'project-files'): void {
+    const tabs = this.openTabs();
+    const tabId = `system-${type}`;
+    const tabName = type === 'documents-list' ? 'Documents' : 'Files';
 
-    if (this.selectedTabIndex() >= newDocuments.length) {
-      this.selectedTabIndex.set(Math.max(0, newDocuments.length - 1));
+    if (!tabs.some(t => t.id === tabId)) {
+      const newTab: AppTab = {
+        id: tabId,
+        name: tabName,
+        type: 'system',
+        systemType: type,
+      };
+
+      this.openTabs.set([...tabs, newTab]);
+
+      // Save opened tabs to cache when adding a new tab
+      void this.saveOpenedDocumentsToCache();
     }
+
+    const index = this.openTabs().findIndex(t => t.id === tabId);
+    if (index !== -1) {
+      // Set index+1 because index 0 is reserved for home tab in the TabInterfaceComponent
+      this.selectedTabIndex.set(index + 1);
+      console.log(
+        `System tab "${tabName}" selected at index ${index + 1} (zero-based index: ${index})`
+      );
+    }
+  }
+
+  closeTab(index: number): void {
+    const tabs = this.openTabs();
+    const closedTab = tabs[index];
+
+    if (!closedTab) {
+      console.error(`Attempted to close invalid tab at index ${index}`);
+      return;
+    }
+
+    // Remove from tabs
+    const newTabs = [...tabs.slice(0, index), ...tabs.slice(index + 1)];
+    this.openTabs.set(newTabs);
+
+    // If it was a document/folder tab, also remove from openDocuments
+    if (
+      (closedTab.type === 'document' || closedTab.type === 'folder') &&
+      closedTab.element
+    ) {
+      const docIndex = this.openDocuments().findIndex(
+        d => d.id === closedTab.id
+      );
+      if (docIndex !== -1) {
+        const documents = this.openDocuments();
+        const newDocuments = [
+          ...documents.slice(0, docIndex),
+          ...documents.slice(docIndex + 1),
+        ];
+        this.openDocuments.set(newDocuments);
+      }
+    }
+
+    // Update selected tab index - ensure we go to home tab if the closed tab was selected
+    const currentSelectedIndex = this.selectedTabIndex();
+    if (currentSelectedIndex === index) {
+      // If we closed the selected tab, go back to the first tab (Home)
+      this.selectedTabIndex.set(0);
+    } else if (currentSelectedIndex > index) {
+      // If we closed a tab before the currently selected one, adjust the index
+      this.selectedTabIndex.set(currentSelectedIndex - 1);
+    }
+    // Otherwise current selection is fine - it's a tab before the one we closed
 
     // Save updated opened documents to cache
     void this.saveOpenedDocumentsToCache();
+  }
+
+  /**
+   * Legacy alias for closeTab to maintain backwards compatibility
+   */
+  closeDocument(index: number): void {
+    this.closeTab(index);
   }
 
   async saveOpenedDocumentsToCache(): Promise<void> {
@@ -523,13 +632,24 @@ export class ProjectStateService {
 
     try {
       const db = await this.documentCacheDb;
+
+      // Save document elements (for backward compatibility)
       await this.storageService.put(
         db,
         'openedDocuments',
         this.openDocuments(),
         cacheKey
       );
-      console.log('Opened documents saved to cache:', cacheKey);
+
+      // Save tabs (using a different key)
+      await this.storageService.put(
+        db,
+        'openedDocuments',
+        this.openTabs(),
+        `${cacheKey}/tabs`
+      );
+
+      console.log('Opened documents and tabs saved to cache:', cacheKey);
     } catch (error) {
       console.error('Failed to save opened documents to cache:', error);
     }
@@ -545,6 +665,90 @@ export class ProjectStateService {
 
     try {
       const db = await this.documentCacheDb;
+
+      // Try to get tabs first
+      const tabs = await this.storageService.get<AppTab[]>(
+        db,
+        'openedDocuments',
+        `${cacheKey}/tabs`
+      );
+
+      if (tabs && tabs.length > 0) {
+        console.log('Restoring tabs from cache:', tabs);
+
+        // Validate document tabs still exist in project
+        const currentElements = this.elements();
+        const validTabs = tabs.filter(tab => {
+          // Always keep system tabs
+          if (tab.type === 'system') {
+            console.log('Keeping system tab:', tab.name, tab.systemType);
+            return true;
+          }
+
+          // For document/folder tabs, verify they exist in project
+          const exists =
+            tab.element &&
+            currentElements.some(element => element.id === tab.id);
+
+          if (!exists) {
+            console.log('Removing invalid tab:', tab.name, tab.id);
+          }
+
+          return exists;
+        });
+
+        if (validTabs.length > 0) {
+          this.openTabs.set(validTabs);
+
+          // Also update openDocuments for backward compatibility
+          const documents = validTabs
+            .filter(
+              tab =>
+                tab.element &&
+                (tab.type === 'document' || tab.type === 'folder')
+            )
+            .map(tab => tab.element as ProjectElementDto);
+
+          if (documents.length > 0) {
+            this.openDocuments.set(documents);
+          }
+
+          // Restore the previously selected tab or select Home tab
+          const urlParams = window.location.pathname.split('/');
+          const lastSegment = urlParams[urlParams.length - 1];
+
+          let selectedIndex = 0; // Default to Home tab
+
+          // Check if URL indicates we should be on a specific system tab
+          if (lastSegment === 'documents') {
+            selectedIndex = validTabs.findIndex(
+              t => t.systemType === 'documents-list'
+            );
+            selectedIndex = selectedIndex !== -1 ? selectedIndex : 0;
+          } else if (lastSegment === 'files') {
+            selectedIndex = validTabs.findIndex(
+              t => t.systemType === 'project-files'
+            );
+            selectedIndex = selectedIndex !== -1 ? selectedIndex : 0;
+          } else if (lastSegment.match(/^[a-f0-9-]+$/)) {
+            // If URL has a document ID, find and select that document tab
+            const potentialDocId = lastSegment;
+            selectedIndex = validTabs.findIndex(t => t.id === potentialDocId);
+            selectedIndex = selectedIndex !== -1 ? selectedIndex : 0;
+          }
+
+          this.selectedTabIndex.set(selectedIndex);
+          console.log(
+            'Opened tabs restored from cache:',
+            validTabs.length,
+            'Selected index:',
+            selectedIndex
+          );
+          return;
+        }
+      }
+
+      // Fallback to legacy document loading
       const documents = await this.storageService.get<ProjectElementDto[]>(
         db,
         'openedDocuments',
@@ -560,6 +764,16 @@ export class ProjectStateService {
 
         if (validDocuments.length > 0) {
           this.openDocuments.set(validDocuments);
+
+          // Convert to tabs
+          const tabs: AppTab[] = validDocuments.map(doc => ({
+            id: doc.id,
+            name: doc.name,
+            type: doc.type === 'FOLDER' ? 'folder' : 'document',
+            element: doc,
+          }));
+          this.openTabs.set(tabs);
+
           // Set the first document as selected
           this.selectedTabIndex.set(Math.min(1, validDocuments.length));
           console.log(

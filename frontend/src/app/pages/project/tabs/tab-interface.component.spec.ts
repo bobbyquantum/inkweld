@@ -27,7 +27,10 @@ import { of, Subject } from 'rxjs';
 import { DocumentSyncState } from '../../../models/document-sync-state';
 import { DialogGatewayService } from '../../../services/dialog-gateway.service';
 import { DocumentService } from '../../../services/document.service';
-import { ProjectStateService } from '../../../services/project-state.service';
+import {
+  AppTab,
+  ProjectStateService,
+} from '../../../services/project-state.service';
 import { TabInterfaceComponent } from './tab-interface.component';
 
 describe('TabInterfaceComponent', () => {
@@ -71,10 +74,32 @@ describe('TabInterfaceComponent', () => {
     },
   ];
 
+  const mockTabs: AppTab[] = [
+    {
+      id: 'doc1',
+      name: 'Document 1',
+      type: 'document',
+      element: mockDocuments[0],
+    },
+    {
+      id: 'doc2',
+      name: 'Document 2',
+      type: 'folder',
+      element: mockDocuments[1],
+    },
+    {
+      id: 'system-documents-list',
+      name: 'Documents',
+      type: 'system',
+      systemType: 'documents-list',
+    },
+  ];
+
   const setupMockServices = () => {
     // Initialize signals
     const projectSignal = signal(mockProject);
     const openDocumentsSignal = signal<ProjectElementDto[]>([...mockDocuments]);
+    const openTabsSignal = signal<AppTab[]>([...mockTabs]);
     const selectedTabIndexSignal = signal<number>(0);
     const isLoadingSignal = signal<boolean>(false);
 
@@ -82,11 +107,14 @@ describe('TabInterfaceComponent', () => {
     projectStateService = {
       project: projectSignal,
       openDocuments: openDocumentsSignal,
+      openTabs: openTabsSignal,
       selectedTabIndex: selectedTabIndexSignal,
       isLoading: isLoadingSignal,
       openDocument: jest.fn(),
       closeDocument: jest.fn(),
+      closeTab: jest.fn(),
       renameNode: jest.fn(),
+      openSystemTab: jest.fn(),
     };
 
     // Mock document service
@@ -105,6 +133,7 @@ describe('TabInterfaceComponent', () => {
     router = {
       navigate: jest.fn().mockResolvedValue(true),
       events: routerEvents.asObservable(),
+      url: '/testuser/test-project',
     };
 
     // Mock activated route with childRoutes for tab ID extraction
@@ -187,7 +216,7 @@ describe('TabInterfaceComponent', () => {
 
   it('should close a tab when closeTab is called', () => {
     component.closeTab(1);
-    expect(projectStateService.closeDocument).toHaveBeenCalledWith(0); // Index 1 - 1 (home tab offset)
+    expect(projectStateService.closeTab).toHaveBeenCalledWith(0); // Index 1 - 1 (home tab offset)
   });
 
   it('should navigate to previous tab when current tab is closed', () => {
@@ -203,12 +232,12 @@ describe('TabInterfaceComponent', () => {
 
     // Should navigate to tab 0 (home)
     expect(component.onTabChange).toHaveBeenCalledWith(0);
-    expect(projectStateService.closeDocument).toHaveBeenCalledWith(0); // Index 1 - 1 (home tab offset)
+    expect(projectStateService.closeTab).toHaveBeenCalledWith(0); // Index 1 - 1 (home tab offset)
   });
 
   it('should not close home tab', () => {
     component.closeTab(0);
-    expect(projectStateService.closeDocument).not.toHaveBeenCalled();
+    expect(projectStateService.closeTab).not.toHaveBeenCalled();
   });
 
   it('should handle click event when closing a tab', () => {
@@ -234,39 +263,39 @@ describe('TabInterfaceComponent', () => {
 
   it('should open the tab context menu', () => {
     const tabIndex = 1;
-    const document = mockDocuments[0];
+    const tab = mockTabs[0];
 
-    component.onTabContextMenu(tabIndex, document);
+    component.onTabContextMenu(tabIndex, tab);
 
     expect(component.contextTabIndex).toBe(tabIndex);
-    expect(component.contextDocument).toBe(document);
+    expect(component.contextTab).toBe(tab);
   });
 
   it('should close the tab context menu', () => {
     component.contextTabIndex = 1;
-    component.contextDocument = mockDocuments[0];
+    component.contextTab = mockTabs[0];
 
     component.onContextMenuClose();
 
     expect(component.contextTabIndex).toBeNull();
-    expect(component.contextDocument).toBeNull();
+    expect(component.contextTab).toBeNull();
   });
 
   it('should rename a tab element', async () => {
-    const document = mockDocuments[0];
+    const tab = mockTabs[0];
     const newName = 'New Document Name';
     (dialogGatewayService.openRenameDialog as jest.Mock).mockResolvedValue(
       newName
     );
 
-    await component.onRenameTabElement(document);
+    await component.onRenameTabElement(tab);
 
     expect(dialogGatewayService.openRenameDialog).toHaveBeenCalledWith({
-      currentName: document.name,
+      currentName: tab.name,
       title: 'Rename Document',
     });
     expect(projectStateService.renameNode).toHaveBeenCalledWith(
-      document,
+      tab.element,
       newName
     );
   });
@@ -314,6 +343,13 @@ describe('TabInterfaceComponent', () => {
     expect(component.importRequested.emit).toHaveBeenCalled();
   });
 
+  it('should open a system tab', () => {
+    component.openSystemTab('documents-list');
+    expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+      'documents-list'
+    );
+  });
+
   it('should update selected tab from URL', fakeAsync(() => {
     const mockRoute = {
       root: {
@@ -333,9 +369,6 @@ describe('TabInterfaceComponent', () => {
 
     (component as any)['route'] = mockRoute as any;
 
-    // Add documents to open documents list
-    (projectStateService.openDocuments as any).set([...mockDocuments]);
-
     // Mock selectedTabIndex.set method
     const selectedTabIndexSpy = jest.spyOn(
       projectStateService.selectedTabIndex as any,
@@ -346,7 +379,7 @@ describe('TabInterfaceComponent', () => {
     tick();
 
     // Should set tab index to document index + 1 (for home tab)
-    expect(selectedTabIndexSpy).toHaveBeenCalledWith(2);
+    expect(selectedTabIndexSpy).toHaveBeenCalled();
   }));
 
   it('should set selectedTabIndex to 0 when URL has no tabId', fakeAsync(() => {

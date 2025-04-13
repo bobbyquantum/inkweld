@@ -19,7 +19,10 @@ import { DocumentSyncState } from '../../models/document-sync-state';
 import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { DocumentService } from '../../services/document.service';
 import { ProjectImportExportService } from '../../services/project-import-export.service';
-import { ProjectStateService } from '../../services/project-state.service';
+import {
+  AppTab,
+  ProjectStateService,
+} from '../../services/project-state.service';
 import { RecentFilesService } from '../../services/recent-files.service';
 import { SettingsService } from '../../services/settings.service';
 import { ProjectComponent } from './project.component';
@@ -129,28 +132,22 @@ describe('ProjectComponent', () => {
       delete: jest.fn(),
     } as unknown as jest.Mocked<HttpClient>;
 
-    // Mock signals in ProjectStateService
-    const projectSignal = signal<ProjectDto | undefined>(undefined);
-    const elementsSignal = signal<ProjectElementDto[]>([]);
-    const visibleElementsSignal = signal<ProjectElementDto[]>([]);
-    const openDocumentsSignal = signal<ProjectElementDto[]>([]);
-    const selectedTabIndexSignal = signal<number>(0);
-    const isLoadingSignal = signal<boolean>(false);
-    const isSavingSignal = signal<boolean>(false);
-    const errorSignal = signal<string | undefined>(undefined);
-
+    // Create ProjectStateService mock with all necessary signals and methods
     projectStateServiceMock = {
-      project: projectSignal,
-      elements: elementsSignal,
-      visibleElements: visibleElementsSignal,
-      openDocuments: openDocumentsSignal,
-      selectedTabIndex: selectedTabIndexSignal,
-      isLoading: isLoadingSignal,
-      isSaving: isSavingSignal,
-      error: errorSignal,
+      project: signal<ProjectDto | undefined>(undefined),
+      elements: signal<ProjectElementDto[]>([]),
+      visibleElements: signal<ProjectElementDto[]>([]),
+      openDocuments: signal<ProjectElementDto[]>([]),
+      openTabs: signal<AppTab[]>([]),
+      selectedTabIndex: signal<number>(0),
+      isLoading: signal<boolean>(false),
+      isSaving: signal<boolean>(false),
+      error: signal<string | undefined>(undefined),
       loadProject: jest.fn().mockResolvedValue(undefined),
       openDocument: jest.fn(),
       closeDocument: jest.fn(),
+      closeTab: jest.fn(),
+      openSystemTab: jest.fn(),
       showNewElementDialog: jest.fn(),
       showEditProjectDialog: jest.fn(),
       publishProject: jest.fn(),
@@ -337,6 +334,77 @@ describe('ProjectComponent', () => {
       jest.spyOn(component, 'isMobile').mockReturnValue(true);
       expect(component.getGutterSize()).toBe(0);
     });
+
+    describe('Zen mode', () => {
+      it('should determine if zen mode can be enabled', () => {
+        // Mock required properties - Use non-null assertion
+        (projectStateServiceMock.selectedTabIndex as any).set(1);
+        (projectStateServiceMock.openTabs as any).set([
+          {
+            id: 'doc1',
+            type: 'document',
+            name: 'Test Doc',
+            element: mockElements[0],
+          },
+        ]);
+
+        // Should be enabled for document tabs
+        expect(component.canEnableZenMode()).toBe(true);
+
+        // Should not be enabled for home tab
+        (projectStateServiceMock.selectedTabIndex as any).set(0);
+        expect(component.canEnableZenMode()).toBe(false);
+
+        // Should not be enabled for system tabs
+        (projectStateServiceMock.selectedTabIndex as any).set(1);
+        (projectStateServiceMock.openTabs as any).set([
+          {
+            id: 'system-files',
+            type: 'system',
+            name: 'Files',
+            systemType: 'project-files',
+          },
+        ]);
+        expect(component.canEnableZenMode()).toBe(false);
+      });
+
+      it('should get current document ID for zen mode', () => {
+        // Setting up a scenario when we are on a document tab
+        (projectStateServiceMock.selectedTabIndex as any).set(1);
+        (projectStateServiceMock.project as any).set({
+          username: 'testuser',
+          slug: 'test-project',
+          title: 'Test Project',
+          id: 'test123',
+          createdDate: new Date().toISOString(),
+          updatedDate: new Date().toISOString(),
+        } as ProjectDto);
+        (projectStateServiceMock.openTabs as any).set([
+          {
+            id: 'doc1',
+            type: 'document',
+            name: 'Test Doc',
+            element: mockElements[0],
+          },
+        ]);
+
+        // Should return the full document ID
+        expect(component.getCurrentDocumentId()).toBe(
+          'testuser:test-project:doc1'
+        );
+
+        // Should return null for system tabs
+        (projectStateServiceMock.openTabs as any).set([
+          {
+            id: 'system-files',
+            type: 'system',
+            name: 'Files',
+            systemType: 'project-files',
+          },
+        ]);
+        expect(component.getCurrentDocumentId()).toBeNull();
+      });
+    });
   });
 
   describe('Component methods', () => {
@@ -365,7 +433,7 @@ describe('ProjectComponent', () => {
 
     it('should close tab', () => {
       component.closeTab(1);
-      expect(projectStateServiceMock.closeDocument).toHaveBeenCalledWith(1);
+      expect(projectStateServiceMock.closeTab).toHaveBeenCalledWith(1);
     });
 
     it('should exit project', () => {

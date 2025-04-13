@@ -40,6 +40,15 @@
     flex-grow: 1;  // Allow text to take available space
   }
 
+  // Icon styling for different tab types
+  .tab-icon {
+    color: var(--mat-sys-color-primary);
+    opacity: 0.8;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
   &.home-tab {
     display: flex;
     align-items: center;
