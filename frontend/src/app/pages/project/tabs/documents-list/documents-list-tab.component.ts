@@ -89,7 +89,12 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
   formatDate(date: string | undefined): string {
     if (!date) return 'N/A';
     try {
-      return format(new Date(date), 'MMM d, yyyy h:mm a');
+      const dateObject = new Date(date);
+      // Ensure it's a valid date
+      if (isNaN(dateObject.getTime())) {
+        return 'Invalid date';
+      }
+      return format(dateObject, 'MMM d, yyyy h:mm a');
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_) {
       return 'Invalid date';
