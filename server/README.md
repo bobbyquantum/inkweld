@@ -1,123 +1,257 @@
+# InkWeld Server
+
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+  <img src="https://raw.githubusercontent.com/user/inkweld/main/logos/inkweld-logo.png" width="200" alt="InkWeld Logo" />
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## Overview
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+InkWeld is a collaborative creative writing platform focused on novel writing and world building. It provides real-time collaboration capabilities, document management, and publishing features to help authors create, organize, and share their work.
 
-## Description
+## Key Features
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- **Real-time Collaboration**: Multiple users can edit documents simultaneously using Yjs
+- **Project Management**: Organize writing into projects with documents and elements
+- **Document Versioning**: Track changes and maintain document history
+- **EPUB Export**: Publish and export projects as EPUB files
+- **Authentication**: Support for local and GitHub authentication strategies
+- **AI Integration**: MCP (Model Context Protocol) support for connecting AI assistants
 
-## Project setup
+## Architecture
 
-```bash
-$ npm install
+InkWeld server is built on a modular architecture with NestJS, with clear separation of concerns between different functional areas. Below is a visual representation of the system architecture:
+
+```mermaid
+graph TD
+    Client[Frontend Client] <--> API[NestJS API Layer]
+    Client <--> WS[WebSocket Gateway]
+    
+    subgraph "Core Modules"
+        API --> AuthM[Auth Module]
+        API --> ProjM[Project Module] 
+        API --> UserM[User Module]
+        API --> MCPM[MCP Module]
+    end
+    
+    subgraph "Data Layer"
+        DB[(Database<br>PostgreSQL/SQLite)]
+        LevelDB[(LevelDB Storage<br>Per-Project)]
+        
+        AuthM --> DB
+        UserM --> DB
+        ProjM --> DB
+        YJS --> LevelDB
+    end
+    
+    subgraph "Project Components"
+        ProjM --> DocSrv[Document Service]
+        ProjM --> EPUBSrv[EPUB Export Service]
+        ProjM --> FileSrv[File Storage Service]
+        ProjM --> ElemSrv[Element Service]
+    end
+    
+    subgraph "Real-time Collaboration"
+        DocSrv --> YJS[Yjs Service]
+        YJS <--> WS
+    end
+    
+    subgraph "AI Integration"
+        MCPM <--> AI[AI Assistants]
+    end
 ```
 
-## Compile and run the project
+### Key Architectural Components
+
+1. **API Layer**: NestJS controllers for handling HTTP requests
+2. **Core Modules**: Auth, User, Project, and MCP functionality
+3. **Data Layer**: 
+   - PostgreSQL/SQLite for structured data via TypeORM
+   - LevelDB for per-project document data via y-leveldb
+4. **Real-time Collaboration**: WebSocket gateway using Yjs for CRDT-based collaboration
+5. **AI Integration**: MCP for connecting to AI assistants for context-aware help
+
+## Technology Stack
+
+- **Runtime**: [Bun](https://bun.sh/) - High-performance JavaScript runtime
+- **Framework**: [NestJS](https://nestjs.com/) - Progressive Node.js framework
+- **Database**: 
+  - [TypeORM](https://typeorm.io/) with PostgreSQL or SQLite
+  - [LevelDB](https://github.com/google/leveldb) via y-leveldb for document storage
+- **Real-time Collaboration**: 
+  - [Yjs](https://yjs.dev/) - CRDT framework for real-time collaboration
+  - [y-websocket](https://github.com/yjs/y-websocket) - WebSocket adapter for Yjs
+  - [y-leveldb](https://github.com/yjs/y-leveldb) - LevelDB adapter for Yjs
+- **Authentication**: 
+  - [Passport](https://www.passportjs.org/) - Authentication middleware
+  - Session-based auth with TypeORM session store
+- **API Documentation**: [Swagger/OpenAPI](https://swagger.io/)
+- **AI Integration**: [Model Context Protocol](https://github.com/anthropics/model-context-protocol)
+
+## Development Setup
+
+### Prerequisites
+
+- [Bun](https://bun.sh/) (>= 1.2.7)
+- PostgreSQL or SQLite
+- Node.js (>= 18.x) - Required for some NestJS CLI operations
+
+### Installation
 
 ```bash
-# development
-$ npm run start
+# Install dependencies
+bun install
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+# Set up environment variables
+cp .env.example .env
+# Edit .env file with your configuration
 ```
 
-## Run tests
+### Environment Variables
+
+InkWeld server can be configured using the following environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Server port | 8333 |
+| `DB_TYPE` | Database type (postgres/sqlite) | postgres |
+| `DB_HOST` | Database host | localhost |
+| `DB_PORT` | Database port | 5432 |
+| `DB_USERNAME` | Database username | user |
+| `DB_PASSWORD` | Database password | secret |
+| `DB_NAME` | Database name | db |
+| `DB_PATH` | SQLite database file path (if using SQLite) | ./sqlite.db |
+| `SESSION_SECRET` | Secret for session cookies | fallback-secret |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins | |
+| `GITHUB_ENABLED` | Enable GitHub authentication | false |
+| `GITHUB_CLIENT_ID` | GitHub OAuth client ID | |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth client secret | |
+| `DATA_PATH` | Base path for project data | ./data |
+
+### Running the Application
 
 ```bash
-# unit tests
-$ npm run test
+# Development mode
+bun run start:dev
 
-# e2e tests
-$ npm run test:e2e
+# Production mode
+bun run start:prod
 
-# test coverage
-$ npm run test:cov
+# Bun specific development with watch mode
+bun run bun:dev
+```
+
+### Testing
+
+```bash
+# Unit tests
+bun test
+
+# End-to-end tests
+bun run test:e2e
+
+# Test coverage
+bun run test:cov
+```
+
+## Project Structure
+
+The server is organized into several modules, each with its own responsibility:
+
+### Auth Module
+
+Handles authentication and session management:
+- Multiple authentication strategies (Local, GitHub)
+- Session-based authentication with TypeORM session store
+- CSRF protection
+
+### User Module
+
+Manages user accounts and profiles:
+- User registration, authentication
+- User profile management
+
+### Project Module
+
+Core module for managing writing projects:
+- Project creation and management
+- Document handling with real-time collaboration
+- Element management for project components
+- File storage for project assets
+- EPUB export functionality
+
+### MCP Module
+
+Integrates with AI assistants using the Model Context Protocol:
+- Provides tools for AI to interact with projects
+- Enables contextual AI assistance for writing
+
+## API Documentation
+
+The server includes Swagger API documentation accessible at the `/api` endpoint when running. This provides a comprehensive overview of all available endpoints, request/response schemas, and allows for interactive API testing.
+
+To generate updated OpenAPI documentation:
+
+```bash
+bun run generate:openapi
+```
+
+To generate an Angular client based on the OpenAPI specification:
+
+```bash
+bun run generate:angular-client
 ```
 
 ## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Docker
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+InkWeld server can be deployed using Docker:
 
 ```bash
-$ npm install -g mau
-$ mau deploy
+# Build the Docker image
+docker build -t inkweld-server:prod -f Dockerfile .
+
+# Run with Docker
+docker run -p 8333:8333 inkweld-server:prod
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Docker Compose
 
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
-
-## Docker
-
-### Building Docker Image
-
-To build the Docker image for the backend application, run the following command:
+For deployments with a database, use Docker Compose:
 
 ```bash
-docker build -t server:prod -f server/Dockerfile .
-```
-
-### Running Docker Containers
-
-To run the Docker containers using Docker Compose, use the following command:
-
-```bash
+# Run with Docker Compose
 docker-compose -f compose.prod.yaml up
 ```
 
-This will start the `server` and `postgres` services defined in the `compose.prod.yaml` file.
+## Unique Technical Features
 
-### Pushing Docker Image to GitHub Container Registry
+### Per-Project LevelDB Storage
 
-To push the Docker image to GitHub Container Registry, you can use the provided GitHub Action workflow. The workflow is defined in the `.github/workflows/docker-publish.yml` file and will automatically build and push the Docker image when changes are pushed to the `main` branch.
+InkWeld uses a unique approach to document storage by creating separate LevelDB databases for each project. This provides:
+
+- Isolation between projects
+- Better scalability for large numbers of documents
+- Simplified backup and restore operations per project
+- Automatic cleanup of idle database connections
+
+### Real-time Collaboration with Yjs
+
+The document collaboration system is built on Yjs, providing:
+
+- Conflict-free replicated data types (CRDTs)
+- Offline editing capability
+- Automatic conflict resolution
+- Low-latency updates
+
+### MCP Integration for AI Assistance
+
+The Model Context Protocol integration allows:
+
+- AI assistants to access project context
+- Direct document updates from AI suggestions
+- Contextual help based on the current project state
+
+## License
+
+InkWeld is [MIT licensed](LICENSE).
