@@ -1,10 +1,5 @@
 :root {
   --editor-zoom: 1;
-  --page-width: 21cm;
-  --margin-left: 2cm;
-  --margin-right: 2cm;
-  --ruler-size: 20px;
-  --ruler-color: var(--mat-sys-surface-container-high);
 }
 
 .editor-toolbar {
@@ -18,7 +13,6 @@
   background-color: var(--ngx-editor-menubar-bg-color);
   transition: opacity 0.3s ease;
 
-  // Hide toolbar in zen mode
   .zen-mode & {
     opacity: 0;
     visibility: hidden;
@@ -37,7 +31,6 @@
   width: 100%;
   height: calc(100vh - 122px);
 
-  // Zen mode adjustments
   &.zen-mode-container {
     height: 100vh;
     padding: 0;
@@ -49,7 +42,6 @@
       max-width: 90%;
       margin: 0 auto;
       transition: max-width 0.3s ease;
-      // Ensure editor content remains visible in zen mode
       display: block !important;
       visibility: visible !important;
       background-color: #1e1e1e !important;
@@ -57,26 +49,14 @@
       box-shadow: 0 0 30px rgba(0, 0, 0, 0.5) !important;
       border-color: rgba(255, 255, 255, 0.1) !important;
     }
-
-    // Hide all UI elements in zen mode
-    .page-guide,
-    .margin-guide,
-    .ruler,
-    .horizontal-ruler {
-      display: none !important;
-      visibility: hidden !important;
-    }
-    // Ensure ngx-editor is properly styled
     ::ng-deep {
       ngx-editor {
         display: block !important;
         width: 100% !important;
         max-width: 100% !important;
-
         .NgxEditor {
           background-color: transparent !important;
           border: none !important;
-
           .NgxEditor__Content {
             background-color: transparent !important;
           }
@@ -91,13 +71,11 @@
       max-width: 100%;
       transform: none;
     }
-
     .editor-wrapper {
       width: 100%;
       max-width: 100%;
       padding: 0;
     }
-
     .editor-content {
       width: 100%;
       max-width: 100%;
@@ -108,13 +86,6 @@
       background-color: var(--mat-sys-surface-container);
       border-radius: 0;
     }
-
-    .page-guide,
-    .margin-guide,
-    .ruler {
-      display: none !important;
-      visibility: hidden !important;
-    }
   }
 }
 
@@ -123,7 +94,6 @@
   flex-direction: column;
   align-items: center;
   transform-origin: center top;
-  transform: scale(calc(var(--editor-zoom)));
   min-height: min-content;
   width: 100%;
 }
@@ -136,207 +106,12 @@
   position: relative;
   overflow-y: auto;
   width: 100%;
-  padding-top: var(--ruler-size);
+  padding-top: 0;
   background-color: var(--mat-sys-background);
-
-}
-
-.ruler {
-  background-color: var(--ruler-color);
-  position: sticky;
-  top: 48px;
-  z-index: 99;
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
-.horizontal-ruler {
-  height: var(--ruler-size);
-  position: sticky;
-  top: 0;
-  border-bottom: 1px solid var(--mat-sys-outline-variant);
-  background-image: linear-gradient(
-    90deg,
-    var(--mat-sys-outline-variant) 1px,
-    transparent 1px
-  );
-  background-size: 1cm 100%;
-  margin: 0;
-  width: var(--page-width);
-  background-color: var(--ruler-color);
-}
-
-.ruler-measurements {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 30cm;
-  bottom: 0;
-  pointer-events: none;
-}
-
-.ruler-mark {
-  position: absolute;
-
-  &::before {
-    content: '';
-    position: absolute;
-    background-color: var(--mat-sys-outline-variant);
-  }
-
-  .ruler-number {
-    font-size: 10px;
-    color: var(--mat-sys-on-surface-variant);
-    position: absolute;
-  }
-}
-
-.horizontal-ruler .ruler-mark {
-  height: 100%;
-
-  &::before {
-    height: 4px;
-    width: 1px;
-    bottom: 0;
-    left: 0;
-  }
-
-  .ruler-number {
-    top: 2px;
-    left: 2px;
-    transform: translateX(-50%);
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    height: 3px;
-    width: 1px;
-    background-color: var(--mat-sys-outline-variant);
-    bottom: 0;
-    left: 0.5cm;
-  }
-}
-
-// Tooltip styles
-[data-tooltip] {
-  position: relative;
-
-  &::before {
-    content: attr(data-tooltip);
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 4px 8px;
-    background-color: var(--mat-sys-surface-container-highest);
-    color: var(--mat-sys-on-surface);
-    font-size: 12px;
-    white-space: pre-line;
-    border-radius: 4px;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s;
-    margin-top: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-  }
-
-  &:hover::before {
-    opacity: 1;
-  }
-}
-
-// Show tooltips during drag
-.page-guide,
-.margin-guide {
-  &:active::before {
-    opacity: 1;
-  }
-}
-
-// Adjust tooltip position for right margin
-.margin-guide.right-margin::before {
-  transform: translateX(50%);
-}
-
-.page-guide {
-  position: absolute;
-  z-index: 3;
-  cursor: ew-resize;
-  width: 12px;
-  height: 32px;
-  background-color: var(--mat-sys-primary);
-  opacity: 0.7;
-  top: -6px;
-  transition: opacity 0.2s, background-color 0.2s;
-
-  &::after {
-    content: '';
-    position: absolute;
-    width: 2px;
-    height: calc(100vh - 64px - var(--ruler-size));
-    background-color: var(--mat-sys-primary);
-    opacity: 0.1;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    pointer-events: none;
-  }
-
-  &.left {
-    left: -6px;
-    border-radius: 3px 0 0 3px;
-  }
-
-  &.right {
-    right: -6px;
-    border-radius: 0 3px 3px 0;
-  }
-
-  &:hover {
-    opacity: 1;
-    background-color: var(--mat-sys-primary);
-  }
-}
-
-.margin-guide {
-  position: absolute;
-  z-index: 3;
-  cursor: ew-resize;
-  width: 0;
-  height: 0;
-  top: 0;
-}
-
-.horizontal-ruler .margin-guide {
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 8px solid var(--mat-sys-primary);
-  transform: translateX(-6px); // Half of total width (12px)
-  transition: border-top-color 0.2s;
-
-  &.left-margin {
-    left: var(--margin-left);
-    border-top-color: var(--mat-sys-primary);
-    &:hover {
-      border-top-color: var(--mat-sys-primary);
-    }
-  }
-
-  &.right-margin {
-    right: var(--margin-right);
-    border-top-color: var(--mat-sys-primary);
-    transform: translateX(6px); // Half of total width (12px)
-    &:hover {
-      border-top-color: var(--mat-sys-primary);
-    }
-  }
 }
 
 .editor-content {
-  width: var(--page-width);
+  width: 100%;
   max-width: var(--editor-max-width, none);
   background-color: var(--mat-sys-surface-container);
   padding-top: 1rem;
@@ -348,14 +123,12 @@
   border: 1px solid var(--mat-sys-outline);
   min-height: 0;
   box-sizing: border-box;
-  padding-left: var(--margin-left);
-  padding-right: var(--margin-right);
-
+  padding-left: 2cm;
+  padding-right: 2cm;
   h1 {
     font-size: 2rem;
     line-height: 1.2;
   }
-
   p {
     font-size: 1rem;
     line-height: 1.5;
