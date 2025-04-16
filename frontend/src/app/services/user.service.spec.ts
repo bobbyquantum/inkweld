@@ -1,6 +1,10 @@
 import 'fake-indexeddb/auto';
 
-import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
+import {
+  HttpErrorResponse,
+  HttpResponse,
+  provideHttpClient,
+} from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -32,13 +36,19 @@ describe('UserService', () => {
   let service: UserService;
   let storageService: StorageService;
   let httpTestingController: HttpTestingController;
-  let authServiceMock: { authControllerLogin: jest.Mock };
+  let authServiceMock: {
+    authControllerLogin: jest.Mock;
+    authControllerLogout: jest.Mock;
+  };
   let dialogMock: { open: jest.Mock };
   let routerMock: { navigate: jest.Mock };
 
   beforeEach(() => {
     userServiceMock.userControllerGetMe.mockReturnValue(of(TEST_USER));
-    authServiceMock = { authControllerLogin: jest.fn() };
+    authServiceMock = {
+      authControllerLogin: jest.fn(),
+      authControllerLogout: jest.fn(),
+    };
     dialogMock = { open: jest.fn() };
     routerMock = { navigate: jest.fn() };
 
@@ -323,6 +333,46 @@ describe('UserService', () => {
 
       expect(error).toBeInstanceOf(UserServiceError);
       expect(error.code).toBe('SERVER_ERROR');
+    });
+  });
+
+  describe('logout', () => {
+    it('should logout successfully and clear user', async () => {
+      const authService = TestBed.inject(AuthService);
+      const router = TestBed.inject(Router);
+      const service = TestBed.inject(UserService);
+
+      jest
+        .spyOn(authService, 'authControllerLogout')
+        .mockReturnValue(of(new HttpResponse({ status: 200 })));
+      const clearCurrentUserSpy = jest
+        .spyOn(service, 'clearCurrentUser')
+        .mockResolvedValue();
+
+      await service.logout();
+
+      expect(authService.authControllerLogout).toHaveBeenCalled();
+      expect(clearCurrentUserSpy).toHaveBeenCalled();
+      expect(router.navigate).toHaveBeenCalledWith(['/welcome']);
+    });
+
+    it('should handle logout failure', async () => {
+      const authService = TestBed.inject(AuthService);
+      const service = TestBed.inject(UserService);
+
+      const error = new UserServiceError(
+        'SERVER_ERROR',
+        'Failed to load user data'
+      );
+      jest
+        .spyOn(authService, 'authControllerLogout')
+        .mockReturnValue(throwError(() => new Error('Logout failed')));
+      const clearCurrentUserSpy = jest
+        .spyOn(service, 'clearCurrentUser')
+        .mockResolvedValue();
+
+      await expect(service.logout()).rejects.toThrow(error.message);
+      expect(clearCurrentUserSpy).not.toHaveBeenCalled();
     });
   });
 });

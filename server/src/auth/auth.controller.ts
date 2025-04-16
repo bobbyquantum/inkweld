@@ -71,6 +71,28 @@ export class AuthController {
     return userResponse;
   }
 
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiHeader({
+    name: 'X-CSRF-TOKEN',
+    description: 'CSRF token',
+    required: true,
+  })
+  @ApiOperation({
+    summary: 'Logout the current user',
+    description: 'Logs out the current user by destroying the session.',
+  })
+  @ApiOkResponse({
+    description: 'Successfully logged out',
+    schema: {
+      example: { message: 'Logout successful' },
+    },
+  })
+  async logout(@Req() req) {
+    await this.authService.logout(req);
+    return { message: 'Logout successful' };
+  }
+
   @Get('providers')
   @ApiOperation({
     summary: 'Get available OAuth2 providers',
