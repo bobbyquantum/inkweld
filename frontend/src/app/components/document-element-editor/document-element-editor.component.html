@@ -4,79 +4,26 @@
     <ngx-editor-menu
       [editor]="editor"
       [toolbar]="toolbar"
-      [colorPresets]="colorPresets"
-      [customMenuRef]="customMenu">
+      [colorPresets]="colorPresets">
     </ngx-editor-menu>
   </div>
-  <ng-template #customMenu>
-    <app-editor-controls-menu
-      [editor]="editor"
-      [viewMode]="viewMode"
-      [zoomLevel]="zoomLevel"
-      (viewModeChange)="setViewMode($event)"
-      (zoomLevelChange)="onZoomLevelChange($event)">
-    </app-editor-controls-menu>
-  </ng-template>
 }
 
-<div
-  class="editor-container"
-  [class.fit-width]="viewMode === 'fitWidth'"
-  [class.zen-mode-container]="zenMode">
+<div class="editor-container fit-width" [class.zen-mode-container]="zenMode">
   <div class="scaled-content">
-    @if (viewMode === 'page') {
-      <div class="ruler horizontal-ruler">
-        <div class="ruler-measurements">
-          @for (cm of rulerMeasurements; track cm.valueOf()) {
-            <div class="ruler-mark" [style.left.cm]="cm">
-              <div class="ruler-number">{{ cm }}</div>
-            </div>
-          }
-        </div>
-
-        <!-- Page width controls -->
-        <div
-          class="page-guide left"
-          cdkDrag
-          cdkDragLockAxis="x"
-          cdkDragBoundary=".horizontal-ruler"
-          (cdkDragEnded)="onDragEnd($event, 'pageLeft')"
-          [style.left.px]="-6"
-          [attr.data-tooltip]="getTooltipText('pageLeft')"></div>
-        <div
-          class="page-guide right"
-          cdkDrag
-          cdkDragLockAxis="x"
-          (cdkDragEnded)="onDragEnd($event, 'pageRight')"
-          [style.right.px]="-6"
-          [attr.data-tooltip]="getTooltipText('pageRight')"></div>
-
-        <!-- Margin controls -->
-        <div
-          class="margin-guide left-margin"
-          cdkDrag
-          cdkDragLockAxis="x"
-          cdkDragBoundary=".horizontal-ruler"
-          (cdkDragEnded)="onDragEnd($event, 'marginLeft')"
-          [style.left.cm]="dimensions.leftMargin"
-          [attr.data-tooltip]="getTooltipText('marginLeft')"
-          draggable="false"></div>
-        <div
-          class="margin-guide right-margin"
-          cdkDrag
-          cdkDragLockAxis="x"
-          cdkDragBoundary=".horizontal-ruler"
-          (cdkDragEnded)="onDragEnd($event, 'marginRight')"
-          [style.right.cm]="dimensions.rightMargin"
-          [attr.data-tooltip]="getTooltipText('marginRight')"
-          draggable="false"></div>
-      </div>
-    }
     <div class="editor-wrapper">
       <ngx-editor
         [editor]="editor"
         [placeholder]="'Type here...'"
-        class="editor-content"></ngx-editor>
+        class="editor-content">
+        <ngx-editor-floating-menu [editor]="editor">
+          <ngx-editor-menu
+            [editor]="editor"
+            [toolbar]="floatToolbar"
+            [colorPresets]="colorPresets">
+          </ngx-editor-menu>
+        </ngx-editor-floating-menu>
+      </ngx-editor>
     </div>
   </div>
 </div>
