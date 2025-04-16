@@ -182,15 +182,13 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
         element.style.opacity =
           distance === 0 ? '1' : distance === 1 ? '0.8' : '0.5';
 
-        // Dynamic scaling based on distance
-        const scale = distance === 0 ? 1.1 : distance === 1 ? 0.9 : 0.8;
+        const scale = distance === 0 ? 1 : distance === 1 ? 0.9 : 0.8;
+        element.style.transform = `translateX(-50%) scale(${scale})`;
 
         if (i === centerIndex) {
           element.classList.add('centered');
-          element.style.transform = `translateX(-50%) scale(${scale})`;
         } else {
           element.classList.remove('centered');
-          element.style.transform = `translateX(-50%) scale(${scale})`;
         }
       });
     }
@@ -219,15 +217,28 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
   findCenterCardIndex(): number {
     if (!this.projectsGrid?.nativeElement) return -1;
 
-    const centerSelector = document.querySelector('.center-selector');
-    let centerX = window.innerWidth / 2;
+    // Use the local center-selector within this bookshelf instance
+    const grid = this.projectsGrid.nativeElement;
+    const container = grid.closest('.bookshelf-container');
+    let centerX: number;
 
-    if (centerSelector) {
-      const centerRect = centerSelector.getBoundingClientRect();
-      centerX = centerRect.left + centerRect.width / 2;
+    if (container) {
+      const centerSelector = container.querySelector('.center-selector');
+      if (centerSelector) {
+        const centerRect = (
+          centerSelector as HTMLElement
+        ).getBoundingClientRect();
+        centerX = centerRect.left + centerRect.width / 2;
+      } else {
+        // fallback to container center
+        const containerRect = container.getBoundingClientRect();
+        centerX = containerRect.left + containerRect.width / 2;
+      }
+    } else {
+      // fallback to viewport center
+      centerX = window.innerWidth / 2;
     }
 
-    const grid = this.projectsGrid.nativeElement;
     const cards = Array.from(grid.querySelectorAll('.project-card-wrapper'));
 
     if (cards.length === 0) return -1;
@@ -264,7 +275,7 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
       void grid.offsetWidth;
 
       const CARD_WIDTH = 350;
-      const CARD_GAP = 120;
+      const CARD_GAP = 20;
 
       const viewportWidth = window.innerWidth;
       const viewportCenter = viewportWidth / 2;
@@ -289,7 +300,7 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
         element.style.left = `${position}px`;
 
         const distance = Math.abs(i - index);
-        const scale = distance === 0 ? 1.1 : distance === 1 ? 0.9 : 0.8;
+        const scale = distance === 0 ? 1.0 : distance === 1 ? 0.9 : 0.8;
 
         element.style.transform = `translateX(-50%) scale(${scale})`;
         element.style.zIndex = i === index ? '40' : (10 - distance).toString();
