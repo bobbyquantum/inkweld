@@ -144,13 +144,13 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
       // Remove the transitioning class after animation completes
       setTimeout(() => {
         grid.classList.remove('transitioning');
-      }, 500);
+      }, 10);
     }, 20); // Small delay to ensure browser renders the frozen positions first
 
     this.recentlyDragged = true;
     setTimeout(() => {
       this.recentlyDragged = false;
-    }, 300);
+    }, 20);
   }
 
   onDragMoved() {
