@@ -1,7 +1,10 @@
 import { CdkDrag, CdkDragEnd } from '@angular/cdk/drag-drop';
 import {
+  AfterViewChecked,
   AfterViewInit,
   Component,
+  effect,
+  EffectRef,
   ElementRef,
   EventEmitter,
   HostListener,
@@ -24,9 +27,22 @@ import { debounce } from 'lodash-es';
   templateUrl: './bookshelf.component.html',
   styleUrls: ['./bookshelf.component.scss'],
 })
-export class BookshelfComponent implements AfterViewInit, OnDestroy {
-  @Input() projects: ProjectDto[] = [];
+export class BookshelfComponent
+  implements AfterViewInit, OnDestroy, AfterViewChecked
+{
+  private _projects: ProjectDto[] = [];
+  @Input()
+  set projects(value: ProjectDto[]) {
+    this._projects = value;
+    this.needsRecalculation = true;
+  }
+  get projects(): ProjectDto[] {
+    return this._projects;
+  }
   @Output() projectSelected = new EventEmitter<ProjectDto>();
+
+  // Effect reference for cleanup
+  private projectsEffectRef?: EffectRef;
 
   @ViewChild('projectsGrid') projectsGrid?: ElementRef<HTMLElement>;
 
@@ -40,6 +56,9 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
   // Dynamic card width
   private cardWidth: number = 350; // fallback default
   private cardGap: number = 20; // can be made dynamic if needed
+
+  // Recalculation flag for view update
+  private needsRecalculation = false;
 
   // Debounced functions
   private debouncedUpdateCenteredItem = debounce(this.updateCenteredItem, 100);
@@ -439,6 +458,11 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
         }, 200);
       }
     }, 100);
+    // Set up effect to react to changes in projects signal
+    this.projectsEffectRef = effect(() => {
+      // Just set the flag; actual recalculation will happen in ngAfterViewChecked
+      this.needsRecalculation = true;
+    });
   }
 
   selectProject(project: ProjectDto) {
@@ -468,9 +492,53 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
       );
     }
 
+    // Clean up effect
+    if (this.projectsEffectRef) {
+      this.projectsEffectRef.destroy();
+    }
+
     // Cancel any pending debounced operations
     this.debouncedUpdateCenteredItem.cancel();
     this.debouncedDragUpdate.cancel();
     this.debouncedWheelHandler.cancel();
+  }
+  ngAfterViewChecked() {
+    if (this.needsRecalculation) {
+      this.needsRecalculation = false;
+      if (!this.projectsGrid?.nativeElement) return;
+      // Re-measure card width
+      const gridElement = this.projectsGrid.nativeElement;
+      const firstCard = gridElement.querySelector(
+        '.project-card-wrapper'
+      ) as HTMLElement;
+      if (firstCard) {
+        this.cardWidth = firstCard.getBoundingClientRect().width;
+      }
+      // If the current active card index is out of bounds, reset to 0
+      let idx = this.activeCardIndex();
+      if (this._projects.length === 0) {
+        this.activeCardIndex.set(-1);
+        return;
+      }
+      if (idx < 0 || idx >= this._projects.length) {
+        idx = 0;
+        this.activeCardIndex.set(0);
+      }
+      // Remove any transition-blocking classes
+      gridElement.classList.remove(
+        'no-transitions',
+        'freeze-position',
+        'transitioning'
+      );
+      // Force reflow
+      void gridElement.offsetWidth;
+      this.scrollToCard(idx);
+      this.updateCardVisuals(idx);
+      // Optionally, add 'transitioning' class briefly to trigger transitions
+      gridElement.classList.add('transitioning');
+      setTimeout(() => {
+        gridElement.classList.remove('transitioning');
+      }, 10);
+    }
   }
 }
