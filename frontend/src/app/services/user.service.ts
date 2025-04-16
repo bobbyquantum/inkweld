@@ -208,6 +208,25 @@ export class UserService {
     });
   }
 
+  async logout(): Promise<void> {
+    this.isLoading.set(true);
+    this.error.set(undefined);
+
+    try {
+      await firstValueFrom(
+        this.authService.authControllerLogout(this.xsrfService.getXsrfToken())
+      );
+      await this.clearCurrentUser();
+      await this.router.navigate(['/welcome']);
+    } catch (err) {
+      const error = this.formatError(err);
+      this.error.set(error);
+      throw error;
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
   getUserAvatar(username: string): Observable<Blob> {
     return this.userApi.userControllerGetUserAvatar(
       username

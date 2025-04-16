@@ -1255,6 +1255,41 @@
         ]
       }
     },
+    "/logout": {
+      "post": {
+        "description": "Logs out the current user by destroying the session.",
+        "operationId": "AuthController_logout",
+        "parameters": [
+          {
+            "name": "X-CSRF-TOKEN",
+            "in": "header",
+            "description": "CSRF token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully logged out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "message": "Logout successful"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Logout the current user",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/providers": {
       "get": {
         "description": "Retrieves a list of available OAuth2 authentication providers.",

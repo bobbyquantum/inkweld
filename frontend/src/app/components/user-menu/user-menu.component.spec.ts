@@ -60,36 +60,13 @@ describe('UserMenuComponent', () => {
   });
 
   describe('onLogout()', () => {
-    it('should navigate to redirectUrl when provided', () => {
-      const mockResponse = { redirectUrl: '/login' };
-      httpClientMock.post.mockReturnValue(of(mockResponse));
-
-      component.onLogout();
-
-      expect(httpClientMock.post).toHaveBeenCalledWith(
-        '/logout',
-        {},
-        { withCredentials: true }
-      );
-      expect(routerMock.navigateByUrl).toHaveBeenCalledWith('/login');
-    });
-
-    it('should navigate to welcome when no redirectUrl', () => {
-      const mockResponse = { message: 'Logged out' };
-      httpClientMock.post.mockReturnValue(of(mockResponse));
-
-      component.onLogout();
-
-      expect(routerMock.navigateByUrl).toHaveBeenCalledWith('/welcome');
-    });
-
     it('should handle logout error', () => {
       const consoleSpy = jest.spyOn(console, 'error');
       httpClientMock.post.mockReturnValue(
         throwError(() => new Error('Failed'))
       );
 
-      component.onLogout();
+      void component.onLogout();
 
       expect(consoleSpy).toHaveBeenCalledWith(
         'Logout failed',
