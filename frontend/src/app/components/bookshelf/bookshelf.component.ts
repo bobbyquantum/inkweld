@@ -37,6 +37,10 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
   private dragStartActiveIndex = -1;
   private wheelHandler = (e: WheelEvent) => this.handleWheel(e);
 
+  // Dynamic card width
+  private cardWidth: number = 350; // fallback default
+  private cardGap: number = 20; // can be made dynamic if needed
+
   // Debounced functions
   private debouncedUpdateCenteredItem = debounce(this.updateCenteredItem, 100);
   private debouncedDragUpdate = debounce(() => {
@@ -274,8 +278,9 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
 
       void grid.offsetWidth;
 
-      const CARD_WIDTH = 350;
-      const CARD_GAP = 20;
+      // Use dynamic card width and gap
+      const CARD_WIDTH = this.cardWidth;
+      const CARD_GAP = this.cardGap;
 
       const viewportWidth = window.innerWidth;
       const viewportCenter = viewportWidth / 2;
@@ -378,6 +383,20 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  @HostListener('window:resize')
+  onWindowResize() {
+    if (!this.projectsGrid?.nativeElement) return;
+    const gridElement = this.projectsGrid.nativeElement;
+    const firstCard = gridElement.querySelector(
+      '.project-card-wrapper'
+    ) as HTMLElement;
+    if (firstCard) {
+      this.cardWidth = firstCard.getBoundingClientRect().width;
+    }
+    // Reposition cards based on new width
+    this.scrollToCard(this.activeCardIndex());
+  }
+
   private handleWheel(e: WheelEvent) {
     // Check for vertical scroll (most common with mouse wheels)
     if (e.deltaY !== 0) {
@@ -398,6 +417,15 @@ export class BookshelfComponent implements AfterViewInit, OnDestroy {
       if (!this.projectsGrid?.nativeElement) return;
 
       const gridElement = this.projectsGrid.nativeElement;
+
+      // Dynamically measure card width
+      const firstCard = gridElement.querySelector(
+        '.project-card-wrapper'
+      ) as HTMLElement;
+      if (firstCard) {
+        // Use getBoundingClientRect for accurate rendered width
+        this.cardWidth = firstCard.getBoundingClientRect().width;
+      }
 
       gridElement.addEventListener('wheel', this.wheelHandler, {
         passive: false,
