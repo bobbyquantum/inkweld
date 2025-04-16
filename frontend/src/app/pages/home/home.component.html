@@ -25,7 +25,11 @@
     </div>
   } @else {
     <div class="search-container">
-      <mat-form-field appearance="outline" class="custom-search-field">
+      <mat-form-field
+        appearance="outline"
+        class="custom-search-field"
+        hideRequiredMarker="true"
+        subscriptSizing="dynamic">
         <input
           matInput
           placeholder="Search projects"
