@@ -54,8 +54,31 @@ describe('BookshelfComponent', () => {
         removeEventListener: jest.fn(),
         style: {},
         offsetWidth: 100,
+        // Mock closest to return a container with querySelector and getBoundingClientRect
+        closest: jest.fn().mockImplementation((selector: string) => {
+          if (selector === '.bookshelf-container') {
+            return {
+              querySelector: jest.fn().mockImplementation((sel: string) => {
+                if (sel === '.center-selector') {
+                  return {
+                    getBoundingClientRect: jest
+                      .fn()
+                      .mockReturnValue({ left: 500, width: 10 }),
+                  };
+                }
+                return null;
+              }),
+              getBoundingClientRect: jest
+                .fn()
+                .mockReturnValue({ left: 400, width: 800 }),
+            };
+          }
+          return null;
+        }),
       },
     } as any;
+    // Set a default card width for tests to simulate measured value
+    component['cardWidth'] = 350;
   });
 
   it('should create', () => {
@@ -270,6 +293,10 @@ describe('BookshelfComponent', () => {
       component.projectsGrid!.nativeElement.querySelectorAll = jest
         .fn()
         .mockReturnValue(mockCards);
+      // Also mock querySelector for card width measurement
+      component.projectsGrid!.nativeElement.querySelector = jest
+        .fn()
+        .mockReturnValue(mockCards[0]);
 
       // Mock setTimeout
       jest.useFakeTimers();
@@ -339,6 +366,10 @@ describe('BookshelfComponent', () => {
       component.projectsGrid!.nativeElement.querySelectorAll = jest
         .fn()
         .mockReturnValue(mockCards as any);
+      // Also mock querySelector for card width measurement
+      component.projectsGrid!.nativeElement.querySelector = jest
+        .fn()
+        .mockReturnValue(mockCards[0]);
 
       // Execute
       const result = component.findCenterCardIndex();
