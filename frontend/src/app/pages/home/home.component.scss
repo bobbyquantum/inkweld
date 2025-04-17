@@ -1,9 +1,10 @@
 app-bookshelf {
-  min-height: 60vh;
+  min-height: 30vh;
+  height: calc(100vh - 96px);
   width: 100%;
   display: flex;
   flex-direction: column;
-  margin-top: 96px;
+  margin-top: 48px;
   box-sizing: border-box;
   overflow: visible;
 }
@@ -72,7 +73,8 @@ app-bookshelf {
 
 .search-container {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 32px;
   position: fixed;
   top: 0;
@@ -82,6 +84,15 @@ app-bookshelf {
   padding: 16px 20px;
   background-color: rgba(18, 18, 18, 0.8);
   backdrop-filter: blur(5px);
+
+  app-user-menu {
+    margin-left: 16px;
+  }
+  .app-logo {
+    height: 32px;
+    width: auto;
+    margin-right: 16px;
+  }
 }
 
 .add-project-fab {
@@ -91,13 +102,7 @@ app-bookshelf {
 }
 
 .user-menu-fab {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  z-index: 10;
-  min-width: 164px;
-  padding: 0;
-  overflow: visible;
+  display: none !important;
 }
 
 .loading-state {
