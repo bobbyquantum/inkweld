@@ -64,7 +64,7 @@
     "@nestjs/cli": "11.0.6",
     "@nestjs/schematics": "11.0.5",
     "@nestjs/testing": "11.0.20",
-    "@openapitools/openapi-generator-cli": "2.18.4",
+    "@openapitools/openapi-generator-cli": "2.19.1",
     "@types/bun": "1.2.9",
     "@types/express": "5.0.1",
     "@types/express-session": "1.18.1",
