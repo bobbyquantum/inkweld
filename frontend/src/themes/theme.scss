@@ -143,7 +143,7 @@ $light-theme: mat.define-theme(
       tertiary: $_tertiary,
     ),
     density: (
-      scale: 0,
+      scale: -2,
     ),
   )
 );
@@ -160,7 +160,7 @@ $dark-theme: mat.define-theme(
       use-system-variables: true,
     ),
     density: (
-      scale: -5,
+      scale: -2,
     ),
   )
 );
@@ -176,8 +176,6 @@ $dark-theme: mat.define-theme(
   @include mat.all-component-themes($light-theme);
   @include mat.system-level-colors($light-theme);
   @include mat.system-level-typography($dark-theme);
-
-
 
   & {
     --card-background-color: var(--mat-sys-surface-container-high);
@@ -256,7 +254,6 @@ $dark-theme: mat.define-theme(
 }
 
 .dark-theme {
-
   /* Scrollbar styles for dark theme */
   --scrollbar-thumb-color: #22bccf; /* primary-70 */
   --scrollbar-thumb-hover-color: #00a0b0; /* primary-60 */
