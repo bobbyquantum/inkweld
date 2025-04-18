@@ -24,7 +24,7 @@
     "generate:angular-client": "bun run build && bun dist/scripts/generate-angular-client.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.10.0",
+    "@modelcontextprotocol/sdk": "1.10.1",
     "@nestjs/common": "11.0.20",
     "@nestjs/config": "4.0.2",
     "@nestjs/core": "11.0.20",
