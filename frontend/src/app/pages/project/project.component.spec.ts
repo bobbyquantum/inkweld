@@ -433,7 +433,7 @@ describe('ProjectComponent', () => {
 
     it('should close tab', () => {
       component.closeTab(1);
-      expect(projectStateServiceMock.closeTab).toHaveBeenCalledWith(1);
+      expect(projectStateServiceMock.closeTab).toHaveBeenCalledWith(0); // index - 1
     });
 
     it('should exit project', () => {

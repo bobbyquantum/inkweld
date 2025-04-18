@@ -31,12 +31,11 @@
       mode="over"
       [opened]="false"
       class="sidenav-content mobile-sidenav">
-      <app-project-tree></app-project-tree>
-      <div class="mobile-exit-button">
-        <button mat-raised-button color="warn" (click)="exitProject()">
-          Exit Project
-        </button>
-      </div>
+      <app-mobile-side-menu
+        (sidenavToggle)="toggleSidenav()"
+        (exitProject)="exitProject()">
+        <app-project-tree></app-project-tree>
+      </app-mobile-side-menu>
     </mat-sidenav>
   }
   <mat-sidenav-content>
@@ -62,15 +61,9 @@
         <app-user-menu [miniMode]="true"></app-user-menu>
       </mat-toolbar>
 
-      <!-- Mobile layout with tabs on top, content below -->
+      <!-- Mobile layout with content only -->
       <div class="mobile-content-wrapper">
-        <!-- Tabs navigation header -->
-        <div class="tabs-header">
-          <app-tab-interface
-            (importRequested)="onImportClicked()"></app-tab-interface>
-        </div>
-
-        <!-- Content area -->
+        <!-- Content area only (tabs removed since we now use sidenav navigation) -->
         <div class="content-area">
           <router-outlet></router-outlet>
         </div>
