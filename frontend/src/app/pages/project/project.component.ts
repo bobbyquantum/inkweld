@@ -44,6 +44,7 @@ import { Subject, Subscription, takeUntil } from 'rxjs';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { RecentFilesService } from '../../services/recent-files.service';
+import { MobileSideMenuComponent } from './mobile-side-menu/mobile-side-menu.component';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
 @Component({
@@ -66,6 +67,7 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
     TabInterfaceComponent,
     AngularSplitModule,
     SplitGutterDirective,
+    MobileSideMenuComponent,
   ],
   standalone: true,
 })
@@ -87,6 +89,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   public readonly isMobile = signal(false);
   public readonly isZenMode = signal(false);
+
+  // Define a consistent breakpoint value for the application
+  private readonly MOBILE_BREAKPOINT = '(max-width: 759px)';
 
   protected destroy$ = new Subject<void>();
   protected readonly errorEffect = effect(() => {
@@ -223,7 +228,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setupBreakpointObserver() {
     this.breakpointObserver
-      .observe('(max-width: 759px)')
+      .observe(this.MOBILE_BREAKPOINT)
       .pipe(takeUntil(this.destroy$))
       .subscribe(result => {
         this.isMobile.set(result.matches);
@@ -280,9 +285,22 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   };
 
-  closeTab = (index: number) => {
-    this.projectState.closeTab(index);
+  closeTab = (index: number, event?: MouseEvent) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (index === 0) return;
+    if (this.projectState.selectedTabIndex() === index) {
+      const newIndex = Math.max(0, index - 1);
+      this.setSelectedTabIndex(newIndex);
+    }
+    this.projectState.closeTab(index - 1);
   };
+
+  setSelectedTabIndex(index: number): void {
+    this.projectState.selectedTabIndex.set(index);
+  }
 
   onImportClicked = (): void => {
     this.fileInput?.nativeElement.click();
@@ -341,7 +359,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   toggleZenMode(): void {
-    // Only allow toggling zen mode if we can enable it
     if (!this.canEnableZenMode() && !this.isZenMode()) {
       return;
     }
@@ -349,20 +366,16 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     this.isZenMode.update(current => {
       const newValue = !current;
 
-      // Check if fullscreen is enabled in settings
       const fullscreenEnabled = this.settingsService.getSetting<boolean>(
         'zenModeFullscreen',
         true
       );
 
-      // Handle fullscreen based on zen mode state and user settings
       if (newValue && fullscreenEnabled) {
-        // Entering zen mode - request fullscreen if enabled in settings
         document.documentElement.requestFullscreen().catch(err => {
           console.warn('Error attempting to enable fullscreen:', err);
         });
       } else if (!newValue && document.fullscreenElement) {
-        // Exiting zen mode - exit fullscreen if we're in it
         document.exitFullscreen().catch(err => {
           console.warn('Error attempting to exit fullscreen:', err);
         });
@@ -373,21 +386,15 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   canEnableZenMode(): boolean {
-    // Zen mode should only be enabled when:
-    // 1. A document element is open for editing
-    // 2. It's the current selected tab
     const currentTabIndex = this.projectState.selectedTabIndex();
     const tabs = this.projectState.openTabs();
 
-    // If the home tab is selected (index 0), or no tabs are open, zen mode cannot be enabled
     if (currentTabIndex === 0 || tabs.length === 0) {
       return false;
     }
 
-    // Get the current tab
-    const currentTab = tabs[currentTabIndex - 1]; // Adjust for home tab
+    const currentTab = tabs[currentTabIndex - 1];
 
-    // Zen mode should only be available for document elements, not folders or system tabs
     return (
       currentTab && currentTab.type === 'document' && currentTab.element != null
     );
@@ -398,7 +405,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   getCurrentDocumentId(): string | null {
-    // Check if we're on a document route
     const url = this.router.url;
     if (!url.includes('/document/')) {
       return null;
@@ -407,15 +413,12 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     const currentTabIndex = this.projectState.selectedTabIndex();
     const tabs = this.projectState.openTabs();
 
-    // If the home tab is selected (index 0), or no tabs are open, return null
     if (currentTabIndex === 0 || tabs.length === 0) {
       return null;
     }
 
-    // Get the current tab
-    const currentTab = tabs[currentTabIndex - 1]; // Adjust for home tab
+    const currentTab = tabs[currentTabIndex - 1];
 
-    // Return document ID for document tabs only
     if (currentTab && currentTab.type === 'document' && currentTab.element) {
       return `${this.projectState.project()!.username}:${this.projectState.project()!.slug}:${currentTab.id}`;
     }
@@ -423,7 +426,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     return null;
   }
 
-  // Method to determine gutterSize based on mobile state
   getGutterSize(): number {
     return this.isMobile() ? 0 : 8;
   }
