@@ -44,10 +44,9 @@ Inkweld is ideal for:
 
 ```mermaid
 flowchart TD
-    Frontend[Angular 19 PWA] -->|REST/HTTP| Backend[NestJS 10 (Bun)]
-    Backend -->|OpenAPI| APIClient[Angular API Client]
-    Frontend -->|Playwright E2E| DevOps[CI/CD & Docker]
-    Backend -->|Docker| DevOps
+    Frontend[Angular 19 PWA] -->|REST/HTTP| Backend[NestJS 10 Bun]
+    Backend -->|OpenAPI spec| APIClient[Generated SDK]
+    Frontend -.->|imports at build| APIClient
 ```
 
 ---
