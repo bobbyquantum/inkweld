@@ -27,3 +27,11 @@
     </div>
   </div>
 </div>
+
+<!-- Status bar showing word count and sync status -->
+@if (!zenMode) {
+  <div class="editor-status-bar">
+    <span>Words: {{ wordCount() }}</span>
+    <span>Sync: {{ syncState() }}</span>
+  </div>
+}

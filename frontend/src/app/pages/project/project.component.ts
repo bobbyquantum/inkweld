@@ -102,7 +102,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   });
   protected readonly DocumentSyncState = DocumentSyncState;
   private paramsSubscription?: Subscription;
-  private syncSubscription?: Subscription;
   private hasUnsavedChanges = false;
   private fullscreenListener?: () => void;
 
@@ -139,18 +138,11 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
         }
       }
 
-      // Clean up previous subscription
-      this.syncSubscription?.unsubscribe();
-
       if (currentDocId) {
-        this.syncSubscription = this.documentService
-          .getSyncStatus(currentDocId)
-          .subscribe(state => {
-            // Only consider changes as "unsynced" when user is working offline AND has pending changes
-            this.hasUnsavedChanges =
-              state === DocumentSyncState.Offline &&
-              this.documentService.hasUnsyncedChanges(currentDocId);
-          });
+        const status = this.documentService.getSyncStatusSignal(currentDocId)();
+        this.hasUnsavedChanges =
+          status === DocumentSyncState.Offline &&
+          this.documentService.hasUnsyncedChanges(currentDocId);
       } else {
         this.hasUnsavedChanges = false;
       }
@@ -246,7 +238,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnDestroy() {
     this.paramsSubscription?.unsubscribe();
-    this.syncSubscription?.unsubscribe();
     this.errorEffect.destroy();
     this.destroy$.next();
     this.destroy$.complete();

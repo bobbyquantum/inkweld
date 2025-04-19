@@ -4,39 +4,42 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
-import { ProjectAPIService } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
+import { ProjectStateService } from '@services/project-state.service';
 import { NgxEditorModule } from 'ngx-editor';
 import { of } from 'rxjs';
 
+import { DocumentSyncState } from '../../models/document-sync-state';
 import { DocumentElementEditorComponent } from './document-element-editor.component';
 
 class MockDocumentService {
   setupCollaboration = jest.fn().mockResolvedValue(undefined);
   disconnect = jest.fn();
+  initializeSyncStatus = jest.fn();
+  getSyncStatus = jest.fn().mockReturnValue(of(DocumentSyncState.Offline));
+  getSyncStatusSignal = jest
+    .fn()
+    .mockReturnValue(() => DocumentSyncState.Offline);
+  getWordCountSignal = jest.fn().mockReturnValue(() => 0);
 }
 
-class MockProjectAPIService {
-  projectControllerGetProjectByUsernameAndSlug = jest
+class MockProjectStateService {
+  isLoading = jest.fn().mockReturnValue(false);
+  project = jest
     .fn()
-    .mockReturnValue(
-      of({ name: 'Test Project', description: 'Test description' })
-    );
-  projectElementControllerGetProjectElements = jest
-    .fn()
-    .mockReturnValue(of([]));
+    .mockReturnValue({ username: 'test', slug: 'test', title: 'Test' });
 }
 
 describe('DocumentElementEditorComponent', () => {
   let component: DocumentElementEditorComponent;
   let fixture: ComponentFixture<DocumentElementEditorComponent>;
   let documentService: MockDocumentService;
-  let projectApiService: MockProjectAPIService;
+  let projectStateService: MockProjectStateService;
   let mockStyle: { [key: string]: string };
 
   beforeEach(async () => {
     documentService = new MockDocumentService();
-    projectApiService = new MockProjectAPIService();
+    projectStateService = new MockProjectStateService();
     mockStyle = {};
 
     // Mock document.documentElement
@@ -65,7 +68,7 @@ describe('DocumentElementEditorComponent', () => {
       ],
       providers: [
         { provide: DocumentService, useValue: documentService },
-        { provide: ProjectAPIService, useValue: projectApiService },
+        { provide: ProjectStateService, useValue: projectStateService },
       ],
     }).compileComponents();
 
@@ -99,5 +102,14 @@ describe('DocumentElementEditorComponent', () => {
     expect(component.colorPresets.length).toBeGreaterThan(0);
     expect(component.colorPresets).toContain('#000000');
     expect(component.colorPresets).toContain('#ffffff');
+  });
+
+  it('should render sync status in template', () => {
+    fixture.detectChanges();
+    const spans = fixture.nativeElement.querySelectorAll(
+      '.editor-status-bar span'
+    );
+    expect(spans.length).toBe(2);
+    expect(spans[1].textContent.trim()).toBe(`Sync: ${component.syncState()}`);
   });
 });

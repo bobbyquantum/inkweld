@@ -1,7 +1,15 @@
-import { inject, Injectable } from '@angular/core';
+import {
+  effect,
+  inject,
+  Injectable,
+  NgZone,
+  Signal,
+  signal,
+  WritableSignal,
+} from '@angular/core';
 import { Editor } from 'ngx-editor';
 import { Plugin } from 'prosemirror-state';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { yCursorPlugin, ySyncPlugin, yUndoPlugin } from 'y-prosemirror';
 import { WebsocketProvider } from 'y-websocket';
@@ -39,29 +47,25 @@ interface DocumentConnection {
 export class DocumentService {
   private readonly projectState = inject(ProjectStateService);
   private readonly documentApiService = inject(DocumentAPIService);
+  private readonly ngZone = inject(NgZone);
 
   private connections: Map<string, DocumentConnection> = new Map();
 
-  private syncStatusSubjects = new Map<
-    string,
-    BehaviorSubject<DocumentSyncState>
-  >();
   private unsyncedChanges = new Map<string, boolean>();
+  /** Reactive sync status signals per document */
+  private syncStatusSignals = new Map<
+    string,
+    WritableSignal<DocumentSyncState>
+  >();
+  /** Reactive word count signals per document */
+  private wordCountSignals = new Map<string, WritableSignal<number>>();
 
   /**
-   * Gets the current sync status for a document
-   * @param documentId - The document ID to check
-   * @returns Observable that emits the current sync status and updates when it changes
+   * Gets reactive sync status signal for a document
    */
-  getSyncStatus(documentId: string): Observable<DocumentSyncState> {
-    if (!this.syncStatusSubjects.has(documentId)) {
-      console.log(`Initializing sync status for ${documentId}`);
-      this.syncStatusSubjects.set(
-        documentId,
-        new BehaviorSubject<DocumentSyncState>(DocumentSyncState.Offline)
-      );
-    }
-    return this.syncStatusSubjects.get(documentId)!.asObservable();
+  getSyncStatusSignal(documentId: string): Signal<DocumentSyncState> {
+    this.initializeSyncStatus(documentId);
+    return this.syncStatusSignals.get(documentId)!;
   }
 
   /**
@@ -69,12 +73,9 @@ export class DocumentService {
    * This is used to ensure sync indicators appear in the tab interface
    */
   initializeSyncStatus(documentId: string): void {
-    console.log(`Explicitly initializing sync status for ${documentId}`);
-    if (!this.syncStatusSubjects.has(documentId)) {
-      this.syncStatusSubjects.set(
-        documentId,
-        new BehaviorSubject<DocumentSyncState>(DocumentSyncState.Offline)
-      );
+    if (!this.syncStatusSignals.has(documentId)) {
+      console.log(`Explicitly initializing sync status for ${documentId}`);
+      this.syncStatusSignals.set(documentId, signal(DocumentSyncState.Offline));
     }
   }
 
@@ -88,6 +89,31 @@ export class DocumentService {
   }
 
   /**
+   * Gets reactive word count signal for a document
+   */
+  getWordCountSignal(documentId: string): Signal<number> {
+    if (!this.wordCountSignals.has(documentId)) {
+      this.wordCountSignals.set(documentId, signal(0));
+    }
+    return this.wordCountSignals.get(documentId)!;
+  }
+
+  /**
+   * Updates the word count for a document
+   * @param documentId - The document ID
+   * @param count - New word count
+   */
+  updateWordCount(documentId: string, count: number): void {
+    this.ngZone.run(() => {
+      if (this.wordCountSignals.has(documentId)) {
+        this.wordCountSignals.get(documentId)!.set(count);
+      } else {
+        this.wordCountSignals.set(documentId, signal(count));
+      }
+    });
+  }
+
+  /**
    * Exports the content of a document
    * @param documentId - The document ID to export
    * @returns Observable<unknown> that emits the document content
@@ -97,7 +123,10 @@ export class DocumentService {
     if (!connection) {
       throw new Error(`No connection found for document ${documentId}`);
     }
-    return new BehaviorSubject(connection.type.toJSON()).asObservable();
+    return new Observable(observer => {
+      observer.next(connection.type.toJSON());
+      observer.complete();
+    });
   }
 
   /**
@@ -213,6 +242,9 @@ export class DocumentService {
     let connection = this.connections.get(documentId);
 
     if (!connection) {
+      // Ensure sync status signal exists before updates
+      this.initializeSyncStatus(documentId);
+
       // Create new connection if one doesn't exist
       const ydoc = new Y.Doc();
       const type = ydoc.getXmlFragment('prosemirror');
@@ -358,11 +390,52 @@ export class DocumentService {
       yUndoPlugin(),
     ] as Plugin[];
 
+    // Add word count tracking plugin
+    const wordCountPlugin = new Plugin({
+      view: () => ({
+        update: (view, prevState) => {
+          const doc = view.state.doc;
+          if (!doc || typeof doc.textBetween !== 'function') return;
+          const prevDoc = prevState.doc;
+          if (prevDoc && doc !== prevDoc) {
+            const text = doc.textBetween(0, doc.content.size, ' ');
+            const count = text.trim().split(/\s+/).filter(Boolean).length;
+            console.log(
+              `[DocumentService] word count updated: ${count} for ${documentId}`
+            );
+            this.updateWordCount(documentId, count);
+          }
+        },
+      }),
+    });
+    plugins.push(wordCountPlugin);
+
     // Add plugins to the editor's state
     const newState = view.state.reconfigure({
       plugins: [...view.state.plugins, ...plugins],
     });
     view.updateState(newState);
+
+    // Initial word count update with guard and error suppression
+    try {
+      if (view.state.doc && typeof view.state.doc.textBetween === 'function') {
+        const text = view.state.doc.textBetween(
+          0,
+          view.state.doc.content.size,
+          ' '
+        );
+        const initialCount = text.trim().split(/\s+/).filter(Boolean).length;
+        console.log(
+          `[DocumentService] initial word count: ${initialCount} for ${documentId}`
+        );
+        this.updateWordCount(documentId, initialCount);
+      }
+    } catch (error) {
+      console.warn(
+        `[DocumentService] initial word count skipped due to:`,
+        error
+      );
+    }
   }
 
   /**
@@ -406,14 +479,24 @@ export class DocumentService {
    * @param state - The new sync state
    */
   private updateSyncStatus(documentId: string, state: DocumentSyncState): void {
-    if (!this.syncStatusSubjects.has(documentId)) {
-      this.syncStatusSubjects.set(
-        documentId,
-        new BehaviorSubject<DocumentSyncState>(state)
-      );
-    } else {
-      this.syncStatusSubjects.get(documentId)!.next(state);
-    }
-    this.projectState.updateSyncState(documentId, state);
+    this.ngZone.run(() => {
+      if (this.syncStatusSignals.has(documentId)) {
+        this.syncStatusSignals.get(documentId)!.set(state);
+      }
+      this.projectState.updateSyncState(documentId, state);
+    });
+  }
+
+  /**
+   * @deprecated use getSyncStatusSignal
+   */
+  getSyncStatus(documentId: string): Observable<DocumentSyncState> {
+    this.initializeSyncStatus(documentId);
+    return new Observable(observer => {
+      const sig = this.syncStatusSignals.get(documentId)!;
+      observer.next(sig());
+      const eff = effect(() => observer.next(sig()));
+      return () => eff.destroy();
+    });
   }
 }

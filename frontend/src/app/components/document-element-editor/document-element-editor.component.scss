@@ -29,7 +29,7 @@
   align-items: center;
   overflow-x: hidden;
   width: 100%;
-  height: calc(100vh - 122px);
+  height: calc(100vh - 102px);
 
   &.zen-mode-container {
     height: 100vh;
@@ -132,5 +132,27 @@
   p {
     font-size: 1rem;
     line-height: 1.5;
+  }
+}
+
+.editor-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  height: 24px;
+  background-color: var(--mat-sys-surface-container);
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface);
+}
+
+// Hide editor toolbar on mobile and adjust editor height to account for project mobile toolbar (56px) and status bar (24px)
+@media (max-width: 759px) {
+  .editor-toolbar {
+    display: none !important;
+  }
+  .editor-container {
+    height: calc(100vh - 80px) !important;
   }
 }

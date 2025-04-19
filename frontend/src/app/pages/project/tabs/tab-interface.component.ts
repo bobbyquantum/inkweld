@@ -26,7 +26,7 @@ import {
 import { ProjectElementDto } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { AppTab, ProjectStateService } from '@services/project-state.service';
-import { filter, Subject, Subscription, take, takeUntil } from 'rxjs';
+import { filter, Subject, Subscription, takeUntil } from 'rxjs';
 
 import { DocumentSyncState } from '../../../models/document-sync-state';
 import { DialogGatewayService } from '../../../services/dialog-gateway.service';
@@ -388,38 +388,41 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     if (!username || !slug || !documentId) {
       return 'var(--mat-primary-color)';
     }
-
-    // Full document ID format: username:slug:documentId
     const fullDocId = `${username}:${slug}:${documentId}`;
+    const status = this.documentService.getSyncStatusSignal(fullDocId)();
+    switch (status) {
+      case DocumentSyncState.Unavailable:
+        return 'var(--mat-sys-error-container)';
+      case DocumentSyncState.Offline:
+        return 'var(--mat-sys-outline)';
+      case DocumentSyncState.Syncing:
+        return 'var(--mat-sys-accent)';
+      case DocumentSyncState.Synced:
+        return '#4caf50';
+      default:
+        return 'var(--mat-sys-primary)';
+    }
+  }
 
-    // Get sync status as observable
-    const syncStatus$ = this.documentService.getSyncStatus(fullDocId);
-
-    // Using a default color that will be updated via Angular's change detection
-    // when the subscription resolves
-    let colorVar = 'var(--mat-sys-primary)';
-
-    // This subscription won't affect the immediate return value,
-    // but will update the component's state for the next change detection cycle
-    syncStatus$.pipe(take(1)).subscribe(status => {
-      switch (status) {
-        case DocumentSyncState.Unavailable:
-          colorVar = 'var(--mat-sys-error-container)';
-          break;
-        case DocumentSyncState.Offline:
-          colorVar = 'var(--mat-sys-outline)';
-          break;
-        case DocumentSyncState.Syncing:
-          colorVar = 'var(--mat-sys-accent)';
-          break;
-        case DocumentSyncState.Synced:
-          colorVar = '#4caf50';
-          break;
-        default:
-          colorVar = 'var(--mat-sys-primary)';
-      }
-    });
-
-    return colorVar;
+  /**
+   * Returns the tooltip text for the tab indicator based on sync status
+   * @param documentId Document ID
+   * @returns Tooltip text
+   */
+  getSyncStatusTooltip(documentId: string): string {
+    const project = this.projectState.project();
+    if (!project) return 'Status unavailable';
+    const fullDocId = `${project.username}:${project.slug}:${documentId}`;
+    const status = this.documentService.getSyncStatusSignal(fullDocId)();
+    switch (status) {
+      case DocumentSyncState.Synced:
+        return 'Synchronized with cloud';
+      case DocumentSyncState.Syncing:
+        return 'Synchronizing...';
+      case DocumentSyncState.Offline:
+        return 'Working offline';
+      default:
+        return 'Synchronization unavailable';
+    }
   }
 }
