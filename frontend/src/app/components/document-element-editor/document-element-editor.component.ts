@@ -52,7 +52,6 @@ export class DocumentElementEditorComponent
     return this._documentId;
   }
   @Input() zenMode = false;
-  private previousDocumentId = 'invalid';
   editor!: Editor;
   toolbar: Toolbar = [
     ['bold', 'italic'],
@@ -120,7 +119,6 @@ export class DocumentElementEditorComponent
 
   ngOnInit(): void {
     this.ensureProperDocumentId();
-    this.previousDocumentId = this.documentId;
     this.editor = new Editor({ history: true });
   }
 
@@ -137,7 +135,6 @@ export class DocumentElementEditorComponent
       this.idFormatted = false;
       this.ensureProperDocumentId();
       this.setupCollaboration();
-      this.previousDocumentId = this.documentId;
     }
   }
 
