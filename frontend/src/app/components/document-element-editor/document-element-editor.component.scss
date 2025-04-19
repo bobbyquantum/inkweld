@@ -29,7 +29,7 @@
   align-items: center;
   overflow-x: hidden;
   width: 100%;
-  height: calc(100vh - 102px);
+  height: calc(100vh - 158px);
 
   &.zen-mode-container {
     height: 100vh;
@@ -153,6 +153,6 @@
     display: none !important;
   }
   .editor-container {
-    height: calc(100vh - 80px) !important;
+    height: calc(100vh - 74px) !important;
   }
 }
