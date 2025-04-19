@@ -1,23 +1,12 @@
 <div class="menu-container">
-  @if (!miniMode) {
-    <button mat-fab extended [matMenuTriggerFor]="menu" class="user-menu">
-      <div class="menu-content">
-        <app-user-avatar [username]="user?.username || ''" size="medium" />
-        <div class="user-name">
-          {{ userService.currentUser()!.username }}
-        </div>
-      </div>
-    </button>
-  } @else {
-    <button
-      mat-icon-button
-      [matMenuTriggerFor]="menu"
-      class="user-menu mini-mode">
-      <app-user-avatar
-        [username]="userService.currentUser()!.username"
-        size="medium" />
-    </button>
-  }
+  <button
+    mat-icon-button
+    [matMenuTriggerFor]="menu"
+    class="user-menu mini-mode">
+    <app-user-avatar
+      [username]="userService.currentUser()!.username"
+      size="medium" />
+  </button>
 
   <mat-menu
     #menu="matMenu"
