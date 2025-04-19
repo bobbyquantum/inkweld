@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, inject, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,7 +12,7 @@ import { RecentFilesService } from '../../../../services/recent-files.service';
   templateUrl: './home-tab.component.html',
   styleUrls: ['./home-tab.component.scss'],
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, RouterModule],
+  imports: [MatButtonModule, MatIconModule, RouterModule],
 })
 export class HomeTabComponent {
   @Output() importRequested = new EventEmitter<void>();

@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   Component,
   effect,
@@ -27,7 +26,6 @@ import { DocumentSyncState } from '../../../../models/document-sync-state';
   styleUrls: ['./documents-list-tab.component.scss'],
   standalone: true,
   imports: [
-    CommonModule,
     MatTableModule,
     MatButtonModule,
     MatIconModule,

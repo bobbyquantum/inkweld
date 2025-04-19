@@ -48,16 +48,20 @@
         <span class="project-title">{{ projectState.project()?.title }}</span>
 
         <span class="toolbar-spacer"></span>
-        @if (canEnableZenMode() || isZenMode()) {
-          <button
-            mat-icon-button
-            (click)="toggleZenMode()"
-            matTooltip="Toggle Zen Mode"
-            class="zen-mode-button"
-            [class.active]="isZenMode()">
-            <mat-icon>{{ getZenModeIcon() }}</mat-icon>
-          </button>
-        }
+        <button
+          mat-icon-button
+          [matMenuTriggerFor]="moreMenuMobile"
+          class="more-menu-button">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #moreMenuMobile="matMenu">
+          @if (canEnableZenMode() || isZenMode()) {
+            <button mat-menu-item (click)="toggleZenMode()">
+              <mat-icon>{{ getZenModeIcon() }}</mat-icon>
+              <span>Toggle Zen Mode</span>
+            </button>
+          }
+        </mat-menu>
         <app-user-menu [miniMode]="true"></app-user-menu>
       </mat-toolbar>
 
@@ -107,16 +111,20 @@
         <as-split-area>
           <div class="desktop-content">
             <div class="desktop-user-menu">
-              @if (canEnableZenMode() || isZenMode()) {
-                <button
-                  mat-icon-button
-                  (click)="toggleZenMode()"
-                  matTooltip="Toggle Zen Mode"
-                  class="zen-mode-button"
-                  [class.active]="isZenMode()">
-                  <mat-icon>{{ getZenModeIcon() }}</mat-icon>
-                </button>
-              }
+              <button
+                mat-icon-button
+                [matMenuTriggerFor]="moreMenuDesktop"
+                class="more-menu-button">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #moreMenuDesktop="matMenu">
+                @if (canEnableZenMode() || isZenMode()) {
+                  <button mat-menu-item (click)="toggleZenMode()">
+                    <mat-icon>{{ getZenModeIcon() }}</mat-icon>
+                    <span>Toggle Zen Mode</span>
+                  </button>
+                }
+              </mat-menu>
               <app-user-menu [miniMode]="true"></app-user-menu>
             </div>
 
