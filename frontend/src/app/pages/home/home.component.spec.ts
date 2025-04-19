@@ -53,19 +53,17 @@ describe('HomeComponent', () => {
       delete: jest.fn(),
     } as unknown as jest.Mocked<HttpClient>;
 
-    router = {
-      navigate: jest.fn(),
-    } as unknown as jest.Mocked<Router>;
+    router = { navigate: jest.fn() } as unknown as jest.Mocked<Router>;
 
     userService = {
       currentUser: signal<UserDto | undefined>(undefined),
     } as unknown as jest.Mocked<UserService>;
 
-    // Reset mock signals for each test
+    // Reset mock signals once before all tests
     mockLoadingSignal.set(false);
     mockProjectsSignal.set([]);
 
-    // Setup mock project service
+    // Setup mock project service once
     projectService = {
       isLoading: mockLoadingSignal,
       projects: mockProjectsSignal,
@@ -88,13 +86,13 @@ describe('HomeComponent', () => {
         { provide: Router, useValue: router },
         {
           provide: ActivatedRoute,
-          useValue: {
-            paramMap: of(convertToParamMap({ id: '123' })),
-          },
+          useValue: { paramMap: of(convertToParamMap({ id: '123' })) },
         },
       ],
     }).compileComponents();
+  });
 
+  beforeEach(() => {
     fixture = TestBed.createComponent(HomeComponent);
     component = fixture.componentInstance;
   });
