@@ -28,7 +28,10 @@
       "editor.formatOnSave": true
     },
     "jest.disabledWorkspaceFolders": ["✨ Root"],
-    "github-actions.workflows.pinned.workflows": [".github/workflows/ci.yml"],
+    "github-actions.workflows.pinned.workflows": [
+      ".github/workflows/ci.yml",
+      "✨ Root/.github/workflows/ci.yml"
+    ],
     "github-actions.workflows.pinned.refresh.enabled": true
   }
 }
