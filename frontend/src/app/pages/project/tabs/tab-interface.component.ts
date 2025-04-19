@@ -1,5 +1,4 @@
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectorRef,
   Component,
@@ -37,7 +36,6 @@ import { DialogGatewayService } from '../../../services/dialog-gateway.service';
   styleUrls: ['./tab-interface.component.scss'],
   standalone: true,
   imports: [
-    CommonModule,
     MatTabsModule,
     MatIconModule,
     MatButtonModule,

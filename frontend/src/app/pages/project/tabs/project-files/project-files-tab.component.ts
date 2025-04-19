@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   Component,
   effect,
@@ -25,7 +24,6 @@ import { firstValueFrom, Subject } from 'rxjs';
   styleUrls: ['./project-files-tab.component.scss'],
   standalone: true,
   imports: [
-    CommonModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,

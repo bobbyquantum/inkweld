@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, inject, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,7 +9,7 @@ import { ProjectStateService } from '@services/project-state.service';
   templateUrl: './mobile-side-menu.component.html',
   styleUrls: ['./mobile-side-menu.component.scss'],
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule],
+  imports: [MatIconModule, MatButtonModule],
 })
 export class MobileSideMenuComponent {
   @Output() sidenavToggle = new EventEmitter<void>();
