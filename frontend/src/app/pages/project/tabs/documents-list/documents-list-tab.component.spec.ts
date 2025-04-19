@@ -11,7 +11,6 @@ import { Router } from '@angular/router';
 import { ProjectElementDto } from '@inkweld/model/project-element-dto';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
-import { of } from 'rxjs';
 
 import { DocumentSyncState } from '../../../../models/document-sync-state';
 import { DocumentsListTabComponent } from './documents-list-tab.component';
@@ -75,8 +74,10 @@ describe('DocumentsListTabComponent', () => {
     };
 
     documentService = {
-      getSyncStatus: jest.fn().mockReturnValue(of(DocumentSyncState.Synced)),
-    };
+      getSyncStatusSignal: jest
+        .fn()
+        .mockReturnValue(() => DocumentSyncState.Synced),
+    } as Partial<DocumentService>;
 
     router = {
       navigate: jest.fn(),

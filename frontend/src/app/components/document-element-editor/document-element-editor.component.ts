@@ -2,6 +2,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
 import {
   AfterViewInit,
   Component,
+  computed,
   effect,
   ElementRef,
   inject,
@@ -9,6 +10,7 @@ import {
   OnChanges,
   OnDestroy,
   OnInit,
+  signal,
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
@@ -19,7 +21,6 @@ import { MatSelectModule } from '@angular/material/select';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
-import { Subject } from 'rxjs';
 
 @Component({
   selector: 'app-document-element-editor',
@@ -32,7 +33,7 @@ import { Subject } from 'rxjs';
     DragDropModule,
   ],
   templateUrl: './document-element-editor.component.html',
-  styleUrl: './document-element-editor.component.scss',
+  styleUrls: ['./document-element-editor.component.scss'],
 })
 export class DocumentElementEditorComponent
   implements OnInit, OnDestroy, AfterViewInit, OnChanges
@@ -41,7 +42,15 @@ export class DocumentElementEditorComponent
   private projectState = inject(ProjectStateService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
-  @Input() documentId = 'invalid';
+  private _documentId = 'invalid';
+  private documentIdSignal = signal<string>(this._documentId);
+  @Input() set documentId(id: string) {
+    this._documentId = id;
+    this.documentIdSignal.set(id);
+  }
+  get documentId(): string {
+    return this._documentId;
+  }
   @Input() zenMode = false;
   private previousDocumentId = 'invalid';
   editor!: Editor;
@@ -76,8 +85,26 @@ export class DocumentElementEditorComponent
     '#9900ff',
     '#ff00ff',
   ];
-  private destroy$ = new Subject<void>();
   private idFormatted = false;
+  readonly syncState = computed(() => {
+    const state = this.documentService.getSyncStatusSignal(
+      this.documentIdSignal()
+    )();
+    console.log(
+      `[DocumentEditor] computed syncState: ${state} for ${this.documentIdSignal()}`
+    );
+    return state;
+  });
+  // Reactive word count from DocumentService
+  readonly wordCount = computed(() => {
+    const count = this.documentService.getWordCountSignal(
+      this.documentIdSignal()
+    )();
+    console.log(
+      `[DocumentEditor] computed wordCount: ${count} for ${this.documentIdSignal()}`
+    );
+    return count;
+  });
 
   constructor() {
     effect(() => {
@@ -115,8 +142,6 @@ export class DocumentElementEditorComponent
   }
 
   ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
     this.editor.destroy();
     if (!this.zenMode && this.documentId !== 'invalid') {
       this.documentService.disconnect(this.documentId);

@@ -18,7 +18,6 @@ import { ProjectElementDto } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { format } from 'date-fns';
-import { Subject, take } from 'rxjs';
 
 import { DocumentSyncState } from '../../../../models/document-sync-state';
 
@@ -42,8 +41,6 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
   protected readonly projectState = inject(ProjectStateService);
   protected readonly documentService = inject(DocumentService);
   protected readonly DocumentSyncState = DocumentSyncState;
-
-  private destroy$ = new Subject<void>();
 
   // Use signals for reactive updates
   documents = signal<ProjectElementDto[]>([]);
@@ -71,8 +68,6 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
     this.elementsEffect.destroy();
   }
 
@@ -106,29 +101,17 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
     if (!project) return 'sync_disabled';
 
     const fullDocId = `${project.username}:${project.slug}:${documentId}`;
-    let iconName = 'sync_disabled';
-
-    this.documentService
-      .getSyncStatus(fullDocId)
-      .pipe(take(1))
-      .subscribe(status => {
-        switch (status) {
-          case DocumentSyncState.Synced:
-            iconName = 'cloud_done';
-            break;
-          case DocumentSyncState.Syncing:
-            iconName = 'sync';
-            break;
-          case DocumentSyncState.Offline:
-            iconName = 'cloud_off';
-            break;
-          case DocumentSyncState.Unavailable:
-          default:
-            iconName = 'sync_disabled';
-        }
-      });
-
-    return iconName;
+    const status = this.documentService.getSyncStatusSignal(fullDocId)();
+    switch (status) {
+      case DocumentSyncState.Synced:
+        return 'cloud_done';
+      case DocumentSyncState.Syncing:
+        return 'sync';
+      case DocumentSyncState.Offline:
+        return 'cloud_off';
+      default:
+        return 'sync_disabled';
+    }
   }
 
   getSyncStatusTooltip(documentId: string): string {
@@ -136,29 +119,17 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
     if (!project) return 'Status unavailable';
 
     const fullDocId = `${project.username}:${project.slug}:${documentId}`;
-    let tooltipText = 'Synchronization unavailable';
-
-    this.documentService
-      .getSyncStatus(fullDocId)
-      .pipe(take(1))
-      .subscribe(status => {
-        switch (status) {
-          case DocumentSyncState.Synced:
-            tooltipText = 'Synchronized with cloud';
-            break;
-          case DocumentSyncState.Syncing:
-            tooltipText = 'Synchronizing...';
-            break;
-          case DocumentSyncState.Offline:
-            tooltipText = 'Working offline';
-            break;
-          case DocumentSyncState.Unavailable:
-          default:
-            tooltipText = 'Synchronization unavailable';
-        }
-      });
-
-    return tooltipText;
+    const status = this.documentService.getSyncStatusSignal(fullDocId)();
+    switch (status) {
+      case DocumentSyncState.Synced:
+        return 'Synchronized with cloud';
+      case DocumentSyncState.Syncing:
+        return 'Synchronizing...';
+      case DocumentSyncState.Offline:
+        return 'Working offline';
+      default:
+        return 'Synchronization unavailable';
+    }
   }
 
   openDocumentAsHtml(document: ProjectElementDto): void {

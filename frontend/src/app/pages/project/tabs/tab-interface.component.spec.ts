@@ -15,7 +15,6 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   ActivatedRoute,
-  ActivatedRouteSnapshot,
   convertToParamMap,
   NavigationEnd,
   Router,
@@ -120,7 +119,9 @@ describe('TabInterfaceComponent', () => {
     // Mock document service
     documentService = {
       initializeSyncStatus: jest.fn(),
-      getSyncStatus: jest.fn().mockReturnValue(of(DocumentSyncState.Synced)),
+      getSyncStatusSignal: jest
+        .fn()
+        .mockReturnValue(() => DocumentSyncState.Synced), // Default mock
     };
 
     // Mock dialog gateway service
@@ -144,8 +145,8 @@ describe('TabInterfaceComponent', () => {
             outlet: 'primary',
             snapshot: {
               paramMap: convertToParamMap({ tabId: null }),
-            } as unknown as ActivatedRouteSnapshot,
-          } as unknown as ActivatedRoute,
+            },
+          },
         },
       },
       paramMap: of(convertToParamMap({})),
@@ -301,14 +302,15 @@ describe('TabInterfaceComponent', () => {
   });
 
   it('should get the correct sync status color for documents', () => {
-    (documentService.getSyncStatus as jest.Mock).mockImplementation(
-      (docId: string) => {
-        if (docId === 'testuser:test-project:doc1') {
-          return of(DocumentSyncState.Synced);
-        } else if (docId === 'testuser:test-project:doc2') {
-          return of(DocumentSyncState.Offline);
+    // Mock getSyncStatusSignal specifically for this test
+    (documentService.getSyncStatusSignal as jest.Mock).mockImplementation(
+      (fullDocId: string) => {
+        if (fullDocId === 'testuser:test-project:doc1') {
+          return () => DocumentSyncState.Synced; // Return a function returning the state
+        } else if (fullDocId === 'testuser:test-project:doc2') {
+          return () => DocumentSyncState.Offline; // Return a function returning the state
         }
-        return of(DocumentSyncState.Unavailable);
+        return () => DocumentSyncState.Unavailable; // Return a function returning the state
       }
     );
 
@@ -328,7 +330,15 @@ describe('TabInterfaceComponent', () => {
     );
     expect(offlineColor).toBe('var(--mat-sys-outline)');
 
-    // Invalid document should return default
+    // Unavailable document (test default case in mock)
+    const unavailableColor = component.getSyncStatusColor(
+      'testuser',
+      'test-project',
+      'doc3'
+    );
+    expect(unavailableColor).toBe('var(--mat-sys-error-container)');
+
+    // Test case where documentId is missing
     const defaultColor = component.getSyncStatusColor(
       undefined,
       undefined,
