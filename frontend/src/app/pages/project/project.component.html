@@ -39,33 +39,33 @@
     </mat-sidenav>
   }
   <mat-sidenav-content>
-    <!-- Mobile toolbar -->
-    @if (isMobile()) {
-      <mat-toolbar class="mobile-toolbar">
-        <button mat-icon-button (click)="toggleSidenav()">
-          <mat-icon>menu</mat-icon>
-        </button>
-        <span class="project-title">{{ projectState.project()?.title }}</span>
-
-        <span class="toolbar-spacer"></span>
+    <!-- Main toolbar -->
+    <mat-toolbar class="mobile-toolbar">
+      <button mat-icon-button (click)="toggleSidebar()">
+        <mat-icon>menu</mat-icon>
+      </button>
+      <span class="project-title">{{ projectState.project()?.title }}</span>
+      <span class="toolbar-spacer"></span>
+      <div class="toolbar-actions">
         <button
           mat-icon-button
           [matMenuTriggerFor]="moreMenuMobile"
-          class="more-menu-button">
+          class="action-button">
           <mat-icon>more_vert</mat-icon>
         </button>
-        <mat-menu #moreMenuMobile="matMenu">
-          @if (canEnableZenMode() || isZenMode()) {
-            <button mat-menu-item (click)="toggleZenMode()">
-              <mat-icon>{{ getZenModeIcon() }}</mat-icon>
-              <span>Toggle Zen Mode</span>
-            </button>
-          }
-        </mat-menu>
-        <app-user-menu [miniMode]="true"></app-user-menu>
-      </mat-toolbar>
+        <app-user-menu [miniMode]="true" class="action-button"></app-user-menu>
+      </div>
+      <mat-menu #moreMenuMobile="matMenu">
+        @if (canEnableZenMode() || isZenMode()) {
+          <button mat-menu-item (click)="toggleZenMode()">
+            <mat-icon>{{ getZenModeIcon() }}</mat-icon>
+            <span>Toggle Zen Mode</span>
+          </button>
+        }
+      </mat-menu>
+    </mat-toolbar>
 
-      <!-- Mobile layout with content only -->
+    @if (isMobile()) {
       <div class="mobile-content-wrapper">
         <!-- Content area only (tabs removed since we now use sidenav navigation) -->
         <div class="content-area">
@@ -73,73 +73,65 @@
         </div>
       </div>
     } @else {
-      <!-- Desktop split layout -->
-      <as-split
-        direction="horizontal"
-        [gutterSize]="getGutterSize()"
-        unit="percent"
-        [useTransition]="true"
-        (dragEnd)="onSplitDragEnd($event)">
-        <!-- Custom gutter template -->
-        <div
-          *asSplitGutter="let isDragged = isDragged"
-          class="inkweld-gutter"
-          [class.dragging]="isDragged">
-          <div class="inkweld-gutter-icon"></div>
+      @if (showSidebar()) {
+        <!-- Desktop split layout -->
+        <as-split
+          direction="horizontal"
+          [gutterSize]="getGutterSize()"
+          unit="percent"
+          [useTransition]="true"
+          (dragEnd)="onSplitDragEnd($event)">
+          <!-- Custom gutter template -->
+          <div
+            *asSplitGutter="let isDragged = isDragged"
+            class="inkweld-gutter"
+            [class.dragging]="isDragged">
+            <div class="inkweld-gutter-icon"></div>
+          </div>
+          <!-- Sidebar area -->
+          <as-split-area [size]="splitSize" [minSize]="15" [maxSize]="40">
+            <div class="sidebar-area">
+              <mat-toolbar class="project-toolbar">
+                <button mat-icon-button (click)="exitProject()">
+                  <mat-icon>arrow_back</mat-icon>
+                </button>
+                <span class="project-title">{{
+                  projectState.project()?.title
+                }}</span>
+                <button
+                  mat-icon-button
+                  (click)="projectState.showNewElementDialog()">
+                  <mat-icon>add</mat-icon>
+                </button>
+              </mat-toolbar>
+              <app-project-tree></app-project-tree>
+            </div>
+          </as-split-area>
+          <!-- Content area -->
+          <as-split-area>
+            <div class="desktop-content">
+              <div class="tabs-header">
+                <app-tab-interface
+                  (importRequested)="onImportClicked()"></app-tab-interface>
+              </div>
+              <div class="content-area">
+                <router-outlet></router-outlet>
+              </div>
+            </div>
+          </as-split-area>
+        </as-split>
+      } @else {
+        <!-- Desktop full-width content -->
+        <div class="desktop-content">
+          <div class="tabs-header">
+            <app-tab-interface
+              (importRequested)="onImportClicked()"></app-tab-interface>
+          </div>
+          <div class="content-area">
+            <router-outlet></router-outlet>
+          </div>
         </div>
-        <!-- Sidebar area -->
-        <as-split-area [size]="splitSize" [minSize]="15" [maxSize]="40">
-          <div class="sidebar-area">
-            <mat-toolbar class="project-toolbar">
-              <button mat-icon-button (click)="exitProject()">
-                <mat-icon>arrow_back</mat-icon>
-              </button>
-              <span class="project-title">{{
-                projectState.project()?.title
-              }}</span>
-              <button
-                mat-icon-button
-                (click)="projectState.showNewElementDialog()">
-                <mat-icon>add</mat-icon>
-              </button>
-            </mat-toolbar>
-            <app-project-tree></app-project-tree>
-          </div>
-        </as-split-area>
-
-        <!-- Content area -->
-        <as-split-area>
-          <div class="desktop-content">
-            <div class="desktop-user-menu">
-              <button
-                mat-icon-button
-                [matMenuTriggerFor]="moreMenuDesktop"
-                class="more-menu-button">
-                <mat-icon>more_vert</mat-icon>
-              </button>
-              <mat-menu #moreMenuDesktop="matMenu">
-                @if (canEnableZenMode() || isZenMode()) {
-                  <button mat-menu-item (click)="toggleZenMode()">
-                    <mat-icon>{{ getZenModeIcon() }}</mat-icon>
-                    <span>Toggle Zen Mode</span>
-                  </button>
-                }
-              </mat-menu>
-              <app-user-menu [miniMode]="true"></app-user-menu>
-            </div>
-
-            <!-- Tabs and content in desktop view -->
-            <div class="tabs-header">
-              <app-tab-interface
-                (importRequested)="onImportClicked()"></app-tab-interface>
-            </div>
-
-            <div class="content-area">
-              <router-outlet></router-outlet>
-            </div>
-          </div>
-        </as-split-area>
-      </as-split>
+      }
     }
 
     <!-- Hidden file input for import -->

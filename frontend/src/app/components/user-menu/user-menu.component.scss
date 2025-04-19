@@ -14,9 +14,9 @@
   justify-content: start;
 
   &.mini-mode {
-    padding: 0;
-    width: 32px; /* Match avatar size */
-    height: 32px; /* Match avatar size */
+    padding: 6px;
+    width: 44px; /* Increased tappable area */
+    height: 44px;
     border-radius: 50%;
     min-width: unset;
     overflow: hidden; /* Ensure icon button stays within circle */

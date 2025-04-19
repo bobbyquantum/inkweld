@@ -89,6 +89,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   public readonly isMobile = signal(false);
   public readonly isZenMode = signal(false);
+  public readonly showSidebar = signal(true);
 
   // Define a consistent breakpoint value for the application
   private readonly MOBILE_BREAKPOINT = '(max-width: 759px)';
@@ -252,6 +253,14 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   async toggleSidenav() {
     await this.sidenav.toggle();
+  }
+
+  public toggleSidebar(): void {
+    if (this.isMobile()) {
+      void this.sidenav.toggle();
+    } else {
+      this.showSidebar.update(v => !v);
+    }
   }
 
   // Handle split drag end event
