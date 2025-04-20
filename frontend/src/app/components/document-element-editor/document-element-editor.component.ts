@@ -1,4 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop';
+import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   Component,
@@ -24,7 +25,9 @@ import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
 
 @Component({
   selector: 'app-document-element-editor',
+  standalone: true,
   imports: [
+    CommonModule,
     MatButtonModule,
     MatIconModule,
     NgxEditorModule,

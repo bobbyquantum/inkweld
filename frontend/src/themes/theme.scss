@@ -180,7 +180,7 @@ $dark-theme: mat.define-theme(
   & {
     --card-background-color: var(--mat-sys-surface-container-high);
     --ngx-editor-border-radius: 4px;
-    --ngx-editor-background-color: #fff;
+    --ngx-editor-background-color: var(--mat-sys-surface-container-lowest);
     --ngx-editor-text-color: #000;
     --ngx-editor-placeholder-color: #6c757d;
     --ngx-editor-border-color: rgba(0, 0, 0, 0.2);
@@ -206,6 +206,10 @@ $dark-theme: mat.define-theme(
     --ngx-editor-focus-ring-color: #5e9ed6;
     --ngx-editor-error-color: red;
     --ngx-editor-click-pointer: pointer;
+    --sync-dot-unavailable-color: var(--mat-sys-error);
+    --sync-dot-offline-color: var(--mat-sys-outline);
+    --sync-dot-syncing-color: var(--mat-sys-secondary);
+    --sync-dot-synced-color: var(--mat-sys-primary);
   }
 }
 
@@ -266,7 +270,7 @@ $dark-theme: mat.define-theme(
   & {
     --card-background-color: var(--mat-sys-surface-container-high);
     --ngx-editor-border-radius: 0;
-    --ngx-editor-background-color: var(--mat-sys-surface-container);
+    --ngx-editor-background-color: var(--mat-sys-surface-container-lowest);
     --ngx-editor-text-color: var(--mat-sys-on-surface);
     --ngx-editor-placeholder-color: #6c757d;
     --ngx-editor-border-color: rgba(0, 0, 0, 0);

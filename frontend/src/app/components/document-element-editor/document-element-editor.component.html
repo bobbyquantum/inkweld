@@ -32,6 +32,9 @@
 @if (!zenMode) {
   <div class="editor-status-bar">
     <span>Words: {{ wordCount() }}</span>
-    <span>Sync: {{ syncState() }}</span>
+    <span class="sync-status">
+      <span class="sync-dot {{ syncState() }}"></span>
+      {{ syncState() }}
+    </span>
   </div>
 }
