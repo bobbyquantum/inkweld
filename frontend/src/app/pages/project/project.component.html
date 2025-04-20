@@ -34,7 +34,8 @@
       <app-mobile-side-menu
         (sidenavToggle)="toggleSidenav()"
         (exitProject)="exitProject()">
-        <app-project-tree></app-project-tree>
+        <app-project-tree
+          (documentOpened)="onDocumentOpened($event)"></app-project-tree>
       </app-mobile-side-menu>
     </mat-sidenav>
   }

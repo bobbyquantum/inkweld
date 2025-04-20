@@ -283,6 +283,18 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.isMobile()) {
       void this.sidenav.close();
     }
+    // Navigate to document/folder route on mobile
+    const project = this.projectState.project();
+    if (project) {
+      const typeRoute = element.type === 'FOLDER' ? 'folder' : 'document';
+      void this.router.navigate([
+        '/',
+        project.username,
+        project.slug,
+        typeRoute,
+        element.id,
+      ]);
+    }
   };
 
   closeTab = (index: number, event?: MouseEvent) => {

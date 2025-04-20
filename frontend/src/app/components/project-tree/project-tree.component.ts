@@ -15,7 +15,9 @@ import {
   computed,
   effect,
   ElementRef,
+  EventEmitter,
   inject,
+  Output,
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -87,6 +89,8 @@ export class ProjectTreeComponent {
   levelWidth = 24; // Width in pixels for each level of indentation
 
   contextItem: ProjectElement | null = null;
+
+  @Output() documentOpened = new EventEmitter<ProjectElementDto>();
 
   constructor() {
     this.dataSource = new ArrayDataSource<ProjectElement>([]);
@@ -377,5 +381,6 @@ export class ProjectTreeComponent {
       metadata: {},
     };
     this.projectStateService.openDocument(dto);
+    this.documentOpened.emit(dto);
   }
 }
