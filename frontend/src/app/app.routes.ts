@@ -52,7 +52,7 @@ export const routes: Routes = [
         inject(CanDeactivateProjectGuard).canDeactivate(component),
     ],
     data: {
-      reuseComponent: false, // Prevent component reuse
+      reuseComponent: true,
     },
     children: [
       {
