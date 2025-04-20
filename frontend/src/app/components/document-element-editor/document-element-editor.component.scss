@@ -83,7 +83,7 @@
       margin: 0;
       border: none;
       box-shadow: none;
-      background-color: var(--mat-sys-surface-container);
+      background-color: var(--mat-sys-surface-container-lowest);
       border-radius: 0;
     }
   }
@@ -145,6 +145,39 @@
   border-top: 1px solid var(--mat-sys-outline-variant);
   font-size: 0.875rem;
   color: var(--mat-sys-on-surface);
+
+  .sync-status {
+    display: flex;
+    align-items: center;
+
+    .sync-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 4px;
+      flex-shrink: 0;
+    }
+    .sync-dot.unavailable {
+      background-color: var(--sync-dot-unavailable-color);
+    }
+    .sync-dot.offline {
+      background-color: var(--sync-dot-offline-color);
+    }
+    .sync-dot.syncing {
+      background-color: var(--sync-dot-syncing-color);
+      animation: pulse 1.5s infinite;
+    }
+    .sync-dot.synced {
+      background-color: var(--sync-dot-synced-color);
+    }
+  }
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
 }
 
 // Hide editor toolbar on mobile and adjust editor height to account for project mobile toolbar (56px) and status bar (24px)

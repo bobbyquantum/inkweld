@@ -107,9 +107,9 @@ describe('DocumentElementEditorComponent', () => {
   it('should render sync status in template', () => {
     fixture.detectChanges();
     const spans = fixture.nativeElement.querySelectorAll(
-      '.editor-status-bar span'
+      '.editor-status-bar > span'
     );
     expect(spans.length).toBe(2);
-    expect(spans[1].textContent.trim()).toBe(`Sync: ${component.syncState()}`);
+    expect(spans[1].textContent.trim()).toBe(component.syncState());
   });
 });

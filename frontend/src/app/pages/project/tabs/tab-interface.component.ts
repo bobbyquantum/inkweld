@@ -27,7 +27,6 @@ import { DocumentService } from '@services/document.service';
 import { AppTab, ProjectStateService } from '@services/project-state.service';
 import { filter, Subject, Subscription, takeUntil } from 'rxjs';
 
-import { DocumentSyncState } from '../../../models/document-sync-state';
 import { DialogGatewayService } from '../../../services/dialog-gateway.service';
 
 @Component({
@@ -57,8 +56,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
   protected readonly route = inject(ActivatedRoute);
   protected readonly dialog = inject(MatDialog);
   private readonly cdr = inject(ChangeDetectorRef);
-  protected readonly DocumentSyncState = DocumentSyncState;
-  private readonly dialogGateway = inject(DialogGatewayService);
+  protected readonly dialogGateway = inject(DialogGatewayService);
 
   private destroy$ = new Subject<void>();
   private routerSubscription: Subscription | null = null;
@@ -368,59 +366,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     if (newName) {
       // Use the project state service to rename the element
       this.projectState.renameNode(tab.element, newName);
-    }
-  }
-
-  /**
-   * Returns the appropriate color for the tab indicator based on sync status
-   * @param username Project username
-   * @param slug Project slug
-   * @param documentId Document ID
-   * @returns CSS color value
-   */
-  getSyncStatusColor(
-    username?: string,
-    slug?: string,
-    documentId?: string
-  ): string {
-    if (!username || !slug || !documentId) {
-      return 'var(--mat-primary-color)';
-    }
-    const fullDocId = `${username}:${slug}:${documentId}`;
-    const status = this.documentService.getSyncStatusSignal(fullDocId)();
-    switch (status) {
-      case DocumentSyncState.Unavailable:
-        return 'var(--mat-sys-error-container)';
-      case DocumentSyncState.Offline:
-        return 'var(--mat-sys-outline)';
-      case DocumentSyncState.Syncing:
-        return 'var(--mat-sys-accent)';
-      case DocumentSyncState.Synced:
-        return '#4caf50';
-      default:
-        return 'var(--mat-sys-primary)';
-    }
-  }
-
-  /**
-   * Returns the tooltip text for the tab indicator based on sync status
-   * @param documentId Document ID
-   * @returns Tooltip text
-   */
-  getSyncStatusTooltip(documentId: string): string {
-    const project = this.projectState.project();
-    if (!project) return 'Status unavailable';
-    const fullDocId = `${project.username}:${project.slug}:${documentId}`;
-    const status = this.documentService.getSyncStatusSignal(fullDocId)();
-    switch (status) {
-      case DocumentSyncState.Synced:
-        return 'Synchronized with cloud';
-      case DocumentSyncState.Syncing:
-        return 'Synchronizing...';
-      case DocumentSyncState.Offline:
-        return 'Working offline';
-      default:
-        return 'Synchronization unavailable';
     }
   }
 }

@@ -301,52 +301,6 @@ describe('TabInterfaceComponent', () => {
     );
   });
 
-  it('should get the correct sync status color for documents', () => {
-    // Mock getSyncStatusSignal specifically for this test
-    (documentService.getSyncStatusSignal as jest.Mock).mockImplementation(
-      (fullDocId: string) => {
-        if (fullDocId === 'testuser:test-project:doc1') {
-          return () => DocumentSyncState.Synced; // Return a function returning the state
-        } else if (fullDocId === 'testuser:test-project:doc2') {
-          return () => DocumentSyncState.Offline; // Return a function returning the state
-        }
-        return () => DocumentSyncState.Unavailable; // Return a function returning the state
-      }
-    );
-
-    // Synced document
-    const syncedColor = component.getSyncStatusColor(
-      'testuser',
-      'test-project',
-      'doc1'
-    );
-    expect(syncedColor).toBe('#4caf50');
-
-    // Offline document
-    const offlineColor = component.getSyncStatusColor(
-      'testuser',
-      'test-project',
-      'doc2'
-    );
-    expect(offlineColor).toBe('var(--mat-sys-outline)');
-
-    // Unavailable document (test default case in mock)
-    const unavailableColor = component.getSyncStatusColor(
-      'testuser',
-      'test-project',
-      'doc3'
-    );
-    expect(unavailableColor).toBe('var(--mat-sys-error-container)');
-
-    // Test case where documentId is missing
-    const defaultColor = component.getSyncStatusColor(
-      undefined,
-      undefined,
-      undefined
-    );
-    expect(defaultColor).toBe('var(--mat-primary-color)');
-  });
-
   it('should emit importRequested when onImportRequested is called', () => {
     jest.spyOn(component.importRequested, 'emit');
     component.onImportRequested();

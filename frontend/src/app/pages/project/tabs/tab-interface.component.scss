@@ -54,6 +54,8 @@
 
 // Connection status indicators for document sync
 .connection-status {
+  display: inline-block !important;
+  flex: 0 0 auto !important;
   width: 8px;
   height: 8px;
   border-radius: 50%;

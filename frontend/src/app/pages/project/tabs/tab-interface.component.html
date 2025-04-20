@@ -27,15 +27,6 @@
         (keydown.space)="onTabChange(i + 1)"
         [cdkContextMenuTriggerFor]="tabContextMenu"
         (contextmenu)="onTabContextMenu(i + 1, tab)"
-        [style.--mdc-tab-indicator-active-indicator-color]="
-          tab.type === 'document' && tab.element
-            ? getSyncStatusColor(
-                projectState.project()?.username,
-                projectState.project()?.slug,
-                tab.id
-              )
-            : 'var(--mat-sys-primary-color)'
-        "
         tabindex="0">
         <div class="tab-label">
           <mat-icon class="tab-icon">
