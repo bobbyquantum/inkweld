@@ -25,4 +25,16 @@ export class ProjectSettingsComponent {
       this.settingsService.setSetting<boolean>('zenModeFullscreen', true);
     }
   }
+
+  get useTabsDesktop(): boolean {
+    return this.settingsService.getSetting<boolean>('useTabsDesktop', true);
+  }
+
+  set useTabsDesktop(value: boolean) {
+    if (typeof value === 'boolean') {
+      this.settingsService.setSetting<boolean>('useTabsDesktop', value);
+    } else {
+      this.settingsService.setSetting<boolean>('useTabsDesktop', true);
+    }
+  }
 }

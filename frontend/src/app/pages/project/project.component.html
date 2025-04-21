@@ -111,10 +111,12 @@
           <!-- Content area -->
           <as-split-area>
             <div class="desktop-content">
-              <div class="tabs-header">
-                <app-tab-interface
-                  (importRequested)="onImportClicked()"></app-tab-interface>
-              </div>
+              @if (useTabsDesktop()) {
+                <div class="tabs-header">
+                  <app-tab-interface
+                    (importRequested)="onImportClicked()"></app-tab-interface>
+                </div>
+              }
               <div class="content-area">
                 <router-outlet></router-outlet>
               </div>
@@ -124,10 +126,12 @@
       } @else {
         <!-- Desktop full-width content -->
         <div class="desktop-content">
-          <div class="tabs-header">
-            <app-tab-interface
-              (importRequested)="onImportClicked()"></app-tab-interface>
-          </div>
+          @if (useTabsDesktop()) {
+            <div class="tabs-header">
+              <app-tab-interface
+                (importRequested)="onImportClicked()"></app-tab-interface>
+            </div>
+          }
           <div class="content-area">
             <router-outlet></router-outlet>
           </div>
