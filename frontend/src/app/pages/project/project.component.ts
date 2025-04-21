@@ -441,4 +441,8 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   getGutterSize(): number {
     return this.isMobile() ? 0 : 8;
   }
+
+  public useTabsDesktop(): boolean {
+    return this.settingsService.getSetting<boolean>('useTabsDesktop', true);
+  }
 }
