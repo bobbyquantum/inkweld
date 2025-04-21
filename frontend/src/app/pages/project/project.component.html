@@ -31,12 +31,8 @@
       mode="over"
       [opened]="false"
       class="sidenav-content mobile-sidenav">
-      <app-mobile-side-menu
-        (sidenavToggle)="toggleSidenav()"
-        (exitProject)="exitProject()">
-        <app-project-tree
-          (documentOpened)="onDocumentOpened($event)"></app-project-tree>
-      </app-mobile-side-menu>
+      <app-project-tree
+        (documentOpened)="onDocumentOpened($event)"></app-project-tree>
     </mat-sidenav>
   }
   <mat-sidenav-content>

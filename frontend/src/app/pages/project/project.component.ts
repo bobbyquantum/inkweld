@@ -44,7 +44,6 @@ import { Subject, Subscription, takeUntil } from 'rxjs';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { RecentFilesService } from '../../services/recent-files.service';
-import { MobileSideMenuComponent } from './mobile-side-menu/mobile-side-menu.component';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
 @Component({
@@ -67,7 +66,6 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
     TabInterfaceComponent,
     AngularSplitModule,
     SplitGutterDirective,
-    MobileSideMenuComponent,
   ],
   standalone: true,
 })
