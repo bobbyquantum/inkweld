@@ -17,6 +17,7 @@
       @if (getCurrentDocumentId()) {
         <app-document-element-editor
           [documentId]="getCurrentDocumentId()!"
+          [tabsDisabled]="!useTabsDesktop()"
           [zenMode]="true">
         </app-document-element-editor>
       }
@@ -59,6 +60,22 @@
             <span>Toggle Zen Mode</span>
           </button>
         }
+        <button mat-menu-item (click)="onPublishClick()">
+          <mat-icon>publish</mat-icon>
+          <span>Publish project</span>
+        </button>
+        <button mat-menu-item (click)="onShowDocumentList()">
+          <mat-icon>description</mat-icon>
+          <span>Show Document List</span>
+        </button>
+        <button mat-menu-item (click)="onShowFileList()">
+          <mat-icon>folder</mat-icon>
+          <span>Show File List</span>
+        </button>
+        <button mat-menu-item (click)="exitProject()">
+          <mat-icon>exit_to_app</mat-icon>
+          <span>Exit project</span>
+        </button>
       </mat-menu>
     </mat-toolbar>
 
@@ -101,7 +118,8 @@
                   <mat-icon>add</mat-icon>
                 </button>
               </mat-toolbar>
-              <app-project-tree></app-project-tree>
+              <app-project-tree
+                (documentOpened)="onDocumentOpened($event)"></app-project-tree>
             </div>
           </as-split-area>
           <!-- Content area -->

@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { DocumentElementEditorComponent } from '@components/document-element-editor/document-element-editor.component';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
+import { SettingsService } from '@services/settings.service';
 import { Subscription } from 'rxjs';
 
 import { DocumentSyncState } from '../../../../models/document-sync-state';
@@ -25,6 +26,7 @@ export class DocumentTabComponent implements OnInit, OnDestroy {
   protected readonly projectState = inject(ProjectStateService);
   protected readonly documentService = inject(DocumentService);
   protected readonly route = inject(ActivatedRoute);
+  protected readonly settingsService = inject(SettingsService);
   protected readonly DocumentSyncState = DocumentSyncState;
 
   ngOnInit(): void {
@@ -97,5 +99,12 @@ export class DocumentTabComponent implements OnInit, OnDestroy {
     const fullId = `${project.username}:${project.slug}:${this.documentId}`;
     console.log(`[DocumentTab] Built full document ID: ${fullId}`);
     return fullId;
+  }
+
+  /**
+   * Check if tabs are enabled in desktop mode
+   */
+  protected useTabsDesktop(): boolean {
+    return this.settingsService.getSetting<boolean>('useTabsDesktop', true);
   }
 }

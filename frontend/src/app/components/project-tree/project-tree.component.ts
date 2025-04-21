@@ -26,6 +26,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
+import { Router } from '@angular/router';
 import { ProjectElementDto } from '@inkweld/index';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
@@ -81,6 +82,7 @@ export class ProjectTreeComponent {
 
   dataSource: ArrayDataSource<ProjectElement>;
   readonly settingsService = inject(SettingsService);
+  protected readonly router = inject(Router);
 
   selectedItem: ProjectElement | null = null;
   currentDropLevel = 0;
@@ -382,5 +384,17 @@ export class ProjectTreeComponent {
     };
     this.projectStateService.openDocument(dto);
     this.documentOpened.emit(dto);
+    // Navigate to document or folder route
+    const project = this.projectStateService.project();
+    if (project?.username && project?.slug) {
+      const typeRoute = dto.type === 'FOLDER' ? 'folder' : 'document';
+      void this.router.navigate([
+        '/',
+        project.username,
+        project.slug,
+        typeRoute,
+        dto.id,
+      ]);
+    }
   }
 }
