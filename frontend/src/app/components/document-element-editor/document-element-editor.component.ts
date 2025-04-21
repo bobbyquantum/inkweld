@@ -21,6 +21,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
+import { SettingsService } from '@services/settings.service';
 import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
 
 @Component({
@@ -43,6 +44,7 @@ export class DocumentElementEditorComponent
 {
   private documentService = inject(DocumentService);
   private projectState = inject(ProjectStateService);
+  private settingsService = inject(SettingsService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   private _documentId = 'invalid';
@@ -55,6 +57,7 @@ export class DocumentElementEditorComponent
     return this._documentId;
   }
   @Input() zenMode = false;
+  @Input() tabsDisabled = false;
   editor!: Editor;
   toolbar: Toolbar = [
     ['bold', 'italic'],

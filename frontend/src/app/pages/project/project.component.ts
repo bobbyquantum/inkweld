@@ -353,6 +353,32 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  public onShowDocumentList(): void {
+    this.projectState.openSystemTab('documents-list');
+    const project = this.projectState.project();
+    if (project) {
+      void this.router.navigate([
+        '/',
+        project.username,
+        project.slug,
+        'documents-list',
+      ]);
+    }
+  }
+
+  public onShowFileList(): void {
+    this.projectState.openSystemTab('project-files');
+    const project = this.projectState.project();
+    if (project) {
+      void this.router.navigate([
+        '/',
+        project.username,
+        project.slug,
+        'project-files',
+      ]);
+    }
+  }
+
   public onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {

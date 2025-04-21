@@ -2,6 +2,13 @@
   --editor-zoom: 1;
 }
 
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
 .editor-toolbar {
   position: sticky;
   top: 0;
@@ -30,6 +37,11 @@
   overflow-x: hidden;
   width: 100%;
   height: calc(100vh - 158px);
+
+  // Adjust height when tabs are not shown (add this class from parent component)
+  &.no-tabs {
+    height: calc(100vh - 110px);  
+  }
 
   &.zen-mode-container {
     height: 100vh;

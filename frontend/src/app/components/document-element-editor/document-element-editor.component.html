@@ -9,7 +9,10 @@
   </div>
 }
 
-<div class="editor-container fit-width" [class.zen-mode-container]="zenMode">
+<div
+  class="editor-container fit-width"
+  [class.zen-mode-container]="zenMode"
+  [class.no-tabs]="tabsDisabled">
   <div class="scaled-content">
     <div class="editor-wrapper">
       <ngx-editor
