@@ -29,7 +29,7 @@
     "@nestjs/platform-express": "^11.0.10",
     "@nestjs/platform-ws": "11.0.20",
     "@nestjs/serve-static": "5.0.3",
-    "@nestjs/swagger": "11.1.4",
+    "@nestjs/swagger": "11.1.5",
     "@nestjs/typeorm": "11.0.0",
     "@nestjs/websockets": "11.0.20",
     "@smoores/epub": "^0.1.9",
