@@ -32,6 +32,43 @@
       }
     },
     {
+      "label": "🧪 Test Backend",
+      "type": "shell",
+      "command": "bun run test -- --coverage-reporter=lcov",
+      "options": {
+        "cwd": "${workspaceFolder}/server"
+      },
+      "problemMatcher": {
+        "owner": "bun",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": [
+          {
+            // Match the test file header: "example.test.js:"
+            "regexp": "^(.+\\.test\\.(?:js|ts|jsx|tsx)):",
+            "file": 1
+          },
+          {
+            // Match failing test lines prefixed with ✕
+            "regexp": "^✕ (.+) \\[(\\d+\\.\\d+ms)\\]$",
+            "message": 1,
+            "severity": 1
+          },
+          {
+            // Match passing test lines (optional)
+            "regexp": "^✓ (.+) \\[(\\d+\\.\\d+ms)\\]$",
+            "message": 1
+          },
+          {
+            // Capture stack trace locations: "at src/foo.test.ts:10:5"
+            "regexp": "^\\s*at (.+):(\\d+):(\\d+)",
+            "file": 1,
+            "line": 2,
+            "column": 3
+          }
+        ]
+      }
+    },
+    {
       "label": "Lint Backend",
       "type": "shell",
       "command": "bun run lint",
@@ -51,14 +88,9 @@
     },
     {
       "label": "Lint All",
-      "dependsOn": [
-        "Lint Backend",
-        "Lint Frontend"
-      ],
+      "dependsOn": ["Lint Backend", "Lint Frontend"],
       "dependsOrder": "sequence",
-      "problemMatcher": [
-        "$eslint-stylish"
-      ]
+      "problemMatcher": ["$eslint-stylish"]
     }
   ]
 }
