@@ -1,6 +1,100 @@
-<h1>User Profile: {{ username }}</h1>
-<p>
-  This is a placeholder for the user profile page. The content will be
-  implemented in a future update.
-</p>
-<a [routerLink]="['/']">Home</a>
+<div class="content-container" [class.is-mobile]="isMobile">
+  <!-- Toolbar -->
+  <mat-toolbar color="primary" class="profile-toolbar">
+    <button mat-icon-button (click)="navigateHome()">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <span class="toolbar-spacer"></span>
+    <h1 class="toolbar-title">User Profile</h1>
+    <span class="toolbar-spacer"></span>
+    <div class="toolbar-placeholder"></div>
+    <!-- For symmetry -->
+  </mat-toolbar>
+
+  <!-- Loading State -->
+  @if (isLoading) {
+    <div class="loading-state">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading user profile...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (!isLoading && loadError) {
+    <div class="error-state">
+      <mat-icon class="error-icon">error_outline</mat-icon>
+      <h2>Failed to load profile</h2>
+      <p>There was a problem connecting to the server</p>
+      <button mat-raised-button color="primary" (click)="navigateHome()">
+        <mat-icon>home</mat-icon>
+        Return Home
+      </button>
+    </div>
+  }
+
+  <!-- User Profile Content -->
+  @if (!isLoading && !loadError && profileUser) {
+    <div class="user-profile-container">
+      <div class="user-profile-header">
+        <div class="user-avatar-container">
+          <app-user-avatar [username]="profileUser.username" size="large">
+          </app-user-avatar>
+        </div>
+        <div class="user-info-container">
+          <h1 class="user-display-name">{{ profileUser.name }}</h1>
+          <h2 class="user-username">{{ '@' + profileUser.username }}</h2>
+          <div class="user-stats">
+            <div class="stat-item">
+              <mat-icon>book</mat-icon>
+              <span>{{ projectService.projects().length }} Projects</span>
+            </div>
+            <div class="stat-item">
+              <mat-icon>star</mat-icon>
+              <span>0 Followers</span>
+            </div>
+            <div class="stat-item">
+              <mat-icon>people</mat-icon>
+              <span>0 Following</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <mat-divider></mat-divider>
+      <div class="user-content">
+        <div class="content-section">
+          <h3 class="section-title">Current Status</h3>
+          <div class="status-card">
+            <mat-icon>edit</mat-icon>
+            <p>Working on improving the Inkweld application</p>
+          </div>
+        </div>
+        <div class="content-section">
+          <h3 class="section-title">Published Projects</h3>
+          <!-- No Projects State -->
+          @if (projectService.projects().length === 0) {
+            <div class="empty-projects">
+              <mat-icon>add_circle_outline</mat-icon>
+              <h4>No projects yet</h4>
+              <p>This user hasn't created any projects yet</p>
+            </div>
+          }
+          <!-- Projects Grid -->
+          @if (projectService.projects().length > 0) {
+            <div class="projects-grid">
+              @for (project of projectService.projects(); track project.id) {
+                <div
+                  class="project-card"
+                  [routerLink]="['/', project.username, project.slug]">
+                  <h4 class="project-title">{{ project.title }}</h4>
+                  <p class="project-description">
+                    {{ project.description || 'No description provided' }}
+                  </p>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>
