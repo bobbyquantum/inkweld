@@ -1,0 +1,86 @@
+.content-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  background-image: url('/home_background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+  }
+  
+  padding: 80px 0;
+  box-sizing: border-box;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 16px 20px;
+  background-color: rgba(18, 18, 18, 0.8);
+  backdrop-filter: blur(5px);
+
+  .app-logo {
+    height: 32px;
+    width: auto;
+    margin-right: 16px;
+  }
+  
+  .page-title {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    margin: 0;
+    font-size: 24px;
+    color: white;
+    pointer-events: none; // Makes title click-through so buttons behind it are accessible
+  }
+}
+
+.container {
+  width: 100%;
+  max-width: 800px;
+  margin-top: 64px;
+  padding: 0 16px;
+  z-index: 1;
+  position: relative;
+}
+
+.project-card {
+  padding: 24px;
+}
+
+mat-form-field {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.project-url-preview {
+  margin: 1rem 0;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+mat-card-actions {
+  padding: 16px;
+  padding-top: 0;
+}
