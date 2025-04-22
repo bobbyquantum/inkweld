@@ -18,7 +18,6 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterModule } from '@angular/router';
 import { BookshelfComponent } from '@components/bookshelf/bookshelf.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import { NewProjectDialogComponent } from '@dialogs/new-project-dialog/new-project-dialog.component';
 import { ProjectDto } from '@inkweld/index';
 import { ProjectService } from '@services/project.service';
 import { UserService } from '@services/user.service';
@@ -127,16 +126,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   openNewProjectDialog(): void {
-    const dialogRef = this.dialog.open(NewProjectDialogComponent, {
-      width: '500px',
-      disableClose: true,
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        void this.loadProjects();
-      }
-    });
+    void this.router.navigate(['/create-project']);
   }
 
   ngOnDestroy() {

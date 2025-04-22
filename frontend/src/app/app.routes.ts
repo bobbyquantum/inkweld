@@ -19,6 +19,15 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'create-project',
+    loadComponent: () =>
+      import('./pages/create-project/create-project.component').then(
+        m => m.CreateProjectComponent
+      ),
+    title: 'Create New Project',
+    canActivate: [authGuard],
+  },
+  {
     path: 'welcome',
     loadComponent: () =>
       import('./pages/welcome/welcome.component').then(m => m.WelcomeComponent),

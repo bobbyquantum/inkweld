@@ -17,7 +17,6 @@ import {
   NewElementDialogComponent,
   NewElementDialogResult,
 } from '../dialogs/new-element-dialog/new-element-dialog.component';
-import { NewProjectDialogComponent } from '../dialogs/new-project-dialog/new-project-dialog.component';
 import {
   RenameDialogComponent,
   RenameDialogData,
@@ -50,14 +49,6 @@ export class DialogGatewayService {
     const dialogRef = this.dialog.open(NewElementDialogComponent, {
       disableClose: true,
       width: '400px',
-    });
-    return firstValueFrom(dialogRef.afterClosed());
-  }
-
-  openNewProjectDialog(): Promise<ProjectDto | null> {
-    const dialogRef = this.dialog.open(NewProjectDialogComponent, {
-      disableClose: true,
-      width: '600px',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

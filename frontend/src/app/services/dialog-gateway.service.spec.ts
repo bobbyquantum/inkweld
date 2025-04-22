@@ -13,7 +13,6 @@ import {
   NewElementDialogComponent,
   NewElementDialogResult,
 } from '../dialogs/new-element-dialog/new-element-dialog.component';
-import { NewProjectDialogComponent } from '../dialogs/new-project-dialog/new-project-dialog.component';
 import {
   RenameDialogComponent,
   RenameDialogData,
@@ -104,23 +103,6 @@ describe('DialogGatewayService', () => {
     expect(result).toEqual(dialogResult);
   });
 
-  it('should open new project dialog', async () => {
-    const newProject: ProjectDto = {
-      id: '1',
-      name: 'New Project',
-      slug: 'new-project',
-    } as unknown as ProjectDto;
-    (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(of(newProject));
-
-    const result = await service.openNewProjectDialog();
-
-    expect(dialogMock.open).toHaveBeenCalledWith(NewProjectDialogComponent, {
-      disableClose: true,
-      width: '600px',
-    });
-    expect(result).toEqual(newProject);
-  });
-
   it('should open rename dialog', async () => {
     const data: RenameDialogData = {
       currentName: 'Rename Element',
@@ -153,7 +135,7 @@ describe('DialogGatewayService', () => {
   it('should handle dialog cancellation', async () => {
     (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(of(null));
 
-    const result = await service.openNewProjectDialog();
+    const result = await service.openRenameDialog({ currentName: 'Test' });
 
     expect(result).toBeNull();
   });

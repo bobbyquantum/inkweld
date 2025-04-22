@@ -6,11 +6,14 @@ import {
   Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
+import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { ProjectAPIService, ProjectDto } from '@inkweld/index';
 import { XsrfService } from '@services/xsrf.service';
 import { firstValueFrom } from 'rxjs';
@@ -18,26 +21,27 @@ import { firstValueFrom } from 'rxjs';
 import { UserService } from '../../services/user.service';
 
 @Component({
-  selector: 'app-new-project-dialog',
-  templateUrl: './new-project-dialog.component.html',
-  styleUrls: ['./new-project-dialog.component.scss'],
+  selector: 'app-create-project',
+  templateUrl: './create-project.component.html',
+  styleUrls: ['./create-project.component.scss'],
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatDialogModule,
     MatButtonModule,
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSnackBarModule,
+    MatCardModule,
+    MatProgressBarModule,
+    UserMenuComponent,
   ],
 })
-export class NewProjectDialogComponent {
+export class CreateProjectComponent {
   private projectAPIService = inject(ProjectAPIService);
-  private userService = inject(UserService);
+  protected userService = inject(UserService);
   private xsrfService = inject(XsrfService);
-  private dialogRef = inject(MatDialogRef<NewProjectDialogComponent>);
   private snackBar = inject(MatSnackBar);
+  private router = inject(Router);
 
   projectForm = new FormGroup({
     title: new FormControl('', [Validators.required]),
@@ -93,7 +97,7 @@ export class NewProjectDialogComponent {
   };
 
   onCancel(): void {
-    this.dialogRef.close();
+    void this.router.navigate(['/']);
   }
 
   async onSubmit(): Promise<void> {
@@ -116,7 +120,13 @@ export class NewProjectDialogComponent {
       this.snackBar.open('Project created successfully!', 'Close', {
         duration: 3000,
       });
-      this.dialogRef.close(response);
+
+      // Navigate to the new project
+      if (response && response.username && response.slug) {
+        void this.router.navigate(['/', response.username, response.slug]);
+      } else {
+        void this.router.navigate(['/']);
+      }
     } catch (error) {
       this.snackBar.open('Failed to create project.', 'Close', {
         duration: 3000,
