@@ -156,33 +156,11 @@ describe('HomeComponent', () => {
     expect(component['loadError']).toBe(true);
   });
 
-  it('should call loadProjects when new project dialog returns truthy result', () => {
-    const loadProjectsSpy = jest
-      .spyOn(component, 'loadProjects')
-      .mockResolvedValue();
-    // Create a fake dialog reference where afterClosed returns an observable emitting a truthy result.
-    const dialogRef = {
-      afterClosed: () => of(true),
-    };
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    jest.spyOn(component.dialog, 'open').mockReturnValue(dialogRef as any);
+  it('should navigate to create-project route when openNewProjectDialog is called', () => {
+    // Call the method
     component.openNewProjectDialog();
-    // The truthy result should trigger a call to loadProjects.
-    expect(loadProjectsSpy).toHaveBeenCalled();
-  });
 
-  it('should not call loadProjects when new project dialog returns falsy result', () => {
-    const loadProjectsSpy = jest
-      .spyOn(component, 'loadProjects')
-      .mockResolvedValue();
-    // Create a fake dialog reference where afterClosed returns an observable emitting a falsy result.
-    const dialogRef = {
-      afterClosed: () => of(false),
-    };
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    jest.spyOn(component.dialog, 'open').mockReturnValue(dialogRef as any);
-    component.openNewProjectDialog();
-    // No call to loadProjects should be made if the result is falsy.
-    expect(loadProjectsSpy).not.toHaveBeenCalled();
+    // Verify that router.navigate was called with the correct route
+    expect(router.navigate).toHaveBeenCalledWith(['/create-project']);
   });
 });
