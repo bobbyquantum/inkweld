@@ -1,46 +1,45 @@
 import { Component, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 
 export interface ConfirmationDialogData {
   title: string;
   message: string;
   cancelText?: string;
   confirmText?: string;
+  requireConfirmationText?: string;
 }
 
 @Component({
   selector: 'app-confirmation-dialog',
-  template: `
-    <h2 mat-dialog-title>{{ data.title }}</h2>
-    <mat-dialog-content>
-      {{ data.message }}
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()">
-        {{ data.cancelText || 'Cancel' }}
-      </button>
-      <button mat-button color="warn" (click)="onConfirm()">
-        {{ data.confirmText || 'Confirm' }}
-      </button>
-    </mat-dialog-actions>
-  `,
+  templateUrl: './confirmation-dialog.component.html',
+  styleUrls: ['./confirmation-dialog.component.scss'],
   standalone: true,
-  imports: [MatDialogModule, MatButtonModule],
+  imports: [
+    MatDialogModule,
+    MatButtonModule,
+    FormsModule,
+    MatInputModule,
+    MatFormFieldModule,
+  ],
 })
 export class ConfirmationDialogComponent {
   protected data = inject<ConfirmationDialogData>(MAT_DIALOG_DATA);
   private dialogRef = inject(MatDialogRef<ConfirmationDialogComponent>);
+  protected confirmationInput = '';
 
-  onCancel() {
+  onCancel(): void {
     this.dialogRef.close(false);
   }
 
-  onConfirm() {
+  onConfirm(): void {
     this.dialogRef.close(true);
   }
 }

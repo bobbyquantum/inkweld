@@ -31,6 +31,7 @@ import { ProjectTreeComponent } from '@components/project-tree/project-tree.comp
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { ProjectDto, ProjectElementDto } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
+import { ProjectService } from '@services/project.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
@@ -79,6 +80,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly title = inject(Title);
   protected readonly router = inject(Router);
   protected readonly importExportService = inject(ProjectImportExportService);
+  protected readonly projectService = inject(ProjectService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly settingsService = inject(SettingsService);
 
@@ -88,6 +90,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly isMobile = signal(false);
   public readonly isZenMode = signal(false);
   public readonly showSidebar = signal(true);
+  public readonly isDeleting = signal(false);
 
   // Define a consistent breakpoint value for the application
   private readonly MOBILE_BREAKPOINT = '(max-width: 759px)';
@@ -468,5 +471,42 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   public useTabsDesktop(): boolean {
     return this.settingsService.getSetting<boolean>('useTabsDesktop', true);
+  }
+
+  public onDeleteProjectClick(): void {
+    const project = this.projectState.project();
+    if (!project) return;
+
+    void this.dialogGateway
+      .openConfirmationDialog({
+        title: 'Delete Project',
+        message: `To confirm deletion, please type the project slug "${project.slug}" below. This action cannot be undone.`,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        requireConfirmationText: project.slug,
+      })
+      .then(confirmed => {
+        if (confirmed) {
+          this.isDeleting.set(true);
+
+          void this.projectService
+            .deleteProject(project.username, project.slug)
+            .then(() => {
+              this.snackBar.open('Project deleted successfully', 'Close', {
+                duration: 3000,
+              });
+              void this.router.navigate(['/']);
+            })
+            .catch(error => {
+              console.error('Error deleting project:', error);
+              this.snackBar.open('Failed to delete project', 'Close', {
+                duration: 5000,
+              });
+            })
+            .finally(() => {
+              this.isDeleting.set(false);
+            });
+        }
+      });
   }
 }
