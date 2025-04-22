@@ -10,28 +10,37 @@
 
   <mat-menu
     #menu="matMenu"
-    yPosition="above"
+    yPosition="below"
     class="menu-popover"
-    backdropClass="menu-popover">
-    <button
-      class="user-info"
-      mat-menu-item
-      [routerLink]="['/', userService.currentUser()!.username]">
-      <span
-        ><app-user-avatar
-          [username]="userService.currentUser()!.username"
-          size="medium" />
-        {{ userService.currentUser().username }}</span
-      >
-    </button>
+    backdropClass="menu-backdrop">
+    <div class="user-menu-header">
+      <button
+        class="user-info"
+        mat-menu-item
+        [routerLink]="['/', userService.currentUser()!.username]">
+        <div class="user-info-content">
+          <app-user-avatar
+            [username]="userService.currentUser()!.username"
+            size="medium" />
+          <div class="user-details">
+            <span class="user-name">{{ userService.currentUser().name }}</span>
+            <span class="user-username"
+              >&#64;{{ userService.currentUser().username }}</span
+            >
+          </div>
+        </div>
+      </button>
+    </div>
     <mat-divider></mat-divider>
-    <button mat-menu-item (click)="onSettings()">
-      <mat-icon>settings</mat-icon>
-      <span>Settings</span>
-    </button>
-    <button mat-menu-item (click)="onLogout()">
-      <mat-icon>exit_to_app</mat-icon>
-      <span>Log out</span>
-    </button>
+    <div class="menu-actions">
+      <button mat-menu-item (click)="onSettings()">
+        <mat-icon>settings</mat-icon>
+        <span>Settings</span>
+      </button>
+      <button mat-menu-item (click)="onLogout()">
+        <mat-icon>exit_to_app</mat-icon>
+        <span>Log out</span>
+      </button>
+    </div>
   </mat-menu>
 </div>
