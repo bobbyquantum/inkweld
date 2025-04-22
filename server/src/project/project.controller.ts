@@ -14,9 +14,6 @@ import {
   Logger,
   ForbiddenException,
   BadRequestException,
-  UploadedFile,
-  UseInterceptors,
-  Res,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -31,30 +28,12 @@ import {
   ApiBody,
   ApiHeader,
   ApiCookieAuth,
-  ApiConsumes,
 } from '@nestjs/swagger';
 import { SessionAuthGuard } from '../auth/session-auth.guard.js';
 import { ProjectService } from './project.service.js';
 import { ProjectDto } from './project.dto.js';
 import { ProjectEntity } from './project.entity.js';
-import { FileInterceptor } from '@nestjs/platform-express';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as fsPromises from 'fs/promises';
-import sharp from 'sharp';
-
-// Define MulterFile interface for Bun environment
-interface MulterFile {
-  fieldname: string;
-  originalname: string;
-  encoding: string;
-  mimetype: string;
-  size: number;
-  destination?: string;
-  filename?: string;
-  path?: string;
-  buffer?: Buffer;
-}
+import { CoverController } from './cover/cover.controller.js';
 
 @ApiTags('Project API')
 @ApiCookieAuth()
@@ -62,7 +41,10 @@ interface MulterFile {
 export class ProjectController {
   private readonly logger = new Logger(ProjectController.name);
 
-  constructor(private readonly projectService: ProjectService) {}
+  constructor(
+    private readonly projectService: ProjectService,
+    private readonly coverController: CoverController,
+  ) {}
 
   @Get()
   @UseGuards(SessionAuthGuard)
@@ -146,18 +128,36 @@ export class ProjectController {
     }
     this.logger.log(`CSRF Token received: ${csrfToken}`);
 
-    // Convert plain object to ProjectDto instance
+    // Convert incoming data to DTO (applies decorators like @IsNotEmpty if used)
+    // We assume projectData might not be a full DTO instance initially
     const projectDto = new ProjectDto();
     projectDto.title = projectData.title;
     projectDto.slug = projectData.slug;
     projectDto.description = projectData.description;
+    // NOTE: username is NOT part of the DTO, it's derived from the logged-in user
 
-    const projectEntity: ProjectEntity = projectDto.toEntity();
-    const created = await this.projectService.create(
-      req.user.id,
-      projectEntity,
-    );
-    return new ProjectDto(created);
+    try {
+      // Convert DTO to Entity for saving
+      const projectEntity = projectDto.toEntity(); // Assuming ProjectDto has toEntity()
+
+      // Create the project
+      // Pass ownerId and the entity to the service method
+      const newProjectEntity = await this.projectService.create(req.user.id, projectEntity);
+
+      // Generate default cover image asynchronously (don't block response)
+      // Use the username from the session and slug/title from the created entity
+      this.coverController.generateDefaultCover(req.user.username, newProjectEntity.slug, newProjectEntity.title)
+        .catch(coverError => {
+          this.logger.error(`Failed to generate default cover for ${req.user.username}/${newProjectEntity.slug} during creation`, coverError);
+          // Decide if you want to log this more formally or notify someone
+        });
+
+      // Return the DTO representation of the created project
+      return new ProjectDto(newProjectEntity);
+    } catch (error) {
+      this.logger.error(`Failed to create project for user ${req.user.username}`, error);
+      throw new BadRequestException('Failed to create project. Please ensure the slug is unique.'); // Provide a more generic error
+    }
   }
 
   @Put(':username/:slug')
@@ -228,196 +228,5 @@ export class ProjectController {
     }
     this.logger.log(`CSRF Token received: ${csrfToken}`);
     await this.projectService.delete(username, slug);
-  }
-
-  @Post(':username/:slug/cover')
-  @UseGuards(SessionAuthGuard)
-  @UseInterceptors(FileInterceptor('cover'))
-  @ApiOperation({
-    summary: 'Upload project cover image',
-    description: 'Uploads a cover image for a project. Must have a 1:1.6 aspect ratio and minimum width of 1000px.',
-  })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        cover: {
-          type: 'string',
-          format: 'binary',
-          description: 'Cover image file (will be converted to JPEG)',
-        },
-      },
-    },
-  })
-  @ApiCreatedResponse({
-    description: 'Cover image successfully uploaded',
-  })
-  @ApiBadRequestResponse({ description: 'Invalid file format, size, or dimensions' })
-  async uploadCover(
-    @Param('username') username: string,
-    @Param('slug') slug: string,
-    @UploadedFile() file: MulterFile,
-    @Request() req,
-  ) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
-
-    // Verify user has access to this project
-    if (req.user.username !== username) {
-      throw new ForbiddenException('Unauthorized to upload cover to this project');
-    }
-
-    try {
-      // Process the image
-      const imageMetadata = await sharp(file.buffer).metadata();
-
-      // Check if image meets the minimum width requirement
-      if (imageMetadata.width < 1000) {
-        throw new BadRequestException('Image width must be at least 1000px');
-      }
-
-      // Calculate target dimensions for 1:1.6 aspect ratio (height is 1.6 times the width)
-      const targetHeight = Math.round(imageMetadata.width * 1.6);
-
-      // Determine crop settings if necessary
-      let processedImage;
-
-      if (Math.abs(imageMetadata.height / imageMetadata.width - 1.6) > 0.01) {
-        // Aspect ratio is different from 1:1.6, crop it
-        this.logger.log(`Cropping image from ${imageMetadata.width}x${imageMetadata.height} to ${imageMetadata.width}x${targetHeight}`);
-
-        processedImage = await sharp(file.buffer)
-          .resize(imageMetadata.width, targetHeight, {
-            fit: 'cover',
-            position: 'center',
-          })
-          .jpeg({ quality: 90 })
-          .toBuffer();
-      } else {
-        // Aspect ratio is already close to 1:1.6, just convert to JPEG
-        processedImage = await sharp(file.buffer)
-          .jpeg({ quality: 90 })
-          .toBuffer();
-      }
-
-      // Save the image
-      await this.saveProjectCover(username, slug, processedImage);
-
-      return {
-        message: 'Cover image uploaded successfully',
-      };
-    } catch (error) {
-      this.logger.error('Error uploading cover image', error);
-      if (error instanceof Error) {
-        throw new BadRequestException(error.message);
-      } else {
-        throw new BadRequestException('Failed to process cover image');
-      }
-    }
-  }
-
-  @Get(':username/:slug/cover')
-  @ApiOperation({
-    summary: 'Get project cover image',
-    description: 'Retrieves a project\'s cover image as a JPEG file.',
-  })
-  @ApiOkResponse({
-    description: 'Project cover image',
-    content: {
-      'image/jpeg': {},
-    },
-  })
-  async getProjectCover(
-    @Param('username') username: string,
-    @Param('slug') slug: string,
-    @Res() res,
-  ) {
-    try {
-      const hasProjectCover = await this.hasProjectCover(username, slug);
-
-      if (!hasProjectCover) {
-        return res.status(404).send('Cover image not found');
-      }
-
-      const coverPath = this.getProjectCoverPath(username, slug);
-      const coverStream = fs.createReadStream(coverPath);
-
-      res.set({
-        'Content-Type': 'image/jpeg',
-        'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
-      });
-
-      return coverStream.pipe(res);
-    } catch (error) {
-      this.logger.error(`Error getting cover for ${username}/${slug}`, error);
-      return res.status(404).send('Cover image not found');
-    }
-  }
-
-  @Post(':username/:slug/cover/delete')
-  @UseGuards(SessionAuthGuard)
-  @ApiOperation({
-    summary: 'Delete project cover image',
-    description: 'Deletes the cover image for a project.',
-  })
-  @ApiOkResponse({
-    description: 'Cover image successfully deleted',
-  })
-  async deleteCover(
-    @Param('username') username: string,
-    @Param('slug') slug: string,
-    @Request() req
-  ) {
-    // Verify user has access to this project
-    if (req.user.username !== username) {
-      throw new ForbiddenException('Unauthorized to delete cover from this project');
-    }
-
-    try {
-      // Delete the cover
-      await this.deleteProjectCover(username, slug);
-
-      return {
-        message: 'Cover image deleted successfully',
-      };
-    } catch (error) {
-      this.logger.error('Error deleting cover image', error);
-      throw new BadRequestException('Failed to delete cover image');
-    }
-  }
-
-  // Helper methods for cover image handling
-
-  private getProjectCoverPath(username: string, slug: string): string {
-    const projectDir = path.join(process.env.DATA_PATH || './data', username, slug);
-    return path.join(projectDir, 'cover.jpg');
-  }
-
-  private async hasProjectCover(username: string, slug: string): Promise<boolean> {
-    const coverPath = this.getProjectCoverPath(username, slug);
-    return fs.existsSync(coverPath);
-  }
-
-  private async saveProjectCover(username: string, slug: string, imageBuffer: Buffer): Promise<void> {
-    // Create project directory if it doesn't exist
-    const projectDir = path.join(process.env.DATA_PATH || './data', username, slug);
-    if (!fs.existsSync(projectDir)) {
-      await fsPromises.mkdir(projectDir, { recursive: true });
-    }
-
-    const coverPath = this.getProjectCoverPath(username, slug);
-
-    // Write the file
-    await fsPromises.writeFile(coverPath, imageBuffer);
-  }
-
-  private async deleteProjectCover(username: string, slug: string): Promise<void> {
-    const coverPath = this.getProjectCoverPath(username, slug);
-
-    if (fs.existsSync(coverPath)) {
-      await fsPromises.unlink(coverPath);
-    }
   }
 }

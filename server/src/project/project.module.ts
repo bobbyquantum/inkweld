@@ -21,6 +21,7 @@ import { Repository } from 'typeorm';
 import { DocumentRendererService } from './document/document-renderer.service.js';
 import { ProjectPublishEpubService } from './epub/project-publish-epub.service.js';
 import { ProjectPublishEpubController } from './epub/project-publish-epub.controller.js';
+import { CoverController } from './cover/cover.controller.js';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { ProjectPublishEpubController } from './epub/project-publish-epub.contro
     ProjectFilesController,
     DocumentController,
     ProjectPublishEpubController,
+    CoverController,
   ],
   providers: [
     ProjectService,
@@ -43,6 +45,7 @@ import { ProjectPublishEpubController } from './epub/project-publish-epub.contro
     DocumentGateway,
     DocumentRendererService,
     ProjectPublishEpubService,
+    CoverController,
     {
       provide: TypeOrmSessionStore,
       useFactory: (sessionRepository: Repository<UserSessionEntity>) => {
@@ -52,6 +55,6 @@ import { ProjectPublishEpubController } from './epub/project-publish-epub.contro
     },
     ConfigService,
   ],
-  exports: [ProjectService, ProjectElementService, FileStorageService, DocumentGateway, ProjectPublishEpubService],
+  exports: [ProjectService, ProjectElementService, FileStorageService, DocumentGateway, ProjectPublishEpubService, CoverController],
 })
 export class ProjectModule {}
