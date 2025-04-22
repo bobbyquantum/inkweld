@@ -31,6 +31,7 @@ describe('AuthController', () => {
     // Create mock AuthService
     const mockAuthService = {
       login: jest.fn(),
+      logout: jest.fn(),
     };
 
     // Create mock AuthGuard
@@ -86,6 +87,25 @@ describe('AuthController', () => {
 
       await expect(controller.login(mockRequest as any)).rejects.toThrow(error);
       expect(authService.login).toHaveBeenCalledWith(mockRequest, mockUser);
+    });
+  });
+
+  describe('logout', () => {
+    it('should logout successfully', async () => {
+      const mockRequest = {};
+      authService.logout.mockResolvedValue(undefined);
+      const result = await controller.logout(mockRequest as any);
+      expect(authService.logout).toHaveBeenCalledWith(mockRequest);
+      expect(result).toEqual({ message: 'Logout successful' });
+    });
+
+    it('should handle logout service failure', async () => {
+      const mockRequest = {};
+      const error = new Error('Logout failed');
+      authService.logout.mockRejectedValue(error);
+
+      await expect(controller.logout(mockRequest as any)).rejects.toThrow(error);
+      expect(authService.logout).toHaveBeenCalledWith(mockRequest);
     });
   });
 
