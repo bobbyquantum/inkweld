@@ -5,7 +5,7 @@
     class="user-menu mini-mode">
     <app-user-avatar
       [username]="userService.currentUser()!.username"
-      size="medium" />
+      size="small" />
   </button>
 
   <mat-menu
@@ -21,7 +21,7 @@
         <div class="user-info-content">
           <app-user-avatar
             [username]="userService.currentUser()!.username"
-            size="medium" />
+            size="small" />
           <div class="user-details">
             <span class="user-name">{{ userService.currentUser().name }}</span>
             <span class="user-username"

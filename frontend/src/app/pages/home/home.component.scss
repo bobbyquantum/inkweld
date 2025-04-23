@@ -69,6 +69,9 @@ app-bookshelf {
   }
   padding: 60px 0 80px 0;
   box-sizing: border-box;
+  &.is-mobile {
+    padding: 120px 0 120px 0;
+  }
 }
 
 .search-container {

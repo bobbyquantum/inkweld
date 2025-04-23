@@ -3,32 +3,25 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.1);
+  position: relative;
+  box-sizing: border-box; /* Important to include border in size calculation */
 
   &.small {
-    width: 24px;
-    height: 24px;
-    img, svg {
-      width: 24px;
-      height: 24px;
-    }
+    width: 32px;
+    height: 32px;
   }
 
   &.medium {
-    width: 32px;
-    height: 32px;
-    img, svg {
-      width: 32px;
-      height: 32px;
-    }
+    width: 48px;
+    height: 48px;
   }
 
   &.large {
-    width: 48px;
-    height: 48px;
-    img, svg {
-      width: 48px;
-      height: 48px;
-    }
+    width: 100%;
+    height: 100%;
+    border: none; /* Remove any borders from the avatar component */
   }
 
   .skeleton {
@@ -39,12 +32,23 @@
     animation: skeleton-loading 1.5s infinite;
     border-radius: 50%;
   }
+  
+  svg {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+  }
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
 }
+
 .rounded-full {
   border-radius: 50%;
-    width: 100%;
-      height: 100%;
-        object-fit: cover;
 }
 
 @keyframes skeleton-loading {

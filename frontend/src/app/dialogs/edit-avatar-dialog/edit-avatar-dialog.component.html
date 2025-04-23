@@ -1,28 +1,57 @@
 <h1 mat-dialog-title>Edit Avatar</h1>
-<div mat-dialog-content>
-  <input type="file" accept="image/*" (change)="fileChangeEvent($event)" />
+<div mat-dialog-content class="dialog-content">
+  <div class="file-input-container">
+    <button
+      mat-stroked-button
+      class="file-select-button"
+      (click)="fileInput.click()"
+      color="primary">
+      <mat-icon>add_photo_alternate</mat-icon>
+      Choose Image
+    </button>
+    @if (fileName) {
+      <span class="file-name">{{ fileName }}</span>
+    }
+    <input
+      type="file"
+      accept="image/*"
+      #fileInput
+      (change)="fileChangeEvent($event)"
+      style="display: none" />
+  </div>
   @if (imageChangedEvent) {
-    <div>
+    <div class="cropper-container">
       <image-cropper
         [imageChangedEvent]="imageChangedEvent"
         [maintainAspectRatio]="true"
         [aspectRatio]="1"
         [roundCropper]="true"
         format="png"
-        (imageCropped)="imageCropped($event)"></image-cropper>
+        output="blob"
+        [resizeToWidth]="300"
+        [cropperMinWidth]="100"
+        [cropperMinHeight]="100"
+        [onlyScaleDown]="true"
+        (imageCropped)="imageCropped($event)"
+        (imageLoaded)="onImageLoaded($event)"
+        (cropperReady)="onCropperReady()"
+        (loadImageFailed)="onLoadImageFailed()">
+      </image-cropper>
       @if (croppedImage) {
-        <div>
+        <div class="preview-container">
           <h3>Preview</h3>
-          <img
-            [src]="croppedImage"
-            alt="Cropped Avatar"
-            class="avatar-preview" />
+          <div class="avatar-preview-wrapper">
+            <img
+              [src]="croppedImage"
+              alt="Cropped Avatar"
+              class="avatar-preview" />
+          </div>
         </div>
       }
     </div>
   }
 </div>
-<div mat-dialog-actions>
+<div mat-dialog-actions align="end">
   <button mat-button (click)="dialogRef.close(false)" [disabled]="isSubmitting">
     Cancel
   </button>
@@ -30,7 +59,7 @@
     mat-raised-button
     color="primary"
     (click)="submit()"
-    [disabled]="isSubmitting || !croppedImage">
+    [disabled]="isSubmitting || !croppedBlob">
     {{ isSubmitting ? 'Uploading...' : 'Save' }}
   </button>
 </div>
