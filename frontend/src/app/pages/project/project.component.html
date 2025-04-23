@@ -32,6 +32,21 @@
       mode="over"
       [opened]="false"
       class="sidenav-content mobile-sidenav">
+      <div class="mobile-open-tabs">
+        <div class="mobile-tabs-list">
+          <div
+            class="mobile-tab-item"
+            (click)="goHome()"
+            tabindex="0"
+            role="button"
+            (keydown.enter)="goHome()"
+            (keydown.space)="goHome()"
+            [class.active]="projectState.selectedTabIndex() === 0">
+            <mat-icon>home</mat-icon>
+            <span class="mobile-tab-name">Home</span>
+          </div>
+        </div>
+      </div>
       <app-project-tree
         (documentOpened)="onDocumentOpened($event)"></app-project-tree>
     </mat-sidenav>
@@ -109,19 +124,22 @@
           <!-- Sidebar area -->
           <as-split-area [size]="splitSize" [minSize]="15" [maxSize]="40">
             <div class="sidebar-area">
-              <mat-toolbar class="project-toolbar">
-                <button mat-icon-button (click)="exitProject()">
-                  <mat-icon>arrow_back</mat-icon>
+              <div class="desktop-open-toolbar">
+                <button
+                  mat-button
+                  (click)="goHome()"
+                  aria-label="Home"
+                  [class.active]="projectState.selectedTabIndex() === 0">
+                  <mat-icon>home</mat-icon>
+                  <span class="desktop-button-text">Home</span>
                 </button>
-                <span class="project-title">{{
-                  projectState.project()?.title
-                }}</span>
                 <button
                   mat-icon-button
-                  (click)="projectState.showNewElementDialog()">
+                  (click)="projectState.showNewElementDialog()"
+                  aria-label="Add">
                   <mat-icon>add</mat-icon>
                 </button>
-              </mat-toolbar>
+              </div>
               <app-project-tree
                 (documentOpened)="onDocumentOpened($event)"></app-project-tree>
             </div>

@@ -93,7 +93,7 @@ as-split {
 .mobile-open-tabs {
   border-bottom: 1px solid var(--mat-sys-outline-variant);
   background-color: var(--mat-sys-surface-container-high);
-  padding-bottom: 8px;
+  padding: 8px 8px 8px;
 }
 
 .mobile-tabs-title {
@@ -191,6 +191,17 @@ as-split {
     overflow: hidden;
     text-overflow: ellipsis;
   }
+}
+
+// Desktop open toolbar in split sidebar
+.desktop-open-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+  height: 48px;
+  background-color: var(--mat-sys-surface-container);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
 }
 
 // Desktop content area

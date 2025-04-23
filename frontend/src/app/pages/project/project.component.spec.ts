@@ -440,5 +440,29 @@ describe('ProjectComponent', () => {
       component.exitProject();
       expect(routerMock.navigate).toHaveBeenCalledWith(['/']);
     });
+
+    it('should open recent document on click', () => {
+      (projectStateServiceMock.elements as any).set(mockElements);
+      component.onRecentDocumentClick('2');
+      expect(projectStateServiceMock.openDocument).toHaveBeenCalledWith(
+        mockElements[1]
+      );
+    });
+
+    it('should handle Enter and Space keys for recent document keydown', () => {
+      (projectStateServiceMock.elements as any).set(mockElements);
+      jest.spyOn(component, 'onRecentDocumentClick');
+      const enterEvent = new KeyboardEvent('keydown', { key: 'Enter' });
+      component.onRecentDocumentKeydown(enterEvent, '3');
+      expect(component.onRecentDocumentClick).toHaveBeenCalledWith('3');
+      (component.onRecentDocumentClick as jest.Mock).mockClear();
+      const spaceEvent = new KeyboardEvent('keydown', { key: ' ' });
+      component.onRecentDocumentKeydown(spaceEvent, '1');
+      expect(component.onRecentDocumentClick).toHaveBeenCalledWith('1');
+      (component.onRecentDocumentClick as jest.Mock).mockClear();
+      const escEvent = new KeyboardEvent('keydown', { key: 'Escape' });
+      component.onRecentDocumentKeydown(escEvent, '1');
+      expect(component.onRecentDocumentClick).not.toHaveBeenCalled();
+    });
   });
 });
