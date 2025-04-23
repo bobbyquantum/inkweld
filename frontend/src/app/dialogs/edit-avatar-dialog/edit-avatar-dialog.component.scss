@@ -4,3 +4,119 @@
   border-radius: 50%;
   margin-top: 12px;
 }
+
+.dialog-content {
+  min-width: 300px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.file-input-container {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  
+  .file-select-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 200px;
+    background-color: rgba(0, 170, 255, 0.1);
+    
+    mat-icon {
+      margin-right: 4px;
+      color: rgba(0, 170, 255, 0.9);
+    }
+
+    &:hover {
+      background-color: rgba(0, 170, 255, 0.2);
+    }
+  }
+  
+  .file-name {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    padding: 4px 0;
+  }
+}
+
+.cropper-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 16px;
+  
+  ::ng-deep image-cropper {
+    max-height: 350px;
+    margin: 0 auto;
+    width: 100%;
+    
+    .ngx-ic-overlay {
+      outline: rgba(0, 0, 0, 0.6) solid 100vw !important;
+    }
+    
+    .ngx-ic-cropper {
+      border-radius: 50% !important;
+      border: 2px solid rgba(255, 255, 255, 0.8) !important;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5) !important;
+    }
+  }
+}
+
+.preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  .avatar-preview-wrapper {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    
+    .avatar-preview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+}
+
+::ng-deep .mat-mdc-dialog-container {
+  .mdc-dialog__title {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 16px;
+    margin-bottom: 0;
+  }
+  
+  .mat-mdc-dialog-actions {
+    padding: 16px 24px;
+    gap: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 12px;
+  }
+}
