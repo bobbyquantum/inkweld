@@ -38,7 +38,7 @@ export class UserAvatarComponent implements OnInit, OnChanges {
     }
   }
 
-  private async loadAvatar() {
+  public async loadAvatar() {
     console.log('Loading avatar for user:', this.username);
     if (!this.username) return;
 

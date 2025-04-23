@@ -7,6 +7,7 @@ import {
   ConfirmationDialogComponent,
   ConfirmationDialogData,
 } from '../dialogs/confirmation-dialog/confirmation-dialog.component';
+import { EditAvatarDialogComponent } from '../dialogs/edit-avatar-dialog/edit-avatar-dialog.component';
 import { EditProjectDialogComponent } from '../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { FileUploadComponent } from '../dialogs/file-upload/file-upload.component';
 import {
@@ -77,5 +78,13 @@ export class DialogGatewayService {
       maxHeight: '90vh',
       panelClass: 'image-viewer-dialog-panel',
     });
+  }
+
+  openEditAvatarDialog(): Promise<boolean> {
+    const dialogRef = this.dialog.open(EditAvatarDialogComponent, {
+      disableClose: true,
+      width: '400px',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
   }
 }

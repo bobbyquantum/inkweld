@@ -18,3 +18,7 @@ Object.defineProperty(File.prototype, 'arrayBuffer', {
     });
   },
 });
+
+// Mock URL.createObjectURL and URL.revokeObjectURL for jest environment
+(global as any).URL.createObjectURL = jest.fn(() => 'blob:mock-url');
+(global as any).URL.revokeObjectURL = jest.fn();

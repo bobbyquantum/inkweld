@@ -1,0 +1,36 @@
+<h1 mat-dialog-title>Edit Avatar</h1>
+<div mat-dialog-content>
+  <input type="file" accept="image/*" (change)="fileChangeEvent($event)" />
+  @if (imageChangedEvent) {
+    <div>
+      <image-cropper
+        [imageChangedEvent]="imageChangedEvent"
+        [maintainAspectRatio]="true"
+        [aspectRatio]="1"
+        [roundCropper]="true"
+        format="png"
+        (imageCropped)="imageCropped($event)"></image-cropper>
+      @if (croppedImage) {
+        <div>
+          <h3>Preview</h3>
+          <img
+            [src]="croppedImage"
+            alt="Cropped Avatar"
+            class="avatar-preview" />
+        </div>
+      }
+    </div>
+  }
+</div>
+<div mat-dialog-actions>
+  <button mat-button (click)="dialogRef.close(false)" [disabled]="isSubmitting">
+    Cancel
+  </button>
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="submit()"
+    [disabled]="isSubmitting || !croppedImage">
+    {{ isSubmitting ? 'Uploading...' : 'Save' }}
+  </button>
+</div>
