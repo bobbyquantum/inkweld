@@ -123,11 +123,11 @@ describe('ProjectController', () => {
         },
         {
           provide: CoverController,
-          useValue: mockCoverController, // Keep using the mocked service
+          useValue: mockCoverController,
         },
         {
           provide: UserService,
-          useValue: mockUserService, // Keep using the mocked service
+          useValue: mockUserService, 
         },
         {
           provide: FileStorageService,

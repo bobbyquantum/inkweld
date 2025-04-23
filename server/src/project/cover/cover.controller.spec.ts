@@ -3,8 +3,11 @@ import { CoverController } from './cover.controller.js';
 import { ProjectService } from '../project.service.js';
 import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest, mock, afterEach } from 'bun:test';
-import { UserService } from '../../user/user.service.js';
 import { SessionAuthGuard } from '../../auth/session-auth.guard.js';
+import { InMemoryStorageService } from '../../common/storage/in-memory-storage.service.js';
+import { STORAGE_SERVICE } from '../../common/storage/storage.interface.js';
+import { UserService } from 'user/user.service.js';
+import { UserEntity } from 'user/user.entity.js';
 
 // Define custom fail function since it's not available directly
 const fail = (_message: string) => {
@@ -21,27 +24,9 @@ class FileSystemError extends Error {
     this.name = 'FileSystemError';
   }
 }
-
-// Mock dependencies
-const mockFs = {
-  constants: { F_OK: 0 },
-  promises: {
-    mkdir: jest.fn().mockResolvedValue(undefined),
-    writeFile: jest.fn().mockResolvedValue(undefined),
-    unlink: jest.fn().mockResolvedValue(undefined),
-    access: jest.fn().mockResolvedValue(undefined),
-  },
-  createReadStream: jest.fn().mockReturnValue({
-    pipe: jest.fn().mockReturnThis(),
-    on: jest.fn().mockImplementation(function(this: Record<string, any>, _event: string, _callback: any): Record<string, any> {
-      // Store the callback but don't execute it
-      return this as Record<string, any>;
-    }),
-  }),
+const mockUserService = {
+  getCurrentUser: jest.fn<() => Promise<UserEntity>>(),
 };
-
-mock.module('fs', () => mockFs);
-
 const mockSharpInstance = {
   metadata: jest.fn().mockResolvedValue({ width: 1200, height: 1920 }),
   resize: jest.fn().mockReturnThis(),
@@ -88,7 +73,6 @@ describe('CoverController', () => {
   };
   
   beforeEach(async () => {
-    // Reset all mocks
     jest.clearAllMocks();
     process.env.DATA_PATH = './data-test';
     
@@ -100,18 +84,10 @@ describe('CoverController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CoverController],
       providers: [
-        {
-          provide: ProjectService,
-          useValue: mockProjectService,
-        },
-        {
-          provide: UserService,
-          useValue: {},
-        },
-        {
-          provide: SessionAuthGuard,
-          useValue: {},
-        },
+        { provide: UserService, useValue: mockUserService },
+        { provide: ProjectService, useValue: mockProjectService },
+        { provide: STORAGE_SERVICE, useClass: InMemoryStorageService },
+        { provide: SessionAuthGuard, useValue: {} },
       ],
     }).compile();
 
@@ -129,10 +105,6 @@ describe('CoverController', () => {
   
   describe('uploadCover', () => {
     it('should upload cover image successfully', async () => {
-      // Ensure mock setup is correct - explicitly set expectations
-      mockFs.promises.mkdir.mockResolvedValueOnce(undefined);
-      mockFs.promises.writeFile.mockResolvedValueOnce(undefined);
-      
       const result = await controller.uploadCover(
         'testuser',
         'test-project',
@@ -186,13 +158,22 @@ describe('CoverController', () => {
   
   describe('getProjectCover', () => {
     it('should return cover image stream if exists', async () => {
-      // Setup fs.access to return success
-      mockFs.promises.access.mockResolvedValueOnce(undefined);
-      
-      // Test successful case
+      // Stub cover existence and buffer
+      const origHas = controller['hasProjectCover'];
+      const origGet = controller['getCoverBuffer'];
+      controller['hasProjectCover'] = jest.fn().mockResolvedValue(true);
+      controller['getCoverBuffer'] = jest.fn().mockResolvedValue(Buffer.from('img-data'));
       await controller.getProjectCover('testuser', 'test-project', mockResponse);
-      
-      expect(mockResponse.set).toHaveBeenCalled();
+      expect(controller['hasProjectCover']).toHaveBeenCalledWith('testuser', 'test-project');
+      expect(controller['getCoverBuffer']).toHaveBeenCalledWith('testuser', 'test-project');
+      expect(mockResponse.set).toHaveBeenCalledWith({
+        'Content-Type': 'image/jpeg',
+        'Cache-Control': 'public, max-age=86400',
+      });
+      expect(mockResponse.send).toHaveBeenCalledWith(Buffer.from('img-data'));
+      // restore
+      controller['hasProjectCover'] = origHas;
+      controller['getCoverBuffer'] = origGet;
     });
     
     it('should handle missing cover image correctly', async () => {

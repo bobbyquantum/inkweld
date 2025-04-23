@@ -4,10 +4,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from './user.entity.js';
 import { UserDto } from './user.dto.js';
+import sharp from 'sharp';
 import * as fs from 'fs';
 import * as path from 'path';
-import sharp from 'sharp';
 import { ConfigService } from '@nestjs/config';
+import { STORAGE_SERVICE } from '../common/storage/storage.interface.js';
+import type { StorageService } from '../common/storage/storage.interface.js';
+import { Inject } from '@nestjs/common';
 
 @Injectable()
 export class UserService {
@@ -17,6 +20,7 @@ export class UserService {
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
     private readonly configService: ConfigService,
+    @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {
     // Get the data directory from environment or use default
     this.dataDir = path.resolve(this.configService.get<string>('DATA_PATH', './data'));
@@ -269,65 +273,33 @@ export class UserService {
     return { users, total };
   }
 
-  /**
-   * Returns the filesystem path to the user's avatar image
-   */
-  getUserAvatarPath(username: string): string {
-    const userDir = path.join(this.dataDir, username);
-    return path.join(userDir, 'avatar.png');
+  // Key for user avatar in storage
+  private getUserAvatarKey(username: string): string {
+    return `${username}/avatar.png`;
   }
 
-  /**
-   * Checks if a user has an avatar image
-   */
   async hasUserAvatar(username: string): Promise<boolean> {
-    const avatarPath = this.getUserAvatarPath(username);
-    return fs.existsSync(avatarPath);
+    return this.storage.exists(this.getUserAvatarKey(username));
   }
 
-  /**
-   * Saves a user avatar, formatting it to a 460x460 PNG
-   */
   async saveUserAvatar(username: string, imageBuffer: Buffer): Promise<void> {
-    // Create user directory if it doesn't exist
-    const userDir = path.join(this.dataDir, username);
-    if (!fs.existsSync(userDir)) {
-      fs.mkdirSync(userDir, { recursive: true });
-    }
-
-    const avatarPath = this.getUserAvatarPath(username);
-
-    // Process image: resize to 460x460 and convert to PNG
-    await sharp(imageBuffer)
-      .resize(460, 460, {
-        fit: 'cover',
-        position: 'center',
-      })
+    // Process and store avatar as PNG
+    const processed = await sharp(imageBuffer)
+      .resize(460, 460, { fit: 'cover', position: 'center' })
       .png()
-      .toFile(avatarPath);
+      .toBuffer();
+    await this.storage.put(this.getUserAvatarKey(username), processed);
   }
 
-  /**
-   * Gets the avatar of a user as a readable stream
-   */
-  async getUserAvatar(username: string): Promise<fs.ReadStream> {
-    const avatarPath = this.getUserAvatarPath(username);
-
-    if (!fs.existsSync(avatarPath)) {
+  async getUserAvatar(username: string): Promise<Buffer> {
+    const key = this.getUserAvatarKey(username);
+    if (!(await this.storage.exists(key))) {
       throw new NotFoundException('Avatar not found');
     }
-
-    return fs.createReadStream(avatarPath);
+    return this.storage.get(key);
   }
 
-  /**
-   * Deletes a user's avatar if it exists
-   */
   async deleteUserAvatar(username: string): Promise<void> {
-    const avatarPath = this.getUserAvatarPath(username);
-
-    if (fs.existsSync(avatarPath)) {
-      fs.unlinkSync(avatarPath);
-    }
+    await this.storage.delete(this.getUserAvatarKey(username));
   }
 }

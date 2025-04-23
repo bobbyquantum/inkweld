@@ -4,6 +4,8 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserEntity } from './user.entity.js';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
+import { STORAGE_SERVICE } from '../common/storage/storage.interface.js';
+import { InMemoryStorageService } from '../common/storage/in-memory-storage.service.js';
 import {
   afterAll,
   afterEach,
@@ -56,6 +58,10 @@ describe('UserService', () => {
         {
           provide: ConfigService,
           useValue: mockConfigService,
+        },
+        {
+          provide: STORAGE_SERVICE,
+          useClass: InMemoryStorageService,
         },
       ],
     }).compile();
