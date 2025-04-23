@@ -509,4 +509,13 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
         }
       });
   }
+
+  // Navigate to home tab
+  goHome(): void {
+    const project = this.projectState.project();
+    if (project) {
+      this.projectState.selectedTabIndex.set(0);
+      void this.router.navigate(['/', project.username, project.slug]);
+    }
+  }
 }
