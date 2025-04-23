@@ -27,10 +27,10 @@ import {
 import { SessionAuthGuard } from '../../auth/session-auth.guard.js';
 import { ProjectService } from '../project.service.js'; // Assuming ProjectService might be needed for validation
 import { FileInterceptor } from '@nestjs/platform-express';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as fsPromises from 'fs/promises';
 import sharp from 'sharp';
+import { STORAGE_SERVICE } from '../../common/storage/storage.interface.js';
+import type { StorageService } from '../../common/storage/storage.interface.js';
+import { Inject } from '@nestjs/common';
 
 // Define MulterFile interface (copied from project.controller)
 interface MulterFile {
@@ -51,7 +51,10 @@ export class CoverController {
   private readonly logger = new Logger(CoverController.name);
 
   // Inject ProjectService if needed for checks like project existence or ownership
-  constructor(private readonly projectService: ProjectService) {}
+  constructor(
+    private readonly projectService: ProjectService,
+    @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
+  ) {}
 
   @Post()
   @UseGuards(SessionAuthGuard)
@@ -198,55 +201,22 @@ export class CoverController {
   ) {
     try {
       const hasCover = await this.hasProjectCover(username, slug);
-
       if (!hasCover) {
-        // Check if the project itself exists before sending 404 for the cover
-        try {
-            await this.projectService.findByUsernameAndSlug(username, slug);
-            // Project exists, but cover doesn't
-            throw new NotFoundException('Cover image not found for this project.');
-        } catch (projectError) {
-            if (projectError instanceof NotFoundException) {
-                throw projectError; // Re-throw the not found exception
-            }
-            // Project itself doesn't exist
-            throw new NotFoundException('Project not found.');
-        }
+        await this.projectService.findByUsernameAndSlug(username, slug);
+        throw new NotFoundException('Cover image not found for this project.');
       }
-
-      const coverPath = this.getProjectCoverPath(username, slug);
-      try {
-        await fsPromises.access(coverPath, fs.constants.F_OK);
-      } catch (_error) {
-        // If the cover file doesn't exist, throw NotFoundException.
-        throw new NotFoundException(`Cover image not found for ${username}/${slug}.`);
-      }
-
-      const coverStream = fs.createReadStream(coverPath);
-
+      const buffer = await this.getCoverBuffer(username, slug);
       res.set({
         'Content-Type': 'image/jpeg',
-        'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
+        'Cache-Control': 'public, max-age=86400',
       });
-
-      coverStream.pipe(res);
-      // Handle stream errors
-      coverStream.on('error', (err) => {
-        this.logger.error(`Error streaming cover for ${username}/${slug}: ${err.message}`);
-        if (!res.headersSent) {
-            res.status(500).send('Error retrieving cover image.');
-        }
-      });
-
+      return res.send(buffer);
     } catch (error) {
       this.logger.error(`Error getting cover for ${username}/${slug}`, error);
-      // Avoid sending response twice if stream error already handled it
-      if (!res.headersSent) {
-        if (error instanceof NotFoundException) {
-          throw error; // Re-throw not found errors to maintain correct status
-        }
-        return res.status(500).send('Internal server error retrieving cover.');
+      if (error instanceof NotFoundException) {
+        throw error;
       }
+      throw new BadRequestException('Internal server error retrieving cover.');
     }
   }
 
@@ -395,59 +365,23 @@ export class CoverController {
     }
   }
 
-
-  private getProjectCoverPath(username: string, slug: string): string {
-    const projectDir = path.join(
-      process.env.DATA_PATH || './data',
-      username,
-      slug,
-    );
-    return path.join(projectDir, 'cover.jpg');
+  private coverKey(username: string, slug: string): string {
+    return `${username}/${slug}/cover.jpg`;
   }
 
   private async hasProjectCover(username: string, slug: string): Promise<boolean> {
-    const coverPath = this.getProjectCoverPath(username, slug);
-    try {
-        await fsPromises.access(coverPath, fs.constants.F_OK);
-        return true;
-    } catch {
-        return false;
-    }
+    return this.storage.exists(this.coverKey(username, slug));
   }
 
-  private async saveProjectCover(
-    username: string,
-    slug: string,
-    imageBuffer: Buffer,
-  ): Promise<void> {
-    const projectDir = path.join(
-      process.env.DATA_PATH || './data',
-      username,
-      slug,
-    );
-    // Ensure project directory exists
-    await fsPromises.mkdir(projectDir, { recursive: true });
-
-    const coverPath = this.getProjectCoverPath(username, slug);
-
-    // Write the file
-    await fsPromises.writeFile(coverPath, imageBuffer);
-    this.logger.log(`Saved cover image to ${coverPath}`);
+  private async saveProjectCover(username: string, slug: string, imageBuffer: Buffer): Promise<void> {
+    await this.storage.put(this.coverKey(username, slug), imageBuffer, { contentType: 'image/jpeg' });
   }
 
-  // Renamed to avoid conflict with public deleteCover endpoint method
   private async deleteProjectCoverInternal(username: string, slug: string): Promise<void> {
-    const coverPath = this.getProjectCoverPath(username, slug);
-    try {
-        await fsPromises.unlink(coverPath);
-        this.logger.log(`Deleted cover image at ${coverPath}`);
-    } catch (error: unknown) {
-        // Safely check for the code property
-        if (typeof error === 'object' && error !== null && 'code' in error && error.code !== 'ENOENT') {
-            this.logger.error(`Error deleting cover file ${coverPath}`, error);
-            throw error; // Rethrow unexpected errors
-        }
-         this.logger.warn(`Attempted to delete non-existent cover: ${coverPath}`);
-    }
+    await this.storage.delete(this.coverKey(username, slug));
+  }
+
+  private async getCoverBuffer(username: string, slug: string): Promise<Buffer> {
+    return this.storage.get(this.coverKey(username, slug));
   }
 }

@@ -240,14 +240,11 @@ export class UserController {
         return res.status(404).send('Avatar not found');
       }
 
-      const avatarStream = await this.userService.getUserAvatar(username);
+      const buffer = await this.userService.getUserAvatar(username);
 
-      res.set({
-        'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
-      });
-
-      return avatarStream.pipe(res);
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Content-Length', buffer.length.toString());
+      return res.send(buffer);
     } catch (error) {
       this.logger.error(`Error getting avatar for ${username}`, error);
       return res.status(404).send('Avatar not found');

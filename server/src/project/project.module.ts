@@ -22,12 +22,14 @@ import { DocumentRendererService } from './document/document-renderer.service.js
 import { ProjectPublishEpubService } from './epub/project-publish-epub.service.js';
 import { ProjectPublishEpubController } from './epub/project-publish-epub.controller.js';
 import { CoverController } from './cover/cover.controller.js';
+import { StorageModule } from '../common/storage/storage.module.js';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ProjectEntity, UserEntity, UserSessionEntity]),
     UserModule,
-    ConfigModule
+    ConfigModule,
+    StorageModule.register(),
   ],
   controllers: [
     ProjectController,
