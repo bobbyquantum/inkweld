@@ -1,5 +1,5 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,6 +8,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
 import { UserDto } from '@inkweld/index';
+import { DialogGatewayService } from '@services/dialog-gateway.service';
 import { ProjectService } from '@services/project.service';
 import { UserService } from '@services/user.service';
 import { Subject, takeUntil } from 'rxjs';
@@ -34,12 +35,16 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   protected userService = inject(UserService);
   protected projectService = inject(ProjectService);
   protected breakpointObserver = inject(BreakpointObserver);
+  private dialogGateway = inject(DialogGatewayService);
+
+  @ViewChild(UserAvatarComponent) private avatarComponent!: UserAvatarComponent;
 
   username: string | null = null;
   profileUser: UserDto | null = null;
   isMobile = false;
   isLoading = true;
   loadError = false;
+  isOwner = false;
 
   private destroy$ = new Subject<void>();
 
@@ -75,6 +80,8 @@ export class UserProfileComponent implements OnInit, OnDestroy {
       // For now, we'll use the current user as a placeholder
       // In a real implementation, we would fetch the profile for the specific username
       this.profileUser = this.userService.currentUser();
+      this.isOwner =
+        this.profileUser?.username === this.userService.currentUser().username;
     } catch (error) {
       console.error('Failed to load user profile:', error);
       this.loadError = true;
@@ -93,6 +100,14 @@ export class UserProfileComponent implements OnInit, OnDestroy {
 
   navigateHome() {
     void this.router.navigate(['/']);
+  }
+
+  openEditAvatarDialog(): void {
+    void this.dialogGateway.openEditAvatarDialog().then(result => {
+      if (result) {
+        void this.avatarComponent.loadAvatar();
+      }
+    });
   }
 
   ngOnDestroy(): void {
