@@ -6,6 +6,15 @@ mat-tree {
   position: relative;
   overflow: auto;
 }
+ 
+.selection-indicator {
+  position: absolute;
+  left: 0;
+  width: 2px;
+  background-color: var(--mat-sys-primary);
+  transition: top 250ms ease, height 250ms ease;
+  z-index: 1;
+}
 
 .loading-overlay {
   position: absolute;

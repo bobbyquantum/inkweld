@@ -1,4 +1,10 @@
 <div #treeContainer class="project-tree-container">
+  @if (selectedItem) {
+    <div
+      class="selection-indicator"
+      [style.top.px]="indicatorTop"
+      [style.height.px]="indicatorHeight"></div>
+  }
   @if (isLoading()) {
     <div class="loading-overlay">
       <mat-spinner diameter="40"></mat-spinner>
