@@ -68,6 +68,8 @@ describe('ProjectTreeComponent', () => {
       isLoading: loadingSignal,
       isSaving: savingSignal,
       error: errorSignal,
+      openTabs: signal([]),
+      selectedTabIndex: signal(0),
       project: signal({ title: 'Test Project' }),
       saveProjectElements: jest.fn().mockResolvedValue(undefined),
       showEditProjectDialog: jest.fn(),
