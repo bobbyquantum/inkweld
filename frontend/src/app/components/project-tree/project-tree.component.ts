@@ -11,6 +11,7 @@ import {
 } from '@angular/cdk/drag-drop';
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import {
+  AfterViewInit,
   Component,
   computed,
   effect,
@@ -60,7 +61,7 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
   templateUrl: './project-tree.component.html',
   styleUrls: ['./project-tree.component.scss'],
 })
-export class ProjectTreeComponent {
+export class ProjectTreeComponent implements AfterViewInit {
   private dialogGateway = inject(DialogGatewayService);
 
   @ViewChild('tree') treeEl!: MatTree<ProjectElement>;
@@ -85,6 +86,29 @@ export class ProjectTreeComponent {
   protected readonly router = inject(Router);
 
   selectedItem: ProjectElement | null = null;
+  indicatorTop: number = 0;
+  indicatorHeight: number = 0;
+
+  private updateIndicator(): void {
+    const selectedEl = this.treeContainer.nativeElement.querySelector(
+      '.selected-item'
+    ) as HTMLElement;
+    if (selectedEl) {
+      const containerRect =
+        this.treeContainer.nativeElement.getBoundingClientRect();
+      const elRect = selectedEl.getBoundingClientRect();
+      this.indicatorTop = elRect.top - containerRect.top;
+      this.indicatorHeight = elRect.height;
+    } else {
+      this.indicatorHeight = 0;
+      this.indicatorTop = 0;
+    }
+  }
+
+  public ngAfterViewInit(): void {
+    // Position the indicator on initial load
+    setTimeout(() => this.updateIndicator());
+  }
   currentDropLevel = 0;
   validLevelsArray: number[] = [0];
   draggedNode: ProjectElement | null = null;
@@ -104,6 +128,30 @@ export class ProjectTreeComponent {
       this.dataSource = new ArrayDataSource<ProjectElement>(
         this.projectStateService.visibleElements()
       );
+    });
+
+    let tabsReady = false;
+    // only update indicator after tabs load from storage
+    effect(() => {
+      const tabs = this.projectStateService.openTabs();
+      if (!tabsReady && tabs.length > 0) {
+        tabsReady = true;
+      }
+      if (tabsReady) {
+        const idx = this.projectStateService.selectedTabIndex();
+        // Account for Home fixed tab at index 0
+        const tab = idx > 0 ? tabs[idx - 1] : null;
+        let elemId: string | null = null;
+        if (tab?.type === 'document' && tab.element) {
+          elemId = tab.element.id;
+        }
+        this.selectedItem = elemId
+          ? this.projectStateService
+              .visibleElements()
+              .find(el => el.id === elemId) || null
+          : null;
+        setTimeout(() => this.updateIndicator());
+      }
     });
   }
 
@@ -130,6 +178,7 @@ export class ProjectTreeComponent {
    */
   public onNodeDown(node: ProjectElement) {
     this.selectedItem = node;
+    setTimeout(() => this.updateIndicator());
   }
 
   /**
@@ -384,6 +433,7 @@ export class ProjectTreeComponent {
     };
     this.projectStateService.openDocument(dto);
     this.documentOpened.emit(dto);
+    setTimeout(() => this.updateIndicator());
     // Navigate to document or folder route
     const project = this.projectStateService.project();
     if (project?.username && project?.slug) {
