@@ -45,7 +45,7 @@ interface MulterFile {
   buffer?: Buffer;
 }
 
-@ApiTags('Project Cover API')
+@ApiTags('Project API')
 @Controller('api/v1/projects/:username/:slug/cover') // Base path for cover operations
 export class CoverController {
   private readonly logger = new Logger(CoverController.name);
