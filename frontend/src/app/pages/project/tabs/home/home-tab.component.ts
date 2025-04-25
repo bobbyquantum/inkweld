@@ -2,6 +2,7 @@ import { Component, EventEmitter, inject, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Router, RouterModule } from '@angular/router';
+import { DialogGatewayService } from '@services/dialog-gateway.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
 import { ProjectStateService } from '@services/project-state.service';
 
@@ -20,6 +21,7 @@ export class HomeTabComponent {
   protected readonly projectState = inject(ProjectStateService);
   protected readonly recentFilesService = inject(RecentFilesService);
   protected readonly importExportService = inject(ProjectImportExportService);
+  protected readonly dialogGateway = inject(DialogGatewayService);
   // Router for navigation
   protected readonly router = inject(Router);
 
@@ -52,6 +54,22 @@ export class HomeTabComponent {
     const project = this.projectState.project();
     if (project) {
       void this.importExportService.exportProjectZip();
+    }
+  }
+
+  onGenerateCoverClick(): void {
+    const project = this.projectState.project();
+    if (project) {
+      void this.dialogGateway
+        .openGenerateCoverDialog(project)
+        .then((approved: boolean) => {
+          if (approved) {
+            console.log(
+              'Cover image approved - ready for implementation of saving function'
+            );
+            // In the future: save the approved image to the project
+          }
+        });
     }
   }
 

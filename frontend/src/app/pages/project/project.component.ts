@@ -26,7 +26,6 @@ import {
   RouterModule,
   RouterOutlet,
 } from '@angular/router';
-import { DocumentElementEditorComponent } from '@components/document-element-editor/document-element-editor.component';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { ProjectDto, ProjectElementDto } from '@inkweld/index';
@@ -42,6 +41,7 @@ import {
 } from 'angular-split';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 
+import { DocumentElementEditorComponent } from '../../components/document-element-editor/document-element-editor.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { RecentFilesService } from '../../services/recent-files.service';
