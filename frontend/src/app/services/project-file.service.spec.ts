@@ -3,16 +3,16 @@ import {
   FileDeleteResponseDto,
   FileMetadataDto,
   FileUploadResponseDto,
-  ProjectFilesService,
 } from '@inkweld/index';
 import { of } from 'rxjs';
 
+import { ProjectAPIService } from '../../api-client/api/project-api.service';
 import { ProjectFileService } from './project-file.service';
 import { XsrfService } from './xsrf.service';
 
 describe('ProjectFileService', () => {
   let service: ProjectFileService;
-  let projectFilesServiceMock: jest.Mocked<ProjectFilesService>;
+  let projectApiServiceMock: jest.Mocked<ProjectAPIService>;
   let xsrfServiceMock: jest.Mocked<XsrfService>;
 
   // Simple ISO date string for testing
@@ -43,8 +43,8 @@ describe('ProjectFileService', () => {
   beforeEach(() => {
     const mockData = createMockData();
 
-    // Create a simplified mock for ProjectFilesService
-    projectFilesServiceMock = {
+    // Create a simplified mock for ProjectAPIService
+    projectApiServiceMock = {
       projectFilesControllerListFiles: jest
         .fn()
         .mockReturnValue(of([mockData.metadata])),
@@ -58,7 +58,7 @@ describe('ProjectFileService', () => {
         basePath: 'http://localhost:3000',
         encodeParam: jest.fn(param => param.value),
       },
-    } as unknown as jest.Mocked<ProjectFilesService>;
+    } as unknown as jest.Mocked<ProjectAPIService>;
 
     // Create a mock for XsrfService
     xsrfServiceMock = {
@@ -70,7 +70,7 @@ describe('ProjectFileService', () => {
     TestBed.configureTestingModule({
       providers: [
         ProjectFileService,
-        { provide: ProjectFilesService, useValue: projectFilesServiceMock },
+        { provide: ProjectAPIService, useValue: projectApiServiceMock },
         { provide: XsrfService, useValue: xsrfServiceMock },
       ],
     });
@@ -92,7 +92,7 @@ describe('ProjectFileService', () => {
       expect(files[0].uploadDate).toBeInstanceOf(Date);
       expect(files[0].uploadDate.toISOString()).toBe(testDate);
       expect(
-        projectFilesServiceMock.projectFilesControllerListFiles
+        projectApiServiceMock.projectFilesControllerListFiles
       ).toHaveBeenCalledWith('user1', 'project1');
 
       // Test file URL generation in the same test
@@ -114,7 +114,7 @@ describe('ProjectFileService', () => {
       expect(file.originalName).toBe('test.jpg');
       expect(file.uploadDate).toBeInstanceOf(Date);
       expect(
-        projectFilesServiceMock.projectFilesControllerUploadFile
+        projectApiServiceMock.projectFilesControllerUploadFile
       ).toHaveBeenCalledWith('user1', 'project1', 'test-token', testFile);
 
       // Test delete in the same test flow
@@ -123,7 +123,7 @@ describe('ProjectFileService', () => {
         .subscribe(response => {
           expect(response.message).toBe('File deleted successfully');
           expect(
-            projectFilesServiceMock.projectFilesControllerDeleteFile
+            projectApiServiceMock.projectFilesControllerDeleteFile
           ).toHaveBeenCalledWith(
             'user1',
             'project1',

@@ -41,7 +41,7 @@ interface MulterFile {
   buffer?: Buffer;
 }
 
-@ApiTags('project-files')
+@ApiTags('Project API')
 @Controller('api/v1/projects/:username/:projectSlug/files')
 @UseGuards(SessionAuthGuard)
 export class ProjectFilesController {
