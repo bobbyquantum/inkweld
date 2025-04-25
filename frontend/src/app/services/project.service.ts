@@ -396,7 +396,7 @@ export class ProjectService {
 
     try {
       return await firstValueFrom(
-        this.projectApi.projectControllerGetProjectCover(username, slug).pipe(
+        this.projectApi.coverControllerGetProjectCover(username, slug).pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
             const projectError = this.formatError(error);
@@ -446,13 +446,9 @@ export class ProjectService {
     try {
       // Assume delete returns void or similar
       await firstValueFrom(
-        this.projectApi.projectControllerDeleteCover(username, slug).pipe(
+        this.projectApi.coverControllerDeleteCover(username, slug).pipe(
           retry(MAX_RETRIES),
-          catchError((error: unknown) => {
-            const projectError = this.formatError(error);
-            this.error.set(projectError);
-            return throwError(() => projectError);
-          })
+          catchError(err => throwError(() => this.formatError(err)))
         )
       );
 
@@ -463,9 +459,6 @@ export class ProjectService {
       );
 
       if (projectIndex >= 0) {
-        // We don't need to modify anything specific for the cover image
-        // as the API response doesn't include that information
-        // Just refresh the project data
         await this.loadAllProjects();
       }
     } catch (err: unknown) {
@@ -494,17 +487,11 @@ export class ProjectService {
 
     try {
       await firstValueFrom(
-        // Upload might return 200 OK or 204 No Content
         this.projectApi
-          .projectControllerUploadCover(username, slug, coverImage)
+          .coverControllerUploadCover(username, slug, coverImage)
           .pipe(
             retry(MAX_RETRIES),
-            // No map needed
-            catchError((error: unknown) => {
-              const projectError = this.formatError(error);
-              this.error.set(projectError);
-              return throwError(() => projectError);
-            })
+            catchError(err => throwError(() => this.formatError(err)))
           )
       );
 

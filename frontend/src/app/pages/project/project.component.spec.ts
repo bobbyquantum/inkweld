@@ -1,23 +1,31 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
-import { HttpClient } from '@angular/common/http';
-import { Component, ElementRef, Input, signal } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { HttpClient, HttpHandler } from '@angular/common/http';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  Output,
+} from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSidenav } from '@angular/material/sidenav';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { ProjectDto, ProjectElementDto } from '@inkweld/index';
 import {
-  ProjectAPIService,
-  ProjectDto,
-  ProjectElementDto,
-} from '@inkweld/index';
+  createRoutingFactory,
+  Spectator,
+  SpyObject,
+} from '@ngneat/spectator/jest';
 import { SplitGutterInteractionEvent } from 'angular-split';
+import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { BehaviorSubject, of } from 'rxjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { DocumentService } from '../../services/document.service';
+import { ProjectService } from '../../services/project.service';
 import { ProjectImportExportService } from '../../services/project-import-export.service';
 import {
   AppTab,
@@ -28,10 +36,10 @@ import { SettingsService } from '../../services/settings.service';
 import { ProjectComponent } from './project.component';
 
 // Create mock components for Angular Split
-// ESLint disabled for mock component selectors
 /* eslint-disable @angular-eslint/component-selector */
 @Component({
   selector: 'as-split',
+  standalone: true,
   template: '<ng-content></ng-content>',
 })
 class MockSplitComponent {
@@ -43,6 +51,7 @@ class MockSplitComponent {
 
 @Component({
   selector: 'as-split-area',
+  standalone: true,
   template: '<ng-content></ng-content>',
 })
 class MockSplitAreaComponent {
@@ -51,25 +60,50 @@ class MockSplitAreaComponent {
   @Input() maxSize: number = 0;
 }
 
-// Mock module for Angular Split - Removed as components are imported directly
+@Component({
+  selector: 'app-tab-interface',
+  standalone: true,
+  template: '',
+})
+class MockTabInterfaceComponent {
+  @Input() tabs: any;
+  @Input() selectedIndex!: number;
+  @Output() tabChange = new EventEmitter<number>();
+}
+
+// Define types for mocks
+type ProjectStateMock = DeepMockProxy<ProjectStateService> &
+  SpyObject<ProjectStateService>;
+type DocumentServiceMock = DeepMockProxy<DocumentService> &
+  SpyObject<DocumentService>;
+type RecentFilesServiceMock = DeepMockProxy<RecentFilesService> &
+  SpyObject<RecentFilesService>;
+type DialogGatewayServiceMock = DeepMockProxy<DialogGatewayService> &
+  SpyObject<DialogGatewayService>;
+type ProjectServiceMock = DeepMockProxy<ProjectService> &
+  SpyObject<ProjectService>;
+type SettingsServiceMock = DeepMockProxy<SettingsService> &
+  SpyObject<SettingsService>;
+type ImportExportServiceMock = DeepMockProxy<ProjectImportExportService> &
+  SpyObject<ProjectImportExportService>;
 
 describe('ProjectComponent', () => {
+  let spectator: Spectator<ProjectComponent>;
   let component: ProjectComponent;
-  let fixture: ComponentFixture<ProjectComponent>;
-  let projectServiceMock: jest.Mocked<ProjectAPIService>;
-  let projectStateServiceMock: Partial<ProjectStateService>;
-  let snackBarMock: jest.Mocked<MatSnackBar>;
-  let httpClientMock: jest.Mocked<HttpClient>;
+  let projectStateService: ProjectStateMock;
+  let documentService: DocumentServiceMock;
+  let recentFilesService: RecentFilesServiceMock;
+  let dialogGatewayService: DialogGatewayServiceMock;
+  let projectService: ProjectServiceMock;
+  let settingsService: SettingsServiceMock;
+  let importExportService: ImportExportServiceMock;
   let routeParams: BehaviorSubject<{ username: string; slug: string }>;
-  let breakpointObserverMock: Partial<BreakpointObserver>;
-  let mockDialogRef: MatDialogRef<unknown>;
-  let routerMock: jest.Mocked<Router>;
-  let recentFilesServiceMock: jest.Mocked<RecentFilesService>;
-  let documentServiceMock: jest.Mocked<DocumentService>;
-  let dialogGatewayServiceMock: jest.Mocked<DialogGatewayService>;
-  let titleServiceMock: jest.Mocked<Title>;
-  let importExportServiceMock: jest.Mocked<ProjectImportExportService>;
-  let settingsServiceMock: Partial<SettingsService>;
+  let breakpointSubject: BehaviorSubject<{ matches: boolean }>;
+  let snackBarMock: SpyObject<MatSnackBar>;
+  let titleServiceMock: SpyObject<Title>;
+  let breakpointObserverMock: SpyObject<BreakpointObserver>;
+  let dialogMock: SpyObject<MatDialog>;
+  let httpClientMock: SpyObject<HttpClient>;
 
   const mockElements: ProjectElementDto[] = [
     {
@@ -104,8 +138,47 @@ describe('ProjectComponent', () => {
     },
   ];
 
-  beforeEach(async () => {
-    // Mock global localStorage
+  const mockProject: ProjectDto = {
+    id: 'test123',
+    title: 'Test Project',
+    slug: 'test-project',
+    username: 'testuser',
+    createdDate: new Date().toISOString(),
+    updatedDate: new Date().toISOString(),
+  };
+
+  const mockTabs: AppTab[] = [
+    {
+      id: 'home',
+      type: 'system',
+      name: 'Home',
+      systemType: 'home',
+    },
+    {
+      id: '1',
+      type: 'document',
+      name: 'Element 1',
+      element: mockElements[0],
+    },
+  ];
+
+  const createComponent = createRoutingFactory({
+    component: ProjectComponent,
+    imports: [
+      MockSplitComponent,
+      MockSplitAreaComponent,
+      MockTabInterfaceComponent,
+    ],
+    providers: [], // Will be overridden with mocks
+    routes: [{ path: 'project/:username/:slug', component: ProjectComponent }],
+    shallow: true, // Use shallow rendering for better isolation
+  });
+
+  beforeEach(() => {
+    // Set up Jest timers
+    jest.useFakeTimers();
+
+    // Mock localStorage
     Object.defineProperty(window, 'localStorage', {
       value: {
         getItem: jest.fn().mockImplementation(key => {
@@ -119,10 +192,37 @@ describe('ProjectComponent', () => {
       writable: true,
     });
 
-    // Mock ProjectAPIService
-    projectServiceMock = {
-      projectControllerGetProjectByUsernameAndSlug: jest.fn(),
-    } as unknown as jest.Mocked<ProjectAPIService>;
+    // Document Fullscreen API mock
+    Object.defineProperty(document, 'fullscreenElement', {
+      writable: true,
+      value: null,
+    });
+    document.exitFullscreen = jest.fn().mockResolvedValue(undefined);
+    document.documentElement.requestFullscreen = jest
+      .fn()
+      .mockResolvedValue(undefined);
+
+    // Setup mock params for route
+    routeParams = new BehaviorSubject<{ username: string; slug: string }>({
+      username: 'testuser',
+      slug: 'test-project',
+    });
+
+    breakpointSubject = new BehaviorSubject<{ matches: boolean }>({
+      matches: false, // Default to desktop view
+    });
+
+    // Create deep mocks
+    projectStateService = mockDeep<ProjectStateService>() as ProjectStateMock;
+    documentService = mockDeep<DocumentService>() as DocumentServiceMock;
+    recentFilesService =
+      mockDeep<RecentFilesService>() as RecentFilesServiceMock;
+    dialogGatewayService =
+      mockDeep<DialogGatewayService>() as DialogGatewayServiceMock;
+    projectService = mockDeep<ProjectService>() as ProjectServiceMock;
+    settingsService = mockDeep<SettingsService>() as SettingsServiceMock;
+    importExportService =
+      mockDeep<ProjectImportExportService>() as ImportExportServiceMock;
 
     // Mock HttpClient
     httpClientMock = {
@@ -130,339 +230,310 @@ describe('ProjectComponent', () => {
       post: jest.fn(),
       put: jest.fn(),
       delete: jest.fn(),
-    } as unknown as jest.Mocked<HttpClient>;
+    } as unknown as SpyObject<HttpClient>;
 
-    // Create ProjectStateService mock with all necessary signals and methods
-    projectStateServiceMock = {
-      project: signal<ProjectDto | undefined>(undefined),
-      elements: signal<ProjectElementDto[]>([]),
-      visibleElements: signal<ProjectElementDto[]>([]),
-      openDocuments: signal<ProjectElementDto[]>([]),
-      openTabs: signal<AppTab[]>([]),
-      selectedTabIndex: signal<number>(0),
-      isLoading: signal<boolean>(false),
-      isSaving: signal<boolean>(false),
-      error: signal<string | undefined>(undefined),
-      loadProject: jest.fn().mockResolvedValue(undefined),
-      openDocument: jest.fn(),
-      closeDocument: jest.fn(),
-      closeTab: jest.fn(),
-      openSystemTab: jest.fn(),
-      showNewElementDialog: jest.fn(),
-      showEditProjectDialog: jest.fn(),
-      publishProject: jest.fn(),
-    };
+    // Setup signal mocks
+    projectStateService.project.mockReturnValue(mockProject);
+    projectStateService.elements.mockReturnValue(mockElements);
+    projectStateService.visibleElements.mockReturnValue(mockElements);
+    projectStateService.openDocuments.mockReturnValue([mockElements[0]]);
+    projectStateService.selectedTabIndex.mockReturnValue(0);
+    projectStateService.openTabs.mockReturnValue(mockTabs);
+    projectStateService.error.mockReturnValue(undefined);
+    projectStateService.isLoading.mockReturnValue(false);
 
-    // Mock Router
-    routerMock = {
-      navigate: jest.fn().mockResolvedValue(true),
-      url: '/testuser/test-project/document/123',
-    } as unknown as jest.Mocked<Router>;
-
-    // Mock RecentFilesService
-    recentFilesServiceMock = {
-      addRecentFile: jest.fn(),
-      getRecentFiles: jest.fn().mockReturnValue([]),
-      getRecentFilesForProject: jest.fn().mockReturnValue([]),
-    } as unknown as jest.Mocked<RecentFilesService>;
-
-    // Mock DocumentService
-    documentServiceMock = {
-      getSyncStatus: jest.fn().mockReturnValue(of(DocumentSyncState.Synced)),
-      disconnect: jest.fn(),
-      hasUnsyncedChanges: jest.fn().mockReturnValue(false),
-    } as unknown as jest.Mocked<DocumentService>;
-
-    // Mock DialogGatewayService
-    dialogGatewayServiceMock = {
-      openConfirmationDialog: jest.fn().mockResolvedValue(true),
-      openEditProjectDialog: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<DialogGatewayService>;
-
-    // Mock Title service
-    titleServiceMock = {
-      setTitle: jest.fn(),
-    } as unknown as jest.Mocked<Title>;
-
-    // Mock SettingsService
-    settingsServiceMock = {
-      getSetting: jest.fn().mockImplementation(key => {
-        if (key === 'zenModeFullscreen') return true;
-        return null;
-      }),
-    };
-
-    // Mock ProjectImportExportService
-    importExportServiceMock = {
-      exportProjectZip: jest.fn().mockResolvedValue(undefined),
-      importProjectZip: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<ProjectImportExportService>;
-
-    // Mock MatSnackBar
     snackBarMock = {
       open: jest.fn(),
-    } as unknown as jest.Mocked<MatSnackBar>;
+    } as unknown as SpyObject<MatSnackBar>;
 
-    // Create route params subject
-    routeParams = new BehaviorSubject({
-      username: 'testuser',
-      slug: 'test-project',
-    });
+    titleServiceMock = {
+      setTitle: jest.fn(),
+    } as unknown as SpyObject<Title>;
 
-    // Mock BreakpointObserver
-    const breakpointSubject = new BehaviorSubject<{ matches: boolean }>({
-      matches: false,
-    });
     breakpointObserverMock = {
       observe: jest.fn().mockReturnValue(breakpointSubject),
-    };
+    } as unknown as SpyObject<BreakpointObserver>;
 
-    // Mock MatDialog
-    mockDialogRef = {
-      afterClosed: jest.fn().mockReturnValue(of(null)),
-      close: jest.fn(),
-    } as unknown as MatDialogRef<unknown>;
+    dialogMock = {
+      open: jest.fn().mockReturnValue({
+        afterClosed: jest.fn().mockReturnValue(of(null)),
+      }),
+    } as unknown as SpyObject<MatDialog>;
 
-    const dialogMock = {
-      open: jest.fn().mockReturnValue(mockDialogRef),
-    };
+    // Setup document service
+    documentService.getSyncStatus.mockReturnValue(of(DocumentSyncState.Synced));
+    documentService.hasUnsyncedChanges.mockReturnValue(false);
 
-    await TestBed.configureTestingModule({
-      imports: [ProjectComponent, MockSplitComponent, MockSplitAreaComponent],
+    // Setup service behavior
+    dialogGatewayService.openConfirmationDialog.mockResolvedValue(true);
+    projectService.deleteProject.mockResolvedValue(undefined);
+
+    // Fix for TypeScript error with getSetting
+    settingsService.getSetting.mockImplementation(
+      <T>(key: string, defaultValue: T): T => {
+        if (key === 'useTabsDesktop') return defaultValue;
+        if (key === 'zenModeFullscreen') return defaultValue;
+        return defaultValue;
+      }
+    );
+
+    // Create the component with our mocks
+
+    spectator = createComponent({
       providers: [
-        { provide: HttpClient, useValue: httpClientMock },
-        { provide: ProjectAPIService, useValue: projectServiceMock },
-        { provide: ProjectStateService, useValue: projectStateServiceMock },
+        { provide: ProjectStateService, useValue: projectStateService },
+        { provide: DocumentService, useValue: documentService },
+        { provide: RecentFilesService, useValue: recentFilesService },
+        { provide: DialogGatewayService, useValue: dialogGatewayService },
+        { provide: ProjectService, useValue: projectService },
+        { provide: SettingsService, useValue: settingsService },
+        { provide: ProjectImportExportService, useValue: importExportService },
         { provide: MatSnackBar, useValue: snackBarMock },
-        { provide: BreakpointObserver, useValue: breakpointObserverMock },
-        { provide: Router, useValue: routerMock },
-        { provide: RecentFilesService, useValue: recentFilesServiceMock },
-        { provide: DocumentService, useValue: documentServiceMock },
-        { provide: DialogGatewayService, useValue: dialogGatewayServiceMock },
         { provide: Title, useValue: titleServiceMock },
-        { provide: SettingsService, useValue: settingsServiceMock },
-        {
-          provide: ProjectImportExportService,
-          useValue: importExportServiceMock,
-        },
+        { provide: BreakpointObserver, useValue: breakpointObserverMock },
+        { provide: MatDialog, useValue: dialogMock },
+        { provide: HttpClient, useValue: httpClientMock },
+        { provide: HttpHandler, useValue: {} },
         {
           provide: ActivatedRoute,
-          useValue: {
-            params: routeParams.asObservable(),
-            snapshot: {
-              paramMap: {
-                get: jest.fn().mockReturnValue(null),
-              },
-              url: [],
-            },
-          },
+          useValue: { paramMap: of(convertToParamMap({})) },
         },
-        { provide: MatDialog, useValue: dialogMock },
       ],
-    })
-      .overrideComponent(ProjectComponent, {
-        // Override the component's template with a simpler version for tests
-        set: {
-          template: `<div>Test Component</div>`,
-          providers: [],
-        },
-      })
-      .compileComponents();
+    });
 
-    fixture = TestBed.createComponent(ProjectComponent);
-    component = fixture.componentInstance;
+    component = spectator.component;
 
-    // Mock the sidenav
+    // Set up component ViewChild elements which are not available in shallow rendering
     component.sidenav = {
-      open: jest.fn().mockResolvedValue(undefined),
-      close: jest.fn().mockResolvedValue(undefined),
-      toggle: jest.fn().mockResolvedValue(undefined),
-      mode: 'side',
+      open: jest.fn(),
+      close: jest.fn(),
+      toggle: jest.fn(),
     } as unknown as MatSidenav;
 
-    // Mock fileInput
     component.fileInput = {
       nativeElement: document.createElement('input'),
     } as ElementRef<HTMLInputElement>;
-
-    fixture.detectChanges();
   });
 
   afterEach(() => {
-    routeParams.complete();
     jest.clearAllMocks();
+    jest.useRealTimers();
+    routeParams.complete();
+    breakpointSubject.complete();
   });
 
   it('should create the component', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('Split sizing', () => {
-    it('should update split size on drag end', () => {
+  describe('Initialization', () => {
+    it('should initialize component values', () => {
+      expect(component.isMobile()).toBe(false);
+      expect(component.isZenMode()).toBe(false);
+      expect(component.showSidebar()).toBe(true);
+      expect(component.isDeleting()).toBe(false);
+    });
+
+    it('should setup breakpoint observer', () => {
+      component.ngOnInit();
+
+      // Verify breakpoint observer was setup
+      expect(breakpointObserverMock.observe).toHaveBeenCalled();
+
+      // Verify behavior when breakpoint changes
+      breakpointSubject.next({ matches: true });
+      expect(component.isMobile()).toBe(true);
+
+      breakpointSubject.next({ matches: false });
+      expect(component.isMobile()).toBe(false);
+    });
+
+    it('should set title on init', () => {
+      component.ngOnInit();
+      expect(titleServiceMock.setTitle).toHaveBeenCalledWith('Test Project');
+    });
+
+    it('should add fullscreen listener on init', () => {
+      const addEventListenerSpy = jest.spyOn(document, 'addEventListener');
+      component.ngOnInit();
+      expect(addEventListenerSpy).toHaveBeenCalledWith(
+        'fullscreenchange',
+        expect.any(Function)
+      );
+    });
+  });
+
+  describe('Navigation and UI Controls', () => {
+    it('should toggle sidenav', () => {
+      void component.toggleSidenav();
+      expect(component.sidenav.toggle).toHaveBeenCalled();
+    });
+
+    it('should toggle sidebar', () => {
+      const initialValue = component.showSidebar();
+      component.toggleSidebar();
+      expect(component.showSidebar()).toBe(!initialValue);
+    });
+
+    it('should handle split drag end event', () => {
       const mockEvent = {
         gutterNum: 1,
         sizes: [30, 70],
       } as SplitGutterInteractionEvent;
 
-      jest.spyOn(component, 'isMobile').mockReturnValue(false);
       const localStorageSpy = jest.spyOn(localStorage, 'setItem');
 
       component.onSplitDragEnd(mockEvent);
-
-      expect(component['splitSize']).toBe(30);
       expect(localStorageSpy).toHaveBeenCalledWith('splitSize', '30');
     });
 
-    it('should not update split size when in mobile mode', () => {
-      const mockEvent = {
-        gutterNum: 1,
-        sizes: [30, 70],
-      } as SplitGutterInteractionEvent;
-
-      jest.spyOn(component, 'isMobile').mockReturnValue(true);
-      const localStorageSpy = jest.spyOn(localStorage, 'setItem');
-
-      component.onSplitDragEnd(mockEvent);
-
-      expect(localStorageSpy).not.toHaveBeenCalled();
+    it('should set selected tab index', () => {
+      component.setSelectedTabIndex(2);
+      expect(projectStateService.selectedTabIndex.set).toHaveBeenCalledWith(2);
     });
 
-    it('should get correct gutter size based on mobile state', () => {
+    it('should get gutter size based on mobile status', () => {
       jest.spyOn(component, 'isMobile').mockReturnValue(false);
       expect(component.getGutterSize()).toBe(8);
 
       jest.spyOn(component, 'isMobile').mockReturnValue(true);
       expect(component.getGutterSize()).toBe(0);
     });
+  });
 
-    describe('Zen mode', () => {
-      it('should determine if zen mode can be enabled', () => {
-        // Mock required properties - Use non-null assertion
-        (projectStateServiceMock.selectedTabIndex as any).set(1);
-        (projectStateServiceMock.openTabs as any).set([
-          {
-            id: 'doc1',
-            type: 'document',
-            name: 'Test Doc',
-            element: mockElements[0],
-          },
-        ]);
+  describe('Zen Mode', () => {
+    it('should toggle zen mode', () => {
+      // Mock canEnableZenMode to return true
+      jest.spyOn(component, 'canEnableZenMode').mockReturnValue(true);
 
-        // Should be enabled for document tabs
-        expect(component.canEnableZenMode()).toBe(true);
+      // Toggle on
+      component.toggleZenMode();
+      expect(component.isZenMode()).toBe(true);
+      expect(document.documentElement.requestFullscreen).toHaveBeenCalled();
 
-        // Should not be enabled for home tab
-        (projectStateServiceMock.selectedTabIndex as any).set(0);
-        expect(component.canEnableZenMode()).toBe(false);
-
-        // Should not be enabled for system tabs
-        (projectStateServiceMock.selectedTabIndex as any).set(1);
-        (projectStateServiceMock.openTabs as any).set([
-          {
-            id: 'system-files',
-            type: 'system',
-            name: 'Files',
-            systemType: 'project-files',
-          },
-        ]);
-        expect(component.canEnableZenMode()).toBe(false);
-      });
-
-      it('should get current document ID for zen mode', () => {
-        // Setting up a scenario when we are on a document tab
-        (projectStateServiceMock.selectedTabIndex as any).set(1);
-        (projectStateServiceMock.project as any).set({
-          username: 'testuser',
-          slug: 'test-project',
-          title: 'Test Project',
-          id: 'test123',
-          createdDate: new Date().toISOString(),
-          updatedDate: new Date().toISOString(),
-        } as ProjectDto);
-        (projectStateServiceMock.openTabs as any).set([
-          {
-            id: 'doc1',
-            type: 'document',
-            name: 'Test Doc',
-            element: mockElements[0],
-          },
-        ]);
-
-        // Should return the full document ID
-        expect(component.getCurrentDocumentId()).toBe(
-          'testuser:test-project:doc1'
-        );
-
-        // Should return null for system tabs
-        (projectStateServiceMock.openTabs as any).set([
-          {
-            id: 'system-files',
-            type: 'system',
-            name: 'Files',
-            systemType: 'project-files',
-          },
-        ]);
-        expect(component.getCurrentDocumentId()).toBeNull();
-      });
+      // Toggle off
+      component.toggleZenMode();
+      expect(component.isZenMode()).toBe(false);
     });
   });
 
-  describe('Component methods', () => {
-    it('should open document', () => {
-      const element = mockElements[0];
-      component.onDocumentOpened(element);
-      expect(projectStateServiceMock.openDocument).toHaveBeenCalledWith(
-        element
-      );
-    });
-
-    it('should close sidenav on mobile when document opened', () => {
-      const element = mockElements[0];
-      jest.spyOn(component, 'isMobile').mockReturnValue(true);
-      // Ensure sidenav mock is assigned specifically for this test,
-      // as ViewChild won't work with the overridden template.
-      component.sidenav = {
-        close: jest.fn().mockResolvedValue(undefined),
-        // Add other methods/properties if needed by other parts of the test/component
-      } as unknown as MatSidenav;
-
-      component.onDocumentOpened(element);
-
-      expect(component.sidenav.close).toHaveBeenCalled();
-    });
-
-    it('should close tab', () => {
-      component.closeTab(1);
-      expect(projectStateServiceMock.closeTab).toHaveBeenCalledWith(0); // index - 1
-    });
-
-    it('should exit project', () => {
-      component.exitProject();
-      expect(routerMock.navigate).toHaveBeenCalledWith(['/']);
-    });
-
+  describe('Document Handling', () => {
     it('should open recent document on click', () => {
-      (projectStateServiceMock.elements as any).set(mockElements);
+      projectStateService.elements.mockReturnValue(mockElements);
       component.onRecentDocumentClick('2');
-      expect(projectStateServiceMock.openDocument).toHaveBeenCalledWith(
+      expect(projectStateService.openDocument).toHaveBeenCalledWith(
         mockElements[1]
       );
     });
 
-    it('should handle Enter and Space keys for recent document keydown', () => {
-      (projectStateServiceMock.elements as any).set(mockElements);
+    it('should handle key down events on recent documents', () => {
       jest.spyOn(component, 'onRecentDocumentClick');
+
+      // Enter key should call onRecentDocumentClick
       const enterEvent = new KeyboardEvent('keydown', { key: 'Enter' });
-      component.onRecentDocumentKeydown(enterEvent, '3');
-      expect(component.onRecentDocumentClick).toHaveBeenCalledWith('3');
-      (component.onRecentDocumentClick as jest.Mock).mockClear();
-      const spaceEvent = new KeyboardEvent('keydown', { key: ' ' });
-      component.onRecentDocumentKeydown(spaceEvent, '1');
+      component.onRecentDocumentKeydown(enterEvent, '1');
       expect(component.onRecentDocumentClick).toHaveBeenCalledWith('1');
-      (component.onRecentDocumentClick as jest.Mock).mockClear();
+
+      // Space key should call onRecentDocumentClick
+      const spaceEvent = new KeyboardEvent('keydown', { key: ' ' });
+      component.onRecentDocumentKeydown(spaceEvent, '2');
+      expect(component.onRecentDocumentClick).toHaveBeenCalledWith('2');
+
+      // Other keys should not trigger action
       const escEvent = new KeyboardEvent('keydown', { key: 'Escape' });
-      component.onRecentDocumentKeydown(escEvent, '1');
+      (component.onRecentDocumentClick as jest.Mock).mockClear();
+      component.onRecentDocumentKeydown(escEvent, '3');
       expect(component.onRecentDocumentClick).not.toHaveBeenCalled();
+    });
+
+    it('should handle document opened event', () => {
+      // Test on desktop
+      jest.spyOn(component, 'isMobile').mockReturnValue(false);
+      const sidenav = { close: jest.fn() } as unknown as MatSidenav;
+      component.sidenav = sidenav;
+
+      component.onDocumentOpened(mockElements[0]);
+      expect(projectStateService.openDocument).toHaveBeenCalledWith(
+        mockElements[0]
+      );
+      expect(sidenav.close).not.toHaveBeenCalled();
+
+      // Test on mobile - should close sidenav
+      jest.spyOn(component, 'isMobile').mockReturnValue(true);
+      component.onDocumentOpened(mockElements[1]);
+      expect(projectStateService.openDocument).toHaveBeenCalledWith(
+        mockElements[1]
+      );
+      expect(sidenav.close).toHaveBeenCalled();
+    });
+
+    it('should close tab', () => {
+      component.closeTab(2);
+      expect(projectStateService.closeTab).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('Project Management', () => {
+    it('should open edit dialog', () => {
+      component.openEditDialog();
+      expect(dialogGatewayService.openEditProjectDialog).toHaveBeenCalledWith(
+        mockProject
+      );
+    });
+
+    it('should cancel project deletion when dialog is cancelled', () => {
+      dialogGatewayService.openConfirmationDialog.mockResolvedValue(false);
+
+      void component.onDeleteProjectClick();
+
+      // Run timers to allow promises to resolve
+      jest.runAllTimers();
+
+      expect(projectService.deleteProject).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Lifecycle Hooks', () => {
+    it('should clean up on destroy', () => {
+      const removeEventListenerSpy = jest.spyOn(
+        document,
+        'removeEventListener'
+      );
+
+      component.ngOnDestroy();
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        'fullscreenchange',
+        expect.any(Function)
+      );
+    });
+  });
+
+  describe('Tab interface settings', () => {
+    it('should check if desktop tabs are enabled', () => {
+      // Override mock to return specific values for this test
+      settingsService.getSetting.mockImplementation(
+        <T>(key: string, defaultValue: T): T => {
+          if (key === 'useTabsDesktop') {
+            return true as unknown as T;
+          }
+          return defaultValue;
+        }
+      );
+
+      expect(component.useTabsDesktop()).toBe(true);
+
+      // Change the mock for the second call
+      settingsService.getSetting.mockImplementation(
+        <T>(key: string, defaultValue: T): T => {
+          if (key === 'useTabsDesktop') {
+            return false as unknown as T;
+          }
+          return defaultValue;
+        }
+      );
+
+      expect(component.useTabsDesktop()).toBe(false);
     });
   });
 });

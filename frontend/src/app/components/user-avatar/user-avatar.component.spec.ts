@@ -1,27 +1,23 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 
 import { UserAvatarComponent } from './user-avatar.component';
 
 describe('UserAvatarComponent', () => {
-  let component: UserAvatarComponent;
-  let fixture: ComponentFixture<UserAvatarComponent>;
+  let spectator: Spectator<UserAvatarComponent>;
 
-  beforeAll(async () => {
-    await TestBed.configureTestingModule({
-      imports: [UserAvatarComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
-    }).compileComponents();
+  const createComponent = createComponentFactory({
+    component: UserAvatarComponent,
+    imports: [],
+    providers: [provideHttpClient(), provideHttpClientTesting()],
   });
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(UserAvatarComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
+    spectator = createComponent();
   });
 
   it('should create', () => {
-    expect(component).toBeTruthy();
+    expect(spectator.component).toBeTruthy();
   });
 });

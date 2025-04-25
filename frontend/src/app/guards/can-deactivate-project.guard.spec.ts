@@ -1,21 +1,24 @@
-import { TestBed } from '@angular/core/testing';
+import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
 
 import { ProjectComponent } from '../pages/project/project.component';
 import { CanDeactivateProjectGuard } from './can-deactivate-project.guard';
 
 describe('CanDeactivateProjectGuard', () => {
+  let spectator: SpectatorService<CanDeactivateProjectGuard>;
   let guard: CanDeactivateProjectGuard;
   let mockProjectComponent: jest.Mocked<ProjectComponent>;
+
+  const createService = createServiceFactory({
+    service: CanDeactivateProjectGuard,
+  });
 
   beforeEach(() => {
     mockProjectComponent = {
       canDeactivate: jest.fn(),
     } as unknown as jest.Mocked<ProjectComponent>;
 
-    TestBed.configureTestingModule({
-      providers: [CanDeactivateProjectGuard],
-    });
-    guard = TestBed.inject(CanDeactivateProjectGuard);
+    spectator = createService();
+    guard = spectator.service;
   });
 
   it('should be created', () => {

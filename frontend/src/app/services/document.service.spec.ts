@@ -1,5 +1,5 @@
-import { TestBed } from '@angular/core/testing';
 import { DocumentAPIService } from '@inkweld/index';
+import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
 import { Editor } from 'ngx-editor';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
@@ -47,7 +47,7 @@ jest.mock('ngx-editor', () => ({
 }));
 
 describe('DocumentService', () => {
-  let service: DocumentService;
+  let spectator: SpectatorService<DocumentService>;
   let mockProjectStateService: jest.Mocked<ProjectStateService>;
   let mockDocumentApiService: jest.Mocked<DocumentAPIService>;
   let mockLintApiService: jest.Mocked<LintApiService>;
@@ -57,6 +57,10 @@ describe('DocumentService', () => {
   let mockEditor: jest.Mocked<Editor>;
 
   const testDocumentId = 'test-doc';
+
+  const createService = createServiceFactory({
+    service: DocumentService,
+  });
 
   beforeEach(() => {
     // Reset mocks before each test
@@ -108,18 +112,14 @@ describe('DocumentService', () => {
       }),
     } as unknown as jest.Mocked<LintApiService>;
 
-    // Configure TestBed
-    TestBed.configureTestingModule({
+    // Configure TestBed and inject service
+    spectator = createService({
       providers: [
-        DocumentService,
         { provide: ProjectStateService, useValue: mockProjectStateService },
         { provide: DocumentAPIService, useValue: mockDocumentApiService },
         { provide: LintApiService, useValue: mockLintApiService },
       ],
     });
-
-    // Inject service
-    service = TestBed.inject(DocumentService);
 
     // Mock window location for WebSocket URL
     Object.defineProperty(window, 'location', {
@@ -133,9 +133,9 @@ describe('DocumentService', () => {
 
   describe('Document Connection Management', () => {
     it('should create new document connection', async () => {
-      await service.setupCollaboration(mockEditor, testDocumentId);
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
 
-      expect(service.isConnected(testDocumentId)).toBe(true);
+      expect(spectator.service.isConnected(testDocumentId)).toBe(true);
       expect(mockYDoc.getXmlFragment).toHaveBeenCalledWith('prosemirror');
       expect(mockIndexedDbProvider.whenSynced).toBeTruthy();
       expect(mockWebSocketProvider.on).toHaveBeenCalledWith(
@@ -146,29 +146,29 @@ describe('DocumentService', () => {
 
     it('should reuse existing document connection', async () => {
       // First connection
-      await service.setupCollaboration(mockEditor, testDocumentId);
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
       // Second connection attempt
-      await service.setupCollaboration(mockEditor, testDocumentId);
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
 
       expect(mockYDoc.getXmlFragment).toHaveBeenCalledTimes(1);
       expect(mockIndexedDbProvider.whenSynced).toBeTruthy();
     });
 
     it('should disconnect specific document', async () => {
-      await service.setupCollaboration(mockEditor, testDocumentId);
-      service.disconnect(testDocumentId);
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
+      spectator.service.disconnect(testDocumentId);
 
-      expect(service.isConnected(testDocumentId)).toBe(false);
+      expect(spectator.service.isConnected(testDocumentId)).toBe(false);
       expect(mockWebSocketProvider.destroy).toHaveBeenCalled();
       expect(mockIndexedDbProvider.destroy).toHaveBeenCalled();
       expect(mockYDoc.destroy).toHaveBeenCalled();
     });
 
     it('should disconnect all documents', async () => {
-      await service.setupCollaboration(mockEditor, testDocumentId);
-      service.disconnect();
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
+      spectator.service.disconnect();
 
-      expect(service.isConnected(testDocumentId)).toBe(false);
+      expect(spectator.service.isConnected(testDocumentId)).toBe(false);
       expect(mockWebSocketProvider.destroy).toHaveBeenCalled();
       expect(mockIndexedDbProvider.destroy).toHaveBeenCalled();
       expect(mockYDoc.destroy).toHaveBeenCalled();
@@ -196,9 +196,9 @@ describe('DocumentService', () => {
         return () => {};
       });
 
-      await service.setupCollaboration(mockEditor, testDocumentId);
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
 
-      const syncStatus$ = service.getSyncStatus(testDocumentId);
+      const syncStatus$ = spectator.service.getSyncStatus(testDocumentId);
       let currentStatus: DocumentSyncState | undefined;
       syncStatus$.subscribe(status => (currentStatus = status));
 
@@ -229,9 +229,9 @@ describe('DocumentService', () => {
         return () => {};
       });
 
-      await service.setupCollaboration(mockEditor, testDocumentId);
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
 
-      const syncStatus$ = service.getSyncStatus(testDocumentId);
+      const syncStatus$ = spectator.service.getSyncStatus(testDocumentId);
       let currentStatus: DocumentSyncState | undefined;
       syncStatus$.subscribe(status => (currentStatus = status));
 
@@ -243,7 +243,7 @@ describe('DocumentService', () => {
     });
 
     it('should initialize with Offline status', () => {
-      const syncStatus$ = service.getSyncStatus(testDocumentId);
+      const syncStatus$ = spectator.service.getSyncStatus(testDocumentId);
       let currentStatus: DocumentSyncState | undefined;
       syncStatus$.subscribe(status => (currentStatus = status));
 
@@ -253,25 +253,25 @@ describe('DocumentService', () => {
 
   describe('Document Import/Export', () => {
     beforeEach(async () => {
-      await service.setupCollaboration(mockEditor, testDocumentId);
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
     });
 
     it('should export document content', done => {
-      service.exportDocument(testDocumentId).subscribe(content => {
+      spectator.service.exportDocument(testDocumentId).subscribe(content => {
         expect(content).toEqual({ content: 'mocked content' });
         done();
       });
     });
 
     it('should throw error when exporting non-existent document', () => {
-      expect(() => service.exportDocument('non-existent')).toThrow(
+      expect(() => spectator.service.exportDocument('non-existent')).toThrow(
         'No connection found for document non-existent'
       );
     });
 
     it('should import document content', () => {
       const mockContent = '<p>Test content</p>';
-      service.importDocument(testDocumentId, mockContent);
+      spectator.service.importDocument(testDocumentId, mockContent);
 
       // Verify Y.transact was called to update the document
       expect(Y.transact).toHaveBeenCalled();
@@ -279,9 +279,9 @@ describe('DocumentService', () => {
 
     it('should throw error when importing to non-existent document', () => {
       const mockContent = '<p>Test content</p>';
-      expect(() => service.importDocument('non-existent', mockContent)).toThrow(
-        'No connection found for document non-existent'
-      );
+      expect(() =>
+        spectator.service.importDocument('non-existent', mockContent)
+      ).toThrow('No connection found for document non-existent');
     });
 
     it('should import XML string into document fragment', () => {
@@ -291,7 +291,7 @@ describe('DocumentService', () => {
       const xmlContent = '<p>Test paragraph</p>';
 
       // Call the method
-      service.importXmlString(testDoc, testFragment, xmlContent);
+      spectator.service.importXmlString(testDoc, testFragment, xmlContent);
 
       // Verify Y.transact was called to update the document
       expect(Y.transact).toHaveBeenCalledWith(testDoc, expect.any(Function));
@@ -301,7 +301,7 @@ describe('DocumentService', () => {
 
   describe('Collaboration Setup', () => {
     it('should add ProseMirror plugins', async () => {
-      await service.setupCollaboration(mockEditor, testDocumentId);
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
 
       expect(mockEditor.view.state.reconfigure).toHaveBeenCalledWith({
         plugins: expect.arrayContaining([
@@ -316,12 +316,12 @@ describe('DocumentService', () => {
       mockEditor.view = null as unknown as typeof mockEditor.view;
 
       await expect(
-        service.setupCollaboration(mockEditor, testDocumentId)
+        spectator.service.setupCollaboration(mockEditor, testDocumentId)
       ).rejects.toThrow('Editor Yjs not properly initialized');
     });
 
     it('should throw error when connection is not properly initialized', async () => {
-      await service.setupCollaboration(mockEditor, testDocumentId);
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
 
       // Corrupt the connection by removing the type
       const connection = {
@@ -332,17 +332,17 @@ describe('DocumentService', () => {
       };
 
       // @ts-expect-error - Accessing private property for testing
-      service['connections'].set(testDocumentId, connection);
+      spectator.service['connections'].set(testDocumentId, connection);
 
       await expect(
-        service.setupCollaboration(mockEditor, testDocumentId)
+        spectator.service.setupCollaboration(mockEditor, testDocumentId)
       ).rejects.toThrow('Editor Yjs not properly initialized');
     });
   });
 
   describe('Network Handling', () => {
     it('should attempt reconnection when online', async () => {
-      await service.setupCollaboration(mockEditor, testDocumentId);
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
 
       // Simulate network restoration
       window.dispatchEvent(
@@ -363,7 +363,7 @@ describe('DocumentService', () => {
         return () => {};
       });
 
-      await service.setupCollaboration(mockEditor, testDocumentId);
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
 
       expect(statusHandler).toHaveBeenCalled();
       expect(errorHandler).toHaveBeenCalled();
@@ -372,7 +372,7 @@ describe('DocumentService', () => {
 
   describe('Unsynced Changes Tracking', () => {
     it('should track unsynced changes when document is modified locally', async () => {
-      await service.setupCollaboration(mockEditor, testDocumentId);
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
 
       // Get the update handler that was registered
       const updateHandler = mockYDoc.on.mock.calls.find(
@@ -386,11 +386,11 @@ describe('DocumentService', () => {
       // Simulate a local update (origin !== provider)
       updateHandler(new Uint8Array(), 'local', mockYDoc, new Set());
 
-      expect(service.hasUnsyncedChanges(testDocumentId)).toBe(true);
+      expect(spectator.service.hasUnsyncedChanges(testDocumentId)).toBe(true);
     });
 
     it('should not track changes from the provider as unsynced', async () => {
-      await service.setupCollaboration(mockEditor, testDocumentId);
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
 
       // Get the update handler
       const updateHandler = mockYDoc.on.mock.calls.find(
@@ -409,11 +409,11 @@ describe('DocumentService', () => {
         new Set()
       );
 
-      expect(service.hasUnsyncedChanges(testDocumentId)).toBe(false);
+      expect(spectator.service.hasUnsyncedChanges(testDocumentId)).toBe(false);
     });
 
     it('should clear unsynced changes when reconnecting', async () => {
-      await service.setupCollaboration(mockEditor, testDocumentId);
+      await spectator.service.setupCollaboration(mockEditor, testDocumentId);
 
       // First simulate a local change
       const updateHandler = mockYDoc.on.mock.calls.find(
@@ -424,7 +424,7 @@ describe('DocumentService', () => {
         return;
       }
       updateHandler(new Uint8Array(), 'local', mockYDoc, new Set());
-      expect(service.hasUnsyncedChanges(testDocumentId)).toBe(true);
+      expect(spectator.service.hasUnsyncedChanges(testDocumentId)).toBe(true);
 
       // Now simulate reconnection
       const statusHandler = mockWebSocketProvider.on.mock.calls.find(
@@ -447,11 +447,11 @@ describe('DocumentService', () => {
       Object.assign(mockEvent, { valueOf: () => true });
       statusHandler(mockEvent, mockWebSocketProvider);
 
-      expect(service.hasUnsyncedChanges(testDocumentId)).toBe(false);
+      expect(spectator.service.hasUnsyncedChanges(testDocumentId)).toBe(false);
     });
 
     it('should return false for hasUnsyncedChanges on non-existent document', () => {
-      expect(service.hasUnsyncedChanges('non-existent')).toBe(false);
+      expect(spectator.service.hasUnsyncedChanges('non-existent')).toBe(false);
     });
   });
 });

@@ -1,51 +1,48 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ProjectDto } from '@inkweld/index';
+import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 
 import { ProjectCardComponent } from './project-card.component';
 
 describe('ProjectCardComponent', () => {
-  let component: ProjectCardComponent;
-  let fixture: ComponentFixture<ProjectCardComponent>;
+  let spectator: Spectator<ProjectCardComponent>;
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [ProjectCardComponent],
-      providers: [
-        provideRouter([]),
-        provideHttpClient(),
-        provideHttpClientTesting(),
-      ],
-    }).compileComponents();
+  const createComponent = createComponentFactory({
+    component: ProjectCardComponent,
+    providers: [
+      provideRouter([]),
+      provideHttpClient(),
+      provideHttpClientTesting(),
+    ],
+  });
 
-    fixture = TestBed.createComponent(ProjectCardComponent);
-    component = fixture.componentInstance;
-
-    component.project = {
-      id: '1',
-      slug: 'test-project',
-      title: 'Test Project',
-      description: undefined,
-      createdDate: new Date().toISOString(),
-      updatedDate: new Date().toISOString(),
-      user: { name: 'test', username: 'testuser' },
-    } as unknown as ProjectDto;
-
-    fixture.detectChanges();
+  beforeEach(() => {
+    spectator = createComponent({
+      props: {
+        project: {
+          id: '1',
+          slug: 'test-project',
+          title: 'Test Project',
+          description: undefined,
+          createdDate: new Date().toISOString(),
+          updatedDate: new Date().toISOString(),
+          user: { name: 'test', username: 'testuser' },
+        } as unknown as ProjectDto,
+      },
+    });
   });
 
   it('should create', () => {
-    expect(component).toBeTruthy();
+    expect(spectator.component).toBeTruthy();
   });
+
   it('should display project title', () => {
-    const compiled = fixture.nativeElement as HTMLElement;
     // The title can be either in .centered-title or as an alt attribute on the cover image
-    const titleElement = compiled.querySelector('.centered-title');
-    const coverImageAlt = compiled
-      .querySelector('.cover-image')
-      ?.getAttribute('alt');
+    const titleElement = spectator.query('.centered-title');
+    const coverImage = spectator.query('.cover-image');
+    const coverImageAlt = coverImage?.getAttribute('alt');
 
     if (titleElement) {
       expect(titleElement.textContent).toContain('Test Project');
