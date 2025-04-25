@@ -337,17 +337,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  public onExportClick(): void {
-    const project = this.projectState.project();
-    if (project) {
-      void this.importExportService.exportProjectZip();
-    }
-  }
-
-  public onImportClick(): void {
-    this.fileInput?.nativeElement.click();
-  }
-
   public onPublishClick(): void {
     const project = this.projectState.project();
     console.log('Publishing project:', project);
@@ -393,8 +382,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   openEditDialog() {
-    const project = this.projectState.project();
-    void this.dialogGateway.openEditProjectDialog(project!);
+    void this.dialogGateway.openEditProjectDialog(this.projectState.project()!);
   }
 
   toggleZenMode(): void {
@@ -437,10 +425,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     return (
       currentTab && currentTab.type === 'document' && currentTab.element != null
     );
-  }
-
-  getZenModeIcon(): string {
-    return 'self_improvement';
   }
 
   getCurrentDocumentId(): string | null {

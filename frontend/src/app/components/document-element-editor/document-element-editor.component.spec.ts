@@ -1,9 +1,8 @@
-import { CommonModule } from '@angular/common';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
+import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { NgxEditorModule } from 'ngx-editor';
@@ -31,50 +30,45 @@ class MockProjectStateService {
 }
 
 describe('DocumentElementEditorComponent', () => {
+  let spectator: Spectator<DocumentElementEditorComponent>;
   let component: DocumentElementEditorComponent;
-  let fixture: ComponentFixture<DocumentElementEditorComponent>;
   let documentService: MockDocumentService;
-  let projectStateService: MockProjectStateService;
   let mockStyle: { [key: string]: string };
 
-  beforeEach(async () => {
-    documentService = new MockDocumentService();
-    projectStateService = new MockProjectStateService();
+  const createComponent = createComponentFactory({
+    component: DocumentElementEditorComponent,
+    imports: [
+      MatButtonModule,
+      MatIconModule,
+      NgxEditorModule,
+      MatSelectModule,
+      MatOptionModule,
+    ],
+    providers: [
+      { provide: DocumentService, useValue: new MockDocumentService() },
+      { provide: ProjectStateService, useValue: new MockProjectStateService() },
+    ],
+  });
+
+  beforeEach(() => {
     mockStyle = {};
 
-    // Mock document.documentElement
-    Object.defineProperty(document, 'documentElement', {
-      value: {
-        style: {
-          setProperty: (prop: string, value: string) => {
-            mockStyle[prop] = value;
-          },
-          removeProperty: (prop: string) => {
-            delete mockStyle[prop];
-          },
-        },
-      },
-      configurable: true,
-    });
+    jest
+      .spyOn(document.documentElement.style, 'setProperty')
+      .mockImplementation((prop, value) => {
+        mockStyle[prop] = value!;
+      });
 
-    await TestBed.configureTestingModule({
-      imports: [
-        CommonModule,
-        MatButtonModule,
-        MatIconModule,
-        NgxEditorModule,
-        MatSelectModule,
-        MatOptionModule,
-      ],
-      providers: [
-        { provide: DocumentService, useValue: documentService },
-        { provide: ProjectStateService, useValue: projectStateService },
-      ],
-    }).compileComponents();
+    jest
+      .spyOn(document.documentElement.style, 'removeProperty')
+      .mockImplementation(prop => {
+        delete mockStyle[prop];
+        return '';
+      });
 
-    fixture = TestBed.createComponent(DocumentElementEditorComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
+    spectator = createComponent();
+    component = spectator.component;
+    documentService = spectator.inject(DocumentService) as MockDocumentService;
   });
 
   it('should create', () => {
@@ -84,11 +78,9 @@ describe('DocumentElementEditorComponent', () => {
   it('should setup collaboration after view init', () => {
     jest.useFakeTimers();
     component.documentId = 'test:test:abc123';
-    component.ngAfterViewInit();
     jest.runAllTimers();
-    expect(documentService.setupCollaboration).toHaveBeenCalled();
-    jest.useRealTimers();
     expect(documentService.setupCollaboration).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
   });
 
   it('should disconnect on destroy', () => {
@@ -105,11 +97,9 @@ describe('DocumentElementEditorComponent', () => {
   });
 
   it('should render sync status in template', () => {
-    fixture.detectChanges();
-    const spans = fixture.nativeElement.querySelectorAll(
-      '.editor-status-bar > span'
-    );
+    spectator.detectChanges();
+    const spans = spectator.queryAll('.editor-status-bar > span');
     expect(spans.length).toBe(2);
-    expect(spans[1].textContent.trim()).toBe(component.syncState());
+    expect(spans[1].textContent?.trim()).toBe(component.syncState());
   });
 });

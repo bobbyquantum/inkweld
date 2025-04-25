@@ -1,10 +1,14 @@
-import { TestBed } from '@angular/core/testing';
+import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
 
 import { SettingsService } from './settings.service';
 
 describe('SettingsService', () => {
-  let service: SettingsService;
+  let spectator: SpectatorService<SettingsService>;
   let localStorageMock: { [key: string]: string };
+
+  const createService = createServiceFactory({
+    service: SettingsService,
+  });
 
   beforeEach(() => {
     localStorageMock = {};
@@ -26,53 +30,54 @@ describe('SettingsService', () => {
       writable: true,
     });
 
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(SettingsService);
+    spectator = createService();
   });
 
   it('should be created', () => {
-    expect(service).toBeTruthy();
+    expect(spectator.service).toBeTruthy();
   });
 
   describe('getSetting', () => {
     it('should return default value when setting does not exist', () => {
-      const result = service.getSetting('nonexistent', 'default');
+      const result = spectator.service.getSetting('nonexistent', 'default');
       expect(result).toBe('default');
     });
 
     it('should return stored value when setting exists', () => {
-      service.setSetting('test', 'value');
-      const result = service.getSetting('test', 'default');
+      spectator.service.setSetting('test', 'value');
+      const result = spectator.service.getSetting('test', 'default');
       expect(result).toBe('value');
     });
 
     it('should return default value when stored value is null', () => {
-      service.setSetting('test', null);
-      const result = service.getSetting('test', 'default');
+      spectator.service.setSetting('test', null);
+      const result = spectator.service.getSetting('test', 'default');
       expect(result).toBe('default');
     });
 
     it('should handle different types of values', () => {
-      service.setSetting('number', 42);
-      service.setSetting('boolean', true);
-      service.setSetting('object', { key: 'value' });
+      spectator.service.setSetting('number', 42);
+      spectator.service.setSetting('boolean', true);
+      spectator.service.setSetting('object', { key: 'value' });
 
-      expect(service.getSetting('number', 0)).toBe(42);
-      expect(service.getSetting('boolean', false)).toBe(true);
-      expect(service.getSetting('object', {})).toEqual({ key: 'value' });
+      expect(spectator.service.getSetting('number', 0)).toBe(42);
+      expect(spectator.service.getSetting('boolean', false)).toBe(true);
+      expect(spectator.service.getSetting('object', {})).toEqual({
+        key: 'value',
+      });
     });
   });
 
   describe('setSetting', () => {
     it('should store value in localStorage', () => {
-      service.setSetting('test', 'value');
+      spectator.service.setSetting('test', 'value');
       const storedSettings = JSON.parse(localStorageMock['userSettings']);
       expect(storedSettings.test).toBe('value');
     });
 
     it('should preserve existing settings when adding new ones', () => {
-      service.setSetting('first', 'one');
-      service.setSetting('second', 'two');
+      spectator.service.setSetting('first', 'one');
+      spectator.service.setSetting('second', 'two');
 
       const storedSettings = JSON.parse(localStorageMock['userSettings']);
       expect(storedSettings).toEqual({
@@ -82,8 +87,8 @@ describe('SettingsService', () => {
     });
 
     it('should update existing setting', () => {
-      service.setSetting('test', 'original');
-      service.setSetting('test', 'updated');
+      spectator.service.setSetting('test', 'original');
+      spectator.service.setSetting('test', 'updated');
 
       const storedSettings = JSON.parse(localStorageMock['userSettings']);
       expect(storedSettings.test).toBe('updated');
@@ -93,19 +98,19 @@ describe('SettingsService', () => {
   describe('error handling', () => {
     it('should handle invalid JSON in localStorage', () => {
       localStorageMock['userSettings'] = 'invalid json';
-      const result = service.getSetting('test', 'default');
+      const result = spectator.service.getSetting('test', 'default');
       expect(result).toBe('default');
     });
 
     it('should handle non-object JSON in localStorage', () => {
       localStorageMock['userSettings'] = '"string value"';
-      const result = service.getSetting('test', 'default');
+      const result = spectator.service.getSetting('test', 'default');
       expect(result).toBe('default');
     });
 
     it('should handle null in localStorage', () => {
       localStorageMock['userSettings'] = 'null';
-      const result = service.getSetting('test', 'default');
+      const result = spectator.service.getSetting('test', 'default');
       expect(result).toBe('default');
     });
   });

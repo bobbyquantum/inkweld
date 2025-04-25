@@ -6,7 +6,6 @@ import {
   CSRFService,
   DocumentAPIService,
   ProjectAPIService,
-  ProjectFilesService,
   UserAPIService,
 } from '@inkweld/index';
 
@@ -48,7 +47,6 @@ export const API_PROVIDERS: Provider[] = [
   createApiServiceProvider(UserAPIService),
   createApiServiceProvider(ProjectAPIService),
   createApiServiceProvider(DocumentAPIService),
-  createApiServiceProvider(ProjectFilesService),
   createApiServiceProvider(AuthService),
   createApiServiceProvider(CSRFService),
 ];

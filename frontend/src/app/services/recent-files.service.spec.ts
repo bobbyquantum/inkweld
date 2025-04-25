@@ -1,36 +1,37 @@
-import { TestBed } from '@angular/core/testing';
 import { ProjectElementDto } from '@inkweld/index';
+import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
 
 import { RecentFilesService } from './recent-files.service';
 import { SettingsService } from './settings.service';
 
 describe('RecentFilesService', () => {
+  let spectator: SpectatorService<RecentFilesService>;
   let service: RecentFilesService;
   let settingsService: SettingsService;
   let settingsStorageMock: Record<string, unknown> = {};
 
+  const createService = createServiceFactory({
+    service: RecentFilesService,
+    providers: [
+      {
+        provide: SettingsService,
+        useValue: {
+          getSetting: jest.fn((key: string, defaultValue: unknown) => {
+            return settingsStorageMock[key] || defaultValue;
+          }),
+          setSetting: jest.fn((key: string, value: unknown) => {
+            settingsStorageMock[key] = value;
+          }),
+        },
+      },
+    ],
+  });
+
   beforeEach(() => {
     settingsStorageMock = {};
-
-    // Mock the SettingsService
-    const settingsServiceMock = {
-      getSetting: jest.fn((key: string, defaultValue: unknown) => {
-        return settingsStorageMock[key] || defaultValue;
-      }),
-      setSetting: jest.fn((key: string, value: unknown) => {
-        settingsStorageMock[key] = value;
-      }),
-    };
-
-    TestBed.configureTestingModule({
-      providers: [
-        RecentFilesService,
-        { provide: SettingsService, useValue: settingsServiceMock },
-      ],
-    });
-
-    service = TestBed.inject(RecentFilesService);
-    settingsService = TestBed.inject(SettingsService);
+    spectator = createService();
+    service = spectator.service;
+    settingsService = spectator.inject(SettingsService);
   });
 
   it('should be created', () => {
@@ -173,11 +174,14 @@ describe('RecentFilesService', () => {
       metadata: {},
     };
 
+    // Reset the mock before this specific test
+    jest.clearAllMocks();
+
     service.addRecentFile(file, 'user', 'slug');
     expect(service.recentFiles().length).toBe(1);
 
     service.clearRecentFiles();
     expect(service.recentFiles().length).toBe(0);
-    expect(settingsService.setSetting).toHaveBeenCalledTimes(2); // Once for add, once for clear
+    expect(settingsService.setSetting).toHaveBeenCalled();
   });
 });

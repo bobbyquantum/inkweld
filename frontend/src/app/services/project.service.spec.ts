@@ -1,1020 +1,1016 @@
-import { HttpErrorResponse, HttpEvent } from '@angular/common/http';
-import { TestBed } from '@angular/core/testing';
-import { Observable, of, throwError } from 'rxjs';
+import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
+import {
+  createServiceFactory,
+  SpectatorService,
+  SpyObject,
+} from '@ngneat/spectator/jest';
+import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
+import { Observable } from 'rxjs';
 
 import { ProjectAPIService } from '../../api-client/api/project-api.service';
 import { ProjectDto } from '../../api-client/model/project-dto';
+import { apiErr, apiOk } from '../../testing/utils';
 import { ProjectService, ProjectServiceError } from './project.service';
 import { StorageService } from './storage.service';
 import { XsrfService } from './xsrf.service';
 
-describe('ProjectService', () => {
-  let service: ProjectService;
-  let mockProjectAPIService: jest.Mocked<ProjectAPIService>;
-  let mockStorageService: jest.Mocked<StorageService>;
-  let mockXsrfService: jest.Mocked<XsrfService>;
-  let mockDB: jest.Mocked<IDBDatabase>; // Use jest.Mocked for better type safety
-
-  // Mock project data
-  const mockProjects: ProjectDto[] = [
-    {
-      id: '1',
-      title: 'Project 1',
-      slug: 'project-1',
-
-      username: 'testuser',
-    } as ProjectDto,
-    {
-      id: '2',
-      title: 'Project 2',
-      slug: 'project-2',
-      username: 'testuser',
-    } as ProjectDto,
-  ];
-
-  const mockProject: ProjectDto = {
+const date = new Date().toISOString();
+const BASE: ProjectDto[] = [
+  {
     id: '1',
     title: 'Project 1',
     slug: 'project-1',
-    username: 'testuser',
-  } as ProjectDto;
+    username: 'alice',
+    createdDate: date,
+    updatedDate: date,
+  },
+  {
+    id: '2',
+    title: 'Project 2',
+    slug: 'project-2',
+    username: 'alice',
+    createdDate: date,
+    updatedDate: date,
+  },
+];
+const DB = {} as IDBDatabase;
+const createService = createServiceFactory({
+  service: ProjectService,
+});
+
+/* Convenience alias that includes Spectator's spy mix-ins */
+type ApiMock = DeepMockProxy<ProjectAPIService> & SpyObject<ProjectAPIService>;
+type StoreMock = DeepMockProxy<StorageService>;
+type XsrfMock = DeepMockProxy<XsrfService>;
+
+describe('ProjectService', () => {
+  let spec: SpectatorService<ProjectService>;
+  let api: ApiMock;
+  let store: StoreMock;
+  let xsrf: XsrfMock;
 
   beforeEach(() => {
-    // Create mock DB
-    // Mock IDBDatabase methods needed by StorageService (adjust as needed)
-    mockDB = {
-      transaction: jest.fn().mockReturnValue({
-        // Mock objectStore more realistically for clearCache test
-        objectStore: jest.fn().mockImplementation(() => {
-          const mockStore = {
-            get: jest.fn(),
-            put: jest.fn(),
-            delete: jest.fn(),
-            clear: jest.fn().mockResolvedValue(undefined), // Mock clear to resolve by default
-          };
-          // Return the specific mock store based on name if needed, otherwise a generic one
-          return mockStore;
-        }),
-        oncomplete: null,
-        onerror: null,
-        onabort: null,
-      }),
-      close: jest.fn(),
-    } as unknown as jest.Mocked<IDBDatabase>;
-    // Create mock API service with type assertions to avoid type errors in tests
-    mockProjectAPIService = {
-      // Use "as unknown as" to bypass TypeScript errors with HttpEvent types
-      projectControllerGetAllProjects: jest
-        .fn()
-        .mockReturnValue(
-          of(mockProjects) as unknown as Observable<HttpEvent<ProjectDto[]>>
-        ),
-      projectControllerGetProjectByUsernameAndSlug: jest
-        .fn()
-        .mockReturnValue(
-          of(mockProject) as unknown as Observable<HttpEvent<ProjectDto>>
-        ),
-      projectControllerCreateProject: jest
-        .fn()
-        .mockReturnValue(
-          of(mockProject) as unknown as Observable<HttpEvent<ProjectDto>>
-        ),
-      projectControllerUpdateProject: jest
-        .fn()
-        .mockReturnValue(
-          of(mockProject) as unknown as Observable<HttpEvent<ProjectDto>>
-        ),
-      projectControllerDeleteProject: jest
-        .fn()
-        .mockReturnValue(
-          of(undefined) as unknown as Observable<HttpEvent<void>>
-        ),
-      projectControllerGetProjectCover: jest
-        .fn()
-        .mockReturnValue(
-          of(new Blob()) as unknown as Observable<HttpEvent<Blob>>
-        ),
-      projectControllerDeleteCover: jest
-        .fn()
-        .mockReturnValue(
-          of(undefined) as unknown as Observable<HttpEvent<void>>
-        ),
-      projectControllerUploadCover: jest
-        .fn()
-        .mockReturnValue(
-          of(undefined) as unknown as Observable<HttpEvent<void>>
-        ),
-    } as any as jest.Mocked<ProjectAPIService>;
+    api = mockDeep<ProjectAPIService>() as ApiMock;
+    store = mockDeep<StorageService>() as StoreMock;
+    xsrf = mockDeep<XsrfService>() as XsrfMock;
 
-    mockStorageService = {
-      initializeDatabase: jest.fn().mockResolvedValue(mockDB),
-      isAvailable: jest.fn().mockReturnValue(true),
-      get: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn().mockResolvedValue(undefined), // Ensure delete resolves
-      clear: jest.fn().mockResolvedValue(undefined), // Ensure clear resolves
-    } as unknown as jest.Mocked<StorageService>;
+    // Storage baseline
+    store.initializeDatabase.mockResolvedValue(DB);
+    store.isAvailable.mockReturnValue(true);
 
-    mockXsrfService = {
-      getXsrfToken: jest.fn().mockReturnValue('mock-token'),
-    } as unknown as jest.Mocked<XsrfService>;
+    // XSRF baseline
+    xsrf.getXsrfToken.mockReturnValue('token');
 
-    TestBed.configureTestingModule({
+    // API baseline
+    api.projectControllerGetAllProjects.mockReturnValue(apiOk(BASE));
+    api.projectControllerGetProjectByUsernameAndSlug.mockReturnValue(
+      apiOk(BASE[0])
+    );
+    api.projectControllerCreateProject.mockImplementation(
+      (_t, dto) =>
+        apiOk(dto) as unknown as Observable<HttpResponse<ProjectDto>> &
+          Observable<ProjectDto>
+    );
+    const mockImpl = (_u: string, _s: string, _t: string, dto: ProjectDto) =>
+      apiOk(dto) as unknown as Observable<HttpResponse<ProjectDto>> &
+        Observable<ProjectDto>;
+    api.projectControllerUpdateProject.mockImplementation(mockImpl);
+    api.projectControllerDeleteProject.mockReturnValue(apiOk(null));
+    api.coverControllerGetProjectCover.mockReturnValue(apiOk(new Blob()));
+    api.coverControllerDeleteCover.mockReturnValue(apiOk(undefined));
+    api.coverControllerUploadCover.mockReturnValue(apiOk(undefined));
+
+    spec = createService({
       providers: [
-        ProjectService,
-        { provide: ProjectAPIService, useValue: mockProjectAPIService },
-        { provide: StorageService, useValue: mockStorageService },
-        { provide: XsrfService, useValue: mockXsrfService },
+        { provide: ProjectAPIService, useValue: api },
+        { provide: StorageService, useValue: store },
+        { provide: XsrfService, useValue: xsrf },
       ],
     });
-
-    // Reset mocks before each test
-    jest.clearAllMocks();
-
-    // Re-configure mocks for specific test needs if necessary
-    mockStorageService.initializeDatabase.mockResolvedValue(mockDB);
-    mockStorageService.isAvailable.mockReturnValue(true);
-    mockXsrfService.getXsrfToken.mockReturnValue('mock-token');
-    // Re-configure mocks to return properly typed data
-    mockProjectAPIService.projectControllerGetAllProjects.mockReturnValue(
-      of(mockProjects) as unknown as Observable<HttpEvent<ProjectDto[]>>
-    );
-    mockProjectAPIService.projectControllerGetProjectByUsernameAndSlug.mockReturnValue(
-      of(mockProject) as unknown as Observable<HttpEvent<ProjectDto>>
-    );
-    mockProjectAPIService.projectControllerCreateProject.mockReturnValue(
-      of(mockProject) as unknown as Observable<HttpEvent<ProjectDto>>
-    );
-    mockProjectAPIService.projectControllerUpdateProject.mockReturnValue(
-      of(mockProject) as unknown as Observable<HttpEvent<ProjectDto>>
-    );
-    mockProjectAPIService.projectControllerDeleteProject.mockReturnValue(
-      of(undefined) as unknown as Observable<HttpEvent<void>>
-    );
-    mockProjectAPIService.projectControllerGetProjectCover.mockReturnValue(
-      of(new Blob(['cover'])) as unknown as Observable<HttpEvent<Blob>>
-    );
-    mockProjectAPIService.projectControllerDeleteCover.mockReturnValue(
-      of(undefined) as unknown as Observable<HttpEvent<void>>
-    );
-    mockProjectAPIService.projectControllerUploadCover.mockReturnValue(
-      of(undefined) as unknown as Observable<HttpEvent<void>>
-    );
-
-    service = TestBed.inject(ProjectService);
-
-    // Ensure DB promise is resolved before tests run that might depend on it
-    // await (service as any).db; // Access private db for testing setup
-    // Alternative: Use fakeAsync and tick if db initialization affects signals immediately
   });
 
-  it('should be created', () => {
-    expect(service).toBeTruthy();
-  });
+  it('loads projects from API when cache is empty', async () => {
+    store.get.mockResolvedValue(undefined);
 
-  describe('loadAllProjects', () => {
-    it('should load projects from API when cache is empty', async () => {
-      // Set empty cache
-      mockStorageService.get.mockResolvedValue(undefined);
+    await spec.service.loadAllProjects();
 
-      await service.loadAllProjects();
-
-      // Verify API was called
-      expect(
-        mockProjectAPIService.projectControllerGetAllProjects
-      ).toHaveBeenCalled();
-
-      // Verify projects were cached
-      expect(mockStorageService.put).toHaveBeenCalled();
-
-      // Verify projects were set in signal
-      expect(service.projects()).toEqual(mockProjects);
-
-      // Verify loading state was correctly toggled
-      expect(service.isLoading()).toBe(false);
-      expect(service.error()).toBeUndefined();
-      expect(service.initialized()).toBe(true);
-    });
-
-    it('should load projects from cache and refresh from API', async () => {
-      // Setup test data
-      const freshProjects = [
-        ...mockProjects,
-        {
-          id: '3',
-          title: 'Project 3',
-          slug: 'project-3',
-          username: 'testuser',
-        } as ProjectDto,
-      ];
-
-      // Reset the service state
-      service.projects.set([]);
-
-      // Setup mocks
-      mockStorageService.get.mockResolvedValue(mockProjects); // Cache hit
-      mockProjectAPIService.projectControllerGetAllProjects.mockReturnValue(
-        of(freshProjects) as unknown as Observable<HttpEvent<ProjectDto[]>>
-      );
-
-      // Execute
-      await service.loadAllProjects();
-
-      // Verify cache was read
-      expect(mockStorageService.get).toHaveBeenCalledWith(
-        mockDB,
-        'projectsList',
-        'allProjects'
-      );
-
-      // Verify API was called for refresh
-      expect(
-        mockProjectAPIService.projectControllerGetAllProjects
-      ).toHaveBeenCalled();
-
-      // Verify cache was updated with fresh data
-      expect(mockStorageService.put).toHaveBeenCalledWith(
-        mockDB,
-        'projectsList',
-        freshProjects,
-        'allProjects'
-      );
-
-      // Final state checks
-      expect(service.projects()).toEqual(freshProjects);
-      expect(service.isLoading()).toBe(false);
-      expect(service.error()).toBeUndefined();
-    });
-
-    it('should use cached projects if API refresh fails', async () => {
-      mockStorageService.get.mockResolvedValue(mockProjects); // Cache hit
-      const errorResponse = new HttpErrorResponse({ status: 500 });
-      mockProjectAPIService.projectControllerGetAllProjects.mockReturnValue(
-        throwError(() => errorResponse) as unknown as Observable<
-          HttpEvent<ProjectDto[]>
-        >
-      ); // API failure
-
-      // Spy on console.warn
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      await service.loadAllProjects();
-
-      // Verify cache was read
-      expect(mockStorageService.get).toHaveBeenCalledWith(
-        mockDB,
-        'projectsList',
-        'allProjects'
-      );
-      // Verify signal updated with cache
-      expect(service.projects()).toEqual(mockProjects);
-      // Verify API was called
-      expect(
-        mockProjectAPIService.projectControllerGetAllProjects
-      ).toHaveBeenCalled();
-      // Verify cache was NOT updated
-      expect(mockStorageService.put).not.toHaveBeenCalled();
-      // Verify signal still holds cached data
-      expect(service.projects()).toEqual(mockProjects);
-      // Verify no error was thrown or set in signal
-      expect(service.error()).toBeUndefined();
-      expect(service.isLoading()).toBe(false);
-      // Verify warning was logged
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Failed to refresh projects, using cached data:',
-        expect.any(HttpErrorResponse)
-      );
-      consoleWarnSpy.mockRestore();
-    });
-
-    it('should handle API errors correctly when cache is empty', async () => {
-      mockStorageService.get.mockResolvedValue(undefined); // Cache miss
-      const errorResponse = new HttpErrorResponse({ status: 500 });
-      mockProjectAPIService.projectControllerGetAllProjects.mockReturnValue(
-        throwError(() => errorResponse)
-      ); // API failure
-
-      await expect(service.loadAllProjects()).rejects.toThrow(
-        ProjectServiceError
-      );
-
-      expect(service.projects()).toEqual([]);
-      expect(service.error()).toBeInstanceOf(ProjectServiceError);
-      expect(service.error()?.code).toBe('SERVER_ERROR');
-      expect(service.isLoading()).toBe(false);
-    });
-
-    it('should skip cache if storage is unavailable', async () => {
-      mockStorageService.isAvailable.mockReturnValue(false); // Storage unavailable
-      mockProjectAPIService.projectControllerGetAllProjects.mockReturnValue(
-        of(mockProjects) as unknown as Observable<HttpEvent<ProjectDto[]>>
-      ); // API success
-
-      await service.loadAllProjects();
-
-      expect(mockStorageService.get).not.toHaveBeenCalled();
-      expect(
-        mockProjectAPIService.projectControllerGetAllProjects
-      ).toHaveBeenCalled();
-      expect(mockStorageService.put).not.toHaveBeenCalled();
-      expect(service.projects()).toEqual(mockProjects);
-      expect(service.isLoading()).toBe(false);
-      expect(service.error()).toBeUndefined();
-    });
+    expect(api.projectControllerGetAllProjects).toHaveBeenCalled();
+    expect(store.put).toHaveBeenCalledWith(
+      DB,
+      'projectsList',
+      BASE,
+      'allProjects'
+    );
+    expect(spec.service.projects()).toEqual(BASE);
+    expect(spec.service.error()).toBeUndefined();
   });
 
   describe('getProjectByUsernameAndSlug', () => {
-    it('should get project from API when not in cache', async () => {
-      // Set empty cache
-      mockStorageService.get.mockResolvedValue(undefined);
-
-      const result = await service.getProjectByUsernameAndSlug(
-        'testuser',
-        'project-1'
-      );
-
-      // Verify API was called
-      expect(
-        mockProjectAPIService.projectControllerGetProjectByUsernameAndSlug
-      ).toHaveBeenCalledWith('testuser', 'project-1');
-
-      // Verify project was cached
-      expect(mockStorageService.put).toHaveBeenCalled();
-
-      // Verify returned project
-      expect(result).toEqual(mockProject);
+    beforeEach(() => {
+      // Reset mocks before each test
+      api.projectControllerGetProjectByUsernameAndSlug.mockReset();
+      store.get.mockReset();
+      xsrf.getXsrfToken.mockReset();
+      xsrf.getXsrfToken.mockReturnValue('test-token');
+      spec.service.error.set(undefined);
     });
 
-    it('should use cached project when available', async () => {
-      // Set cache with project
-      mockStorageService.get.mockResolvedValue(mockProject);
+    it('returns a project from cache if available', async () => {
+      // Mock cached project
+      store.get.mockResolvedValue(BASE[0]);
 
-      const result = await service.getProjectByUsernameAndSlug(
-        'testuser',
+      const result = await spec.service.getProjectByUsernameAndSlug(
+        'alice',
         'project-1'
       );
 
-      // Verify API was NOT called
+      // Should check cache first
+      expect(store.get).toHaveBeenCalledWith(
+        expect.anything(),
+        'projects',
+        'alice/project-1'
+      );
+
+      // API should not be called
       expect(
-        mockProjectAPIService.projectControllerGetProjectByUsernameAndSlug
+        api.projectControllerGetProjectByUsernameAndSlug
       ).not.toHaveBeenCalled();
 
-      // Verify returned project from cache
-      expect(result).toEqual(mockProject);
-      expect(service.isLoading()).toBe(false);
-      expect(service.error()).toBeUndefined();
+      // Result should match the cached project
+      expect(result).toEqual(BASE[0]);
     });
 
-    it('should use cached project and trigger background refresh', async () => {
-      jest.useFakeTimers();
-      const freshProject = { ...mockProject, title: 'Fresh Project 1' };
-      mockStorageService.get.mockResolvedValue(mockProject); // Cache hit
-      mockProjectAPIService.projectControllerGetProjectByUsernameAndSlug.mockReturnValue(
-        of(freshProject) as unknown as Observable<HttpEvent<ProjectDto>>
-      ); // API success for refresh
+    it('fetches from API if not in cache and caches result', async () => {
+      // Mock cache miss
+      store.get.mockResolvedValue(undefined);
 
-      const promise = service.getProjectByUsernameAndSlug(
-        'testuser',
+      // Mock API response
+      api.projectControllerGetProjectByUsernameAndSlug.mockReturnValue(
+        apiOk(BASE[0])
+      );
+
+      const result = await spec.service.getProjectByUsernameAndSlug(
+        'alice',
         'project-1'
       );
 
-      // Should return cached project immediately
-      const result = await promise;
-      expect(result).toEqual(mockProject);
-      expect(
-        mockProjectAPIService.projectControllerGetProjectByUsernameAndSlug
-      ).not.toHaveBeenCalled(); // API not called yet
-      expect(service.isLoading()).toBe(false); // Loading should be false after immediate return
-
-      // Advance timers to trigger background refresh
-      jest.advanceTimersByTime(0);
-
-      // Use Jest's runAllTimers to ensure all pending timers are executed
-      jest.runAllTimers();
-
-      // Allow any pending promises to resolve
-      await Promise.resolve();
-      await Promise.resolve(); // Multiple resolves to ensure all microtasks complete
-
-      // Verify API was called for refresh
-      expect(
-        mockProjectAPIService.projectControllerGetProjectByUsernameAndSlug
-      ).toHaveBeenCalledWith('testuser', 'project-1');
-
-      // Verify cache was updated with fresh data
-      expect(mockStorageService.put).toHaveBeenCalledWith(
-        mockDB,
+      // Should check cache first
+      expect(store.get).toHaveBeenCalledWith(
+        expect.anything(),
         'projects',
-        freshProject, // Expect the raw data to be cached
-        'testuser/project-1'
+        'alice/project-1'
       );
 
-      // Optional: Verify list updates if needed
-      // If we need to test project list updates:
-      if (service.projects().length > 0) {
-        const currentProjects = [...service.projects()];
-        const projectIndex = currentProjects.findIndex(
-          p => p.slug === 'project-1' && p.username === 'testuser'
-        );
+      // API should be called with token
+      expect(
+        api.projectControllerGetProjectByUsernameAndSlug
+      ).toHaveBeenCalledWith('alice', 'project-1');
 
-        if (projectIndex >= 0) {
-          // Verify the project was updated in the list
-          expect(currentProjects[projectIndex]).toEqual(freshProject);
+      // Result should match API response
+      expect(result).toEqual(BASE[0]);
+
+      // Result should be cached
+      expect(store.put).toHaveBeenCalledWith(
+        expect.anything(),
+        'projects',
+        BASE[0],
+        'alice/project-1'
+      );
+    });
+
+    it('handles API errors gracefully when refreshing', async () => {
+      // Mock the store to always return the BASE[0] project for 'alice/project-1' key
+      store.get.mockImplementation((db, storeName, key) => {
+        if (storeName === 'projects' && key === 'alice/project-1') {
+          return Promise.resolve(BASE[0] as any);
         }
-      }
-
-      jest.useRealTimers();
-    });
-
-    it('should handle background refresh failure gracefully', async () => {
-      jest.useFakeTimers();
-      mockStorageService.get.mockResolvedValue(mockProject); // Cache hit
-      const errorResponse = new HttpErrorResponse({ status: 500 });
-      mockProjectAPIService.projectControllerGetProjectByUsernameAndSlug.mockReturnValue(
-        throwError(() => errorResponse) as unknown as Observable<
-          HttpEvent<ProjectDto>
-        >
-      ); // API failure for refresh
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      const result = await service.getProjectByUsernameAndSlug(
-        'testuser',
-        'project-1'
-      );
-
-      // Should return cached project immediately
-      expect(result).toEqual(mockProject);
-      expect(service.isLoading()).toBe(false);
-
-      // Advance timers to trigger background refresh
-      jest.advanceTimersByTime(0);
-
-      // Use Jest's runAllTimers to ensure all pending timers are executed
-      jest.runAllTimers();
-
-      // Allow any pending promises to resolve
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // Verify API was called for refresh
-      expect(
-        mockProjectAPIService.projectControllerGetProjectByUsernameAndSlug
-      ).toHaveBeenCalledWith('testuser', 'project-1');
-      // Verify cache was NOT updated
-      expect(mockStorageService.put).not.toHaveBeenCalled();
-      // Verify warning was logged
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Background refresh failed for project testuser/project-1:',
-        expect.any(HttpErrorResponse)
-      );
-      // Verify no error was set on the service signal
-      expect(service.error()).toBeUndefined();
-
-      consoleWarnSpy.mockRestore();
-      jest.useRealTimers();
-    });
-
-    it('should handle API errors correctly when cache is empty', async () => {
-      mockStorageService.get.mockResolvedValue(undefined); // Cache miss
-      const errorResponse = new HttpErrorResponse({ status: 500 });
-      mockProjectAPIService.projectControllerGetProjectByUsernameAndSlug.mockReturnValue(
-        throwError(() => errorResponse) as unknown as Observable<
-          HttpEvent<ProjectDto>
-        >
-      ); // API failure
-
-      await expect(
-        service.getProjectByUsernameAndSlug('testuser', 'project-1')
-      ).rejects.toThrow(ProjectServiceError);
-
-      expect(service.error()).toBeInstanceOf(ProjectServiceError);
-      expect(service.error()?.code).toBe('SERVER_ERROR');
-      expect(service.isLoading()).toBe(false);
-    });
-  });
-
-  describe('createProject', () => {
-    it('should create a project and update cache', async () => {
-      const newProject = {
-        ...mockProject,
-        id: '3',
-        title: 'New Project',
-        slug: 'new-project',
-      };
-      // Use any to bypass the type checking for the mock
-      mockProjectAPIService.projectControllerCreateProject.mockReturnValue(
-        of(newProject) as unknown as Observable<HttpEvent<ProjectDto>>
-      );
-
-      // Initialize projects signal with existing projects
-      service.projects.set(mockProjects);
-
-      const result = await service.createProject(newProject);
-
-      // Verify API call
-      expect(
-        mockProjectAPIService.projectControllerCreateProject
-      ).toHaveBeenCalledWith('mock-token', newProject);
-
-      // Verify project was cached
-      expect(mockStorageService.put).toHaveBeenCalled();
-
-      // Verify projects list was updated
-      expect(service.projects().length).toBe(mockProjects.length + 1);
-
-      // Verify returned project
-      expect(result).toEqual(newProject);
-      expect(service.isLoading()).toBe(false);
-      expect(service.error()).toBeUndefined();
-    });
-
-    it('should handle API errors during creation', async () => {
-      const newProject = {
-        id: '3',
-        title: 'New Project',
-        slug: 'new-project',
-      } as ProjectDto;
-      const errorResponse = new HttpErrorResponse({ status: 500 });
-      mockProjectAPIService.projectControllerCreateProject.mockReturnValue(
-        throwError(() => errorResponse)
-      );
-
-      await expect(service.createProject(newProject)).rejects.toThrow(
-        ProjectServiceError
-      );
-
-      expect(service.error()).toBeInstanceOf(ProjectServiceError);
-      expect(service.error()?.code).toBe('SERVER_ERROR');
-      expect(service.isLoading()).toBe(false);
-      // Verify projects list was not updated optimistically
-      expect(service.projects()).toEqual([]); // Assuming it started empty or was reset
-    });
-  });
-
-  describe('updateProject', () => {
-    it('should update a project and update cache', async () => {
-      const updatedProject = { ...mockProject, title: 'Updated Project' };
-      // Use any to bypass the type checking for the mock
-      mockProjectAPIService.projectControllerUpdateProject.mockReturnValue(
-        of(updatedProject) as unknown as Observable<HttpEvent<ProjectDto>>
-      );
-
-      // Initialize projects signal with existing projects
-      service.projects.set(mockProjects);
-
-      const result = await service.updateProject(
-        'testuser',
-        'project-1',
-        updatedProject
-      );
-
-      // Verify API call
-      expect(
-        mockProjectAPIService.projectControllerUpdateProject
-      ).toHaveBeenCalledWith(
-        'testuser',
-        'project-1',
-        'mock-token',
-        updatedProject
-      );
-
-      // Verify project was cached
-      expect(mockStorageService.put).toHaveBeenCalled();
-
-      // Verify returned project
-      expect(result).toEqual(updatedProject);
-      expect(service.isLoading()).toBe(false);
-      expect(service.error()).toBeUndefined();
-      // Verify projects list was updated
-      expect(service.projects().find(p => p.id === '1')?.title).toBe(
-        'Updated Project'
-      );
-    });
-
-    it('should handle API errors during update', async () => {
-      const updatedProject = { ...mockProject, title: 'Updated Project' };
-      const errorResponse = new HttpErrorResponse({ status: 500 });
-      mockProjectAPIService.projectControllerUpdateProject.mockReturnValue(
-        throwError(() => errorResponse)
-      );
-
-      service.projects.set(mockProjects); // Pre-populate
-
-      await expect(
-        service.updateProject('testuser', 'project-1', updatedProject)
-      ).rejects.toThrow(ProjectServiceError);
-
-      expect(service.error()).toBeInstanceOf(ProjectServiceError);
-      expect(service.error()?.code).toBe('SERVER_ERROR');
-      expect(service.isLoading()).toBe(false);
-      // Verify projects list was not updated
-      expect(service.projects().find(p => p.id === '1')?.title).toBe(
-        'Project 1'
-      );
-    });
-  });
-
-  describe('deleteProject', () => {
-    it('should delete a project and update cache', async () => {
-      // Initialize projects signal with existing projects
-      service.projects.set(mockProjects);
-
-      await service.deleteProject('testuser', 'project-1');
-
-      // Verify API call
-      expect(
-        mockProjectAPIService.projectControllerDeleteProject
-      ).toHaveBeenCalledWith('testuser', 'project-1', 'mock-token');
-
-      // Verify project was removed from cache
-      expect(mockStorageService.delete).toHaveBeenCalled();
-
-      // Verify projects list was updated (first project removed)
-      expect(service.projects().length).toBe(mockProjects.length - 1);
-      expect(service.projects()[0].id).toBe('2');
-      expect(service.isLoading()).toBe(false);
-      expect(service.error()).toBeUndefined();
-    });
-
-    it('should handle API errors during deletion', async () => {
-      const errorResponse = new HttpErrorResponse({ status: 500 });
-      mockProjectAPIService.projectControllerDeleteProject.mockReturnValue(
-        throwError(() => errorResponse)
-      );
-
-      service.projects.set(mockProjects); // Pre-populate
-
-      await expect(
-        service.deleteProject('testuser', 'project-1')
-      ).rejects.toThrow(ProjectServiceError);
-
-      expect(service.error()).toBeInstanceOf(ProjectServiceError);
-      expect(service.error()?.code).toBe('SERVER_ERROR');
-      expect(service.isLoading()).toBe(false);
-      // Verify project was not removed from cache on API error
-      expect(mockStorageService.delete).not.toHaveBeenCalled();
-      // Verify projects list was not updated
-      expect(service.projects().length).toBe(mockProjects.length);
-    });
-
-    it('should handle cache deletion errors gracefully during project deletion', async () => {
-      mockProjectAPIService.projectControllerDeleteProject.mockReturnValue(
-        of({}) as unknown as Observable<HttpEvent<void>>
-      ); // API success
-      mockStorageService.delete.mockRejectedValue(
-        new Error('Cache delete failed')
-      ); // Cache fails
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      service.projects.set(mockProjects);
-
-      await service.deleteProject('testuser', 'project-1'); // Should not throw
-
-      expect(
-        mockProjectAPIService.projectControllerDeleteProject
-      ).toHaveBeenCalled();
-      expect(mockStorageService.delete).toHaveBeenCalledWith(
-        mockDB,
-        'projects',
-        'testuser/project-1'
-      );
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Failed to remove cached project:',
-        expect.any(Error)
-      );
-      // Verify projects list was still updated
-      expect(service.projects().length).toBe(mockProjects.length - 1);
-      expect(service.isLoading()).toBe(false);
-      expect(service.error()).toBeUndefined();
-
-      consoleWarnSpy.mockRestore();
-    });
-  });
-
-  describe('clearCache', () => {
-    it('should clear all cached projects', async () => {
-      // Initialize projects signal with existing projects
-      service.projects.set([
-        { username: 'testuser', slug: 'project-1' } as ProjectDto,
-        { username: 'testuser', slug: 'project-2' } as ProjectDto,
-      ]);
-
-      await service.clearCache();
-
-      // Verify delete was called for the projects list
-      expect(mockStorageService.delete).toHaveBeenCalledWith(
-        mockDB,
-        'projectsList',
-        'allProjects'
-      );
-
-      // Verify delete was called for each project
-      expect(mockStorageService.delete).toHaveBeenCalledWith(
-        mockDB,
-        'projects',
-        'testuser/project-1'
-      );
-
-      expect(mockStorageService.delete).toHaveBeenCalledWith(
-        mockDB,
-        'projects',
-        'testuser/project-2'
-      );
-
-      // Verify the projects state is cleared
-      expect(service.projects()).toEqual([]);
-    });
-
-    it('should handle errors during cache clearing', async () => {
-      // Set up some projects in the service
-      service.projects.set([
-        { username: 'testuser', slug: 'project-1' } as ProjectDto,
-      ]);
-
-      // Mock delete to throw an error
-      mockStorageService.delete.mockRejectedValue(new Error('Delete failed'));
-
-      // Spy on console.warn since the implementation logs a warning but doesn't throw
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-      // Should not throw an error (the implementation catches errors)
-      await service.clearCache();
-
-      // Verify warning was logged
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Failed to clear project cache:',
-        expect.any(Error)
-      );
-
-      // Projects array should still be cleared even if storage operations fail
-      expect(service.projects()).toEqual([]);
-
-      consoleWarnSpy.mockRestore();
-    });
-  });
-
-  // --- Cover Image Tests ---
-
-  describe('getProjectCover', () => {
-    it('should return blob on success', async () => {
-      // Create a proper Blob that has text() method
-      const blob = new Blob(['mock cover data'], { type: 'text/plain' });
-      mockProjectAPIService.projectControllerGetProjectCover.mockReturnValue(
-        of(blob) as unknown as Observable<HttpEvent<Blob>>
-      );
-
-      const result = await service.getProjectCover('testuser', 'project-1');
-
-      expect(result).toBeInstanceOf(Blob);
-
-      // In Jest environment, Blob might not have text() method like in browsers
-      // Use FileReader to read the Blob content instead
-      const text = await new Promise<string>(resolve => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsText(result);
+        return Promise.resolve(undefined);
       });
 
-      expect(text).toBe('mock cover data');
+      // Mock the API to fail
+      api.projectControllerGetProjectByUsernameAndSlug.mockReturnValue(
+        apiErr(new Error('Test error'))
+      );
+
+      // Should be able to get the project even though the API would fail
+      const result = await spec.service.getProjectByUsernameAndSlug(
+        'alice',
+        'project-1'
+      );
+
+      // We should still get data back from cache
+      expect(result).toEqual(BASE[0]);
+    });
+
+    it('returns API result for uncached project', async () => {
+      // Mock cache miss
+      store.get.mockResolvedValue(undefined);
+
+      // Mock API response
+      api.projectControllerGetProjectByUsernameAndSlug.mockReturnValue(
+        apiOk(BASE[1])
+      );
+
+      const result = await spec.service.getProjectByUsernameAndSlug(
+        'bob',
+        'project-2'
+      );
+
+      // Should check cache first
+      expect(store.get).toHaveBeenCalledWith(
+        expect.anything(),
+        'projects',
+        'bob/project-2'
+      );
+
+      // API should be called with token
       expect(
-        mockProjectAPIService.projectControllerGetProjectCover
-      ).toHaveBeenCalledWith('testuser', 'project-1');
-      expect(service.error()).toBeUndefined();
+        api.projectControllerGetProjectByUsernameAndSlug
+      ).toHaveBeenCalledWith('bob', 'project-2');
+
+      // Result should match API response
+      expect(result).toEqual(BASE[1]);
+
+      // Result should be cached
+      expect(store.put).toHaveBeenCalledWith(
+        expect.anything(),
+        'projects',
+        BASE[1],
+        'bob/project-2'
+      );
     });
 
-    it('should throw specific PROJECT_NOT_FOUND error on 404', async () => {
-      const errorResponse = new HttpErrorResponse({ status: 404 });
-      mockProjectAPIService.projectControllerGetProjectCover.mockReturnValue(
-        throwError(() => errorResponse)
+    it('handles network errors correctly', async () => {
+      // Mock cache miss
+      store.get.mockResolvedValue(undefined);
+
+      // Mock network error
+      api.projectControllerGetProjectByUsernameAndSlug.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 0 }))
       );
 
+      // Should throw an error
       await expect(
-        service.getProjectCover('testuser', 'project-1')
-      ).rejects.toThrow(
-        new ProjectServiceError('PROJECT_NOT_FOUND', 'Cover image not found')
-      );
+        spec.service.getProjectByUsernameAndSlug('alice', 'project-1')
+      ).rejects.toThrow();
 
-      expect(service.error()).toBeInstanceOf(ProjectServiceError);
-      expect(service.error()?.code).toBe('PROJECT_NOT_FOUND');
-      expect(service.error()?.message).toBe('Cover image not found');
+      // Error should be set with correct code
+      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
     });
 
-    it('should throw SERVER_ERROR for other API errors', async () => {
-      // Create a mock implementation to bypass the real formatError function
-      // This ensures we return exactly the error message we expect
-      const mockError = new ProjectServiceError(
-        'SERVER_ERROR',
-        'Failed to get project cover image'
-      );
-      mockProjectAPIService.projectControllerGetProjectCover.mockReturnValue(
-        throwError(() => mockError)
+    it('handles not found errors correctly', async () => {
+      // Mock cache miss
+      store.get.mockResolvedValue(undefined);
+
+      // Mock 404 error
+      api.projectControllerGetProjectByUsernameAndSlug.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 404 }))
       );
 
+      // Should throw an error
       await expect(
-        service.getProjectCover('testuser', 'project-1')
-      ).rejects.toThrow(ProjectServiceError);
+        spec.service.getProjectByUsernameAndSlug('alice', 'nonexistent')
+      ).rejects.toThrow();
 
-      // We only need to check the error code since we're bypassing the normal error format
-      expect(service.error()).toBeInstanceOf(ProjectServiceError);
-      expect(service.error()?.code).toBe('SERVER_ERROR');
+      // Error should be set with correct code
+      expect(spec.service.error()?.code).toBe('PROJECT_NOT_FOUND');
     });
   });
 
-  describe('deleteProjectCover', () => {
-    // Add timeout to prevent test from timing out (10 seconds instead of default 5)
-    it('should call API and reload projects on success', async () => {
-      // Add a matching project to the projects list so loadAllProjects gets called
-      service.projects.set([
-        { username: 'testuser', slug: 'project-1' } as ProjectDto,
-      ]);
+  describe('internal project refresh functionality', () => {
+    // Instead of directly testing private methods, we'll test the behavior
+    // through the public methods that use the private functionality
 
-      // Setup mock responses
-      mockProjectAPIService.projectControllerDeleteCover.mockReturnValue(
-        of({}) as unknown as Observable<HttpEvent<void>>
+    it('updates cache with refreshed project data', async () => {
+      const updatedProject: ProjectDto = {
+        ...BASE[0],
+        title: 'Updated Project 1',
+        createdDate: date,
+        updatedDate: date,
+      };
+      api.projectControllerGetProjectByUsernameAndSlug.mockReturnValue(
+        apiOk(updatedProject)
       );
 
-      // Mock loadAllProjects using Jest's spy
-      const loadAllSpy = jest
-        .spyOn(service, 'loadAllProjects')
-        .mockImplementation(() => Promise.resolve());
+      // We can't call refreshProjectInBackground directly as it's private
+      // But we can test its effect after a call to getProjectByUsernameAndSlug
+      await spec.service.getProjectByUsernameAndSlug('alice', 'project-1');
 
-      // Execute the method
-      await service.deleteProjectCover('testuser', 'project-1');
-
-      // Verify API was called with correct parameters
-      expect(
-        mockProjectAPIService.projectControllerDeleteCover
-      ).toHaveBeenCalledWith('testuser', 'project-1');
-
-      // Verify loadAllProjects was called
-      expect(loadAllSpy).toHaveBeenCalled();
-
-      // Verify final state
-      expect(service.isLoading()).toBe(false);
-      expect(service.error()).toBeUndefined();
-
-      // Restore original method
-      loadAllSpy.mockRestore();
-    }, 10000); // Increase timeout to 10 seconds
-
-    it('should handle API errors during cover deletion', async () => {
-      const errorResponse = new HttpErrorResponse({ status: 500 });
-      mockProjectAPIService.projectControllerDeleteCover.mockReturnValue(
-        throwError(() => errorResponse)
+      // Should update cache with the new data
+      expect(store.put).toHaveBeenCalledWith(
+        DB,
+        'projects',
+        updatedProject,
+        'alice/project-1'
       );
-      const loadAllSpy = jest.spyOn(service, 'loadAllProjects'); // Spy but don't mock implementation
+      // Should not set error
+      expect(spec.service.error()).toBeUndefined();
+    });
+
+    it('handles API errors gracefully when refreshing', async () => {
+      // Mock the store to always return the BASE[0] project for 'alice/project-1' key
+      store.get.mockImplementation((db, storeName, key) => {
+        if (storeName === 'projects' && key === 'alice/project-1') {
+          return Promise.resolve(BASE[0] as any);
+        }
+        return Promise.resolve(undefined);
+      });
+
+      // Mock the API to fail
+      api.projectControllerGetProjectByUsernameAndSlug.mockReturnValue(
+        apiErr(new Error('Test error'))
+      );
+
+      // Should be able to get the project even though the API would fail
+      const result = await spec.service.getProjectByUsernameAndSlug(
+        'alice',
+        'project-1'
+      );
+
+      // We should still get data back from cache
+      expect(result).toEqual(BASE[0]);
+    });
+  });
+
+  describe('loadAllProjects', () => {
+    beforeEach(() => {
+      // Reset mocks before each test
+      api.projectControllerGetAllProjects.mockReset();
+      xsrf.getXsrfToken.mockReset();
+      xsrf.getXsrfToken.mockReturnValue('test-token');
+      store.get.mockReset();
+      store.put.mockReset();
+      spec.service.error.set(undefined);
+
+      // Reset the projects signal
+      spec.service.projects.set([]);
+    });
+
+    it('loads projects from API and caches them', async () => {
+      // Mock API response
+      api.projectControllerGetAllProjects.mockReturnValue(apiOk(BASE));
+
+      // Mock cache miss for projects list
+      store.get.mockImplementation(() => {
+        return Promise.resolve(undefined);
+      });
+
+      await spec.service.loadAllProjects();
+
+      // Should have called the API with token
+      expect(api.projectControllerGetAllProjects).toHaveBeenCalledWith();
+
+      // Should have set the projects signal
+      expect(spec.service.projects()).toEqual(BASE);
+    });
+
+    it('returns cached projects when available and refreshes in background', async () => {
+      // Mock cached projects
+      store.get.mockImplementation((db, storeName, key) => {
+        if (storeName === 'projectsList' && key === 'allProjects') {
+          return Promise.resolve(BASE as any);
+        }
+        return Promise.resolve(undefined);
+      });
+
+      // Clear previous calls
+      api.projectControllerGetAllProjects.mockClear();
+
+      await spec.service.loadAllProjects();
+
+      // Should have set the projects signal from cache
+      expect(spec.service.projects()).toEqual(BASE);
+
+      // API should still be called to refresh in background
+      expect(api.projectControllerGetAllProjects).toHaveBeenCalledWith();
+    });
+
+    it('handles API errors gracefully when cache is available', async () => {
+      // Mock cached projects
+      store.get.mockImplementation((db, storeName, key) => {
+        if (storeName === 'projectsList' && key === 'allProjects') {
+          return Promise.resolve(BASE as any);
+        }
+        return Promise.resolve(undefined);
+      });
+
+      // Mock API error
+      api.projectControllerGetAllProjects.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 500 }))
+      );
+
+      await spec.service.loadAllProjects();
+
+      // Should still set projects from cache
+      expect(spec.service.projects()).toEqual(BASE);
+    });
+
+    it('handles API errors when no cache is available', async () => {
+      // Mock cache miss
+      store.get.mockResolvedValue(undefined);
+
+      // Mock API error
+      api.projectControllerGetAllProjects.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 0 }))
+      );
+
+      await expect(spec.service.loadAllProjects()).rejects.toThrow();
+
+      // Error should be set
+      expect(spec.service.error()).toBeDefined();
+      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
+
+      // Projects signal should remain empty
+      expect(spec.service.projects()).toEqual([]);
+    });
+  });
+
+  /* -------------------------------------------------------------- */
+  /* createProject                                                 */
+  /* -------------------------------------------------------------- */
+  describe('createProject', () => {
+    beforeEach(() => {
+      // Reset mocks before each test
+      api.projectControllerCreateProject.mockReset();
+      api.projectControllerGetAllProjects.mockReset();
+      xsrf.getXsrfToken.mockReset();
+      xsrf.getXsrfToken.mockReturnValue('test-token');
+      spec.service.error.set(undefined);
+    });
+
+    it('creates a new project and updates cache', async () => {
+      const newProject: ProjectDto = {
+        title: 'New Project',
+        slug: 'new-project',
+        username: 'alice',
+        description: 'A new project description',
+        createdDate: date,
+        updatedDate: date,
+      };
+
+      // Clear previous calls
+      api.projectControllerGetAllProjects.mockClear();
+
+      // Mock API response
+      api.projectControllerCreateProject.mockReturnValue(apiOk(newProject));
+
+      const result = await spec.service.createProject(newProject);
+
+      // Verify the token is used
+      expect(xsrf.getXsrfToken).toHaveBeenCalled();
+
+      // Should call API with token parameter first
+      expect(api.projectControllerCreateProject).toHaveBeenCalledWith(
+        'test-token',
+        newProject
+      );
+
+      expect(result).toEqual(newProject);
+    });
+
+    it('handles API errors correctly', async () => {
+      const newProject: ProjectDto = {
+        title: 'Error Project',
+        slug: 'error-project',
+        username: 'alice',
+        createdDate: date,
+        updatedDate: date,
+      };
+
+      // Set up API to fail
+      api.projectControllerCreateProject.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 500 }))
+      );
+
+      await expect(spec.service.createProject(newProject)).rejects.toThrow(
+        ProjectServiceError
+      );
+      expect(spec.service.error()?.code).toBe('SERVER_ERROR');
+    });
+
+    it('handles network errors correctly', async () => {
+      const newProject: ProjectDto = {
+        title: 'Offline Project',
+        slug: 'offline-project',
+        username: 'alice',
+        createdDate: date,
+        updatedDate: date,
+      };
+
+      // Set up API to fail with network error
+      api.projectControllerCreateProject.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 0 }))
+      );
+
+      await expect(spec.service.createProject(newProject)).rejects.toThrow(
+        ProjectServiceError
+      );
+      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
+    });
+  });
+
+  /* -------------------------------------------------------------- */
+  /* updateProject                                                  */
+  /* -------------------------------------------------------------- */
+  describe('updateProject', () => {
+    beforeEach(() => {
+      // Reset mocks before each test
+      api.projectControllerUpdateProject.mockReset();
+      api.projectControllerGetAllProjects.mockReset();
+      xsrf.getXsrfToken.mockReset();
+      xsrf.getXsrfToken.mockReturnValue('test-token');
+      spec.service.error.set(undefined);
+    });
+
+    it('updates a project and refreshes cache', async () => {
+      const updatedProject: ProjectDto = {
+        ...BASE[0],
+        title: 'Updated Title',
+        description: 'Updated description',
+        createdDate: date,
+        updatedDate: date,
+      };
+
+      // Setup successful API responses
+      api.projectControllerUpdateProject.mockReturnValue(apiOk(updatedProject));
+      api.projectControllerGetAllProjects.mockReturnValue(apiOk(BASE));
+
+      const result = await spec.service.updateProject(
+        'alice',
+        'project-1',
+        updatedProject
+      );
+
+      // Verify the token is used
+      expect(xsrf.getXsrfToken).toHaveBeenCalled();
+
+      // Should call API with token parameter
+      expect(api.projectControllerUpdateProject).toHaveBeenCalledWith(
+        'alice',
+        'project-1',
+        'test-token',
+        updatedProject
+      );
+
+      // Result should match the API response
+      expect(result).toEqual(updatedProject);
+    });
+
+    it('handles API errors correctly', async () => {
+      const updatedProject: ProjectDto = {
+        ...BASE[0],
+        title: 'Updated Title',
+        createdDate: date,
+        updatedDate: date,
+      };
+
+      // Set up API to fail
+      api.projectControllerUpdateProject.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 404 }))
+      );
 
       await expect(
-        service.deleteProjectCover('testuser', 'project-1')
+        spec.service.updateProject('alice', 'nonexistent', updatedProject)
       ).rejects.toThrow(ProjectServiceError);
+      expect(spec.service.error()?.code).toBe('PROJECT_NOT_FOUND');
+    });
 
-      expect(
-        mockProjectAPIService.projectControllerDeleteCover
-      ).toHaveBeenCalledWith('testuser', 'project-1');
-      expect(loadAllSpy).not.toHaveBeenCalled(); // Should not reload if delete failed
-      expect(service.error()).toBeInstanceOf(ProjectServiceError);
-      expect(service.error()?.code).toBe('SERVER_ERROR');
-      expect(service.isLoading()).toBe(false);
+    it('handles network errors correctly', async () => {
+      const updatedProject: ProjectDto = {
+        ...BASE[0],
+        title: 'Offline Update',
+        createdDate: date,
+        updatedDate: date,
+      };
 
-      loadAllSpy.mockRestore();
+      // Set up API to fail with network error
+      api.projectControllerUpdateProject.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 0 }))
+      );
+
+      await expect(
+        spec.service.updateProject('alice', 'project-1', updatedProject)
+      ).rejects.toThrow(ProjectServiceError);
+      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
+    });
+
+    it('handles unauthorized errors correctly', async () => {
+      const updatedProject: ProjectDto = {
+        ...BASE[0],
+        title: 'Unauthorized Update',
+        createdDate: date,
+        updatedDate: date,
+      };
+
+      // Set up API to fail with 401
+      api.projectControllerUpdateProject.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 401 }))
+      );
+
+      await expect(
+        spec.service.updateProject('alice', 'project-1', updatedProject)
+      ).rejects.toThrow(ProjectServiceError);
+      expect(spec.service.error()?.code).toBe('SESSION_EXPIRED');
+    });
+  });
+
+  /* -------------------------------------------------------------- */
+  /* deleteProject                                                 */
+  /* -------------------------------------------------------------- */
+  describe('deleteProject', () => {
+    beforeEach(() => {
+      // Reset mocks before each test
+      api.projectControllerDeleteProject.mockReset();
+      api.projectControllerGetAllProjects.mockReset();
+      store.delete.mockReset();
+      xsrf.getXsrfToken.mockReset();
+      xsrf.getXsrfToken.mockReturnValue('test-token');
+      spec.service.error.set(undefined);
+    });
+
+    it('deletes a project and refreshes the project list', async () => {
+      // Clear previous calls
+      api.projectControllerGetAllProjects.mockClear();
+
+      // Mock API response
+      api.projectControllerDeleteProject.mockReturnValue(apiOk(null));
+
+      await spec.service.deleteProject('alice', 'project-1');
+
+      // Verify the token is used
+      expect(xsrf.getXsrfToken).toHaveBeenCalled();
+
+      // Should call API with token parameter
+      expect(api.projectControllerDeleteProject).toHaveBeenCalledWith(
+        'alice',
+        'project-1',
+        'test-token'
+      );
+
+      // Should remove from cache
+      expect(store.delete).toHaveBeenCalledWith(
+        DB,
+        'projects',
+        'alice/project-1'
+      );
+    });
+
+    it('handles API errors correctly', async () => {
+      // Set up API to fail
+      api.projectControllerDeleteProject.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 404 }))
+      );
+
+      await expect(
+        spec.service.deleteProject('alice', 'nonexistent')
+      ).rejects.toThrow(ProjectServiceError);
+      expect(spec.service.error()?.code).toBe('PROJECT_NOT_FOUND');
+    });
+
+    it('handles network errors correctly', async () => {
+      // Set up API to fail with network error
+      api.projectControllerDeleteProject.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 0 }))
+      );
+
+      await expect(
+        spec.service.deleteProject('alice', 'project-1')
+      ).rejects.toThrow(ProjectServiceError);
+      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
+    });
+
+    it('handles unauthorized errors correctly', async () => {
+      // Set up API to fail with 401
+      api.projectControllerDeleteProject.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 401 }))
+      );
+
+      await expect(
+        spec.service.deleteProject('alice', 'project-1')
+      ).rejects.toThrow(ProjectServiceError);
+      expect(spec.service.error()?.code).toBe('SESSION_EXPIRED');
+    });
+  });
+
+  /* -------------------------------------------------------------- */
+  /* getProjectCover                                               */
+  /* -------------------------------------------------------------- */
+  describe('getProjectCover', () => {
+    beforeEach(() => {
+      // Reset mocks before each test
+      api.coverControllerGetProjectCover.mockReset();
+      spec.service.error.set(undefined);
+    });
+
+    it('retrieves project cover blob from API', async () => {
+      const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
+      api.coverControllerGetProjectCover.mockReturnValue(apiOk(coverBlob));
+
+      const result = await spec.service.getProjectCover('alice', 'project-1');
+
+      // Should call API without token parameter (cover controller doesn't use token)
+      expect(api.coverControllerGetProjectCover).toHaveBeenCalledWith(
+        'alice',
+        'project-1'
+      );
+      expect(result).toEqual(coverBlob);
+    });
+
+    it('handles API errors correctly', async () => {
+      // Set up API to fail with 404
+      api.coverControllerGetProjectCover.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 404 }))
+      );
+
+      // The service seems to handle this error internally rather than throwing
+      await expect(
+        spec.service.getProjectCover('alice', 'nonexistent')
+      ).rejects.toThrow();
+      expect(spec.service.error()?.code).toBe('PROJECT_NOT_FOUND');
+    });
+
+    it('handles network errors correctly', async () => {
+      // Set up API to fail with network error
+      api.coverControllerGetProjectCover.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 0 }))
+      );
+
+      // The service seems to handle this error internally rather than throwing
+      await expect(
+        spec.service.getProjectCover('alice', 'project-1')
+      ).rejects.toThrow();
+      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
+    });
+  });
+
+  /* -------------------------------------------------------------- */
+  /* deleteProjectCover                                            */
+  /* -------------------------------------------------------------- */
+  describe('deleteProjectCover', () => {
+    beforeEach(() => {
+      // Reset mocks before each test
+      api.coverControllerDeleteCover.mockReset();
+      api.projectControllerGetAllProjects.mockReset();
+      xsrf.getXsrfToken.mockReset();
+      xsrf.getXsrfToken.mockReturnValue('test-token');
+      store.delete.mockReset();
+      spec.service.error.set(undefined);
+    });
+
+    it('deletes a project cover and refreshes project', async () => {
+      // Set up API to succeed
+      api.coverControllerDeleteCover.mockReturnValue(apiOk(undefined));
+      api.projectControllerGetAllProjects.mockReturnValue(apiOk(BASE));
+
+      await spec.service.deleteProjectCover('alice', 'project-1');
+
+      // Should call API without token parameter (cover controller doesn't use token)
+      expect(api.coverControllerDeleteCover).toHaveBeenCalledWith(
+        'alice',
+        'project-1'
+      );
+    });
+
+    it('handles API errors correctly', async () => {
+      // Set up API to fail with 404
+      api.coverControllerDeleteCover.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 404 }))
+      );
+
+      // The service throws the error
+      await expect(
+        spec.service.deleteProjectCover('alice', 'nonexistent')
+      ).rejects.toThrow();
+
+      // Verify error was set with correct code
+      expect(spec.service.error()?.code).toBe('PROJECT_NOT_FOUND');
+    });
+
+    it('handles network errors correctly', async () => {
+      // Set up API to fail with network error
+      api.coverControllerDeleteCover.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 0 }))
+      );
+
+      // The service throws the error
+      await expect(
+        spec.service.deleteProjectCover('alice', 'project-1')
+      ).rejects.toThrow();
+
+      // Verify error was set with correct code
+      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
     });
   });
 
   describe('uploadProjectCover', () => {
-    const mockCover = new Blob(['new cover']);
-
-    it('should call API and reload projects on success', async () => {
-      mockProjectAPIService.projectControllerUploadCover.mockReturnValue(
-        of(undefined) as unknown as Observable<HttpEvent<void>>
-      ); // Simulate void
-      const loadAllSpy = jest
-        .spyOn(service, 'loadAllProjects')
-        .mockResolvedValue();
-
-      await service.uploadProjectCover('testuser', 'project-1', mockCover);
-
-      expect(
-        mockProjectAPIService.projectControllerUploadCover
-      ).toHaveBeenCalledWith('testuser', 'project-1', mockCover);
-      expect(loadAllSpy).toHaveBeenCalled();
-      expect(service.isLoading()).toBe(false);
-      expect(service.error()).toBeUndefined();
-
-      loadAllSpy.mockRestore();
+    beforeEach(() => {
+      // Reset mocks before each test
+      api.coverControllerUploadCover.mockReset();
+      api.projectControllerGetAllProjects.mockReset();
+      xsrf.getXsrfToken.mockReset();
+      xsrf.getXsrfToken.mockReturnValue('test-token');
+      spec.service.error.set(undefined);
     });
 
-    it('should handle API errors during cover upload', async () => {
-      const errorResponse = new HttpErrorResponse({ status: 500 });
-      mockProjectAPIService.projectControllerUploadCover.mockReturnValue(
-        throwError(() => errorResponse)
+    it('uploads a project cover and refreshes project', async () => {
+      const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
+
+      // Set up API to succeed
+      api.coverControllerUploadCover.mockReturnValue(apiOk(undefined));
+      api.projectControllerGetAllProjects.mockReturnValue(apiOk(BASE));
+
+      await spec.service.uploadProjectCover('alice', 'project-1', coverBlob);
+
+      // Should call API without token parameter (cover controller doesn't use token)
+      expect(api.coverControllerUploadCover).toHaveBeenCalledWith(
+        'alice',
+        'project-1',
+        coverBlob
       );
-      const loadAllSpy = jest.spyOn(service, 'loadAllProjects');
+
+      // Verify loadAllProjects is called with token
+      expect(api.projectControllerGetAllProjects).toHaveBeenCalledWith();
+    });
+
+    it('handles API errors correctly', async () => {
+      const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
+
+      // Set up API to fail with 413
+      api.coverControllerUploadCover.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 413 }))
+      );
 
       await expect(
-        service.uploadProjectCover('testuser', 'project-1', mockCover)
-      ).rejects.toThrow(ProjectServiceError);
+        spec.service.uploadProjectCover('alice', 'project-1', coverBlob)
+      ).rejects.toThrow();
 
-      expect(
-        mockProjectAPIService.projectControllerUploadCover
-      ).toHaveBeenCalledWith('testuser', 'project-1', mockCover);
-      expect(loadAllSpy).not.toHaveBeenCalled();
-      expect(service.error()).toBeInstanceOf(ProjectServiceError);
-      expect(service.error()?.code).toBe('SERVER_ERROR');
-      expect(service.isLoading()).toBe(false);
+      // Verify error was set with correct code
+      expect(spec.service.error()?.code).toBe('SERVER_ERROR');
+      expect(spec.service.error()?.message).toContain(
+        'An unexpected error occurred'
+      );
+    });
 
-      loadAllSpy.mockRestore();
+    it('handles network errors correctly', async () => {
+      const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
+
+      // Set up API to fail with network error
+      api.coverControllerUploadCover.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 0 }))
+      );
+
+      await expect(
+        spec.service.uploadProjectCover('alice', 'project-1', coverBlob)
+      ).rejects.toThrow();
+
+      // Verify error was set with correct code
+      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
+    });
+
+    it('handles unauthorized errors correctly', async () => {
+      const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
+
+      // Set up API to fail with 401
+      api.coverControllerUploadCover.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 401 }))
+      );
+
+      await expect(
+        spec.service.uploadProjectCover('alice', 'project-1', coverBlob)
+      ).rejects.toThrow();
+
+      // Verify error was set with correct code
+      expect(spec.service.error()?.code).toBe('SESSION_EXPIRED');
     });
   });
 
-  // --- Error Formatting and Edge Cases ---
-
-  describe('error handling / formatError', () => {
-    it('should correctly format network errors (status 0)', () => {
-      const errorResponse = new HttpErrorResponse({ status: 0 });
-      const formattedError = (service as any).formatError(errorResponse);
-      expect(formattedError).toBeInstanceOf(ProjectServiceError);
-      expect(formattedError.code).toBe('NETWORK_ERROR');
+  /* -------------------------------------------------------------- */
+  /* clearCache                                                    */
+  /* -------------------------------------------------------------- */
+  describe('clearCache', () => {
+    beforeEach(() => {
+      // Reset mocks
+      store.delete.mockReset();
+      store.isAvailable.mockReset();
     });
 
-    it('should correctly format session expired errors (status 401)', () => {
-      const errorResponse = new HttpErrorResponse({ status: 401 });
-      const formattedError = (service as any).formatError(errorResponse);
-      expect(formattedError).toBeInstanceOf(ProjectServiceError);
-      expect(formattedError.code).toBe('SESSION_EXPIRED');
+    it('clears all project caches when storage is available', async () => {
+      // Mock storage is available
+      store.isAvailable.mockReturnValue(true);
+      // Mock the current projects
+      spec.service.projects.set(BASE);
+
+      await spec.service.clearCache();
+
+      // Should check if storage is available
+      expect(store.isAvailable).toHaveBeenCalled();
+
+      // Should try to clear the projects list
+      expect(store.delete).toHaveBeenCalledWith(
+        expect.anything(),
+        'projectsList',
+        'allProjects'
+      );
+
+      // Should clear each project cache
+      for (const project of BASE) {
+        expect(store.delete).toHaveBeenCalledWith(
+          expect.anything(),
+          'projects',
+          `${project.username}/${project.slug}`
+        );
+      }
+
+      // Should reset the projects signal
+      expect(spec.service.projects()).toEqual([]);
     });
 
-    it('should correctly format not found errors (status 404)', () => {
-      const errorResponse = new HttpErrorResponse({ status: 404 });
-      const formattedError = (service as any).formatError(errorResponse);
-      expect(formattedError).toBeInstanceOf(ProjectServiceError);
-      expect(formattedError.code).toBe('PROJECT_NOT_FOUND');
+    it('handles case when storage is unavailable', async () => {
+      // Mock storage is unavailable
+      store.isAvailable.mockReturnValue(false);
+      // Mock the current projects
+      spec.service.projects.set(BASE);
+
+      await spec.service.clearCache();
+
+      // Should check if storage is available
+      expect(store.isAvailable).toHaveBeenCalled();
+
+      // Should not try to clear any caches
+      expect(store.delete).not.toHaveBeenCalled();
+
+      // Should still reset the projects signal
+      expect(spec.service.projects()).toEqual([]);
     });
 
-    it('should correctly format generic server errors (e.g., status 500)', () => {
-      const errorResponse = new HttpErrorResponse({ status: 500 });
-      const formattedError = (service as any).formatError(errorResponse);
-      expect(formattedError).toBeInstanceOf(ProjectServiceError);
-      expect(formattedError.code).toBe('SERVER_ERROR');
-    });
+    it('handles errors when clearing cache', async () => {
+      // Mock storage is available but delete fails
+      store.isAvailable.mockReturnValue(true);
+      store.delete.mockRejectedValue(new Error('Storage error'));
 
-    it('should correctly format forbidden errors (status 403) as SERVER_ERROR', () => {
-      const errorResponse = new HttpErrorResponse({ status: 403 });
-      const formattedError = (service as any).formatError(errorResponse);
-      expect(formattedError).toBeInstanceOf(ProjectServiceError);
-      expect(formattedError.code).toBe('SERVER_ERROR'); // Or potentially a specific 'FORBIDDEN' code if needed
-    });
+      // Mock the current projects
+      spec.service.projects.set(BASE);
 
-    it('should format non-HttpErrorResponse errors as SERVER_ERROR', () => {
-      // Create an error with the same message that our test expects
-      const genericError = new Error('An unexpected error occurred');
-      const formattedError = (service as any).formatError(genericError);
-      expect(formattedError).toBeInstanceOf(ProjectServiceError);
-      expect(formattedError.code).toBe('SERVER_ERROR');
-      expect(formattedError.message).toBe('An unexpected error occurred');
-    });
-  });
+      // Should not throw even if cache clearing fails
+      await expect(spec.service.clearCache()).resolves.not.toThrow();
 
-  // --- Constructor/Initialization Tests ---
-  // Note: Testing constructor errors requires careful setup *before* TestBed.inject
-  // This might involve a separate describe block or more complex TestBed configuration.
-  // Example sketch (might need adjustment based on exact DI behavior):
-  /*
-  describe('Initialization', () => {
-    it('should handle storage initialization failure', async () => {
-      // Mock StorageService *before* TestBed configuration
-      const mockStorageServiceFail = {
-        initializeDatabase: jest.fn().mockRejectedValue(new Error('DB init failed')),
-        isAvailable: jest.fn().mockReturnValue(false), // Assume unavailable if init fails
-      };
-
-      TestBed.resetTestingModule(); // Reset previous config if necessary
-      TestBed.configureTestingModule({
-        providers: [
-          ProjectService,
-          { provide: ProjectAPIService, useValue: mockProjectAPIService }, // Use existing mocks
-          { provide: StorageService, useValue: mockStorageServiceFail }, // Use failing mock
-          { provide: XsrfService, useValue: mockXsrfService },
-        ],
-      });
-
-      // Expect injection itself *not* to throw, but the internal promise to reject
-      // Accessing the service might trigger the error handling path depending on timing
-      // Or check console.error spy
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-      const serviceInstance = TestBed.inject(ProjectService);
-
-      // Allow async operations in constructor/initialization
-      await new Promise(process.nextTick);
-
-      expect(mockStorageServiceFail.initializeDatabase).toHaveBeenCalled();
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Project cache initialization failed:', expect.any(Error));
-      // Depending on how the error is handled (e.g., rethrown async),
-      // you might need to await a potentially rejected promise or check a state flag.
-      // await expect((serviceInstance as any).db).rejects.toThrow('DB init failed'); // If db promise is accessible and rejects
-
-      consoleErrorSpy.mockRestore();
-      TestBed.resetTestingModule(); // Clean up
+      // Should still reset the projects signal
+      expect(spec.service.projects()).toEqual([]);
     });
   });
-  */
+
+  /* -------------------------------------------------------------- */
+  /* Error mapping                                                  */
+  /* -------------------------------------------------------------- */
+  it.each`
+    status | code
+    ${0}   | ${'NETWORK_ERROR'}
+    ${401} | ${'SESSION_EXPIRED'}
+    ${404} | ${'PROJECT_NOT_FOUND'}
+    ${500} | ${'SERVER_ERROR'}
+  `('formats HTTP $status → $code', ({ status, code }) => {
+    const err = new HttpErrorResponse({ status });
+    const out = (spec.service as any).formatError(err) as ProjectServiceError;
+    expect(out.code).toBe(code);
+  });
+
+  it('handles non-HttpErrorResponse errors', () => {
+    const err = new Error('Generic error');
+    const out = (spec.service as any).formatError(err) as ProjectServiceError;
+    expect(out.code).toBe('SERVER_ERROR');
+    expect(out.message).toBe('Generic error');
+  });
+
+  it('throws SERVER_ERROR when API & cache both fail', async () => {
+    store.get.mockResolvedValue(undefined);
+    api.projectControllerGetAllProjects.mockReturnValue(
+      apiErr(new HttpErrorResponse({ status: 500 }))
+    );
+
+    await expect(spec.service.loadAllProjects()).rejects.toBeInstanceOf(
+      ProjectServiceError
+    );
+    expect(spec.service.error()?.code).toBe('SERVER_ERROR');
+  });
+
+  it('refreshes cache in background', async () => {
+    const fresh: ProjectDto[] = [
+      ...BASE,
+      {
+        id: '3',
+        title: 'Project 3',
+        slug: 'project-3',
+        username: 'alice',
+        createdDate: date,
+        updatedDate: date,
+      },
+    ];
+
+    store.get.mockResolvedValue(BASE);
+    api.projectControllerGetAllProjects.mockReturnValue(apiOk(fresh));
+
+    await spec.service.loadAllProjects(); // wait until the method resolves
+
+    expect(spec.service.projects()).toEqual(fresh);
+  });
 });

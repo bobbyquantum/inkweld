@@ -36,7 +36,7 @@ export interface AppTab {
   id: string;
   name: string;
   type: 'document' | 'folder' | 'system';
-  systemType?: 'documents-list' | 'project-files';
+  systemType?: 'documents-list' | 'project-files' | 'home';
   element?: ProjectElementDto;
 }
 

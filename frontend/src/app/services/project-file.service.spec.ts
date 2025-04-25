@@ -1,152 +1,161 @@
-import { TestBed } from '@angular/core/testing';
+import { HttpEvent } from '@angular/common/http';
+import { fakeAsync, flush } from '@angular/core/testing';
 import {
   FileDeleteResponseDto,
   FileMetadataDto,
   FileUploadResponseDto,
 } from '@inkweld/index';
-import { of } from 'rxjs';
+import {
+  createServiceFactory,
+  SpectatorService,
+  SpyObject,
+} from '@ngneat/spectator/jest';
+import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
+import { Observable, of } from 'rxjs';
 
 import { ProjectAPIService } from '../../api-client/api/project-api.service';
-import { ProjectFileService } from './project-file.service';
+import {
+  FileDeleteResponse,
+  ProjectFile,
+  ProjectFileService,
+} from './project-file.service';
 import { XsrfService } from './xsrf.service';
 
-describe('ProjectFileService', () => {
-  let service: ProjectFileService;
-  let projectApiServiceMock: jest.Mocked<ProjectAPIService>;
-  let xsrfServiceMock: jest.Mocked<XsrfService>;
+describe('ProjectFileService (spectator flavour)', () => {
+  const createService = createServiceFactory({
+    service: ProjectFileService,
+    providers: [
+      {
+        provide: ProjectAPIService,
+        useFactory: () => mockDeep<ProjectAPIService>(),
+      },
+      { provide: XsrfService, useFactory: () => mockDeep<XsrfService>() },
+    ],
+  });
 
-  // Simple ISO date string for testing
-  const testDate = '2025-03-16T10:00:00.000Z';
+  const TEST_DATE = '2025-03-16T10:00:00.000Z';
 
-  // Simplified test data
-  const createMockData = () => {
-    const fileBase = {
-      originalName: 'test.jpg',
-      storedName: 'stored-test.jpg',
-      contentType: 'image/jpeg',
-      size: 1024,
-      uploadDate: testDate,
-    };
-
-    return {
-      metadata: fileBase as FileMetadataDto,
-      uploadResponse: {
-        ...fileBase,
-        fileUrl: 'http://example.com/test.jpg',
-      } as FileUploadResponseDto,
-      deleteResponse: {
-        message: 'File deleted successfully',
-      } as FileDeleteResponseDto,
-    };
+  const fileMeta: FileMetadataDto = {
+    originalName: 'test.jpg',
+    storedName: 'stored-test.jpg',
+    contentType: 'image/jpeg',
+    size: 1024,
+    uploadDate: TEST_DATE,
   };
 
+  const uploadResp: FileUploadResponseDto = {
+    ...fileMeta,
+    fileUrl: 'http://example.com/test.jpg',
+  };
+
+  const deleteResp: FileDeleteResponseDto = {
+    message: 'File deleted successfully',
+  };
+
+  let spectator: SpectatorService<ProjectFileService>;
+  type ApiMock = SpyObject<ProjectAPIService> &
+    DeepMockProxy<ProjectAPIService>;
+  type XsrfMock = SpyObject<XsrfService> & DeepMockProxy<XsrfService>;
+
+  let api!: ApiMock;
+  let xsrf!: XsrfMock;
+
   beforeEach(() => {
-    const mockData = createMockData();
+    spectator = createService();
 
-    // Create a simplified mock for ProjectAPIService
-    projectApiServiceMock = {
-      projectFilesControllerListFiles: jest
-        .fn()
-        .mockReturnValue(of([mockData.metadata])),
-      projectFilesControllerUploadFile: jest
-        .fn()
-        .mockReturnValue(of(mockData.uploadResponse)),
-      projectFilesControllerDeleteFile: jest
-        .fn()
-        .mockReturnValue(of(mockData.deleteResponse)),
-      configuration: {
-        basePath: 'http://localhost:3000',
-        encodeParam: jest.fn(param => param.value),
-      },
-    } as unknown as jest.Mocked<ProjectAPIService>;
+    api = spectator.inject(ProjectAPIService) as ApiMock;
+    xsrf = spectator.inject(XsrfService) as XsrfMock;
 
-    // Create a mock for XsrfService
-    xsrfServiceMock = {
-      getXsrfToken: jest.fn().mockReturnValue('test-token'),
-      getToken: jest.fn().mockResolvedValue('test-token'),
-      refreshToken: jest.fn().mockResolvedValue('test-token'),
-    } as unknown as jest.Mocked<XsrfService>;
+    /* default stubbing for every test */
+    api.projectFilesControllerListFiles.mockReturnValue(
+      of([fileMeta]) as unknown as Observable<HttpEvent<FileMetadataDto[]>>
+    );
+    api.projectFilesControllerUploadFile.mockReturnValue(
+      of(uploadResp) as unknown as Observable<HttpEvent<FileUploadResponseDto>>
+    );
+    api.projectFilesControllerDeleteFile.mockReturnValue(
+      of(deleteResp) as unknown as Observable<HttpEvent<FileDeleteResponseDto>>
+    );
 
-    TestBed.configureTestingModule({
-      providers: [
-        ProjectFileService,
-        { provide: ProjectAPIService, useValue: projectApiServiceMock },
-        { provide: XsrfService, useValue: xsrfServiceMock },
-      ],
-    });
+    xsrf.getXsrfToken.mockReturnValue('test-token');
+    xsrf.getToken.mockResolvedValue('test-token');
 
-    service = TestBed.inject(ProjectFileService);
+    /* basePath is just a POJO, not a method, so set it directly */
+    (api as any).configuration = {
+      basePath: 'http://localhost:3000',
+      encodeParam: (p: any) => p.value,
+    };
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  it('lists project files', fakeAsync(() => {
+    let files!: ProjectFile[];
+
+    spectator.service
+      .getProjectFiles('alice', 'proj')
+      .subscribe(f => (files = f));
+    flush();
+
+    expect(api.projectFilesControllerListFiles).toHaveBeenCalledWith(
+      'alice',
+      'proj'
+    );
+    expect(files[0]).toMatchObject({ originalName: 'test.jpg' });
+    expect(files[0].uploadDate.toISOString()).toBe(TEST_DATE);
+  }));
+
+  it('builds a file URL from the API basePath', () => {
+    const url = spectator.service.getFileUrl(
+      'alice',
+      'proj',
+      'stored-test.jpg'
+    );
+
+    expect(url).toBe(
+      'http://localhost:3000/api/v1/projects/alice/proj/files/stored-test.jpg'
+    );
   });
 
-  it('should be created and handle basic operations', done => {
-    // Test service creation
-    expect(service).toBeTruthy();
+  it('uploads then deletes a file', fakeAsync(() => {
+    const testFile = new File(['x'], 'test.jpg', { type: 'image/jpeg' });
 
-    // Test getProjectFiles
-    service.getProjectFiles('user1', 'project1').subscribe(files => {
-      expect(files[0].originalName).toBe('test.jpg');
-      expect(files[0].uploadDate).toBeInstanceOf(Date);
-      expect(files[0].uploadDate.toISOString()).toBe(testDate);
-      expect(
-        projectApiServiceMock.projectFilesControllerListFiles
-      ).toHaveBeenCalledWith('user1', 'project1');
+    /* upload */
+    let uploaded!: ProjectFile;
+    spectator.service
+      .uploadFile('alice', 'proj', testFile)
+      .subscribe(f => (uploaded = f));
+    flush();
 
-      // Test file URL generation in the same test
-      const url = service.getFileUrl('user1', 'project1', 'stored-test.jpg');
-      expect(url).toBe(
-        'http://localhost:3000/api/v1/projects/user1/project1/files/stored-test.jpg'
-      );
+    expect(api.projectFilesControllerUploadFile).toHaveBeenCalledWith(
+      'alice',
+      'proj',
+      'test-token',
+      testFile
+    );
+    expect(uploaded.uploadDate.toISOString()).toBe(TEST_DATE);
 
-      done();
-    });
-  });
+    /* delete */
+    let delResp!: FileDeleteResponse;
+    spectator.service
+      .deleteFile('alice', 'proj', 'stored-test.jpg')
+      .subscribe(r => (delResp = r));
+    flush();
 
-  it('should handle file operations correctly', done => {
-    // Create a minimal test file
-    const testFile = new File(['t'], 'test.jpg', { type: 'image/jpeg' });
+    expect(api.projectFilesControllerDeleteFile).toHaveBeenCalledWith(
+      'alice',
+      'proj',
+      'stored-test.jpg',
+      'test-token'
+    );
+    expect(delResp.message).toBe('File deleted successfully');
+  }));
 
-    // Test upload
-    service.uploadFile('user1', 'project1', testFile).subscribe(file => {
-      expect(file.originalName).toBe('test.jpg');
-      expect(file.uploadDate).toBeInstanceOf(Date);
-      expect(
-        projectApiServiceMock.projectFilesControllerUploadFile
-      ).toHaveBeenCalledWith('user1', 'project1', 'test-token', testFile);
-
-      // Test delete in the same test flow
-      service
-        .deleteFile('user1', 'project1', 'stored-test.jpg')
-        .subscribe(response => {
-          expect(response.message).toBe('File deleted successfully');
-          expect(
-            projectApiServiceMock.projectFilesControllerDeleteFile
-          ).toHaveBeenCalledWith(
-            'user1',
-            'project1',
-            'stored-test.jpg',
-            'test-token'
-          );
-          done();
-        });
-    });
-  });
-
-  it('should format file sizes correctly', () => {
-    // Test all size formats in a single test
-    const sizes = [
-      { input: 0, expected: '0 Bytes' },
-      { input: 1000, expected: '1000 Bytes' },
-      { input: 1024, expected: '1 KB' },
-      { input: 1048576, expected: '1 MB' },
-      { input: 1073741824, expected: '1 GB' },
-    ];
-
-    sizes.forEach(testCase => {
-      expect(service.formatFileSize(testCase.input)).toBe(testCase.expected);
-    });
+  it.each([
+    [0, '0 Bytes'],
+    [1000, '1000 Bytes'],
+    [1024, '1 KB'],
+    [1048576, '1 MB'],
+    [1073741824, '1 GB'],
+  ])('formats %d bytes → %s', (bytes, expected) => {
+    expect(spectator.service.formatFileSize(bytes)).toBe(expected);
   });
 });

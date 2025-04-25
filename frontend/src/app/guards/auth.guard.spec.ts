@@ -13,40 +13,37 @@ import { UserService } from '@services/user.service';
 import { authGuard } from './auth.guard';
 
 describe('authGuard', () => {
-  const executeGuard: CanActivateFn = (...args) =>
-    TestBed.runInInjectionContext(() => authGuard(...args));
-
   let router: Router;
   let userService: UserService;
   let mockCurrentUser: WritableSignal<UserDto | undefined>;
 
+  const executeGuard: CanActivateFn = (...args) =>
+    TestBed.runInInjectionContext(() => authGuard(...args));
+
   beforeEach(() => {
     mockCurrentUser = signal<UserDto | undefined>(undefined);
 
+    // Create mock services
+    router = {
+      createUrlTree: jest.fn().mockReturnValue(new UrlTree()),
+    } as unknown as Router;
+
+    userService = {
+      currentUser: mockCurrentUser,
+      loadCurrentUser: jest.fn(),
+      hasCachedUser: jest.fn(),
+      isAuthenticated: computed(() => !!mockCurrentUser()),
+      initialized: signal(true),
+      error: signal(undefined),
+    } as unknown as UserService;
+
+    // Configure TestBed once
     TestBed.configureTestingModule({
       providers: [
-        {
-          provide: Router,
-          useValue: {
-            createUrlTree: jest.fn().mockReturnValue(new UrlTree()),
-          },
-        },
-        {
-          provide: UserService,
-          useValue: {
-            currentUser: mockCurrentUser,
-            loadCurrentUser: jest.fn(),
-            hasCachedUser: jest.fn(),
-            isAuthenticated: computed(() => !!mockCurrentUser()),
-            initialized: signal(true),
-            error: signal(undefined),
-          },
-        },
+        { provide: Router, useValue: router },
+        { provide: UserService, useValue: userService },
       ],
     });
-
-    router = TestBed.inject(Router);
-    userService = TestBed.inject(UserService);
   });
 
   it('should allow access when user is already loaded and authenticated', async () => {

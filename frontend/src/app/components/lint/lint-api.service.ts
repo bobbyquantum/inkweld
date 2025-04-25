@@ -1,5 +1,5 @@
 import { HttpContext, HttpContextToken } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { LintService } from '../../../api-client/api/lint.service';
@@ -22,7 +22,7 @@ export const ABORT_SIGNAL = new HttpContextToken<AbortSignal>(
 export class LintApiService {
   private readonly timeout = 10000; // 10 seconds
 
-  constructor(private readonly lintService: LintService) {}
+  private readonly lintService = inject(LintService);
 
   /**
    * Run a lint request and handle response
