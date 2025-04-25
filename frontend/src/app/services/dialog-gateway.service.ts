@@ -11,6 +11,10 @@ import { EditAvatarDialogComponent } from '../dialogs/edit-avatar-dialog/edit-av
 import { EditProjectDialogComponent } from '../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { FileUploadComponent } from '../dialogs/file-upload/file-upload.component';
 import {
+  GenerateCoverDialogComponent,
+  GenerateCoverDialogData,
+} from '../dialogs/generate-cover-dialog/generate-cover-dialog.component';
+import {
   ImageViewerDialogComponent,
   ImageViewerDialogData,
 } from '../dialogs/image-viewer-dialog/image-viewer-dialog.component';
@@ -84,6 +88,17 @@ export class DialogGatewayService {
     const dialogRef = this.dialog.open(EditAvatarDialogComponent, {
       disableClose: true,
       width: '400px',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openGenerateCoverDialog(project: ProjectDto): Promise<boolean> {
+    const dialogRef = this.dialog.open(GenerateCoverDialogComponent, {
+      data: { project } as GenerateCoverDialogData,
+      disableClose: false,
+      width: '600px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

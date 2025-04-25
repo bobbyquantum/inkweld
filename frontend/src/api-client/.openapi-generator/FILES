@@ -5,6 +5,7 @@ api/api.ts
 api/auth.service.ts
 api/csrf.service.ts
 api/document-api.service.ts
+api/image.service.ts
 api/lint.service.ts
 api/mcp.service.ts
 api/project-api.service.ts
@@ -18,6 +19,11 @@ model/document-dto.ts
 model/file-delete-response-dto.ts
 model/file-metadata-dto.ts
 model/file-upload-response-dto.ts
+model/image-data-dto.ts
+model/image-generate-request-dto.ts
+model/image-response-dto.ts
+model/image-usage-dto.ts
+model/input-tokens-details-dto.ts
 model/lint-request-dto.ts
 model/lint-response-dto.ts
 model/login-request-dto.ts

@@ -11,6 +11,7 @@ import * as path from 'path';
 import { DatabaseModule } from './common/database/database.module.js';
 import { cwd } from 'process';
 import { BaseHrefMiddleware } from './common/middleware/base-href.middleware.js';
+import { ImageModule } from './image/image.module.js';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { BaseHrefMiddleware } from './common/middleware/base-href.middleware.js'
     AuthModule,
     McpModule,
     LintModule,
+    ImageModule,
   ],
   providers: [LevelDBManagerService],
   exports: [LevelDBManagerService],

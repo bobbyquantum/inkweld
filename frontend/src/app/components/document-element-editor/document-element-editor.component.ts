@@ -46,8 +46,7 @@ const isTestEnvironment = () => {
   templateUrl: './document-element-editor.component.html',
   styleUrls: [
     './document-element-editor.component.scss',
-    // Only include lint.css in non-test environments
-    ...(isTestEnvironment() ? [] : ['../../components/lint/lint.css']),
+    '../../components/lint/lint.css',
   ],
 })
 export class DocumentElementEditorComponent
