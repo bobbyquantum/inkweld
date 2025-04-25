@@ -1,11 +1,12 @@
 import { inject, Injectable } from '@angular/core';
 import {
+  FileDeleteResponseDto,
   FileMetadataDto,
   FileUploadResponseDto,
-  ProjectFilesService,
 } from '@inkweld/index';
-import { map, Observable } from 'rxjs';
+import { catchError, map, Observable, throwError } from 'rxjs';
 
+import { ProjectAPIService } from '../../api-client/api/project-api.service';
 import { XsrfService } from './xsrf.service';
 
 export interface ProjectFile {
@@ -25,22 +26,46 @@ export interface FileDeleteResponse {
   providedIn: 'root',
 })
 export class ProjectFileService {
-  private projectFilesService = inject(ProjectFilesService);
+  private projectApi = inject(ProjectAPIService);
   private xsrfService = inject(XsrfService);
+
   getProjectFiles(
     username: string,
     projectSlug: string
   ): Observable<ProjectFile[]> {
-    return this.projectFilesService
-      .projectFilesControllerListFiles(username, projectSlug)
-      .pipe(
-        map((files: FileMetadataDto[]) =>
-          files.map(file => ({
-            ...file,
-            uploadDate: new Date(file.uploadDate), // Convert string to Date
-          }))
-        )
+    try {
+      return this.projectApi
+        .projectFilesControllerListFiles(username, projectSlug)
+        .pipe(
+          map((files: FileMetadataDto[]) =>
+            files.map(file => ({
+              ...file,
+              uploadDate: new Date(file.uploadDate), // Convert string to Date
+            }))
+          ),
+          catchError((error: unknown) => {
+            console.error('Error fetching project files:', error);
+            return throwError(
+              () =>
+                new Error(
+                  `Failed to fetch project files: ${
+                    error instanceof Error ? error.message : 'Unknown error'
+                  }`
+                )
+            );
+          })
+        );
+    } catch (error: unknown) {
+      console.error('Error in getProjectFiles:', error);
+      return throwError(
+        () =>
+          new Error(
+            `Failed to fetch project files: ${
+              error instanceof Error ? error.message : 'Unknown error'
+            }`
+          )
       );
+    }
   }
 
   uploadFile(
@@ -48,15 +73,43 @@ export class ProjectFileService {
     projectSlug: string,
     file: File
   ): Observable<ProjectFile> {
-    const xsrfToken = this.xsrfService.getXsrfToken();
-    return this.projectFilesService
-      .projectFilesControllerUploadFile(username, projectSlug, xsrfToken, file)
-      .pipe(
-        map((response: FileUploadResponseDto) => ({
-          ...response,
-          uploadDate: new Date(response.uploadDate), // Convert string to Date
-        }))
+    try {
+      const xsrfToken = this.xsrfService.getXsrfToken();
+      return this.projectApi
+        .projectFilesControllerUploadFile(
+          username,
+          projectSlug,
+          xsrfToken,
+          file
+        )
+        .pipe(
+          map((response: FileUploadResponseDto) => ({
+            ...response,
+            uploadDate: new Date(response.uploadDate), // Convert string to Date
+          })),
+          catchError((error: unknown) => {
+            console.error('Error uploading file:', error);
+            return throwError(
+              () =>
+                new Error(
+                  `Failed to upload file: ${
+                    error instanceof Error ? error.message : 'Unknown error'
+                  }`
+                )
+            );
+          })
+        );
+    } catch (error: unknown) {
+      console.error('Error in uploadFile:', error);
+      return throwError(
+        () =>
+          new Error(
+            `Failed to upload file: ${
+              error instanceof Error ? error.message : 'Unknown error'
+            }`
+          )
       );
+    }
   }
 
   deleteFile(
@@ -64,19 +117,42 @@ export class ProjectFileService {
     projectSlug: string,
     storedName: string
   ): Observable<FileDeleteResponse> {
-    const xsrfToken = this.xsrfService.getXsrfToken();
-    return this.projectFilesService
-      .projectFilesControllerDeleteFile(
-        username,
-        projectSlug,
-        storedName,
-        xsrfToken
-      )
-      .pipe(
-        map(response => ({
-          message: response.message || 'File deleted successfully',
-        }))
+    try {
+      const xsrfToken = this.xsrfService.getXsrfToken();
+      return this.projectApi
+        .projectFilesControllerDeleteFile(
+          username,
+          projectSlug,
+          storedName,
+          xsrfToken
+        )
+        .pipe(
+          map((response: FileDeleteResponseDto) => ({
+            message: response.message || 'File deleted successfully',
+          })),
+          catchError((error: unknown) => {
+            console.error('Error deleting file:', error);
+            return throwError(
+              () =>
+                new Error(
+                  `Failed to delete file: ${
+                    error instanceof Error ? error.message : 'Unknown error'
+                  }`
+                )
+            );
+          })
+        );
+    } catch (error: unknown) {
+      console.error('Error in deleteFile:', error);
+      return throwError(
+        () =>
+          new Error(
+            `Failed to delete file: ${
+              error instanceof Error ? error.message : 'Unknown error'
+            }`
+          )
       );
+    }
   }
 
   getFileUrl(
@@ -85,7 +161,7 @@ export class ProjectFileService {
     storedName: string
   ): string {
     return (
-      this.projectFilesService.configuration.basePath +
+      this.projectApi.configuration.basePath +
       `/api/v1/projects/${username}/${projectSlug}/files/${storedName}`
     );
   }

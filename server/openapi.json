@@ -377,7 +377,7 @@
         },
         "summary": "Upload a file to project",
         "tags": [
-          "project-files"
+          "Project API"
         ]
       },
       "get": {
@@ -417,7 +417,7 @@
         },
         "summary": "List all files in a project",
         "tags": [
-          "project-files"
+          "Project API"
         ]
       }
     },
@@ -457,7 +457,7 @@
         },
         "summary": "Download a file from project",
         "tags": [
-          "project-files"
+          "Project API"
         ]
       },
       "delete": {
@@ -511,7 +511,7 @@
         },
         "summary": "Delete a file from project",
         "tags": [
-          "project-files"
+          "Project API"
         ]
       }
     },
