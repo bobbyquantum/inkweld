@@ -272,141 +272,6 @@
         ]
       }
     },
-    "/api/v1/projects/{username}/{slug}/cover": {
-      "post": {
-        "description": "Uploads a cover image for a project. Must have a 1:1.6 aspect ratio and minimum width of 1000px.",
-        "operationId": "ProjectController_uploadCover",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "cover": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "Cover image file (will be converted to JPEG)"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Cover image successfully uploaded"
-          },
-          "400": {
-            "description": "Invalid file format, size, or dimensions"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Upload project cover image",
-        "tags": [
-          "Project API"
-        ]
-      },
-      "get": {
-        "description": "Retrieves a project's cover image as a JPEG file.",
-        "operationId": "ProjectController_getProjectCover",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Project cover image",
-            "content": {
-              "image/jpeg": {}
-            }
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Get project cover image",
-        "tags": [
-          "Project API"
-        ]
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/cover/delete": {
-      "post": {
-        "description": "Deletes the cover image for a project.",
-        "operationId": "ProjectController_deleteCover",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Cover image successfully deleted"
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Delete project cover image",
-        "tags": [
-          "Project API"
-        ]
-      }
-    },
     "/api/v1/projects/{username}/{slug}/elements": {
       "get": {
         "operationId": "ProjectElementController_getProjectElements",
@@ -891,6 +756,144 @@
           }
         ],
         "summary": "Publish project as EPUB",
+        "tags": [
+          "Project API"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/cover": {
+      "post": {
+        "description": "Uploads a cover image for a specific project. Replaces existing cover. Image will be processed to fit 1:1.6 aspect ratio.",
+        "operationId": "CoverController_uploadCover",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Cover image file (JPEG, PNG, WebP, GIF supported)",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "coverImage": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cover image uploaded successfully"
+          },
+          "400": {
+            "description": "Invalid file type or processing error"
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "403": {
+            "description": "User does not have permission to modify this project"
+          }
+        },
+        "summary": "Upload or replace project cover image",
+        "tags": [
+          "Project API"
+        ]
+      },
+      "get": {
+        "description": "Retrieves a project's cover image as a JPEG file.",
+        "operationId": "CoverController_getProjectCover",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project cover image",
+            "content": {
+              "image/jpeg": {}
+            }
+          },
+          "404": {
+            "description": "Cover image or project not found"
+          }
+        },
+        "summary": "Get project cover image",
+        "tags": [
+          "Project API"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/cover/delete": {
+      "post": {
+        "description": "Deletes the cover image for a project.",
+        "operationId": "CoverController_deleteCover",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cover image successfully deleted"
+          },
+          "401": {
+            "description": "Invalid or missing authentication"
+          },
+          "403": {
+            "description": "User does not have permission to delete this cover"
+          },
+          "404": {
+            "description": "Project or cover not found"
+          }
+        },
+        "summary": "Delete project cover image",
         "tags": [
           "Project API"
         ]
@@ -1388,6 +1391,47 @@
           "Mcp"
         ]
       }
+    },
+    "/lint": {
+      "post": {
+        "operationId": "LintController_lintParagraph",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LintRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The paragraph has been successfully analyzed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LintResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid input"
+          },
+          "429": {
+            "description": "Too many requests"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Lint a paragraph for grammar, spelling, and style issues",
+        "tags": [
+          "Lint"
+        ]
+      }
     }
   },
   "info": {
@@ -1767,6 +1811,125 @@
           "name",
           "enabled",
           "sessionId"
+        ]
+      },
+      "LintRequestDto": {
+        "type": "object",
+        "properties": {
+          "paragraph": {
+            "type": "string",
+            "description": "The paragraph text to be checked for errors",
+            "maxLength": 4096,
+            "example": "The cheap perfume couldn't cover the stink of fear..."
+          },
+          "style": {
+            "type": "string",
+            "description": "The writing style to check against",
+            "example": "1940s pulp fiction"
+          },
+          "level": {
+            "type": "string",
+            "description": "The level of linting strictness",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "default": "medium"
+          }
+        },
+        "required": [
+          "paragraph",
+          "style",
+          "level"
+        ]
+      },
+      "CorrectionDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "The error text as it appears in the original paragraph",
+            "example": "scenrt"
+          },
+          "suggestion": {
+            "type": "string",
+            "description": "The suggested correction for the error",
+            "example": "scent"
+          },
+          "from": {
+            "type": "number",
+            "description": "The starting position of the error (UTF-16 code unit offset)",
+            "example": 74
+          },
+          "to": {
+            "type": "number",
+            "description": "The ending position of the error (UTF-16 code unit offset)",
+            "example": 80
+          }
+        },
+        "required": [
+          "error",
+          "suggestion",
+          "from",
+          "to"
+        ]
+      },
+      "StyleRecommendationDto": {
+        "type": "object",
+        "properties": {
+          "suggestion": {
+            "type": "string",
+            "description": "The style recommendation for the paragraph",
+            "example": "Use shorter, punchier sentences"
+          },
+          "reason": {
+            "type": "string",
+            "description": "The reason for the style recommendation",
+            "example": "Pulp fiction typically uses shorter sentences for dramatic effect"
+          }
+        },
+        "required": [
+          "suggestion",
+          "reason"
+        ]
+      },
+      "LintResponseDto": {
+        "type": "object",
+        "properties": {
+          "original_paragraph": {
+            "type": "string",
+            "description": "The original paragraph that was checked"
+          },
+          "corrections": {
+            "description": "List of text corrections with position information",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CorrectionDto"
+            }
+          },
+          "style_recommendations": {
+            "description": "List of style recommendations for the paragraph",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StyleRecommendationDto"
+            }
+          },
+          "source": {
+            "type": "string",
+            "description": "The source of the linting service (openai or languagetool)",
+            "enum": [
+              "openai",
+              "languagetool"
+            ],
+            "default": "openai"
+          }
+        },
+        "required": [
+          "original_paragraph",
+          "corrections",
+          "style_recommendations",
+          "source"
         ]
       }
     }

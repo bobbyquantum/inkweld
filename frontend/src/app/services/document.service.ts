@@ -7,6 +7,7 @@ import {
   signal,
   WritableSignal,
 } from '@angular/core';
+import { createLintPlugin } from '@components/lint/lint-plugin';
 import { Editor } from 'ngx-editor';
 import { Plugin } from 'prosemirror-state';
 import { Observable } from 'rxjs';
@@ -17,6 +18,7 @@ import * as Y from 'yjs';
 
 import { DocumentAPIService } from '../../api-client/api/document-api.service';
 import { environment } from '../../environments/environment';
+import { LintApiService } from '../components/lint/lint-api.service';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { ProjectStateService } from './project-state.service';
 
@@ -48,6 +50,7 @@ export class DocumentService {
   private readonly projectState = inject(ProjectStateService);
   private readonly documentApiService = inject(DocumentAPIService);
   private readonly ngZone = inject(NgZone);
+  private readonly lintApiService = inject(LintApiService);
 
   private connections: Map<string, DocumentConnection> = new Map();
 
@@ -389,6 +392,10 @@ export class DocumentService {
       yCursorPlugin(connection.provider.awareness),
       yUndoPlugin(),
     ] as Plugin[];
+
+    // Add the linting plugin
+    const lintPlugin = createLintPlugin(this.lintApiService);
+    plugins.push(lintPlugin);
 
     // Add word count tracking plugin
     const wordCountPlugin = new Plugin({

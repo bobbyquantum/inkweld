@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { PassportModule } from '@nestjs/passport';
 import { ProjectModule } from './project/project.module.js';
 import { McpModule } from './mcp/mcp.module.js';
+import { LintModule } from './lint/lint.module.js';
 import { LevelDBManagerService } from './common/persistence/leveldb-manager.service.js';
 import * as path from 'path';
 import { DatabaseModule } from './common/database/database.module.js';
@@ -42,6 +43,7 @@ import { BaseHrefMiddleware } from './common/middleware/base-href.middleware.js'
     ProjectModule,
     AuthModule,
     McpModule,
+    LintModule,
   ],
   providers: [LevelDBManagerService],
   exports: [LevelDBManagerService],

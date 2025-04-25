@@ -5,6 +5,7 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
+import { LintApiService } from '../components/lint/lint-api.service';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
@@ -49,6 +50,7 @@ describe('DocumentService', () => {
   let service: DocumentService;
   let mockProjectStateService: jest.Mocked<ProjectStateService>;
   let mockDocumentApiService: jest.Mocked<DocumentAPIService>;
+  let mockLintApiService: jest.Mocked<LintApiService>;
   let mockYDoc: jest.Mocked<Y.Doc>;
   let mockWebSocketProvider: jest.Mocked<WebsocketProvider>;
   let mockIndexedDbProvider: jest.Mocked<IndexeddbPersistence>;
@@ -96,12 +98,23 @@ describe('DocumentService', () => {
       saveDocument: jest.fn().mockReturnValue(Promise.resolve()),
     } as unknown as jest.Mocked<DocumentAPIService>;
 
+    // Mock LintApiService
+    mockLintApiService = {
+      run: jest.fn().mockResolvedValue({
+        original_paragraph: 'test',
+        corrections: [],
+        style_recommendations: [],
+        source: 'openai',
+      }),
+    } as unknown as jest.Mocked<LintApiService>;
+
     // Configure TestBed
     TestBed.configureTestingModule({
       providers: [
         DocumentService,
         { provide: ProjectStateService, useValue: mockProjectStateService },
         { provide: DocumentAPIService, useValue: mockDocumentApiService },
+        { provide: LintApiService, useValue: mockLintApiService },
       ],
     });
 
