@@ -14,6 +14,7 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,6 +23,8 @@ import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
 import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
+import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
+import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
 
 // Determine if we're in a test environment to avoid styleUrl issues in tests
 const isTestEnvironment = () => {
@@ -36,12 +39,14 @@ const isTestEnvironment = () => {
   selector: 'app-document-element-editor',
   standalone: true,
   imports: [
+    CommonModule,
     MatButtonModule,
     MatIconModule,
     NgxEditorModule,
     MatSelectModule,
     MatOptionModule,
     DragDropModule,
+    LintFloatingMenuComponent,
   ],
   templateUrl: './document-element-editor.component.html',
   styleUrls: [
@@ -252,22 +257,132 @@ export class DocumentElementEditorComponent
     style.id = styleId;
     style.textContent = `
       .lint-error {
-        text-decoration: red wavy underline;
+        background-color: rgba(255, 220, 0, 0.2) !important;
+        border-bottom: 1px dashed #ffd700 !important;
+        text-decoration: none !important;
         cursor: pointer;
         position: relative;
       }
       
       .lint-error:hover {
-        background-color: rgba(255, 0, 0, 0.05);
+        background-color: rgba(255, 220, 0, 0.3) !important;
       }
       
       .ProseMirror .lint-error {
-        text-decoration: red wavy underline !important;
+        background-color: rgba(255, 220, 0, 0.2) !important;
+        border-bottom: 1px dashed #ffd700 !important;
+        text-decoration: none !important;
+      }
+
+      /* Custom tooltip styles */
+      .lint-tooltip {
+        position: absolute;
+        z-index: 1000;
+        background-color: rgba(33, 33, 33, 0.95);
+        color: white;
+        border-radius: 4px;
+        padding: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        max-width: 300px;
+        white-space: pre-line;
+        font-size: 14px;
+        line-height: 1.4;
+        display: none;
+      }
+      
+      .lint-error:hover .lint-tooltip {
+        display: block;
+      }
+      
+      .lint-tooltip-title {
+        font-weight: bold;
+        margin-bottom: 4px;
+      }
+      
+      .lint-tooltip-reason {
+        font-style: italic;
+        color: #e0e0e0;
+        margin-bottom: 8px;
+      }
+
+      /* Styles for accept/reject buttons */
+      .lint-action-buttons {
+        display: flex;
+        margin-top: 8px;
+        justify-content: flex-end;
+      }
+      
+      .lint-action-button {
+        cursor: pointer !important;
+        margin-left: 8px !important;
+        padding: 4px 8px !important;
+        border: none !important;
+        border-radius: 3px !important;
+        font-size: 12px !important;
+        display: flex !important;
+        align-items: center !important;
+      }
+      
+      .lint-accept-button {
+        background-color: #4caf50 !important;
+        color: white !important;
+      }
+      
+      .lint-reject-button {
+        background-color: #f44336 !important;
+        color: white !important;
+      }
+      
+      .lint-action-button-icon {
+        margin-right: 4px !important;
       }
     `;
 
     // Add to document head
     document.head.appendChild(style);
     console.log('[DocumentEditor] Added lint plugin styles to document');
+    
+    // Add event handlers for accept/reject buttons
+    document.addEventListener(
+      'lint-accept',
+      ((event: Event) => {
+        const customEvent = event as CustomEvent<unknown>;
+        console.log('[DocumentEditor] Lint suggestion accepted:', customEvent.detail);
+      }) as EventListener
+    );
+    
+    document.addEventListener(
+      'lint-reject',
+      ((event: Event) => {
+        const customEvent = event as CustomEvent<unknown>;
+        console.log('[DocumentEditor] Lint suggestion rejected:', customEvent.detail);
+      }) as EventListener
+    );
+  }
+
+  // Check if the cursor is currently inside a lint suggestion
+  isCursorInLintSuggestion(): boolean {
+    if (!this.editor || !this.editor.view) {
+      return false;
+    }
+    
+    const state = this.editor.view.state;
+    const { selection } = state;
+    const cursorPos = selection.from;
+    
+    // Get the lint plugin state
+    const pluginState = lintPluginKey.getState(state);
+    if (!pluginState?.suggestions || pluginState.suggestions.length === 0) {
+      return false;
+    }
+    
+    // Check if cursor is inside any suggestion
+    for (const suggestion of pluginState.suggestions) {
+      if (suggestion.from <= cursorPos && cursorPos <= suggestion.to) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 }

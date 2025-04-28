@@ -1,11 +1,13 @@
 .lint-error {
-  text-decoration: red wavy underline;
+  background-color: rgba(255, 220, 0, 0.2) !important;
+  border-bottom: 1px dashed #ffd700 !important;
+  text-decoration: none !important;
   cursor: pointer;
   position: relative;
 }
 
 .lint-error:hover {
-  background-color: rgba(255, 0, 0, 0.05);
+  background-color: rgba(255, 220, 0, 0.3) !important;
 }
 
 .lint-style-recommendation {
@@ -23,4 +25,36 @@
   font-size: 14px;
   line-height: 1.4;
   max-width: 300px;
+}
+
+/* Styles for accept/reject buttons */
+.lint-action-buttons {
+  display: flex;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+.lint-action-button {
+  cursor: pointer !important;
+  margin-left: 8px !important;
+  padding: 4px 8px !important;
+  border: none !important;
+  border-radius: 3px !important;
+  font-size: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.lint-accept-button {
+  background-color: #4caf50 !important;
+  color: white !important;
+}
+
+.lint-reject-button {
+  background-color: #f44336 !important;
+  color: white !important;
+}
+
+.lint-action-button-icon {
+  margin-right: 4px !important;
 }

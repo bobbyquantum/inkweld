@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import {
   Component,
   ElementRef,
@@ -8,12 +9,12 @@ import {
 } from '@angular/core';
 import { MatTooltipModule, TooltipPosition } from '@angular/material/tooltip';
 
-import { StyleRecommendationDto } from '../../../api-client/model/style-recommendation-dto';
+import { CorrectionDto } from '../../../api-client/model/correction-dto';
 
 @Component({
   selector: 'app-lint-overlay',
   standalone: true,
-  imports: [MatTooltipModule],
+  imports: [MatTooltipModule, CommonModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <span
@@ -51,12 +52,22 @@ import { StyleRecommendationDto } from '../../../api-client/model/style-recommen
   ],
 })
 export class LintOverlayComponent implements OnInit, OnChanges {
-  @Input() recommendations: StyleRecommendationDto[] = [];
+  @Input() recommendations: CorrectionDto[] = [];
   @Input() position: TooltipPosition = 'below';
 
   tipContent = '';
 
-  constructor(private elementRef: ElementRef) {}
+  constructor(private elementRef: ElementRef) {
+    // Listen for custom events for accept/reject actions
+    document.addEventListener('lint-accept', (event: Event) => {
+      const customEvent = event as CustomEvent<CorrectionDto>;
+      this.handleAccept(customEvent);
+    });
+    document.addEventListener('lint-reject', (event: Event) => {
+      const customEvent = event as CustomEvent<CorrectionDto>;
+      this.handleReject(customEvent);
+    });
+  }
 
   ngOnInit(): void {
     this.updateTipContent();
@@ -64,6 +75,30 @@ export class LintOverlayComponent implements OnInit, OnChanges {
 
   ngOnChanges(): void {
     this.updateTipContent();
+  }
+
+  private handleAccept(event: CustomEvent<CorrectionDto>): void {
+    const correction = event.detail;
+    if (correction) {
+      // Dispatch a custom event that will be handled by the plugin
+      document.dispatchEvent(
+        new CustomEvent('lint-correction-accept', {
+          detail: correction,
+        })
+      );
+    }
+  }
+
+  private handleReject(event: CustomEvent<CorrectionDto>): void {
+    const correction = event.detail;
+    if (correction) {
+      // Dispatch a custom event that will be handled by the plugin
+      document.dispatchEvent(
+        new CustomEvent('lint-correction-reject', {
+          detail: correction,
+        })
+      );
+    }
   }
 
   private updateTipContent(): void {
@@ -74,9 +109,20 @@ export class LintOverlayComponent implements OnInit, OnChanges {
 
     // Format the recommendations as a nicely formatted list
     const formattedTips = this.recommendations.map(rec => {
+      const suggestion = rec.suggestion || '';
+      const errorText = rec.error || '';
+
       return (
-        `<div class="lint-tip-title">${rec.suggestion}</div>` +
-        `<div class="lint-tip-reason">${rec.reason}</div>`
+        `<div class="lint-tip-title">${suggestion}</div>` +
+        `<div class="lint-tip-reason">${errorText}</div>` +
+        `<div class="lint-action-buttons">
+          <button class="lint-action-button lint-accept-button" onclick="document.dispatchEvent(new CustomEvent('lint-accept', {detail: ${JSON.stringify(rec)}}))">
+            <span class="lint-action-button-icon">✓</span> Accept
+          </button>
+          <button class="lint-action-button lint-reject-button" onclick="document.dispatchEvent(new CustomEvent('lint-reject', {detail: ${JSON.stringify(rec)}}))">
+            <span class="lint-action-button-icon">✕</span> Reject
+          </button>
+        </div>`
       );
     });
 

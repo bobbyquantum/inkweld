@@ -8,7 +8,6 @@
     </ngx-editor-menu>
   </div>
 }
-
 <div
   class="editor-container fit-width"
   [class.zen-mode-container]="zenMode"
@@ -20,17 +19,21 @@
         [placeholder]="'Type here...'"
         class="editor-content">
         <ngx-editor-floating-menu [editor]="editor">
-          <ngx-editor-menu
-            [editor]="editor"
-            [toolbar]="floatToolbar"
-            [colorPresets]="colorPresets">
-          </ngx-editor-menu>
+          @if (isCursorInLintSuggestion()) {
+            <app-lint-floating-menu [editor]="editor"></app-lint-floating-menu>
+          }
+          @if (!isCursorInLintSuggestion()) {
+            <ngx-editor-menu
+              [editor]="editor"
+              [toolbar]="floatToolbar"
+              [colorPresets]="colorPresets">
+            </ngx-editor-menu>
+          }
         </ngx-editor-floating-menu>
       </ngx-editor>
     </div>
   </div>
 </div>
-
 <!-- Status bar showing word count and sync status -->
 @if (!zenMode) {
   <div class="editor-status-bar">
