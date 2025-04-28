@@ -76,8 +76,8 @@
     "@types/passport-github2": "1.2.9",
     "@types/passport-local": "1.0.38",
     "@types/ws": "8.18.1",
-    "@typescript-eslint/eslint-plugin": "8.31.0",
-    "@typescript-eslint/parser": "8.31.0",
+    "@typescript-eslint/eslint-plugin": "8.31.1",
+    "@typescript-eslint/parser": "8.31.1",
     "eslint": "9.25.1",
     "eslint-config-prettier": "10.1.2",
     "eslint-plugin-prettier": "5.2.6",
@@ -88,7 +88,7 @@
     "ts-node": "10.9.2",
     "tsconfig-paths": "4.2.0",
     "typescript": "5.8.3",
-    "typescript-eslint": "8.31.0"
+    "typescript-eslint": "8.31.1"
   },
   "type": "module",
   "packageManager": "bun@1.1.42"
