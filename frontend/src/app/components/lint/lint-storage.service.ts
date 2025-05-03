@@ -25,13 +25,13 @@ export class LintStorageService {
     const suggestion = correction.suggestion || '';
     // Since text might not be available in all cases, we'll use from/to as part of the ID
     const uniqueKey = `${correction.from}-${correction.to}-${suggestion}`;
-    
+
     // For ExtendedCorrectionDto with text property
     const extendedCorrection = correction as ExtendedCorrectionDto;
     if (extendedCorrection.text) {
       return `${uniqueKey}-${extendedCorrection.text}`.toLowerCase();
     }
-    
+
     return uniqueKey.toLowerCase();
   }
 
