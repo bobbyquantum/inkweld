@@ -1,4 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop';
+import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   Component,
@@ -14,7 +15,6 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,6 +23,7 @@ import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
 import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
+
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
 import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
 
@@ -341,23 +342,23 @@ export class DocumentElementEditorComponent
     // Add to document head
     document.head.appendChild(style);
     console.log('[DocumentEditor] Added lint plugin styles to document');
-    
+
     // Add event handlers for accept/reject buttons
-    document.addEventListener(
-      'lint-accept',
-      ((event: Event) => {
-        const customEvent = event as CustomEvent<unknown>;
-        console.log('[DocumentEditor] Lint suggestion accepted:', customEvent.detail);
-      }) as EventListener
-    );
-    
-    document.addEventListener(
-      'lint-reject',
-      ((event: Event) => {
-        const customEvent = event as CustomEvent<unknown>;
-        console.log('[DocumentEditor] Lint suggestion rejected:', customEvent.detail);
-      }) as EventListener
-    );
+    document.addEventListener('lint-accept', ((event: Event) => {
+      const customEvent = event as CustomEvent<unknown>;
+      console.log(
+        '[DocumentEditor] Lint suggestion accepted:',
+        customEvent.detail
+      );
+    }) as EventListener);
+
+    document.addEventListener('lint-reject', ((event: Event) => {
+      const customEvent = event as CustomEvent<unknown>;
+      console.log(
+        '[DocumentEditor] Lint suggestion rejected:',
+        customEvent.detail
+      );
+    }) as EventListener);
   }
 
   // Check if the cursor is currently inside a lint suggestion
@@ -365,24 +366,24 @@ export class DocumentElementEditorComponent
     if (!this.editor || !this.editor.view) {
       return false;
     }
-    
+
     const state = this.editor.view.state;
     const { selection } = state;
     const cursorPos = selection.from;
-    
+
     // Get the lint plugin state
     const pluginState = lintPluginKey.getState(state);
     if (!pluginState?.suggestions || pluginState.suggestions.length === 0) {
       return false;
     }
-    
+
     // Check if cursor is inside any suggestion
     for (const suggestion of pluginState.suggestions) {
       if (suggestion.from <= cursorPos && cursorPos <= suggestion.to) {
         return true;
       }
     }
-    
+
     return false;
   }
 }
