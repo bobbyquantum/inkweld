@@ -48,7 +48,7 @@
         "eslint": "9.26.0",
         "eslint-config-prettier": "10.1.2",
         "eslint-plugin-jest": "28.11.0",
-        "eslint-plugin-prettier": "5.3.1",
+        "eslint-plugin-prettier": "5.4.0",
         "eslint-plugin-simple-import-sort": "12.1.1",
         "eslint-plugin-unused-imports": "4.1.4",
         "fake-indexeddb": "6.0.0",
@@ -1193,7 +1193,7 @@
 
     "eslint-plugin-jest": ["eslint-plugin-jest@28.11.0", "", { "dependencies": { "@typescript-eslint/utils": "^6.0.0 || ^7.0.0 || ^8.0.0" }, "peerDependencies": { "@typescript-eslint/eslint-plugin": "^6.0.0 || ^7.0.0 || ^8.0.0", "eslint": "^7.0.0 || ^8.0.0 || ^9.0.0", "jest": "*" }, "optionalPeers": ["@typescript-eslint/eslint-plugin", "jest"] }, "sha512-QAfipLcNCWLVocVbZW8GimKn5p5iiMcgGbRzz8z/P5q7xw+cNEpYqyzFMtIF/ZgF2HLOyy+dYBut+DoYolvqig=="],
 
-    "eslint-plugin-prettier": ["eslint-plugin-prettier@5.3.1", "", { "dependencies": { "prettier-linter-helpers": "^1.0.0", "synckit": "^0.11.0" }, "peerDependencies": { "@types/eslint": ">=8.0.0", "eslint": ">=8.0.0", "eslint-config-prettier": ">= 7.0.0 <10.0.0 || >=10.1.0", "prettier": ">=3.0.0" }, "optionalPeers": ["@types/eslint", "eslint-config-prettier"] }, "sha512-vad9VWgEm9xaVXRNmb4aeOt0PWDc61IAdzghkbYQ2wavgax148iKoX1rNJcgkBGCipzLzOnHYVgL7xudM9yccQ=="],
+    "eslint-plugin-prettier": ["eslint-plugin-prettier@5.4.0", "", { "dependencies": { "prettier-linter-helpers": "^1.0.0", "synckit": "^0.11.0" }, "peerDependencies": { "@types/eslint": ">=8.0.0", "eslint": ">=8.0.0", "eslint-config-prettier": ">= 7.0.0 <10.0.0 || >=10.1.0", "prettier": ">=3.0.0" }, "optionalPeers": ["@types/eslint", "eslint-config-prettier"] }, "sha512-BvQOvUhkVQM1i63iMETK9Hjud9QhqBnbtT1Zc642p9ynzBuCe5pybkOnvqZIBypXmMlsGcnU4HZ8sCTPfpAexA=="],
 
     "eslint-plugin-simple-import-sort": ["eslint-plugin-simple-import-sort@12.1.1", "", { "peerDependencies": { "eslint": ">=5.0.0" } }, "sha512-6nuzu4xwQtE3332Uz0to+TxDQYRLTKRESSc2hefVT48Zc8JthmN23Gx9lnYhu0FtkRSL1oxny3kJ2aveVhmOVA=="],
 
