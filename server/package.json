@@ -57,7 +57,7 @@
     "sqlite3": "^5.1.7",
     "swagger-ui-express": "5.0.1",
     "tiny-lru": "^11.2.11",
-    "typeorm": "0.3.22",
+    "typeorm": "0.3.23",
     "ws": "8.18.2",
     "y-leveldb": "0.2.0",
     "y-websocket": "3.0.0"
