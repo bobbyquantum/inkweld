@@ -68,7 +68,7 @@
     "@nestjs/testing": "11.1.0",
     "@openapitools/openapi-generator-cli": "2.20.0",
     "@types/bun": "1.2.13",
-    "@types/express": "5.0.1",
+    "@types/express": "5.0.2",
     "@types/express-session": "1.18.1",
     "@types/multer": "^1.4.12",
     "@types/node": "22.15.18",
