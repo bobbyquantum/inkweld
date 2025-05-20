@@ -51,7 +51,7 @@
         "@nestjs/testing": "11.1.0",
         "@openapitools/openapi-generator-cli": "2.20.0",
         "@types/bun": "1.2.13",
-        "@types/express": "5.0.1",
+        "@types/express": "5.0.2",
         "@types/express-session": "1.18.1",
         "@types/multer": "^1.4.12",
         "@types/node": "22.15.18",
@@ -300,7 +300,7 @@
 
     "@types/estree": ["@types/estree@1.0.6", "", {}, "sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw=="],
 
-    "@types/express": ["@types/express@5.0.1", "", { "dependencies": { "@types/body-parser": "*", "@types/express-serve-static-core": "^5.0.0", "@types/serve-static": "*" } }, "sha512-UZUw8vjpWFXuDnjFTh7/5c2TWDlQqeXHi6hcN7F2XSVT5P+WmUnnbFS3KA6Jnc6IsEqI2qCVu2bK0R0J4A8ZQQ=="],
+    "@types/express": ["@types/express@5.0.2", "", { "dependencies": { "@types/body-parser": "*", "@types/express-serve-static-core": "^5.0.0", "@types/serve-static": "*" } }, "sha512-BtjL3ZwbCQriyb0DGw+Rt12qAXPiBTPs815lsUvtt1Grk0vLRMZNMUZ741d5rjk+UQOxfDiBZ3dxpX00vSkK3g=="],
 
     "@types/express-serve-static-core": ["@types/express-serve-static-core@5.0.6", "", { "dependencies": { "@types/node": "*", "@types/qs": "*", "@types/range-parser": "*", "@types/send": "*" } }, "sha512-3xhRnjJPkULekpSzgtoNYYcTWgEZkp4myc+Saevii5JPnHNvHMRlBSHDbs7Bh1iPPoVTERHEZXyhyLbMEsExsA=="],
 
