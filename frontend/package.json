@@ -72,7 +72,7 @@
     "jest-preset-angular": "^14.4.2",
     "playwright-ng-schematics": "^2.0.0",
     "prettier": "3.5.3",
-    "ts-jest": "29.3.3",
+    "ts-jest": "29.3.4",
     "typescript": "5.8.3",
     "typescript-eslint": "8.32.1"
   }
