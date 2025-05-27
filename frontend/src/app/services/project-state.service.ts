@@ -14,8 +14,11 @@ import * as Y from 'yjs';
 import { environment } from '../../environments/environment';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { DialogGatewayService } from './dialog-gateway.service';
+import { OfflineProjectElementsService } from './offline-project-elements.service';
 import { RecentFilesService } from './recent-files.service';
+import { SetupService } from './setup.service';
 import { StorageService } from './storage.service';
+import { UnifiedProjectService } from './unified-project.service';
 
 // Constants for document cache configuration
 const DOCUMENT_CACHE_CONFIG = {
@@ -45,6 +48,9 @@ export interface AppTab {
 })
 export class ProjectStateService {
   private projectAPIService = inject(ProjectAPIService);
+  private unifiedProjectService = inject(UnifiedProjectService);
+  private setupService = inject(SetupService);
+  private offlineElementsService = inject(OfflineProjectElementsService);
   private dialogGateway = inject(DialogGatewayService);
   private recentFilesService = inject(RecentFilesService);
   private storageService = inject(StorageService);
@@ -141,49 +147,16 @@ export class ProjectStateService {
     this.error.set(undefined);
 
     try {
-      const projectDto = await firstValueFrom(
-        this.projectAPIService.projectControllerGetProjectByUsernameAndSlug(
-          username,
-          slug
-        )
-      );
-      this.project.set(projectDto);
+      // Check if we're in offline mode
+      const mode = this.setupService.getMode();
 
-      this.docId = `${username}:${slug}:elements`;
-      this.doc = new Y.Doc();
-
-      // Initialize IndexedDB persistence
-      this.indexeddbProvider = new IndexeddbPersistence(this.docId, this.doc);
-      await this.indexeddbProvider.whenSynced;
-
-      // Initialize WebSocket provider
-      if (!environment.wssUrl) {
-        throw new Error('WebSocket URL is not configured');
+      if (mode === 'offline') {
+        // Load project in offline mode
+        await this.loadOfflineProject(username, slug);
+      } else {
+        // Load project in server mode
+        await this.loadServerProject(username, slug);
       }
-
-      this.provider = new WebsocketProvider(
-        environment.wssUrl + '/ws/yjs?documentId=',
-        this.docId,
-        this.doc,
-        { connect: true, resyncInterval: 10000 }
-      );
-
-      // Set up WebSocket status handling
-      this.provider.on('status', ({ status }: { status: string }) => {
-        switch (status) {
-          case 'connected':
-            this.docSyncState.set(DocumentSyncState.Synced);
-            break;
-          case 'disconnected':
-            this.docSyncState.set(DocumentSyncState.Offline);
-            break;
-          default:
-            this.docSyncState.set(DocumentSyncState.Synced);
-        }
-      });
-
-      this.initializeFromDoc();
-      this.observeDocChanges();
 
       // Restore opened documents from cache after project loads
       await this.restoreOpenedDocumentsFromCache();
@@ -196,24 +169,126 @@ export class ProjectStateService {
     }
   }
 
-  updateElements(elements: ProjectElementDto[]): void {
-    if (!this.doc) return;
+  private async loadOfflineProject(
+    username: string,
+    slug: string
+  ): Promise<void> {
+    // Get project from unified service
+    const projectDto = await this.unifiedProjectService.getProject(
+      username,
+      slug
+    );
+    if (!projectDto) {
+      throw new Error('Project not found');
+    }
+    this.project.set(projectDto);
 
-    const elementsArray = this.doc.getArray<ProjectElementDto>('elements');
-    this.doc.transact(() => {
-      elementsArray.delete(0, elementsArray.length);
-      elementsArray.insert(0, elements);
+    // Load elements from offline service
+    this.offlineElementsService.loadElements(username, slug);
+    this.elements.set(this.offlineElementsService.elements());
+
+    // Set offline sync state
+    this.docSyncState.set(DocumentSyncState.Offline);
+  }
+
+  private async loadServerProject(
+    username: string,
+    slug: string
+  ): Promise<void> {
+    const projectDto = await firstValueFrom(
+      this.projectAPIService.projectControllerGetProjectByUsernameAndSlug(
+        username,
+        slug
+      )
+    );
+    this.project.set(projectDto);
+
+    this.docId = `${username}:${slug}:elements`;
+    this.doc = new Y.Doc();
+
+    // Initialize IndexedDB persistence
+    this.indexeddbProvider = new IndexeddbPersistence(this.docId, this.doc);
+    await this.indexeddbProvider.whenSynced;
+
+    // Initialize WebSocket provider
+    if (!environment.wssUrl) {
+      throw new Error('WebSocket URL is not configured');
+    }
+
+    this.provider = new WebsocketProvider(
+      environment.wssUrl + '/ws/yjs?documentId=',
+      this.docId,
+      this.doc,
+      { connect: true, resyncInterval: 10000 }
+    );
+
+    // Set up WebSocket status handling
+    this.provider.on('status', ({ status }: { status: string }) => {
+      switch (status) {
+        case 'connected':
+          this.docSyncState.set(DocumentSyncState.Synced);
+          break;
+        case 'disconnected':
+          this.docSyncState.set(DocumentSyncState.Offline);
+          break;
+        default:
+          this.docSyncState.set(DocumentSyncState.Synced);
+      }
     });
+
+    this.initializeFromDoc();
+    this.observeDocChanges();
+  }
+
+  updateElements(elements: ProjectElementDto[]): void {
+    const mode = this.setupService.getMode();
+
+    if (mode === 'offline') {
+      // Update offline elements
+      const project = this.project();
+      if (project) {
+        this.offlineElementsService.saveElements(
+          project.username,
+          project.slug,
+          elements
+        );
+        this.elements.set(elements);
+      }
+    } else {
+      // Update server elements via Yjs
+      if (!this.doc) return;
+
+      const elementsArray = this.doc.getArray<ProjectElementDto>('elements');
+      this.doc.transact(() => {
+        elementsArray.delete(0, elementsArray.length);
+        elementsArray.insert(0, elements);
+      });
+    }
   }
 
   renameNode(node: ProjectElement, newName: string): void {
-    const elements = this.elements();
-    const index = elements.findIndex(e => e.id === node.id);
-    if (index === -1) return;
+    const mode = this.setupService.getMode();
+    const project = this.project();
 
-    const newElements = [...elements];
-    newElements[index] = { ...newElements[index], name: newName };
-    this.updateElements(this.recomputePositions(newElements));
+    if (mode === 'offline' && project) {
+      // Rename element in offline mode
+      const newElements = this.offlineElementsService.renameElement(
+        project.username,
+        project.slug,
+        node.id,
+        newName
+      );
+      this.elements.set(newElements);
+    } else {
+      // Rename element in server mode
+      const elements = this.elements();
+      const index = elements.findIndex(e => e.id === node.id);
+      if (index === -1) return;
+
+      const newElements = [...elements];
+      newElements[index] = { ...newElements[index], name: newName };
+      this.updateElements(this.recomputePositions(newElements));
+    }
   }
 
   updateProject(project: ProjectDto): void {
@@ -260,30 +335,51 @@ export class ProjectStateService {
     name: string,
     parentId?: string
   ): void {
-    const elements = this.elements();
-    const parentIndex = parentId
-      ? elements.findIndex(e => e.id === parentId)
-      : -1;
-    const parentLevel = parentIndex >= 0 ? elements[parentIndex].level : -1;
+    const mode = this.setupService.getMode();
+    const project = this.project();
 
-    const newElement: ProjectElementDto = {
-      id: nanoid(),
-      name,
-      type,
-      level: parentLevel + 1,
-      expandable: type === 'FOLDER',
-      position: elements.length,
-      version: 0,
-      metadata: {},
-    };
+    if (mode === 'offline' && project) {
+      // Add element in offline mode
+      const newElements = this.offlineElementsService.addElement(
+        project.username,
+        project.slug,
+        type,
+        name,
+        parentId
+      );
+      this.elements.set(newElements);
 
-    const newElements = [...elements];
-    newElements.splice(parentIndex + 1, 0, newElement);
-    this.updateElements(this.recomputePositions(newElements));
+      // Auto-expand parent when adding new element
+      if (parentId) {
+        this.setExpanded(parentId, true);
+      }
+    } else {
+      // Add element in server mode
+      const elements = this.elements();
+      const parentIndex = parentId
+        ? elements.findIndex(e => e.id === parentId)
+        : -1;
+      const parentLevel = parentIndex >= 0 ? elements[parentIndex].level : -1;
 
-    // Auto-expand parent when adding new element
-    if (parentId) {
-      this.setExpanded(parentId, true);
+      const newElement: ProjectElementDto = {
+        id: nanoid(),
+        name,
+        type,
+        level: parentLevel + 1,
+        expandable: type === 'FOLDER',
+        position: elements.length,
+        version: 0,
+        metadata: {},
+      };
+
+      const newElements = [...elements];
+      newElements.splice(parentIndex + 1, 0, newElement);
+      this.updateElements(this.recomputePositions(newElements));
+
+      // Auto-expand parent when adding new element
+      if (parentId) {
+        this.setExpanded(parentId, true);
+      }
     }
   }
 
@@ -403,23 +499,39 @@ export class ProjectStateService {
   }
 
   moveElement(elementId: string, targetIndex: number, newLevel: number): void {
-    const elements = this.elements();
-    const elementIndex = elements.findIndex(e => e.id === elementId);
-    if (elementIndex === -1) return;
+    const mode = this.setupService.getMode();
+    const project = this.project();
 
-    const element = elements[elementIndex];
-    const subtree = this.getSubtree(elements, elementIndex);
-    const levelDiff = newLevel - element.level;
+    if (mode === 'offline' && project) {
+      // Move element in offline mode
+      const newElements = this.offlineElementsService.moveElement(
+        project.username,
+        project.slug,
+        elementId,
+        targetIndex,
+        newLevel
+      );
+      this.elements.set(newElements);
+    } else {
+      // Move element in server mode
+      const elements = this.elements();
+      const elementIndex = elements.findIndex(e => e.id === elementId);
+      if (elementIndex === -1) return;
 
-    // Remove subtree from current position
-    const newElements = elements.filter(e => !subtree.includes(e));
+      const element = elements[elementIndex];
+      const subtree = this.getSubtree(elements, elementIndex);
+      const levelDiff = newLevel - element.level;
 
-    // Update levels in subtree
-    subtree.forEach(e => (e.level += levelDiff));
+      // Remove subtree from current position
+      const newElements = elements.filter(e => !subtree.includes(e));
 
-    // Insert at new position
-    newElements.splice(targetIndex, 0, ...subtree);
-    void this.updateElements(this.recomputePositions(newElements));
+      // Update levels in subtree
+      subtree.forEach(e => (e.level += levelDiff));
+
+      // Insert at new position
+      newElements.splice(targetIndex, 0, ...subtree);
+      void this.updateElements(this.recomputePositions(newElements));
+    }
   }
 
   toggleExpanded(elementId: string): void {
@@ -469,20 +581,40 @@ export class ProjectStateService {
   }
 
   deleteElement(elementId: string): void {
-    const elements = this.elements();
-    const index = elements.findIndex(e => e.id === elementId);
-    if (index === -1) return;
+    const mode = this.setupService.getMode();
+    const project = this.project();
 
-    const subtree = this.getSubtree(elements, index);
-    const newElements = elements.filter(e => !subtree.includes(e));
+    if (mode === 'offline' && project) {
+      // Delete element in offline mode
+      const newElements = this.offlineElementsService.deleteElement(
+        project.username,
+        project.slug,
+        elementId
+      );
+      this.elements.set(newElements);
 
-    // Remove deleted elements from expanded set
-    const expanded = this.expandedNodeIds();
-    const newExpanded = new Set(expanded);
-    subtree.forEach(e => newExpanded.delete(e.id));
-    this.expandedNodeIds.set(newExpanded);
+      // Remove deleted element from expanded set
+      const expanded = this.expandedNodeIds();
+      const newExpanded = new Set(expanded);
+      newExpanded.delete(elementId);
+      this.expandedNodeIds.set(newExpanded);
+    } else {
+      // Delete element in server mode
+      const elements = this.elements();
+      const index = elements.findIndex(e => e.id === elementId);
+      if (index === -1) return;
 
-    void this.updateElements(this.recomputePositions(newElements));
+      const subtree = this.getSubtree(elements, index);
+      const newElements = elements.filter(e => !subtree.includes(e));
+
+      // Remove deleted elements from expanded set
+      const expanded = this.expandedNodeIds();
+      const newExpanded = new Set(expanded);
+      subtree.forEach(e => newExpanded.delete(e.id));
+      this.expandedNodeIds.set(newExpanded);
+
+      void this.updateElements(this.recomputePositions(newElements));
+    }
   }
 
   // Tab Operations

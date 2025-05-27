@@ -14,11 +14,10 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import { ProjectAPIService, ProjectDto } from '@inkweld/index';
-import { XsrfService } from '@services/xsrf.service';
-import { firstValueFrom } from 'rxjs';
+import { ProjectDto } from '@inkweld/index';
 
-import { UserService } from '../../services/user.service';
+import { UnifiedProjectService } from '../../services/unified-project.service';
+import { UnifiedUserService } from '../../services/unified-user.service';
 
 @Component({
   selector: 'app-create-project',
@@ -37,9 +36,8 @@ import { UserService } from '../../services/user.service';
   ],
 })
 export class CreateProjectComponent {
-  private projectAPIService = inject(ProjectAPIService);
-  protected userService = inject(UserService);
-  private xsrfService = inject(XsrfService);
+  private unifiedProjectService = inject(UnifiedProjectService);
+  protected unifiedUserService = inject(UnifiedUserService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
 
@@ -74,7 +72,7 @@ export class CreateProjectComponent {
     });
 
     effect(() => {
-      const user = this.userService.currentUser();
+      const user = this.unifiedUserService.currentUser();
       this.username = user.username;
       this.updateProjectUrl();
     });
@@ -107,15 +105,9 @@ export class CreateProjectComponent {
 
     this.isSaving = true;
     try {
-      const xsrfToken = this.xsrfService.getXsrfToken();
-      const projectData = this.projectForm.value as ProjectDto;
-
-      const response = await firstValueFrom(
-        this.projectAPIService.projectControllerCreateProject(
-          xsrfToken,
-          projectData
-        )
-      );
+      const projectData = this.projectForm.value as Partial<ProjectDto>;
+      const response =
+        await this.unifiedProjectService.createProject(projectData);
 
       this.snackBar.open('Project created successfully!', 'Close', {
         duration: 3000,

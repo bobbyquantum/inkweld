@@ -9,8 +9,8 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
 import { UserDto } from '@inkweld/index';
 import { DialogGatewayService } from '@services/dialog-gateway.service';
-import { ProjectService } from '@services/project.service';
-import { UserService } from '@services/user.service';
+import { UnifiedProjectService } from '@services/unified-project.service';
+import { UnifiedUserService } from '@services/unified-user.service';
 import { Subject, takeUntil } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
@@ -32,8 +32,8 @@ import { debounceTime } from 'rxjs/operators';
 export class UserProfileComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   protected router = inject(Router);
-  protected userService = inject(UserService);
-  protected projectService = inject(ProjectService);
+  protected userService = inject(UnifiedUserService);
+  protected projectService = inject(UnifiedProjectService);
   protected breakpointObserver = inject(BreakpointObserver);
   private dialogGateway = inject(DialogGatewayService);
 
@@ -92,7 +92,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
 
   private async loadUserProjects() {
     try {
-      await this.projectService.loadAllProjects();
+      await this.projectService.loadProjects();
     } catch (error) {
       console.error('Failed to load projects:', error);
     }

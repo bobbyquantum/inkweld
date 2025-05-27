@@ -7,8 +7,7 @@ import {
   SimpleChanges,
 } from '@angular/core';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { UserService } from '@services/user.service';
-import { firstValueFrom } from 'rxjs';
+import { UnifiedUserService } from '@services/unified-user.service';
 
 @Component({
   selector: 'app-user-avatar',
@@ -18,7 +17,7 @@ import { firstValueFrom } from 'rxjs';
   styleUrls: ['./user-avatar.component.scss'],
 })
 export class UserAvatarComponent implements OnInit, OnChanges {
-  private userService = inject(UserService);
+  private userService = inject(UnifiedUserService);
   private sanitizer = inject(DomSanitizer);
 
   @Input() username!: string;
@@ -38,24 +37,26 @@ export class UserAvatarComponent implements OnInit, OnChanges {
     }
   }
 
-  public async loadAvatar() {
+  public loadAvatar() {
     console.log('Loading avatar for user:', this.username);
     if (!this.username) return;
+
+    // Skip avatar loading in offline mode
+    const mode = this.userService.getMode();
+    if (mode === 'offline') {
+      console.log('Skipping avatar loading in offline mode');
+      this.error = true; // Show default avatar
+      return;
+    }
 
     this.isLoading = true;
     this.error = false;
 
     try {
-      const blob = await firstValueFrom(
-        this.userService.getUserAvatar(this.username)
-      );
-
-      if (blob && blob.size > 0) {
-        const objectUrl = URL.createObjectURL(blob);
-        this.avatarUrl = this.sanitizer.bypassSecurityTrustUrl(objectUrl);
-      } else {
-        this.error = true;
-      }
+      // Only try to load avatars in server mode
+      // For now, we'll just show default avatars since UnifiedUserService
+      // doesn't have getUserAvatar method yet
+      this.error = true; // Show default avatar for now
     } catch (error) {
       console.error('Error loading avatar:', error);
       this.error = true;

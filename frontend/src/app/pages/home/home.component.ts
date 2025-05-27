@@ -19,8 +19,8 @@ import { Router, RouterModule } from '@angular/router';
 import { BookshelfComponent } from '@components/bookshelf/bookshelf.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { ProjectDto } from '@inkweld/index';
-import { ProjectService } from '@services/project.service';
-import { UserService } from '@services/user.service';
+import { UnifiedProjectService } from '@services/unified-project.service';
+import { UnifiedUserService } from '@services/unified-user.service';
 import { Subject } from 'rxjs';
 import { debounceTime, takeUntil } from 'rxjs/operators';
 
@@ -45,8 +45,8 @@ import { debounceTime, takeUntil } from 'rxjs/operators';
 export class HomeComponent implements OnInit, OnDestroy {
   dialog = inject(MatDialog);
   protected router = inject(Router);
-  protected userService = inject(UserService);
-  protected projectService = inject(ProjectService);
+  protected userService = inject(UnifiedUserService);
+  protected projectService = inject(UnifiedProjectService);
   protected breakpointObserver = inject(BreakpointObserver);
 
   // Component state
@@ -96,7 +96,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   async loadProjects() {
     this.loadError = false;
     try {
-      await this.projectService.loadAllProjects();
+      await this.projectService.loadProjects();
     } catch (error) {
       this.loadError = true;
       console.error('Failed to load projects:', error);

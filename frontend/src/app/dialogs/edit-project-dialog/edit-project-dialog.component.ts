@@ -22,9 +22,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ProjectAPIService } from '@inkweld/api/project-api.service';
 import { ProjectDto } from '@inkweld/model/project-dto';
+import { ProjectService } from '@services/project.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
-
-import { ProjectService } from '../../services/project.service';
 
 @Component({
   selector: 'app-edit-project-dialog',
