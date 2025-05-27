@@ -1,4 +1,17 @@
-# Stage 1: Build the NestJS backend
+# Stage 1: Build the frontend
+FROM oven/bun AS build-frontend
+
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/bun.lock ./
+RUN bun install
+COPY frontend/ ./
+
+# Clean, build, and compress frontend
+RUN bun run clean && \
+    bun run build && \
+    bun run compress
+
+# Stage 2: Build the NestJS backend
 FROM oven/bun AS build-backend
 
 WORKDIR /app/server
@@ -7,7 +20,7 @@ RUN bun install
 COPY server/ ./
 RUN bun run build
 
-# Stage 2: Create the final image
+# Stage 3: Create the final image
 FROM oven/bun
 WORKDIR /app
 
@@ -23,8 +36,8 @@ RUN bun install --production && \
 
 WORKDIR /app
 
-# Copy the pre-built frontend static files
-COPY frontend/dist/browser ./frontend/dist/browser
+# Copy the built and compressed frontend static files
+COPY --from=build-frontend /app/frontend/dist/browser ./frontend/dist/browser
 
 # Create directory for Yjs persistence
 RUN mkdir -p /var/lib/yjs && chown -R bun:bun /var/lib/yjs
