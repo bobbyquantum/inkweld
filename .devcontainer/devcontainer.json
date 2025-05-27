@@ -9,14 +9,8 @@
     "vscode": {
       "extensions": [
         "editorconfig.editorconfig",
-        "angular.ng-template",
         "orta.vscode-jest",
-        "dbaeumer.vscode-eslint",
-        "esbenp.prettier-vscode",
-        "ms-azuretools.vscode-docker",
-        "saoudrizwan.claude-dev",
-        "github.copilot",
-        "rooveterinaryinc.roo-cline"
+        "dbaeumer.vscode-eslint"
       ]
     }
   }
