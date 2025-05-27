@@ -12,6 +12,12 @@ import { ProjectFilesTabComponent } from './pages/project/tabs/project-files/pro
 
 export const routes: Routes = [
   {
+    path: 'setup',
+    loadComponent: () =>
+      import('./pages/setup/setup.component').then(m => m.SetupComponent),
+    title: 'Setup',
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./pages/home/home.component').then(m => m.HomeComponent),

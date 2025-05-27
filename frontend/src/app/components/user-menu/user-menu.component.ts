@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { RouterModule } from '@angular/router';
 import { UserDto } from '@inkweld/index';
-import { UserService } from '@services/user.service';
+import { UnifiedUserService } from '@services/unified-user.service';
 
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 
@@ -24,7 +24,7 @@ import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
   styleUrl: './user-menu.component.scss',
 })
 export class UserMenuComponent {
-  protected userService = inject(UserService);
+  protected userService = inject(UnifiedUserService);
 
   @Input() user: UserDto | undefined = undefined;
   @Input() miniMode = false;
@@ -38,6 +38,7 @@ export class UserMenuComponent {
   }
 
   onSettings() {
-    void this.userService.openSettingsDialog();
+    // TODO: Implement settings dialog for unified user service
+    console.log('Settings not yet implemented for unified service');
   }
 }

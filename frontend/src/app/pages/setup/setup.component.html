@@ -1,0 +1,127 @@
+<div class="setup-container">
+  <div class="setup-content">
+    <mat-card class="setup-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>settings</mat-icon>
+          Welcome to Inkweld
+        </mat-card-title>
+        <mat-card-subtitle>
+          Choose how you'd like to use Inkweld
+        </mat-card-subtitle>
+      </mat-card-header>
+
+      @if (isLoading()) {
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      }
+
+      <mat-card-content>
+        @if (!showServerSetup() && !showOfflineSetup()) {
+          <!-- Initial choice screen -->
+          <div class="setup-options">
+            <button class="option-card" (click)="chooseServerMode()">
+              <mat-icon class="option-icon">cloud</mat-icon>
+              <h3>Connect to Server</h3>
+              <p>
+                Connect to an Inkweld server for collaboration and cloud sync.
+                Perfect for teams and shared projects.
+              </p>
+              <span class="option-button">Choose Server Mode</span>
+            </button>
+
+            <mat-divider [vertical]="true"></mat-divider>
+
+            <button class="option-card" (click)="chooseOfflineMode()">
+              <mat-icon class="option-icon">offline_bolt</mat-icon>
+              <h3>Work Offline</h3>
+              <p>
+                Work completely offline with local storage. All your projects
+                will be stored on your device.
+              </p>
+              <span class="option-button">Choose Offline Mode</span>
+            </button>
+          </div>
+        }
+
+        @if (showServerSetup()) {
+          <!-- Server setup form -->
+          <div class="setup-form">
+            <button mat-icon-button (click)="goBack()" class="back-button">
+              <mat-icon>arrow_back</mat-icon>
+            </button>
+
+            <h3>Server Configuration</h3>
+            <p>Enter the URL of your Inkweld server:</p>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Server URL</mat-label>
+              <input
+                matInput
+                [(ngModel)]="serverUrl"
+                placeholder="http://localhost:8333"
+                type="url"
+                required />
+              <mat-icon matSuffix>link</mat-icon>
+            </mat-form-field>
+
+            <div class="form-actions">
+              <button mat-button (click)="goBack()">Cancel</button>
+              <button
+                mat-raised-button
+                color="primary"
+                (click)="setupServerMode()"
+                [disabled]="isLoading() || !serverUrl.trim()">
+                Connect to Server
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (showOfflineSetup()) {
+          <!-- Offline setup form -->
+          <div class="setup-form">
+            <button mat-icon-button (click)="goBack()" class="back-button">
+              <mat-icon>arrow_back</mat-icon>
+            </button>
+
+            <h3>Offline Profile Setup</h3>
+            <p>Create your offline profile:</p>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Username</mat-label>
+              <input
+                matInput
+                [(ngModel)]="userName"
+                placeholder="your-username"
+                required />
+              <mat-icon matSuffix>person</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Display Name</mat-label>
+              <input
+                matInput
+                [(ngModel)]="displayName"
+                placeholder="Your Name"
+                required />
+              <mat-icon matSuffix>badge</mat-icon>
+            </mat-form-field>
+
+            <div class="form-actions">
+              <button mat-button (click)="goBack()">Cancel</button>
+              <button
+                mat-raised-button
+                color="accent"
+                (click)="setupOfflineMode()"
+                [disabled]="
+                  isLoading() || !userName.trim() || !displayName.trim()
+                ">
+                Start Offline Mode
+              </button>
+            </div>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

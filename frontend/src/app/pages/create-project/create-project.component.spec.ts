@@ -1,12 +1,6 @@
-import { HttpEvent } from '@angular/common/http';
 import { provideLocationMocks } from '@angular/common/testing';
 import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
-import {
-  ComponentFixture,
-  fakeAsync,
-  TestBed,
-  tick,
-} from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -22,73 +16,48 @@ import {
   provideRouter,
   Router,
 } from '@angular/router';
-import { ProjectAPIService, ProjectDto, UserDto } from '@inkweld/index';
-import { XsrfService } from '@services/xsrf.service';
+import { ProjectDto } from '@inkweld/index';
+import { UnifiedProjectService } from '@services/unified-project.service';
+import { UnifiedUserService } from '@services/unified-user.service';
 import { of } from 'rxjs';
 
-import { UserService } from '../../services/user.service';
 import { CreateProjectComponent } from './create-project.component';
 
 describe('CreateProjectComponent', () => {
   let component: CreateProjectComponent;
   let fixture: ComponentFixture<CreateProjectComponent>;
-  let userService: Partial<UserService>;
-  let projectAPIService: jest.Mocked<ProjectAPIService>;
-  let xsrfService: jest.Mocked<XsrfService>;
+  let userService: Partial<UnifiedUserService>;
+  let projectService: jest.Mocked<UnifiedProjectService>;
   let snackBar: jest.Mocked<MatSnackBar>;
   let router: jest.Mocked<Router>;
 
-  const mockUser: UserDto = {
+  const mockUser = {
     username: 'testuser',
     name: 'Test User',
-  } as UserDto;
+    email: 'test@example.com',
+    firstName: 'Test',
+    lastName: 'User',
+  };
 
   const mockProject: ProjectDto = {
-    id: '123',
+    id: '1',
     title: 'Test Project',
-    description: 'Test Description',
     slug: 'test-project',
-    createdDate: '2025-04-22T15:30:00.000Z',
-    updatedDate: '2025-04-22T15:30:00.000Z',
-    username: mockUser.username,
-  } as ProjectDto;
-
-  // Create a mock signal for the user
-  const mockUserSignal = signal<UserDto>(mockUser);
-
-  // Mock URL.createObjectURL which is not available in Jest
-  const originalURL = global.URL;
-  beforeEach(() => {
-    // Mock URL.createObjectURL
-    global.URL = {
-      ...originalURL,
-      createObjectURL: jest.fn(() => 'mock-object-url'),
-    } as any;
-  });
-
-  afterEach(() => {
-    // Restore URL
-    global.URL = originalURL;
-  });
+    description: 'Test Description',
+    username: 'testuser',
+    createdDate: new Date().toISOString(),
+    updatedDate: new Date().toISOString(),
+  };
 
   beforeEach(async () => {
-    // Create mock services
     userService = {
-      currentUser: mockUserSignal,
-      getUserAvatar: jest.fn().mockImplementation(() => {
-        return of(new Blob(['mock-avatar-data']));
-      }),
+      currentUser: signal(mockUser),
+      getMode: jest.fn().mockReturnValue('offline'),
     };
 
-    projectAPIService = {
-      projectControllerCreateProject: jest
-        .fn()
-        .mockReturnValue(of(mockProject)),
-    } as unknown as jest.Mocked<ProjectAPIService>;
-
-    xsrfService = {
-      getXsrfToken: jest.fn().mockReturnValue('test-xsrf-token'),
-    } as unknown as jest.Mocked<XsrfService>;
+    projectService = {
+      createProject: jest.fn().mockResolvedValue(mockProject),
+    } as unknown as jest.Mocked<UnifiedProjectService>;
 
     snackBar = {
       open: jest.fn(),
@@ -115,9 +84,8 @@ describe('CreateProjectComponent', () => {
           { path: 'create-project', component: CreateProjectComponent },
         ]),
         provideLocationMocks(),
-        { provide: UserService, useValue: userService },
-        { provide: ProjectAPIService, useValue: projectAPIService },
-        { provide: XsrfService, useValue: xsrfService },
+        { provide: UnifiedUserService, useValue: userService },
+        { provide: UnifiedProjectService, useValue: projectService },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: Router, useValue: router },
         {
@@ -125,7 +93,7 @@ describe('CreateProjectComponent', () => {
           useValue: { paramMap: of(convertToParamMap({})) },
         },
       ],
-      schemas: [CUSTOM_ELEMENTS_SCHEMA], // Add this to handle unknown elements
+      schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
     fixture = TestBed.createComponent(CreateProjectComponent);
@@ -205,9 +173,7 @@ describe('CreateProjectComponent', () => {
   it('should not submit if form is invalid', async () => {
     // Form is initially invalid
     void (await component.onSubmit());
-    expect(
-      projectAPIService.projectControllerCreateProject
-    ).not.toHaveBeenCalled();
+    expect(projectService.createProject).not.toHaveBeenCalled();
   });
 
   it('should create project successfully', async () => {
@@ -218,18 +184,7 @@ describe('CreateProjectComponent', () => {
     });
 
     // Create a resolved promise for the API call
-    projectAPIService.projectControllerCreateProject.mockReturnValue(
-      of(mockProject as any as HttpEvent<ProjectDto>)
-    );
-
-    // Spy on the component methods to ensure they're called
-    jest.spyOn(component, 'onSubmit').mockImplementation(async () => {
-      snackBar.open('Project created successfully!', 'Close', {
-        duration: 3000,
-      });
-      void router.navigate(['/', 'testuser', 'test-project']);
-      return Promise.resolve();
-    });
+    projectService.createProject.mockResolvedValue(mockProject);
 
     await component.onSubmit();
 
@@ -245,7 +200,7 @@ describe('CreateProjectComponent', () => {
     ]);
   });
 
-  it('should handle project creation failure', fakeAsync(() => {
+  it('should handle project creation failure', async () => {
     component.projectForm.patchValue({
       title: 'Test Project',
       slug: 'test-project',
@@ -253,12 +208,9 @@ describe('CreateProjectComponent', () => {
     });
 
     const error = new Error('API Error');
-    projectAPIService.projectControllerCreateProject.mockImplementation(() => {
-      throw error;
-    });
+    projectService.createProject.mockRejectedValue(error);
 
-    void component.onSubmit();
-    tick();
+    await component.onSubmit();
 
     expect(snackBar.open).toHaveBeenCalledWith(
       'Failed to create project.',
@@ -266,7 +218,7 @@ describe('CreateProjectComponent', () => {
       { duration: 3000 }
     );
     expect(component.isSaving).toBeFalsy();
-  }));
+  });
 
   it('should redirect to home if project response is incomplete', async () => {
     component.projectForm.patchValue({
@@ -276,15 +228,7 @@ describe('CreateProjectComponent', () => {
     });
 
     const incompleteProject = { id: '123' } as ProjectDto;
-    projectAPIService.projectControllerCreateProject.mockReturnValue(
-      of(incompleteProject as any as HttpEvent<ProjectDto>)
-    );
-
-    // Mock the onSubmit method to force the behavior we're testing
-    jest.spyOn(component, 'onSubmit').mockImplementation(async () => {
-      void router.navigate(['/']);
-      return Promise.resolve();
-    });
+    projectService.createProject.mockResolvedValue(incompleteProject);
 
     await component.onSubmit();
 

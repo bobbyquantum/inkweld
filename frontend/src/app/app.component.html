@@ -1,4 +1,4 @@
-@if (userService.error()?.code === 'SESSION_EXPIRED' && !offlineMode()) {
+@if (unifiedUserService.error()?.code === 'SESSION_EXPIRED' && !offlineMode()) {
   <mat-toolbar color="warn" class="auth-error-bar">
     <span>Your session has expired.</span>
     <div class="auth-error-actions">

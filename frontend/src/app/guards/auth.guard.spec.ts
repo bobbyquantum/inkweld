@@ -1,4 +1,4 @@
-import { computed, signal, type WritableSignal } from '@angular/core';
+import { signal, type WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   ActivatedRouteSnapshot,
@@ -8,13 +8,15 @@ import {
   UrlTree,
 } from '@angular/router';
 import { UserDto } from '@inkweld/index';
-import { UserService } from '@services/user.service';
+import { SetupService } from '@services/setup.service';
+import { UnifiedUserService } from '@services/unified-user.service';
 
 import { authGuard } from './auth.guard';
 
 describe('authGuard', () => {
   let router: Router;
-  let userService: UserService;
+  let setupService: SetupService;
+  let unifiedUserService: UnifiedUserService;
   let mockCurrentUser: WritableSignal<UserDto | undefined>;
 
   const executeGuard: CanActivateFn = (...args) =>
@@ -28,30 +30,44 @@ describe('authGuard', () => {
       createUrlTree: jest.fn().mockReturnValue(new UrlTree()),
     } as unknown as Router;
 
-    userService = {
+    setupService = {
+      checkConfiguration: jest.fn().mockReturnValue(true),
+      getMode: jest.fn().mockReturnValue('server'),
+    } as unknown as SetupService;
+
+    unifiedUserService = {
       currentUser: mockCurrentUser,
-      loadCurrentUser: jest.fn(),
+      initialize: jest.fn(),
       hasCachedUser: jest.fn(),
-      isAuthenticated: computed(() => !!mockCurrentUser()),
-      initialized: signal(true),
-      error: signal(undefined),
-    } as unknown as UserService;
+      isAuthenticated: jest.fn().mockReturnValue(false),
+    } as unknown as UnifiedUserService;
 
     // Configure TestBed once
     TestBed.configureTestingModule({
       providers: [
         { provide: Router, useValue: router },
-        { provide: UserService, useValue: userService },
+        { provide: SetupService, useValue: setupService },
+        { provide: UnifiedUserService, useValue: unifiedUserService },
       ],
     });
   });
 
-  it('should allow access when user is already loaded and authenticated', async () => {
-    const user: UserDto = {
-      username: 'test',
-      name: 'Test User',
-    };
-    mockCurrentUser.set(user);
+  it('should redirect to setup when app is not configured', async () => {
+    (setupService.checkConfiguration as jest.Mock).mockReturnValue(false);
+    const setupUrlTree = new UrlTree();
+    (router.createUrlTree as jest.Mock).mockReturnValue(setupUrlTree);
+
+    const result = await executeGuard(
+      {} as ActivatedRouteSnapshot,
+      {} as RouterStateSnapshot
+    );
+    expect(result).toBe(setupUrlTree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/setup']);
+  });
+
+  it('should allow access when user is authenticated in offline mode', async () => {
+    (setupService.getMode as jest.Mock).mockReturnValue('offline');
+    (unifiedUserService.isAuthenticated as jest.Mock).mockReturnValue(true);
 
     expect(
       await executeGuard(
@@ -61,9 +77,39 @@ describe('authGuard', () => {
     ).toBe(true);
   });
 
-  it('should redirect to welcome when no cached user', async () => {
+  it('should redirect to setup when not authenticated in offline mode', async () => {
+    (setupService.getMode as jest.Mock).mockReturnValue('offline');
+    (unifiedUserService.isAuthenticated as jest.Mock).mockReturnValue(false);
+    const setupUrlTree = new UrlTree();
+    (router.createUrlTree as jest.Mock).mockReturnValue(setupUrlTree);
+
+    const result = await executeGuard(
+      {} as ActivatedRouteSnapshot,
+      {} as RouterStateSnapshot
+    );
+    expect(result).toBe(setupUrlTree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/setup']);
+  });
+
+  it('should allow access when user is authenticated in server mode', async () => {
+    const user: UserDto = {
+      username: 'test',
+      name: 'Test User',
+    };
+    mockCurrentUser.set(user);
+    (unifiedUserService.isAuthenticated as jest.Mock).mockReturnValue(true);
+
+    expect(
+      await executeGuard(
+        {} as ActivatedRouteSnapshot,
+        {} as RouterStateSnapshot
+      )
+    ).toBe(true);
+  });
+
+  it('should redirect to welcome when no cached user in server mode', async () => {
     mockCurrentUser.set(undefined);
-    (userService.hasCachedUser as jest.Mock).mockResolvedValue(false);
+    (unifiedUserService.hasCachedUser as jest.Mock).mockResolvedValue(false);
     const welcomeUrlTree = new UrlTree();
     (router.createUrlTree as jest.Mock).mockReturnValue(welcomeUrlTree);
 
@@ -75,22 +121,25 @@ describe('authGuard', () => {
     expect(router.createUrlTree).toHaveBeenCalledWith(['/welcome']);
   });
 
-  it('should try to load user when cached user exists', async () => {
+  it('should try to initialize user when cached user exists in server mode', async () => {
     mockCurrentUser.set(undefined);
-    (userService.hasCachedUser as jest.Mock).mockResolvedValue(true);
-    (userService.loadCurrentUser as jest.Mock).mockResolvedValue(undefined);
-    const welcomeUrlTree = new UrlTree();
-    (router.createUrlTree as jest.Mock).mockReturnValue(welcomeUrlTree);
+    (unifiedUserService.hasCachedUser as jest.Mock).mockResolvedValue(true);
+    (unifiedUserService.initialize as jest.Mock).mockResolvedValue(undefined);
+    (unifiedUserService.isAuthenticated as jest.Mock).mockReturnValue(true);
 
-    await executeGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot);
-    expect(userService.loadCurrentUser).toHaveBeenCalled();
+    const result = await executeGuard(
+      {} as ActivatedRouteSnapshot,
+      {} as RouterStateSnapshot
+    );
+    expect(result).toBe(true);
+    expect(unifiedUserService.initialize).toHaveBeenCalled();
   });
 
-  it('should redirect to welcome when load fails', async () => {
+  it('should redirect to welcome when initialization fails in server mode', async () => {
     mockCurrentUser.set(undefined);
-    (userService.hasCachedUser as jest.Mock).mockResolvedValue(true);
-    (userService.loadCurrentUser as jest.Mock).mockRejectedValue(
-      new Error('Failed to load')
+    (unifiedUserService.hasCachedUser as jest.Mock).mockResolvedValue(true);
+    (unifiedUserService.initialize as jest.Mock).mockRejectedValue(
+      new Error('Failed to initialize')
     );
     const welcomeUrlTree = new UrlTree();
     (router.createUrlTree as jest.Mock).mockReturnValue(welcomeUrlTree);

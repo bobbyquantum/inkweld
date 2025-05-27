@@ -3,11 +3,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterOutlet } from '@angular/router';
-import { UserAPIService } from '@inkweld/index';
-import { UserService } from '@services/user.service';
-import { firstValueFrom } from 'rxjs';
 
 import { ThemeService } from '../themes/theme.service';
+import { SetupService } from './services/setup.service';
+import { UnifiedUserService } from './services/unified-user.service';
 
 @Component({
   selector: 'app-root',
@@ -24,31 +23,45 @@ import { ThemeService } from '../themes/theme.service';
 export class AppComponent implements OnInit {
   protected readonly offlineMode = signal(false);
   protected readonly themeService = inject(ThemeService);
-  protected readonly userAPIService = inject(UserAPIService);
-  protected readonly userService = inject(UserService);
+  protected readonly setupService = inject(SetupService);
+  protected readonly unifiedUserService = inject(UnifiedUserService);
   protected readonly router = inject(Router);
 
   ngOnInit(): void {
     this.themeService.initTheme();
-    void this.loadUser();
+    void this.initializeApp();
   }
 
   protected async handleReAuthenticate(): Promise<void> {
     this.offlineMode.set(false);
-    await this.userService.clearCurrentUser();
-    await this.router.navigate(['/welcome']);
+    await this.unifiedUserService.logout();
   }
 
   protected handleContinueOffline(): void {
     this.offlineMode.set(true);
   }
 
-  private async loadUser(): Promise<void> {
+  private async initializeApp(): Promise<void> {
     try {
-      await firstValueFrom(this.userAPIService.userControllerGetMe());
-      await this.userService.loadCurrentUser();
-    } catch (e) {
-      console.log('Load user fail.. this needs better handling', e);
+      // Check if app is configured
+      const isConfigured = this.setupService.checkConfiguration();
+
+      if (!isConfigured) {
+        // Redirect to setup if not configured
+        await this.router.navigate(['/setup']);
+        return;
+      }
+
+      // Initialize user service based on mode
+      await this.unifiedUserService.initialize();
+
+      // Set offline mode flag for UI
+      const mode = this.setupService.getMode();
+      this.offlineMode.set(mode === 'offline');
+    } catch (error) {
+      console.error('Failed to initialize app:', error);
+      // On any error, redirect to setup
+      await this.router.navigate(['/setup']);
     }
   }
 }

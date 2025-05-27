@@ -30,10 +30,10 @@ import { ProjectTreeComponent } from '@components/project-tree/project-tree.comp
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { ProjectDto, ProjectElementDto } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
-import { ProjectService } from '@services/project.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
+import { UnifiedProjectService } from '@services/unified-project.service';
 import {
   AngularSplitModule,
   SplitGutterDirective,
@@ -80,7 +80,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly title = inject(Title);
   protected readonly router = inject(Router);
   protected readonly importExportService = inject(ProjectImportExportService);
-  protected readonly projectService = inject(ProjectService);
+  protected readonly projectService = inject(UnifiedProjectService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly settingsService = inject(SettingsService);
 

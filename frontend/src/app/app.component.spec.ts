@@ -2,6 +2,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -9,27 +10,45 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { By } from '@angular/platform-browser';
 import { Event, Router } from '@angular/router';
 import { Configuration, UserAPIService } from '@inkweld/index';
-import { UserService, UserServiceError } from '@services/user.service';
-import { of, Subject } from 'rxjs';
+import { SetupService } from '@services/setup.service';
+import { UnifiedUserService } from '@services/unified-user.service';
+import { Subject } from 'rxjs';
 
 import { userServiceMock } from '../testing/user-api.mock';
 import { ThemeService } from '../themes/theme.service';
 import { AppComponent } from './app.component';
 
+class TestError extends Error {
+  constructor(
+    public code: string,
+    message: string
+  ) {
+    super(message);
+    this.name = 'TestError';
+  }
+}
+
 describe('AppComponent', () => {
   let httpTestingController: HttpTestingController;
   let routerEvents: Subject<Event>;
-  let userService: jest.Mocked<UserService>;
+  let unifiedUserService: jest.Mocked<UnifiedUserService>;
+  let setupService: jest.Mocked<SetupService>;
   let fixture: ComponentFixture<AppComponent>;
   let component: AppComponent;
 
   beforeEach(async () => {
     routerEvents = new Subject<Event>();
-    userService = {
-      error: jest.fn().mockReturnValue(undefined),
-      clearCurrentUser: jest.fn().mockResolvedValue(undefined),
-      loadCurrentUser: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<UserService>;
+
+    unifiedUserService = {
+      error: signal(null),
+      logout: jest.fn().mockResolvedValue(undefined),
+      initialize: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<UnifiedUserService>;
+
+    setupService = {
+      checkConfiguration: jest.fn().mockReturnValue(true),
+      getMode: jest.fn().mockReturnValue('server'),
+    } as unknown as jest.Mocked<SetupService>;
 
     await TestBed.configureTestingModule({
       imports: [
@@ -41,7 +60,8 @@ describe('AppComponent', () => {
       providers: [
         provideHttpClientTesting(),
         { provide: UserAPIService, useValue: userServiceMock },
-        { provide: UserService, useValue: userService },
+        { provide: UnifiedUserService, useValue: unifiedUserService },
+        { provide: SetupService, useValue: setupService },
         {
           provide: Configuration,
           useValue: {},
@@ -94,8 +114,8 @@ describe('AppComponent', () => {
     });
 
     it('should show error bar when session expired and not in offline mode', () => {
-      userService.error.mockReturnValue(
-        new UserServiceError('SESSION_EXPIRED', 'Session expired')
+      unifiedUserService.error.set(
+        new TestError('SESSION_EXPIRED', 'Session expired')
       );
       fixture.detectChanges();
 
@@ -104,8 +124,8 @@ describe('AppComponent', () => {
     });
 
     it('should not show error bar when in offline mode', () => {
-      userService.error.mockReturnValue(
-        new UserServiceError('SESSION_EXPIRED', 'Session expired')
+      unifiedUserService.error.set(
+        new TestError('SESSION_EXPIRED', 'Session expired')
       );
       (
         component as AppComponent & { handleContinueOffline: () => void }
@@ -117,20 +137,13 @@ describe('AppComponent', () => {
     });
 
     it('should handle re-authentication and navigate to welcome', async () => {
-      const mockUser = {
-        username: 'testuser',
-        name: 'Test User',
-      };
-      userServiceMock.userControllerGetMe.mockReturnValue(of(mockUser));
-      const router = TestBed.inject(Router);
-      const navigateSpy = jest.spyOn(router, 'navigate');
-
       const reAuthSpy = jest.spyOn(
         component as AppComponent & {
           handleReAuthenticate: () => Promise<void>;
         },
         'handleReAuthenticate'
       );
+
       await (
         component as AppComponent & {
           handleReAuthenticate: () => Promise<void>;
@@ -138,8 +151,8 @@ describe('AppComponent', () => {
       ).handleReAuthenticate();
 
       expect(reAuthSpy).toHaveBeenCalled();
-      expect(userService.clearCurrentUser).toHaveBeenCalled();
-      expect(navigateSpy).toHaveBeenCalledWith(['/welcome']);
+      expect(unifiedUserService.logout).toHaveBeenCalled();
+      expect((component as any).offlineMode()).toBe(false);
     });
 
     it('should handle continue offline', () => {
@@ -158,8 +171,8 @@ describe('AppComponent', () => {
     });
 
     it('should show re-authenticate button when error bar is visible', () => {
-      userService.error.mockReturnValue(
-        new UserServiceError('SESSION_EXPIRED', 'Session expired')
+      unifiedUserService.error.set(
+        new TestError('SESSION_EXPIRED', 'Session expired')
       );
       fixture.detectChanges();
 
@@ -168,8 +181,8 @@ describe('AppComponent', () => {
     });
 
     it('should show continue offline button when error bar is visible', () => {
-      userService.error.mockReturnValue(
-        new UserServiceError('SESSION_EXPIRED', 'Session expired')
+      unifiedUserService.error.set(
+        new TestError('SESSION_EXPIRED', 'Session expired')
       );
       fixture.detectChanges();
 

@@ -1,9 +1,10 @@
 import { HttpClient } from '@angular/common/http';
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { UserDto } from '@inkweld/index';
-import { UserService } from '@services/user.service';
-import { of, throwError } from 'rxjs';
+import { UnifiedUserService } from '@services/unified-user.service';
+import { of } from 'rxjs';
 
 import { UserMenuComponent } from './user-menu.component';
 
@@ -12,9 +13,14 @@ describe('UserMenuComponent', () => {
   let fixture: ComponentFixture<UserMenuComponent>;
   let httpClientMock: jest.Mocked<HttpClient>;
   let routerMock: jest.Mocked<Router>;
-  let userServiceMock: jest.Mocked<UserService>;
+  let userServiceMock: jest.Mocked<UnifiedUserService>;
   const activatedRouteMock = {
     params: of({ username: 'testuser' }),
+  };
+
+  const mockUser = {
+    username: 'testuser',
+    name: 'Test User',
   };
 
   beforeEach(async () => {
@@ -30,22 +36,17 @@ describe('UserMenuComponent', () => {
     } as unknown as jest.Mocked<Router>;
 
     userServiceMock = {
-      openSettingsDialog: jest.fn().mockReturnValue(of(true)),
-      getUserAvatar: jest.fn().mockReturnValue(of('')),
-      currentUser: jest.fn().mockReturnValue(
-        of({
-          username: 'testuser',
-          name: 'Test User',
-        })
-      ),
-    } as unknown as jest.Mocked<UserService>;
+      logout: jest.fn().mockResolvedValue(undefined),
+      getMode: jest.fn().mockReturnValue('offline'),
+      currentUser: signal(mockUser),
+    } as unknown as jest.Mocked<UnifiedUserService>;
 
     await TestBed.configureTestingModule({
       imports: [UserMenuComponent],
       providers: [
         { provide: HttpClient, useValue: httpClientMock },
         { provide: Router, useValue: routerMock },
-        { provide: UserService, useValue: userServiceMock },
+        { provide: UnifiedUserService, useValue: userServiceMock },
         { provide: ActivatedRoute, useValue: activatedRouteMock },
       ],
     }).compileComponents();
@@ -60,13 +61,11 @@ describe('UserMenuComponent', () => {
   });
 
   describe('onLogout()', () => {
-    it('should handle logout error', () => {
+    it('should handle logout error', async () => {
       const consoleSpy = jest.spyOn(console, 'error');
-      httpClientMock.post.mockReturnValue(
-        throwError(() => new Error('Failed'))
-      );
+      userServiceMock.logout.mockRejectedValue(new Error('Failed'));
 
-      void component.onLogout();
+      await component.onLogout();
 
       expect(consoleSpy).toHaveBeenCalledWith(
         'Logout failed',
@@ -76,9 +75,12 @@ describe('UserMenuComponent', () => {
   });
 
   describe('onSettings()', () => {
-    it('should open settings dialog', () => {
+    it('should log settings not implemented message', () => {
+      const consoleSpy = jest.spyOn(console, 'log');
       component.onSettings();
-      expect(userServiceMock.openSettingsDialog).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Settings not yet implemented for unified service'
+      );
     });
   });
 

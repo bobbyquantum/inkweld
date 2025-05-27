@@ -11,8 +11,8 @@ import {
   Router,
 } from '@angular/router';
 import { ProjectDto, UserDto } from '@inkweld/index';
-import { ProjectService } from '@services/project.service';
-import { UserService } from '@services/user.service';
+import { UnifiedProjectService } from '@services/unified-project.service';
+import { UnifiedUserService } from '@services/unified-user.service';
 import { ThemeService } from '@themes/theme.service';
 import { of } from 'rxjs';
 
@@ -25,8 +25,8 @@ describe('HomeComponent', () => {
   let component: HomeComponent;
   let fixture: ComponentFixture<HomeComponent>;
   let themeService: jest.Mocked<ThemeService>;
-  let userService: jest.Mocked<UserService>;
-  let projectService: Partial<ProjectService>;
+  let userService: jest.Mocked<UnifiedUserService>;
+  let projectService: Partial<UnifiedProjectService>;
   let breakpointObserver: jest.Mocked<BreakpointObserver>;
   let httpClient: jest.Mocked<HttpClient>;
   let router: jest.Mocked<Router>;
@@ -57,7 +57,7 @@ describe('HomeComponent', () => {
 
     userService = {
       currentUser: signal<UserDto | undefined>(undefined),
-    } as unknown as jest.Mocked<UserService>;
+    } as unknown as jest.Mocked<UnifiedUserService>;
 
     // Reset mock signals once before all tests
     mockLoadingSignal.set(false);
@@ -67,7 +67,7 @@ describe('HomeComponent', () => {
     projectService = {
       isLoading: mockLoadingSignal,
       projects: mockProjectsSignal,
-      loadAllProjects: jest.fn().mockResolvedValue(undefined),
+      loadProjects: jest.fn().mockResolvedValue(undefined),
     };
 
     await TestBed.configureTestingModule({
@@ -79,8 +79,8 @@ describe('HomeComponent', () => {
         ]),
         provideLocationMocks(),
         { provide: ThemeService, useValue: themeService },
-        { provide: UserService, useValue: userService },
-        { provide: ProjectService, useValue: projectService },
+        { provide: UnifiedUserService, useValue: userService },
+        { provide: UnifiedProjectService, useValue: projectService },
         { provide: BreakpointObserver, useValue: breakpointObserver },
         { provide: HttpClient, useValue: httpClient },
         { provide: Router, useValue: router },
@@ -102,8 +102,9 @@ describe('HomeComponent', () => {
   });
 
   it('should load projects on init', () => {
+    const loadProjectsSpy = jest.spyOn(component as any, 'loadProjects');
     component.ngOnInit();
-    expect(projectService.loadAllProjects).toHaveBeenCalled();
+    expect(loadProjectsSpy).toHaveBeenCalled();
   });
 
   it('should setup breakpoint observer on init', () => {
@@ -148,12 +149,12 @@ describe('HomeComponent', () => {
   it('should handle error when loading projects', async () => {
     // Simulate an error scenario
     const loadError = new Error('Failed to load projects');
-    projectService.loadAllProjects = jest.fn().mockRejectedValue(loadError);
+    projectService.loadProjects = jest.fn().mockRejectedValue(loadError);
 
     await component.loadProjects();
 
     // Check that error flag is set
-    expect(component['loadError']).toBe(true);
+    expect((component as any).loadError).toBe(true);
   });
 
   it('should navigate to create-project route when openNewProjectDialog is called', () => {
