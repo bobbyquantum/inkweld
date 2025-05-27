@@ -58,7 +58,7 @@
     "@playwright/test": "1.52.0",
     "@types/jest": "29.5.14",
     "@types/lodash-es": "^4.17.12",
-    "angular-eslint": "19.4.0",
+    "angular-eslint": "19.5.0",
     "esbuild": "0.25.4",
     "esbuild-visualizer": "0.7.0",
     "eslint": "9.27.0",
