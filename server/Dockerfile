@@ -9,6 +9,14 @@ RUN bun run build
 
 # Stage 2: Create the final image
 FROM oven/bun
+
+# Install fontconfig and fonts for Sharp SVG text rendering
+RUN apt-get update && \
+    apt-get install -y fontconfig fonts-dejavu-core && \
+    fc-cache -fv && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy built code and package files
