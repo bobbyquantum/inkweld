@@ -3,6 +3,7 @@ README.md
 api.module.ts
 api/api.ts
 api/auth.service.ts
+api/config.service.ts
 api/csrf.service.ts
 api/document-api.service.ts
 api/image.service.ts
@@ -14,6 +15,7 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
+model/config-controller-get-system-features200-response.ts
 model/correction-dto.ts
 model/document-dto.ts
 model/file-delete-response-dto.ts
@@ -24,6 +26,7 @@ model/image-generate-request-dto.ts
 model/image-response-dto.ts
 model/image-usage-dto.ts
 model/input-tokens-details-dto.ts
+model/lint-controller-get-status200-response.ts
 model/lint-request-dto.ts
 model/lint-response-dto.ts
 model/login-request-dto.ts

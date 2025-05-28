@@ -12,6 +12,7 @@ import { DatabaseModule } from './common/database/database.module.js';
 import { cwd } from 'process';
 import { BaseHrefMiddleware } from './common/middleware/base-href.middleware.js';
 import { ImageModule } from './image/image.module.js';
+import { SystemConfigModule } from './config/config.module.js';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { ImageModule } from './image/image.module.js';
     McpModule,
     LintModule,
     ImageModule,
+    SystemConfigModule,
   ],
   providers: [LevelDBManagerService],
   exports: [LevelDBManagerService],

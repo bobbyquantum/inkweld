@@ -1,0 +1,71 @@
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { of } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
+
+import { ConfigService } from '../../api-client/api/config.service';
+import { ConfigControllerGetSystemFeatures200Response } from '../../api-client/model/config-controller-get-system-features200-response';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class SystemConfigService {
+  private readonly configApiService = inject(ConfigService);
+
+  private readonly systemFeaturesSignal =
+    signal<ConfigControllerGetSystemFeatures200Response>({
+      aiLinting: false,
+      aiImageGeneration: false,
+    });
+
+  private isLoaded = signal(false);
+
+  // Public readonly signals
+  public readonly systemFeatures = this.systemFeaturesSignal.asReadonly();
+  public readonly isAiLintingEnabled = computed(
+    () => this.systemFeaturesSignal().aiLinting ?? false
+  );
+  public readonly isAiImageGenerationEnabled = computed(
+    () => this.systemFeaturesSignal().aiImageGeneration ?? false
+  );
+  public readonly isConfigLoaded = this.isLoaded.asReadonly();
+
+  constructor() {
+    this.loadSystemFeatures();
+  }
+
+  /**
+   * Load system features configuration from the backend
+   */
+  private loadSystemFeatures(): void {
+    this.configApiService
+      .configControllerGetSystemFeatures()
+      .pipe(
+        tap(features => {
+          console.log('[SystemConfig] Loaded system features:', features);
+          this.systemFeaturesSignal.set(features);
+          this.isLoaded.set(true);
+        }),
+        catchError(error => {
+          console.warn(
+            '[SystemConfig] Failed to load system features, using defaults:',
+            error
+          );
+          this.systemFeaturesSignal.set({
+            aiLinting: false,
+            aiImageGeneration: false,
+          });
+          this.isLoaded.set(true);
+          return of(null);
+        })
+      )
+      .subscribe();
+  }
+
+  /**
+   * Refresh system features configuration
+   */
+  public refreshSystemFeatures(): void {
+    this.isLoaded.set(false);
+    this.loadSystemFeatures();
+  }
+}

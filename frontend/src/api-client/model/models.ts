@@ -1,3 +1,4 @@
+export * from './config-controller-get-system-features200-response';
 export * from './correction-dto';
 export * from './document-dto';
 export * from './file-delete-response-dto';
@@ -8,6 +9,7 @@ export * from './image-generate-request-dto';
 export * from './image-response-dto';
 export * from './image-usage-dto';
 export * from './input-tokens-details-dto';
+export * from './lint-controller-get-status200-response';
 export * from './lint-request-dto';
 export * from './lint-response-dto';
 export * from './login-request-dto';
