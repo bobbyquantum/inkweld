@@ -227,6 +227,79 @@ describe('SetupService', () => {
     });
   });
 
+  describe('getWebSocketUrl', () => {
+    it('should return null when no config is set', () => {
+      expect(service.getWebSocketUrl()).toBe(null);
+    });
+
+    it('should return null in offline mode', () => {
+      const userProfile = { name: 'Test User', username: 'testuser' };
+      service.configureOfflineMode(userProfile);
+
+      expect(service.getWebSocketUrl()).toBe(null);
+    });
+
+    it('should convert HTTP server URL to WebSocket URL', () => {
+      const config = {
+        mode: 'server' as const,
+        serverUrl: 'http://localhost:8333',
+      };
+      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
+      service.checkConfiguration();
+
+      expect(service.getWebSocketUrl()).toBe('ws://localhost:8333');
+    });
+
+    it('should convert HTTPS server URL to secure WebSocket URL', () => {
+      const config = {
+        mode: 'server' as const,
+        serverUrl: 'https://api.example.com',
+      };
+      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
+      service.checkConfiguration();
+
+      expect(service.getWebSocketUrl()).toBe('wss://api.example.com');
+    });
+
+    it('should handle server URL with port', () => {
+      const config = {
+        mode: 'server' as const,
+        serverUrl: 'https://api.example.com:8080',
+      };
+      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
+      service.checkConfiguration();
+
+      expect(service.getWebSocketUrl()).toBe('wss://api.example.com:8080');
+    });
+
+    it('should handle server URL with path', () => {
+      const config = {
+        mode: 'server' as const,
+        serverUrl: 'https://api.example.com/api/v1',
+      };
+      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
+      service.checkConfiguration();
+
+      expect(service.getWebSocketUrl()).toBe('wss://api.example.com');
+    });
+
+    it('should return null when server URL is invalid', () => {
+      const config = {
+        mode: 'server' as const,
+        serverUrl: 'invalid-url',
+      };
+      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
+      service.checkConfiguration();
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      expect(service.getWebSocketUrl()).toBe(null);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to parse server URL for WebSocket:',
+        expect.anything()
+      );
+    });
+  });
+
   describe('getOfflineUserProfile', () => {
     it('should return null when no config is set', () => {
       expect(service.getOfflineUserProfile()).toBe(null);

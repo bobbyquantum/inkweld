@@ -7,7 +7,6 @@ import {
   signal,
   WritableSignal,
 } from '@angular/core';
-import { createLintPlugin } from '@components/lint/lint-plugin';
 import { Editor } from 'ngx-editor';
 import { Plugin } from 'prosemirror-state';
 import { Observable } from 'rxjs';
@@ -17,10 +16,11 @@ import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
 import { DocumentAPIService } from '../../api-client/api/document-api.service';
-import { environment } from '../../environments/environment';
 import { LintApiService } from '../components/lint/lint-api.service';
+import { createLintPlugin } from '../components/lint/lint-plugin';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { ProjectStateService } from './project-state.service';
+import { SetupService } from './setup.service';
 
 /**
  * Represents an active Yjs document connection
@@ -51,6 +51,7 @@ export class DocumentService {
   private readonly documentApiService = inject(DocumentAPIService);
   private readonly ngZone = inject(NgZone);
   private readonly lintApiService = inject(LintApiService);
+  private readonly setupService = inject(SetupService);
 
   private connections: Map<string, DocumentConnection> = new Map();
 
@@ -266,7 +267,7 @@ export class DocumentService {
       this.updateSyncStatus(documentId, DocumentSyncState.Syncing);
 
       // Setup WebSocket provider
-      if (!environment.wssUrl) {
+      if (!this.setupService.getWebSocketUrl()) {
         throw new Error('WebSocket URL is not configured in environment');
       }
       // Make sure the documentId is properly formatted for WebSocket URL
@@ -277,7 +278,7 @@ export class DocumentService {
       );
 
       const provider = new WebsocketProvider(
-        environment.wssUrl + '/ws/yjs?documentId=',
+        this.setupService.getWebSocketUrl() + '/ws/yjs?documentId=',
         formattedDocId,
         ydoc,
         {
@@ -315,7 +316,7 @@ export class DocumentService {
         // Log WebSocket URL and connection parameters
         if (status === 'connecting') {
           console.log(
-            `[Document] Connecting to WebSocket URL: ${environment.wssUrl}/ws/yjs?documentId=${formattedDocId}`
+            `[Document] Connecting to WebSocket URL: ${this.setupService.getWebSocketUrl()}/ws/yjs?documentId=${formattedDocId}`
           );
         } else if (status === 'connected') {
           console.log(
@@ -353,7 +354,7 @@ export class DocumentService {
           errorMessage
         );
         console.log(
-          `[Document] Connection details: URL=${environment.wssUrl}/ws/yjs?documentId=${formattedDocId}`
+          `[Document] Connection details: URL=${this.setupService.getWebSocketUrl()}/ws/yjs?documentId=${formattedDocId}`
         );
 
         if (error instanceof Error && error.stack) {
