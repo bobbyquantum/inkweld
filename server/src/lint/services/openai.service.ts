@@ -1,4 +1,4 @@
-import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { LintResponseDto } from '../dto/lint-response.dto.js';
@@ -12,18 +12,31 @@ interface CacheEntry<T> {
 
 @Injectable()
 export class OpenAiService {
-  private readonly openai: OpenAI;
+  private readonly openai: OpenAI | null;
   private readonly logger = new Logger(OpenAiService.name);
   private readonly cache = new Map<string, CacheEntry<LintResponseDto>>(); // Manual simple cache
   private readonly CACHE_TTL = 300000; // 5 minutes cache (300,000ms)
   private readonly OPENAI_MODEL = 'gpt-4.1-nano-2025-04-14';
+  private readonly isAiEnabled: boolean;
 
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     if (!apiKey) {
-      this.logger.error('OPENAI_API_KEY is not defined in environment variables');
+      this.logger.warn('OPENAI_API_KEY is not defined in environment variables. AI linting features will be disabled.');
+      this.openai = null;
+      this.isAiEnabled = false;
+    } else {
+      this.openai = new OpenAI({ apiKey });
+      this.isAiEnabled = true;
+      this.logger.log('OpenAI service initialized successfully');
     }
-    this.openai = new OpenAI({ apiKey });
+  }
+
+  /**
+   * Check if AI features are enabled
+   */
+  public isEnabled(): boolean {
+    return this.isAiEnabled;
   }
 
   /**
@@ -111,6 +124,16 @@ The JSON must follow this format:
    * Process a paragraph with OpenAI for linting
    */
   async processText(paragraph: string, style: string, level: string): Promise<LintResponseDto> {
+    if (!this.isAiEnabled || !this.openai) {
+      this.logger.warn('AI linting requested but OpenAI API key is not configured');
+      throw new ServiceUnavailableException(
+        'AI linting features are not available. Please configure OPENAI_API_KEY environment variable.',
+        {
+          description: 'OpenAI API key is not configured'
+        }
+      );
+    }
+
     const cacheKey = this.generateCacheKey(paragraph, style, level);
     const cached = this.cacheGet(cacheKey);
     

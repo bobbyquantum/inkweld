@@ -1,4 +1,4 @@
-import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { ImageGenerateRequestDto } from '../dto/image-generate-request.dto.js';
@@ -6,22 +6,45 @@ import { ImageResponseDto } from '../dto/image-response.dto.js';
 
 @Injectable()
 export class OpenAiImageService {
-  private readonly openai: OpenAI;
+  private readonly openai: OpenAI | null;
   private readonly logger = new Logger(OpenAiImageService.name);
   private readonly SOURCE = 'openai';
+  private readonly isAiEnabled: boolean;
 
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     if (!apiKey) {
-      this.logger.error('OPENAI_API_KEY is not defined in environment variables. Image generation will fail.');
+      this.logger.warn('OPENAI_API_KEY is not defined in environment variables. AI image generation features will be disabled.');
+      this.openai = null;
+      this.isAiEnabled = false;
+    } else {
+      this.openai = new OpenAI({ apiKey });
+      this.isAiEnabled = true;
+      this.logger.log('OpenAI image service initialized successfully');
     }
-    this.openai = new OpenAI({ apiKey });
+  }
+
+  /**
+   * Check if AI features are enabled
+   */
+  public isEnabled(): boolean {
+    return this.isAiEnabled;
   }
 
   /**
    * Generate images based on a prompt.
    */
   async generate(request: ImageGenerateRequestDto): Promise<ImageResponseDto> {
+    if (!this.isAiEnabled || !this.openai) {
+      this.logger.warn('AI image generation requested but OpenAI API key is not configured');
+      throw new ServiceUnavailableException(
+        'AI image generation features are not available. Please configure OPENAI_API_KEY environment variable.',
+        {
+          description: 'OpenAI API key is not configured'
+        }
+      );
+    }
+
     this.logger.debug(`Generating image with prompt: "${request.prompt}", model: ${request.model || 'default'}`);
 
     // Make a copy of the request to avoid mutating the original
