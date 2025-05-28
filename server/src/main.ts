@@ -52,6 +52,10 @@ async function bootstrap() {
     credentials: true, // Important for session cookies
   });
 
+  // Trust proxy for proper HTTPS detection (important for platforms like Render.com)
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', 1);
+
   // Configure session middleware
   const sessionStore = app.get(TypeOrmSessionStore);
   app.use(
@@ -62,9 +66,14 @@ async function bootstrap() {
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
+        // In production, secure cookies require HTTPS - trust proxy handles this
         secure: process.env.NODE_ENV === 'production',
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         sameSite: 'lax', // Recommended for session cookies
+        // Add domain configuration for production
+        ...(process.env.NODE_ENV === 'production' && process.env.COOKIE_DOMAIN && {
+          domain: process.env.COOKIE_DOMAIN
+        })
       },
     }),
   );

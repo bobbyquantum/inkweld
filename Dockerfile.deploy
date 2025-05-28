@@ -15,6 +15,9 @@ ENV DATA_PATH=/tmp
 ENV DB_LOGGING=false
 ENV PORT=8333
 ENV HOST=0.0.0.0
+# Add session secret and CORS configuration
+ENV SESSION_SECRET=your-secure-session-secret-change-this
+ENV ALLOWED_ORIGINS=https://inkweld.onrender.com
 
 # Create necessary directories with proper permissions in tmp
 RUN mkdir -p /tmp/yjs && \
