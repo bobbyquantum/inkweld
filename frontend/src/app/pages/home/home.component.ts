@@ -19,6 +19,7 @@ import { Router, RouterModule } from '@angular/router';
 import { BookshelfComponent } from '@components/bookshelf/bookshelf.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { ProjectDto } from '@inkweld/index';
+import { ProjectServiceError } from '@services/project.service';
 import { UnifiedProjectService } from '@services/unified-project.service';
 import { UnifiedUserService } from '@services/unified-user.service';
 import { Subject } from 'rxjs';
@@ -97,7 +98,20 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.loadError = false;
     try {
       await this.projectService.loadProjects();
-    } catch (error) {
+    } catch (error: unknown) {
+      // Check if this is a session expired error
+      if (
+        error instanceof ProjectServiceError &&
+        error.code === 'SESSION_EXPIRED'
+      ) {
+        // Don't set loadError for session expired errors
+        // The auth interceptor will handle the redirect to welcome page
+        console.warn(
+          'Session expired while loading projects, user will be redirected'
+        );
+        return;
+      }
+
       this.loadError = true;
       console.error('Failed to load projects:', error);
     }

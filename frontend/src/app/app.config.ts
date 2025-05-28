@@ -14,6 +14,7 @@ import { XsrfService } from '@services/xsrf.service';
 import { ThemeService } from '../themes/theme.service';
 import { routes } from './app.routes';
 import { API_PROVIDERS } from './config/api.config';
+import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { CsrfInterceptor } from './interceptors/csrf.interceptor';
 import { CustomRouteReuseStrategy } from './utils/custom-route-reuse-strategy';
 
@@ -29,6 +30,11 @@ export const appConfig: ApplicationConfig = {
       }),
       withInterceptorsFromDi()
     ),
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: AuthInterceptor,
+      multi: true,
+    },
     {
       provide: HTTP_INTERCEPTORS,
       useClass: CsrfInterceptor,
