@@ -1,4 +1,4 @@
-name: Docker Publish
+name: Manual Docker Publish
 
 permissions:
   contents: read
@@ -6,6 +6,17 @@ permissions:
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker image tag (e.g., v1.0.0, beta, etc.)'
+        required: false
+        default: 'manual'
+        type: string
+      push_latest:
+        description: 'Also tag as latest'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build-and-push:
@@ -41,12 +52,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Prepare tags
+        id: tags
+        run: |
+          TAGS="ghcr.io/${{ github.repository_owner }}/inkweld:${{ inputs.tag }}"
+          if [ "${{ inputs.push_latest }}" = "true" ]; then
+            TAGS="$TAGS,ghcr.io/${{ github.repository_owner }}/inkweld:latest"
+          fi
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: server/Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/inkweld:latest
-            ghcr.io/${{ github.repository_owner }}/inkweld:${{ github.sha }}
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

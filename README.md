@@ -5,12 +5,14 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/bobbyquantum/inkweld/ci.yml?branch=main)](https://github.com/bobbyquantum/inkweld/actions)
 [![Docker](https://img.shields.io/badge/docker-ready-blue)](https://hub.docker.com/)
+[![Docker Image](https://ghcr-badge.egpl.dev/bobbyquantum/inkweld/latest_by_date?color=%2344cc11&ignore=latest)](https://github.com/bobbyquantum/inkweld/pkgs/container/inkweld)
 
 ---
 
 **Quick Links:**  
 - [Getting Started](docs/GETTING_STARTED.md)  
 - [API Documentation](server/openapi.json)  
+- [CI/CD Pipeline](docs/CI_CD.md)  
 - [Contributing](#contributing)  
 - [Production Readiness Checklist](#production-readiness-checklist)
 
@@ -111,6 +113,33 @@ npm run compose:up:prod
 
 ---
 
+## Docker Images
+
+Pre-built Docker images are automatically published to GitHub Container Registry:
+
+- **Latest (main branch)**: `ghcr.io/bobbyquantum/inkweld:latest`
+- **Specific commit**: `ghcr.io/bobbyquantum/inkweld:main-<commit-sha>`
+- **Release versions**: `ghcr.io/bobbyquantum/inkweld:v1.0.0`
+
+### Using Pre-built Images
+
+```bash
+# Pull and run the latest image
+docker run -p 8333:8333 ghcr.io/bobbyquantum/inkweld:latest
+
+# Or use with docker-compose by updating your compose file:
+# image: ghcr.io/bobbyquantum/inkweld:latest
+```
+
+### Available Tags
+
+- `latest` - Latest stable build from main branch
+- `v*` - Specific release versions (e.g., `v1.0.0`, `v1.1.0`)
+- `main-<sha>` - Specific commit builds from main branch
+- `manual` - Manual builds triggered via GitHub Actions
+
+---
+
 ## Running Tests
 
 To run tests for both frontend and backend:
@@ -172,7 +201,9 @@ This will execute the unit tests for both the frontend and backend projects.
 - [x] Docker Compose configuration
 - [x] Support for SQLite and PostgreSQL databases
 - [x] Basic CI that runs tests
-- [ ] Enhance CI/CD pipeline
+- [x] Automated Docker image publishing
+- [x] Multi-stage CI/CD pipeline
+- [x] GitHub Container Registry integration
 - [ ] Optimize Docker build process
 - [ ] Develop self-hosting documentation
 - [ ] Implement monitoring and logging
