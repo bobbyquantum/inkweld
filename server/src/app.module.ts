@@ -13,6 +13,7 @@ import { cwd } from 'process';
 import { BaseHrefMiddleware } from './common/middleware/base-href.middleware.js';
 import { ImageModule } from './image/image.module.js';
 import { SystemConfigModule } from './config/config.module.js';
+import { HealthModule } from './health/health.module.js';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { SystemConfigModule } from './config/config.module.js';
     LintModule,
     ImageModule,
     SystemConfigModule,
+    HealthModule,
   ],
   providers: [LevelDBManagerService],
   exports: [LevelDBManagerService],
