@@ -29,5 +29,7 @@ VOLUME ["/data"]
 # Expose port
 EXPOSE 8333
 
+# Change to server directory before running to ensure relative paths work correctly
+WORKDIR /app/server
 # Start the application
-CMD ["bun", "server/dist/src/main.js"] 
+CMD ["bun", "dist/src/main.js"] 
