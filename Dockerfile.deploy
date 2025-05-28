@@ -10,21 +10,22 @@ FROM ${REGISTRY}/${OWNER}/inkweld:${TAG}
 # Set deployment-specific environment variables
 ENV NODE_ENV=production
 ENV DB_TYPE=sqlite
-ENV DB_PATH=/data/sqlite.db
+ENV DB_PATH=/tmp/sqlite.db
+ENV DATA_PATH=/tmp
 ENV DB_LOGGING=false
 ENV PORT=8333
 ENV HOST=0.0.0.0
 
-# Create necessary directories with proper permissions
-RUN mkdir -p /data/yjs && \
-    chown -R bun:bun /data
+# Create necessary directories with proper permissions in tmp
+RUN mkdir -p /tmp/yjs && \
+    chown -R bun:bun /tmp/yjs
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8333/health || exit 1
 
-# Volume for persistent data
-VOLUME ["/data"]
+# Volume for persistent data (though /tmp will be used for transient deployment)
+VOLUME ["/tmp"]
 
 # Expose port
 EXPOSE 8333
