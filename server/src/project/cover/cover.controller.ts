@@ -291,73 +291,96 @@ export class CoverController {
       const backgroundColor = `hsl(${hue}, 50%, 80%)`; // Light pastel colors
       const textColor = `hsl(${hue}, 50%, 30%)`; // Darker text color
 
-      // Prepare title for SVG with text wrapping
-      // Split the title into words and create wrapped lines
-      const words = title.split(' ');
-      const lines = [];
-      let currentLine = '';
-      const maxCharsPerLine = 15; // Adjust based on font size and width
-      
-      words.forEach(word => {
-        // If adding this word would exceed the line length, start a new line
-        if ((currentLine + ' ' + word).length > maxCharsPerLine && currentLine !== '') {
+      let jpegBuffer: Buffer;
+
+      try {
+        // First, try the SVG approach with text
+        // Prepare title for SVG with text wrapping
+        // Split the title into words and create wrapped lines
+        const words = title.split(' ');
+        const lines = [];
+        let currentLine = '';
+        const maxCharsPerLine = 15; // Adjust based on font size and width
+        
+        words.forEach(word => {
+          // If adding this word would exceed the line length, start a new line
+          if ((currentLine + ' ' + word).length > maxCharsPerLine && currentLine !== '') {
+            lines.push(currentLine);
+            currentLine = word;
+          } else {
+            // Add to current line with a space if not the first word on the line
+            currentLine = currentLine === '' ? word : currentLine + ' ' + word;
+          }
+        });
+        
+        // Add the last line if it has content
+        if (currentLine !== '') {
           lines.push(currentLine);
-          currentLine = word;
-        } else {
-          // Add to current line with a space if not the first word on the line
-          currentLine = currentLine === '' ? word : currentLine + ' ' + word;
         }
-      });
-      
-      // Add the last line if it has content
-      if (currentLine !== '') {
-        lines.push(currentLine);
-      }
 
-      // Create SVG with wrapped text and margin
-      const margin = 20; // Add margin around content
-      let svgContent = `
-        <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-          <rect width="100%" height="100%" fill="${backgroundColor}"/>
-          <rect x="${margin}" y="${margin}" width="${width - 2 * margin}" height="${height - 2 * margin}" 
-                fill="${backgroundColor}" stroke="${textColor}" stroke-width="2" stroke-opacity="0.3"/>
-      `;
-      
-      // Add each line of the title
-      const fontSize = 40;
-      const lineHeight = fontSize * 1.2;
-      const startY = 120; // Starting Y position for the first line
-      
-      lines.forEach((line, index) => {
-        svgContent += `
-          <text x="50%" y="${startY + index * lineHeight}" dominant-baseline="middle" text-anchor="middle"
-                font-family="sans-serif" font-size="${fontSize}" fill="${textColor}">
-            ${line}
-          </text>
+        // Create SVG with wrapped text and margin
+        const margin = 20; // Add margin around content
+        let svgContent = `
+          <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100%" height="100%" fill="${backgroundColor}"/>
+            <rect x="${margin}" y="${margin}" width="${width - 2 * margin}" height="${height - 2 * margin}" 
+                  fill="${backgroundColor}" stroke="${textColor}" stroke-width="2" stroke-opacity="0.3"/>
         `;
-      });
-      
-      // Add the username at the bottom
-      svgContent += `
-          <text x="50%" y="${height - 20}" dominant-baseline="middle" text-anchor="middle"
-                font-family="sans-serif" font-size="20" fill="${textColor}">
-            by ${username}
-          </text>
-        </svg>
-      `;
-      
-      const svg = svgContent;
+        
+        // Add each line of the title
+        const fontSize = 40;
+        const lineHeight = fontSize * 1.2;
+        const startY = 120; // Starting Y position for the first line
+        
+        lines.forEach((line, index) => {
+          svgContent += `
+            <text x="50%" y="${startY + index * lineHeight}" dominant-baseline="middle" text-anchor="middle"
+                  font-family="sans-serif" font-size="${fontSize}" fill="${textColor}">
+              ${line}
+            </text>
+          `;
+        });
+        
+        // Add the username at the bottom
+        svgContent += `
+            <text x="50%" y="${height - 20}" dominant-baseline="middle" text-anchor="middle"
+                  font-family="sans-serif" font-size="20" fill="${textColor}">
+              by ${username}
+            </text>
+          </svg>
+        `;
+        
+        const svg = svgContent;
 
-      const pngBuffer = await sharp(Buffer.from(svg))
-        .png() // Using PNG initially, then converting to JPEG for storage
-        .toBuffer();
+        const pngBuffer = await sharp(Buffer.from(svg))
+          .png() // Using PNG initially, then converting to JPEG for storage
+          .toBuffer();
 
-      const jpegBuffer = await sharp(pngBuffer)
+        jpegBuffer = await sharp(pngBuffer)
+          .jpeg({ quality: 85 })
+          .toBuffer();
+
+        this.logger.log(`Successfully generated SVG-based cover for ${username}/${slug}`);
+      } catch (svgError) {
+        // Fallback: Create a simple solid color image if SVG rendering fails
+        this.logger.warn(`SVG rendering failed for ${username}/${slug}, falling back to solid color: ${svgError instanceof Error ? svgError.message : 'Unknown error'}`);
+        
+        jpegBuffer = await sharp({
+          create: {
+            width,
+            height,
+            channels: 3,
+            background: { r: 150, g: 180, b: 220 } // Light blue fallback
+          }
+        })
         .jpeg({ quality: 85 })
         .toBuffer();
 
+        this.logger.log(`Generated fallback solid color cover for ${username}/${slug}`);
+      }
+
       await this.saveProjectCover(username, slug, jpegBuffer);
-      this.logger.log(`Successfully generated and saved default cover for ${username}/${slug}`);
+      this.logger.log(`Successfully saved default cover for ${username}/${slug}`);
     } catch (error) {
       this.logger.error(`Failed to generate default cover for ${username}/${slug}`, error);
       // Decide if this failure should prevent project creation or just log an error

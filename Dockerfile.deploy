@@ -7,6 +7,13 @@ ARG TAG=latest
 
 FROM ${REGISTRY}/${OWNER}/inkweld:${TAG}
 
+# Install fontconfig and fonts for Sharp SVG text rendering (if not already installed)
+RUN apt-get update && \
+    apt-get install -y fontconfig fonts-dejavu-core && \
+    fc-cache -fv && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Set deployment-specific environment variables
 ENV NODE_ENV=production
 ENV DB_TYPE=sqlite
