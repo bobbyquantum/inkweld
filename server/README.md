@@ -126,6 +126,7 @@ InkWeld server can be configured using the following environment variables:
 | `GITHUB_CLIENT_ID` | GitHub OAuth client ID | |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth client secret | |
 | `DATA_PATH` | Base path for project data | ./data |
+| `OPENAI_API_KEY` | OpenAI API key for AI features (optional) | - AI features disabled if not set |
 
 ### Running the Application
 
