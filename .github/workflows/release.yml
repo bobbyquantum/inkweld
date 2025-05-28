@@ -1,44 +1,19 @@
-name: CI
+name: Release
 
 on:
+  release:
+    types: [published]
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags:
+      - 'v*'
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest] #, windows-latest, macos-latest
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v2
-      with:
-        bun-version: latest
-
-    - name: Install dependencies
-      run: bun run install-all
-
-    - name: Check code formatting
-      run: bun run lint
-
-    - name: Run tests
-      run: bun run test
-
-  docker-publish:
-    needs: test
+  docker-release:
     runs-on: ubuntu-latest
-    # Only run on pushes to main branch, not on PRs
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout repository
@@ -76,9 +51,11 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/inkweld
           tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -89,4 +66,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=max 
