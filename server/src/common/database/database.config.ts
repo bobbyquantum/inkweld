@@ -23,7 +23,8 @@ export class DatabaseConfigService {
     // Common configuration for both database types
     const baseConfig: Partial<TypeOrmModuleOptions> = {
       entities: [UserEntity, UserSessionEntity, ProjectEntity],
-      synchronize: this.configService.get('NODE_ENV') !== 'production',
+      // Enable synchronize for transient deployments to auto-create tables
+      synchronize: true,
       logging: this.configService.get('DB_LOGGING') === 'true',
     };
 
