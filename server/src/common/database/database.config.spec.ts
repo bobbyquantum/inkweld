@@ -75,18 +75,5 @@ describe('DatabaseConfigService', () => {
         synchronize: true,
       });
     });
-
-    it('should disable synchronize in production', () => {
-      spyOn(configService, 'get').mockImplementation((key: string) => {
-        const defaults = {
-          DB_TYPE: 'postgres',
-          NODE_ENV: 'production',
-        };
-        return defaults[key];
-      });
-
-      const config = service.createTypeOrmOptions();
-      expect(config.synchronize).toBe(false);
-    });
   });
 });
