@@ -1,0 +1,44 @@
+services:
+  inkweld-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.deploy
+      args:
+        REGISTRY: ghcr.io
+        OWNER: ${GITHUB_REPOSITORY_OWNER:-bobbyquantum}
+        TAG: ${IMAGE_TAG:-latest}
+    environment:
+      # Database Configuration - SQLite mode
+      - DB_TYPE=sqlite
+      - DB_PATH=/data/sqlite.db
+      - DB_LOGGING=false
+
+      # Server Configuration
+      - PORT=8333
+      - HOST=0.0.0.0
+      - PUBLIC_URL=${PUBLIC_URL:-http://localhost:8333}
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:8333}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:8333}
+
+      # Auth Configuration
+      - LOCAL_USERS_ENABLED=${LOCAL_USERS_ENABLED:-true}
+      - GITHUB_ENABLED=${GITHUB_ENABLED:-false}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+
+      # Yjs data path
+      - DATA_PATH=/data/yjs
+    volumes:
+      - inkweld_data:/data
+    ports:
+      - "${PORT:-8333}:8333"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8333/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  inkweld_data: # Volume for both SQLite database and Yjs data 
