@@ -46,10 +46,10 @@ export class AuthService {
         sessionId: req.sessionID,
         secure: req.secure,
         protocol: req.protocol,
-        headers: {
+        headers: req.headers ? {
           'x-forwarded-proto': req.headers['x-forwarded-proto'],
           'x-forwarded-for': req.headers['x-forwarded-for']
-        },
+        } : 'No headers available',
         nodeEnv: process.env.NODE_ENV
       });
 
