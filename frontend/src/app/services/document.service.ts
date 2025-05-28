@@ -21,6 +21,7 @@ import { createLintPlugin } from '../components/lint/lint-plugin';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { ProjectStateService } from './project-state.service';
 import { SetupService } from './setup.service';
+import { SystemConfigService } from './system-config.service';
 
 /**
  * Represents an active Yjs document connection
@@ -52,6 +53,7 @@ export class DocumentService {
   private readonly ngZone = inject(NgZone);
   private readonly lintApiService = inject(LintApiService);
   private readonly setupService = inject(SetupService);
+  private readonly systemConfigService = inject(SystemConfigService);
 
   private connections: Map<string, DocumentConnection> = new Map();
 
@@ -395,8 +397,10 @@ export class DocumentService {
     ] as Plugin[];
 
     // Add the linting plugin
-    const lintPlugin = createLintPlugin(this.lintApiService);
-    plugins.push(lintPlugin);
+    if (this.systemConfigService.isAiLintingEnabled()) {
+      const lintPlugin = createLintPlugin(this.lintApiService);
+      plugins.push(lintPlugin);
+    }
 
     // Add word count tracking plugin
     const wordCountPlugin = new Plugin({

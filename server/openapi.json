@@ -1392,6 +1392,36 @@
         ]
       }
     },
+    "/lint/status": {
+      "get": {
+        "operationId": "LintController_getStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "AI service status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "service": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Check if AI linting features are available",
+        "tags": [
+          "Lint"
+        ]
+      }
+    },
     "/lint": {
       "post": {
         "operationId": "LintController_lintParagraph",
@@ -1425,11 +1455,44 @@
           },
           "500": {
             "description": "Internal server error"
+          },
+          "503": {
+            "description": "Service unavailable - AI features disabled"
           }
         },
         "summary": "Lint a paragraph for grammar, spelling, and style issues",
         "tags": [
           "Lint"
+        ]
+      }
+    },
+    "/image/status": {
+      "get": {
+        "operationId": "ImageController_getStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "AI service status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "service": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Check if AI image generation features are available",
+        "tags": [
+          "Image"
         ]
       }
     },
@@ -1466,11 +1529,47 @@
           },
           "500": {
             "description": "Internal server error"
+          },
+          "503": {
+            "description": "Service unavailable - AI features disabled"
           }
         },
         "summary": "Generate an image based on a text prompt",
         "tags": [
           "Image"
+        ]
+      }
+    },
+    "/api/config/features": {
+      "get": {
+        "description": "Returns which system features are currently enabled based on environment configuration",
+        "operationId": "ConfigController_getSystemFeatures",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "System features configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "aiLinting": {
+                      "type": "boolean",
+                      "description": "Whether AI-powered linting is available"
+                    },
+                    "aiImageGeneration": {
+                      "type": "boolean",
+                      "description": "Whether AI-powered image generation is available"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get system features configuration",
+        "tags": [
+          "config"
         ]
       }
     }
