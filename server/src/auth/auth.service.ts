@@ -41,9 +41,22 @@ export class AuthService {
 
   async login(req, user: Partial<UserEntity>) {
     return new Promise((resolve, reject) => {
+      // Log session configuration for debugging
+      console.log('Login attempt - Session info:', {
+        sessionId: req.sessionID,
+        secure: req.secure,
+        protocol: req.protocol,
+        headers: {
+          'x-forwarded-proto': req.headers['x-forwarded-proto'],
+          'x-forwarded-for': req.headers['x-forwarded-for']
+        },
+        nodeEnv: process.env.NODE_ENV
+      });
+
       // Regenerate session to prevent session fixation
       req.session.regenerate((err) => {
         if (err) {
+          console.error('Session regeneration failed:', err);
           return reject(err);
         }
 
@@ -60,8 +73,15 @@ export class AuthService {
         // Save the session
         req.session.save((saveErr) => {
           if (saveErr) {
+            console.error('Session save failed:', saveErr);
             return reject(saveErr);
           }
+          
+          console.log('Session saved successfully:', {
+            sessionId: req.sessionID,
+            userId: user.id?.toString()
+          });
+          
           resolve({
             message: 'Login successful',
             user: {
