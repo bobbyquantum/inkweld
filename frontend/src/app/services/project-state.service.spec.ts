@@ -144,6 +144,7 @@ describe('ProjectStateService', () => {
 
     mockSetupService = {
       getMode: jest.fn().mockReturnValue('server'),
+      getWebSocketUrl: jest.fn().mockReturnValue('ws://localhost:8333'),
     } as unknown as jest.Mocked<SetupService>;
 
     mockOfflineElementsService = {

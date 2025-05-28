@@ -115,6 +115,31 @@ export class SetupService {
     return config?.mode === 'offline' ? config.userProfile || null : null;
   }
 
+  /**
+   * Get the WebSocket URL based on current mode
+   * In server mode, converts the server URL to WebSocket URL
+   * In offline mode or when no server URL is set, uses environment wssUrl
+   */
+  getWebSocketUrl(): string | null {
+    const config = this.appConfig();
+
+    if (config?.mode === 'server' && config.serverUrl) {
+      // Convert HTTP(S) URL to WebSocket URL
+      try {
+        const url = new URL(config.serverUrl);
+        const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${wsProtocol}//${url.host}`;
+      } catch (error) {
+        console.error('Failed to parse server URL for WebSocket:', error);
+        return null;
+      }
+    }
+
+    // Fallback to environment wssUrl (for offline mode or when server URL is not set)
+    // This will be empty in production unless specifically configured
+    return null;
+  }
+
   private loadConfig(): void {
     const config = this.getStoredConfig();
     if (config) {

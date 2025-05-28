@@ -11,7 +11,6 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import { environment } from '../../environments/environment';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { DialogGatewayService } from './dialog-gateway.service';
 import { OfflineProjectElementsService } from './offline-project-elements.service';
@@ -211,12 +210,12 @@ export class ProjectStateService {
     await this.indexeddbProvider.whenSynced;
 
     // Initialize WebSocket provider
-    if (!environment.wssUrl) {
+    if (!this.setupService.getWebSocketUrl()) {
       throw new Error('WebSocket URL is not configured');
     }
 
     this.provider = new WebsocketProvider(
-      environment.wssUrl + '/ws/yjs?documentId=',
+      this.setupService.getWebSocketUrl() + '/ws/yjs?documentId=',
       this.docId,
       this.doc,
       { connect: true, resyncInterval: 10000 }

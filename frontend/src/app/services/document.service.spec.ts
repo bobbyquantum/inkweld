@@ -9,6 +9,7 @@ import { LintApiService } from '../components/lint/lint-api.service';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
+import { SetupService } from './setup.service';
 
 // Mock dependencies
 jest.mock('yjs', () => ({
@@ -55,6 +56,7 @@ describe('DocumentService', () => {
   let mockWebSocketProvider: jest.Mocked<WebsocketProvider>;
   let mockIndexedDbProvider: jest.Mocked<IndexeddbPersistence>;
   let mockEditor: jest.Mocked<Editor>;
+  let mockSetupService: jest.Mocked<SetupService>;
 
   const testDocumentId = 'test-doc';
 
@@ -112,12 +114,18 @@ describe('DocumentService', () => {
       }),
     } as unknown as jest.Mocked<LintApiService>;
 
+    // Mock SetupService
+    mockSetupService = {
+      getWebSocketUrl: jest.fn().mockReturnValue('ws://localhost:8333'),
+    } as unknown as jest.Mocked<SetupService>;
+
     // Configure TestBed and inject service
     spectator = createService({
       providers: [
         { provide: ProjectStateService, useValue: mockProjectStateService },
         { provide: DocumentAPIService, useValue: mockDocumentApiService },
         { provide: LintApiService, useValue: mockLintApiService },
+        { provide: SetupService, useValue: mockSetupService },
       ],
     });
 
