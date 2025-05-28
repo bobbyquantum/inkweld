@@ -30,4 +30,6 @@ COPY frontend/dist/browser ./frontend/dist/browser
 RUN mkdir -p /var/lib/yjs && chown -R bun:bun /var/lib/yjs
 
 EXPOSE 8333
-CMD ["bun", "server/dist/src/main.js"]
+# Change to server directory before running to ensure relative paths work correctly
+WORKDIR /app/server
+CMD ["bun", "dist/src/main.js"]
