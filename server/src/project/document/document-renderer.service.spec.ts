@@ -108,7 +108,9 @@ describe('DocumentRendererService', () => {
       const result = service.renderDocumentAsHtml(ydoc, 'test-doc');
 
       // HTML should be escaped
-      expect(result).toContain('&lt;script&gt;alert(&quot;XSS&quot;);&lt;/script&gt;');
+      expect(result).toContain(
+        '&lt;script&gt;alert(&quot;XSS&quot;);&lt;/script&gt;',
+      );
       expect(result).not.toContain('<script>alert("XSS");</script>');
     });
 
@@ -123,11 +125,18 @@ describe('DocumentRendererService', () => {
       paragraph.push([text]);
       xmlFragment.push([paragraph]);
 
-      const result = service.renderDocumentAsHtml(ydoc, '"><script>alert("XSS");</script>');
+      const result = service.renderDocumentAsHtml(
+        ydoc,
+        '"><script>alert("XSS");</script>',
+      );
 
       // Title should be escaped in the HTML output
-      expect(result).toContain('<title>&quot;&gt;&lt;script&gt;alert(&quot;XSS&quot;);&lt;/script&gt;</title>');
-      expect(result).not.toContain('<title>"><script>alert("XSS");</script></title>');
+      expect(result).toContain(
+        '<title>&quot;&gt;&lt;script&gt;alert(&quot;XSS&quot;);&lt;/script&gt;</title>',
+      );
+      expect(result).not.toContain(
+        '<title>"><script>alert("XSS");</script></title>',
+      );
     });
   });
 
@@ -152,7 +161,6 @@ describe('DocumentRendererService', () => {
       heading2.setAttribute('level', '2');
       const text2 = new XmlText('Heading 2');
       heading2.push([text2]);
-
 
       const result = service.renderDocumentAsHtml(ydoc, 'test-doc');
 
@@ -198,24 +206,31 @@ describe('DocumentRendererService', () => {
       const result = service.renderDocumentAsHtml(ydoc, 'test-doc');
 
       // Test for formatted content
-      expect(result).toContain('<p>Text with <strong>bold</strong> and <em>italic</em> formatting.</p>');
+      expect(result).toContain(
+        '<p>Text with <strong>bold</strong> and <em>italic</em> formatting.</p>',
+      );
     });
   });
 
   describe('Error handling', () => {
     it('should handle exceptions during XML parsing', () => {
       // Create a spy on the logger to check for error messages
-      const loggerErrorSpy = spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+      const loggerErrorSpy = spyOn(
+        Logger.prototype,
+        'error',
+      ).mockImplementation(() => {});
 
       // Mock a document whose fragment causes an error during processing/iteration
       const mockFragment = {
         // Make it iterable but throw on iteration attempt
-        [Symbol.iterator]: () => { throw new Error('Simulated processing error'); },
+        [Symbol.iterator]: () => {
+          throw new Error('Simulated processing error');
+        },
         // Add length property for the empty check (so it passes the initial check)
         length: 1,
       };
       const mockYdoc = {
-        getXmlFragment: jest.fn().mockReturnValue(mockFragment)
+        getXmlFragment: jest.fn().mockReturnValue(mockFragment),
       } as unknown as Doc;
 
       const result = service.renderDocumentAsHtml(mockYdoc, 'test-doc');
@@ -234,8 +249,6 @@ describe('DocumentRendererService', () => {
 
   // Add more advanced tests for complex document structures
   describe('Complex document features', () => {
-
-
     it('should render horizontal rules', () => {
       const ydoc = new Doc();
       const xmlFragment = ydoc.getXmlFragment('prosemirror');

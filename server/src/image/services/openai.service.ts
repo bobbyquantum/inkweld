@@ -1,4 +1,9 @@
-import { Injectable, Logger, InternalServerErrorException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { ImageGenerateRequestDto } from '../dto/image-generate-request.dto.js';
@@ -14,7 +19,9 @@ export class OpenAiImageService {
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     if (!apiKey) {
-      this.logger.warn('OPENAI_API_KEY is not defined in environment variables. AI image generation features will be disabled.');
+      this.logger.warn(
+        'OPENAI_API_KEY is not defined in environment variables. AI image generation features will be disabled.',
+      );
       this.openai = null;
       this.isAiEnabled = false;
     } else {
@@ -36,26 +43,30 @@ export class OpenAiImageService {
    */
   async generate(request: ImageGenerateRequestDto): Promise<ImageResponseDto> {
     if (!this.isAiEnabled || !this.openai) {
-      this.logger.warn('AI image generation requested but OpenAI API key is not configured');
+      this.logger.warn(
+        'AI image generation requested but OpenAI API key is not configured',
+      );
       throw new ServiceUnavailableException(
         'AI image generation features are not available. Please configure OPENAI_API_KEY environment variable.',
         {
-          description: 'OpenAI API key is not configured'
-        }
+          description: 'OpenAI API key is not configured',
+        },
       );
     }
 
-    this.logger.debug(`Generating image with prompt: "${request.prompt}", model: ${request.model || 'default'}`);
+    this.logger.debug(
+      `Generating image with prompt: "${request.prompt}", model: ${request.model || 'default'}`,
+    );
 
     // Make a copy of the request to avoid mutating the original
     const modelType = request.model || 'dall-e-2'; // Default to dall-e-2 if not specified
-    
+
     // Map DTO to OpenAI parameters with model-specific filtering
     const params: any = {
-        prompt: request.prompt,
-        model: modelType,
-        n: request.n,
-        user: request.user,
+      prompt: request.prompt,
+      model: modelType,
+      n: request.n,
+      user: request.user,
     };
 
     // Add model-specific parameters
@@ -81,9 +92,13 @@ export class OpenAiImageService {
     }
 
     // Remove undefined properties
-    Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
+    Object.keys(params).forEach(
+      (key) => params[key] === undefined && delete params[key],
+    );
 
-    this.logger.debug(`Sending parameters to OpenAI API: ${JSON.stringify(params)}`);
+    this.logger.debug(
+      `Sending parameters to OpenAI API: ${JSON.stringify(params)}`,
+    );
 
     try {
       // Create an abort controller with a 60-second timeout (image gen can be slow)
@@ -97,45 +112,64 @@ export class OpenAiImageService {
       // Clear the timeout since we got a response
       clearTimeout(timeoutId);
 
-      this.logger.debug(`OpenAI image generation response received. Created: ${res.created}`);
+      this.logger.debug(
+        `OpenAI image generation response received. Created: ${res.created}`,
+      );
 
       // Adapt OpenAI response to our DTO
       const responseDto: ImageResponseDto = {
         created: res.created,
-        data: res.data.map(img => ({
+        data: res.data.map((img) => ({
           b64_json: img.b64_json,
           url: img.url,
           revised_prompt: img.revised_prompt,
         })),
         // Usage is optional and specific to gpt-image-1 in the latest API
-        usage: (res as any).usage ? {
-          total_tokens: (res as any).usage.total_tokens,
-          input_tokens: (res as any).usage.input_tokens,
-          output_tokens: (res as any).usage.output_tokens,
-          input_tokens_details: (res as any).usage.input_tokens_details ? {
-            text_tokens: (res as any).usage.input_tokens_details.text_tokens,
-            image_tokens: (res as any).usage.input_tokens_details.image_tokens,
-          } : undefined,
-        } : undefined,
+        usage: (res as any).usage
+          ? {
+              total_tokens: (res as any).usage.total_tokens,
+              input_tokens: (res as any).usage.input_tokens,
+              output_tokens: (res as any).usage.output_tokens,
+              input_tokens_details: (res as any).usage.input_tokens_details
+                ? {
+                    text_tokens: (res as any).usage.input_tokens_details
+                      .text_tokens,
+                    image_tokens: (res as any).usage.input_tokens_details
+                      .image_tokens,
+                  }
+                : undefined,
+            }
+          : undefined,
         source: this.SOURCE,
       };
 
       return responseDto;
-
     } catch (error) {
       const err = error as Error;
       if (err.name === 'AbortError') {
-        this.logger.warn(`OpenAI image generation timed out after 60 seconds for prompt: "${request.prompt}"`);
-        throw new InternalServerErrorException('Image generation service timed out', {
-          cause: err,
-          description: 'The image generation service took too long to respond',
-        });
+        this.logger.warn(
+          `OpenAI image generation timed out after 60 seconds for prompt: "${request.prompt}"`,
+        );
+        throw new InternalServerErrorException(
+          'Image generation service timed out',
+          {
+            cause: err,
+            description:
+              'The image generation service took too long to respond',
+          },
+        );
       }
 
-      this.logger.error(`Error calling OpenAI image generation for prompt "${request.prompt}": ${err.message}`, err.stack);
-      throw new InternalServerErrorException('Failed to generate image with OpenAI', {
-        cause: err,
-      });
+      this.logger.error(
+        `Error calling OpenAI image generation for prompt "${request.prompt}": ${err.message}`,
+        err.stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to generate image with OpenAI',
+        {
+          cause: err,
+        },
+      );
     }
   }
 

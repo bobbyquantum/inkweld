@@ -259,9 +259,13 @@ export class LevelDBManagerService implements OnModuleInit, OnModuleDestroy {
     while (retries > 0) {
       try {
         // Use the public destroy() method provided by LeveldbPersistence
-        this.logger.log(`Attempting to destroy LeveldbPersistence for ${key}...`);
+        this.logger.log(
+          `Attempting to destroy LeveldbPersistence for ${key}...`,
+        );
         await db.destroy(); // This should call the underlying db.close()
-        this.logger.log(`Successfully destroyed LeveldbPersistence for ${key}.`);
+        this.logger.log(
+          `Successfully destroyed LeveldbPersistence for ${key}.`,
+        );
 
         // Remove references after successful destruction
         this.projectDatabases.delete(key);

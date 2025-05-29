@@ -47,49 +47,57 @@ export class DocumentController {
   @Get(':username/:projectSlug/docs')
   @ApiOperation({
     summary: 'List all documents in a project',
-    description: 'Retrieves a list of all documents in the specified project.'
+    description: 'Retrieves a list of all documents in the specified project.',
   })
   @ApiParam({
     name: 'username',
     required: true,
     description: 'The username of the project owner',
-    example: 'testuser'
+    example: 'testuser',
   })
   @ApiParam({
     name: 'projectSlug',
     required: true,
     description: 'The slug identifier of the project',
-    example: 'my-project'
+    example: 'my-project',
   })
   @ApiOkResponse({
     description: 'Successfully retrieved the list of documents',
     type: [DocumentDto],
   })
   @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication'
+    description: 'Invalid or missing authentication',
   })
   @ApiForbiddenResponse({
-    description: 'User does not have permission to access this project'
+    description: 'User does not have permission to access this project',
   })
   @ApiNotFoundResponse({
-    description: 'Project not found'
+    description: 'Project not found',
   })
   async listDocuments(
     @Param('username') username: string,
     @Param('projectSlug') projectSlug: string,
   ): Promise<DocumentDto[]> {
     try {
-      this.logger.log(`Listing documents for project ${username}/${projectSlug}`);
+      this.logger.log(
+        `Listing documents for project ${username}/${projectSlug}`,
+      );
 
       // Get documents directly from the LevelDB database using the manager
-      const documentIds = await this.levelDBManager.listProjectDocuments(username, projectSlug);
+      const documentIds = await this.levelDBManager.listProjectDocuments(
+        username,
+        projectSlug,
+      );
 
       if (documentIds.length === 0) {
-        return [] ; // No documents found
+        return []; // No documents found
       }
 
       // Get the database for this project to access metadata
-      const db = await this.levelDBManager.getProjectDatabase(username, projectSlug);
+      const db = await this.levelDBManager.getProjectDatabase(
+        username,
+        projectSlug,
+      );
       const documents: DocumentDto[] = [];
 
       // For each document ID, fetch metadata and create DocumentDto objects
@@ -97,7 +105,9 @@ export class DocumentController {
         try {
           // Try to get metadata for the document
           const ownerId = await db.getMeta(docId, 'ownerId');
-          const lastModified = await db.getMeta(docId, 'lastModified') || new Date().toISOString();
+          const lastModified =
+            (await db.getMeta(docId, 'lastModified')) ||
+            new Date().toISOString();
 
           // Parse the document ID to extract components
           const parts = docId.split(':');
@@ -105,7 +115,9 @@ export class DocumentController {
 
           // skio "elements"
           if (name === 'elements') {
-            this.logger.warn(`Skipping document ${docId} as it is an internal element document`);
+            this.logger.warn(
+              `Skipping document ${docId} as it is an internal element document`,
+            );
             continue;
           }
 
@@ -116,12 +128,14 @@ export class DocumentController {
             name,
             lastModified,
             username,
-            projectSlug
+            projectSlug,
           });
 
           documents.push(docDto);
         } catch (err: any) {
-          this.logger.warn(`Error retrieving document ${docId}: ${err.message}`);
+          this.logger.warn(
+            `Error retrieving document ${docId}: ${err.message}`,
+          );
           // Continue with other documents - don't fail the whole request
         }
       }
@@ -146,35 +160,35 @@ export class DocumentController {
   @Get(':username/:projectSlug/docs/:docId')
   @ApiOperation({
     summary: 'Get document information',
-    description: 'Retrieves metadata for a specific document in a project.'
+    description: 'Retrieves metadata for a specific document in a project.',
   })
   @ApiParam({
     name: 'username',
     required: true,
     description: 'The username of the project owner',
-    example: 'testuser'
+    example: 'testuser',
   })
   @ApiParam({
     name: 'projectSlug',
     required: true,
     description: 'The slug identifier of the project',
-    example: 'my-project'
+    example: 'my-project',
   })
   @ApiParam({
     name: 'docId',
     required: true,
     description: 'The document identifier',
-    example: 'document1'
+    example: 'document1',
   })
   @ApiOkResponse({
     description: 'Successfully retrieved the document information',
-    type: DocumentDto
+    type: DocumentDto,
   })
   @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication'
+    description: 'Invalid or missing authentication',
   })
   @ApiNotFoundResponse({
-    description: 'Document not found'
+    description: 'Document not found',
   })
   async getDocumentInfo(
     @Param('username') username: string,
@@ -182,18 +196,25 @@ export class DocumentController {
     @Param('docId') docId: string,
   ) {
     try {
-      this.logger.log(`Getting document info for ${docId} in project ${username}/${projectSlug}`);
+      this.logger.log(
+        `Getting document info for ${docId} in project ${username}/${projectSlug}`,
+      );
 
       // Construct the full document ID
       const documentId = `${docId}:${username}:${projectSlug}`;
 
       // Get the database for this project
-      const db = await this.levelDBManager.getProjectDatabase(username, projectSlug);
+      const db = await this.levelDBManager.getProjectDatabase(
+        username,
+        projectSlug,
+      );
 
       // Try to get document metadata
       try {
         const ownerId = await db.getMeta(documentId, 'ownerId');
-        const lastModified = await db.getMeta(documentId, 'lastModified') || new Date().toISOString();
+        const lastModified =
+          (await db.getMeta(documentId, 'lastModified')) ||
+          new Date().toISOString();
 
         // If we can get metadata, the document exists
         return new DocumentDto({
@@ -202,10 +223,12 @@ export class DocumentController {
           name: docId || 'Untitled',
           lastModified,
           username,
-          projectSlug
+          projectSlug,
         });
       } catch (err: any) {
-        this.logger.warn(`Document ${documentId} not found or error: ${err.message}`);
+        this.logger.warn(
+          `Document ${documentId} not found or error: ${err.message}`,
+        );
         throw new NotFoundException(`Document ${documentId} not found`);
       }
     } catch (error) {
@@ -228,36 +251,36 @@ export class DocumentController {
   @Get(':username/:projectSlug/docs/:docId/html')
   @ApiOperation({
     summary: 'Render document as HTML',
-    description: 'Renders a ProseMirror document as static HTML.'
+    description: 'Renders a ProseMirror document as static HTML.',
   })
   @ApiParam({
     name: 'username',
     required: true,
     description: 'The username of the project owner',
-    example: 'testuser'
+    example: 'testuser',
   })
   @ApiParam({
     name: 'projectSlug',
     required: true,
     description: 'The slug identifier of the project',
-    example: 'my-project'
+    example: 'my-project',
   })
   @ApiParam({
     name: 'docId',
     required: true,
     description: 'The document identifier',
-    example: 'document1'
+    example: 'document1',
   })
   @ApiProduces('text/html')
   @ApiOkResponse({
     description: 'Successfully rendered the document as HTML',
-    type: String
+    type: String,
   })
   @ApiUnauthorizedResponse({
-    description: 'Invalid or missing authentication'
+    description: 'Invalid or missing authentication',
   })
   @ApiNotFoundResponse({
-    description: 'Document not found'
+    description: 'Document not found',
   })
   @Header('Content-Type', 'text/html')
   async renderHtml(
@@ -267,7 +290,9 @@ export class DocumentController {
     @Res() response,
   ): Promise<void> {
     try {
-      this.logger.log(`Rendering HTML for document ${docId} in project ${username}/${projectSlug}`);
+      this.logger.log(
+        `Rendering HTML for document ${docId} in project ${username}/${projectSlug}`,
+      );
 
       // Get the doc from database
       const documentId = `${username}:${projectSlug}:${docId}`;
@@ -275,7 +300,10 @@ export class DocumentController {
 
       try {
         // Get access to project database
-        const db = await this.levelDBManager.getProjectDatabase(username, projectSlug);
+        const db = await this.levelDBManager.getProjectDatabase(
+          username,
+          projectSlug,
+        );
 
         // Check if document exists
         try {
@@ -305,7 +333,9 @@ export class DocumentController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      throw new InternalServerErrorException('Failed to render document as HTML');
+      throw new InternalServerErrorException(
+        'Failed to render document as HTML',
+      );
     }
   }
 }

@@ -6,6 +6,7 @@ api/auth.service.ts
 api/config.service.ts
 api/csrf.service.ts
 api/document-api.service.ts
+api/health.service.ts
 api/image.service.ts
 api/lint.service.ts
 api/mcp.service.ts
@@ -15,12 +16,14 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
+model/config-controller-get-system-features200-response-captcha.ts
 model/config-controller-get-system-features200-response.ts
 model/correction-dto.ts
 model/document-dto.ts
 model/file-delete-response-dto.ts
 model/file-metadata-dto.ts
 model/file-upload-response-dto.ts
+model/health-controller-get-health200-response.ts
 model/image-data-dto.ts
 model/image-generate-request-dto.ts
 model/image-response-dto.ts

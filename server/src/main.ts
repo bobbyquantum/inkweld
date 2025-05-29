@@ -71,9 +71,10 @@ async function bootstrap() {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         sameSite: 'lax', // Recommended for session cookies
         // Add domain configuration for production
-        ...(process.env.NODE_ENV === 'production' && process.env.COOKIE_DOMAIN && {
-          domain: process.env.COOKIE_DOMAIN
-        })
+        ...(process.env.NODE_ENV === 'production' &&
+          process.env.COOKIE_DOMAIN && {
+            domain: process.env.COOKIE_DOMAIN,
+          }),
       },
     }),
   );

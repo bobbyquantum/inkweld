@@ -142,21 +142,37 @@ export class ProjectController {
 
       // Create the project
       // Pass ownerId and the entity to the service method
-      const newProjectEntity = await this.projectService.create(req.user.id, projectEntity);
+      const newProjectEntity = await this.projectService.create(
+        req.user.id,
+        projectEntity,
+      );
 
       // Generate default cover image asynchronously (don't block response)
       // Use the username from the session and slug/title from the created entity
-      this.coverController.generateDefaultCover(req.user.username, newProjectEntity.slug, newProjectEntity.title)
-        .catch(coverError => {
-          this.logger.error(`Failed to generate default cover for ${req.user.username}/${newProjectEntity.slug} during creation`, coverError);
+      this.coverController
+        .generateDefaultCover(
+          req.user.username,
+          newProjectEntity.slug,
+          newProjectEntity.title,
+        )
+        .catch((coverError) => {
+          this.logger.error(
+            `Failed to generate default cover for ${req.user.username}/${newProjectEntity.slug} during creation`,
+            coverError,
+          );
           // Decide if you want to log this more formally or notify someone
         });
 
       // Return the DTO representation of the created project
       return new ProjectDto(newProjectEntity);
     } catch (error) {
-      this.logger.error(`Failed to create project for user ${req.user.username}`, error);
-      throw new BadRequestException('Failed to create project. Please ensure the slug is unique.'); // Provide a more generic error
+      this.logger.error(
+        `Failed to create project for user ${req.user.username}`,
+        error,
+      );
+      throw new BadRequestException(
+        'Failed to create project. Please ensure the slug is unique.',
+      ); // Provide a more generic error
     }
   }
 

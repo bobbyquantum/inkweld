@@ -32,7 +32,8 @@ export class ProjectPublishEpubController {
   @Post()
   @ApiOperation({
     summary: 'Publish project as EPUB',
-    description: 'Converts project elements to an EPUB file and returns file metadata',
+    description:
+      'Converts project elements to an EPUB file and returns file metadata',
   })
   @ApiParam({
     name: 'username',

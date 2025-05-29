@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { ConfigControllerGetSystemFeatures200ResponseCaptcha } from './config-controller-get-system-features200-response-captcha';
 
 
 export interface ConfigControllerGetSystemFeatures200Response { 
@@ -18,5 +19,6 @@ export interface ConfigControllerGetSystemFeatures200Response {
      * Whether AI-powered image generation is available
      */
     aiImageGeneration?: boolean;
+    captcha?: ConfigControllerGetSystemFeatures200ResponseCaptcha;
 }
 

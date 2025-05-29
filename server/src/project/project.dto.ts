@@ -14,7 +14,7 @@ export class ProjectDto {
   @ApiProperty({ example: 'This is a cool project.', required: false })
   description?: string;
 
-  @ApiProperty({example: 'user-1', required: true })
+  @ApiProperty({ example: 'user-1', required: true })
   username: string;
 
   @ApiProperty({ type: Date, example: '2023-01-01T00:00:00.000Z' })

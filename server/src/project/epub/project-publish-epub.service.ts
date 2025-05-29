@@ -2,7 +2,10 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Epub, ManifestItem } from '@smoores/epub';
 import { randomUUID } from 'crypto';
 import { ProjectElementService } from '../element/project-element.service.js';
-import { FileStorageService, FileMetadata } from '../files/file-storage.service.js';
+import {
+  FileStorageService,
+  FileMetadata,
+} from '../files/file-storage.service.js';
 import { ProjectService } from '../project.service.js';
 import { ElementType } from '../element/element-type.enum.js';
 import { ProjectElementDto } from '../element/project-element.dto.js';
@@ -60,8 +63,8 @@ export class ProjectPublishEpubService {
       `Found ${elements.length} elements for project ${username}/${slug}`,
     );
     const language = {
-      toString: () => "en-US",
-      textInfo: { direction: "ltr" }
+      toString: () => 'en-US',
+      textInfo: { direction: 'ltr' },
     } as Intl.Locale;
 
     // Create a new EPUB
@@ -77,7 +80,10 @@ export class ProjectPublishEpubService {
 
     if (fs.existsSync(coverImagePath)) {
       const coverImageBuffer = await fs.promises.readFile(coverImagePath);
-      await epub.setCoverImage('Images/cover.jpg', new Uint8Array(coverImageBuffer));
+      await epub.setCoverImage(
+        'Images/cover.jpg',
+        new Uint8Array(coverImageBuffer),
+      );
       this.logger.log('Added cover image to EPUB');
     }
 
@@ -116,7 +122,7 @@ export class ProjectPublishEpubService {
    */
   private async addTableOfContents(
     epub: Epub,
-    elements: ProjectElementDto[]
+    elements: ProjectElementDto[],
   ): Promise<void> {
     const tocItem: ManifestItem = {
       id: 'toc',
@@ -127,7 +133,7 @@ export class ProjectPublishEpubService {
 
     // Create TOC content with links to chapters
     const tocListItems = elements
-      .filter(element => element.type === ElementType.ITEM)
+      .filter((element) => element.type === ElementType.ITEM)
       .map((element, index) => {
         const chapterId = `chapter-${index + 1}`;
         const chapterTitle = element.name || `Chapter ${index + 1}`;
@@ -171,7 +177,7 @@ export class ProjectPublishEpubService {
     // Get the database for this project to access document content
     const db = await this.levelDBManager.getProjectDatabase(
       this.currentUsername,
-      this.currentSlug
+      this.currentSlug,
     );
 
     // Add each chapter
@@ -180,7 +186,9 @@ export class ProjectPublishEpubService {
       const chapterId = `chapter-${i + 1}`;
       const chapterTitle = element.name || `Chapter ${i + 1}`;
 
-      this.logger.log(`Processing chapter ${i + 1}: ${chapterTitle} (Element ID: ${element.id})`);
+      this.logger.log(
+        `Processing chapter ${i + 1}: ${chapterTitle} (Element ID: ${element.id})`,
+      );
 
       const chapterItem: ManifestItem = {
         id: chapterId,
@@ -195,21 +203,22 @@ export class ProjectPublishEpubService {
         const ydoc = await db.getYDoc(documentId);
         this.logger.debug(`Successfully retrieved document: ${documentId}`);
 
-
-
-        const htmlString = this.documentRenderer.renderDocumentAsHtml(ydoc, chapterTitle);
+        const htmlString = this.documentRenderer.renderDocumentAsHtml(
+          ydoc,
+          chapterTitle,
+        );
 
         await epub.addManifestItem(chapterItem, htmlString, 'utf-8');
         await epub.addSpineItem(chapterId);
-        this.logger.debug(`Successfully created XHTML content for chapter: ${chapterTitle}`);
+        this.logger.debug(
+          `Successfully created XHTML content for chapter: ${chapterTitle}`,
+        );
       } catch (error) {
         this.logger.warn(
-          `Error retrieving content for chapter ${chapterTitle}`, error
+          `Error retrieving content for chapter ${chapterTitle}`,
+          error,
         );
-
       }
-
     }
   }
-
 }

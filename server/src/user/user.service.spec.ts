@@ -28,7 +28,7 @@ describe('UserService', () => {
   let userService: UserService;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let userRepository: Repository<UserEntity>;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let configService: ConfigService;
 
   const mockUserRepository = {

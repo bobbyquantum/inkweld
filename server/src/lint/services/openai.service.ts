@@ -1,4 +1,9 @@
-import { Injectable, Logger, InternalServerErrorException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { LintResponseDto } from '../dto/lint-response.dto.js';
@@ -22,7 +27,9 @@ export class OpenAiService {
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     if (!apiKey) {
-      this.logger.warn('OPENAI_API_KEY is not defined in environment variables. AI linting features will be disabled.');
+      this.logger.warn(
+        'OPENAI_API_KEY is not defined in environment variables. AI linting features will be disabled.',
+      );
       this.openai = null;
       this.isAiEnabled = false;
     } else {
@@ -42,7 +49,11 @@ export class OpenAiService {
   /**
    * Generate a cache key from input parameters
    */
-  private generateCacheKey(paragraph: string, style: string, level: string): string {
+  private generateCacheKey(
+    paragraph: string,
+    style: string,
+    level: string,
+  ): string {
     return createHash('sha256')
       .update(`${paragraph}|${style}|${level}`)
       .digest('hex');
@@ -55,11 +66,12 @@ export class OpenAiService {
     this.cache.set(key, {
       value,
       timestamp: Date.now(),
-      expiry: this.CACHE_TTL
+      expiry: this.CACHE_TTL,
     });
-    
+
     // Clean up expired entries occasionally
-    if (Math.random() < 0.1) { // 10% chance to trigger cleanup
+    if (Math.random() < 0.1) {
+      // 10% chance to trigger cleanup
       this.cleanCache();
     }
   }
@@ -69,17 +81,17 @@ export class OpenAiService {
    */
   private cacheGet(key: string): LintResponseDto | undefined {
     const entry = this.cache.get(key);
-    
+
     if (!entry) {
       return undefined;
     }
-    
+
     // Check if entry has expired
     if (Date.now() - entry.timestamp > entry.expiry) {
       this.cache.delete(key);
       return undefined;
     }
-    
+
     return entry.value;
   }
 
@@ -123,20 +135,26 @@ The JSON must follow this format:
   /**
    * Process a paragraph with OpenAI for linting
    */
-  async processText(paragraph: string, style: string, level: string): Promise<LintResponseDto> {
+  async processText(
+    paragraph: string,
+    style: string,
+    level: string,
+  ): Promise<LintResponseDto> {
     if (!this.isAiEnabled || !this.openai) {
-      this.logger.warn('AI linting requested but OpenAI API key is not configured');
+      this.logger.warn(
+        'AI linting requested but OpenAI API key is not configured',
+      );
       throw new ServiceUnavailableException(
         'AI linting features are not available. Please configure OPENAI_API_KEY environment variable.',
         {
-          description: 'OpenAI API key is not configured'
-        }
+          description: 'OpenAI API key is not configured',
+        },
       );
     }
 
     const cacheKey = this.generateCacheKey(paragraph, style, level);
     const cached = this.cacheGet(cacheKey);
-    
+
     if (cached) {
       this.logger.debug('Returning cached lint results');
       return cached;
@@ -150,19 +168,22 @@ The JSON must follow this format:
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      const res = await this.openai.chat.completions.create({
-        model: this.OPENAI_MODEL,
-        messages: [
-          { role: 'system', content: systemMsg },
-          { role: 'user', content: userMsg }
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.3,
-        max_tokens: 512,
-        stream: false,
-      }, {
-        signal: controller.signal as AbortSignal
-      });
+      const res = await this.openai.chat.completions.create(
+        {
+          model: this.OPENAI_MODEL,
+          messages: [
+            { role: 'system', content: systemMsg },
+            { role: 'user', content: userMsg },
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.3,
+          max_tokens: 512,
+          stream: false,
+        },
+        {
+          signal: controller.signal as AbortSignal,
+        },
+      );
 
       // Clear the timeout since we got a response
       clearTimeout(timeoutId);
@@ -174,18 +195,20 @@ The JSON must follow this format:
             throw new Error('Empty response from OpenAI');
           }
           this.logger.debug(`OpenAI response: ${content}`);
-          
+
           const parsedResponse = JSON.parse(content) as LintResponseDto;
           parsedResponse.source = 'openai';
-          
+
           // Cache the result
           this.cacheSet(cacheKey, parsedResponse);
-          
+
           return parsedResponse;
         } catch (error) {
           const err = error as Error;
           this.logger.error(`Error parsing OpenAI response: ${err.message}`);
-          throw new InternalServerErrorException('Failed to parse linting results');
+          throw new InternalServerErrorException(
+            'Failed to parse linting results',
+          );
         }
       } else {
         throw new Error('No choices returned from OpenAI');
@@ -199,11 +222,14 @@ The JSON must follow this format:
           description: 'The linting service took too long to respond',
         });
       }
-      
+
       this.logger.error(`Error calling OpenAI: ${err.message}`);
-      throw new InternalServerErrorException('Failed to process text with OpenAI', {
-        cause: err,
-      });
+      throw new InternalServerErrorException(
+        'Failed to process text with OpenAI',
+        {
+          cause: err,
+        },
+      );
     }
   }
 }

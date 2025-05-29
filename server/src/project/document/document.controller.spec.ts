@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DocumentController } from './document.controller.js';
 import { LevelDBManagerService } from '../../common/persistence/leveldb-manager.service.js';
 import { DocumentDto } from './document.dto.js';
-import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest, afterEach } from 'bun:test';
 import { SessionAuthGuard } from '../../auth/session-auth.guard.js';
 import { UserService } from '../../user/user.service.js';
@@ -36,7 +39,6 @@ describe('DocumentController', () => {
       getMeta: jest.fn(),
     };
 
-
     const mockRenderService = {
       renderDocumentAsHtml: jest.fn().mockResolvedValue('<html></html>'),
     };
@@ -46,19 +48,19 @@ describe('DocumentController', () => {
         id: 'user123',
         username: 'testuser',
         name: 'Test User',
-      })
+      }),
     };
 
     // Mock for SessionAuthGuard
     const mockSessionAuthGuard = {
-      canActivate: jest.fn().mockImplementation(context => {
+      canActivate: jest.fn().mockImplementation((context) => {
         // Simulate setting user in request during canActivate
         const req = {
           session: { userId: 'user123' },
-          user: null
+          user: null,
         };
         context.switchToHttp = jest.fn().mockReturnValue({
-          getRequest: jest.fn().mockReturnValue(req)
+          getRequest: jest.fn().mockReturnValue(req),
         });
 
         // Set the user property on the request
@@ -69,7 +71,7 @@ describe('DocumentController', () => {
         };
 
         return true;
-      })
+      }),
     };
 
     // Setup the testing module
@@ -91,7 +93,7 @@ describe('DocumentController', () => {
         {
           provide: DocumentRendererService,
           useValue: mockRenderService,
-        }
+        },
       ],
     }).compile();
 
@@ -103,7 +105,8 @@ describe('DocumentController', () => {
     mockProjectDatabase.getYDoc.mockResolvedValue(mockYDoc);
     mockProjectDatabase.getMeta.mockImplementation((_docId, key) => {
       if (key === 'ownerId') return Promise.resolve('testuser');
-      if (key === 'lastModified') return Promise.resolve('2025-03-22T10:00:00.000Z');
+      if (key === 'lastModified')
+        return Promise.resolve('2025-03-22T10:00:00.000Z');
       return Promise.resolve(null);
     });
 
@@ -118,7 +121,9 @@ describe('DocumentController', () => {
       }
 
       if (projectSlug === 'error-project') {
-        throw new InternalServerErrorException('Failed to read document database');
+        throw new InternalServerErrorException(
+          'Failed to read document database',
+        );
       }
 
       // Call the database service for tracking test calls
@@ -126,23 +131,23 @@ describe('DocumentController', () => {
 
       // Return mock documents
       return [
-          new DocumentDto({
-            id: `doc1:${username}:${projectSlug}`,
-            ownerId: 'testuser',
-            name: 'doc1',
-            lastModified: '2025-03-22T10:00:00.000Z',
-            username,
-            projectSlug
-          }),
-          new DocumentDto({
-            id: `doc2:${username}:${projectSlug}`,
-            ownerId: 'testuser',
-            name: 'doc2',
-            lastModified: '2025-03-22T10:00:00.000Z',
-            username,
-            projectSlug
-          })
-        ];
+        new DocumentDto({
+          id: `doc1:${username}:${projectSlug}`,
+          ownerId: 'testuser',
+          name: 'doc1',
+          lastModified: '2025-03-22T10:00:00.000Z',
+          username,
+          projectSlug,
+        }),
+        new DocumentDto({
+          id: `doc2:${username}:${projectSlug}`,
+          ownerId: 'testuser',
+          name: 'doc2',
+          lastModified: '2025-03-22T10:00:00.000Z',
+          username,
+          projectSlug,
+        }),
+      ];
     };
 
     // Define the environment variables
@@ -164,7 +169,10 @@ describe('DocumentController', () => {
 
       // Assert
       expect(result).toBeArray();
-      expect(levelDBManager.getProjectDatabase).toHaveBeenCalledWith(username, projectSlug);
+      expect(levelDBManager.getProjectDatabase).toHaveBeenCalledWith(
+        username,
+        projectSlug,
+      );
     });
 
     it('should return empty array when the project directory does not exist', async () => {
@@ -185,12 +193,11 @@ describe('DocumentController', () => {
       const projectSlug = 'error-project';
 
       // Act & Assert
-      await expect(controller.listDocuments(username, projectSlug)).rejects.toThrow(
-        InternalServerErrorException,
-      );
+      await expect(
+        controller.listDocuments(username, projectSlug),
+      ).rejects.toThrow(InternalServerErrorException);
     });
   });
-
 
   describe('getDocumentInfo', () => {
     it('should return document info when document exists', async () => {
@@ -200,7 +207,11 @@ describe('DocumentController', () => {
       const docId = mockDocId;
 
       // Act
-      const result = await controller.getDocumentInfo(username, projectSlug, docId);
+      const result = await controller.getDocumentInfo(
+        username,
+        projectSlug,
+        docId,
+      );
 
       // Assert
       expect(result).toBeInstanceOf(DocumentDto);
@@ -214,13 +225,16 @@ describe('DocumentController', () => {
       const username = mockUsername;
       const projectSlug = mockProjectSlug;
       const docId = 'nonexistent';
-      const mockDb = await levelDBManager.getProjectDatabase(username, projectSlug);
+      const mockDb = await levelDBManager.getProjectDatabase(
+        username,
+        projectSlug,
+      );
       mockDb.getMeta.mockRejectedValue(new Error('Document not found'));
 
       // Act & Assert
-      await expect(controller.getDocumentInfo(username, projectSlug, docId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        controller.getDocumentInfo(username, projectSlug, docId),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

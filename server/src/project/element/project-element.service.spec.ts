@@ -33,26 +33,36 @@ describe('ProjectElementService', () => {
     it('should return elements array from Y.Doc', async () => {
       const ydoc = new Y.Doc();
       const elementsArray = ydoc.getArray('elements');
-      elementsArray.push([{ id: '1', type: 'test' }, { id: '2', type: 'test2' }]);
+      elementsArray.push([
+        { id: '1', type: 'test' },
+        { id: '2', type: 'test2' },
+      ]);
 
       // Mock getProjectDatabase to return a mock LeveldbPersistence with getYDoc method
       const mockLeveldbPersistence = {
         getYDoc: jest.fn().mockResolvedValue(ydoc),
       };
-      (levelDBManager.getProjectDatabase as jest.Mock).mockResolvedValue(mockLeveldbPersistence);
+      (levelDBManager.getProjectDatabase as jest.Mock).mockResolvedValue(
+        mockLeveldbPersistence,
+      );
 
       // Spy on private loadDoc method to call actual implementation
       const loadDocSpy = spyOn<any, any>(service, 'loadDoc');
 
       const elements = await service.getProjectElements('user1', 'slug1');
       expect(loadDocSpy).toHaveBeenCalledWith('user1', 'slug1');
-      expect(elements).toEqual([{ id: '1', type: 'test' }, { id: '2', type: 'test2' }]);
+      expect(elements).toEqual([
+        { id: '1', type: 'test' },
+        { id: '2', type: 'test2' },
+      ]);
     });
 
     it('should throw error if no LevelDB persistence found', async () => {
       (levelDBManager.getProjectDatabase as jest.Mock).mockResolvedValue(null);
 
-      await expect(service.getProjectElements('user1', 'slug1')).rejects.toThrow(
+      await expect(
+        service.getProjectElements('user1', 'slug1'),
+      ).rejects.toThrow(
         'No LevelDB persistence found for Yjs project elements',
       );
     });

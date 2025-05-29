@@ -26,23 +26,23 @@ export class HealthController {
         status: {
           type: 'string',
           example: 'ok',
-          description: 'Health status of the server'
+          description: 'Health status of the server',
         },
         timestamp: {
           type: 'string',
           format: 'date-time',
-          description: 'Current server timestamp'
+          description: 'Current server timestamp',
         },
         uptime: {
           type: 'number',
-          description: 'Server uptime in seconds'
+          description: 'Server uptime in seconds',
         },
         version: {
           type: 'string',
-          description: 'Application version'
-        }
-      }
-    }
+          description: 'Application version',
+        },
+      },
+    },
   })
   getHealth(): HealthResponse {
     const now = Date.now();
@@ -53,7 +53,7 @@ export class HealthController {
       status: 'ok',
       timestamp: new Date(now).toISOString(),
       uptime: uptimeSeconds,
-      version: process.env.INKWELD_VERSION || '1.0.0'
+      version: process.env.INKWELD_VERSION || '1.0.0',
     };
   }
-} 
+}

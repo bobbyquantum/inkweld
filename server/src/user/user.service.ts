@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ValidationException } from '../common/exceptions/validation.exception.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -23,7 +27,9 @@ export class UserService {
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {
     // Get the data directory from environment or use default
-    this.dataDir = path.resolve(this.configService.get<string>('DATA_PATH', './data'));
+    this.dataDir = path.resolve(
+      this.configService.get<string>('DATA_PATH', './data'),
+    );
 
     // Ensure the data directory exists
     if (!fs.existsSync(this.dataDir)) {
@@ -39,7 +45,9 @@ export class UserService {
 
     // Validate username format - only allow alphanumeric characters, underscores, and hyphens
     if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-      errors['username'] = ['Username must only contain letters, numbers, underscores, and hyphens'];
+      errors['username'] = [
+        'Username must only contain letters, numbers, underscores, and hyphens',
+      ];
     }
 
     const existing = await this.userRepo.findOne({

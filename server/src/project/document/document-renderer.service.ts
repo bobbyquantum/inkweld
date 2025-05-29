@@ -24,8 +24,13 @@ export class DocumentRendererService {
 
     // Handle empty documents - check if fragment exists AND has content
     if (!prosemirrorXmlFragment || prosemirrorXmlFragment.length === 0) {
-      this.logger.warn(`Document ${docId} does not contain content or is empty`);
-      return this.wrapInHtml('<div class="document-content">No content available</div>', docId);
+      this.logger.warn(
+        `Document ${docId} does not contain content or is empty`,
+      );
+      return this.wrapInHtml(
+        '<div class="document-content">No content available</div>',
+        docId,
+      );
     }
 
     // Convert XML content to HTML
@@ -140,13 +145,17 @@ export class DocumentRendererService {
       return '';
     }
 
-    this.logger.debug(`Converting XML fragment to HTML. Fragment type: ${typeof xmlFragment}, constructor: ${xmlFragment.constructor?.name}`);
+    this.logger.debug(
+      `Converting XML fragment to HTML. Fragment type: ${typeof xmlFragment}, constructor: ${xmlFragment.constructor?.name}`,
+    );
 
     let html = '';
 
     try {
       // Iterate through the XML fragment nodes
-      this.logger.debug(`Starting iteration through XML fragment with ${xmlFragment.length} nodes`);
+      this.logger.debug(
+        `Starting iteration through XML fragment with ${xmlFragment.length} nodes`,
+      );
 
       xmlFragment.forEach((xmlNode: any, index: number) => {
         // Log node details
@@ -154,35 +163,51 @@ export class DocumentRendererService {
         const nodeType = typeof xmlNode;
         const nodeConstructor = xmlNode?.constructor?.name;
 
-        this.logger.debug(`Processing fragment node [${index}]: type=${nodeType}, constructor=${nodeConstructor}, nodeName=${nodeName}`);
+        this.logger.debug(
+          `Processing fragment node [${index}]: type=${nodeType}, constructor=${nodeConstructor}, nodeName=${nodeName}`,
+        );
 
         switch (nodeName) {
           case 'paragraph':
             this.logger.debug(`[${index}] Processing paragraph node`);
             // Convert paragraph to HTML <p> tag
-            { let paragraphContent = '';
-            // Always process child nodes using forEach
-            if (typeof xmlNode.forEach === 'function') {
-               this.logger.debug(`[${index}] Paragraph has children, processing them`);
-               xmlNode.forEach((child: any, childIndex: number) => {
-                 this.logger.debug(`[${index}.${childIndex}] Processing paragraph child`);
-                 const childContent = this.processXmlNode(child);
-                 this.logger.debug(`[${index}.${childIndex}] Child content: "${childContent}"`);
-                 paragraphContent += childContent;
-               });
-               this.logger.debug(`[${index}] Final paragraph content: "${paragraphContent}"`);
-            } else {
-               this.logger.warn(`[${index}] Paragraph node doesn't have forEach method`);
+            {
+              let paragraphContent = '';
+              // Always process child nodes using forEach
+              if (typeof xmlNode.forEach === 'function') {
+                this.logger.debug(
+                  `[${index}] Paragraph has children, processing them`,
+                );
+                xmlNode.forEach((child: any, childIndex: number) => {
+                  this.logger.debug(
+                    `[${index}.${childIndex}] Processing paragraph child`,
+                  );
+                  const childContent = this.processXmlNode(child);
+                  this.logger.debug(
+                    `[${index}.${childIndex}] Child content: "${childContent}"`,
+                  );
+                  paragraphContent += childContent;
+                });
+                this.logger.debug(
+                  `[${index}] Final paragraph content: "${paragraphContent}"`,
+                );
+              } else {
+                this.logger.warn(
+                  `[${index}] Paragraph node doesn't have forEach method`,
+                );
+              }
+              // Handle empty paragraphs specifically - use br to ensure rendering
+              if (paragraphContent === '') {
+                this.logger.debug(`[${index}] Empty paragraph, using br`);
+                html += `<br/>\n`;
+              } else {
+                this.logger.debug(
+                  `[${index}] Adding paragraph: <p>${paragraphContent}</p>`,
+                );
+                html += `<p>${paragraphContent}</p>\n`;
+              }
+              break;
             }
-            // Handle empty paragraphs specifically - use br to ensure rendering
-            if (paragraphContent === '') {
-               this.logger.debug(`[${index}] Empty paragraph, using br`);
-               html += `<br/>\n`;
-            } else {
-               this.logger.debug(`[${index}] Adding paragraph: <p>${paragraphContent}</p>`);
-               html += `<p>${paragraphContent}</p>\n`;
-            }
-            break; }
 
           case 'heading':
             this.logger.debug(`[${index}] Processing heading node`);
@@ -192,37 +217,55 @@ export class DocumentRendererService {
               let level: string;
               try {
                 const rawLevel = xmlNode.getAttribute('level');
-                this.logger.debug(`[${index}] Raw heading level: ${rawLevel}, type: ${typeof rawLevel}`);
+                this.logger.debug(
+                  `[${index}] Raw heading level: ${rawLevel}, type: ${typeof rawLevel}`,
+                );
 
                 // Convert to string and ensure it's between 1-6
                 level = String(rawLevel || 1);
                 // Validate level is between 1-6
                 const numLevel = parseInt(level, 10);
                 if (isNaN(numLevel) || numLevel < 1 || numLevel > 6) {
-                  this.logger.warn(`[${index}] Invalid heading level ${level}, defaulting to 1`);
+                  this.logger.warn(
+                    `[${index}] Invalid heading level ${level}, defaulting to 1`,
+                  );
                   level = '1';
                 }
               } catch (error) {
-                this.logger.error(`[${index}] Error getting heading level: ${error}, defaulting to 1`);
+                this.logger.error(
+                  `[${index}] Error getting heading level: ${error}, defaulting to 1`,
+                );
                 level = '1';
               }
 
               let headingContent = '';
               // Always process child nodes using forEach
               if (typeof xmlNode.forEach === 'function') {
-                this.logger.debug(`[${index}] Heading has children, processing them`);
+                this.logger.debug(
+                  `[${index}] Heading has children, processing them`,
+                );
                 xmlNode.forEach((child: any, childIndex: number) => {
-                  this.logger.debug(`[${index}.${childIndex}] Processing heading child`);
+                  this.logger.debug(
+                    `[${index}.${childIndex}] Processing heading child`,
+                  );
                   const childContent = this.processXmlNode(child);
-                  this.logger.debug(`[${index}.${childIndex}] Child content: "${childContent}"`);
+                  this.logger.debug(
+                    `[${index}.${childIndex}] Child content: "${childContent}"`,
+                  );
                   headingContent += childContent;
                 });
-                this.logger.debug(`[${index}] Final heading content: "${headingContent}"`);
+                this.logger.debug(
+                  `[${index}] Final heading content: "${headingContent}"`,
+                );
               } else {
-                this.logger.warn(`[${index}] Heading node doesn't have forEach method`);
+                this.logger.warn(
+                  `[${index}] Heading node doesn't have forEach method`,
+                );
               }
 
-              this.logger.debug(`[${index}] Adding heading: <h${level}>${headingContent}</h${level}>`);
+              this.logger.debug(
+                `[${index}] Adding heading: <h${level}>${headingContent}</h${level}>`,
+              );
               html += `<h${level}>${headingContent}</h${level}>\n`;
               break;
             }
@@ -233,39 +276,62 @@ export class DocumentRendererService {
             break;
 
           default:
-            this.logger.debug(`[${index}] Processing default/unknown node type: ${nodeName}`);
+            this.logger.debug(
+              `[${index}] Processing default/unknown node type: ${nodeName}`,
+            );
             // For unhandled node types, try to get direct text or process children
             if (xmlNode.toString) {
               const textContent = xmlNode.toString();
-              this.logger.debug(`[${index}] Node has toString method, content: "${textContent}"`);
+              this.logger.debug(
+                `[${index}] Node has toString method, content: "${textContent}"`,
+              );
               if (textContent) {
                 const escapedContent = this.escapeHtml(textContent);
-                this.logger.debug(`[${index}] Adding escaped text: "${escapedContent}"`);
+                this.logger.debug(
+                  `[${index}] Adding escaped text: "${escapedContent}"`,
+                );
                 html += escapedContent;
               }
             } else if (xmlNode.childNodes && xmlNode.childNodes.length > 0) {
-              this.logger.debug(`[${index}] Node has ${xmlNode.childNodes.length} childNodes`);
+              this.logger.debug(
+                `[${index}] Node has ${xmlNode.childNodes.length} childNodes`,
+              );
               for (const child of xmlNode.childNodes) {
                 const childContent = this.processXmlNode(child);
-                this.logger.debug(`[${index}] Child node content: "${childContent}"`);
+                this.logger.debug(
+                  `[${index}] Child node content: "${childContent}"`,
+                );
                 html += childContent;
               }
-            } else if (xmlNode.nodeType === 3) { // Text node
+            } else if (xmlNode.nodeType === 3) {
+              // Text node
               const textContent = xmlNode.textContent || '';
-              this.logger.debug(`[${index}] Text node content: "${textContent}"`);
+              this.logger.debug(
+                `[${index}] Text node content: "${textContent}"`,
+              );
               const escapedContent = this.escapeHtml(textContent);
-              this.logger.debug(`[${index}] Adding escaped text node content: "${escapedContent}"`);
+              this.logger.debug(
+                `[${index}] Adding escaped text node content: "${escapedContent}"`,
+              );
               html += escapedContent;
             } else {
-              this.logger.warn(`[${index}] Unhandled node type with no processing method`);
+              this.logger.warn(
+                `[${index}] Unhandled node type with no processing method`,
+              );
             }
         }
       });
 
-      this.logger.debug(`Fragment conversion complete. Final HTML length: ${html.length}`);
+      this.logger.debug(
+        `Fragment conversion complete. Final HTML length: ${html.length}`,
+      );
     } catch (error) {
-      this.logger.error(`Error during XML fragment conversion: ${error instanceof Error ? error.message : String(error)}`);
-      this.logger.error(`Error stack: ${error instanceof Error ? error.stack : 'No stack available'}`);
+      this.logger.error(
+        `Error during XML fragment conversion: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      this.logger.error(
+        `Error stack: ${error instanceof Error ? error.stack : 'No stack available'}`,
+      );
       return '<p>Error converting document content</p>';
     }
 
@@ -280,7 +346,9 @@ export class DocumentRendererService {
   private processXmlNode(xmlNode: any): string {
     const nodeType = typeof xmlNode;
     const nodeConstructor = xmlNode?.constructor?.name;
-    this.logger.debug(`Processing node: type=${nodeType}, constructor=${nodeConstructor}`);
+    this.logger.debug(
+      `Processing node: type=${nodeType}, constructor=${nodeConstructor}`,
+    );
 
     if (!xmlNode) {
       this.logger.debug('Node is null/undefined, returning empty string.');
@@ -296,7 +364,9 @@ export class DocumentRendererService {
         this.logger.debug(`Returning escaped text: "${escapedContent}"`);
         return escapedContent;
       } catch (error) {
-        this.logger.error(`Error processing XmlText node: ${error instanceof Error ? error.message : String(error)}`);
+        this.logger.error(
+          `Error processing XmlText node: ${error instanceof Error ? error.message : String(error)}`,
+        );
         return '';
       }
     }
@@ -315,7 +385,9 @@ export class DocumentRendererService {
             this.logger.debug(`Element attributes: ${JSON.stringify(attrs)}`);
           }
         } catch (attrError) {
-          this.logger.warn(`Failed to get attributes: ${attrError instanceof Error ? attrError.message : String(attrError)}`);
+          this.logger.warn(
+            `Failed to get attributes: ${attrError instanceof Error ? attrError.message : String(attrError)}`,
+          );
         }
 
         // Iterate through children using forEach if available
@@ -324,53 +396,77 @@ export class DocumentRendererService {
           let childCount = 0;
 
           xmlNode.forEach((child: any) => {
-            this.logger.debug(`Processing child ${childCount} of <${nodeName}>`);
+            this.logger.debug(
+              `Processing child ${childCount} of <${nodeName}>`,
+            );
             try {
               const childHtml = this.processXmlNode(child);
-              this.logger.debug(`Child ${childCount} of <${nodeName}> processed, content: "${childHtml}"`);
+              this.logger.debug(
+                `Child ${childCount} of <${nodeName}> processed, content: "${childHtml}"`,
+              );
               content += childHtml;
               childCount++;
             } catch (childError) {
-              this.logger.error(`Error processing child ${childCount} of <${nodeName}>: ${childError instanceof Error ? childError.message : String(childError)}`);
+              this.logger.error(
+                `Error processing child ${childCount} of <${nodeName}>: ${childError instanceof Error ? childError.message : String(childError)}`,
+              );
             }
           });
 
-          this.logger.debug(`Processed ${childCount} children of <${nodeName}>. Accumulated content: "${content}"`);
+          this.logger.debug(
+            `Processed ${childCount} children of <${nodeName}>. Accumulated content: "${content}"`,
+          );
         } else {
-          this.logger.warn(`Cannot iterate over children of node: ${nodeName} (no forEach method)`);
+          this.logger.warn(
+            `Cannot iterate over children of node: ${nodeName} (no forEach method)`,
+          );
         }
 
         // Convert node based on type (inline elements primarily)
         let resultHtml = '';
         switch (nodeName) {
           case 'strong':
-            this.logger.debug(`Converting <strong> element with content: "${content}"`);
+            this.logger.debug(
+              `Converting <strong> element with content: "${content}"`,
+            );
             resultHtml = `<strong>${content}</strong>`;
             break;
           case 'em':
-            this.logger.debug(`Converting <em> element with content: "${content}"`);
+            this.logger.debug(
+              `Converting <em> element with content: "${content}"`,
+            );
             resultHtml = `<em>${content}</em>`;
             break;
           case 'link':
             try {
               const href = xmlNode.getAttribute('href') || '#';
-              this.logger.debug(`Converting <link> element with href="${href}", content: "${content}"`);
+              this.logger.debug(
+                `Converting <link> element with href="${href}", content: "${content}"`,
+              );
               resultHtml = `<a href="${this.escapeHtml(href)}">${content}</a>`;
             } catch (linkError) {
-              this.logger.error(`Error processing link attributes: ${linkError instanceof Error ? linkError.message : String(linkError)}`);
+              this.logger.error(
+                `Error processing link attributes: ${linkError instanceof Error ? linkError.message : String(linkError)}`,
+              );
               resultHtml = content; // Fallback to just the content
             }
             break;
           case 'code': // Inline code
-            this.logger.debug(`Converting <code> element with content: "${content}"`);
+            this.logger.debug(
+              `Converting <code> element with content: "${content}"`,
+            );
             resultHtml = `<code>${content}</code>`;
             break;
           case 'strike':
-            this.logger.debug(`Converting <strike> element with content: "${content}"`);
+            this.logger.debug(
+              `Converting <strike> element with content: "${content}"`,
+            );
             resultHtml = `<s>${content}</s>`;
             break;
           case 'underline':
-            this.logger.debug(`Converting <underline> element with content: "${content}"`);
+            this.logger.debug(
+              `Converting <underline> element with content: "${content}"`,
+            );
             resultHtml = `<u>${content}</u>`;
             break;
           case 'br': // Self-closing, no content
@@ -381,10 +477,14 @@ export class DocumentRendererService {
             try {
               const src = xmlNode.getAttribute('src') || '';
               const alt = xmlNode.getAttribute('alt') || '';
-              this.logger.debug(`Converting <image> element with src="${src}", alt="${alt}"`);
+              this.logger.debug(
+                `Converting <image> element with src="${src}", alt="${alt}"`,
+              );
               resultHtml = `<img src="${this.escapeHtml(src)}" alt="${this.escapeHtml(alt)}">`;
             } catch (imgError) {
-              this.logger.error(`Error processing image attributes: ${imgError instanceof Error ? imgError.message : String(imgError)}`);
+              this.logger.error(
+                `Error processing image attributes: ${imgError instanceof Error ? imgError.message : String(imgError)}`,
+              );
               resultHtml = '[image]'; // Fallback placeholder
             }
             break;
@@ -393,24 +493,34 @@ export class DocumentRendererService {
           case 'paragraph':
           case 'heading':
           case 'horizontal_rule':
-            this.logger.debug(`Passing content through for block element <${nodeName}>: "${content}"`);
+            this.logger.debug(
+              `Passing content through for block element <${nodeName}>: "${content}"`,
+            );
             resultHtml = content; // Pass content through
             break;
           default:
-            this.logger.warn(`Unhandled XML element type in processXmlNode: ${nodeName}, using content as-is`);
+            this.logger.warn(
+              `Unhandled XML element type in processXmlNode: ${nodeName}, using content as-is`,
+            );
             resultHtml = content; // Return content for unhandled
         }
 
-        this.logger.debug(`Processed <${nodeName}>, final HTML: "${resultHtml}"`);
+        this.logger.debug(
+          `Processed <${nodeName}>, final HTML: "${resultHtml}"`,
+        );
         return resultHtml;
       } catch (elementError) {
-        this.logger.error(`Error processing XML element: ${elementError instanceof Error ? elementError.message : String(elementError)}`);
+        this.logger.error(
+          `Error processing XML element: ${elementError instanceof Error ? elementError.message : String(elementError)}`,
+        );
         return '';
       }
     }
 
     // Fallback for unknown node types
-    this.logger.warn(`Unknown node type encountered in processXmlNode: ${nodeType}, constructor: ${nodeConstructor}`);
+    this.logger.warn(
+      `Unknown node type encountered in processXmlNode: ${nodeType}, constructor: ${nodeConstructor}`,
+    );
     return '';
   }
 
@@ -437,14 +547,16 @@ export class DocumentRendererService {
         case 'doc':
           // Document node - render its content
           if (node.content && Array.isArray(node.content)) {
-            html = node.content.map(child => renderNode(child)).join('');
+            html = node.content.map((child) => renderNode(child)).join('');
           }
           break;
 
         case 'paragraph':
           // Paragraph node
           if (node.content && Array.isArray(node.content)) {
-            const content = node.content.map(child => renderNode(child)).join('');
+            const content = node.content
+              .map((child) => renderNode(child))
+              .join('');
             html = `<p>${content}</p>`;
           } else {
             html = '<p></p>';
@@ -455,7 +567,9 @@ export class DocumentRendererService {
           // Heading node (h1-h6)
           const level = node.attrs?.level || 1;
           if (node.content && Array.isArray(node.content)) {
-            const content = node.content.map(child => renderNode(child)).join('');
+            const content = node.content
+              .map((child) => renderNode(child))
+              .join('');
             html = `<h${level}>${content}</h${level}>`;
           } else {
             html = `<h${level}></h${level}>`;
@@ -472,7 +586,9 @@ export class DocumentRendererService {
           // Image
           const src = node.attrs?.src || '';
           const alt = node.attrs?.alt || '';
-          const title = node.attrs?.title ? ` title="${this.escapeHtml(node.attrs.title)}"` : '';
+          const title = node.attrs?.title
+            ? ` title="${this.escapeHtml(node.attrs.title)}"`
+            : '';
           html = `<img src="${this.escapeHtml(src)}" alt="${this.escapeHtml(alt)}"${title}>`;
           break;
         }
@@ -501,7 +617,9 @@ export class DocumentRendererService {
                   break;
                 case 'link': {
                   const href = mark.attrs?.href || '';
-                  const title = mark.attrs?.title ? ` title="${this.escapeHtml(mark.attrs.title)}"` : '';
+                  const title = mark.attrs?.title
+                    ? ` title="${this.escapeHtml(mark.attrs.title)}"`
+                    : '';
                   text = `<a href="${this.escapeHtml(href)}"${title}>${text}</a>`;
                   break;
                 }
@@ -523,7 +641,7 @@ export class DocumentRendererService {
         default:
           // Unknown node type - try to render content if available
           if (node.content && Array.isArray(node.content)) {
-            html = node.content.map(child => renderNode(child)).join('');
+            html = node.content.map((child) => renderNode(child)).join('');
           } else if (node.text) {
             html = this.escapeHtml(node.text);
           }

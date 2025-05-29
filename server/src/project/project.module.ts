@@ -51,12 +51,21 @@ import { StorageModule } from '../common/storage/storage.module.js';
     {
       provide: TypeOrmSessionStore,
       useFactory: (sessionRepository: Repository<UserSessionEntity>) => {
-        return new TypeOrmSessionStore(sessionRepository, { expiration: 30 * 24 * 60 * 60 * 1000 });
+        return new TypeOrmSessionStore(sessionRepository, {
+          expiration: 30 * 24 * 60 * 60 * 1000,
+        });
       },
-      inject: [getRepositoryToken(UserSessionEntity)]
+      inject: [getRepositoryToken(UserSessionEntity)],
     },
     ConfigService,
   ],
-  exports: [ProjectService, ProjectElementService, FileStorageService, DocumentGateway, ProjectPublishEpubService, CoverController],
+  exports: [
+    ProjectService,
+    ProjectElementService,
+    FileStorageService,
+    DocumentGateway,
+    ProjectPublishEpubService,
+    CoverController,
+  ],
 })
 export class ProjectModule {}

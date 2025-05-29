@@ -9,10 +9,12 @@ import * as express from 'express';
 @Module({
   imports: [
     ConfigModule,
-    ThrottlerModule.forRoot([{
-      ttl: 60,
-      limit: 10,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60,
+        limit: 10,
+      },
+    ]),
   ],
   controllers: [LintController],
   providers: [OpenAiService, DiffService],
@@ -21,8 +23,6 @@ import * as express from 'express';
 export class LintModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // Apply body size limit middleware to the lint controller
-    consumer
-      .apply(express.json({ limit: '4kb' }))
-      .forRoutes(LintController);
+    consumer.apply(express.json({ limit: '4kb' })).forRoutes(LintController);
   }
 }

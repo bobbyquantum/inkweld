@@ -8,10 +8,12 @@ import * as express from 'express';
 @Module({
   imports: [
     ConfigModule,
-    ThrottlerModule.forRoot([{
-      ttl: 60,
-      limit: 10,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60,
+        limit: 10,
+      },
+    ]),
   ],
   controllers: [ImageController],
   providers: [OpenAiImageService],
@@ -20,8 +22,6 @@ import * as express from 'express';
 export class ImageModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // Apply larger body size limit for the image controller since base64 images can be large
-    consumer
-      .apply(express.json({ limit: '8mb' }))
-      .forRoutes(ImageController);
+    consumer.apply(express.json({ limit: '8mb' })).forRoutes(ImageController);
   }
 }

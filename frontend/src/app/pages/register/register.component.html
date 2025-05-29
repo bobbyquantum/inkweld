@@ -52,34 +52,17 @@
           <mat-form-field appearance="outline">
             <mat-label>Password</mat-label>
             <input
+              #passwordField
               matInput
               type="password"
               formControlName="password"
               required
+              (focus)="onPasswordFocus()"
+              (blur)="onPasswordBlur()"
+              (input)="onPasswordInput($event)"
               aria-label="Password" />
             <mat-error>{{ getPasswordErrorMessage() }}</mat-error>
           </mat-form-field>
-
-          <div class="password-validation-checklist">
-            <div class="validation-checklist-heading">
-              Password requirements:
-            </div>
-            <ul class="validation-checklist-list">
-              @for (
-                requirement of passwordRequirements | keyvalue;
-                track requirement.key
-              ) {
-                <li
-                  class="validation-checklist-item"
-                  [class.met]="requirement.value.met">
-                  <mat-icon class="validation-checklist-icon">
-                    {{ requirement.value.met ? 'check_circle' : 'cancel' }}
-                  </mat-icon>
-                  <span>{{ requirement.value.message }}</span>
-                </li>
-              }
-            </ul>
-          </div>
 
           @if (
             serverValidationErrors['password'] &&
@@ -113,6 +96,26 @@
               aria-label="Confirm Password" />
             <mat-error>{{ getConfirmPasswordErrorMessage() }}</mat-error>
           </mat-form-field>
+
+          @if (isCaptchaEnabled) {
+            <div class="captcha-container">
+              <div class="captcha-wrapper">
+                <div #recaptchaElement class="recaptcha-element"></div>
+                @if (captchaLoading) {
+                  <div class="captcha-loading-overlay">
+                    <mat-spinner diameter="20"></mat-spinner>
+                    <span>Loading verification...</span>
+                  </div>
+                }
+              </div>
+              @if (captchaError) {
+                <div class="captcha-error">
+                  <mat-icon color="warn">error</mat-icon>
+                  <span>Please complete the captcha verification</span>
+                </div>
+              }
+            </div>
+          }
 
           <button
             mat-raised-button
@@ -148,3 +151,26 @@
     </mat-card>
   </div>
 </div>
+
+<!-- Password Requirements Tooltip Template -->
+<ng-template #passwordTooltipTemplate>
+  <div class="password-requirements-tooltip">
+    <div class="tooltip-header">
+      <mat-icon class="tooltip-icon">security</mat-icon>
+      <span class="tooltip-title">Password Requirements</span>
+    </div>
+    <ul class="requirements-list">
+      @for (
+        requirement of passwordRequirements | keyvalue;
+        track requirement.key
+      ) {
+        <li class="requirement-item" [class.met]="requirement.value.met">
+          <mat-icon class="requirement-icon">
+            {{ requirement.value.met ? 'check_circle' : 'cancel' }}
+          </mat-icon>
+          <span class="requirement-text">{{ requirement.value.message }}</span>
+        </li>
+      }
+    </ul>
+  </div>
+</ng-template>

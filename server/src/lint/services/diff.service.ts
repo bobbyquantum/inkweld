@@ -17,7 +17,11 @@ export class DiffService {
    * @param _suggestion The suggested correction (not used in position calculation)
    * @returns Object with from and to positions, or null if positions can't be determined
    */
-  calculatePositions(original: string, error: string, _suggestion: string): { from: number, to: number } | null {
+  calculatePositions(
+    original: string,
+    error: string,
+    _suggestion: string,
+  ): { from: number; to: number } | null {
     if (!error || error.length === 0) {
       this.logger.warn('Empty error text provided to DiffService');
       return null;
@@ -33,7 +37,7 @@ export class DiffService {
 
       return {
         from: errorIndex,
-        to: errorIndex + error.length
+        to: errorIndex + error.length,
       };
     } catch (e) {
       const err = e as Error;
@@ -46,7 +50,10 @@ export class DiffService {
    * Find the nearest matching text when an exact match isn't found
    * Uses diff-match-patch's fuzzy matching capabilities
    */
-  findNearestMatch(original: string, error: string): { from: number, to: number } | null {
+  findNearestMatch(
+    original: string,
+    error: string,
+  ): { from: number; to: number } | null {
     try {
       // Use the diff-match-patch match algorithm to find closest match
       const matches = this.dmp.match_main(original, error, 0);
@@ -57,7 +64,7 @@ export class DiffService {
 
       return {
         from: matches,
-        to: matches + error.length
+        to: matches + error.length,
       };
     } catch (e) {
       const err = e as Error;
@@ -78,16 +85,22 @@ export class DiffService {
     }
 
     return corrections
-      .map(correction => {
+      .map((correction) => {
         // Skip corrections that don't have the required properties
         if (!correction.error || !correction.suggestion) {
           return null;
         }
 
         // Calculate positions
-        const positions = this.calculatePositions(original, correction.error, correction.suggestion);
+        const positions = this.calculatePositions(
+          original,
+          correction.error,
+          correction.suggestion,
+        );
         if (!positions) {
-          this.logger.warn(`Could not determine positions for correction: "${correction.error}" -> "${correction.suggestion}"`);
+          this.logger.warn(
+            `Could not determine positions for correction: "${correction.error}" -> "${correction.suggestion}"`,
+          );
           return null;
         }
 
@@ -95,7 +108,7 @@ export class DiffService {
         return {
           ...correction,
           from: positions.from,
-          to: positions.to
+          to: positions.to,
         };
       })
       .filter(Boolean); // Remove nulls

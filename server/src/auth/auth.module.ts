@@ -1,4 +1,9 @@
-import { Module, forwardRef, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import {
+  Module,
+  forwardRef,
+  MiddlewareConsumer,
+  NestModule,
+} from '@nestjs/common';
 import { UserService } from '../user/user.service.js';
 import { ConfigModule } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';

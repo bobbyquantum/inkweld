@@ -55,14 +55,22 @@ export class DocumentDto {
   /**
    * Creates a document ID from its components
    */
-  static createDocumentId(name: string, username: string, slug: string): string {
+  static createDocumentId(
+    name: string,
+    username: string,
+    slug: string,
+  ): string {
     return `${username}:${slug}:${name}`;
   }
 
   /**
    * Parses a document ID into its components
    */
-  static parseDocumentId(documentId: string): { name: string; username: string; projectSlug: string } {
+  static parseDocumentId(documentId: string): {
+    name: string;
+    username: string;
+    projectSlug: string;
+  } {
     const parts = documentId.split(':');
     if (parts.length < 3) {
       throw new Error('Invalid document ID format');

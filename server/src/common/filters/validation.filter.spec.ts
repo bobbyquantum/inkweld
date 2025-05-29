@@ -58,7 +58,9 @@ describe('ValidationFilter', () => {
 
     const error2 = new ValidationError();
     error2.property = 'password';
-    error2.constraints = { minLength: 'password must be at least 8 characters' };
+    error2.constraints = {
+      minLength: 'password must be at least 8 characters',
+    };
 
     const exception = [error1, error2];
 

@@ -8,7 +8,7 @@ export class LintRequestDto {
   @ApiProperty({
     description: 'The paragraph text to be checked for errors',
     maxLength: 4096,
-    example: 'The cheap perfume couldn\'t cover the stink of fear...',
+    example: "The cheap perfume couldn't cover the stink of fear...",
   })
   @IsString()
   @IsNotEmpty()
