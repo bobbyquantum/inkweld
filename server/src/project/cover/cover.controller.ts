@@ -80,7 +80,9 @@ export class CoverController {
   @ApiOkResponse({
     description: 'Cover image uploaded successfully',
   })
-  @ApiBadRequestResponse({ description: 'Invalid file type or processing error' })
+  @ApiBadRequestResponse({
+    description: 'Invalid file type or processing error',
+  })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing authentication' })
   @ApiForbiddenResponse({
     description: 'User does not have permission to modify this project',
@@ -114,15 +116,17 @@ export class CoverController {
     }
 
     if (!file.buffer) {
-        throw new BadRequestException('Uploaded file buffer is missing.');
+      throw new BadRequestException('Uploaded file buffer is missing.');
     }
 
     // Verify project exists (optional but good practice)
     try {
-        await this.projectService.findByUsernameAndSlug(username, slug);
+      await this.projectService.findByUsernameAndSlug(username, slug);
     } catch (_error) {
-        this.logger.warn(`Attempt to upload cover for non-existent project: ${username}/${slug}`);
-        throw new NotFoundException('Project not found');
+      this.logger.warn(
+        `Attempt to upload cover for non-existent project: ${username}/${slug}`,
+      );
+      throw new NotFoundException('Project not found');
     }
 
     try {
@@ -133,7 +137,7 @@ export class CoverController {
       const imageMetadata = await sharp(file.buffer).metadata();
 
       if (!imageMetadata.width || !imageMetadata.height) {
-          throw new BadRequestException('Could not read image dimensions.');
+        throw new BadRequestException('Could not read image dimensions.');
       }
 
       const currentAspectRatio = imageMetadata.width / imageMetadata.height;
@@ -172,8 +176,14 @@ export class CoverController {
         message: 'Cover image uploaded successfully',
       };
     } catch (error) {
-      this.logger.error(`Error uploading cover image for ${username}/${slug}`, error);
-      if (error instanceof BadRequestException || error instanceof ForbiddenException) {
+      this.logger.error(
+        `Error uploading cover image for ${username}/${slug}`,
+        error,
+      );
+      if (
+        error instanceof BadRequestException ||
+        error instanceof ForbiddenException
+      ) {
         throw error; // Rethrow specific HTTP exceptions
       }
       throw new BadRequestException('Failed to process or save cover image.');
@@ -248,36 +258,48 @@ export class CoverController {
 
     // Verify project exists before attempting delete
     try {
-        await this.projectService.findByUsernameAndSlug(username, slug);
+      await this.projectService.findByUsernameAndSlug(username, slug);
     } catch (_error) {
-        this.logger.warn(`Attempt to delete cover for non-existent project: ${username}/${slug}`);
-        throw new NotFoundException('Project not found');
+      this.logger.warn(
+        `Attempt to delete cover for non-existent project: ${username}/${slug}`,
+      );
+      throw new NotFoundException('Project not found');
     }
 
     try {
       // Check if cover exists before attempting delete
       const hasCover = await this.hasProjectCover(username, slug);
       if (!hasCover) {
-          return { message: 'No cover image to delete.' }; // Or throw 404 if preferred
+        return { message: 'No cover image to delete.' }; // Or throw 404 if preferred
       }
 
       // Delete the cover
       await this.deleteProjectCoverInternal(username, slug);
-      
+
       // Regenerate a default cover
-      const project = await this.projectService.findByUsernameAndSlug(username, slug);
+      const project = await this.projectService.findByUsernameAndSlug(
+        username,
+        slug,
+      );
       await this.generateDefaultCover(username, slug, project.title);
 
       return {
         message: 'Cover image deleted successfully',
       };
     } catch (error) {
-      this.logger.error(`Error deleting cover image for ${username}/${slug}`, error);
+      this.logger.error(
+        `Error deleting cover image for ${username}/${slug}`,
+        error,
+      );
       throw new BadRequestException('Failed to delete cover image.');
     }
   }
-  
-  async generateDefaultCover(username: string, slug: string, title: string): Promise<void> {
+
+  async generateDefaultCover(
+    username: string,
+    slug: string,
+    title: string,
+  ): Promise<void> {
     try {
       this.logger.log(`Generating default cover for ${username}/${slug}`);
       const width = 300;
@@ -285,8 +307,9 @@ export class CoverController {
 
       // Simple SVG with background color and centered text
       // Use a simple color generation based on username/slug hash for variety
-      const hash = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) +
-                   slug.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const hash =
+        username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) +
+        slug.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       const hue = hash % 360;
       const backgroundColor = `hsl(${hue}, 50%, 80%)`; // Light pastel colors
       const textColor = `hsl(${hue}, 50%, 30%)`; // Darker text color
@@ -301,10 +324,13 @@ export class CoverController {
         const lines = [];
         let currentLine = '';
         const maxCharsPerLine = 15; // Adjust based on font size and width
-        
-        words.forEach(word => {
+
+        words.forEach((word) => {
           // If adding this word would exceed the line length, start a new line
-          if ((currentLine + ' ' + word).length > maxCharsPerLine && currentLine !== '') {
+          if (
+            (currentLine + ' ' + word).length > maxCharsPerLine &&
+            currentLine !== ''
+          ) {
             lines.push(currentLine);
             currentLine = word;
           } else {
@@ -312,7 +338,7 @@ export class CoverController {
             currentLine = currentLine === '' ? word : currentLine + ' ' + word;
           }
         });
-        
+
         // Add the last line if it has content
         if (currentLine !== '') {
           lines.push(currentLine);
@@ -326,12 +352,12 @@ export class CoverController {
             <rect x="${margin}" y="${margin}" width="${width - 2 * margin}" height="${height - 2 * margin}" 
                   fill="${backgroundColor}" stroke="${textColor}" stroke-width="2" stroke-opacity="0.3"/>
         `;
-        
+
         // Add each line of the title
         const fontSize = 40;
         const lineHeight = fontSize * 1.2;
         const startY = 120; // Starting Y position for the first line
-        
+
         lines.forEach((line, index) => {
           svgContent += `
             <text x="50%" y="${startY + index * lineHeight}" dominant-baseline="middle" text-anchor="middle"
@@ -340,7 +366,7 @@ export class CoverController {
             </text>
           `;
         });
-        
+
         // Add the username at the bottom
         svgContent += `
             <text x="50%" y="${height - 20}" dominant-baseline="middle" text-anchor="middle"
@@ -349,40 +375,49 @@ export class CoverController {
             </text>
           </svg>
         `;
-        
+
         const svg = svgContent;
 
         const pngBuffer = await sharp(Buffer.from(svg))
           .png() // Using PNG initially, then converting to JPEG for storage
           .toBuffer();
 
-        jpegBuffer = await sharp(pngBuffer)
-          .jpeg({ quality: 85 })
-          .toBuffer();
+        jpegBuffer = await sharp(pngBuffer).jpeg({ quality: 85 }).toBuffer();
 
-        this.logger.log(`Successfully generated SVG-based cover for ${username}/${slug}`);
+        this.logger.log(
+          `Successfully generated SVG-based cover for ${username}/${slug}`,
+        );
       } catch (svgError) {
         // Fallback: Create a simple solid color image if SVG rendering fails
-        this.logger.warn(`SVG rendering failed for ${username}/${slug}, falling back to solid color: ${svgError instanceof Error ? svgError.message : 'Unknown error'}`);
-        
+        this.logger.warn(
+          `SVG rendering failed for ${username}/${slug}, falling back to solid color: ${svgError instanceof Error ? svgError.message : 'Unknown error'}`,
+        );
+
         jpegBuffer = await sharp({
           create: {
             width,
             height,
             channels: 3,
-            background: { r: 150, g: 180, b: 220 } // Light blue fallback
-          }
+            background: { r: 150, g: 180, b: 220 }, // Light blue fallback
+          },
         })
-        .jpeg({ quality: 85 })
-        .toBuffer();
+          .jpeg({ quality: 85 })
+          .toBuffer();
 
-        this.logger.log(`Generated fallback solid color cover for ${username}/${slug}`);
+        this.logger.log(
+          `Generated fallback solid color cover for ${username}/${slug}`,
+        );
       }
 
       await this.saveProjectCover(username, slug, jpegBuffer);
-      this.logger.log(`Successfully saved default cover for ${username}/${slug}`);
+      this.logger.log(
+        `Successfully saved default cover for ${username}/${slug}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to generate default cover for ${username}/${slug}`, error);
+      this.logger.error(
+        `Failed to generate default cover for ${username}/${slug}`,
+        error,
+      );
       // Decide if this failure should prevent project creation or just log an error
       // For now, just logging.
     }
@@ -392,19 +427,34 @@ export class CoverController {
     return `${username}/${slug}/cover.jpg`;
   }
 
-  private async hasProjectCover(username: string, slug: string): Promise<boolean> {
+  private async hasProjectCover(
+    username: string,
+    slug: string,
+  ): Promise<boolean> {
     return this.storage.exists(this.coverKey(username, slug));
   }
 
-  private async saveProjectCover(username: string, slug: string, imageBuffer: Buffer): Promise<void> {
-    await this.storage.put(this.coverKey(username, slug), imageBuffer, { contentType: 'image/jpeg' });
+  private async saveProjectCover(
+    username: string,
+    slug: string,
+    imageBuffer: Buffer,
+  ): Promise<void> {
+    await this.storage.put(this.coverKey(username, slug), imageBuffer, {
+      contentType: 'image/jpeg',
+    });
   }
 
-  private async deleteProjectCoverInternal(username: string, slug: string): Promise<void> {
+  private async deleteProjectCoverInternal(
+    username: string,
+    slug: string,
+  ): Promise<void> {
     await this.storage.delete(this.coverKey(username, slug));
   }
 
-  private async getCoverBuffer(username: string, slug: string): Promise<Buffer> {
+  private async getCoverBuffer(
+    username: string,
+    slug: string,
+  ): Promise<Buffer> {
     return this.storage.get(this.coverKey(username, slug));
   }
 }

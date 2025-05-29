@@ -22,8 +22,9 @@ describe('GithubAuthGuard', () => {
     guard = module.get<GithubAuthGuard>(GithubAuthGuard);
 
     // Mock parent AuthGuard's canActivate
-    spyOn(AuthGuard('github').prototype, 'canActivate')
-      .mockImplementation(async () => true);
+    spyOn(AuthGuard('github').prototype, 'canActivate').mockImplementation(
+      async () => true,
+    );
 
     // Mock Logger
     spyOn(guard['logger'], 'verbose').mockImplementation(() => ({}));
@@ -66,10 +67,11 @@ describe('GithubAuthGuard', () => {
 
     it('should handle failed GitHub authentication', async () => {
       // Mock failed authentication
-      spyOn(AuthGuard('github').prototype, 'canActivate')
-        .mockImplementation(async () => {
+      spyOn(AuthGuard('github').prototype, 'canActivate').mockImplementation(
+        async () => {
           throw new UnauthorizedException('Authentication failed');
-        });
+        },
+      );
 
       await expect(guard.canActivate(mockContext)).rejects.toThrow(
         UnauthorizedException,
@@ -78,8 +80,9 @@ describe('GithubAuthGuard', () => {
 
     it('should handle null/undefined authentication result', async () => {
       // Mock undefined authentication result
-      spyOn(AuthGuard('github').prototype, 'canActivate')
-        .mockImplementation(async () => undefined);
+      spyOn(AuthGuard('github').prototype, 'canActivate').mockImplementation(
+        async () => undefined,
+      );
 
       const result = await guard.canActivate(mockContext);
 
@@ -142,10 +145,11 @@ describe('GithubAuthGuard', () => {
       const loggerSpy = spyOn(guard['logger'], 'error');
 
       // Mock failed authentication
-      spyOn(AuthGuard('github').prototype, 'canActivate')
-        .mockImplementation(async () => {
+      spyOn(AuthGuard('github').prototype, 'canActivate').mockImplementation(
+        async () => {
           throw new UnauthorizedException('Authentication failed');
-        });
+        },
+      );
 
       try {
         await guard.canActivate(mockContext);

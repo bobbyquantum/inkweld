@@ -1,6 +1,26 @@
+import { OverlayModule } from '@angular/cdk/overlay';
+import {
+  ConnectedPosition,
+  Overlay,
+  OverlayPositionBuilder,
+  OverlayRef,
+} from '@angular/cdk/overlay';
+import { TemplatePortal } from '@angular/cdk/portal';
 import { KeyValuePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  effect,
+  ElementRef,
+  inject,
+  OnDestroy,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+  ViewContainerRef,
+} from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -17,10 +37,13 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
 import { UserAPIService, UserRegisterDto } from '@inkweld/index';
+import { RecaptchaService } from '@services/recaptcha.service';
+import { SystemConfigService } from '@services/system-config.service';
 import { UserService } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
@@ -39,17 +62,34 @@ import { firstValueFrom, Subject, takeUntil } from 'rxjs';
     MatIconModule,
     OAuthProviderListComponent,
     KeyValuePipe,
+    OverlayModule,
+    MatProgressSpinnerModule,
   ],
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss',
 })
-export class RegisterComponent implements OnInit, OnDestroy {
+export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
   private userService = inject(UserAPIService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private xsrfService = inject(XsrfService);
   private authService = inject(UserService);
   private fb = inject(FormBuilder);
+  private systemConfigService = inject(SystemConfigService);
+  private recaptchaService = inject(RecaptchaService);
+  private overlay = inject(Overlay);
+  private overlayPositionBuilder = inject(OverlayPositionBuilder);
+  private viewContainerRef = inject(ViewContainerRef);
+  private changeDetectorRef = inject(ChangeDetectorRef);
+
+  @ViewChild('recaptchaElement', { static: false })
+  recaptchaElement?: ElementRef<HTMLDivElement>;
+
+  @ViewChild('passwordField', { static: false, read: ElementRef })
+  passwordField?: ElementRef<HTMLInputElement>;
+
+  @ViewChild('passwordTooltipTemplate', { static: false })
+  passwordTooltipTemplate?: TemplateRef<unknown>;
 
   // Declare registerForm without initializing here
   registerForm!: FormGroup;
@@ -58,6 +98,16 @@ export class RegisterComponent implements OnInit, OnDestroy {
   usernameSuggestions: string[] | undefined = [];
   usernameAvailability: 'available' | 'unavailable' | 'unknown' = 'unknown';
   serverValidationErrors: { [key: string]: string[] } = {};
+
+  // Captcha-related properties
+  captchaWidgetId?: number;
+  captchaToken?: string;
+  captchaError = false;
+  captchaLoading = false;
+
+  // Password focus state for showing requirements callout
+  isPasswordFocused = false;
+  private overlayRef?: OverlayRef;
 
   passwordRequirements = {
     minLength: {
@@ -83,6 +133,33 @@ export class RegisterComponent implements OnInit, OnDestroy {
   };
 
   private destroy$ = new Subject<void>();
+
+  constructor() {
+    // React to system config changes - this will trigger when config loads
+    effect(() => {
+      const isEnabled = this.systemConfigService.isCaptchaEnabled();
+      const isLoaded = this.systemConfigService.isConfigLoaded();
+
+      // Only try to initialize captcha if config is loaded, captcha is enabled, and we haven't already initialized
+      if (isLoaded && isEnabled && !this.captchaWidgetId) {
+        // Use setTimeout to allow Angular to update the DOM first
+        setTimeout(() => {
+          if (this.recaptchaElement) {
+            this.initializeCaptcha();
+          }
+        }, 0);
+      }
+    });
+  }
+
+  // Computed properties for captcha
+  get isCaptchaEnabled() {
+    return this.systemConfigService.isCaptchaEnabled();
+  }
+
+  get captchaSiteKey() {
+    return this.systemConfigService.captchaSiteKey();
+  }
 
   get usernameControl() {
     return this.registerForm.get('username');
@@ -132,9 +209,15 @@ export class RegisterComponent implements OnInit, OnDestroy {
       .subscribe((password: string) => {
         this.updatePasswordRequirements(password);
       });
+
+    // Initialize captcha loading state if captcha is enabled
+    if (this.isCaptchaEnabled) {
+      this.captchaLoading = true;
+    }
   }
 
   ngOnDestroy(): void {
+    this.hidePasswordTooltip();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -157,6 +240,80 @@ export class RegisterComponent implements OnInit, OnDestroy {
     this.registerForm.get('username')?.setValue(suggestion);
     this.usernameSuggestions = [];
     void this.checkUsernameAvailability();
+  }
+
+  onPasswordFocus(): void {
+    this.isPasswordFocused = true;
+    this.showPasswordTooltip();
+  }
+
+  onPasswordBlur(): void {
+    this.isPasswordFocused = false;
+    this.hidePasswordTooltip();
+  }
+
+  onPasswordInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const password = input.value;
+    this.updatePasswordRequirements(password);
+  }
+
+  private showPasswordTooltip(): void {
+    if (
+      this.overlayRef ||
+      !this.passwordField ||
+      !this.passwordTooltipTemplate
+    ) {
+      return;
+    }
+
+    // Define position strategies: prefer right, then left, then top
+    const positions: ConnectedPosition[] = [
+      {
+        originX: 'end',
+        originY: 'center',
+        overlayX: 'start',
+        overlayY: 'center',
+        offsetX: 8,
+      },
+      {
+        originX: 'start',
+        originY: 'center',
+        overlayX: 'end',
+        overlayY: 'center',
+        offsetX: -8,
+      },
+      {
+        originX: 'center',
+        originY: 'top',
+        overlayX: 'center',
+        overlayY: 'bottom',
+        offsetY: -8,
+      },
+    ];
+
+    const positionStrategy = this.overlayPositionBuilder
+      .flexibleConnectedTo(this.passwordField)
+      .withPositions(positions)
+      .withViewportMargin(16)
+      .withPush(false);
+
+    this.overlayRef = this.overlay.create({
+      positionStrategy,
+      scrollStrategy: this.overlay.scrollStrategies.reposition(),
+      hasBackdrop: false,
+    });
+
+    this.overlayRef.attach(
+      new TemplatePortal(this.passwordTooltipTemplate, this.viewContainerRef)
+    );
+  }
+
+  private hidePasswordTooltip(): void {
+    if (this.overlayRef) {
+      this.overlayRef.dispose();
+      this.overlayRef = undefined;
+    }
   }
 
   // Check if username is available
@@ -254,6 +411,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
   async onRegister(): Promise<void> {
     // Clear any previous server validation errors
     this.serverValidationErrors = {};
+    this.captchaError = false;
 
     // Mark all fields as touched to trigger validation display
     this.registerForm.markAllAsTouched();
@@ -266,6 +424,24 @@ export class RegisterComponent implements OnInit, OnDestroy {
         });
       }
       return;
+    }
+
+    // Check captcha if enabled
+    if (this.isCaptchaEnabled) {
+      this.captchaToken = this.recaptchaService.getResponse(
+        this.captchaWidgetId
+      );
+      if (!this.captchaToken) {
+        this.captchaError = true;
+        this.snackBar.open(
+          'Please complete the captcha verification',
+          'Close',
+          {
+            duration: 3000,
+          }
+        );
+        return;
+      }
     }
 
     // Set loading state
@@ -281,6 +457,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
       const registerRequest: UserRegisterDto = {
         username: formValues.username,
         password: formValues.password,
+        captchaToken: this.captchaToken,
       };
 
       await firstValueFrom(
@@ -298,6 +475,12 @@ export class RegisterComponent implements OnInit, OnDestroy {
       });
       void this.router.navigate(['/']);
     } catch (error: unknown) {
+      // Reset captcha on error
+      if (this.isCaptchaEnabled && this.captchaWidgetId !== undefined) {
+        this.recaptchaService.reset(this.captchaWidgetId);
+        this.captchaToken = undefined;
+      }
+
       if (error instanceof HttpErrorResponse) {
         // Handle validation errors from the server
         if (
@@ -360,11 +543,31 @@ export class RegisterComponent implements OnInit, OnDestroy {
   }
 
   private updatePasswordRequirements(password: string): void {
+    const oldState = Object.fromEntries(
+      Object.entries(this.passwordRequirements).map(([key, req]) => [
+        key,
+        req.met,
+      ])
+    );
+
     this.passwordRequirements.minLength.met = password.length >= 8;
     this.passwordRequirements.uppercase.met = /[A-Z]/.test(password);
     this.passwordRequirements.lowercase.met = /[a-z]/.test(password);
     this.passwordRequirements.number.met = /\d/.test(password);
     this.passwordRequirements.special.met = /[@$!%*?&]/.test(password);
+
+    const newState = Object.fromEntries(
+      Object.entries(this.passwordRequirements).map(([key, req]) => [
+        key,
+        req.met,
+      ])
+    );
+
+    const hasChanged = JSON.stringify(oldState) !== JSON.stringify(newState);
+    if (hasChanged) {
+      // Trigger change detection for the overlay
+      this.changeDetectorRef.detectChanges();
+    }
   }
   private showGeneralError(error: HttpErrorResponse): void {
     this.snackBar.open(`Registration failed: ${error.message}`, 'Close', {
@@ -390,5 +593,36 @@ export class RegisterComponent implements OnInit, OnDestroy {
     this.snackBar.open('Please fix the validation errors', 'Close', {
       duration: 5000,
     });
+  }
+
+  ngAfterViewInit(): void {
+    // Try to initialize captcha if everything is ready
+    if (
+      this.systemConfigService.isConfigLoaded() &&
+      this.isCaptchaEnabled &&
+      this.recaptchaElement &&
+      !this.captchaWidgetId
+    ) {
+      this.initializeCaptcha();
+    }
+  }
+
+  private initializeCaptcha(): void {
+    if (!this.recaptchaElement || this.captchaWidgetId) {
+      return;
+    }
+
+    this.captchaLoading = true;
+
+    void this.recaptchaService
+      .render(this.recaptchaElement.nativeElement, this.captchaSiteKey)
+      .then(widgetId => {
+        this.captchaWidgetId = widgetId;
+        this.captchaLoading = false;
+      })
+      .catch(error => {
+        console.error('[RegisterComponent] Failed to render reCAPTCHA:', error);
+        this.captchaLoading = false;
+      });
   }
 }

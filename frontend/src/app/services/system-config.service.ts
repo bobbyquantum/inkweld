@@ -5,17 +5,27 @@ import { catchError, tap } from 'rxjs/operators';
 import { ConfigService } from '../../api-client/api/config.service';
 import { ConfigControllerGetSystemFeatures200Response } from '../../api-client/model/config-controller-get-system-features200-response';
 
+interface CaptchaConfig {
+  enabled?: boolean;
+  siteKey?: string;
+}
+
+interface ExtendedSystemFeatures
+  extends ConfigControllerGetSystemFeatures200Response {
+  captcha?: CaptchaConfig;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class SystemConfigService {
   private readonly configApiService = inject(ConfigService);
 
-  private readonly systemFeaturesSignal =
-    signal<ConfigControllerGetSystemFeatures200Response>({
-      aiLinting: false,
-      aiImageGeneration: false,
-    });
+  private readonly systemFeaturesSignal = signal<ExtendedSystemFeatures>({
+    aiLinting: false,
+    aiImageGeneration: false,
+    captcha: { enabled: false },
+  });
 
   private isLoaded = signal(false);
 
@@ -26,6 +36,12 @@ export class SystemConfigService {
   );
   public readonly isAiImageGenerationEnabled = computed(
     () => this.systemFeaturesSignal().aiImageGeneration ?? false
+  );
+  public readonly isCaptchaEnabled = computed(
+    () => this.systemFeaturesSignal().captcha?.enabled ?? false
+  );
+  public readonly captchaSiteKey = computed(
+    () => this.systemFeaturesSignal().captcha?.siteKey ?? ''
   );
   public readonly isConfigLoaded = this.isLoaded.asReadonly();
 
@@ -42,7 +58,7 @@ export class SystemConfigService {
       .pipe(
         tap(features => {
           console.log('[SystemConfig] Loaded system features:', features);
-          this.systemFeaturesSignal.set(features);
+          this.systemFeaturesSignal.set(features as ExtendedSystemFeatures);
           this.isLoaded.set(true);
         }),
         catchError(error => {
@@ -53,6 +69,7 @@ export class SystemConfigService {
           this.systemFeaturesSignal.set({
             aiLinting: false,
             aiImageGeneration: false,
+            captcha: { enabled: false },
           });
           this.isLoaded.set(true);
           return of(null);

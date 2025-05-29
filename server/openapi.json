@@ -1015,7 +1015,7 @@
     },
     "/api/v1/users/register": {
       "post": {
-        "description": "Creates a new user account with the provided registration details.",
+        "description": "Creates a new user account with the provided registration details. May require captcha verification if enabled.",
         "operationId": "UserController_register",
         "parameters": [
           {
@@ -1050,7 +1050,7 @@
             }
           },
           "400": {
-            "description": "Invalid registration data provided"
+            "description": "Invalid registration data provided or captcha verification failed"
           }
         },
         "security": [
@@ -1366,6 +1366,51 @@
         ]
       }
     },
+    "/api/config/features": {
+      "get": {
+        "description": "Returns which system features are currently enabled based on environment configuration",
+        "operationId": "ConfigController_getSystemFeatures",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "System features configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "aiLinting": {
+                      "type": "boolean",
+                      "description": "Whether AI-powered linting is available"
+                    },
+                    "aiImageGeneration": {
+                      "type": "boolean",
+                      "description": "Whether AI-powered image generation is available"
+                    },
+                    "captcha": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "siteKey": {
+                          "type": "string"
+                        }
+                      },
+                      "description": "ReCaptcha configuration for registration"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get system features configuration",
+        "tags": [
+          "config"
+        ]
+      }
+    },
     "/mcp/sse": {
       "get": {
         "operationId": "McpController_getSse",
@@ -1540,26 +1585,36 @@
         ]
       }
     },
-    "/api/config/features": {
+    "/health": {
       "get": {
-        "description": "Returns which system features are currently enabled based on environment configuration",
-        "operationId": "ConfigController_getSystemFeatures",
+        "description": "Returns basic server health status and information",
+        "operationId": "HealthController_getHealth",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "System features configuration",
+            "description": "Server is healthy",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "aiLinting": {
-                      "type": "boolean",
-                      "description": "Whether AI-powered linting is available"
+                    "status": {
+                      "type": "string",
+                      "example": "ok",
+                      "description": "Health status of the server"
                     },
-                    "aiImageGeneration": {
-                      "type": "boolean",
-                      "description": "Whether AI-powered image generation is available"
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Current server timestamp"
+                    },
+                    "uptime": {
+                      "type": "number",
+                      "description": "Server uptime in seconds"
+                    },
+                    "version": {
+                      "type": "string",
+                      "description": "Application version"
                     }
                   }
                 }
@@ -1567,9 +1622,9 @@
             }
           }
         },
-        "summary": "Get system features configuration",
+        "summary": "Health check endpoint",
         "tags": [
-          "config"
+          "Health"
         ]
       }
     }
@@ -1897,6 +1952,11 @@
             "type": "string",
             "description": "Optional display name for the user",
             "example": "John Doe"
+          },
+          "captchaToken": {
+            "type": "string",
+            "description": "ReCaptcha token for verification (required when captcha is enabled)",
+            "example": "03AGdBq25SiQtk8VYv..."
           }
         },
         "required": [

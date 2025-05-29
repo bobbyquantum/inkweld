@@ -41,7 +41,8 @@ export class StyleRecommendationDto {
 
   @ApiProperty({
     description: 'The reason for the style recommendation',
-    example: 'Pulp fiction typically uses shorter sentences for dramatic effect',
+    example:
+      'Pulp fiction typically uses shorter sentences for dramatic effect',
   })
   reason: string;
 }

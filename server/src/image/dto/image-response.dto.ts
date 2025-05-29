@@ -6,12 +6,21 @@ export class ImageResponseDto {
   @ApiProperty({ description: 'Timestamp of creation (Unix seconds)' })
   created: number;
 
-  @ApiProperty({ type: [ImageDataDto], description: 'List of generated image data objects' })
+  @ApiProperty({
+    type: [ImageDataDto],
+    description: 'List of generated image data objects',
+  })
   data: ImageDataDto[];
 
-  @ApiProperty({ type: ImageUsageDto, description: 'Token usage information (gpt-image-1 only)', required: false })
+  @ApiProperty({
+    type: ImageUsageDto,
+    description: 'Token usage information (gpt-image-1 only)',
+    required: false,
+  })
   usage?: ImageUsageDto;
 
-  @ApiProperty({ description: 'Source of the image generation (e.g., "openai")'})
+  @ApiProperty({
+    description: 'Source of the image generation (e.g., "openai")',
+  })
   source: string;
 }

@@ -274,7 +274,9 @@ export class DocumentGateway
 
       // Check document ID format
       if (!docId.includes(':')) {
-        this.logger.warn(`Invalid document ID format: ${docId}. Expected format: "username:slug:documentId"`);
+        this.logger.warn(
+          `Invalid document ID format: ${docId}. Expected format: "username:slug:documentId"`,
+        );
         connection.close(1008, 'Invalid document ID format');
         return;
       }
@@ -282,8 +284,13 @@ export class DocumentGateway
       // Validate the username part of the document ID
       const username = docId.split(':')[0];
       if (!this.isValidUsername(username)) {
-        this.logger.warn(`Rejected document ID with invalid username: ${docId}`);
-        connection.close(1008, 'Document ID contains invalid username characters');
+        this.logger.warn(
+          `Rejected document ID with invalid username: ${docId}`,
+        );
+        connection.close(
+          1008,
+          'Document ID contains invalid username characters',
+        );
         return;
       }
 

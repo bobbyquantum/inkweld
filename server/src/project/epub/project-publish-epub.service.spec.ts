@@ -57,7 +57,9 @@ describe('ProjectPublishEpubService', () => {
     }).compile();
 
     service = module.get<ProjectPublishEpubService>(ProjectPublishEpubService);
-    projectElementService = module.get<ProjectElementService>(ProjectElementService);
+    projectElementService = module.get<ProjectElementService>(
+      ProjectElementService,
+    );
     fileStorageService = module.get<FileStorageService>(FileStorageService);
     projectService = module.get<ProjectService>(ProjectService);
     _levelDBManager = module.get<LevelDBManagerService>(LevelDBManagerService);
@@ -69,11 +71,13 @@ describe('ProjectPublishEpubService', () => {
 
   describe('publishProjectAsEpub', () => {
     it('should throw NotFoundException if project not found', async () => {
-      (projectService.findByUsernameAndSlug as jest.Mock).mockResolvedValue(null);
-
-      await expect(service.publishProjectAsEpub('user1', 'slug1')).rejects.toThrow(
-        NotFoundException,
+      (projectService.findByUsernameAndSlug as jest.Mock).mockResolvedValue(
+        null,
       );
+
+      await expect(
+        service.publishProjectAsEpub('user1', 'slug1'),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should publish EPUB successfully', async () => {
@@ -87,10 +91,18 @@ describe('ProjectPublishEpubService', () => {
         uploadDate: new Date(),
       };
 
-      (projectService.findByUsernameAndSlug as jest.Mock).mockResolvedValue(mockProject);
-      (projectElementService.getProjectElements as jest.Mock).mockResolvedValue(mockElements);
-      (fileStorageService.saveFile as jest.Mock).mockResolvedValue(mockFileMetadata);
-      (projectService.getProjectPath as jest.Mock).mockReturnValue('/fake/path');
+      (projectService.findByUsernameAndSlug as jest.Mock).mockResolvedValue(
+        mockProject,
+      );
+      (projectElementService.getProjectElements as jest.Mock).mockResolvedValue(
+        mockElements,
+      );
+      (fileStorageService.saveFile as jest.Mock).mockResolvedValue(
+        mockFileMetadata,
+      );
+      (projectService.getProjectPath as jest.Mock).mockReturnValue(
+        '/fake/path',
+      );
 
       spyOn(fs, 'existsSync').mockReturnValue(false);
 
@@ -102,8 +114,14 @@ describe('ProjectPublishEpubService', () => {
 
       const result = await service.publishProjectAsEpub('user1', 'slug1');
 
-      expect(projectService.findByUsernameAndSlug).toHaveBeenCalledWith('user1', 'slug1');
-      expect(projectElementService.getProjectElements).toHaveBeenCalledWith('user1', 'slug1');
+      expect(projectService.findByUsernameAndSlug).toHaveBeenCalledWith(
+        'user1',
+        'slug1',
+      );
+      expect(projectElementService.getProjectElements).toHaveBeenCalledWith(
+        'user1',
+        'slug1',
+      );
       expect(fileStorageService.saveFile).toHaveBeenCalled();
       expect(result).toEqual(mockFileMetadata);
     });

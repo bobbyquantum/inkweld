@@ -26,5 +26,9 @@ export interface UserRegisterDto {
      * Optional display name for the user
      */
     name?: string;
+    /**
+     * ReCaptcha token for verification (required when captcha is enabled)
+     */
+    captchaToken?: string;
 }
 

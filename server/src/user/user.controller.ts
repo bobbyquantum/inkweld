@@ -36,6 +36,7 @@ import { SessionAuthGuard } from '../auth/session-auth.guard.js';
 import { UserDto } from './user.dto.js';
 import { UserRegisterDto } from './user-register.dto.js';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { SystemConfigService } from '../config/config.service.js';
 // Define MulterFile interface for Bun environment
 interface MulterFile {
   fieldname: string;
@@ -63,6 +64,7 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService,
+    private readonly systemConfigService: SystemConfigService,
   ) {}
 
   @Get('me')
@@ -146,7 +148,7 @@ export class UserController {
   @ApiOperation({
     summary: 'Register a new user',
     description:
-      'Creates a new user account with the provided registration details.',
+      'Creates a new user account with the provided registration details. May require captcha verification if enabled.',
   })
   @ApiHeader({
     name: 'X-CSRF-TOKEN',
@@ -157,11 +159,29 @@ export class UserController {
     description: 'User successfully registered',
     type: UserDto,
   })
-  @ApiBadRequestResponse({ description: 'Invalid registration data provided' })
+  @ApiBadRequestResponse({
+    description:
+      'Invalid registration data provided or captcha verification failed',
+  })
   @ApiBody({ type: UserRegisterDto })
   async register(@Body() body: UserRegisterDto, @Req() req) {
     this.logger.log('register', body);
-    const { username, email, password, name } = body;
+    const { username, email, password, name, captchaToken } = body;
+
+    // Check if captcha is required and verify it
+    const captchaSettings = this.systemConfigService.getCaptchaSettings();
+    if (captchaSettings.enabled) {
+      if (!captchaToken) {
+        throw new BadRequestException('Captcha verification is required');
+      }
+
+      const isCaptchaValid =
+        await this.systemConfigService.verifyCaptcha(captchaToken);
+      if (!isCaptchaValid) {
+        throw new BadRequestException('Captcha verification failed');
+      }
+    }
+
     const user = await this.userService.registerUser(
       username,
       email,
@@ -216,7 +236,7 @@ export class UserController {
   @Get(':username/avatar')
   @ApiOperation({
     summary: 'Get user avatar',
-    description: 'Retrieves a user\'s avatar image as a PNG file.',
+    description: "Retrieves a user's avatar image as a PNG file.",
   })
   @ApiParam({
     name: 'username',
@@ -228,10 +248,7 @@ export class UserController {
       'image/png': {},
     },
   })
-  async getUserAvatar(
-    @Param('username') username: string,
-    @Res() res,
-  ) {
+  async getUserAvatar(@Param('username') username: string, @Res() res) {
     try {
       const hasAvatar = await this.userService.hasUserAvatar(username);
 
@@ -256,7 +273,7 @@ export class UserController {
   @UseInterceptors(FileInterceptor('avatar'))
   @ApiOperation({
     summary: 'Upload user avatar',
-    description: 'Uploads and updates the authenticated user\'s avatar image.',
+    description: "Uploads and updates the authenticated user's avatar image.",
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -275,10 +292,7 @@ export class UserController {
     description: 'Avatar successfully uploaded',
   })
   @ApiBadRequestResponse({ description: 'Invalid file format or size' })
-  async uploadAvatar(
-    @Request() req,
-    @UploadedFile() file: MulterFile,
-  ) {
+  async uploadAvatar(@Request() req, @UploadedFile() file: MulterFile) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
@@ -307,7 +321,7 @@ export class UserController {
   @UseGuards(SessionAuthGuard)
   @ApiOperation({
     summary: 'Delete user avatar',
-    description: 'Deletes the authenticated user\'s avatar image.',
+    description: "Deletes the authenticated user's avatar image.",
   })
   @ApiOkResponse({
     description: 'Avatar successfully deleted',

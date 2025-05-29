@@ -210,6 +210,12 @@ $dark-theme: mat.define-theme(
     --sync-dot-offline-color: var(--mat-sys-outline);
     --sync-dot-syncing-color: var(--mat-sys-secondary);
     --sync-dot-synced-color: var(--mat-sys-primary);
+    
+    /* Custom success and error colors for light theme */
+    --custom-success-color: #2e7d32; /* Material Green 800 */
+    --custom-error-color: var(--mat-sys-error);
+    --password-tooltip-bg: var(--mat-sys-surface-container-high);
+    --password-tooltip-border: var(--mat-sys-outline-variant);
   }
 }
 
@@ -298,6 +304,12 @@ $dark-theme: mat.define-theme(
     --ngx-editor-focus-ring-color: #5e9ed6;
     --ngx-editor-error-color: red;
     --ngx-editor-click-pointer: pointer;
+    
+    /* Custom success and error colors for dark theme */
+    --custom-success-color: #4caf50; /* Material Green 500 - brighter for dark theme */
+    --custom-error-color: var(--mat-sys-error);
+    --password-tooltip-bg: var(--mat-sys-surface-container-high);
+    --password-tooltip-border: var(--mat-sys-outline-variant);
   }
 }
 

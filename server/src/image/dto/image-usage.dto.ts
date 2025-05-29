@@ -18,6 +18,10 @@ export class ImageUsageDto {
   @ApiProperty({ description: 'Tokens used for the generated output' })
   output_tokens: number;
 
-  @ApiProperty({ type: InputTokensDetailsDto, description: 'Detailed breakdown of input tokens', required: false })
+  @ApiProperty({
+    type: InputTokensDetailsDto,
+    description: 'Detailed breakdown of input tokens',
+    required: false,
+  })
   input_tokens_details?: InputTokensDetailsDto;
 }

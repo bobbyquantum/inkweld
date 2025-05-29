@@ -41,4 +41,14 @@ export class UserRegisterDto {
   @IsOptional()
   @IsString()
   name?: string;
+
+  @ApiProperty({
+    description:
+      'ReCaptcha token for verification (required when captcha is enabled)',
+    example: '03AGdBq25SiQtk8VYv...',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
 }

@@ -8,7 +8,15 @@ import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { UserEntity } from '../user/user.entity.js';
 import { UserService } from '../user/user.service.js';
 import { SessionAuthGuard } from '../auth/session-auth.guard.js';
-import { beforeEach, describe, expect, it, jest, mock, afterEach } from 'bun:test';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+  mock,
+  afterEach,
+} from 'bun:test';
 import { Mocked } from '../common/test/bun-test-utils.js';
 
 import * as fs from 'fs';
@@ -26,20 +34,22 @@ mock.module('fs', () => ({
   existsSync: jest.fn(),
   createReadStream: jest.fn(() => ({ pipe: jest.fn() })), // Mock stream with pipe
   promises: mockFsPromises,
-  default: { // Handle default export if needed by consumers
+  default: {
+    // Handle default export if needed by consumers
     existsSync: jest.fn(),
     createReadStream: jest.fn(() => ({ pipe: jest.fn() })),
     promises: mockFsPromises,
-  }
+  },
 }));
 
 mock.module('path', () => ({
   join: jest.fn().mockImplementation((...args) => args.join('/')),
   resolve: jest.fn().mockImplementation((...args) => args.join('/')),
-  default: { // Handle default export
+  default: {
+    // Handle default export
     join: jest.fn().mockImplementation((...args) => args.join('/')),
     resolve: jest.fn().mockImplementation((...args) => args.join('/')),
-  }
+  },
 }));
 
 describe('ProjectController', () => {
@@ -115,8 +125,14 @@ describe('ProjectController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ProjectController],
       providers: [
-        { provide: getRepositoryToken(ProjectEntity), useValue: mockProjectRepository },
-        { provide: getRepositoryToken(UserEntity), useValue: mockUserRepository },
+        {
+          provide: getRepositoryToken(ProjectEntity),
+          useValue: mockProjectRepository,
+        },
+        {
+          provide: getRepositoryToken(UserEntity),
+          useValue: mockUserRepository,
+        },
         {
           provide: ProjectService,
           useValue: mockProjectService, // Keep using the mocked service
@@ -127,7 +143,7 @@ describe('ProjectController', () => {
         },
         {
           provide: UserService,
-          useValue: mockUserService, 
+          useValue: mockUserService,
         },
         {
           provide: FileStorageService,
@@ -159,8 +175,10 @@ describe('ProjectController', () => {
     jest.clearAllMocks();
 
     // Configure mock default behavior
-    (fs.existsSync as jest.Mock).mockImplementation(_path => true); // Default: everything exists
-    (fs.createReadStream as jest.Mock).mockReturnValue({ pipe: mockResponse.pipe });
+    (fs.existsSync as jest.Mock).mockImplementation((_path) => true); // Default: everything exists
+    (fs.createReadStream as jest.Mock).mockReturnValue({
+      pipe: mockResponse.pipe,
+    });
     mockFsPromises.mkdir.mockResolvedValue(undefined);
     mockFsPromises.writeFile.mockResolvedValue(undefined);
     mockFsPromises.unlink.mockResolvedValue(undefined);
@@ -294,7 +312,7 @@ describe('ProjectController', () => {
       const result = await controller.updateProject(
         'testuser',
         'test-project',
-        updateProjectDto
+        updateProjectDto,
       );
 
       expect(result).toBeInstanceOf(ProjectDto);
@@ -310,11 +328,7 @@ describe('ProjectController', () => {
       projectService.update.mockRejectedValue(new NotFoundException());
 
       await expect(
-        controller.updateProject(
-          'testuser',
-          'nonexistent',
-          updateProjectDto
-        ),
+        controller.updateProject('testuser', 'nonexistent', updateProjectDto),
       ).rejects.toThrow(NotFoundException);
     });
 

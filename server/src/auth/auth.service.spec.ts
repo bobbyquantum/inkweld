@@ -10,8 +10,9 @@ import { UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest, spyOn } from 'bun:test';
 
 // Mock Bun.password methods using spyOn
-spyOn(Bun.password, 'hash')
-  .mockImplementation(async (pass) => `hashed_${pass}`);
+spyOn(Bun.password, 'hash').mockImplementation(
+  async (pass) => `hashed_${pass}`,
+);
 spyOn(Bun.password, 'verify').mockImplementation(async () => true);
 
 describe('AuthService', () => {
@@ -206,9 +207,7 @@ describe('AuthService', () => {
         session: mockSession,
       } as any;
 
-      await expect(service.logout(mockReq)).rejects.toThrow(
-        'Destroy error',
-      );
+      await expect(service.logout(mockReq)).rejects.toThrow('Destroy error');
     });
   });
 
@@ -239,8 +238,7 @@ describe('AuthService', () => {
         name: 'GitHub User',
         password: null,
       });
-      spyOn(userRepository, 'save')
-        .mockImplementation(async (user) => user);
+      spyOn(userRepository, 'save').mockImplementation(async (user) => user);
 
       const result = await service.findOrCreateGithubUser(mockGithubProfile);
 
@@ -271,8 +269,7 @@ describe('AuthService', () => {
         name: null,
         password: null,
       });
-      spyOn(userRepository, 'save')
-        .mockImplementation(async (user) => user);
+      spyOn(userRepository, 'save').mockImplementation(async (user) => user);
 
       const result = await service.findOrCreateGithubUser(minimalProfile);
 

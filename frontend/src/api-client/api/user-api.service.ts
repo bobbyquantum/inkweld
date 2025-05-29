@@ -428,7 +428,7 @@ export class UserAPIService {
 
     /**
      * Register a new user
-     * Creates a new user account with the provided registration details.
+     * Creates a new user account with the provided registration details. May require captcha verification if enabled.
      * @param xCSRFTOKEN CSRF token
      * @param userRegisterDto 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.

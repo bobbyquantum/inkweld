@@ -7,4 +7,4 @@ import { SystemConfigService } from './config.service.js';
   providers: [SystemConfigService],
   exports: [SystemConfigService],
 })
-export class SystemConfigModule {} 
+export class SystemConfigModule {}

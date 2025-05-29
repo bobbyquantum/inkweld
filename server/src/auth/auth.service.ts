@@ -46,11 +46,13 @@ export class AuthService {
         sessionId: req.sessionID,
         secure: req.secure,
         protocol: req.protocol,
-        headers: req.headers ? {
-          'x-forwarded-proto': req.headers['x-forwarded-proto'],
-          'x-forwarded-for': req.headers['x-forwarded-for']
-        } : 'No headers available',
-        nodeEnv: process.env.NODE_ENV
+        headers: req.headers
+          ? {
+              'x-forwarded-proto': req.headers['x-forwarded-proto'],
+              'x-forwarded-for': req.headers['x-forwarded-for'],
+            }
+          : 'No headers available',
+        nodeEnv: process.env.NODE_ENV,
       });
 
       // Regenerate session to prevent session fixation
@@ -76,12 +78,12 @@ export class AuthService {
             console.error('Session save failed:', saveErr);
             return reject(saveErr);
           }
-          
+
           console.log('Session saved successfully:', {
             sessionId: req.sessionID,
-            userId: user.id?.toString()
+            userId: user.id?.toString(),
           });
-          
+
           resolve({
             message: 'Login successful',
             user: {

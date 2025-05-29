@@ -10,6 +10,8 @@ import {
   UserDto,
   UserRegisterDto,
 } from '@inkweld/index';
+import { RecaptchaService } from '@services/recaptcha.service';
+import { SystemConfigService } from '@services/system-config.service';
 import { UserService } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
 import { Observable, of, throwError } from 'rxjs';
@@ -29,6 +31,8 @@ describe('RegisterComponent', () => {
   let userService: jest.Mocked<UserAPIService>;
   let xsrfService: jest.Mocked<XsrfService>;
   let userAuthService: jest.Mocked<UserService>;
+  let systemConfigService: jest.Mocked<SystemConfigService>;
+  let recaptchaService: jest.Mocked<RecaptchaService>;
 
   beforeEach(async () => {
     httpClient = {
@@ -59,6 +63,18 @@ describe('RegisterComponent', () => {
       loadCurrentUser: jest.fn().mockResolvedValue(true),
     } as unknown as jest.Mocked<UserService>;
 
+    systemConfigService = {
+      isCaptchaEnabled: jest.fn().mockReturnValue(false),
+      isConfigLoaded: jest.fn().mockReturnValue(true),
+      captchaSiteKey: jest.fn().mockReturnValue('test-site-key'),
+    } as unknown as jest.Mocked<SystemConfigService>;
+
+    recaptchaService = {
+      render: jest.fn().mockResolvedValue(0),
+      getResponse: jest.fn().mockReturnValue('test-captcha-token'),
+      reset: jest.fn(),
+    } as unknown as jest.Mocked<RecaptchaService>;
+
     await TestBed.configureTestingModule({
       imports: [RegisterComponent, NoopAnimationsModule, ReactiveFormsModule],
       providers: [
@@ -68,6 +84,8 @@ describe('RegisterComponent', () => {
         { provide: UserAPIService, useValue: userService },
         { provide: XsrfService, useValue: xsrfService },
         { provide: UserService, useValue: userAuthService },
+        { provide: SystemConfigService, useValue: systemConfigService },
+        { provide: RecaptchaService, useValue: recaptchaService },
         {
           provide: ActivatedRoute,
           useValue: {

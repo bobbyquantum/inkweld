@@ -18,7 +18,8 @@ export const ParagraphCheckSchema = {
         properties: {
           error: {
             type: 'string',
-            description: 'The error text as it appears in the original paragraph',
+            description:
+              'The error text as it appears in the original paragraph',
           },
           suggestion: {
             type: 'string',
@@ -26,11 +27,13 @@ export const ParagraphCheckSchema = {
           },
           from: {
             type: 'number',
-            description: 'The starting position of the error (UTF-16 code unit offset)',
+            description:
+              'The starting position of the error (UTF-16 code unit offset)',
           },
           to: {
             type: 'number',
-            description: 'The ending position of the error (UTF-16 code unit offset)',
+            description:
+              'The ending position of the error (UTF-16 code unit offset)',
           },
         },
       },

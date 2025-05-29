@@ -8,7 +8,7 @@ import {
   expect,
   it,
   jest,
-  spyOn
+  spyOn,
 } from 'bun:test';
 import { Mocked } from '../common/test/bun-test-utils.js';
 
@@ -111,8 +111,7 @@ describe('GithubStrategy', () => {
 
       // Mock logger to avoid console output in tests
       spyOn(strategy['logger'], 'log').mockImplementation(() => undefined);
-      spyOn(strategy['logger'], 'error')
-        .mockImplementation(() => undefined);
+      spyOn(strategy['logger'], 'error').mockImplementation(() => undefined);
 
       expect(strategy).toBeDefined();
     });

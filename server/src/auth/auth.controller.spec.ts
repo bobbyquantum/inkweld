@@ -104,7 +104,9 @@ describe('AuthController', () => {
       const error = new Error('Logout failed');
       authService.logout.mockRejectedValue(error);
 
-      await expect(controller.logout(mockRequest as any)).rejects.toThrow(error);
+      await expect(controller.logout(mockRequest as any)).rejects.toThrow(
+        error,
+      );
       expect(authService.logout).toHaveBeenCalledWith(mockRequest);
     });
   });

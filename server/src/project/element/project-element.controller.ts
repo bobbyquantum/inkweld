@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  UseGuards,
-  Logger,
-} from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, Logger } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -39,5 +33,4 @@ export class ProjectElementController {
   ): Promise<ProjectElementDto[]> {
     return this.yjsService.getProjectElements(username, slug);
   }
-
 }
