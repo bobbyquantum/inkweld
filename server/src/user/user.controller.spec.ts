@@ -7,6 +7,7 @@ import { UserEntity } from './user.entity.js';
 import { beforeEach, describe, expect, it, jest, spyOn } from 'bun:test';
 import { AuthService } from '../auth/auth.service.js';
 import { ValidationFilter } from '../common/filters/validation.filter.js';
+import { SystemConfigService } from '../config/config.service.js';
 import {
   ValidationPipe,
   INestApplication,
@@ -44,6 +45,16 @@ describe('UserController', () => {
             login: jest.fn().mockImplementation((req: _MockRequest, user) => {
               req.session.user = user;
             }),
+          },
+        },
+        {
+          provide: SystemConfigService,
+          useValue: {
+            getCaptchaSettings: jest.fn().mockReturnValue({
+              enabled: false,
+              siteKey: undefined,
+            }),
+            verifyCaptcha: jest.fn().mockResolvedValue(true),
           },
         },
         ValidationFilter,
