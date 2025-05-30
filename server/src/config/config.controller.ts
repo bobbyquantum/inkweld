@@ -35,6 +35,16 @@ export class ConfigController {
           },
           description: 'ReCaptcha configuration for registration',
         },
+        appMode: {
+          type: 'string',
+          enum: ['ONLINE', 'OFFLINE', 'BOTH'],
+          description: 'Application mode configuration - determines which setup options are available',
+        },
+        defaultServerName: {
+          type: 'string',
+          description: 'Default server name to pre-populate in setup form',
+          nullable: true,
+        },
       },
     },
   })

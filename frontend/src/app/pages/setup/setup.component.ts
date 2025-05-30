@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -9,9 +9,24 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
+import { ConfigService } from '@inkweld/index';
 
 import { SetupService } from '../../services/setup.service';
 import { UnifiedUserService } from '../../services/unified-user.service';
+
+type AppMode = 'ONLINE' | 'OFFLINE' | 'BOTH';
+
+// Define a safe interface for the system features response
+interface SystemFeaturesResponse {
+  appMode?: string;
+  defaultServerName?: string | null;
+  aiLinting?: boolean;
+  aiImageGeneration?: boolean;
+  captcha?: {
+    enabled?: boolean;
+    siteKey?: string;
+  };
+}
 
 @Component({
   selector: 'app-setup',
@@ -29,19 +44,89 @@ import { UnifiedUserService } from '../../services/unified-user.service';
   templateUrl: './setup.component.html',
   styleUrl: './setup.component.scss',
 })
-export class SetupComponent {
+export class SetupComponent implements OnInit {
   private setupService = inject(SetupService);
   private unifiedUserService = inject(UnifiedUserService);
+  private configService = inject(ConfigService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
 
   protected readonly isLoading = this.setupService.isLoading;
   protected readonly showServerSetup = signal(false);
   protected readonly showOfflineSetup = signal(false);
+  protected readonly appMode = signal<AppMode>('BOTH');
+  protected readonly configLoading = signal(true);
 
   protected serverUrl = 'http://localhost:8333';
   protected userName = '';
   protected displayName = '';
+
+  ngOnInit(): void {
+    void this.loadSystemConfig();
+  }
+
+  private async loadSystemConfig(): Promise<void> {
+    try {
+      const systemFeatures = await this.configService
+        .configControllerGetSystemFeatures()
+        .toPromise();
+
+      if (systemFeatures) {
+        // Use type assertion to a safe interface
+        const response = systemFeatures as SystemFeaturesResponse;
+
+        // Safely handle appMode
+        const appModeValue = response.appMode;
+        if (
+          typeof appModeValue === 'string' &&
+          (appModeValue === 'ONLINE' ||
+            appModeValue === 'OFFLINE' ||
+            appModeValue === 'BOTH')
+        ) {
+          this.appMode.set(appModeValue as AppMode);
+
+          // Auto-select mode if only one option is available
+          if (appModeValue === 'ONLINE') {
+            this.chooseServerMode();
+          } else if (appModeValue === 'OFFLINE') {
+            this.chooseOfflineMode();
+          }
+        }
+
+        // Safely handle defaultServerName
+        const serverName = response.defaultServerName;
+        if (typeof serverName === 'string' && serverName.trim().length > 0) {
+          this.serverUrl = serverName;
+        }
+      }
+    } catch (error) {
+      console.warn(
+        'Failed to load system configuration, using defaults:',
+        error
+      );
+      // Keep default mode as 'BOTH' if config fails to load
+    } finally {
+      this.configLoading.set(false);
+    }
+  }
+
+  protected shouldShowModeSelection(): boolean {
+    return (
+      this.appMode() === 'BOTH' &&
+      !this.showServerSetup() &&
+      !this.showOfflineSetup()
+    );
+  }
+
+  protected canUseServerMode(): boolean {
+    const mode = this.appMode();
+    return mode === 'BOTH' || mode === 'ONLINE';
+  }
+
+  protected canUseOfflineMode(): boolean {
+    const mode = this.appMode();
+    return mode === 'BOTH' || mode === 'OFFLINE';
+  }
 
   protected chooseServerMode(): void {
     this.showServerSetup.set(true);

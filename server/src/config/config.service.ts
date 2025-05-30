@@ -10,6 +10,8 @@ export interface SystemFeatures {
   aiLinting: boolean;
   aiImageGeneration: boolean;
   captcha: CaptchaSettings;
+  appMode: 'ONLINE' | 'OFFLINE' | 'BOTH';
+  defaultServerName?: string;
 }
 
 @Injectable()
@@ -27,12 +29,35 @@ export class SystemConfigService {
     const hasOpenAI = !!openaiApiKey && openaiApiKey.trim().length > 0;
 
     const captchaSettings = this.getCaptchaSettings();
+    const appMode = this.getAppMode();
+    const defaultServerName = this.getDefaultServerName();
 
     return {
       aiLinting: hasOpenAI,
       aiImageGeneration: hasOpenAI,
       captcha: captchaSettings,
+      appMode,
+      defaultServerName,
     };
+  }
+
+  /**
+   * Get app mode configuration from environment variables
+   */
+  getAppMode(): 'ONLINE' | 'OFFLINE' | 'BOTH' {
+    const mode = this.configService.get<string>('APP_MODE', 'BOTH').toUpperCase();
+    if (mode === 'ONLINE' || mode === 'OFFLINE' || mode === 'BOTH') {
+      return mode as 'ONLINE' | 'OFFLINE' | 'BOTH';
+    }
+    return 'BOTH'; // Default to BOTH if invalid value
+  }
+
+  /**
+   * Get default server name from environment variables
+   */
+  getDefaultServerName(): string | undefined {
+    const serverName = this.configService.get<string>('DEFAULT_SERVER_NAME');
+    return serverName && serverName.trim().length > 0 ? serverName.trim() : undefined;
   }
 
   /**
