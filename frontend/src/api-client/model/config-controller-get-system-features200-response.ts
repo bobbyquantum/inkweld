@@ -20,5 +20,22 @@ export interface ConfigControllerGetSystemFeatures200Response {
      */
     aiImageGeneration?: boolean;
     captcha?: ConfigControllerGetSystemFeatures200ResponseCaptcha;
+    /**
+     * Application mode configuration - determines which setup options are available
+     */
+    appMode?: ConfigControllerGetSystemFeatures200Response.AppModeEnum;
+    /**
+     * Default server name to pre-populate in setup form
+     */
+    defaultServerName?: string | null;
 }
+export namespace ConfigControllerGetSystemFeatures200Response {
+    export type AppModeEnum = 'ONLINE' | 'OFFLINE' | 'BOTH';
+    export const AppModeEnum = {
+        Online: 'ONLINE' as AppModeEnum,
+        Offline: 'OFFLINE' as AppModeEnum,
+        Both: 'BOTH' as AppModeEnum
+    };
+}
+
 
