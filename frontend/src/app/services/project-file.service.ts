@@ -41,6 +41,7 @@ export class ProjectFileService {
             files.map(file => ({
               ...file,
               uploadDate: new Date(file.uploadDate), // Convert string to Date
+              fileUrl: this.getFileUrl(username, projectSlug, file.storedName), // Add fileUrl
             }))
           ),
           catchError((error: unknown) => {
