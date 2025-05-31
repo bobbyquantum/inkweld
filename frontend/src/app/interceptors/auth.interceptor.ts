@@ -31,7 +31,8 @@ export class AuthInterceptor implements HttpInterceptor {
           const currentUrl = this.router.url;
           if (
             !currentUrl.startsWith('/welcome') &&
-            !currentUrl.startsWith('/register')
+            !currentUrl.startsWith('/register') &&
+            currentUrl !== '/'
           ) {
             // Navigate to welcome page
             this.router.navigate(['/welcome']).catch(navError => {

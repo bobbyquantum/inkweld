@@ -50,7 +50,7 @@ describe('ProjectService', () => {
   let xsrf: XsrfMock;
 
   beforeEach(() => {
-    api = mockDeep<ProjectAPIService>() as ApiMock;
+    api = mockDeep<ProjectAPIService>();
     store = mockDeep<StorageService>() as StoreMock;
     xsrf = mockDeep<XsrfService>() as XsrfMock;
 

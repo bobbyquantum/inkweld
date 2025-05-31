@@ -99,6 +99,7 @@ export class UserService {
     email: string,
     password: string,
     name?: string,
+    requireApproval: boolean = true,
   ): Promise<UserEntity> {
     await this.validateUserInput(username, password);
 
@@ -109,7 +110,8 @@ export class UserService {
       email: email,
       password: hashedPassword,
       name: name,
-      enabled: true,
+      enabled: !requireApproval,
+      approved: !requireApproval,
     });
 
     return this.userRepo.save(user);
@@ -178,7 +180,7 @@ export class UserService {
     email: string;
     name?: string;
     avatarUrl?: string;
-  }): Promise<UserEntity> {
+  }, requireApproval: boolean = true): Promise<UserEntity> {
     // Check if username already exists
     const existingUser = await this.userRepo.findOne({
       where: { username: userData.username },
@@ -194,7 +196,8 @@ export class UserService {
       email: userData.email,
       name: userData.name || null,
       githubId: userData.githubId,
-      enabled: true,
+      enabled: !requireApproval,
+      approved: !requireApproval,
       password: null, // GitHub users don't have a local password
     });
 
@@ -308,6 +311,61 @@ export class UserService {
   }
 
   async deleteUserAvatar(username: string): Promise<void> {
-    await this.storage.delete(this.getUserAvatarKey(username));
+    const key = this.getUserAvatarKey(username);
+    await this.storage.delete(key);
+  }
+
+  // Admin functionality for CLI tool
+  async getAllUsers(): Promise<UserEntity[]> {
+    return this.userRepo.find({
+      order: { username: 'ASC' },
+    });
+  }
+
+  async getPendingUsers(): Promise<UserEntity[]> {
+    return this.userRepo.find({
+      where: { approved: false },
+      order: { username: 'ASC' },
+    });
+  }
+
+  async approveUser(userId: string): Promise<UserEntity> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    user.approved = true;
+    user.enabled = true;
+    return this.userRepo.save(user);
+  }
+
+  async rejectUser(userId: string): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    await this.userRepo.remove(user);
+  }
+
+  async enableUser(userId: string): Promise<UserEntity> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    user.enabled = true;
+    return this.userRepo.save(user);
+  }
+
+  async disableUser(userId: string): Promise<UserEntity> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    user.enabled = false;
+    return this.userRepo.save(user);
   }
 }
