@@ -35,12 +35,21 @@ describe('AppComponent', () => {
   let setupService: jest.Mocked<SetupService>;
   let fixture: ComponentFixture<AppComponent>;
   let component: AppComponent;
+  let errorSignal: any;
+  let initializedSignal: any;
+  let currentUserSignal: any;
 
   beforeEach(async () => {
     routerEvents = new Subject<Event>();
 
+    errorSignal = signal(null);
+    initializedSignal = signal(true);
+    currentUserSignal = signal({ name: 'anonymous', username: 'anonymous' });
+
     unifiedUserService = {
-      error: signal(null),
+      error: errorSignal,
+      initialized: initializedSignal,
+      currentUser: currentUserSignal,
       logout: jest.fn().mockResolvedValue(undefined),
       initialize: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<UnifiedUserService>;
@@ -114,9 +123,36 @@ describe('AppComponent', () => {
     });
 
     it('should show error bar when session expired and not in offline mode', () => {
-      unifiedUserService.error.set(
-        new TestError('SESSION_EXPIRED', 'Session expired')
-      );
+      // First set a real user to simulate previous authentication
+      currentUserSignal.set({ name: 'John Doe', username: 'john' });
+      fixture.detectChanges();
+
+      // Then simulate session expiration
+      errorSignal.set(new TestError('SESSION_EXPIRED', 'Session expired'));
+      fixture.detectChanges();
+
+      const toolbar = fixture.debugElement.query(By.css('.auth-error-bar'));
+      expect(toolbar).toBeTruthy();
+    });
+
+    it('should not show error bar when session expired but user was never initialized', () => {
+      // Set initialized to false to simulate a user who was never authenticated
+      initializedSignal.set(false);
+      errorSignal.set(new TestError('SESSION_EXPIRED', 'Session expired'));
+      fixture.detectChanges();
+
+      const toolbar = fixture.debugElement.query(By.css('.auth-error-bar'));
+      expect(toolbar).toBeFalsy();
+    });
+
+    it('should show error bar when user had real session then got session expired', () => {
+      // First set a real user to simulate previous authentication
+      currentUserSignal.set({ name: 'John Doe', username: 'john' });
+      fixture.detectChanges();
+
+      // Then simulate session expiration with anonymous user
+      currentUserSignal.set({ name: 'anonymous', username: 'anonymous' });
+      errorSignal.set(new TestError('SESSION_EXPIRED', 'Session expired'));
       fixture.detectChanges();
 
       const toolbar = fixture.debugElement.query(By.css('.auth-error-bar'));
@@ -124,9 +160,11 @@ describe('AppComponent', () => {
     });
 
     it('should not show error bar when in offline mode', () => {
-      unifiedUserService.error.set(
-        new TestError('SESSION_EXPIRED', 'Session expired')
-      );
+      // First set a real user to simulate previous authentication
+      currentUserSignal.set({ name: 'John Doe', username: 'john' });
+      fixture.detectChanges();
+
+      errorSignal.set(new TestError('SESSION_EXPIRED', 'Session expired'));
       (
         component as AppComponent & { handleContinueOffline: () => void }
       ).handleContinueOffline();
@@ -171,9 +209,11 @@ describe('AppComponent', () => {
     });
 
     it('should show re-authenticate button when error bar is visible', () => {
-      unifiedUserService.error.set(
-        new TestError('SESSION_EXPIRED', 'Session expired')
-      );
+      // First set a real user to simulate previous authentication
+      currentUserSignal.set({ name: 'John Doe', username: 'john' });
+      fixture.detectChanges();
+
+      errorSignal.set(new TestError('SESSION_EXPIRED', 'Session expired'));
       fixture.detectChanges();
 
       const button = fixture.debugElement.query(By.css('button'));
@@ -181,9 +221,11 @@ describe('AppComponent', () => {
     });
 
     it('should show continue offline button when error bar is visible', () => {
-      unifiedUserService.error.set(
-        new TestError('SESSION_EXPIRED', 'Session expired')
-      );
+      // First set a real user to simulate previous authentication
+      currentUserSignal.set({ name: 'John Doe', username: 'john' });
+      fixture.detectChanges();
+
+      errorSignal.set(new TestError('SESSION_EXPIRED', 'Session expired'));
       fixture.detectChanges();
 
       const buttons = fixture.debugElement.queryAll(By.css('button'));
