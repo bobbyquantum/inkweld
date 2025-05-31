@@ -51,8 +51,9 @@ app-bookshelf {
   display: flex;
   flex-direction: column;
   align-items: center;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
   background-image: url('/home_background.png');
   background-size: cover;
   background-position: center;
@@ -67,10 +68,15 @@ app-bookshelf {
     background: rgba(0, 0, 0, 0.5);
     pointer-events: none;
   }
-  padding: 60px 0 80px 0;
+  padding: 60px 40px;
   box-sizing: border-box;
   &.is-mobile {
-    padding: 120px 0 120px 0;
+    padding: 60px 40px;
+  }
+  
+  &:has(app-bookshelf) {
+    height: 100vh;
+    overflow: hidden;
   }
 }
 
@@ -78,15 +84,15 @@ app-bookshelf {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 32px;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  padding: 16px 20px;
-  background-color: rgba(18, 18, 18, 0.8);
-  backdrop-filter: blur(5px);
+
+  // Override for when inside header-section (avoid double styling)
+  .header-section & {
+    position: static;
+    margin-bottom: 0;
+    padding: 0;
+    background: none;
+    backdrop-filter: none;
+  }
 
   app-user-menu {
     margin-left: 16px;
@@ -95,6 +101,11 @@ app-bookshelf {
     height: 32px;
     width: auto;
     margin-right: 16px;
+    
+    // Slightly smaller logo for compact header
+    .header-section:not(:has(input)) & {
+      height: 28px;
+    }
   }
 }
 
@@ -316,5 +327,203 @@ app-bookshelf {
   p {
     margin: 0;
     color: rgba(255, 255, 255, 0.9);
+  }
+}
+
+// New styles for unauthenticated user experience
+.header-section {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: rgba(18, 18, 18, 0.8);
+  backdrop-filter: blur(5px);
+  padding: 12px 20px;
+  
+  // More compact for unauthenticated users (when no search field is active)
+  &:not(:has(input)) {
+    padding: 8px 20px; // Even more compact when no search input
+  }
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 12px;
+  margin-left: 16px;
+  
+  .login-btn, .register-btn {
+    min-width: 80px;
+    font-weight: 500;
+  }
+}
+
+.welcome-content {
+  margin-top: 80px;
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-section {
+  text-align: center;
+  margin-bottom: 64px;
+  
+  h1 {
+    font-size: 48px;
+    font-weight: 700;
+    margin: 0 0 24px;
+    color: rgba(255, 255, 255, 0.95);
+    background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .hero-description {
+    font-size: 20px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.8);
+    max-width: 800px;
+    margin: 0 auto;
+  }
+}
+
+.features-section {
+  margin-bottom: 64px;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-top: 32px;
+}
+
+.feature-card {
+  background-color: rgba(30, 30, 30, 0.7);
+  border-radius: 12px;
+  padding: 32px 24px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .feature-icon {
+    font-size: 48px;
+    height: 48px;
+    width: 48px;
+    margin-bottom: 16px;
+    color: #3f51b5;
+  }
+  
+  h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: rgba(255, 255, 255, 0.95);
+  }
+  
+  p {
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+  }
+}
+
+.cta-section {
+  text-align: center;
+  padding: 48px 32px;
+  background-color: rgba(30, 30, 30, 0.7);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  
+  h2 {
+    font-size: 32px;
+    font-weight: 600;
+    margin: 0 0 32px;
+    color: rgba(255, 255, 255, 0.95);
+  }
+}
+
+.cta-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  
+  .cta-register, .cta-login {
+    min-width: 140px;
+    height: 48px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 24px;
+  }
+}
+
+// Mobile responsiveness
+@media (max-width: 768px) {
+  .search-container {
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    
+    .app-logo {
+      height: 28px;
+      margin-right: 0;
+      margin-bottom: 8px;
+    }
+  }
+  
+  .auth-buttons {
+    margin-left: 0;
+    justify-content: center;
+  }
+  
+  .welcome-content {
+    margin-top: 120px;
+    padding: 0 16px;
+  }
+  
+  .hero-section {
+    h1 {
+      font-size: 36px;
+    }
+    
+    .hero-description {
+      font-size: 18px;
+    }
+  }
+  
+  .feature-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .cta-section {
+    padding: 32px 24px;
+    
+    h2 {
+      font-size: 24px;
+    }
+  }
+  
+  .cta-buttons {
+    flex-direction: column;
+    align-items: center;
+    
+    .cta-register, .cta-login {
+      width: 100%;
+      max-width: 280px;
+    }
   }
 }

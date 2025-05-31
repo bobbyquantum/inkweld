@@ -22,4 +22,7 @@ export class UserEntity {
 
   @Column({ default: false })
   enabled: boolean;
+
+  @Column({ default: false })
+  approved: boolean;
 }

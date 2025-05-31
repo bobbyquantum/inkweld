@@ -32,6 +32,16 @@ export class AppComponent implements OnInit {
     void this.initializeApp();
   }
 
+  protected shouldShowErrorBar(): boolean {
+    const error = this.unifiedUserService.error();
+    return !!(
+      error &&
+      'code' in error &&
+      error.code === 'SESSION_EXPIRED' &&
+      !this.offlineMode()
+    );
+  }
+
   protected async handleReAuthenticate(): Promise<void> {
     this.offlineMode.set(false);
     await this.unifiedUserService.logout();

@@ -58,6 +58,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   protected user = this.userService.currentUser;
   protected isLoading = this.projectService.isLoading;
+  protected isAuthenticated = this.userService.isAuthenticated;
   protected destroy$ = new Subject<void>();
 
   // Computed state
@@ -95,6 +96,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   async loadProjects() {
+    // Only load projects if user is authenticated
+    if (!this.isAuthenticated()) {
+      return;
+    }
+
     this.loadError = false;
     try {
       await this.projectService.loadProjects();
@@ -141,6 +147,14 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   openNewProjectDialog(): void {
     void this.router.navigate(['/create-project']);
+  }
+
+  navigateToLogin(): void {
+    void this.router.navigate(['/welcome']);
+  }
+
+  navigateToRegister(): void {
+    void this.router.navigate(['/register']);
   }
 
   ngOnDestroy() {

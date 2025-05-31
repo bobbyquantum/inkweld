@@ -57,6 +57,7 @@ describe('HomeComponent', () => {
 
     userService = {
       currentUser: signal<UserDto | undefined>(undefined),
+      isAuthenticated: signal(true),
     } as unknown as jest.Mocked<UnifiedUserService>;
 
     // Reset mock signals once before all tests

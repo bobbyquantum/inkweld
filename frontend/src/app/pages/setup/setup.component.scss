@@ -18,12 +18,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(
-      255,
-      255,
-      255,
-      0.1
-    ); // Very light overlay for light mode
+    background-color: rgba(255, 255, 255, 0.1); // Very light overlay for light mode
     z-index: 0;
   }
 
@@ -33,20 +28,13 @@
       background-color: rgba(0, 0, 0, 0.6); // Darker overlay for dark mode
       // Apply vendor prefixes and provide proper browser support for backdrop-filter
       -webkit-backdrop-filter: saturate(70%);
-      backdrop-filter: saturate(
-        70%
-      ); // Reduces saturation to wash out the image
+      backdrop-filter: saturate(70%); // Reduces saturation to wash out the image
       @supports not (
         (backdrop-filter: saturate(70%)) or
           (-webkit-backdrop-filter: saturate(70%))
       ) {
         // Fallback for browsers that don't support backdrop-filter
-        background-color: rgba(
-          0,
-          0,
-          0,
-          0.7
-        ); // Slightly darker overlay as fallback
+        background-color: rgba(0, 0, 0, 0.7); // Slightly darker overlay as fallback
       }
     }
   }
@@ -65,11 +53,24 @@
   border-radius: 16px;
   overflow: hidden;
   position: relative;
+  
+  // Ensure proper contrast in dark mode
+  .dark-theme & {
+    // Use Material Design system colors for better contrast
+    background-color: var(--mat-sys-surface-container);
+    color: var(--mat-sys-on-surface);
+  }
 }
 
 .setup-card mat-card-header {
   background: rgba(255, 255, 255, 0.05);
   padding: 24px;
+  
+  // Fix header background for dark mode
+  .dark-theme & {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--mat-sys-on-surface);
+  }
 }
 
 .setup-card mat-card-title {
@@ -78,12 +79,14 @@
   gap: 12px;
   font-size: 28px;
   font-weight: 600;
+  color: inherit; // Inherit color from parent for proper theming
 }
 
 .setup-card mat-card-subtitle {
   margin-top: 8px;
   font-size: 16px;
   opacity: 0.8;
+  color: inherit; // Inherit color from parent for proper theming
 }
 
 .setup-options {
@@ -107,9 +110,12 @@
   transition: all 0.3s ease;
   min-height: 280px;
   justify-content: space-between;
+  color: inherit; // Inherit color for proper theming
 
   .dark-theme & {
     background: rgba(255, 255, 255, 0.05);
+    border-color: transparent;
+    color: var(--mat-sys-on-surface);
   }
 
   &:hover {
@@ -121,12 +127,17 @@
     .dark-theme & {
       background: rgba(255, 255, 255, 0.1);
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      border-color: var(--mat-sys-primary);
     }
   }
 
   &:focus {
     outline: 2px solid var(--mat-primary-500);
     outline-offset: 2px;
+    
+    .dark-theme & {
+      outline-color: var(--mat-sys-primary);
+    }
   }
 }
 
@@ -136,12 +147,17 @@
   height: 48px;
   margin-bottom: 16px;
   color: var(--mat-primary-500);
+  
+  .dark-theme & {
+    color: var(--mat-sys-primary);
+  }
 }
 
 .option-card h3 {
   margin: 0 0 12px 0;
   font-size: 20px;
   font-weight: 600;
+  color: inherit; // Inherit color for proper theming
 }
 
 .option-card p {
@@ -149,6 +165,7 @@
   line-height: 1.5;
   opacity: 0.8;
   flex-grow: 1;
+  color: inherit; // Inherit color for proper theming
 }
 
 .option-button {
@@ -159,10 +176,20 @@
   border-radius: 8px;
   font-weight: 500;
   transition: background-color 0.3s ease;
+  
+  .dark-theme & {
+    background: var(--mat-sys-primary);
+    color: var(--mat-sys-on-primary);
+  }
 }
 
 .option-card:hover .option-button {
   background: var(--mat-primary-600);
+  
+  .dark-theme & {
+    background: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+  }
 }
 
 .setup-form {
@@ -181,12 +208,14 @@
   font-size: 24px;
   font-weight: 600;
   text-align: center;
+  color: inherit; // Inherit color for proper theming
 }
 
 .setup-form p {
   margin: 0 0 24px 0;
   text-align: center;
   opacity: 0.8;
+  color: inherit; // Inherit color for proper theming
 }
 
 .full-width {
@@ -204,6 +233,22 @@
 mat-divider[vertical] {
   height: auto;
   align-self: stretch;
+}
+
+// Ensure loading states look good in dark mode
+.setup-card mat-progress-bar {
+  .dark-theme & {
+    // Progress bar should use theme colors
+    --mdc-linear-progress-active-indicator-color: var(--mat-sys-primary);
+    --mdc-linear-progress-track-color: var(--mat-sys-surface-variant);
+  }
+}
+
+// Loading icon styling
+.setup-card mat-icon {
+  .dark-theme & {
+    color: var(--mat-sys-on-surface);
+  }
 }
 
 @media (max-width: 768px) {
@@ -226,5 +271,14 @@ mat-divider[vertical] {
 
   .setup-card mat-card-title {
     font-size: 24px;
+  }
+}
+
+// Ensure mat-card-content has proper text color
+.setup-card mat-card-content {
+  color: inherit;
+  
+  .dark-theme & {
+    color: var(--mat-sys-on-surface);
   }
 } 

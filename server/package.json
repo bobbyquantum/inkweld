@@ -18,7 +18,8 @@
     "test:cov": "bun test --coverage",
     "test:e2e": "bun test ./test/app.e2e-spec.ts",
     "generate:openapi": "bun run build && bun dist/scripts/generate-openapi.js",
-    "generate:angular-client": "bun run build && bun dist/scripts/generate-angular-client.js"
+    "generate:angular-client": "bun run build && bun dist/scripts/generate-angular-client.js",
+    "admin": "bun run admin-cli.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.12.0",

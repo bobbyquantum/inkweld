@@ -213,16 +213,13 @@ describe('ProjectComponent', () => {
     });
 
     // Create deep mocks
-    projectStateService = mockDeep<ProjectStateService>() as ProjectStateMock;
-    documentService = mockDeep<DocumentService>() as DocumentServiceMock;
-    recentFilesService =
-      mockDeep<RecentFilesService>() as RecentFilesServiceMock;
-    dialogGatewayService =
-      mockDeep<DialogGatewayService>() as DialogGatewayServiceMock;
-    projectService = mockDeep<ProjectService>() as ProjectServiceMock;
-    settingsService = mockDeep<SettingsService>() as SettingsServiceMock;
-    importExportService =
-      mockDeep<ProjectImportExportService>() as ImportExportServiceMock;
+    projectStateService = mockDeep<ProjectStateService>();
+    documentService = mockDeep<DocumentService>();
+    recentFilesService = mockDeep<RecentFilesService>();
+    dialogGatewayService = mockDeep<DialogGatewayService>();
+    projectService = mockDeep<ProjectService>();
+    settingsService = mockDeep<SettingsService>();
+    importExportService = mockDeep<ProjectImportExportService>();
 
     // Mock HttpClient
     httpClientMock = {
