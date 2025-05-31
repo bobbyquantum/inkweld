@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, effect, inject, OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -27,6 +27,19 @@ export class AppComponent implements OnInit {
   protected readonly unifiedUserService = inject(UnifiedUserService);
   protected readonly router = inject(Router);
 
+  // Track if we ever had a real authenticated user session
+  private hadRealUser = false;
+
+  constructor() {
+    // Track when we get a real user (not anonymous)
+    effect(() => {
+      const user = this.unifiedUserService.currentUser();
+      if (user && user.username !== 'anonymous') {
+        this.hadRealUser = true;
+      }
+    });
+  }
+
   ngOnInit(): void {
     this.themeService.initTheme();
     void this.initializeApp();
@@ -34,11 +47,13 @@ export class AppComponent implements OnInit {
 
   protected shouldShowErrorBar(): boolean {
     const error = this.unifiedUserService.error();
+
     return !!(
       error &&
       'code' in error &&
       error.code === 'SESSION_EXPIRED' &&
-      !this.offlineMode()
+      !this.offlineMode() &&
+      this.hadRealUser // Only show if we previously had a real user session
     );
   }
 
