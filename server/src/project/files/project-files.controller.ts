@@ -14,7 +14,6 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FileStorageService } from './file-storage.service.js';
 import {
-  FileMetadataDto,
   FileUploadResponseDto,
   FileDeleteResponseDto,
 } from './file.dto.js';
@@ -105,20 +104,26 @@ export class ProjectFilesController {
   @ApiResponse({
     status: 200,
     description: 'List of files in the project',
-    type: [FileMetadataDto],
+    type: [FileUploadResponseDto],
   })
   async listFiles(
     @Param('username') username: string,
     @Param('projectSlug') projectSlug: string,
     @Request() req,
-  ): Promise<FileMetadataDto[]> {
+  ): Promise<FileUploadResponseDto[]> {
     // Verify user has access to this project
     const currentUser = req.user;
     if (currentUser.username !== username) {
       throw new Error('Unauthorized to list files for this project');
     }
 
-    return await this.fileStorageService.listFiles(username, projectSlug);
+    const files = await this.fileStorageService.listFiles(username, projectSlug);
+    
+    // Add fileUrl to each file
+    return files.map(file => ({
+      ...file,
+      fileUrl: `/api/v1/projects/${username}/${projectSlug}/files/${file.storedName}`,
+    }));
   }
 
   @Get(':storedName')

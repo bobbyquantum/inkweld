@@ -50,6 +50,13 @@ export class HomeTabComponent {
     }
   }
 
+  onNewFileClick(): void {
+    const project = this.projectState.project();
+    if (project) {
+      void this.dialogGateway.openNewElementDialog();
+    }
+  }
+
   onExportClick(): void {
     const project = this.projectState.project();
     if (project) {
