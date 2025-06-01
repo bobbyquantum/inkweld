@@ -98,6 +98,7 @@ describe('SystemConfigService', () => {
           aiLinting: false,
           aiImageGeneration: false,
           captcha: { enabled: false },
+          userApprovalRequired: true,
         });
         expect(errorService.isConfigLoaded()).toBe(true);
         expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -363,6 +364,7 @@ describe('SystemConfigService', () => {
           aiLinting: false,
           aiImageGeneration: false,
           captcha: { enabled: false },
+          userApprovalRequired: true,
         });
         expect(testService.isConfigLoaded()).toBe(true);
         expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -391,6 +393,7 @@ describe('SystemConfigService', () => {
             aiLinting: false,
             aiImageGeneration: false,
             captcha: { enabled: false },
+            userApprovalRequired: true,
           });
           expect(service.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
