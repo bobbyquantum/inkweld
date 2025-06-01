@@ -12,6 +12,7 @@ export interface SystemFeatures {
   captcha: CaptchaSettings;
   appMode: 'ONLINE' | 'OFFLINE' | 'BOTH';
   defaultServerName?: string;
+  userApprovalRequired: boolean;
 }
 
 @Injectable()
@@ -31,6 +32,7 @@ export class SystemConfigService {
     const captchaSettings = this.getCaptchaSettings();
     const appMode = this.getAppMode();
     const defaultServerName = this.getDefaultServerName();
+    const userApprovalRequired = this.getUserApprovalRequired();
 
     return {
       aiLinting: hasOpenAI,
@@ -38,6 +40,7 @@ export class SystemConfigService {
       captcha: captchaSettings,
       appMode,
       defaultServerName,
+      userApprovalRequired,
     };
   }
 
@@ -111,5 +114,14 @@ export class SystemConfigService {
       this.logger.error('Failed to verify captcha:', error);
       return false;
     }
+  }
+
+  /**
+   * Get user approval requirement from environment variables
+   */
+  getUserApprovalRequired(): boolean {
+    return this.configService
+      .get<string>('USER_APPROVAL_REQUIRED', 'true')
+      .toLowerCase() === 'true';
   }
 }

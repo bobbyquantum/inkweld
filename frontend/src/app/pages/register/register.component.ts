@@ -460,20 +460,35 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
         captchaToken: this.captchaToken,
       };
 
-      await firstValueFrom(
+      const response = await firstValueFrom(
         this.userService.userControllerRegister(
           this.xsrfService.getXsrfToken(),
           registerRequest
         )
       );
 
-      // Automatically log in after successful registration
-      await this.authService.loadCurrentUser();
+      // Check if approval is required
+      if (response.requiresApproval) {
+        // Clear any cached user to prevent automatic authentication attempts
+        await this.authService.clearCurrentUser();
 
-      this.snackBar.open('Registration successful!', 'Close', {
-        duration: 3000,
-      });
-      void this.router.navigate(['/']);
+        // Redirect to dedicated pending approval page
+        void this.router.navigate(['/approval-pending'], {
+          queryParams: {
+            username: response.username,
+            name: response.name,
+            userId: response.userId,
+          },
+        });
+      } else {
+        // Automatically log in after successful registration
+        await this.authService.loadCurrentUser();
+
+        this.snackBar.open('Registration successful!', 'Close', {
+          duration: 3000,
+        });
+        void this.router.navigate(['/']);
+      }
     } catch (error: unknown) {
       // Reset captcha on error
       if (this.isCaptchaEnabled && this.captchaWidgetId !== undefined) {

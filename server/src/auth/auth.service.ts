@@ -1,9 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { UserService } from '../user/user.service.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from '../user/user.entity.js';
 import { TypeOrmSessionStore } from './session.store.js';
+import { SystemConfigService } from '../config/config.service.js';
 
 @Injectable()
 export class AuthService {
@@ -12,6 +13,7 @@ export class AuthService {
     private readonly userRepo: Repository<UserEntity>,
     private readonly userService: UserService,
     private readonly sessionStore: TypeOrmSessionStore,
+    private readonly systemConfigService: SystemConfigService,
   ) {}
 
   async validateUser(
@@ -24,8 +26,14 @@ export class AuthService {
       throw new UnauthorizedException('Invalid username or password');
     }
 
+    // Check if user is pending approval
+    if (!user.approved) {
+      throw new ForbiddenException('Your account is pending approval from an administrator. Please wait for approval before attempting to log in.');
+    }
+
+    // Check if user is disabled (approved but disabled)
     if (!user.enabled) {
-      throw new UnauthorizedException('User account is disabled');
+      throw new UnauthorizedException('Your account has been disabled. Please contact an administrator.');
     }
 
     const isPasswordValid = await Bun.password.verify(password, user.password);
@@ -118,31 +126,19 @@ export class AuthService {
       where: { githubId: id.toString() },
     });
 
-    // If no user found, create a new GitHub user
+    // If no user found, create a new GitHub user using the UserService method
+    // which respects the approval configuration
     if (!user) {
-      user = this.userRepo.create({
+      const systemFeatures = this.systemConfigService.getSystemFeatures();
+      const requireApproval = systemFeatures.userApprovalRequired;
+
+      user = await this.userService.createGithubUser({
+        githubId: id.toString(),
         username: username,
         email: emails && emails.length > 0 ? emails[0].value : null,
-        name: displayName ?? null,
-        githubId: id.toString(),
-        enabled: true,
-        password: null, // GitHub users don't have a local password
-      });
-
-      user = await this.userRepo.save(user);
-
-      // If photos are available, download and save the avatar
-      if (photos && photos.length > 0 && photos[0].value) {
-        try {
-          const response = await fetch(photos[0].value);
-          if (response.ok) {
-            const buffer = Buffer.from(await response.arrayBuffer());
-            await this.userService.saveUserAvatar(user.username, buffer);
-          }
-        } catch (error: any) {
-          console.error(`Failed to download GitHub avatar: ${error.message}`);
-        }
-      }
+        name: displayName,
+        avatarUrl: photos && photos.length > 0 ? photos[0].value : undefined,
+      }, requireApproval);
     }
 
     return user;

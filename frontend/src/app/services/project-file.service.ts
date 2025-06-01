@@ -1,9 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import {
-  FileDeleteResponseDto,
-  FileMetadataDto,
-  FileUploadResponseDto,
-} from '@inkweld/index';
+import { FileDeleteResponseDto, FileUploadResponseDto } from '@inkweld/index';
 import { catchError, map, Observable, throwError } from 'rxjs';
 
 import { ProjectAPIService } from '../../api-client/api/project-api.service';
@@ -37,7 +33,7 @@ export class ProjectFileService {
       return this.projectApi
         .projectFilesControllerListFiles(username, projectSlug)
         .pipe(
-          map((files: FileMetadataDto[]) =>
+          map((files: FileUploadResponseDto[]) =>
             files.map(file => ({
               ...file,
               uploadDate: new Date(file.uploadDate), // Convert string to Date

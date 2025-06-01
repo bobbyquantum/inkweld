@@ -25,6 +25,7 @@ services:
       - GITHUB_ENABLED=${GITHUB_ENABLED:-false}
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
       - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+      - USER_APPROVAL_REQUIRED=${USER_APPROVAL_REQUIRED:-true}
 
       # Yjs data path
       - DATA_PATH=/data/yjs

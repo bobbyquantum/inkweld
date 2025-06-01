@@ -35,6 +35,7 @@ import { UserService } from './user.service.js';
 import { SessionAuthGuard } from '../auth/session-auth.guard.js';
 import { UserDto } from './user.dto.js';
 import { UserRegisterDto } from './user-register.dto.js';
+import { UserRegisterResponseDto } from './user.dto.js';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SystemConfigService } from '../config/config.service.js';
 // Define MulterFile interface for Bun environment
@@ -157,7 +158,7 @@ export class UserController {
   })
   @ApiCreatedResponse({
     description: 'User successfully registered',
-    type: UserDto,
+    type: UserRegisterResponseDto,
   })
   @ApiBadRequestResponse({
     description:
@@ -182,22 +183,41 @@ export class UserController {
       }
     }
 
+    // Check if user approval is required
+    const systemFeatures = this.systemConfigService.getSystemFeatures();
+    const requireApproval = systemFeatures.userApprovalRequired;
+
+    // Use username as display name if no name is provided
+    const displayName = name && name.trim() ? name.trim() : username;
+
     const user = await this.userService.registerUser(
       username,
       email,
       password,
-      name,
+      displayName,
+      requireApproval,
     );
 
-    // Automatically log in the user after registration
-    await this.authService.login(req, user);
-
-    return {
-      message: 'User registered and logged in',
-      userId: user?.id,
-      username: user?.username,
-      name: user?.name,
-    };
+    // Only log in the user if approval is not required
+    if (!requireApproval) {
+      await this.authService.login(req, user);
+      return {
+        message: 'User registered and logged in',
+        userId: user?.id,
+        username: user?.username,
+        name: user?.name,
+        requiresApproval: false,
+      };
+    } else {
+      // Return pending approval message
+      return {
+        message: 'Registration successful! Your account is pending approval from an administrator.',
+        userId: user?.id,
+        username: user?.username,
+        name: user?.name,
+        requiresApproval: true,
+      };
+    }
   }
 
   @Get('check-username')

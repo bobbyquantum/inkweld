@@ -77,8 +77,19 @@ export class AppComponent implements OnInit {
         return;
       }
 
-      // Initialize user service based on mode
-      await this.unifiedUserService.initialize();
+      // Skip user initialization if we're on registration-related pages
+      // This prevents session expired errors for users who just registered
+      // but need approval or are being redirected
+      const currentUrl = this.router.url;
+      const skipUserLoading =
+        currentUrl.startsWith('/register') ||
+        currentUrl.startsWith('/welcome') ||
+        currentUrl.startsWith('/approval-pending');
+
+      if (!skipUserLoading) {
+        // Initialize user service based on mode
+        await this.unifiedUserService.initialize();
+      }
 
       // Set offline mode flag for UI
       const mode = this.setupService.getMode();

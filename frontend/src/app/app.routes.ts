@@ -47,6 +47,14 @@ export const routes: Routes = [
     title: 'Register',
   },
   {
+    path: 'approval-pending',
+    loadComponent: () =>
+      import('./pages/approval-pending/approval-pending.component').then(
+        m => m.ApprovalPendingComponent
+      ),
+    title: 'Approval Pending',
+  },
+  {
     path: 'unavailable',
     loadComponent: () =>
       import('./pages/unavailable/unavailable.component').then(
