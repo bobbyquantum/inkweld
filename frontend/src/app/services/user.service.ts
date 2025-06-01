@@ -23,7 +23,9 @@ export class UserServiceError extends Error {
       | 'NETWORK_ERROR'
       | 'SESSION_EXPIRED'
       | 'SERVER_ERROR'
-      | 'LOGIN_FAILED',
+      | 'LOGIN_FAILED'
+      | 'ACCOUNT_PENDING'
+      | 'ACCESS_DENIED',
     message: string
   ) {
     super(message);
@@ -268,6 +270,24 @@ export class UserService {
         }
         // Other 401 errors are treated as session expired
         return new UserServiceError('SESSION_EXPIRED', 'Session expired');
+      }
+      if (error.status === 403) {
+        // Check if this is a pending approval error
+        const errorBody = error.error as
+          | {
+              message: string;
+              error: string;
+              statusCode: number;
+            }
+          | undefined;
+
+        if (
+          errorBody?.message?.includes('pending approval') ||
+          errorBody?.message?.includes('disabled')
+        ) {
+          return new UserServiceError('ACCOUNT_PENDING', errorBody.message);
+        }
+        return new UserServiceError('ACCESS_DENIED', 'Access denied');
       }
     }
     return new UserServiceError('SERVER_ERROR', 'Failed to load user data');

@@ -21,7 +21,6 @@ model/config-controller-get-system-features200-response.ts
 model/correction-dto.ts
 model/document-dto.ts
 model/file-delete-response-dto.ts
-model/file-metadata-dto.ts
 model/file-upload-response-dto.ts
 model/health-controller-get-health200-response.ts
 model/image-data-dto.ts
@@ -42,5 +41,6 @@ model/style-recommendation-dto.ts
 model/user-controller-check-username-availability200-response.ts
 model/user-dto.ts
 model/user-register-dto.ts
+model/user-register-response-dto.ts
 param.ts
 variables.ts

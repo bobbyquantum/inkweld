@@ -7,7 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
 import { UserService, UserServiceError } from '@services/user.service';
 
@@ -30,6 +30,7 @@ import { UserService, UserServiceError } from '@services/user.service';
 export class WelcomeComponent {
   private snackBar = inject(MatSnackBar);
   private userService = inject(UserService);
+  private router = inject(Router);
 
   username = '';
   password = '';
@@ -117,6 +118,10 @@ export class WelcomeComponent {
               panelClass: ['error-snackbar'],
             }
           );
+        } else if (error.code === 'ACCOUNT_PENDING') {
+          // Handle pending approval case
+          this.passwordError = null; // Clear password error since credentials are correct
+          void this.router.navigate(['/approval-pending']);
         } else {
           this.snackBar.open(error.message, 'Close', {
             duration: 5000,

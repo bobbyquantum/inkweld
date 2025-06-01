@@ -13,6 +13,7 @@ interface CaptchaConfig {
 interface ExtendedSystemFeatures
   extends ConfigControllerGetSystemFeatures200Response {
   captcha?: CaptchaConfig;
+  userApprovalRequired?: boolean;
 }
 
 @Injectable({
@@ -25,6 +26,7 @@ export class SystemConfigService {
     aiLinting: false,
     aiImageGeneration: false,
     captcha: { enabled: false },
+    userApprovalRequired: true,
   });
 
   private isLoaded = signal(false);
@@ -42,6 +44,9 @@ export class SystemConfigService {
   );
   public readonly captchaSiteKey = computed(
     () => this.systemFeaturesSignal().captcha?.siteKey ?? ''
+  );
+  public readonly isUserApprovalRequired = computed(
+    () => this.systemFeaturesSignal().userApprovalRequired ?? true
   );
   public readonly isConfigLoaded = this.isLoaded.asReadonly();
 
@@ -70,6 +75,7 @@ export class SystemConfigService {
             aiLinting: false,
             aiImageGeneration: false,
             captcha: { enabled: false },
+            userApprovalRequired: true,
           });
           this.isLoaded.set(true);
           return of(null);

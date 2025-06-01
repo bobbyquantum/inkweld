@@ -18,6 +18,7 @@ import { UserSessionEntity } from './session.entity.js';
 import { TypeOrmSessionStore } from './session.store.js';
 import { CsrfController } from './csrf/csrf.controller.js';
 import { CsrfMiddleware } from './csrf/csrf.middleware.js';
+import { SystemConfigModule } from '../config/config.module.js';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { CsrfMiddleware } from './csrf/csrf.middleware.js';
     forwardRef(() => UserModule),
     PassportModule,
     TypeOrmModule.forFeature([UserEntity, UserSessionEntity]),
+    SystemConfigModule,
   ],
   controllers: [AuthController, CsrfController],
   providers: [

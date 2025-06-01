@@ -22,6 +22,8 @@ import { UserControllerCheckUsernameAvailability200Response } from '../model/use
 import { UserDto } from '../model/user-dto';
 // @ts-ignore
 import { UserRegisterDto } from '../model/user-register-dto';
+// @ts-ignore
+import { UserRegisterResponseDto } from '../model/user-register-response-dto';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -434,9 +436,9 @@ export class UserAPIService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public userControllerRegister(xCSRFTOKEN: string, userRegisterDto: UserRegisterDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<UserDto>;
-    public userControllerRegister(xCSRFTOKEN: string, userRegisterDto: UserRegisterDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<UserDto>>;
-    public userControllerRegister(xCSRFTOKEN: string, userRegisterDto: UserRegisterDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<UserDto>>;
+    public userControllerRegister(xCSRFTOKEN: string, userRegisterDto: UserRegisterDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<UserRegisterResponseDto>;
+    public userControllerRegister(xCSRFTOKEN: string, userRegisterDto: UserRegisterDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<UserRegisterResponseDto>>;
+    public userControllerRegister(xCSRFTOKEN: string, userRegisterDto: UserRegisterDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<UserRegisterResponseDto>>;
     public userControllerRegister(xCSRFTOKEN: string, userRegisterDto: UserRegisterDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (xCSRFTOKEN === null || xCSRFTOKEN === undefined) {
             throw new Error('Required parameter xCSRFTOKEN was null or undefined when calling userControllerRegister.');
@@ -494,7 +496,7 @@ export class UserAPIService {
         }
 
         let localVarPath = `/api/v1/users/register`;
-        return this.httpClient.request<UserDto>('post', `${this.configuration.basePath}${localVarPath}`,
+        return this.httpClient.request<UserRegisterResponseDto>('post', `${this.configuration.basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 body: userRegisterDto,

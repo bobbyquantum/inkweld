@@ -408,7 +408,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/FileMetadataDto"
+                    "$ref": "#/components/schemas/FileUploadResponseDto"
                   }
                 }
               }
@@ -1044,7 +1044,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserDto"
+                  "$ref": "#/components/schemas/UserRegisterResponseDto"
                 }
               }
             }
@@ -1801,39 +1801,6 @@
           "fileUrl"
         ]
       },
-      "FileMetadataDto": {
-        "type": "object",
-        "properties": {
-          "originalName": {
-            "type": "string",
-            "description": "Original filename provided by the user"
-          },
-          "storedName": {
-            "type": "string",
-            "description": "System-generated unique name for storage"
-          },
-          "contentType": {
-            "type": "string",
-            "description": "Content type/extension of the file"
-          },
-          "size": {
-            "type": "number",
-            "description": "Size of the file in bytes"
-          },
-          "uploadDate": {
-            "format": "date-time",
-            "type": "string",
-            "description": "Date when the file was uploaded"
-          }
-        },
-        "required": [
-          "originalName",
-          "storedName",
-          "contentType",
-          "size",
-          "uploadDate"
-        ]
-      },
       "FileDeleteResponseDto": {
         "type": "object",
         "properties": {
@@ -1976,6 +1943,39 @@
         "required": [
           "username",
           "password"
+        ]
+      },
+      "UserRegisterResponseDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "User registered successfully"
+          },
+          "userId": {
+            "type": "string",
+            "example": "user-123"
+          },
+          "username": {
+            "type": "string",
+            "example": "johnDoe"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "requiresApproval": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether the user requires approval before they can log in"
+          }
+        },
+        "required": [
+          "message",
+          "userId",
+          "username",
+          "name",
+          "requiresApproval"
         ]
       },
       "LoginRequestDto": {

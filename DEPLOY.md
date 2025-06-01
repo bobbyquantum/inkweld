@@ -91,6 +91,7 @@ The deployment supports the following environment variables:
 - `GITHUB_ENABLED` - Enable GitHub OAuth (default: `false`)
 - `GITHUB_CLIENT_ID` - GitHub OAuth client ID
 - `GITHUB_CLIENT_SECRET` - GitHub OAuth client secret
+- `USER_APPROVAL_REQUIRED` - Require admin approval for new registrations (default: `true`)
 
 ### Example Production Configuration
 

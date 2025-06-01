@@ -1,0 +1,40 @@
+<div class="approval-pending-container">
+  <div class="approval-pending-card">
+    <mat-card>
+      <mat-card-header>
+        <div mat-card-avatar class="approval-icon">
+          <mat-icon>pending</mat-icon>
+        </div>
+        <mat-card-title>Registration Successful!</mat-card-title>
+        <mat-card-subtitle>Awaiting Administrator Approval</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="success-message">
+          <p>
+            <strong>Welcome, {{ displayName }}!</strong>
+          </p>
+          <p>
+            Your account has been successfully created on {{ serverName }}.
+            However, this server requires administrator approval for new
+            accounts.
+          </p>
+        </div>
+
+        <div class="status-info">
+          <h3>What happens next?</h3>
+          <ul>
+            <li>An administrator will review your registration request</li>
+            <li>You'll receive access once your account is approved</li>
+          </ul>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions align="end">
+        <a mat-raised-button color="primary" routerLink="/welcome">
+          Return to Login
+        </a>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>
