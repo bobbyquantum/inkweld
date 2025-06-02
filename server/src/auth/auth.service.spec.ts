@@ -6,6 +6,7 @@ import { AuthService } from './auth.service.js';
 import { UserService } from '../user/user.service.js';
 import { UserEntity } from '../user/user.entity.js';
 import { TypeOrmSessionStore } from './session.store.js';
+import { SystemConfigService } from '../config/config.service.js';
 import { UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest, spyOn } from 'bun:test';
 
@@ -26,6 +27,7 @@ describe('AuthService', () => {
     name: 'Test User',
     email: 'test@example.com',
     enabled: true,
+    approved: true,
     githubId: null,
   };
 
@@ -37,6 +39,13 @@ describe('AuthService', () => {
 
   const mockUserService = {
     findOne: jest.fn(),
+    createGithubUser: jest.fn(),
+  };
+
+  const mockSystemConfigService = {
+    getSystemFeatures: jest.fn().mockReturnValue({
+      userApprovalRequired: false,
+    }),
   };
 
   beforeEach(async () => {
@@ -58,6 +67,10 @@ describe('AuthService', () => {
         {
           provide: TypeOrmSessionStore,
           useValue: mockSessionStore,
+        },
+        {
+          provide: SystemConfigService,
+          useValue: mockSystemConfigService,
         },
       ],
     }).compile();
@@ -229,29 +242,28 @@ describe('AuthService', () => {
     });
 
     it('should create new user if not found', async () => {
-      spyOn(userRepository, 'findOne').mockResolvedValue(null);
-      spyOn(userRepository, 'create').mockReturnValue({
+      const newUser = {
         ...mockUser,
         githubId: '12345',
         username: 'githubuser',
         email: 'github@example.com',
         name: 'GitHub User',
         password: null,
-      });
-      spyOn(userRepository, 'save').mockImplementation(async (user) => user);
+      };
+
+      spyOn(userRepository, 'findOne').mockResolvedValue(null);
+      spyOn(mockUserService, 'createGithubUser').mockResolvedValue(newUser);
 
       const result = await service.findOrCreateGithubUser(mockGithubProfile);
 
-      expect(userRepository.create).toHaveBeenCalledWith({
+      expect(mockUserService.createGithubUser).toHaveBeenCalledWith({
+        githubId: '12345',
         username: 'githubuser',
         email: 'github@example.com',
         name: 'GitHub User',
-        githubId: '12345',
-        enabled: true,
-        password: null,
-      });
-      expect(userRepository.save).toHaveBeenCalled();
-      expect(result.githubId).toBe('12345');
+        avatarUrl: 'https://github.com/photo.jpg',
+      }, false);
+      expect(result).toEqual(newUser);
     });
 
     it('should handle GitHub profile without optional fields', async () => {
@@ -260,28 +272,28 @@ describe('AuthService', () => {
         username: 'githubuser',
       };
 
-      spyOn(userRepository, 'findOne').mockResolvedValue(null);
-      spyOn(userRepository, 'create').mockReturnValue({
+      const newUser = {
         ...mockUser,
         githubId: '12345',
         username: 'githubuser',
         email: null,
         name: null,
         password: null,
-      });
-      spyOn(userRepository, 'save').mockImplementation(async (user) => user);
+      };
+
+      spyOn(userRepository, 'findOne').mockResolvedValue(null);
+      spyOn(mockUserService, 'createGithubUser').mockResolvedValue(newUser);
 
       const result = await service.findOrCreateGithubUser(minimalProfile);
 
-      expect(userRepository.create).toHaveBeenCalledWith({
+      expect(mockUserService.createGithubUser).toHaveBeenCalledWith({
+        githubId: '12345',
         username: 'githubuser',
         email: null,
-        name: null,
-        githubId: '12345',
-        enabled: true,
-        password: null,
-      });
-      expect(result.githubId).toBe('12345');
+        name: undefined,
+        avatarUrl: undefined,
+      }, false);
+      expect(result).toEqual(newUser);
     });
   });
 });
