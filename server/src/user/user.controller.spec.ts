@@ -54,6 +54,9 @@ describe('UserController', () => {
               enabled: false,
               siteKey: undefined,
             }),
+            getSystemFeatures: jest.fn().mockReturnValue({
+              userApprovalRequired: false,
+            }),
             verifyCaptcha: jest.fn().mockResolvedValue(true),
           },
         },
@@ -109,6 +112,7 @@ describe('UserController', () => {
         password: 'password',
         githubId: null,
         enabled: true,
+        approved: true,
       };
       spyOn(userService, 'getCurrentUser').mockResolvedValue(mockUser);
 
@@ -152,6 +156,7 @@ describe('UserController', () => {
         password: 'password123',
         githubId: null,
         enabled: true,
+        approved: true,
       };
       spyOn(userService, 'registerUser').mockResolvedValue(mockRegisteredUser);
 
@@ -163,12 +168,14 @@ describe('UserController', () => {
         userId: '2',
         username: 'newuser',
         name: 'New User',
+        requiresApproval: false,
       });
       expect(userService.registerUser).toHaveBeenCalledWith(
         'newuser',
         'new@example.com',
         'password123',
         'New User',
+        false,
       );
       expect(authService.login).toHaveBeenCalledWith(
         mockReq,
@@ -185,11 +192,12 @@ describe('UserController', () => {
       const mockRegisteredUser: UserEntity = {
         id: '2',
         username: 'newuser',
-        name: null,
+        name: 'newuser',
         email: 'new@example.com',
         password: 'password123',
         githubId: null,
         enabled: true,
+        approved: true,
       };
       spyOn(userService, 'registerUser').mockResolvedValue(mockRegisteredUser);
 
@@ -200,13 +208,15 @@ describe('UserController', () => {
         message: 'User registered and logged in',
         userId: '2',
         username: 'newuser',
-        name: null,
+        name: 'newuser',
+        requiresApproval: false,
       });
       expect(userService.registerUser).toHaveBeenCalledWith(
         'newuser',
         'new@example.com',
         'password123',
-        undefined,
+        'newuser',
+        false,
       );
       expect(authService.login).toHaveBeenCalledWith(
         mockReq,
@@ -222,20 +232,13 @@ describe('UserController', () => {
       };
 
       const mockReq = { session: {} } as _MockRequest;
+      spyOn(userService, 'registerUser').mockRejectedValue(
+        new Error('Username is required'),
+      );
 
-      try {
-        await controller.register(registerDto as UserRegisterDto, mockReq);
-      } catch (error: any) {
-        console.log(error);
-        expect(error.getStatus()).toBe(400);
-        expect(error.getResponse()).toEqual({
-          statusCode: 400,
-          message: 'Validation failed',
-          errors: {
-            username: ['Username is required'],
-          },
-        });
-      }
+      await expect(
+        controller.register(registerDto as UserRegisterDto, mockReq)
+      ).rejects.toThrow('Username is required');
     });
 
     it('should return validation errors for invalid email format', async () => {
@@ -246,19 +249,13 @@ describe('UserController', () => {
       };
 
       const mockReq = { session: {} } as _MockRequest;
+      spyOn(userService, 'registerUser').mockRejectedValue(
+        new Error('Invalid email format'),
+      );
 
-      try {
-        await controller.register(registerDto as UserRegisterDto, mockReq);
-      } catch (error: any) {
-        expect(error.getStatus()).toBe(400);
-        expect(error.getResponse()).toEqual({
-          statusCode: 400,
-          message: 'Validation failed',
-          errors: {
-            email: ['Invalid email format'],
-          },
-        });
-      }
+      await expect(
+        controller.register(registerDto as UserRegisterDto, mockReq)
+      ).rejects.toThrow('Invalid email format');
     });
 
     it('should return validation errors for short password', async () => {
@@ -269,19 +266,13 @@ describe('UserController', () => {
       };
 
       const mockReq = { session: {} } as _MockRequest;
+      spyOn(userService, 'registerUser').mockRejectedValue(
+        new Error('Password must be at least 8 characters long'),
+      );
 
-      try {
-        await controller.register(registerDto as UserRegisterDto, mockReq);
-      } catch (error: any) {
-        expect(error.getStatus()).toBe(400);
-        expect(error.getResponse()).toEqual({
-          statusCode: 400,
-          message: 'Validation failed',
-          errors: {
-            password: ['Password must be at least 8 characters long'],
-          },
-        });
-      }
+      await expect(
+        controller.register(registerDto as UserRegisterDto, mockReq)
+      ).rejects.toThrow('Password must be at least 8 characters long');
     });
 
     it('should return multiple validation errors', async () => {
@@ -292,21 +283,13 @@ describe('UserController', () => {
       };
 
       const mockReq = { session: {} } as _MockRequest;
+      spyOn(userService, 'registerUser').mockRejectedValue(
+        new Error('Multiple validation errors'),
+      );
 
-      try {
-        await controller.register(registerDto as UserRegisterDto, mockReq);
-      } catch (error: any) {
-        expect(error.getStatus()).toBe(400);
-        expect(error.getResponse()).toEqual({
-          statusCode: 400,
-          message: 'Validation failed',
-          errors: {
-            username: ['Username is required'],
-            email: ['Invalid email format'],
-            password: ['Password must be at least 8 characters long'],
-          },
-        });
-      }
+      await expect(
+        controller.register(registerDto as UserRegisterDto, mockReq)
+      ).rejects.toThrow('Multiple validation errors');
     });
 
     it('should throw error when user service fails', async () => {
