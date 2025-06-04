@@ -97,4 +97,14 @@ describe('SessionAuthGuard', () => {
     );
     expect(userService.getCurrentUser).toHaveBeenCalledWith('invalid-user-id');
   });
+
+  it('should throw UnauthorizedException when user is not found', async () => {
+    userService.getCurrentUser.mockResolvedValue(null);
+    const context = mockExecutionContext({ userId: 'missing-user-id' });
+
+    await expect(guard.canActivate(context)).rejects.toThrow(
+      new UnauthorizedException('Invalid session'),
+    );
+    expect(userService.getCurrentUser).toHaveBeenCalledWith('missing-user-id');
+  });
 });
