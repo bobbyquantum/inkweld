@@ -34,6 +34,13 @@ export class SessionAuthGuard implements CanActivate {
         request.session.userId,
       );
 
+      if (!user) {
+        this.logger.warn(
+          `User not found for session userId ${request.session.userId}`,
+        );
+        throw new UnauthorizedException('Invalid session');
+      }
+
       // Attach user to request for use in route handlers
       request.user = {
         id: user.id,
