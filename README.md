@@ -150,6 +150,8 @@ npm test
 
 This will execute the unit tests for both the frontend and backend projects.
 
+> **Note:** If you encounter module resolution errors, run `npm run install-all` from the repository root to ensure all dependencies are installed.
+
 ---
 
 ## Production Readiness Checklist
