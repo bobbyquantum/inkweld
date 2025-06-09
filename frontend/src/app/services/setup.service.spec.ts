@@ -12,11 +12,11 @@ describe('SetupService', () => {
     // Mock localStorage
     mockLocalStorage = {};
     const localStorageMock = {
-      getItem: jest.fn((key: string) => mockLocalStorage[key] || null),
-      setItem: jest.fn((key: string, value: string) => {
+      getItem: vi.fn((key: string) => mockLocalStorage[key] || null),
+      setItem: vi.fn((key: string, value: string) => {
         mockLocalStorage[key] = value;
       }),
-      removeItem: jest.fn((key: string) => {
+      removeItem: vi.fn((key: string) => {
         delete mockLocalStorage[key];
       }),
     };
@@ -26,14 +26,14 @@ describe('SetupService', () => {
     });
 
     // Mock fetch for server health checks
-    global.fetch = jest.fn();
+    global.fetch = vi.fn();
 
     TestBed.configureTestingModule({});
     service = TestBed.inject(SetupService);
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should be created', () => {
@@ -68,7 +68,7 @@ describe('SetupService', () => {
 
     it('should handle corrupted stored config gracefully', () => {
       mockLocalStorage[SETUP_STORAGE_KEY] = 'invalid-json';
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
       const result = service.checkConfiguration();
       expect(result).toBe(false);
@@ -83,7 +83,7 @@ describe('SetupService', () => {
   describe('configureServerMode', () => {
     it('should configure server mode successfully', async () => {
       const serverUrl = 'https://api.example.com';
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (global.fetch as vi.Mock).mockResolvedValue({
         ok: true,
       });
 
@@ -100,10 +100,10 @@ describe('SetupService', () => {
 
     it('should handle server connection failure', async () => {
       const serverUrl = 'https://unreachable.example.com';
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (global.fetch as vi.Mock).mockResolvedValue({
         ok: false,
       });
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
       await expect(service.configureServerMode(serverUrl)).rejects.toThrow(
         'Server is not reachable'
@@ -117,8 +117,8 @@ describe('SetupService', () => {
 
     it('should handle fetch errors', async () => {
       const serverUrl = 'https://error.example.com';
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      (global.fetch as vi.Mock).mockRejectedValue(new Error('Network error'));
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
       await expect(service.configureServerMode(serverUrl)).rejects.toThrow(
         'Network error'
@@ -132,7 +132,7 @@ describe('SetupService', () => {
 
     it('should set loading state correctly during operation', async () => {
       const serverUrl = 'https://api.example.com';
-      (global.fetch as jest.Mock).mockImplementation(() => {
+      (global.fetch as vi.Mock).mockImplementation(() => {
         expect(service.isLoading()).toBe(true);
         return Promise.resolve({ ok: true });
       });
@@ -212,7 +212,7 @@ describe('SetupService', () => {
 
     it('should return server URL when in server mode', async () => {
       const serverUrl = 'https://api.example.com';
-      (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
+      (global.fetch as vi.Mock).mockResolvedValue({ ok: true });
       await service.configureServerMode(serverUrl);
 
       expect(service.getServerUrl()).toBe(serverUrl);
@@ -291,7 +291,7 @@ describe('SetupService', () => {
       mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
       service.checkConfiguration();
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
       expect(service.getWebSocketUrl()).toBe(null);
       expect(consoleSpy).toHaveBeenCalledWith(
         'Failed to parse server URL for WebSocket:',
@@ -307,7 +307,7 @@ describe('SetupService', () => {
 
     it('should return null when in server mode', async () => {
       const serverUrl = 'https://api.example.com';
-      (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
+      (global.fetch as vi.Mock).mockResolvedValue({ ok: true });
       await service.configureServerMode(serverUrl);
 
       expect(service.getOfflineUserProfile()).toBe(null);
@@ -331,10 +331,10 @@ describe('SetupService', () => {
 
   describe('localStorage error handling', () => {
     it('should handle localStorage save errors', () => {
-      (localStorage.setItem as jest.Mock).mockImplementation(() => {
+      (localStorage.setItem as vi.Mock).mockImplementation(() => {
         throw new Error('Storage quota exceeded');
       });
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
       const userProfile = { name: 'Test User', username: 'testuser' };
       expect(() => service.configureOfflineMode(userProfile)).toThrow(
@@ -347,10 +347,10 @@ describe('SetupService', () => {
     });
 
     it('should handle localStorage read errors', () => {
-      (localStorage.getItem as jest.Mock).mockImplementation(() => {
+      (localStorage.getItem as vi.Mock).mockImplementation(() => {
         throw new Error('Storage access denied');
       });
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
       const result = service.checkConfiguration();
       expect(result).toBe(false);

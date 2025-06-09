@@ -70,17 +70,17 @@ describe('DocumentsListTabComponent', () => {
     projectStateService = {
       project: signal(mockProject),
       elements: signal(mockElements),
-      openDocument: jest.fn(),
+      openDocument: vi.fn(),
     };
 
     documentService = {
-      getSyncStatusSignal: jest
+      getSyncStatusSignal: vi
         .fn()
         .mockReturnValue(() => DocumentSyncState.Synced),
     } as Partial<DocumentService>;
 
     router = {
-      navigate: jest.fn(),
+      navigate: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -153,7 +153,7 @@ describe('DocumentsListTabComponent', () => {
   it('should create a new document', () => {
     component.createNewDocument();
     expect(projectStateService.openDocument).toHaveBeenCalled();
-    const newDocArg = (projectStateService.openDocument as jest.Mock).mock
+    const newDocArg = (projectStateService.openDocument as vi.Mock).mock
       .calls[0][0];
     expect(newDocArg.type).toBe(ProjectElementDto.TypeEnum.Item);
     expect(newDocArg.name).toBe('New Document');

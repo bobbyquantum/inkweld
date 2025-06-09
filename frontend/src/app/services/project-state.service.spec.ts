@@ -52,44 +52,44 @@ function createMockYArray() {
   };
 }
 // Mock Y.Doc and related classes
-jest.mock('y-websocket');
-jest.mock('y-indexeddb');
-jest.mock('yjs', () => ({
-  Doc: jest.fn(() => ({
-    getMap: jest.fn(() => ({
-      set: jest.fn(),
-      get: jest.fn(),
-      observe: jest.fn(),
+vi.mock('y-websocket');
+vi.mock('y-indexeddb');
+vi.mock('yjs', () => ({
+  Doc: vi.fn(() => ({
+    getMap: vi.fn(() => ({
+      set: vi.fn(),
+      get: vi.fn(),
+      observe: vi.fn(),
     })),
-    getArray: jest.fn(() => createMockYArray()),
-    transact: jest.fn(fn => {
+    getArray: vi.fn(() => createMockYArray()),
+    transact: vi.fn(fn => {
       console.log('executing transaction');
       fn();
     }),
-    destroy: jest.fn(),
+    destroy: vi.fn(),
   })),
-  Array: jest.fn(() => ({
-    toArray: jest.fn(),
-    delete: jest.fn(),
-    insert: jest.fn(),
-    observe: jest.fn(),
+  Array: vi.fn(() => ({
+    toArray: vi.fn(),
+    delete: vi.fn(),
+    insert: vi.fn(),
+    observe: vi.fn(),
   })),
-  Map: jest.fn(),
+  Map: vi.fn(),
 }));
 
 describe('ProjectStateService', () => {
   let service: ProjectStateService;
-  let mockDialog: jest.Mocked<MatDialog>;
-  let mockProjectAPI: jest.Mocked<ProjectAPIService>;
-  let mockWebsocketProvider: jest.Mocked<WebsocketProvider>;
-  let mockIndexeddbProvider: jest.Mocked<IndexeddbPersistence>;
-  let mockYDoc: jest.Mocked<Y.Doc>;
-  let mockUnifiedProjectService: jest.Mocked<UnifiedProjectService>;
-  let mockSetupService: jest.Mocked<SetupService>;
-  let mockOfflineElementsService: jest.Mocked<OfflineProjectElementsService>;
-  let mockDialogGatewayService: jest.Mocked<DialogGatewayService>;
-  let mockRecentFilesService: jest.Mocked<RecentFilesService>;
-  let mockStorageService: jest.Mocked<StorageService>;
+  let mockDialog: vi.Mocked<MatDialog>;
+  let mockProjectAPI: vi.Mocked<ProjectAPIService>;
+  let mockWebsocketProvider: vi.Mocked<WebsocketProvider>;
+  let mockIndexeddbProvider: vi.Mocked<IndexeddbPersistence>;
+  let mockYDoc: vi.Mocked<Y.Doc>;
+  let mockUnifiedProjectService: vi.Mocked<UnifiedProjectService>;
+  let mockSetupService: vi.Mocked<SetupService>;
+  let mockOfflineElementsService: vi.Mocked<OfflineProjectElementsService>;
+  let mockDialogGatewayService: vi.Mocked<DialogGatewayService>;
+  let mockRecentFilesService: vi.Mocked<RecentFilesService>;
+  let mockStorageService: vi.Mocked<StorageService>;
 
   const mockDate = new Date('2025-02-22T22:43:16.240Z');
 
@@ -115,12 +115,12 @@ describe('ProjectStateService', () => {
   };
 
   beforeAll(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(mockDate);
+    vi.useFakeTimers();
+    vi.setSystemTime(mockDate);
   });
 
   afterAll(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   beforeEach(() => {
@@ -129,70 +129,70 @@ describe('ProjectStateService', () => {
     mockArrayObservers = [];
 
     mockDialog = {
-      open: jest.fn(),
-    } as unknown as jest.Mocked<MatDialog>;
+      open: vi.fn(),
+    } as unknown as vi.Mocked<MatDialog>;
 
-    mockProjectAPI = {
-      projectControllerGetProjectByUsernameAndSlug: jest
-        .fn()
-        .mockReturnValue(of(mockProject)),
-    } as unknown as jest.Mocked<ProjectAPIService>;
+      mockProjectAPI = {
+        projectControllerGetProjectByUsernameAndSlug: vi
+          .fn()
+          .mockReturnValue(of(mockProject)),
+      } as unknown as vi.Mocked<ProjectAPIService>;
 
     mockUnifiedProjectService = {
-      getProject: jest.fn().mockResolvedValue(mockProject),
-    } as unknown as jest.Mocked<UnifiedProjectService>;
+      getProject: vi.fn().mockResolvedValue(mockProject),
+    } as unknown as vi.Mocked<UnifiedProjectService>;
 
     mockSetupService = {
-      getMode: jest.fn().mockReturnValue('server'),
-      getWebSocketUrl: jest.fn().mockReturnValue('ws://localhost:8333'),
-    } as unknown as jest.Mocked<SetupService>;
+      getMode: vi.fn().mockReturnValue('server'),
+      getWebSocketUrl: vi.fn().mockReturnValue('ws://localhost:8333'),
+    } as unknown as vi.Mocked<SetupService>;
 
     mockOfflineElementsService = {
-      loadElements: jest.fn(),
-      elements: jest.fn().mockReturnValue([]),
-    } as unknown as jest.Mocked<OfflineProjectElementsService>;
+      loadElements: vi.fn(),
+      elements: vi.fn().mockReturnValue([]),
+    } as unknown as vi.Mocked<OfflineProjectElementsService>;
 
     mockDialogGatewayService = {
-      openDialog: jest.fn(),
-      openEditProjectDialog: jest.fn().mockResolvedValue(null),
-      openNewElementDialog: jest.fn().mockResolvedValue(null),
-    } as unknown as jest.Mocked<DialogGatewayService>;
+      openDialog: vi.fn(),
+      openEditProjectDialog: vi.fn().mockResolvedValue(null),
+      openNewElementDialog: vi.fn().mockResolvedValue(null),
+    } as unknown as vi.Mocked<DialogGatewayService>;
 
     mockRecentFilesService = {
-      addFile: jest.fn(),
-      addRecentFile: jest.fn(),
-      getRecentFilesForProject: jest.fn().mockReturnValue([]),
-    } as unknown as jest.Mocked<RecentFilesService>;
+      addFile: vi.fn(),
+      addRecentFile: vi.fn(),
+      getRecentFilesForProject: vi.fn().mockReturnValue([]),
+    } as unknown as vi.Mocked<RecentFilesService>;
 
     mockStorageService = {
-      isAvailable: jest.fn().mockReturnValue(true),
-      initializeDatabase: jest.fn().mockResolvedValue({} as IDBDatabase),
-      get: jest.fn().mockResolvedValue(null),
-      set: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<StorageService>;
+      isAvailable: vi.fn().mockReturnValue(true),
+      initializeDatabase: vi.fn().mockResolvedValue({} as IDBDatabase),
+      get: vi.fn().mockResolvedValue(null),
+      set: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<StorageService>;
 
     mockWebsocketProvider = {
-      on: jest.fn().mockImplementation(() => () => {}),
-      connect: jest.fn(),
-      disconnect: jest.fn(),
-      destroy: jest.fn(),
-    } as unknown as jest.Mocked<WebsocketProvider>;
+      on: vi.fn().mockImplementation(() => () => {}),
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      destroy: vi.fn(),
+    } as unknown as vi.Mocked<WebsocketProvider>;
 
     mockIndexeddbProvider = {
       whenSynced: Promise.resolve(),
-    } as unknown as jest.Mocked<IndexeddbPersistence>;
+    } as unknown as vi.Mocked<IndexeddbPersistence>;
 
     // Mock constructors
-    (WebsocketProvider as jest.Mock).mockImplementation(
+    (WebsocketProvider as vi.Mock).mockImplementation(
       () => mockWebsocketProvider
     );
-    (IndexeddbPersistence as jest.Mock).mockImplementation(
+    (IndexeddbPersistence as vi.Mock).mockImplementation(
       () => mockIndexeddbProvider
     );
 
     // Set up mock YDoc instance
-    mockYDoc = new Y.Doc() as jest.Mocked<Y.Doc>;
-    (Y.Doc as jest.Mock).mockImplementation(() => mockYDoc);
+    mockYDoc = new Y.Doc() as vi.Mocked<Y.Doc>;
+    (Y.Doc as vi.Mock).mockImplementation(() => mockYDoc);
     TestBed.configureTestingModule({
       providers: [
         ProjectStateService,
@@ -622,7 +622,7 @@ describe('ProjectStateService', () => {
       };
 
       service['dialogGateway'] = {
-        openNewElementDialog: jest.fn().mockResolvedValue(mockDialogResult),
+        openNewElementDialog: vi.fn().mockResolvedValue(mockDialogResult),
       } as any;
 
       service.showNewElementDialog();
@@ -634,7 +634,7 @@ describe('ProjectStateService', () => {
       const initialElements = service.elements();
 
       service['dialogGateway'] = {
-        openNewElementDialog: jest.fn().mockResolvedValue(null),
+        openNewElementDialog: vi.fn().mockResolvedValue(null),
       } as any;
 
       service.showNewElementDialog();

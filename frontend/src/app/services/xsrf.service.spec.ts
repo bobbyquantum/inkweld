@@ -8,11 +8,11 @@ import { XsrfService } from './xsrf.service';
 
 describe('XsrfService', () => {
   let service: XsrfService;
-  let mockCsrfService: { csrfControllerGetCsrfToken: jest.Mock };
+  let mockCsrfService: { csrfControllerGetCsrfToken: vi.Mock };
 
   beforeEach(() => {
     mockCsrfService = {
-      csrfControllerGetCsrfToken: jest
+      csrfControllerGetCsrfToken: vi
         .fn()
         .mockReturnValue(of({ token: 'test-token' })),
     };
@@ -59,7 +59,7 @@ describe('XsrfService', () => {
   describe('getToken()', () => {
     it('should refresh token when none exists', async () => {
       // Spy on refreshToken method
-      jest.spyOn(service, 'refreshToken').mockResolvedValue('new-token');
+      vi.spyOn(service, 'refreshToken').mockResolvedValue('new-token');
 
       const token = await service.getToken();
 

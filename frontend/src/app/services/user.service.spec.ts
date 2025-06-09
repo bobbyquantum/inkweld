@@ -37,20 +37,20 @@ describe('UserService', () => {
   let storageService: StorageService;
   let httpTestingController: HttpTestingController;
   let authServiceMock: {
-    authControllerLogin: jest.Mock;
-    authControllerLogout: jest.Mock;
+    authControllerLogin: vi.Mock;
+    authControllerLogout: vi.Mock;
   };
-  let dialogMock: { open: jest.Mock };
-  let routerMock: { navigate: jest.Mock };
+  let dialogMock: { open: vi.Mock };
+  let routerMock: { navigate: vi.Mock };
 
   beforeEach(() => {
     userServiceMock.userControllerGetMe.mockReturnValue(of(TEST_USER));
     authServiceMock = {
-      authControllerLogin: jest.fn(),
-      authControllerLogout: jest.fn(),
+      authControllerLogin: vi.fn(),
+      authControllerLogout: vi.fn(),
     };
-    dialogMock = { open: jest.fn() };
-    routerMock = { navigate: jest.fn() };
+    dialogMock = { open: vi.fn() };
+    routerMock = { navigate: vi.fn() };
 
     dialogMock.open.mockReturnValue({
       afterClosed: () => of(true),
@@ -183,13 +183,13 @@ describe('UserService', () => {
     });
 
     it('should persist user to storage when available', async () => {
-      const spy = jest.spyOn(storageService, 'put');
+      const spy = vi.spyOn(storageService, 'put');
       await service.setCurrentUser(TEST_USER);
       expect(spy).toHaveBeenCalled();
     });
 
-    it('should handle storage errors gracefully', async () => {
-      jest
+      it('should handle storage errors gracefully', async () => {
+      vi
         .spyOn(storageService, 'put')
         .mockRejectedValue(new Error('Storage error'));
       await expect(service.setCurrentUser(TEST_USER)).resolves.not.toThrow();
@@ -245,7 +245,7 @@ describe('UserService', () => {
 
   describe('hasCachedUser', () => {
     it('should return false when storage is not available', async () => {
-      jest.spyOn(storageService, 'isAvailable').mockReturnValue(false);
+      vi.spyOn(storageService, 'isAvailable').mockReturnValue(false);
       const result = await service.hasCachedUser();
       expect(result).toBe(false);
     });
@@ -342,10 +342,10 @@ describe('UserService', () => {
       const router = TestBed.inject(Router);
       const service = TestBed.inject(UserService);
 
-      jest
+      vi
         .spyOn(authService, 'authControllerLogout')
         .mockReturnValue(of(new HttpResponse({ status: 200 })));
-      const clearCurrentUserSpy = jest
+      const clearCurrentUserSpy = vi
         .spyOn(service, 'clearCurrentUser')
         .mockResolvedValue();
 
@@ -364,10 +364,10 @@ describe('UserService', () => {
         'SERVER_ERROR',
         'Failed to load user data'
       );
-      jest
+      vi
         .spyOn(authService, 'authControllerLogout')
         .mockReturnValue(throwError(() => new Error('Logout failed')));
-      const clearCurrentUserSpy = jest
+      const clearCurrentUserSpy = vi
         .spyOn(service, 'clearCurrentUser')
         .mockResolvedValue();
 

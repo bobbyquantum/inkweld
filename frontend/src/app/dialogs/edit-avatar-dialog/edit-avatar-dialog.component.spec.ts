@@ -13,8 +13,8 @@ describe('EditAvatarDialogComponent', () => {
   let dialogRefMock: any;
 
   beforeEach(async () => {
-    userServiceMock = { uploadAvatar: jest.fn() };
-    dialogRefMock = { close: jest.fn() };
+    userServiceMock = { uploadAvatar: vi.fn() };
+    dialogRefMock = { close: vi.fn() };
 
     await TestBed.configureTestingModule({
       imports: [EditAvatarDialogComponent],
@@ -80,7 +80,7 @@ describe('EditAvatarDialogComponent', () => {
   });
 
   it('onLoadImageFailed should set hasLoadFailed to true and alert', () => {
-    jest.spyOn(window, 'alert');
+    vi.spyOn(window, 'alert');
     component.onLoadImageFailed();
     expect(component.hasLoadFailed).toBeTruthy();
     expect(window.alert).toHaveBeenCalledWith(
@@ -113,7 +113,7 @@ describe('EditAvatarDialogComponent', () => {
       userServiceMock.uploadAvatar.mockReturnValue(
         throwError(() => new Error('err'))
       );
-      jest.spyOn(window, 'alert');
+      vi.spyOn(window, 'alert');
       await component.submit();
       expect(window.alert).toHaveBeenCalledWith(
         'Failed to upload avatar. Please try again.'

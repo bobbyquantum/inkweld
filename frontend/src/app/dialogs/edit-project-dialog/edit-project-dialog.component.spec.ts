@@ -23,11 +23,11 @@ const createMockFile = (name: string, type: string, size: number): File => {
 describe('EditProjectDialogComponent', () => {
   let component: EditProjectDialogComponent;
   let fixture: ComponentFixture<EditProjectDialogComponent>;
-  let dialogRef: jest.Mocked<MatDialogRef<EditProjectDialogComponent>>;
-  let importExportService: jest.Mocked<ProjectImportExportService>;
-  let snackBar: jest.Mocked<MatSnackBar>;
-  let projectAPIService: jest.Mocked<ProjectAPIService>;
-  let projectService: jest.Mocked<ProjectService>;
+  let dialogRef: vi.Mocked<MatDialogRef<EditProjectDialogComponent>>;
+  let importExportService: vi.Mocked<ProjectImportExportService>;
+  let snackBar: vi.Mocked<MatSnackBar>;
+  let projectAPIService: vi.Mocked<ProjectAPIService>;
+  let projectService: vi.Mocked<ProjectService>;
 
   const mockUser: UserDto = {
     username: 'testuser',
@@ -51,40 +51,40 @@ describe('EditProjectDialogComponent', () => {
   beforeAll(() => {
     // Only mock if not already defined
     if (!global.URL.createObjectURL) {
-      global.URL.createObjectURL = jest.fn().mockReturnValue('mock-blob-url');
+      global.URL.createObjectURL = vi.fn().mockReturnValue('mock-blob-url');
     }
   });
 
   beforeEach(async () => {
     dialogRef = {
-      close: jest.fn(),
+      close: vi.fn(),
     } as any;
 
     importExportService = {
-      exportProject: jest.fn(),
-      exportProjectZip: jest.fn(),
-      importProject: jest.fn(),
-      isProcessing: jest.fn().mockReturnValue(signal(false)()),
-      progress: jest.fn().mockReturnValue(signal(0)()),
-      error: jest.fn().mockReturnValue(signal(undefined)()),
+      exportProject: vi.fn(),
+      exportProjectZip: vi.fn(),
+      importProject: vi.fn(),
+      isProcessing: vi.fn().mockReturnValue(signal(false)()),
+      progress: vi.fn().mockReturnValue(signal(0)()),
+      error: vi.fn().mockReturnValue(signal(undefined)()),
     } as any;
 
     snackBar = {
-      open: jest.fn(),
+      open: vi.fn(),
     } as any;
 
     projectAPIService = {
-      projectControllerUpdateProject: jest
+      projectControllerUpdateProject: vi
         .fn()
         .mockReturnValue(of(mockProject)),
     } as any;
 
     // Mock ProjectService methods
     projectService = {
-      getProjectCover: jest.fn().mockResolvedValue(mockCoverBlob),
-      uploadProjectCover: jest.fn().mockResolvedValue(undefined),
-      deleteProjectCover: jest.fn().mockResolvedValue(undefined),
-      updateProject: jest.fn().mockResolvedValue(mockProject),
+      getProjectCover: vi.fn().mockResolvedValue(mockCoverBlob),
+      uploadProjectCover: vi.fn().mockResolvedValue(undefined),
+      deleteProjectCover: vi.fn().mockResolvedValue(undefined),
+      updateProject: vi.fn().mockResolvedValue(mockProject),
     } as any;
 
     // Mock XSRF token cookie
@@ -117,7 +117,7 @@ describe('EditProjectDialogComponent', () => {
   afterEach(() => {
     // Clean up XSRF token cookie
     document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
 
     // Reset mocks between tests
     projectService.getProjectCover.mockReset();
@@ -207,7 +207,7 @@ describe('EditProjectDialogComponent', () => {
       projectService.getProjectCover.mockRejectedValue(genericError);
 
       // Set up spy before component creation
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation();
 
       // Re-create component with the mock rejection setup
       fixture = TestBed.createComponent(EditProjectDialogComponent);
@@ -298,7 +298,7 @@ describe('EditProjectDialogComponent', () => {
       coverInput.type = 'file';
       // Manually assign to the component property for the test
       component.coverImageInput = { nativeElement: coverInput };
-      const clickSpy = jest.spyOn(coverInput, 'click');
+      const clickSpy = vi.spyOn(coverInput, 'click');
 
       component.openCoverImageSelector();
 

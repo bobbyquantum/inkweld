@@ -12,7 +12,7 @@ describe('ImageViewerDialogComponent', () => {
   let fixture: ComponentFixture<ImageViewerDialogComponent>;
 
   const mockDialogRef = {
-    close: jest.fn(),
+    close: vi.fn(),
   };
 
   const mockDialogData: ImageViewerDialogData = {

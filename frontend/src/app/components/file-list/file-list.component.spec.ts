@@ -27,7 +27,7 @@ describe('FileListComponent', () => {
 
   // Mock DialogGatewayService
   const mockDialogGateway = {
-    openImageViewerDialog: jest.fn(),
+    openImageViewerDialog: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -49,7 +49,7 @@ describe('FileListComponent', () => {
     component = fixture.componentInstance;
 
     // Reset mock before each test
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should create', () => {
@@ -83,7 +83,7 @@ describe('FileListComponent', () => {
     component.files = mockFiles;
     fixture.detectChanges();
 
-    const spy = jest.spyOn(component.deleteFile, 'emit');
+    const spy = vi.spyOn(component.deleteFile, 'emit');
     const deleteButton = fixture.debugElement.query(
       By.css('button[title="Delete file"]')
     );

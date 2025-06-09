@@ -2,7 +2,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
-import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
+import { createComponentFactory, Spectator } from '@ngneat/spectator/vitest';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { NgxEditorModule } from 'ngx-editor';
@@ -12,19 +12,19 @@ import { DocumentSyncState } from '../../models/document-sync-state';
 import { DocumentElementEditorComponent } from './document-element-editor.component';
 
 class MockDocumentService {
-  setupCollaboration = jest.fn().mockResolvedValue(undefined);
-  disconnect = jest.fn();
-  initializeSyncStatus = jest.fn();
-  getSyncStatus = jest.fn().mockReturnValue(of(DocumentSyncState.Offline));
-  getSyncStatusSignal = jest
+  setupCollaboration = vi.fn().mockResolvedValue(undefined);
+  disconnect = vi.fn();
+  initializeSyncStatus = vi.fn();
+  getSyncStatus = vi.fn().mockReturnValue(of(DocumentSyncState.Offline));
+  getSyncStatusSignal = vi
     .fn()
     .mockReturnValue(() => DocumentSyncState.Offline);
-  getWordCountSignal = jest.fn().mockReturnValue(() => 0);
+  getWordCountSignal = vi.fn().mockReturnValue(() => 0);
 }
 
 class MockProjectStateService {
-  isLoading = jest.fn().mockReturnValue(false);
-  project = jest
+  isLoading = vi.fn().mockReturnValue(false);
+  project = vi
     .fn()
     .mockReturnValue({ username: 'test', slug: 'test', title: 'Test' });
 }
@@ -53,13 +53,13 @@ describe('DocumentElementEditorComponent', () => {
   beforeEach(() => {
     mockStyle = {};
 
-    jest
+    vi
       .spyOn(document.documentElement.style, 'setProperty')
       .mockImplementation((prop, value) => {
         mockStyle[prop] = value!;
       });
 
-    jest
+    vi
       .spyOn(document.documentElement.style, 'removeProperty')
       .mockImplementation(prop => {
         delete mockStyle[prop];
@@ -76,11 +76,11 @@ describe('DocumentElementEditorComponent', () => {
   });
 
   it('should setup collaboration after view init', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     component.documentId = 'test:test:abc123';
-    jest.runAllTimers();
+    vi.runAllTimers();
     expect(documentService.setupCollaboration).toHaveBeenCalledTimes(1);
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should disconnect on destroy', () => {

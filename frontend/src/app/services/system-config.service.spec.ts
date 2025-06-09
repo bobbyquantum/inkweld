@@ -7,9 +7,9 @@ import { SystemConfigService } from './system-config.service';
 
 describe('SystemConfigService', () => {
   let service: SystemConfigService;
-  let mockConfigService: jest.Mocked<ConfigService>;
-  let consoleSpy: jest.SpyInstance;
-  let consoleWarnSpy: jest.SpyInstance;
+  let mockConfigService: vi.Mocked<ConfigService>;
+  let consoleSpy: vi.SpyInstance;
+  let consoleWarnSpy: vi.SpyInstance;
 
   const mockSystemFeatures: ConfigControllerGetSystemFeatures200Response = {
     aiLinting: true,
@@ -17,20 +17,20 @@ describe('SystemConfigService', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock ConfigService
     mockConfigService = {
-      configControllerGetSystemFeatures: jest.fn(),
-    } as unknown as jest.Mocked<ConfigService>;
+      configControllerGetSystemFeatures: vi.fn(),
+    } as unknown as vi.Mocked<ConfigService>;
 
     // Mock console methods to avoid test output noise, but keep spies for testing
-    consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    consoleSpy = vi.spyOn(console, 'log').mockImplementation();
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation();
 
     // Set up default successful response
     (
-      mockConfigService.configControllerGetSystemFeatures as jest.Mock
+      mockConfigService.configControllerGetSystemFeatures as vi.Mock
     ).mockReturnValue(of(mockSystemFeatures));
 
     TestBed.configureTestingModule({
@@ -44,7 +44,7 @@ describe('SystemConfigService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('Initialization', () => {
@@ -62,7 +62,7 @@ describe('SystemConfigService', () => {
     it('should have correct initial values', () => {
       // Reset the service with no API call to test initial state
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as vi.Mock
       ).mockClear();
 
       // Check the signals are functions
@@ -80,7 +80,7 @@ describe('SystemConfigService', () => {
       // Reset TestBed with error mock
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as vi.Mock
       ).mockReturnValue(throwError(() => error));
 
       TestBed.configureTestingModule({
@@ -135,10 +135,10 @@ describe('SystemConfigService', () => {
 
         // Clear previous calls and set up new return value
         (
-          mockConfigService.configControllerGetSystemFeatures as jest.Mock
+          mockConfigService.configControllerGetSystemFeatures as vi.Mock
         ).mockClear();
         (
-          mockConfigService.configControllerGetSystemFeatures as jest.Mock
+          mockConfigService.configControllerGetSystemFeatures as vi.Mock
         ).mockReturnValue(of(newFeatures));
 
         service.refreshSystemFeatures();
@@ -161,7 +161,7 @@ describe('SystemConfigService', () => {
 
         // Setup a fresh observable for refresh
         (
-          mockConfigService.configControllerGetSystemFeatures as jest.Mock
+          mockConfigService.configControllerGetSystemFeatures as vi.Mock
         ).mockReturnValue(of(mockSystemFeatures));
 
         // Trigger refresh
@@ -184,7 +184,7 @@ describe('SystemConfigService', () => {
     it('should compute isAiLintingEnabled correctly', done => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as vi.Mock
       ).mockReturnValue(of({ aiLinting: true, aiImageGeneration: false }));
 
       TestBed.configureTestingModule({
@@ -205,7 +205,7 @@ describe('SystemConfigService', () => {
     it('should compute isAiLintingEnabled as false when undefined', done => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as vi.Mock
       ).mockReturnValue(
         of({
           aiImageGeneration: false,
@@ -230,7 +230,7 @@ describe('SystemConfigService', () => {
     it('should compute isAiImageGenerationEnabled correctly', done => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as vi.Mock
       ).mockReturnValue(of({ aiLinting: false, aiImageGeneration: true }));
 
       TestBed.configureTestingModule({
@@ -251,7 +251,7 @@ describe('SystemConfigService', () => {
     it('should compute isAiImageGenerationEnabled as false when undefined', done => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as vi.Mock
       ).mockReturnValue(
         of({ aiLinting: false } as ConfigControllerGetSystemFeatures200Response)
       );
@@ -274,7 +274,7 @@ describe('SystemConfigService', () => {
     it('should handle null/undefined system features gracefully', done => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as vi.Mock
       ).mockReturnValue(of({} as ConfigControllerGetSystemFeatures200Response));
 
       TestBed.configureTestingModule({
@@ -301,7 +301,7 @@ describe('SystemConfigService', () => {
 
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as vi.Mock
       ).mockReturnValueOnce(of(initialFeatures));
 
       TestBed.configureTestingModule({
@@ -319,7 +319,7 @@ describe('SystemConfigService', () => {
 
         // Update features
         (
-          mockConfigService.configControllerGetSystemFeatures as jest.Mock
+          mockConfigService.configControllerGetSystemFeatures as vi.Mock
         ).mockReturnValueOnce(of(updatedFeatures));
 
         testService.refreshSystemFeatures();
@@ -347,7 +347,7 @@ describe('SystemConfigService', () => {
 
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as vi.Mock
       ).mockReturnValue(throwError(() => networkError));
 
       TestBed.configureTestingModule({
@@ -383,7 +383,7 @@ describe('SystemConfigService', () => {
         // Now simulate error on refresh
         const refreshError = new Error('Refresh failed');
         (
-          mockConfigService.configControllerGetSystemFeatures as jest.Mock
+          mockConfigService.configControllerGetSystemFeatures as vi.Mock
         ).mockReturnValue(throwError(() => refreshError));
 
         service.refreshSystemFeatures();

@@ -11,9 +11,9 @@ import { UserMenuComponent } from './user-menu.component';
 describe('UserMenuComponent', () => {
   let component: UserMenuComponent;
   let fixture: ComponentFixture<UserMenuComponent>;
-  let httpClientMock: jest.Mocked<HttpClient>;
-  let routerMock: jest.Mocked<Router>;
-  let userServiceMock: jest.Mocked<UnifiedUserService>;
+  let httpClientMock: vi.Mocked<HttpClient>;
+  let routerMock: vi.Mocked<Router>;
+  let userServiceMock: vi.Mocked<UnifiedUserService>;
   const activatedRouteMock = {
     params: of({ username: 'testuser' }),
   };
@@ -25,21 +25,21 @@ describe('UserMenuComponent', () => {
 
   beforeEach(async () => {
     httpClientMock = {
-      get: jest.fn(),
-      post: jest.fn().mockReturnValue(of({})),
-      put: jest.fn(),
-      delete: jest.fn(),
-    } as unknown as jest.Mocked<HttpClient>;
+      get: vi.fn(),
+      post: vi.fn().mockReturnValue(of({})),
+      put: vi.fn(),
+      delete: vi.fn(),
+    } as unknown as vi.Mocked<HttpClient>;
 
     routerMock = {
-      navigateByUrl: jest.fn().mockResolvedValue(true),
-    } as unknown as jest.Mocked<Router>;
+      navigateByUrl: vi.fn().mockResolvedValue(true),
+    } as unknown as vi.Mocked<Router>;
 
     userServiceMock = {
-      logout: jest.fn().mockResolvedValue(undefined),
-      getMode: jest.fn().mockReturnValue('offline'),
+      logout: vi.fn().mockResolvedValue(undefined),
+      getMode: vi.fn().mockReturnValue('offline'),
       currentUser: signal(mockUser),
-    } as unknown as jest.Mocked<UnifiedUserService>;
+    } as unknown as vi.Mocked<UnifiedUserService>;
 
     await TestBed.configureTestingModule({
       imports: [UserMenuComponent],
@@ -62,7 +62,7 @@ describe('UserMenuComponent', () => {
 
   describe('onLogout()', () => {
     it('should handle logout error', async () => {
-      const consoleSpy = jest.spyOn(console, 'error');
+      const consoleSpy = vi.spyOn(console, 'error');
       userServiceMock.logout.mockRejectedValue(new Error('Failed'));
 
       await component.onLogout();
@@ -76,7 +76,7 @@ describe('UserMenuComponent', () => {
 
   describe('onSettings()', () => {
     it('should log settings not implemented message', () => {
-      const consoleSpy = jest.spyOn(console, 'log');
+      const consoleSpy = vi.spyOn(console, 'log');
       component.onSettings();
       expect(consoleSpy).toHaveBeenCalledWith(
         'Settings not yet implemented for unified service'

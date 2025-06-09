@@ -10,44 +10,44 @@ import { of } from 'rxjs';
 
 import { WelcomeComponent } from './welcome.component';
 
-jest.mock('@angular/common/http');
-jest.mock('@angular/router');
-jest.mock('@services/xsrf.service');
+vi.mock('@angular/common/http');
+vi.mock('@angular/router');
+vi.mock('@services/xsrf.service');
 
 describe('WelcomeComponent', () => {
   let component: WelcomeComponent;
   let fixture: ComponentFixture<WelcomeComponent>;
-  let httpClient: jest.Mocked<HttpClient>;
-  let router: jest.Mocked<Router>;
-  let snackBar: jest.Mocked<MatSnackBar>;
-  let xsrfService: jest.Mocked<XsrfService>;
-  let userService: jest.Mocked<UserService>;
-  let breakpointObserver: jest.Mocked<BreakpointObserver>;
+  let httpClient: vi.Mocked<HttpClient>;
+  let router: vi.Mocked<Router>;
+  let snackBar: vi.Mocked<MatSnackBar>;
+  let xsrfService: vi.Mocked<XsrfService>;
+  let userService: vi.Mocked<UserService>;
+  let breakpointObserver: vi.Mocked<BreakpointObserver>;
 
   beforeEach(async () => {
     httpClient = {
-      post: jest.fn(),
-    } as unknown as jest.Mocked<HttpClient>;
+      post: vi.fn(),
+    } as unknown as vi.Mocked<HttpClient>;
 
     router = {
-      navigate: jest.fn().mockResolvedValue(true),
-    } as unknown as jest.Mocked<Router>;
+      navigate: vi.fn().mockResolvedValue(true),
+    } as unknown as vi.Mocked<Router>;
 
     snackBar = {
-      open: jest.fn(),
-    } as unknown as jest.Mocked<MatSnackBar>;
+      open: vi.fn(),
+    } as unknown as vi.Mocked<MatSnackBar>;
 
     xsrfService = {
-      getXsrfToken: jest.fn().mockReturnValue('mock-xsrf-token'),
-    } as unknown as jest.Mocked<XsrfService>;
+      getXsrfToken: vi.fn().mockReturnValue('mock-xsrf-token'),
+    } as unknown as vi.Mocked<XsrfService>;
 
     userService = {
-      login: jest.fn(),
-    } as unknown as jest.Mocked<UserService>;
+      login: vi.fn(),
+    } as unknown as vi.Mocked<UserService>;
 
     breakpointObserver = {
-      observe: jest.fn().mockReturnValue(of({ matches: false })),
-    } as unknown as jest.Mocked<BreakpointObserver>;
+      observe: vi.fn().mockReturnValue(of({ matches: false })),
+    } as unknown as vi.Mocked<BreakpointObserver>;
 
     await TestBed.configureTestingModule({
       imports: [WelcomeComponent, NoopAnimationsModule],

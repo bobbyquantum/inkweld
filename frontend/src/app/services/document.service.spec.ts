@@ -1,5 +1,5 @@
 import { DocumentAPIService } from '@inkweld/index';
-import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
+import { createServiceFactory, SpectatorService } from '@ngneat/spectator/vitest';
 import { Editor } from 'ngx-editor';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
@@ -13,52 +13,52 @@ import { SetupService } from './setup.service';
 import { SystemConfigService } from './system-config.service';
 
 // Mock dependencies
-jest.mock('yjs', () => ({
-  Doc: jest.fn(() => ({
-    getXmlFragment: jest.fn(() => ({
-      toJSON: jest.fn(() => ({ content: 'mocked content' })),
-      insert: jest.fn(),
-      delete: jest.fn(),
-      push: jest.fn(),
+vi.mock('yjs', () => ({
+  Doc: vi.fn(() => ({
+    getXmlFragment: vi.fn(() => ({
+      toJSON: vi.fn(() => ({ content: 'mocked content' })),
+      insert: vi.fn(),
+      delete: vi.fn(),
+      push: vi.fn(),
       length: 10,
     })),
-    destroy: jest.fn(),
-    on: jest.fn(),
+    destroy: vi.fn(),
+    on: vi.fn(),
   })),
-  XmlFragment: jest.fn(),
-  XmlElement: jest.fn(() => ({
-    insert: jest.fn(),
+  XmlFragment: vi.fn(),
+  XmlElement: vi.fn(() => ({
+    insert: vi.fn(),
   })),
-  XmlText: jest.fn(() => ({
-    insert: jest.fn(),
+  XmlText: vi.fn(() => ({
+    insert: vi.fn(),
   })),
-  transact: jest.fn((doc, fn) => fn()),
+  transact: vi.fn((doc, fn) => fn()),
 }));
-jest.mock('y-indexeddb');
-jest.mock('y-websocket');
-jest.mock('ngx-editor', () => ({
-  Editor: jest.fn(() => ({
+vi.mock('y-indexeddb');
+vi.mock('y-websocket');
+vi.mock('ngx-editor', () => ({
+  Editor: vi.fn(() => ({
     view: {
       state: {
         plugins: [],
-        reconfigure: jest.fn(),
+        reconfigure: vi.fn(),
       },
-      updateState: jest.fn(),
+      updateState: vi.fn(),
     },
   })),
 }));
 
 describe('DocumentService', () => {
   let spectator: SpectatorService<DocumentService>;
-  let mockProjectStateService: jest.Mocked<ProjectStateService>;
-  let mockDocumentApiService: jest.Mocked<DocumentAPIService>;
-  let mockLintApiService: jest.Mocked<LintApiService>;
-  let mockYDoc: jest.Mocked<Y.Doc>;
-  let mockWebSocketProvider: jest.Mocked<WebsocketProvider>;
-  let mockIndexedDbProvider: jest.Mocked<IndexeddbPersistence>;
-  let mockEditor: jest.Mocked<Editor>;
-  let mockSetupService: jest.Mocked<SetupService>;
-  let mockSystemConfigService: jest.Mocked<SystemConfigService>;
+  let mockProjectStateService: vi.Mocked<ProjectStateService>;
+  let mockDocumentApiService: vi.Mocked<DocumentAPIService>;
+  let mockLintApiService: vi.Mocked<LintApiService>;
+  let mockYDoc: vi.Mocked<Y.Doc>;
+  let mockWebSocketProvider: vi.Mocked<WebsocketProvider>;
+  let mockIndexedDbProvider: vi.Mocked<IndexeddbPersistence>;
+  let mockEditor: vi.Mocked<Editor>;
+  let mockSetupService: vi.Mocked<SetupService>;
+  let mockSystemConfigService: vi.Mocked<SystemConfigService>;
 
   const testDocumentId = 'test-doc';
 
@@ -68,65 +68,65 @@ describe('DocumentService', () => {
 
   beforeEach(() => {
     // Reset mocks before each test
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Set up mock instances
-    mockYDoc = new Y.Doc() as jest.Mocked<Y.Doc>;
-    (Y.Doc as jest.Mock).mockImplementation(() => mockYDoc);
+    mockYDoc = new Y.Doc() as vi.Mocked<Y.Doc>;
+    (Y.Doc as vi.Mock).mockImplementation(() => mockYDoc);
     mockWebSocketProvider = {
-      on: jest.fn(),
-      connect: jest.fn(),
-      destroy: jest.fn(),
+      on: vi.fn(),
+      connect: vi.fn(),
+      destroy: vi.fn(),
       awareness: {},
-    } as unknown as jest.Mocked<WebsocketProvider>;
+    } as unknown as vi.Mocked<WebsocketProvider>;
     mockIndexedDbProvider = {
       whenSynced: Promise.resolve(),
-      destroy: jest.fn(),
-    } as unknown as jest.Mocked<IndexeddbPersistence>;
-    mockEditor = new Editor() as jest.Mocked<Editor>;
+      destroy: vi.fn(),
+    } as unknown as vi.Mocked<IndexeddbPersistence>;
+    mockEditor = new Editor() as vi.Mocked<Editor>;
 
     // Mock constructors
-    (WebsocketProvider as jest.Mock).mockImplementation(() => {
+    (WebsocketProvider as vi.Mock).mockImplementation(() => {
       return mockWebSocketProvider;
     });
-    (IndexeddbPersistence as jest.Mock).mockImplementation(() => {
+    (IndexeddbPersistence as vi.Mock).mockImplementation(() => {
       return mockIndexedDbProvider;
     });
 
     // Mock ProjectStateService
     mockProjectStateService = {
-      updateSyncState: jest.fn(),
-    } as unknown as jest.Mocked<ProjectStateService>;
+      updateSyncState: vi.fn(),
+    } as unknown as vi.Mocked<ProjectStateService>;
 
     // Mock DocumentAPIService
     mockDocumentApiService = {
-      getDocument: jest.fn().mockReturnValue({
+      getDocument: vi.fn().mockReturnValue({
         content: '<p>Mocked document content</p>',
       }),
-      saveDocument: jest.fn().mockReturnValue(Promise.resolve()),
-    } as unknown as jest.Mocked<DocumentAPIService>;
+      saveDocument: vi.fn().mockReturnValue(Promise.resolve()),
+    } as unknown as vi.Mocked<DocumentAPIService>;
 
     // Mock LintApiService
     mockLintApiService = {
-      run: jest.fn().mockResolvedValue({
+      run: vi.fn().mockResolvedValue({
         original_paragraph: 'test',
         corrections: [],
         style_recommendations: [],
         source: 'openai',
       }),
-    } as unknown as jest.Mocked<LintApiService>;
+    } as unknown as vi.Mocked<LintApiService>;
 
     // Mock SetupService
     mockSetupService = {
-      getWebSocketUrl: jest.fn().mockReturnValue('ws://localhost:8333'),
-    } as unknown as jest.Mocked<SetupService>;
+      getWebSocketUrl: vi.fn().mockReturnValue('ws://localhost:8333'),
+    } as unknown as vi.Mocked<SetupService>;
 
     // Mock SystemConfigService
     mockSystemConfigService = {
-      isAiLintingEnabled: jest.fn().mockReturnValue(true),
-      isAiImageGenerationEnabled: jest.fn().mockReturnValue(true),
-      refreshSystemFeatures: jest.fn(),
-    } as unknown as jest.Mocked<SystemConfigService>;
+      isAiLintingEnabled: vi.fn().mockReturnValue(true),
+      isAiImageGenerationEnabled: vi.fn().mockReturnValue(true),
+      refreshSystemFeatures: vi.fn(),
+    } as unknown as vi.Mocked<SystemConfigService>;
 
     // Configure TestBed and inject service
     spectator = createService({
@@ -372,8 +372,8 @@ describe('DocumentService', () => {
 
     it('should handle WebSocket provider events', async () => {
       // Setup
-      const statusHandler = jest.fn();
-      const errorHandler = jest.fn();
+      const statusHandler = vi.fn();
+      const errorHandler = vi.fn();
 
       mockWebSocketProvider.on.mockImplementation((event, callback) => {
         if (event === 'status') statusHandler(callback);

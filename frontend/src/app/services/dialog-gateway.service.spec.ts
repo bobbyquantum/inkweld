@@ -21,17 +21,17 @@ import { DialogGatewayService } from './dialog-gateway.service';
 
 describe('DialogGatewayService', () => {
   let service: DialogGatewayService;
-  let dialogMock: jest.Mocked<MatDialog>;
+  let dialogMock: vi.Mocked<MatDialog>;
   let dialogRefMock: Partial<MatDialogRef<any>>;
 
   beforeEach(() => {
     dialogRefMock = {
-      afterClosed: jest.fn().mockReturnValue(of(null)),
+      afterClosed: vi.fn().mockReturnValue(of(null)),
     };
 
     dialogMock = {
-      open: jest.fn().mockReturnValue(dialogRefMock as MatDialogRef<any>),
-    } as unknown as jest.Mocked<MatDialog>;
+      open: vi.fn().mockReturnValue(dialogRefMock as MatDialogRef<any>),
+    } as unknown as vi.Mocked<MatDialog>;
 
     TestBed.configureTestingModule({
       providers: [
@@ -52,7 +52,7 @@ describe('DialogGatewayService', () => {
       title: 'Test',
       message: 'Test message',
     };
-    (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(of(true));
+    (dialogRefMock.afterClosed as vi.Mock).mockReturnValue(of(true));
 
     const result = await service.openConfirmationDialog(data);
 
@@ -73,7 +73,7 @@ describe('DialogGatewayService', () => {
       name: 'Updated Project',
     } as ProjectDto;
 
-    (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(
+    (dialogRefMock.afterClosed as vi.Mock).mockReturnValue(
       of(updatedProject)
     );
 
@@ -92,7 +92,7 @@ describe('DialogGatewayService', () => {
       name: 'New Element',
       type: 'ITEM',
     };
-    (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(of(dialogResult));
+    (dialogRefMock.afterClosed as vi.Mock).mockReturnValue(of(dialogResult));
 
     const result = await service.openNewElementDialog();
 
@@ -107,7 +107,7 @@ describe('DialogGatewayService', () => {
     const data: RenameDialogData = {
       currentName: 'Rename Element',
     };
-    (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(of('New Name'));
+    (dialogRefMock.afterClosed as vi.Mock).mockReturnValue(of('New Name'));
 
     const result = await service.openRenameDialog(data);
 
@@ -121,7 +121,7 @@ describe('DialogGatewayService', () => {
 
   it('should open file upload dialog', async () => {
     const testFile = new File(['test'], 'test.txt', { type: 'text/plain' });
-    (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(of(testFile));
+    (dialogRefMock.afterClosed as vi.Mock).mockReturnValue(of(testFile));
 
     const result = await service.openFileUploadDialog();
 
@@ -133,7 +133,7 @@ describe('DialogGatewayService', () => {
   });
 
   it('should handle dialog cancellation', async () => {
-    (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(of(null));
+    (dialogRefMock.afterClosed as vi.Mock).mockReturnValue(of(null));
 
     const result = await service.openRenameDialog({ currentName: 'Test' });
 

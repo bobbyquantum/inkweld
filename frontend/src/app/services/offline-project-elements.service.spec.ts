@@ -5,11 +5,11 @@ import { nanoid } from 'nanoid';
 import { OfflineProjectElementsService } from './offline-project-elements.service';
 
 // Mock nanoid to generate predictable IDs for testing
-jest.mock('nanoid', () => ({
-  nanoid: jest.fn(),
+vi.mock('nanoid', () => ({
+  nanoid: vi.fn(),
 }));
 
-const mockNanoid = nanoid as jest.MockedFunction<typeof nanoid>;
+const mockNanoid = nanoid as vi.MockedFunction<typeof nanoid>;
 
 describe('OfflineProjectElementsService', () => {
   let service: OfflineProjectElementsService;
@@ -19,10 +19,10 @@ describe('OfflineProjectElementsService', () => {
 
   // Mock localStorage
   const mockLocalStorage = {
-    getItem: jest.fn(),
-    setItem: jest.fn(),
-    removeItem: jest.fn(),
-    clear: jest.fn(),
+    getItem: vi.fn(),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+    clear: vi.fn(),
   };
 
   beforeEach(() => {
@@ -49,7 +49,7 @@ describe('OfflineProjectElementsService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('initialization', () => {
@@ -98,7 +98,7 @@ describe('OfflineProjectElementsService', () => {
 
     it('should handle localStorage parse errors', () => {
       mockLocalStorage.getItem.mockReturnValue('invalid-json');
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
       service.loadElements(TEST_USERNAME, TEST_SLUG);
 

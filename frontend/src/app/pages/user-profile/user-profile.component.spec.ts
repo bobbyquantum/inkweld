@@ -13,10 +13,10 @@ import { UserProfileComponent } from './user-profile.component';
 describe('UserProfileComponent', () => {
   let component: UserProfileComponent;
   let fixture: ComponentFixture<UserProfileComponent>;
-  let subjectCompleteSpy: jest.SpyInstance;
-  let subjectNextSpy: jest.SpyInstance;
-  let userService: jest.Mocked<UserService>;
-  let breakpointObserver: jest.Mocked<BreakpointObserver>;
+  let subjectCompleteSpy: vi.SpyInstance;
+  let subjectNextSpy: vi.SpyInstance;
+  let userService: vi.Mocked<UserService>;
+  let breakpointObserver: vi.Mocked<BreakpointObserver>;
   let projectService: Partial<ProjectService>;
 
   const activatedRouteMock = {
@@ -33,24 +33,24 @@ describe('UserProfileComponent', () => {
   beforeEach(async () => {
     // Spy on Subject's next and complete methods
     const originalSubject = Subject.prototype;
-    subjectNextSpy = jest.spyOn(originalSubject, 'next');
-    subjectCompleteSpy = jest.spyOn(originalSubject, 'complete');
+    subjectNextSpy = vi.spyOn(originalSubject, 'next');
+    subjectCompleteSpy = vi.spyOn(originalSubject, 'complete');
 
     // Mock UserService similar to HomeComponent
     userService = {
       currentUser: signal<UserDto>({ name: 'Test User', username: 'testuser' }),
-    } as unknown as jest.Mocked<UserService>;
+    } as unknown as vi.Mocked<UserService>;
 
     // Mock BreakpointObserver
     breakpointObserver = {
-      observe: jest
+      observe: vi
         .fn()
         .mockReturnValue(of({ matches: false, breakpoints: {} })),
-    } as unknown as jest.Mocked<BreakpointObserver>;
+    } as unknown as vi.Mocked<BreakpointObserver>;
 
     // Mock ProjectService to avoid service injection issues
     projectService = {
-      loadAllProjects: jest.fn().mockResolvedValue(undefined),
+      loadAllProjects: vi.fn().mockResolvedValue(undefined),
       projects: signal<ProjectDto[]>([]),
     };
 

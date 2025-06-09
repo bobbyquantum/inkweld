@@ -13,35 +13,35 @@ import { of, throwError } from 'rxjs';
 import { GeneralSettingsComponent } from './general-settings.component';
 
 // Mock URL.createObjectURL which isn't available in Jest environment
-global.URL.createObjectURL = jest.fn().mockReturnValue('blob:mock-url');
-global.URL.revokeObjectURL = jest.fn();
+global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+global.URL.revokeObjectURL = vi.fn();
 
 describe('GeneralSettingsComponent', () => {
   let component: GeneralSettingsComponent;
   let fixture: ComponentFixture<GeneralSettingsComponent>;
-  let mockThemeService: jest.Mocked<ThemeService>;
-  let mockUserService: jest.Mocked<UserService>;
+  let mockThemeService: vi.Mocked<ThemeService>;
+  let mockUserService: vi.Mocked<UserService>;
 
   beforeEach(async () => {
     // Create mocks for the required services
     mockThemeService = {
-      getCurrentTheme: jest
+      getCurrentTheme: vi
         .fn()
         .mockReturnValue(of('light-theme' as ThemeOption)),
-      update: jest.fn(),
-    } as unknown as jest.Mocked<ThemeService>;
+      update: vi.fn(),
+    } as unknown as vi.Mocked<ThemeService>;
 
     mockUserService = {
-      currentUser: jest.fn().mockReturnValue({
+      currentUser: vi.fn().mockReturnValue({
         username: 'testuser',
         name: 'Test User',
       }),
-      getUserAvatar: jest
+      getUserAvatar: vi
         .fn()
         .mockReturnValue(of(new Blob(['test'], { type: 'image/png' }))),
-      uploadAvatar: jest.fn().mockReturnValue(of(void 0)),
-      deleteAvatar: jest.fn().mockReturnValue(of(void 0)),
-    } as unknown as jest.Mocked<UserService>;
+      uploadAvatar: vi.fn().mockReturnValue(of(void 0)),
+      deleteAvatar: vi.fn().mockReturnValue(of(void 0)),
+    } as unknown as vi.Mocked<UserService>;
 
     await TestBed.configureTestingModule({
       imports: [
@@ -105,7 +105,7 @@ describe('GeneralSettingsComponent', () => {
       );
 
       // Capture console.warn to prevent output during tests
-      jest.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       await component.loadAvatar();
 
@@ -148,7 +148,7 @@ describe('GeneralSettingsComponent', () => {
       } as unknown as Event;
 
       // Mock alert
-      jest.spyOn(window, 'alert').mockImplementation(() => {});
+      vi.spyOn(window, 'alert').mockImplementation(() => {});
 
       await component.onFileSelected(event);
 
@@ -171,7 +171,7 @@ describe('GeneralSettingsComponent', () => {
       } as unknown as Event;
 
       // Mock alert
-      jest.spyOn(window, 'alert').mockImplementation(() => {});
+      vi.spyOn(window, 'alert').mockImplementation(() => {});
 
       await component.onFileSelected(event);
 
@@ -196,8 +196,8 @@ describe('GeneralSettingsComponent', () => {
       } as unknown as Event;
 
       // Mock console.error and alert
-      jest.spyOn(console, 'error').mockImplementation(() => {});
-      jest.spyOn(window, 'alert').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(window, 'alert').mockImplementation(() => {});
 
       await component.onFileSelected(event);
 
@@ -224,8 +224,8 @@ describe('GeneralSettingsComponent', () => {
       );
 
       // Mock console.error and alert
-      jest.spyOn(console, 'error').mockImplementation(() => {});
-      jest.spyOn(window, 'alert').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(window, 'alert').mockImplementation(() => {});
 
       await component.deleteAvatar();
 
@@ -237,7 +237,7 @@ describe('GeneralSettingsComponent', () => {
   });
 
   it('should unsubscribe from theme on destroy', () => {
-    const unsubscribeSpy = jest.fn();
+    const unsubscribeSpy = vi.fn();
     component['themeSubscription'] = { unsubscribe: unsubscribeSpy } as any;
 
     component.ngOnDestroy();

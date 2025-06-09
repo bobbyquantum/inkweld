@@ -1,4 +1,4 @@
-import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
+import { createServiceFactory, SpectatorService } from '@ngneat/spectator/vitest';
 
 import { ProjectComponent } from '../pages/project/project.component';
 import { CanDeactivateProjectGuard } from './can-deactivate-project.guard';
@@ -6,7 +6,7 @@ import { CanDeactivateProjectGuard } from './can-deactivate-project.guard';
 describe('CanDeactivateProjectGuard', () => {
   let spectator: SpectatorService<CanDeactivateProjectGuard>;
   let guard: CanDeactivateProjectGuard;
-  let mockProjectComponent: jest.Mocked<ProjectComponent>;
+  let mockProjectComponent: vi.Mocked<ProjectComponent>;
 
   const createService = createServiceFactory({
     service: CanDeactivateProjectGuard,
@@ -14,8 +14,8 @@ describe('CanDeactivateProjectGuard', () => {
 
   beforeEach(() => {
     mockProjectComponent = {
-      canDeactivate: jest.fn(),
-    } as unknown as jest.Mocked<ProjectComponent>;
+      canDeactivate: vi.fn(),
+    } as unknown as vi.Mocked<ProjectComponent>;
 
     spectator = createService();
     guard = spectator.service;

@@ -1,5 +1,5 @@
 import { ProjectElementDto } from '@inkweld/index';
-import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
+import { createServiceFactory, SpectatorService } from '@ngneat/spectator/vitest';
 
 import { RecentFilesService } from './recent-files.service';
 import { SettingsService } from './settings.service';
@@ -16,10 +16,10 @@ describe('RecentFilesService', () => {
       {
         provide: SettingsService,
         useValue: {
-          getSetting: jest.fn((key: string, defaultValue: unknown) => {
+          getSetting: vi.fn((key: string, defaultValue: unknown) => {
             return settingsStorageMock[key] || defaultValue;
           }),
-          setSetting: jest.fn((key: string, value: unknown) => {
+          setSetting: vi.fn((key: string, value: unknown) => {
             settingsStorageMock[key] = value;
           }),
         },
@@ -175,7 +175,7 @@ describe('RecentFilesService', () => {
     };
 
     // Reset the mock before this specific test
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     service.addRecentFile(file, 'user', 'slug');
     expect(service.recentFiles().length).toBe(1);

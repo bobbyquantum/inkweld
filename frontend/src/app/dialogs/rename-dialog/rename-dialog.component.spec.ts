@@ -14,7 +14,7 @@ import {
 describe('RenameDialogComponent', () => {
   let component: RenameDialogComponent;
   let fixture: ComponentFixture<RenameDialogComponent>;
-  let mockDialogRef: jest.Mocked<MatDialogRef<RenameDialogComponent>>;
+  let mockDialogRef: vi.Mocked<MatDialogRef<RenameDialogComponent>>;
 
   const mockData: RenameDialogData = {
     currentName: 'Test Item',
@@ -23,8 +23,8 @@ describe('RenameDialogComponent', () => {
 
   beforeEach(async () => {
     mockDialogRef = {
-      close: jest.fn(),
-    } as Partial<MatDialogRef<RenameDialogComponent>> as jest.Mocked<
+      close: vi.fn(),
+    } as Partial<MatDialogRef<RenameDialogComponent>> as vi.Mocked<
       MatDialogRef<RenameDialogComponent>
     >;
 

@@ -27,9 +27,9 @@ describe('CreateProjectComponent', () => {
   let component: CreateProjectComponent;
   let fixture: ComponentFixture<CreateProjectComponent>;
   let userService: Partial<UnifiedUserService>;
-  let projectService: jest.Mocked<UnifiedProjectService>;
-  let snackBar: jest.Mocked<MatSnackBar>;
-  let router: jest.Mocked<Router>;
+  let projectService: vi.Mocked<UnifiedProjectService>;
+  let snackBar: vi.Mocked<MatSnackBar>;
+  let router: vi.Mocked<Router>;
 
   const mockUser = {
     username: 'testuser',
@@ -52,20 +52,20 @@ describe('CreateProjectComponent', () => {
   beforeEach(async () => {
     userService = {
       currentUser: signal(mockUser),
-      getMode: jest.fn().mockReturnValue('offline'),
+      getMode: vi.fn().mockReturnValue('offline'),
     };
 
     projectService = {
-      createProject: jest.fn().mockResolvedValue(mockProject),
-    } as unknown as jest.Mocked<UnifiedProjectService>;
+      createProject: vi.fn().mockResolvedValue(mockProject),
+    } as unknown as vi.Mocked<UnifiedProjectService>;
 
     snackBar = {
-      open: jest.fn(),
-    } as unknown as jest.Mocked<MatSnackBar>;
+      open: vi.fn(),
+    } as unknown as vi.Mocked<MatSnackBar>;
 
     router = {
-      navigate: jest.fn().mockResolvedValue(true),
-    } as unknown as jest.Mocked<Router>;
+      navigate: vi.fn().mockResolvedValue(true),
+    } as unknown as vi.Mocked<Router>;
 
     await TestBed.configureTestingModule({
       imports: [

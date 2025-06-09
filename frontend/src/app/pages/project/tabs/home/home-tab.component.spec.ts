@@ -49,18 +49,18 @@ describe('HomeTabComponent', () => {
     projectStateService = {
       project: projectSignal,
       elements: elementsSignal,
-      openDocument: jest.fn(),
-      publishProject: jest.fn().mockResolvedValue(undefined),
-      showEditProjectDialog: jest.fn(),
+      openDocument: vi.fn(),
+      publishProject: vi.fn().mockResolvedValue(undefined),
+      showEditProjectDialog: vi.fn(),
     };
 
     recentFilesService = {
-      getRecentFilesForProject: jest.fn().mockReturnValue(mockRecentFiles),
+      getRecentFilesForProject: vi.fn().mockReturnValue(mockRecentFiles),
     };
 
     importExportService = {
-      exportProjectZip: jest.fn().mockResolvedValue(undefined),
-      importProjectZip: jest.fn().mockResolvedValue(undefined),
+      exportProjectZip: vi.fn().mockResolvedValue(undefined),
+      importProjectZip: vi.fn().mockResolvedValue(undefined),
     };
   };
 
@@ -135,7 +135,7 @@ describe('HomeTabComponent', () => {
       metadata: {},
     } as ProjectElementDto;
 
-    jest.spyOn(component, 'onRecentDocumentClick');
+    vi.spyOn(component, 'onRecentDocumentClick');
     (projectStateService.elements as any).set([mockElement]);
 
     component.onRecentDocumentKeydown(mockKeyboardEvent, document.id);
@@ -157,7 +157,7 @@ describe('HomeTabComponent', () => {
       metadata: {},
     } as ProjectElementDto;
 
-    jest.spyOn(component, 'onRecentDocumentClick');
+    vi.spyOn(component, 'onRecentDocumentClick');
     (projectStateService.elements as any).set([mockElement]);
 
     component.onRecentDocumentKeydown(mockKeyboardEvent, document.id);
@@ -169,7 +169,7 @@ describe('HomeTabComponent', () => {
     const document = mockRecentFiles[0];
     const mockKeyboardEvent = new KeyboardEvent('keydown', { key: 'A' });
 
-    jest.spyOn(component, 'onRecentDocumentClick');
+    vi.spyOn(component, 'onRecentDocumentClick');
 
     component.onRecentDocumentKeydown(mockKeyboardEvent, document.id);
 
@@ -182,7 +182,7 @@ describe('HomeTabComponent', () => {
   });
 
   it('should emit import event when import button is clicked', () => {
-    jest.spyOn(component.importRequested, 'emit');
+    vi.spyOn(component.importRequested, 'emit');
     component.onImportClick();
     expect(component.importRequested.emit).toHaveBeenCalled();
   });

@@ -61,8 +61,8 @@ describe('FolderTabComponent', () => {
 
     // Set up mocked services
     documentService = {
-      disconnect: jest.fn(),
-      getSyncStatus: jest.fn().mockReturnValue(of({})),
+      disconnect: vi.fn(),
+      getSyncStatus: vi.fn().mockReturnValue(of({})),
     };
 
     projectStateService = {
@@ -197,7 +197,7 @@ describe('FolderTabComponent', () => {
 
   it('should clean up subscription on destroy', () => {
     const mockSubscription = {
-      unsubscribe: jest.fn(),
+      unsubscribe: vi.fn(),
     };
     component['paramSubscription'] = mockSubscription as any;
 

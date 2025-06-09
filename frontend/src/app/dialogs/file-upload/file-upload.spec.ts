@@ -7,7 +7,7 @@ import { FileUploadComponent } from './file-upload.component';
 describe('FileUploadComponent', () => {
   let component: FileUploadComponent;
   let fixture: ComponentFixture<FileUploadComponent>;
-  let dialogRef: jest.Mocked<MatDialogRef<FileUploadComponent>>;
+  let dialogRef: vi.Mocked<MatDialogRef<FileUploadComponent>>;
 
   // Create a reusable test file with minimal size
   const createTestFile = () =>
@@ -15,7 +15,7 @@ describe('FileUploadComponent', () => {
 
   beforeEach(async () => {
     // Simplified mock
-    dialogRef = { close: jest.fn() } as any;
+    dialogRef = { close: vi.fn() } as any;
 
     await TestBed.configureTestingModule({
       imports: [FileUploadComponent, NoopAnimationsModule],
@@ -28,7 +28,7 @@ describe('FileUploadComponent', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should create', () => {
@@ -46,8 +46,8 @@ describe('FileUploadComponent', () => {
   it('should handle file drop', () => {
     const file = createTestFile();
     const event = {
-      preventDefault: jest.fn(),
-      stopPropagation: jest.fn(),
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
       dataTransfer: { files: [file] },
     } as unknown as DragEvent;
 
@@ -59,8 +59,8 @@ describe('FileUploadComponent', () => {
 
   it('should prevent default on dragover', () => {
     const event = {
-      preventDefault: jest.fn(),
-      stopPropagation: jest.fn(),
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
     } as unknown as DragEvent;
 
     component.onDragOver(event);
@@ -92,7 +92,7 @@ describe('FileUploadComponent', () => {
 
   it('should handle Enter key press for file selection', () => {
     const fileInput = fixture.nativeElement.querySelector('input[type="file"]');
-    jest.spyOn(fileInput, 'click');
+    vi.spyOn(fileInput, 'click');
 
     const uploadArea = fixture.nativeElement.querySelector('.upload-area');
     const keyEvent = new KeyboardEvent('keydown', { key: 'Enter' });
@@ -103,13 +103,13 @@ describe('FileUploadComponent', () => {
 
   it('should handle Space key press for file selection', () => {
     const fileInput = fixture.nativeElement.querySelector('input[type="file"]');
-    jest.spyOn(fileInput, 'click');
+    vi.spyOn(fileInput, 'click');
 
     const uploadArea = fixture.nativeElement.querySelector('.upload-area');
     const keyEvent = new KeyboardEvent('keydown', { key: ' ' });
 
     // Create a mock preventDefault function
-    keyEvent.preventDefault = jest.fn();
+    keyEvent.preventDefault = vi.fn();
 
     // Dispatch the event
     uploadArea.dispatchEvent(keyEvent);

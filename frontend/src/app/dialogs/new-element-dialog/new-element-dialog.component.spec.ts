@@ -13,12 +13,12 @@ import { NewElementDialogComponent } from './new-element-dialog.component';
 describe('NewElementDialogComponent', () => {
   let component: NewElementDialogComponent;
   let fixture: ComponentFixture<NewElementDialogComponent>;
-  let dialogRef: jest.Mocked<MatDialogRef<NewElementDialogComponent>>;
+  let dialogRef: vi.Mocked<MatDialogRef<NewElementDialogComponent>>;
 
   beforeEach(async () => {
     dialogRef = {
-      close: jest.fn(),
-    } as unknown as jest.Mocked<MatDialogRef<NewElementDialogComponent>>;
+      close: vi.fn(),
+    } as unknown as vi.Mocked<MatDialogRef<NewElementDialogComponent>>;
 
     await TestBed.configureTestingModule({
       imports: [

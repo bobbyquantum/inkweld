@@ -106,7 +106,7 @@ describe('StorageService', () => {
   describe('error handling', () => {
     it('should handle database initialization failure', async () => {
       // Mock indexedDB.open to simulate failure
-      const mockOpen = jest.spyOn(indexedDB, 'open').mockImplementation(() => {
+      const mockOpen = vi.spyOn(indexedDB, 'open').mockImplementation(() => {
         const request = {
           error: new Error('Simulated failure'),
         } as IDBOpenDBRequest;

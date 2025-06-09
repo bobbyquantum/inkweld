@@ -9,8 +9,8 @@ export const userServiceMock = {
   defaultHeaders: new HttpHeaders(),
   configuration: new Configuration(),
   encoder: {} as HttpParameterCodec,
-  userControllerCheckUsernameAvailability: jest.fn<Observable<UserControllerCheckUsernameAvailability200Response>, [string]>(),
-  userControllerGetMe: jest.fn<Observable<UserDto>, []>(),
-  userControllerGetOAuthProviders: jest.fn<Observable<string[]>, []>(),
-  userControllerRegister: jest.fn<Observable<UserDto>, [UserRegisterDto]>()
+  userControllerCheckUsernameAvailability: vi.fn<Observable<UserControllerCheckUsernameAvailability200Response>, [string]>(),
+  userControllerGetMe: vi.fn<Observable<UserDto>, []>(),
+  userControllerGetOAuthProviders: vi.fn<Observable<string[]>, []>(),
+  userControllerRegister: vi.fn<Observable<UserDto>, [UserRegisterDto]>()
 };

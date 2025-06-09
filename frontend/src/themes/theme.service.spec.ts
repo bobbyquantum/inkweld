@@ -11,33 +11,33 @@ describe('ThemeService', () => {
   let document: Document;
   let matIconRegistry: MatIconRegistry;
   let domSanitizer: DomSanitizer;
-  let localStorageSpy: jest.SpyInstance;
-  let addClassSpy: jest.Mock;
-  let removeClassSpy: jest.Mock;
+  let localStorageSpy: vi.SpyInstance;
+  let addClassSpy: vi.Mock;
+  let removeClassSpy: vi.Mock;
   let mediaQueryList: MediaQueryList;
-  let addEventListenerSpy: jest.Mock;
-  let removeEventListenerSpy: jest.Mock;
+  let addEventListenerSpy: vi.Mock;
+  let removeEventListenerSpy: vi.Mock;
 
   beforeEach(() => {
-    addClassSpy = jest.fn();
-    removeClassSpy = jest.fn();
-    addEventListenerSpy = jest.fn();
-    removeEventListenerSpy = jest.fn();
+    addClassSpy = vi.fn();
+    removeClassSpy = vi.fn();
+    addEventListenerSpy = vi.fn();
+    removeEventListenerSpy = vi.fn();
 
     mediaQueryList = {
       matches: true,
       media: '(prefers-color-scheme: dark)',
       onchange: null,
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
       addEventListener: addEventListenerSpy,
       removeEventListener: removeEventListenerSpy,
-      dispatchEvent: jest.fn(),
+      dispatchEvent: vi.fn(),
     };
 
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
-      value: jest.fn().mockImplementation(() => mediaQueryList),
+      value: vi.fn().mockImplementation(() => mediaQueryList),
     });
 
     TestBed.configureTestingModule({
@@ -45,7 +45,7 @@ describe('ThemeService', () => {
         {
           provide: RendererFactory2,
           useValue: {
-            createRenderer: jest.fn(() => ({
+            createRenderer: vi.fn(() => ({
               addClass: addClassSpy,
               removeClass: removeClassSpy,
             })),
@@ -56,8 +56,8 @@ describe('ThemeService', () => {
           useValue: {
             body: {
               classList: {
-                add: jest.fn(),
-                remove: jest.fn(),
+                add: vi.fn(),
+                remove: vi.fn(),
               },
             },
           },
@@ -65,13 +65,13 @@ describe('ThemeService', () => {
         {
           provide: MatIconRegistry,
           useValue: {
-            addSvgIconLiteral: jest.fn(),
+            addSvgIconLiteral: vi.fn(),
           },
         },
         {
           provide: DomSanitizer,
           useValue: {
-            bypassSecurityTrustHtml: jest.fn(),
+            bypassSecurityTrustHtml: vi.fn(),
           },
         },
       ],
@@ -81,8 +81,8 @@ describe('ThemeService', () => {
     document = TestBed.inject(DOCUMENT);
     matIconRegistry = TestBed.inject(MatIconRegistry);
     domSanitizer = TestBed.inject(DomSanitizer);
-    localStorageSpy = jest.spyOn(Storage.prototype, 'setItem');
-    jest.spyOn(Storage.prototype, 'getItem');
+    localStorageSpy = vi.spyOn(Storage.prototype, 'setItem');
+    vi.spyOn(Storage.prototype, 'getItem');
   });
 
   it('should be created', () => {

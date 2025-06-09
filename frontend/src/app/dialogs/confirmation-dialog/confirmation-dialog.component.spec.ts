@@ -7,12 +7,12 @@ import { ConfirmationDialogComponent } from './confirmation-dialog.component';
 describe('ConfirmationDialogComponent', () => {
   let component: ConfirmationDialogComponent;
   let fixture: ComponentFixture<ConfirmationDialogComponent>;
-  let dialogRef: jest.Mocked<MatDialogRef<ConfirmationDialogComponent>>;
+  let dialogRef: vi.Mocked<MatDialogRef<ConfirmationDialogComponent>>;
 
   beforeEach(async () => {
     dialogRef = {
-      close: jest.fn(),
-    } as unknown as jest.Mocked<MatDialogRef<ConfirmationDialogComponent>>;
+      close: vi.fn(),
+    } as unknown as vi.Mocked<MatDialogRef<ConfirmationDialogComponent>>;
 
     await TestBed.configureTestingModule({
       imports: [ConfirmationDialogComponent, NoopAnimationsModule],

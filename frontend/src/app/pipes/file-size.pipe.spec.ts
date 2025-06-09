@@ -1,4 +1,4 @@
-import { createPipeFactory } from '@ngneat/spectator/jest';
+import { createPipeFactory } from '@ngneat/spectator/vitest';
 
 import { FileSizePipe } from './file-size.pipe';
 

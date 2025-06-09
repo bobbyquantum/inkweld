@@ -18,47 +18,47 @@ import { of } from 'rxjs';
 
 import { HomeComponent } from './home.component';
 
-jest.mock('@themes/theme.service');
-jest.mock('@angular/cdk/layout');
+vi.mock('@themes/theme.service');
+vi.mock('@angular/cdk/layout');
 
 describe('HomeComponent', () => {
   let component: HomeComponent;
   let fixture: ComponentFixture<HomeComponent>;
-  let themeService: jest.Mocked<ThemeService>;
-  let userService: jest.Mocked<UnifiedUserService>;
+  let themeService: vi.Mocked<ThemeService>;
+  let userService: vi.Mocked<UnifiedUserService>;
   let projectService: Partial<UnifiedProjectService>;
-  let breakpointObserver: jest.Mocked<BreakpointObserver>;
-  let httpClient: jest.Mocked<HttpClient>;
-  let router: jest.Mocked<Router>;
+  let breakpointObserver: vi.Mocked<BreakpointObserver>;
+  let httpClient: vi.Mocked<HttpClient>;
+  let router: vi.Mocked<Router>;
 
   const mockLoadingSignal = signal(false);
   const mockProjectsSignal = signal<ProjectDto[]>([]);
 
   beforeEach(async () => {
     themeService = {
-      update: jest.fn(),
-      isDarkMode: jest.fn(),
-    } as unknown as jest.Mocked<ThemeService>;
+      update: vi.fn(),
+      isDarkMode: vi.fn(),
+    } as unknown as vi.Mocked<ThemeService>;
 
     breakpointObserver = {
-      observe: jest
+      observe: vi
         .fn()
         .mockReturnValue(of({ matches: true, breakpoints: {} })),
-    } as unknown as jest.Mocked<BreakpointObserver>;
+    } as unknown as vi.Mocked<BreakpointObserver>;
 
     httpClient = {
-      get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-    } as unknown as jest.Mocked<HttpClient>;
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    } as unknown as vi.Mocked<HttpClient>;
 
-    router = { navigate: jest.fn() } as unknown as jest.Mocked<Router>;
+    router = { navigate: vi.fn() } as unknown as vi.Mocked<Router>;
 
     userService = {
       currentUser: signal<UserDto | undefined>(undefined),
       isAuthenticated: signal(true),
-    } as unknown as jest.Mocked<UnifiedUserService>;
+    } as unknown as vi.Mocked<UnifiedUserService>;
 
     // Reset mock signals once before all tests
     mockLoadingSignal.set(false);
@@ -68,7 +68,7 @@ describe('HomeComponent', () => {
     projectService = {
       isLoading: mockLoadingSignal,
       projects: mockProjectsSignal,
-      loadProjects: jest.fn().mockResolvedValue(undefined),
+      loadProjects: vi.fn().mockResolvedValue(undefined),
     };
 
     await TestBed.configureTestingModule({
@@ -103,7 +103,7 @@ describe('HomeComponent', () => {
   });
 
   it('should load projects on init', () => {
-    const loadProjectsSpy = jest.spyOn(component as any, 'loadProjects');
+    const loadProjectsSpy = vi.spyOn(component as any, 'loadProjects');
     component.ngOnInit();
     expect(loadProjectsSpy).toHaveBeenCalled();
   });
@@ -150,7 +150,7 @@ describe('HomeComponent', () => {
   it('should handle error when loading projects', async () => {
     // Simulate an error scenario
     const loadError = new Error('Failed to load projects');
-    projectService.loadProjects = jest.fn().mockRejectedValue(loadError);
+    projectService.loadProjects = vi.fn().mockRejectedValue(loadError);
 
     await component.loadProjects();
 

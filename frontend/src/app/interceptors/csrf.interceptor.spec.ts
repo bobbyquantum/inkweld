@@ -11,7 +11,7 @@ import { XsrfService } from '../services/xsrf.service';
 import { CsrfInterceptor } from './csrf.interceptor';
 
 // Mock environment
-jest.mock('../../environments/environment', () => ({
+vi.mock('../../environments/environment', () => ({
   environment: {
     apiUrl: 'http://test-api.example.com',
   },
@@ -20,8 +20,8 @@ describe('CsrfInterceptor', () => {
   let httpClient: HttpClient;
   let httpTestingController: HttpTestingController;
   let mockXsrfService: {
-    getXsrfToken: jest.Mock;
-    refreshToken: jest.Mock;
+    getXsrfToken: vi.Mock;
+    refreshToken: vi.Mock;
   };
   const apiUrl = 'http://test-api.example.com';
   let mockDocument: { cookie: string };
@@ -30,8 +30,8 @@ describe('CsrfInterceptor', () => {
     // Create mocks
     mockDocument = { cookie: '' };
     mockXsrfService = {
-      getXsrfToken: jest.fn().mockReturnValue('test-token'),
-      refreshToken: jest.fn().mockResolvedValue('new-token'),
+      getXsrfToken: vi.fn().mockReturnValue('test-token'),
+      refreshToken: vi.fn().mockResolvedValue('new-token'),
     };
 
     TestBed.configureTestingModule({

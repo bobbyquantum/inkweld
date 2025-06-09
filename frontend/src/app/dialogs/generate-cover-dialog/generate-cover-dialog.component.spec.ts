@@ -8,7 +8,7 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ProjectDto } from '@inkweld/model/project-dto';
-import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
+import { createComponentFactory, Spectator } from '@ngneat/spectator/vitest';
 import { of, throwError } from 'rxjs';
 
 import { ImageService } from '../../../api-client/api/image.service';
@@ -69,7 +69,7 @@ describe('GenerateCoverDialogComponent', () => {
       {
         provide: MatDialogRef,
         useValue: {
-          close: jest.fn(),
+          close: vi.fn(),
         },
       },
       {
@@ -81,7 +81,7 @@ describe('GenerateCoverDialogComponent', () => {
       {
         provide: ImageService,
         useValue: {
-          imageControllerGenerateImage: jest
+          imageControllerGenerateImage: vi
             .fn()
             .mockReturnValue(of(mockImageResponse)),
         },
@@ -97,7 +97,7 @@ describe('GenerateCoverDialogComponent', () => {
     imageService = spectator.inject(ImageService);
 
     // Reset spy mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup default mock implementation
     imageService.imageControllerGenerateImage.mockReturnValue(
@@ -105,11 +105,11 @@ describe('GenerateCoverDialogComponent', () => {
     );
 
     // Prevent ngOnInit from automatically generating an image
-    jest.spyOn(component, 'ngOnInit').mockImplementation(() => {});
+    vi.spyOn(component, 'ngOnInit').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should create', () => {
@@ -120,7 +120,7 @@ describe('GenerateCoverDialogComponent', () => {
   describe('initialization', () => {
     it('should start loading an image on initialization', () => {
       // Create a mock implementation for generateCoverImage
-      const generateCoverSpy = jest
+      const generateCoverSpy = vi
         .spyOn(component, 'generateCoverImage')
         .mockImplementation(() => {
           component.loading = true;
@@ -141,7 +141,7 @@ describe('GenerateCoverDialogComponent', () => {
   describe('image generation', () => {
     it('should handle successful image generation with URL response', () => {
       // Override the original implementation to test actual logic
-      jest.spyOn(component, 'generateCoverImage').mockRestore();
+      vi.spyOn(component, 'generateCoverImage').mockRestore();
 
       // Start generation
       component.generateCoverImage();
@@ -156,7 +156,7 @@ describe('GenerateCoverDialogComponent', () => {
 
     it('should handle successful image generation with base64 response', () => {
       // Override the original implementation to test actual logic
-      jest.spyOn(component, 'generateCoverImage').mockRestore();
+      vi.spyOn(component, 'generateCoverImage').mockRestore();
 
       // Change the mock return value
       imageService.imageControllerGenerateImage.mockReturnValue(
@@ -178,7 +178,7 @@ describe('GenerateCoverDialogComponent', () => {
 
     it('should handle error during image generation', () => {
       // Override the original implementation to test actual logic
-      jest.spyOn(component, 'generateCoverImage').mockRestore();
+      vi.spyOn(component, 'generateCoverImage').mockRestore();
 
       // Setup mock to throw an error
       const testError = new Error('API Error');
@@ -187,7 +187,7 @@ describe('GenerateCoverDialogComponent', () => {
       );
 
       // Spy on console.error
-      jest.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
 
       // Start generation
       component.generateCoverImage();
@@ -206,7 +206,7 @@ describe('GenerateCoverDialogComponent', () => {
 
     it('should handle empty response', () => {
       // Override the original implementation to test actual logic
-      jest.spyOn(component, 'generateCoverImage').mockRestore();
+      vi.spyOn(component, 'generateCoverImage').mockRestore();
 
       // Setup mock to return empty response
       const emptyResponse: ImageResponseDto = {
@@ -229,7 +229,7 @@ describe('GenerateCoverDialogComponent', () => {
 
     it('should handle null response', () => {
       // Override the original implementation to test actual logic
-      jest.spyOn(component, 'generateCoverImage').mockRestore();
+      vi.spyOn(component, 'generateCoverImage').mockRestore();
 
       // Setup mock to return null
       imageService.imageControllerGenerateImage.mockReturnValue(of(null));
@@ -257,7 +257,7 @@ describe('GenerateCoverDialogComponent', () => {
 
     it('should retry image generation', () => {
       // Create a new spy to track the method call
-      const generateSpy = jest
+      const generateSpy = vi
         .spyOn(component, 'generateCoverImage')
         .mockImplementation(() => {
           // Set the property directly to simulate real behavior
@@ -278,10 +278,10 @@ describe('GenerateCoverDialogComponent', () => {
   describe('UI rendering', () => {
     beforeEach(() => {
       // Make sure ngOnInit doesn't run
-      jest.spyOn(component, 'ngOnInit').mockImplementation(() => {});
+      vi.spyOn(component, 'ngOnInit').mockImplementation(() => {});
 
       // Don't actually call the API in the generateCoverImage method
-      jest.spyOn(component, 'generateCoverImage').mockImplementation(() => {});
+      vi.spyOn(component, 'generateCoverImage').mockImplementation(() => {});
     });
 
     it('should show loading spinner when loading', () => {

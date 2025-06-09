@@ -23,14 +23,14 @@ import { ProjectTreeComponent } from './project-tree.component';
 describe('ProjectTreeComponent', () => {
   let component: ProjectTreeComponent;
   let fixture: ComponentFixture<ProjectTreeComponent>;
-  let projectStateService: jest.Mocked<ProjectStateService>;
-  let settingsService: jest.Mocked<SettingsService>;
+  let projectStateService: vi.Mocked<ProjectStateService>;
+  let settingsService: vi.Mocked<SettingsService>;
   let elementsSignal: WritableSignal<ProjectElement[]>;
   let visibleElementsSignal: WritableSignal<ProjectElement[]>;
   let loadingSignal: WritableSignal<boolean>;
   let savingSignal: WritableSignal<boolean>;
   let errorSignal: WritableSignal<string | undefined>;
-  let dialogGatewayService: jest.Mocked<DialogGatewayService>;
+  let dialogGatewayService: vi.Mocked<DialogGatewayService>;
 
   const mockDto: ProjectElement = {
     id: '1',
@@ -59,8 +59,8 @@ describe('ProjectTreeComponent', () => {
     errorSignal = signal<string | undefined>(undefined);
 
     settingsService = {
-      getSetting: jest.fn().mockReturnValue(false),
-    } as unknown as jest.Mocked<SettingsService>;
+      getSetting: vi.fn().mockReturnValue(false),
+    } as unknown as vi.Mocked<SettingsService>;
 
     projectStateService = {
       elements: elementsSignal,
@@ -71,29 +71,29 @@ describe('ProjectTreeComponent', () => {
       openTabs: signal([]),
       selectedTabIndex: signal(0),
       project: signal({ title: 'Test Project' }),
-      saveProjectElements: jest.fn().mockResolvedValue(undefined),
-      showEditProjectDialog: jest.fn(),
-      openDocument: jest.fn(),
-      updateProject: jest.fn(),
-      renameNode: jest.fn(),
-      showNewElementDialog: jest.fn(),
-      toggleExpanded: jest.fn(),
-      moveElement: jest.fn().mockResolvedValue(undefined),
-      renameElement: jest.fn().mockResolvedValue(undefined),
-      deleteElement: jest.fn().mockResolvedValue(undefined),
-      getValidDropLevels: jest
+      saveProjectElements: vi.fn().mockResolvedValue(undefined),
+      showEditProjectDialog: vi.fn(),
+      openDocument: vi.fn(),
+      updateProject: vi.fn(),
+      renameNode: vi.fn(),
+      showNewElementDialog: vi.fn(),
+      toggleExpanded: vi.fn(),
+      moveElement: vi.fn().mockResolvedValue(undefined),
+      renameElement: vi.fn().mockResolvedValue(undefined),
+      deleteElement: vi.fn().mockResolvedValue(undefined),
+      getValidDropLevels: vi
         .fn()
         .mockReturnValue({ levels: [1], defaultLevel: 1 }),
-      getDropInsertIndex: jest.fn().mockReturnValue(1),
-      isValidDrop: jest.fn().mockReturnValue(true),
-    } as unknown as jest.Mocked<ProjectStateService>;
+      getDropInsertIndex: vi.fn().mockReturnValue(1),
+      isValidDrop: vi.fn().mockReturnValue(true),
+    } as unknown as vi.Mocked<ProjectStateService>;
 
     dialogGatewayService = {
-      openConfirmationDialog: jest.fn().mockResolvedValue(true),
-      openRenameDialog: jest.fn().mockResolvedValue('New Name'),
-      openEditProjectDialog: jest.fn().mockResolvedValue(null),
-      openNewElementDialog: jest.fn().mockResolvedValue(null),
-    } as unknown as jest.Mocked<DialogGatewayService>;
+      openConfirmationDialog: vi.fn().mockResolvedValue(true),
+      openRenameDialog: vi.fn().mockResolvedValue('New Name'),
+      openEditProjectDialog: vi.fn().mockResolvedValue(null),
+      openNewElementDialog: vi.fn().mockResolvedValue(null),
+    } as unknown as vi.Mocked<DialogGatewayService>;
 
     await TestBed.configureTestingModule({
       imports: [ProjectTreeComponent, NoopAnimationsModule],
@@ -302,13 +302,13 @@ describe('ProjectTreeComponent', () => {
       } as CdkDragMove<ArrayDataSource<ProjectElement>>;
 
       // Mock the getBoundingClientRect to return valid dimensions
-      jest
+      vi
         .spyOn(component.treeContainer.nativeElement, 'getBoundingClientRect')
         .mockReturnValue({ left: 50, width: 300 } as DOMRect);
 
       // Mock the querySelector to return a placeholder element
       const mockPlaceholder = document.createElement('div');
-      jest
+      vi
         .spyOn(component.treeContainer.nativeElement, 'querySelector')
         .mockReturnValue(mockPlaceholder);
 
@@ -337,7 +337,7 @@ describe('ProjectTreeComponent', () => {
       pointerPosition: { x: 100, y: 0 },
     } as CdkDragMove<ArrayDataSource<ProjectElement>>;
 
-    jest
+    vi
       .spyOn(component.treeContainer.nativeElement, 'getBoundingClientRect')
       .mockReturnValue({ left: NaN, width: NaN } as DOMRect);
 

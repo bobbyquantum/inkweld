@@ -63,9 +63,9 @@ describe('DocumentTabComponent', () => {
 
     // Set up mocked services
     documentService = {
-      initializeSyncStatus: jest.fn(),
-      disconnect: jest.fn(), // Add mock for disconnect method
-      getSyncStatus: jest.fn().mockReturnValue(of({})),
+      initializeSyncStatus: vi.fn(),
+      disconnect: vi.fn(), // Add mock for disconnect method
+      getSyncStatus: vi.fn().mockReturnValue(of({})),
     };
 
     projectStateService = {

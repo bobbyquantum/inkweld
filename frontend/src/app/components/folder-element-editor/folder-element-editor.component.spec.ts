@@ -66,12 +66,12 @@ describe('FolderElementEditorComponent', () => {
 
   beforeEach(async () => {
     mockProjectStateService = {
-      elements: jest.fn().mockReturnValue(mockElements),
+      elements: vi.fn().mockReturnValue(mockElements),
       isLoading: signal(false),
       error: signal(undefined),
-      openDocument: jest.fn(),
-      updateElements: jest.fn(),
-      showNewElementDialog: jest.fn(),
+      openDocument: vi.fn(),
+      updateElements: vi.fn(),
+      showNewElementDialog: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -108,7 +108,7 @@ describe('FolderElementEditorComponent', () => {
 
   it('should change view mode and save to metadata', () => {
     // Spy on the private method
-    jest.spyOn<any, any>(component, 'saveViewModeToMetadata');
+    vi.spyOn<any, any>(component, 'saveViewModeToMetadata');
 
     component.setViewMode('list');
 

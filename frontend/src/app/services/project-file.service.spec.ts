@@ -9,8 +9,8 @@ import {
   createServiceFactory,
   SpectatorService,
   SpyObject,
-} from '@ngneat/spectator/jest';
-import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
+} from '@ngneat/spectator/vitest';
+import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 import { Observable, of } from 'rxjs';
 
 import { ProjectAPIService } from '../../api-client/api/project-api.service';

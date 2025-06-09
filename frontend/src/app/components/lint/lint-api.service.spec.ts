@@ -1,5 +1,5 @@
 import { HttpContext } from '@angular/common/http';
-import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
+import { createServiceFactory, SpectatorService } from '@ngneat/spectator/vitest';
 
 import { LintService } from '../../../api-client/api/lint.service';
 import { LintRequestDto } from '../../../api-client/model/lint-request-dto';
@@ -10,12 +10,12 @@ import { ABORT_SIGNAL, LintApiService } from './lint-api.service';
 // Add AbortSignal.timeout if it doesn't exist in the test environment
 if (!('timeout' in AbortSignal)) {
   // @ts-expect-error - Adding missing API for tests
-  AbortSignal.timeout = jest.fn(() => new AbortController().signal);
+  AbortSignal.timeout = vi.fn(() => new AbortController().signal);
 }
 
 describe('LintApiService', () => {
   let spectator: SpectatorService<LintApiService>;
-  let lintService: jest.Mocked<LintService>;
+  let lintService: vi.Mocked<LintService>;
 
   const createService = createServiceFactory({
     service: LintApiService,
@@ -24,14 +24,14 @@ describe('LintApiService', () => {
 
   beforeEach(() => {
     spectator = createService();
-    lintService = spectator.inject(LintService) as jest.Mocked<LintService>;
+    lintService = spectator.inject(LintService) as vi.Mocked<LintService>;
 
     // Reset mocks before each test
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock AbortSignal.timeout if it exists
     if ('timeout' in AbortSignal) {
-      jest.spyOn(AbortSignal, 'timeout').mockImplementation(() => {
+      vi.spyOn(AbortSignal, 'timeout').mockImplementation(() => {
         return new AbortController().signal;
       });
     }
@@ -119,7 +119,7 @@ describe('LintApiService', () => {
     );
 
     // Spy on HttpContext.set
-    const contextSpy = jest.spyOn(HttpContext.prototype, 'set');
+    const contextSpy = vi.spyOn(HttpContext.prototype, 'set');
 
     // Call the service
     await spectator.service.run('test text');
@@ -139,7 +139,7 @@ describe('LintApiService', () => {
     );
 
     // Spy on console.error and mock implementation to avoid noise in test output
-    const consoleErrorSpy = jest
+    const consoleErrorSpy = vi
       .spyOn(console, 'error')
       .mockImplementation(() => {});
 

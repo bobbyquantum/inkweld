@@ -11,6 +11,7 @@
     "dev": "concurrently \"cd server && bun run bun:dev\" \"cd frontend && bun run start\""
   },
   "devDependencies": {
-    "concurrently": "^9.0.0"
+    "concurrently": "^9.0.0",
+    "jsdom": "^26.1.0"
   }
 }

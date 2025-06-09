@@ -17,9 +17,9 @@ import {
   createRoutingFactory,
   Spectator,
   SpyObject,
-} from '@ngneat/spectator/jest';
+} from '@ngneat/spectator/vitest';
 import { SplitGutterInteractionEvent } from 'angular-split';
-import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
+import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 import { BehaviorSubject, of } from 'rxjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
@@ -176,18 +176,18 @@ describe('ProjectComponent', () => {
 
   beforeEach(() => {
     // Set up Jest timers
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
     // Mock localStorage
     Object.defineProperty(window, 'localStorage', {
       value: {
-        getItem: jest.fn().mockImplementation(key => {
+        getItem: vi.fn().mockImplementation(key => {
           if (key === 'splitSize') return '25';
           return null;
         }),
-        setItem: jest.fn(),
-        removeItem: jest.fn(),
-        clear: jest.fn(),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+        clear: vi.fn(),
       },
       writable: true,
     });
@@ -197,8 +197,8 @@ describe('ProjectComponent', () => {
       writable: true,
       value: null,
     });
-    document.exitFullscreen = jest.fn().mockResolvedValue(undefined);
-    document.documentElement.requestFullscreen = jest
+    document.exitFullscreen = vi.fn().mockResolvedValue(undefined);
+    document.documentElement.requestFullscreen = vi
       .fn()
       .mockResolvedValue(undefined);
 
@@ -223,10 +223,10 @@ describe('ProjectComponent', () => {
 
     // Mock HttpClient
     httpClientMock = {
-      get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
     } as unknown as SpyObject<HttpClient>;
 
     // Setup signal mocks
@@ -240,20 +240,20 @@ describe('ProjectComponent', () => {
     projectStateService.isLoading.mockReturnValue(false);
 
     snackBarMock = {
-      open: jest.fn(),
+      open: vi.fn(),
     } as unknown as SpyObject<MatSnackBar>;
 
     titleServiceMock = {
-      setTitle: jest.fn(),
+      setTitle: vi.fn(),
     } as unknown as SpyObject<Title>;
 
     breakpointObserverMock = {
-      observe: jest.fn().mockReturnValue(breakpointSubject),
+      observe: vi.fn().mockReturnValue(breakpointSubject),
     } as unknown as SpyObject<BreakpointObserver>;
 
     dialogMock = {
-      open: jest.fn().mockReturnValue({
-        afterClosed: jest.fn().mockReturnValue(of(null)),
+      open: vi.fn().mockReturnValue({
+        afterClosed: vi.fn().mockReturnValue(of(null)),
       }),
     } as unknown as SpyObject<MatDialog>;
 
@@ -302,9 +302,9 @@ describe('ProjectComponent', () => {
 
     // Set up component ViewChild elements which are not available in shallow rendering
     component.sidenav = {
-      open: jest.fn(),
-      close: jest.fn(),
-      toggle: jest.fn(),
+      open: vi.fn(),
+      close: vi.fn(),
+      toggle: vi.fn(),
     } as unknown as MatSidenav;
 
     component.fileInput = {
@@ -313,8 +313,8 @@ describe('ProjectComponent', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
-    jest.useRealTimers();
+    vi.clearAllMocks();
+    vi.useRealTimers();
     routeParams.complete();
     breakpointSubject.complete();
   });
@@ -351,7 +351,7 @@ describe('ProjectComponent', () => {
     });
 
     it('should add fullscreen listener on init', () => {
-      const addEventListenerSpy = jest.spyOn(document, 'addEventListener');
+      const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
       component.ngOnInit();
       expect(addEventListenerSpy).toHaveBeenCalledWith(
         'fullscreenchange',
@@ -378,7 +378,7 @@ describe('ProjectComponent', () => {
         sizes: [30, 70],
       } as SplitGutterInteractionEvent;
 
-      const localStorageSpy = jest.spyOn(localStorage, 'setItem');
+      const localStorageSpy = vi.spyOn(localStorage, 'setItem');
 
       component.onSplitDragEnd(mockEvent);
       expect(localStorageSpy).toHaveBeenCalledWith('splitSize', '30');
@@ -390,10 +390,10 @@ describe('ProjectComponent', () => {
     });
 
     it('should get gutter size based on mobile status', () => {
-      jest.spyOn(component, 'isMobile').mockReturnValue(false);
+      vi.spyOn(component, 'isMobile').mockReturnValue(false);
       expect(component.getGutterSize()).toBe(8);
 
-      jest.spyOn(component, 'isMobile').mockReturnValue(true);
+      vi.spyOn(component, 'isMobile').mockReturnValue(true);
       expect(component.getGutterSize()).toBe(0);
     });
   });
@@ -401,7 +401,7 @@ describe('ProjectComponent', () => {
   describe('Zen Mode', () => {
     it('should toggle zen mode', () => {
       // Mock canEnableZenMode to return true
-      jest.spyOn(component, 'canEnableZenMode').mockReturnValue(true);
+      vi.spyOn(component, 'canEnableZenMode').mockReturnValue(true);
 
       // Toggle on
       component.toggleZenMode();
@@ -424,7 +424,7 @@ describe('ProjectComponent', () => {
     });
 
     it('should handle key down events on recent documents', () => {
-      jest.spyOn(component, 'onRecentDocumentClick');
+      vi.spyOn(component, 'onRecentDocumentClick');
 
       // Enter key should call onRecentDocumentClick
       const enterEvent = new KeyboardEvent('keydown', { key: 'Enter' });
@@ -438,15 +438,15 @@ describe('ProjectComponent', () => {
 
       // Other keys should not trigger action
       const escEvent = new KeyboardEvent('keydown', { key: 'Escape' });
-      (component.onRecentDocumentClick as jest.Mock).mockClear();
+      (component.onRecentDocumentClick as vi.Mock).mockClear();
       component.onRecentDocumentKeydown(escEvent, '3');
       expect(component.onRecentDocumentClick).not.toHaveBeenCalled();
     });
 
     it('should handle document opened event', () => {
       // Test on desktop
-      jest.spyOn(component, 'isMobile').mockReturnValue(false);
-      const sidenav = { close: jest.fn() } as unknown as MatSidenav;
+      vi.spyOn(component, 'isMobile').mockReturnValue(false);
+      const sidenav = { close: vi.fn() } as unknown as MatSidenav;
       component.sidenav = sidenav;
 
       component.onDocumentOpened(mockElements[0]);
@@ -456,7 +456,7 @@ describe('ProjectComponent', () => {
       expect(sidenav.close).not.toHaveBeenCalled();
 
       // Test on mobile - should close sidenav
-      jest.spyOn(component, 'isMobile').mockReturnValue(true);
+      vi.spyOn(component, 'isMobile').mockReturnValue(true);
       component.onDocumentOpened(mockElements[1]);
       expect(projectStateService.openDocument).toHaveBeenCalledWith(
         mockElements[1]
@@ -484,7 +484,7 @@ describe('ProjectComponent', () => {
       void component.onDeleteProjectClick();
 
       // Run timers to allow promises to resolve
-      jest.runAllTimers();
+      vi.runAllTimers();
 
       expect(projectService.deleteProject).not.toHaveBeenCalled();
     });
@@ -492,7 +492,7 @@ describe('ProjectComponent', () => {
 
   describe('Lifecycle Hooks', () => {
     it('should clean up on destroy', () => {
-      const removeEventListenerSpy = jest.spyOn(
+      const removeEventListenerSpy = vi.spyOn(
         document,
         'removeEventListener'
       );
