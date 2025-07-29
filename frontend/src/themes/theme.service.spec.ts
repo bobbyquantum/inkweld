@@ -1,5 +1,4 @@
-import { DOCUMENT } from '@angular/common';
-import { RendererFactory2 } from '@angular/core';
+import { DOCUMENT, RendererFactory2 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatIconRegistry } from '@angular/material/icon';
 import { DomSanitizer } from '@angular/platform-browser';

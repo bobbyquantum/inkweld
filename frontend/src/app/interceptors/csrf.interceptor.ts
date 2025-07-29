@@ -1,4 +1,3 @@
-import { DOCUMENT } from '@angular/common';
 import {
   HttpErrorResponse,
   HttpEvent,
@@ -6,7 +5,7 @@ import {
   HttpInterceptor,
   HttpRequest,
 } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { DOCUMENT, inject, Injectable } from '@angular/core';
 import { from, Observable, switchMap, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 

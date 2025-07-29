@@ -35,7 +35,7 @@
 .home-column {
   flex: 1;
   min-width: 0; /* Prevents flex items from overflowing */
-  background-color: var(--mat-sys-surface);
+  background-color: var(--sys-surface);
   border-radius: 8px;
   padding: 16px;
 }

@@ -95,7 +95,7 @@
       margin: 0;
       border: none;
       box-shadow: none;
-      background-color: var(--mat-sys-surface-container-lowest);
+      background-color: var(--sys-surface-container-lowest);
       border-radius: 0;
     }
   }
@@ -119,20 +119,20 @@
   overflow-y: auto;
   width: 100%;
   padding-top: 0;
-  background-color: var(--mat-sys-background);
+  background-color: var(--sys-background);
 }
 
 .editor-content {
   width: 100%;
   max-width: var(--editor-max-width, none);
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
   padding-top: 1rem;
   padding-bottom: 1rem;
   margin-top: 20px;
   font-size: 1rem;
   line-height: 1.5;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--mat-sys-outline);
+  border: 1px solid var(--sys-outline);
   min-height: 0;
   box-sizing: border-box;
   padding-left: 2cm;
@@ -153,10 +153,10 @@
   align-items: center;
   padding: 0 16px;
   height: 24px;
-  background-color: var(--mat-sys-surface-container);
-  border-top: 1px solid var(--mat-sys-outline-variant);
+  background-color: var(--sys-surface-container);
+  border-top: 1px solid var(--sys-outline-variant);
   font-size: 0.875rem;
-  color: var(--mat-sys-on-surface);
+  color: var(--sys-on-surface);
 
   .sync-status {
     display: flex;

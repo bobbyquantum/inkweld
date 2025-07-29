@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   Component,
   ElementRef,
+  inject,
   Input,
   OnChanges,
   OnInit,
@@ -52,12 +53,14 @@ import { CorrectionDto } from '../../../api-client/model/correction-dto';
   ],
 })
 export class LintOverlayComponent implements OnInit, OnChanges {
+  private elementRef = inject(ElementRef);
+
   @Input() recommendations: CorrectionDto[] = [];
   @Input() position: TooltipPosition = 'below';
 
   tipContent = '';
 
-  constructor(private elementRef: ElementRef) {
+  constructor() {
     // Listen for custom events for accept/reject actions
     document.addEventListener('lint-accept', (event: Event) => {
       const customEvent = event as CustomEvent<CorrectionDto>;

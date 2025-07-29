@@ -1,9 +1,5 @@
 import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
-import {
-  createServiceFactory,
-  SpectatorService,
-  SpyObject,
-} from '@ngneat/spectator/jest';
+import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { Observable } from 'rxjs';
 
@@ -38,8 +34,8 @@ const createService = createServiceFactory({
   service: ProjectService,
 });
 
-/* Convenience alias that includes Spectator's spy mix-ins */
-type ApiMock = DeepMockProxy<ProjectAPIService> & SpyObject<ProjectAPIService>;
+/* Convenience alias for mock */
+type ApiMock = DeepMockProxy<ProjectAPIService>;
 type StoreMock = DeepMockProxy<StorageService>;
 type XsrfMock = DeepMockProxy<XsrfService>;
 

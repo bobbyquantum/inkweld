@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -31,16 +31,16 @@ export interface GenerateCoverDialogData {
   ],
 })
 export class GenerateCoverDialogComponent implements OnInit {
+  dialogRef = inject<MatDialogRef<GenerateCoverDialogComponent>>(MatDialogRef);
+  data = inject<GenerateCoverDialogData>(MAT_DIALOG_DATA);
+  private imageService = inject(ImageService);
+
   loading = false;
   error: string | null = null;
   imageUrl: string | null = null;
   imageBase64: string | null = null;
 
-  constructor(
-    public dialogRef: MatDialogRef<GenerateCoverDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: GenerateCoverDialogData,
-    private imageService: ImageService
-  ) {}
+  constructor() {}
 
   ngOnInit(): void {
     this.generateCoverImage();

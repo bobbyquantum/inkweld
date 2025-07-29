@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 
 import { ProjectDto } from '../../api-client/model/project-dto';
 import { OfflineProjectElementsService } from './offline-project-elements.service';
@@ -10,14 +10,14 @@ const OFFLINE_PROJECTS_STORAGE_KEY = 'inkweld-offline-projects';
   providedIn: 'root',
 })
 export class OfflineProjectService {
+  private setupService = inject(SetupService);
+  private offlineElementsService = inject(OfflineProjectElementsService);
+
   readonly projects = signal<ProjectDto[]>([]);
   readonly isLoading = signal(false);
   readonly initialized = signal(false);
 
-  constructor(
-    private setupService: SetupService,
-    private offlineElementsService: OfflineProjectElementsService
-  ) {
+  constructor() {
     this.loadOfflineProjects();
   }
 

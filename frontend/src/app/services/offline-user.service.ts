@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 
 import { UserDto } from '../../api-client/model/user-dto';
 import { SetupService } from './setup.service';
@@ -9,6 +9,8 @@ const OFFLINE_USER_STORAGE_KEY = 'inkweld-offline-user';
   providedIn: 'root',
 })
 export class OfflineUserService {
+  private setupService = inject(SetupService);
+
   readonly currentUser = signal<UserDto>({
     name: 'anonymous',
     username: 'anonymous',
@@ -18,7 +20,7 @@ export class OfflineUserService {
   readonly isAuthenticated = signal(false);
   readonly initialized = signal(false);
 
-  constructor(private setupService: SetupService) {
+  constructor() {
     this.loadOfflineUser();
   }
 
