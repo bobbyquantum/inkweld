@@ -39,7 +39,7 @@
   p {
     margin-bottom: 16px;
     font-size: 16px;
-    color: var(--mat-sys-color-on-surface);
+    color: var(--sys-color-on-surface);
   }
 }
 
@@ -59,7 +59,7 @@
   flex: 1;
   overflow: auto;
   border-radius: 4px;
-  background-color: var(--mat-sys-color-surface);
+  background-color: var(--sys-color-surface);
 }
 
 .documents-table {
@@ -68,7 +68,7 @@
   .document-name {
     display: flex;
     align-items: center;
-    color: var(--mat-sys-color-primary);
+    color: var(--sys-color-primary);
     cursor: pointer;
     text-decoration: none;
 
@@ -78,7 +78,7 @@
 
     .document-icon {
       margin-right: 8px;
-      color: var(--mat-sys-color-primary);
+      color: var(--sys-color-primary);
     }
   }
 

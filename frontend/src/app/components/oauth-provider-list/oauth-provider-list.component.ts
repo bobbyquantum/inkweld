@@ -85,7 +85,7 @@ import { environment } from '../../../environments/environment';
         align-items: center;
         gap: 12px;
         padding: 16px 0;
-        color: var(--mdc-theme-text-secondary-on-background);
+        color: var(--mat-theme-text-secondary-on-background);
 
         mat-progress-spinner {
           margin-bottom: 4px;

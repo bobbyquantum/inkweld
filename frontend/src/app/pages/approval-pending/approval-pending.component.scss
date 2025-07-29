@@ -61,8 +61,8 @@
 }
 
 .approval-icon {
-  background: var(--mat-sys-primary);
-  color: var(--mat-sys-on-primary);
+  background: var(--sys-primary);
+  color: var(--sys-on-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -81,11 +81,11 @@
     margin: 8px 0;
     font-size: 16px;
     line-height: 1.5;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 
   strong {
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
   }
 }
 
@@ -93,7 +93,7 @@
   margin-bottom: 24px;
 
   h3 {
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
     margin-bottom: 16px;
     font-size: 18px;
   }
@@ -106,7 +106,7 @@
       margin: 8px 0;
       font-size: 14px;
       line-height: 1.4;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
   }
 }

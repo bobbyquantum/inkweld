@@ -1,5 +1,5 @@
 mat-tree {
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
 }
 
 .project-tree-container {
@@ -11,7 +11,7 @@ mat-tree {
   position: absolute;
   left: 0;
   width: 2px;
-  background-color: var(--mat-sys-primary);
+  background-color: var(--sys-primary);
   transition: top 250ms ease, height 250ms ease;
   z-index: 1;
 }
@@ -32,8 +32,8 @@ mat-tree {
 .error-message {
   padding: 16px;
   margin: 8px;
-  background-color: var(--mat-sys-error-container);
-  color: var(--mat-sys-on-error-container);
+  background-color: var(--sys-error-container);
+  color: var(--sys-on-error-container);
   border-radius: 4px;
 }
 
@@ -56,7 +56,7 @@ mat-tree {
   flex-direction: column;
   min-width: 180px;
   padding: 8px 0;
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -70,14 +70,14 @@ mat-tree {
   width: 100%;
   text-align: left;
   cursor: pointer;
-  color: var(--mat-sys-on-surface);
+  color: var(--sys-on-surface);
 
   &:hover {
-    background-color: var(--mat-sys-surface-container-highest);
+    background-color: var(--sys-surface-container-highest);
   }
 
   &:disabled {
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     cursor: not-allowed;
   }
 
@@ -95,11 +95,11 @@ mat-tree {
 }
 
 .selected-item {
-  background-color: var(--mat-sys-surface-container-highest);
+  background-color: var(--sys-surface-container-highest);
 }
 
 .context-item {
-  background-color: var(--mat-sys-surface-container-high);
+  background-color: var(--sys-surface-container-high);
 }
 
 .drag-placeholder {
@@ -110,5 +110,5 @@ mat-tree {
 }
 
 .drag-preview {
-  background-color: var(--mat-sys-surface-container);
+  background-color: var(--sys-surface-container);
 }

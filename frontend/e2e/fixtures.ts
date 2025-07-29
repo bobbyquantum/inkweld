@@ -2,6 +2,7 @@ import { test as base, expect as baseExpect, Page } from '@playwright/test';
 import { mockApi } from './mock-api';
 import { setupAuthHandlers } from './mock-api/auth';
 import { setupUserHandlers } from './mock-api/users';
+import { setupConfigHandlers } from './mock-api/config';
 
 /**
  * Initialize all mock API handlers
@@ -10,6 +11,7 @@ import { setupUserHandlers } from './mock-api/users';
 function initializeMockApi(): void {
   setupAuthHandlers();
   setupUserHandlers();
+  setupConfigHandlers();
   // Add other mock handlers initialization here
 }
 
@@ -48,6 +50,14 @@ export const test = base.extend<TestFixtures>({
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
 
+    // Set up app configuration in localStorage
+    await page.addInitScript(() => {
+      localStorage.setItem('inkweld-app-config', JSON.stringify({
+        mode: 'server',
+        serverUrl: 'http://localhost:8333'
+      }));
+    });
+
     // No authentication state is set
     console.log('Setting up page for anonymous user');
 
@@ -58,6 +68,14 @@ export const test = base.extend<TestFixtures>({
   authenticatedPage: async ({ page }, use) => {
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
+
+    // Set up app configuration in localStorage
+    await page.addInitScript(() => {
+      localStorage.setItem('inkweld-app-config', JSON.stringify({
+        mode: 'server',
+        serverUrl: 'http://localhost:8333'
+      }));
+    });
 
     console.log('Setting up page for authenticated user');
 
@@ -85,6 +103,14 @@ export const test = base.extend<TestFixtures>({
   adminPage: async ({ page }, use) => {
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
+
+    // Set up app configuration in localStorage
+    await page.addInitScript(() => {
+      localStorage.setItem('inkweld-app-config', JSON.stringify({
+        mode: 'server',
+        serverUrl: 'http://localhost:8333'
+      }));
+    });
 
     console.log('Setting up page for admin user');
 

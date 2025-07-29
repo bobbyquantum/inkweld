@@ -78,6 +78,7 @@ describe('DocumentElementEditorComponent', () => {
   it('should setup collaboration after view init', () => {
     jest.useFakeTimers();
     component.documentId = 'test:test:abc123';
+    component.ngAfterViewInit();
     jest.runAllTimers();
     expect(documentService.setupCollaboration).toHaveBeenCalledTimes(1);
     jest.useRealTimers();

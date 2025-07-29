@@ -1,5 +1,4 @@
 import { DragDropModule } from '@angular/cdk/drag-drop';
-import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   Component,
@@ -40,7 +39,6 @@ const isTestEnvironment = () => {
   selector: 'app-document-element-editor',
   standalone: true,
   imports: [
-    CommonModule,
     MatButtonModule,
     MatIconModule,
     NgxEditorModule,

@@ -1,4 +1,4 @@
-import { Injectable, Renderer2, RendererFactory2 } from '@angular/core';
+import { inject, Injectable, Renderer2, RendererFactory2 } from '@angular/core';
 
 interface ReCaptchaV2 {
   render(element: HTMLElement | string, options: ReCaptchaV2Options): number;
@@ -24,11 +24,13 @@ declare global {
   providedIn: 'root',
 })
 export class RecaptchaService {
+  private rendererFactory = inject(RendererFactory2);
+
   private renderer: Renderer2;
   private isLoaded = false;
   private loadPromise: Promise<void> | null = null;
 
-  constructor(private rendererFactory: RendererFactory2) {
+  constructor() {
     this.renderer = this.rendererFactory.createRenderer(null, null);
   }
 

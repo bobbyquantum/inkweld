@@ -70,7 +70,7 @@ h1 {
 mat-card {
   margin-bottom: 24px;
   padding: 24px;
-  box-shadow: var(--mdc-elevated-card-container-elevation);
+  box-shadow: var(--mat-card-elevated-container-elevation);
   background-color: var(--card-background-color);
   position: relative;
 }
@@ -127,7 +127,7 @@ form {
     align-items: center;
     gap: 12px;
     padding: 16px 0;
-    color: var(--mdc-theme-text-secondary-on-background);
+    color: var(--mat-theme-text-secondary-on-background);
 
     mat-progress-spinner {
       margin-bottom: 4px;
@@ -182,7 +182,7 @@ mat-divider {
   display: block;
   font-size: 0.9em;
   margin-bottom: 8px;
-  color: var(--mdc-theme-text-secondary-on-background);
+  color: var(--mat-theme-text-secondary-on-background);
 }
 
 .suggestions-buttons {
@@ -328,7 +328,7 @@ mat-divider {
   font-weight: 500;
   font-size: 0.9em;
   margin-bottom: 8px;
-  color: var(--mdc-theme-on-surface-variant);
+  color: var(--mat-theme-on-surface-variant);
 }
 
 .validation-checklist-list {
@@ -342,7 +342,7 @@ mat-divider {
   align-items: center;
   margin-bottom: 4px;
   font-size: 0.85em;
-  color: var(--mdc-theme-on-surface-variant);
+  color: var(--mat-theme-on-surface-variant);
 
   &:last-child {
     margin-bottom: 0;
@@ -403,7 +403,7 @@ mat-divider {
   gap: 8px;
   background: var(--password-tooltip-bg);
   border-radius: 4px;
-  color: var(--mdc-theme-on-surface-variant);
+  color: var(--mat-theme-on-surface-variant);
   z-index: 2;
   
   span {
@@ -435,7 +435,7 @@ mat-divider {
   max-width: 280px;
   min-width: 240px;
   z-index: 1000;
-  color: var(--mdc-theme-on-surface);
+  color: var(--mat-theme-on-surface);
   
   /* Remove backdrop blur for solid appearance */
   /* backdrop-filter: blur(4px);
@@ -450,7 +450,7 @@ mat-divider {
 }
 
 .tooltip-icon {
-  color: var(--mdc-theme-primary);
+  color: var(--mat-theme-primary);
   font-size: 18px;
   height: 18px;
   width: 18px;
@@ -459,7 +459,7 @@ mat-divider {
 .tooltip-title {
   font-weight: 500;
   font-size: 0.9em;
-  color: var(--mdc-theme-on-surface);
+  color: var(--mat-theme-on-surface);
 }
 
 .requirements-list {
@@ -474,7 +474,7 @@ mat-divider {
   gap: 8px;
   margin-bottom: 6px;
   font-size: 0.85em;
-  color: var(--mdc-theme-on-surface-variant);
+  color: var(--mat-theme-on-surface-variant);
   
   &:last-child {
     margin-bottom: 0;
@@ -494,7 +494,7 @@ mat-divider {
       color: var(--custom-error-color);
     }
     .requirement-text {
-      color: var(--mdc-theme-on-surface-variant);
+      color: var(--mat-theme-on-surface-variant);
     }
   }
 }

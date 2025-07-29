@@ -4,6 +4,7 @@
     "outDir": "./out-tsc/spec",
     "module": "ES2022",
     "sourceMap": true,
+    "isolatedModules": true,
     "types": [
       "jest",
       "node",

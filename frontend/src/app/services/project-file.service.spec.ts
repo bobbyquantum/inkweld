@@ -1,15 +1,7 @@
 import { HttpEvent } from '@angular/common/http';
 import { fakeAsync, flush } from '@angular/core/testing';
-import {
-  FileDeleteResponseDto,
-  FileMetadataDto,
-  FileUploadResponseDto,
-} from '@inkweld/index';
-import {
-  createServiceFactory,
-  SpectatorService,
-  SpyObject,
-} from '@ngneat/spectator/jest';
+import { FileDeleteResponseDto, FileUploadResponseDto } from '@inkweld/index';
+import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { Observable, of } from 'rxjs';
 
@@ -35,16 +27,12 @@ describe('ProjectFileService (spectator flavour)', () => {
 
   const TEST_DATE = '2025-03-16T10:00:00.000Z';
 
-  const fileMeta: FileMetadataDto = {
+  const uploadResp: FileUploadResponseDto = {
     originalName: 'test.jpg',
     storedName: 'stored-test.jpg',
     contentType: 'image/jpeg',
     size: 1024,
     uploadDate: TEST_DATE,
-  };
-
-  const uploadResp: FileUploadResponseDto = {
-    ...fileMeta,
     fileUrl: 'http://example.com/test.jpg',
   };
 
@@ -53,9 +41,8 @@ describe('ProjectFileService (spectator flavour)', () => {
   };
 
   let spectator: SpectatorService<ProjectFileService>;
-  type ApiMock = SpyObject<ProjectAPIService> &
-    DeepMockProxy<ProjectAPIService>;
-  type XsrfMock = SpyObject<XsrfService> & DeepMockProxy<XsrfService>;
+  type ApiMock = DeepMockProxy<ProjectAPIService>;
+  type XsrfMock = DeepMockProxy<XsrfService>;
 
   let api!: ApiMock;
   let xsrf!: XsrfMock;
@@ -63,12 +50,15 @@ describe('ProjectFileService (spectator flavour)', () => {
   beforeEach(() => {
     spectator = createService();
 
+    // Get the actual injected mock instances
     api = spectator.inject(ProjectAPIService) as ApiMock;
     xsrf = spectator.inject(XsrfService) as XsrfMock;
 
     /* default stubbing for every test */
     api.projectFilesControllerListFiles.mockReturnValue(
-      of([fileMeta]) as unknown as Observable<HttpEvent<FileMetadataDto[]>>
+      of([uploadResp]) as unknown as Observable<
+        HttpEvent<FileUploadResponseDto[]>
+      >
     );
     api.projectFilesControllerUploadFile.mockReturnValue(
       of(uploadResp) as unknown as Observable<HttpEvent<FileUploadResponseDto>>
@@ -92,7 +82,7 @@ describe('ProjectFileService (spectator flavour)', () => {
 
     spectator.service
       .getProjectFiles('alice', 'proj')
-      .subscribe(f => (files = f));
+      .subscribe((f: ProjectFile[]) => (files = f));
     flush();
 
     expect(api.projectFilesControllerListFiles).toHaveBeenCalledWith(
@@ -122,7 +112,7 @@ describe('ProjectFileService (spectator flavour)', () => {
     let uploaded!: ProjectFile;
     spectator.service
       .uploadFile('alice', 'proj', testFile)
-      .subscribe(f => (uploaded = f));
+      .subscribe((f: ProjectFile) => (uploaded = f));
     flush();
 
     expect(api.projectFilesControllerUploadFile).toHaveBeenCalledWith(
@@ -137,7 +127,7 @@ describe('ProjectFileService (spectator flavour)', () => {
     let delResp!: FileDeleteResponse;
     spectator.service
       .deleteFile('alice', 'proj', 'stored-test.jpg')
-      .subscribe(r => (delResp = r));
+      .subscribe((r: FileDeleteResponse) => (delResp = r));
     flush();
 
     expect(api.projectFilesControllerDeleteFile).toHaveBeenCalledWith(

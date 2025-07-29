@@ -141,6 +141,12 @@ $light-theme: mat.define-theme(
       theme-type: light,
       primary: $_primary,
       tertiary: $_tertiary,
+      use-system-variables: true,
+      system-variables-prefix: sys,
+    ),
+    typography: (
+      use-system-variables: true,
+      system-variables-prefix: sys,
     ),
     density: (
       scale: 0,
@@ -155,9 +161,11 @@ $dark-theme: mat.define-theme(
       primary: $_primary,
       tertiary: $_tertiary,
       use-system-variables: true,
+      system-variables-prefix: sys,
     ),
     typography: (
       use-system-variables: true,
+      system-variables-prefix: sys,
     ),
     density: (
       scale: 0,
@@ -175,12 +183,12 @@ $dark-theme: mat.define-theme(
 
   @include mat.all-component-themes($light-theme);
   @include mat.system-level-colors($light-theme);
-  @include mat.system-level-typography($dark-theme);
+  @include mat.system-level-typography($light-theme);
 
   & {
-    --card-background-color: var(--mat-sys-surface-container-high);
+    --card-background-color: var(--sys-surface-container-high);
     --ngx-editor-border-radius: 4px;
-    --ngx-editor-background-color: var(--mat-sys-surface-container-lowest);
+    --ngx-editor-background-color: var(--sys-surface-container-lowest);
     --ngx-editor-text-color: #000;
     --ngx-editor-placeholder-color: #6c757d;
     --ngx-editor-border-color: rgba(0, 0, 0, 0.2);
@@ -206,16 +214,16 @@ $dark-theme: mat.define-theme(
     --ngx-editor-focus-ring-color: #5e9ed6;
     --ngx-editor-error-color: red;
     --ngx-editor-click-pointer: pointer;
-    --sync-dot-unavailable-color: var(--mat-sys-error);
-    --sync-dot-offline-color: var(--mat-sys-outline);
-    --sync-dot-syncing-color: var(--mat-sys-secondary);
-    --sync-dot-synced-color: var(--mat-sys-primary);
+    --sync-dot-unavailable-color: var(--sys-error);
+    --sync-dot-offline-color: var(--sys-outline);
+    --sync-dot-syncing-color: var(--sys-secondary);
+    --sync-dot-synced-color: var(--sys-primary);
     
     /* Custom success and error colors for light theme */
     --custom-success-color: #2e7d32; /* Material Green 800 */
-    --custom-error-color: var(--mat-sys-error);
-    --password-tooltip-bg: var(--mat-sys-surface-container-high);
-    --password-tooltip-border: var(--mat-sys-outline-variant);
+    --custom-error-color: var(--sys-error);
+    --password-tooltip-bg: var(--sys-surface-container-high);
+    --password-tooltip-border: var(--sys-outline-variant);
   }
 }
 
@@ -238,8 +246,8 @@ $dark-theme: mat.define-theme(
   position: relative;
   margin-left: -1px;
   margin-right: -1px;
-  border-left: 2px solid var(--mat-sys-tertiary);
-  border-right: 2px solid var(--mat-sys-tertiary);
+  border-left: 2px solid var(--sys-tertiary);
+  border-right: 2px solid var(--sys-tertiary);
   word-break: normal;
   pointer-events: none;
 
@@ -248,14 +256,14 @@ $dark-theme: mat.define-theme(
     top: -1.4em;
     left: -1px;
     font-size: 12px;
-    background-color: var(--mat-sys-tertiary);
+    background-color: var(--sys-tertiary);
     font-family: var(--mat-ref-typeface-plain);
     font-style: normal;
     font-weight: normal;
     line-height: normal;
     -webkit-user-select: none;
     user-select: none;
-    color: var(--mat-sys-on-tertiary);
+    color: var(--sys-on-tertiary);
     padding: 2px 6px;
     border-radius: 3px;
     white-space: nowrap;
@@ -274,28 +282,28 @@ $dark-theme: mat.define-theme(
   @include mat.system-level-typography($dark-theme);
 
   & {
-    --card-background-color: var(--mat-sys-surface-container-high);
+    --card-background-color: var(--sys-surface-container-high);
     --ngx-editor-border-radius: 0;
-    --ngx-editor-background-color: var(--mat-sys-surface-container-lowest);
-    --ngx-editor-text-color: var(--mat-sys-on-surface);
+    --ngx-editor-background-color: var(--sys-surface-container-lowest);
+    --ngx-editor-text-color: var(--sys-on-surface);
     --ngx-editor-placeholder-color: #6c757d;
     --ngx-editor-border-color: rgba(0, 0, 0, 0);
     --ngx-editor-wrapper-border-color: rgba(0, 0, 0, 0.2);
     --ngx-editor-menu-item-border-radius: 50%;
-    --ngx-editor-menubar-bg-color: var(--mat-sys-surface-container-high);
+    --ngx-editor-menubar-bg-color: var(--sys-surface-container-high);
     --ngx-editor-menu-item-hover-bg-color: var(
-      --mat-sys-surface-container-highest
+      --sys-surface-container-highest
     );
     --ngx-editor-menubar-padding: 3px;
     --ngx-editor-menubar-height: 30px;
     --ngx-editor-blockquote-color: #ddd;
     --ngx-editor-blockquote-border-width: 3px;
     --ngx-editor-icon-size: 30px;
-    --ngx-editor-popup-bg-color: var(--mat-sys-surface-container);
+    --ngx-editor-popup-bg-color: var(--sys-surface-container);
     --ngx-editor-popup-border-radius: 4px;
     --ngx-editor-popup-shadow: rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
-    --ngx-editor-menu-item-active-color: var(--mat-sys-primary);
-    --ngx-editor-menu-item-active-bg-color: var(--mat-sys-surface-container);
+    --ngx-editor-menu-item-active-color: var(--sys-primary);
+    --ngx-editor-menu-item-active-bg-color: var(--sys-surface-container);
     --ngx-editor-seperator-color: #ccc;
     --ngx-editor-bubble-bg-color: #000;
     --ngx-editor-bubble-text-color: #fff;
@@ -307,20 +315,20 @@ $dark-theme: mat.define-theme(
     
     /* Custom success and error colors for dark theme */
     --custom-success-color: #4caf50; /* Material Green 500 - brighter for dark theme */
-    --custom-error-color: var(--mat-sys-error);
-    --password-tooltip-bg: var(--mat-sys-surface-container-high);
-    --password-tooltip-border: var(--mat-sys-outline-variant);
+    --custom-error-color: var(--sys-error);
+    --password-tooltip-bg: var(--sys-surface-container-high);
+    --password-tooltip-border: var(--sys-outline-variant);
   }
 }
 
 /* ProseMirror-yjs cursor styles for dark theme */
 .dark-theme .ProseMirror-yjs-cursor {
-  border-left-color: var(--mat-sys-tertiary);
-  border-right-color: var(--mat-sys-tertiary);
+  border-left-color: var(--sys-tertiary);
+  border-right-color: var(--sys-tertiary);
 
   > div {
-    background-color: var(--mat-sys-tertiary);
-    color: var(--mat-sys-on-tertiary);
+    background-color: var(--sys-tertiary);
+    color: var(--sys-on-tertiary);
   }
 }
 

@@ -61,7 +61,7 @@ h1 {
 mat-card {
   margin-bottom: 24px;
   padding: 24px;
-  box-shadow: var(--mdc-elevated-card-container-elevation);
+  box-shadow: var(--mat-card-elevated-container-elevation);
   background-color: var(--card-background-color);
   position: relative;
 }
@@ -129,15 +129,15 @@ mat-divider {
   padding: 8px 12px;
   margin: -4px 0 12px 0;
   border-radius: 4px;
-  background-color: var(--mat-sys-error-container);
-  color: var(--mat-sys-on-error-container);
+  background-color: var(--sys-error-container);
+  color: var(--sys-on-error-container);
   font-size: 12px;
   font-weight: 400;
   line-height: 1.5;
   letter-spacing: 0.15px;
 
   // Add a subtle border for better definition
-  border: 1px solid var(--mat-sys-error);
+  border: 1px solid var(--sys-error);
 
   // Style the error icon
   .error-icon {
@@ -145,6 +145,6 @@ mat-divider {
     font-size: 18px;
     height: 18px;
     width: 18px;
-    color: var(--mat-sys-on-error-container);
+    color: var(--sys-on-error-container);
   }
 }
