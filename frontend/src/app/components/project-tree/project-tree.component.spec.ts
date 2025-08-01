@@ -81,6 +81,7 @@ describe('ProjectTreeComponent', () => {
       moveElement: jest.fn().mockResolvedValue(undefined),
       renameElement: jest.fn().mockResolvedValue(undefined),
       deleteElement: jest.fn().mockResolvedValue(undefined),
+      closeTabByElementId: jest.fn(),
       getValidDropLevels: jest
         .fn()
         .mockReturnValue({ levels: [1], defaultLevel: 1 }),

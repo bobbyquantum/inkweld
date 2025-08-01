@@ -747,6 +747,21 @@ export class ProjectStateService {
   }
 
   /**
+   * Closes a tab by element ID
+   * @param elementId The ID of the element whose tab should be closed
+   */
+  closeTabByElementId(elementId: string): void {
+    const tabs = this.openTabs();
+    const tabIndex = tabs.findIndex(
+      tab => tab.element && tab.element.id === elementId
+    );
+
+    if (tabIndex !== -1) {
+      this.closeTab(tabIndex);
+    }
+  }
+
+  /**
    * Legacy alias for closeTab to maintain backwards compatibility
    */
   closeDocument(index: number): void {
