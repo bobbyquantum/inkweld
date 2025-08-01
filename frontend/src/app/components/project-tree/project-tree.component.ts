@@ -18,6 +18,7 @@ import {
   ElementRef,
   EventEmitter,
   inject,
+  OnDestroy,
   Output,
   ViewChild,
 } from '@angular/core';
@@ -61,7 +62,7 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
   templateUrl: './project-tree.component.html',
   styleUrls: ['./project-tree.component.scss'],
 })
-export class ProjectTreeComponent implements AfterViewInit {
+export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
   private dialogGateway = inject(DialogGatewayService);
 
   @ViewChild('tree') treeEl!: MatTree<ProjectElement>;
@@ -109,12 +110,22 @@ export class ProjectTreeComponent implements AfterViewInit {
     // Position the indicator on initial load
     setTimeout(() => this.updateIndicator());
   }
+
+  public ngOnDestroy(): void {
+    // Clean up any pending timeout
+    if (this.touchTimeout) {
+      clearTimeout(this.touchTimeout);
+      this.touchTimeout = null;
+    }
+  }
   currentDropLevel = 0;
   validLevelsArray: number[] = [0];
   draggedNode: ProjectElement | null = null;
   levelWidth = 24; // Width in pixels for each level of indentation
 
   contextItem: ProjectElement | null = null;
+  private recentTouchNodeId: string | null = null;
+  private touchTimeout: number | null = null;
 
   @Output() documentOpened = new EventEmitter<ProjectElementDto>();
 
@@ -169,6 +180,49 @@ export class ProjectTreeComponent implements AfterViewInit {
    * @param node The project element to toggle.
    */
   toggleExpanded(node: ProjectElement) {
+    this.projectStateService.toggleExpanded(node.id);
+  }
+
+  /**
+   * Handles touch-based toggle to prevent double-firing with click events.
+   * @param node The project element to toggle.
+   * @param event The touch event.
+   */
+  toggleExpandedTouch(node: ProjectElement, event: TouchEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Clear any existing timeout
+    if (this.touchTimeout) {
+      clearTimeout(this.touchTimeout);
+    }
+
+    // Set the recent touch node to prevent click event
+    this.recentTouchNodeId = node.id;
+
+    // Toggle the node
+    this.projectStateService.toggleExpanded(node.id);
+
+    // Clear the recent touch flag after a short delay
+    this.touchTimeout = window.setTimeout(() => {
+      this.recentTouchNodeId = null;
+      this.touchTimeout = null;
+    }, 300);
+  }
+
+  /**
+   * Handles click-based toggle, but only if not recently handled by touch.
+   * @param node The project element to toggle.
+   * @param event The click event.
+   */
+  toggleExpandedClick(node: ProjectElement, event: MouseEvent) {
+    event.stopPropagation();
+
+    // Don't handle click if we recently handled a touch event for this node
+    if (this.recentTouchNodeId === node.id) {
+      return;
+    }
+
     this.projectStateService.toggleExpanded(node.id);
   }
 
