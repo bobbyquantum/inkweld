@@ -446,6 +446,8 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
 
     const result = confirmed;
     if (result) {
+      // Close any open editor tab for this file before deleting
+      this.projectStateService.closeTabByElementId(node.id);
       this.projectStateService.deleteElement(node.id);
     }
   }
