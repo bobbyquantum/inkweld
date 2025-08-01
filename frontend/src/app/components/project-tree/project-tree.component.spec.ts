@@ -357,6 +357,100 @@ describe('ProjectTreeComponent', () => {
     expect(projectStateService.toggleExpanded).toHaveBeenCalledWith('test-id');
   });
 
+  describe('Touch and Click Toggle Handling', () => {
+    let node: ProjectElement;
+    let mockTouchEvent: TouchEvent;
+    let mockClickEvent: MouseEvent;
+
+    beforeEach(() => {
+      node = { ...mockDto, id: 'test-touch-id' };
+      mockTouchEvent = {
+        preventDefault: jest.fn(),
+        stopPropagation: jest.fn(),
+      } as unknown as TouchEvent;
+      mockClickEvent = {
+        stopPropagation: jest.fn(),
+      } as unknown as MouseEvent;
+    });
+
+    afterEach(() => {
+      // Clean up any pending timeouts
+      component.ngOnDestroy();
+    });
+
+    it('should handle touch toggle and prevent click event', () => {
+      // Handle touch event
+      component.toggleExpandedTouch(node, mockTouchEvent);
+
+      expect(mockTouchEvent.preventDefault).toHaveBeenCalled();
+      expect(mockTouchEvent.stopPropagation).toHaveBeenCalled();
+      expect(projectStateService.toggleExpanded).toHaveBeenCalledWith(
+        'test-touch-id'
+      );
+
+      // Try to handle click event immediately after - should be ignored
+      component.toggleExpandedClick(node, mockClickEvent);
+
+      expect(mockClickEvent.stopPropagation).toHaveBeenCalled();
+      // toggleExpanded should still only have been called once (from touch)
+      expect(projectStateService.toggleExpanded).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle click toggle when no recent touch event', () => {
+      // Handle click event without prior touch
+      component.toggleExpandedClick(node, mockClickEvent);
+
+      expect(mockClickEvent.stopPropagation).toHaveBeenCalled();
+      expect(projectStateService.toggleExpanded).toHaveBeenCalledWith(
+        'test-touch-id'
+      );
+    });
+
+    it('should clear touch flag after timeout', fakeAsync(() => {
+      // Handle touch event
+      component.toggleExpandedTouch(node, mockTouchEvent);
+
+      // Fast-forward time past the timeout
+      tick(300);
+
+      // Now click should work normally
+      component.toggleExpandedClick(node, mockClickEvent);
+
+      expect(projectStateService.toggleExpanded).toHaveBeenCalledTimes(2);
+    }));
+
+    it('should clear existing timeout when new touch event occurs', () => {
+      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+
+      // First touch event
+      component.toggleExpandedTouch(node, mockTouchEvent);
+
+      // Second touch event before timeout
+      component.toggleExpandedTouch(node, mockTouchEvent);
+
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+      expect(projectStateService.toggleExpanded).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle touch events for different nodes independently', () => {
+      const node2 = { ...mockDto, id: 'test-touch-id-2' };
+
+      // Touch first node
+      component.toggleExpandedTouch(node, mockTouchEvent);
+
+      // Click second node should work normally
+      component.toggleExpandedClick(node2, mockClickEvent);
+
+      expect(projectStateService.toggleExpanded).toHaveBeenCalledWith(
+        'test-touch-id'
+      );
+      expect(projectStateService.toggleExpanded).toHaveBeenCalledWith(
+        'test-touch-id-2'
+      );
+      expect(projectStateService.toggleExpanded).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('should edit project', () => {
     component.editProject();
     expect(projectStateService.showEditProjectDialog).toHaveBeenCalled();
