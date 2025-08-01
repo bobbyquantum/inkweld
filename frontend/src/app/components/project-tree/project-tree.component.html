@@ -49,8 +49,8 @@
         <button
           mat-icon-button
           type="button"
-          (click)="toggleExpanded(node); $event.stopPropagation()"
-          (touchend)="toggleExpanded(node); $event.stopPropagation()"
+          (click)="toggleExpandedClick(node, $event)"
+          (touchend)="toggleExpandedTouch(node, $event)"
           [disabled]="isLoading()">
           <mat-icon>{{
             node.expanded ? 'expand_more' : 'chevron_right'
