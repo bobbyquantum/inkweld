@@ -57,7 +57,7 @@
     "@types/jest": "29.5.14",
     "@types/lodash-es": "4.17.12",
     "angular-eslint": "20.1.1",
-    "esbuild": "0.25.8",
+    "esbuild": "0.25.10",
     "esbuild-visualizer": "0.7.0",
     "eslint": "9.32.0",
     "eslint-config-prettier": "10.1.8",
