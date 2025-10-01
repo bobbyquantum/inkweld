@@ -161,7 +161,34 @@ export class ProjectStateService {
       await this.restoreOpenedDocumentsFromCache();
     } catch (err) {
       console.error('Failed to load project:', err);
-      this.error.set('Failed to load project');
+
+      // Provide more specific error messages based on error type
+      let errorMessage = 'Failed to load project';
+
+      if (err instanceof Error) {
+        if (
+          err.message.includes('401') ||
+          err.message.includes('Unauthorized')
+        ) {
+          errorMessage = 'Session expired. Please log in again.';
+          // Auth interceptor will handle redirect
+        } else if (
+          err.message.includes('404') ||
+          err.message.includes('not found')
+        ) {
+          errorMessage = 'Project not found';
+        } else if (
+          err.message.includes('Network') ||
+          err.message.includes('Failed to fetch')
+        ) {
+          errorMessage =
+            'Network error. Please check your connection and try again.';
+        } else if (err.message) {
+          errorMessage = `Failed to load project: ${err.message}`;
+        }
+      }
+
+      this.error.set(errorMessage);
       this.docSyncState.set(DocumentSyncState.Unavailable);
     } finally {
       this.isLoading.set(false);
@@ -221,19 +248,116 @@ export class ProjectStateService {
       { connect: true, resyncInterval: 10000 }
     );
 
+    // Track connection attempts for exponential backoff
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    let reconnectTimeout: number | null = null;
+
     // Set up WebSocket status handling
     this.provider.on('status', ({ status }: { status: string }) => {
+      console.log(`[ProjectState] WebSocket status for elements: ${status}`);
+
       switch (status) {
         case 'connected':
           this.docSyncState.set(DocumentSyncState.Synced);
+          reconnectAttempts = 0; // Reset on successful connection
+          if (reconnectTimeout) {
+            clearTimeout(reconnectTimeout);
+            reconnectTimeout = null;
+          }
           break;
         case 'disconnected':
           this.docSyncState.set(DocumentSyncState.Offline);
+
+          // Implement exponential backoff for reconnection
+          if (reconnectAttempts < maxReconnectAttempts) {
+            const delay = Math.min(
+              1000 * Math.pow(2, reconnectAttempts),
+              30000
+            );
+            console.log(
+              `[ProjectState] Will attempt reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`
+            );
+
+            reconnectTimeout = window.setTimeout(() => {
+              if (this.provider) {
+                console.log(
+                  '[ProjectState] Attempting to reconnect WebSocket...'
+                );
+                this.provider.connect();
+                reconnectAttempts++;
+              }
+            }, delay);
+          } else {
+            console.warn('[ProjectState] Max reconnection attempts reached');
+            this.error.set(
+              'Unable to connect to server. Please refresh the page.'
+            );
+          }
           break;
         default:
           this.docSyncState.set(DocumentSyncState.Synced);
       }
     });
+
+    // Handle connection errors specifically
+    this.provider.on('connection-error', (event: unknown) => {
+      console.error('[ProjectState] WebSocket connection error:', event);
+
+      // Try to extract error message from the event
+      let errorMessage = '';
+      if (event instanceof Error) {
+        errorMessage = event.message;
+      } else if (event instanceof Event) {
+        errorMessage = event.type;
+      } else if (typeof event === 'string') {
+        errorMessage = event;
+      }
+
+      // Check if this is an authentication error
+      if (
+        errorMessage &&
+        (errorMessage.includes('401') ||
+          errorMessage.includes('Unauthorized') ||
+          errorMessage.includes('Invalid session'))
+      ) {
+        console.warn(
+          '[ProjectState] Authentication error on WebSocket, session may have expired'
+        );
+        this.error.set(
+          'Session expired. Please refresh the page to log in again.'
+        );
+        this.docSyncState.set(DocumentSyncState.Unavailable);
+
+        // Don't retry on auth errors
+        if (reconnectTimeout) {
+          clearTimeout(reconnectTimeout);
+          reconnectTimeout = null;
+        }
+        reconnectAttempts = maxReconnectAttempts;
+      } else {
+        this.docSyncState.set(DocumentSyncState.Offline);
+      }
+    });
+
+    // Listen for online/offline events
+    const handleOnline = () => {
+      console.log(
+        '[ProjectState] Network connection restored, attempting to reconnect...'
+      );
+      if (this.provider) {
+        reconnectAttempts = 0; // Reset attempts on network restore
+        this.provider.connect();
+      }
+    };
+
+    const handleOffline = () => {
+      console.log('[ProjectState] Network connection lost');
+      this.docSyncState.set(DocumentSyncState.Offline);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     this.initializeFromDoc();
     this.observeDocChanges();
