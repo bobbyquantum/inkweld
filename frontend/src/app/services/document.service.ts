@@ -308,6 +308,11 @@ export class DocumentService {
         }
       );
 
+      // Track connection attempts for exponential backoff
+      let reconnectAttempts = 0;
+      const maxReconnectAttempts = 5;
+      let reconnectTimeout: number | null = null;
+
       // Handle connection status with enhanced logging
       provider.on('status', ({ status }: { status: string }) => {
         console.log(
@@ -324,10 +329,34 @@ export class DocumentService {
           console.log(
             `[Document] Successfully connected to WebSocket server for ${documentId}`
           );
+          reconnectAttempts = 0; // Reset on successful connection
+          if (reconnectTimeout) {
+            clearTimeout(reconnectTimeout);
+            reconnectTimeout = null;
+          }
         } else if (status === 'disconnected') {
           console.log(
             `[Document] Disconnected from WebSocket server for ${documentId}. Will attempt reconnect.`
           );
+
+          // Implement exponential backoff for reconnection
+          if (reconnectAttempts < maxReconnectAttempts) {
+            const delay = Math.min(
+              1000 * Math.pow(2, reconnectAttempts),
+              30000
+            );
+            console.log(
+              `[Document] Will attempt reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`
+            );
+
+            reconnectTimeout = window.setTimeout(() => {
+              console.log('[Document] Attempting to reconnect WebSocket...');
+              provider.connect();
+              reconnectAttempts++;
+            }, delay);
+          } else {
+            console.warn('[Document] Max reconnection attempts reached');
+          }
         }
 
         const newState =
@@ -363,6 +392,30 @@ export class DocumentService {
           console.debug(`[Document] Error stack: ${error.stack}`);
         }
 
+        // Check for authentication errors
+        if (
+          errorMessage.includes('401') ||
+          errorMessage.includes('Unauthorized') ||
+          errorMessage.includes('Invalid session')
+        ) {
+          console.error(
+            '[Document] Authentication error on WebSocket, session may have expired'
+          );
+          this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
+          // Notify project state service about auth error
+          this.projectState.updateSyncState(
+            documentId,
+            DocumentSyncState.Unavailable
+          );
+          // Stop retry attempts on auth errors
+          if (reconnectTimeout) {
+            clearTimeout(reconnectTimeout);
+            reconnectTimeout = null;
+          }
+          reconnectAttempts = maxReconnectAttempts;
+          return; // Don't set to Offline for auth errors
+        }
+
         // If the error is related to CORS or connection refused, provide more guidance
         if (errorMessage.includes('CORS') || errorMessage.includes('refused')) {
           console.error(
@@ -374,10 +427,15 @@ export class DocumentService {
       });
 
       // Setup automatic reconnection when online
-      window.addEventListener('online', () => {
-        console.log('Network connection restored, attempting to reconnect...');
+      const handleOnline = () => {
+        console.log(
+          '[Document] Network connection restored, attempting to reconnect...'
+        );
+        reconnectAttempts = 0; // Reset attempts on network restore
         provider.connect();
-      });
+      };
+
+      window.addEventListener('online', handleOnline);
 
       connection = { ydoc, provider, type, indexeddbProvider };
       this.connections.set(documentId, connection);
