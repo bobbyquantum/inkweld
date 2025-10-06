@@ -37,7 +37,7 @@
         "@angular/compiler-cli": "20.1.6",
         "@jest/globals": "29.7.0",
         "@ngneat/spectator": "21.0.1",
-        "@playwright/test": "1.54.1",
+        "@playwright/test": "1.56.0",
         "@types/jest": "29.5.14",
         "@types/lodash-es": "4.17.12",
         "angular-eslint": "20.1.1",
@@ -674,7 +674,7 @@
 
     "@pkgr/core": ["@pkgr/core@0.2.7", "", {}, "sha512-YLT9Zo3oNPJoBjBc4q8G2mjU4tqIbf5CEOORbUUr48dCD9q3umJ3IPlVqOqDakPfd2HuwccBaqlGhN4Gmr5OWg=="],
 
-    "@playwright/test": ["@playwright/test@1.54.1", "", { "dependencies": { "playwright": "1.54.1" }, "bin": { "playwright": "cli.js" } }, "sha512-FS8hQ12acieG2dYSksmLOF7BNxnVf2afRJdCuM1eMSxj6QTSE6G4InGF7oApGgDb65MX7AwMVlIkpru0yZA4Xw=="],
+    "@playwright/test": ["@playwright/test@1.56.0", "", { "dependencies": { "playwright": "1.56.0" }, "bin": { "playwright": "cli.js" } }, "sha512-Tzh95Twig7hUwwNe381/K3PggZBZblKUe2wv25oIpzWLr6Z0m4KgV1ZVIjnR6GM9ANEqjZD7XsZEa6JL/7YEgg=="],
 
     "@progress/jszip-esm": ["@progress/jszip-esm@1.0.4", "", { "dependencies": { "@progress/pako-esm": "^1.0.1" } }, "sha512-A5i26JcTosFKeHCrklarNsByW3RUJd8osRq69eskZgIaq05weTCXdpztlFMwrHpgOGods1D0WFoSQcMNE0eI8Q=="],
 
@@ -1884,9 +1884,9 @@
 
     "pkg-dir": ["pkg-dir@4.2.0", "", { "dependencies": { "find-up": "^4.0.0" } }, "sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ=="],
 
-    "playwright": ["playwright@1.54.1", "", { "dependencies": { "playwright-core": "1.54.1" }, "optionalDependencies": { "fsevents": "2.3.2" }, "bin": { "playwright": "cli.js" } }, "sha512-peWpSwIBmSLi6aW2auvrUtf2DqY16YYcCMO8rTVx486jKmDTJg7UAhyrraP98GB8BoPURZP8+nxO7TSd4cPr5g=="],
+    "playwright": ["playwright@1.56.0", "", { "dependencies": { "playwright-core": "1.56.0" }, "optionalDependencies": { "fsevents": "2.3.2" }, "bin": { "playwright": "cli.js" } }, "sha512-X5Q1b8lOdWIE4KAoHpW3SE8HvUB+ZZsUoN64ZhjnN8dOb1UpujxBtENGiZFE+9F/yhzJwYa+ca3u43FeLbboHA=="],
 
-    "playwright-core": ["playwright-core@1.54.1", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-Nbjs2zjj0htNhzgiy5wu+3w09YetDx5pkrpI/kZotDlDUaYk0HVA5xrBVPdow4SAUIlhgKcJeJg4GRKW6xHusA=="],
+    "playwright-core": ["playwright-core@1.56.0", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-1SXl7pMfemAMSDn5rkPeZljxOCYAmQnYLBTExuh6E8USHXGSX3dx6lYZN/xPpTz1vimXmPA9CDnILvmJaB8aSQ=="],
 
     "playwright-ng-schematics": ["playwright-ng-schematics@2.1.0", "", { "dependencies": { "@angular-devkit/architect": ">= 0.2000.0 < 0.2100.0", "@angular-devkit/core": "^20.0.0", "@angular-devkit/schematics": "^20.0.0" } }, "sha512-NYjnBoVE8RmhBcjG7e7TrQ0ku+RqLj2s31jTjhEBjzttulodFZx55GOFTGBzCcfY6emnOc02uNDzbVE8v9VPfg=="],
 
