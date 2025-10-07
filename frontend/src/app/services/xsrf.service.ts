@@ -3,6 +3,7 @@ import { CSRFService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../environments/environment';
+import { LoggerService } from './logger.service';
 
 /**
  * Response type for CSRF token endpoint
@@ -22,6 +23,7 @@ interface CsrfTokenResponse {
 export class XsrfService {
   private readonly csrfService = inject(CSRFService);
   private readonly document = inject(DOCUMENT);
+  private readonly logger = inject(LoggerService);
 
   private csrfToken = '';
   private readonly apiUrl = environment.apiUrl || '';
@@ -38,7 +40,7 @@ export class XsrfService {
    */
   async refreshToken(): Promise<string> {
     try {
-      console.log('Refreshing CSRF token from server');
+      this.logger.debug('XsrfService', 'Refreshing CSRF token from server');
 
       // Use the generated CSRFService to get the token
       const response = (await firstValueFrom(
@@ -51,16 +53,19 @@ export class XsrfService {
 
       this.csrfToken = response.token;
       this.lastRefreshTime = Date.now();
-      console.log('Successfully refreshed CSRF token');
+      this.logger.debug('XsrfService', 'Successfully refreshed CSRF token');
 
       return this.csrfToken;
     } catch (error) {
-      console.error('Failed to fetch CSRF token:', error);
+      this.logger.error('XsrfService', 'Failed to fetch CSRF token', error);
 
       // Try to get token from cookie as fallback
       const cookieToken = this.getTokenFromCookie();
       if (cookieToken) {
-        console.log('Using CSRF token from cookie as fallback');
+        this.logger.debug(
+          'XsrfService',
+          'Using CSRF token from cookie as fallback'
+        );
         this.csrfToken = cookieToken;
         return cookieToken;
       }
@@ -89,7 +94,7 @@ export class XsrfService {
     if (cookieToken) {
       // If cookie token exists but is different from stored token, update stored token
       if (this.csrfToken !== cookieToken) {
-        console.log('Updating stored token from cookie');
+        this.logger.debug('XsrfService', 'Updating stored token from cookie');
         this.csrfToken = cookieToken;
       }
       return cookieToken;
@@ -124,7 +129,7 @@ export class XsrfService {
   private initFromCookie(): void {
     const cookieToken = this.getTokenFromCookie();
     if (cookieToken) {
-      console.log('Initialized CSRF token from cookie');
+      this.logger.debug('XsrfService', 'Initialized CSRF token from cookie');
       this.csrfToken = cookieToken;
       this.lastRefreshTime = Date.now();
     }

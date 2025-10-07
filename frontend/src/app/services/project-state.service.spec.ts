@@ -12,6 +12,7 @@ import * as Y from 'yjs';
 
 import { DocumentSyncState } from '../models/document-sync-state';
 import { DialogGatewayService } from './dialog-gateway.service';
+import { LoggerService } from './logger.service';
 import { OfflineProjectElementsService } from './offline-project-elements.service';
 import { ProjectStateService } from './project-state.service';
 import { RecentFilesService } from './recent-files.service';
@@ -63,7 +64,6 @@ jest.mock('yjs', () => ({
     })),
     getArray: jest.fn(() => createMockYArray()),
     transact: jest.fn(fn => {
-      console.log('executing transaction');
       fn();
     }),
     destroy: jest.fn(),
@@ -90,6 +90,7 @@ describe('ProjectStateService', () => {
   let mockDialogGatewayService: jest.Mocked<DialogGatewayService>;
   let mockRecentFilesService: jest.Mocked<RecentFilesService>;
   let mockStorageService: jest.Mocked<StorageService>;
+  let mockLoggerService: jest.Mocked<LoggerService>;
 
   const mockDate = new Date('2025-02-22T22:43:16.240Z');
 
@@ -171,6 +172,14 @@ describe('ProjectStateService', () => {
       set: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<StorageService>;
 
+    mockLoggerService = {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      group: jest.fn(),
+    } as unknown as jest.Mocked<LoggerService>;
+
     mockWebsocketProvider = {
       on: jest.fn().mockImplementation(() => () => {}),
       connect: jest.fn(),
@@ -207,6 +216,7 @@ describe('ProjectStateService', () => {
         { provide: DialogGatewayService, useValue: mockDialogGatewayService },
         { provide: RecentFilesService, useValue: mockRecentFilesService },
         { provide: StorageService, useValue: mockStorageService },
+        { provide: LoggerService, useValue: mockLoggerService },
       ],
     });
 
