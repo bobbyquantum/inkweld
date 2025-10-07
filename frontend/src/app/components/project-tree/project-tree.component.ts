@@ -35,6 +35,7 @@ import { SettingsService } from '@services/settings.service';
 
 import { ProjectElement } from '../../models/project-element';
 import { DialogGatewayService } from '../../services/dialog-gateway.service';
+import { LoggerService } from '../../services/logger.service';
 import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
 
 /**
@@ -64,6 +65,7 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
 })
 export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
   private dialogGateway = inject(DialogGatewayService);
+  private logger = inject(LoggerService);
 
   @ViewChild('tree') treeEl!: MatTree<ProjectElement>;
   @ViewChild('treeContainer', { static: true })
@@ -132,7 +134,8 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
   constructor() {
     this.dataSource = new ArrayDataSource<ProjectElement>([]);
     effect(() => {
-      console.log(
+      this.logger.debug(
+        'ProjectTree',
         'Visible elements changed',
         this.projectStateService.visibleElements()
       );
@@ -302,7 +305,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     // Determine if dragging up or down
     const isDraggingDown = previousIndex < currentIndex;
 
-    console.log('Sorted event:', {
+    this.logger.debug('ProjectTree', 'Sorted event', {
       previousIndex,
       currentIndex,
       isDraggingDown,
@@ -332,7 +335,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     nodeBelow =
       currentIndex < filteredNodes.length ? filteredNodes[currentIndex] : null;
 
-    console.log('Valid Levels:', {
+    this.logger.debug('ProjectTree', 'Valid Levels', {
       nodeAbove: nodeAbove?.name,
       nodeBelow: nodeBelow?.name,
       filteredLength: filteredNodes.length,
@@ -358,7 +361,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     // Determine if dragging up or down
     const isDraggingDown = previousIndex < currentIndex;
 
-    console.log('Drop event:', {
+    this.logger.debug('ProjectTree', 'Drop event', {
       previousIndex,
       currentIndex,
       isDraggingDown,

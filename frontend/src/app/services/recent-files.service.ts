@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { ProjectElementDto } from '@inkweld/index';
 
+import { LoggerService } from './logger.service';
 import { SettingsService } from './settings.service';
 
 interface RecentFile {
@@ -22,6 +23,7 @@ export class RecentFilesService {
   private readonly STORAGE_KEY = 'recentFiles';
 
   private readonly settingsService = inject(SettingsService);
+  private readonly logger = inject(LoggerService);
 
   constructor() {
     this.loadRecentFiles();
@@ -52,7 +54,11 @@ export class RecentFilesService {
     // Update the signal and save to storage
     this.recentFiles.set(newFiles);
     this.saveRecentFiles();
-    console.log('Recent files after adding:', this.recentFiles());
+    this.logger.debug(
+      'RecentFiles',
+      'Recent files after adding',
+      this.recentFiles()
+    );
   }
 
   getRecentFilesForProject(username: string, slug: string): RecentFile[] {
@@ -72,12 +78,16 @@ export class RecentFilesService {
       this.STORAGE_KEY,
       []
     );
-    console.log('Loaded recent files from storage:', files);
+    this.logger.debug('RecentFiles', 'Loaded recent files from storage', files);
     this.recentFiles.set(files);
   }
 
   private saveRecentFiles(): void {
-    console.log('Saving recent files to storage:', this.recentFiles());
+    this.logger.debug(
+      'RecentFiles',
+      'Saving recent files to storage',
+      this.recentFiles()
+    );
     this.settingsService.setSetting(this.STORAGE_KEY, this.recentFiles());
   }
 }

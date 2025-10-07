@@ -19,6 +19,7 @@ import { DocumentAPIService } from '../../api-client/api/document-api.service';
 import { LintApiService } from '../components/lint/lint-api.service';
 import { createLintPlugin } from '../components/lint/lint-plugin';
 import { DocumentSyncState } from '../models/document-sync-state';
+import { LoggerService } from './logger.service';
 import { ProjectStateService } from './project-state.service';
 import { SetupService } from './setup.service';
 import { SystemConfigService } from './system-config.service';
@@ -48,12 +49,13 @@ interface DocumentConnection {
   providedIn: 'root',
 })
 export class DocumentService {
-  private readonly projectState = inject(ProjectStateService);
-  private readonly documentApiService = inject(DocumentAPIService);
-  private readonly ngZone = inject(NgZone);
-  private readonly lintApiService = inject(LintApiService);
-  private readonly setupService = inject(SetupService);
-  private readonly systemConfigService = inject(SystemConfigService);
+  private documentAPIService = inject(DocumentAPIService);
+  private setupService = inject(SetupService);
+  private ngZone = inject(NgZone);
+  private systemConfigService = inject(SystemConfigService);
+  private projectStateService = inject(ProjectStateService);
+  private lintApiService = inject(LintApiService);
+  private logger = inject(LoggerService);
 
   private connections: Map<string, DocumentConnection> = new Map();
 
@@ -80,7 +82,10 @@ export class DocumentService {
    */
   initializeSyncStatus(documentId: string): void {
     if (!this.syncStatusSignals.has(documentId)) {
-      console.log(`Explicitly initializing sync status for ${documentId}`);
+      this.logger.debug(
+        'DocumentService',
+        `Explicitly initializing sync status for ${documentId}`
+      );
       this.syncStatusSignals.set(documentId, signal(DocumentSyncState.Offline));
     }
   }
@@ -161,14 +166,18 @@ export class DocumentService {
     Y.transact(ydoc, () => {
       // Clear existing content
       fragment.delete(0, fragment.length);
-      console.log('Cleared previous doc');
+      this.logger.debug('DocumentService', 'Cleared previous doc');
       // Traverse each child element of our temporary root.
       for (let i = 0; i < root.childNodes.length; i++) {
-        console.log('Importing node', root.childNodes[i]);
+        this.logger.debug(
+          'DocumentService',
+          'Importing node',
+          root.childNodes[i]
+        );
         const node = root.childNodes[i];
         let yNode: Y.XmlElement | Y.XmlText;
         if (node.nodeType === Node.ELEMENT_NODE) {
-          console.log('Element node');
+          this.logger.debug('DocumentService', 'Element node');
           // Create a Y.XmlElement with the same tag name
           yNode = new Y.XmlElement(node.nodeName);
           // Optionally, handle attributes here if needed.
@@ -183,7 +192,7 @@ export class DocumentService {
             }
           }
         } else {
-          console.log('Skip node');
+          this.logger.debug('DocumentService', 'Skip node');
           continue; // skip other node types
         }
         // Append the created node to the fragment.
@@ -217,10 +226,10 @@ export class DocumentService {
         docName = parts[2];
       }
     }
-    this.documentApiService
+    this.documentAPIService
       .documentControllerRenderHtml(username, projectSlug, docName)
       .subscribe({
-        next: response => {
+        next: (response: string) => {
           const blob = new Blob([response], { type: 'text/html' });
           const url = URL.createObjectURL(blob);
           window.open(url, '_blank');
@@ -256,14 +265,14 @@ export class DocumentService {
       const type = ydoc.getXmlFragment('prosemirror');
       // Initialize IndexedDB provider first
       const indexeddbProvider = new IndexeddbPersistence(documentId, ydoc);
-      console.log('Waiting for IndexedDB sync...');
+      this.logger.debug('DocumentService', 'Waiting for IndexedDB sync...');
 
       // Set state to Offline while waiting for IndexedDB
       this.updateSyncStatus(documentId, DocumentSyncState.Offline);
 
       // Wait for initial IndexedDB sync
       await indexeddbProvider.whenSynced;
-      console.log('IndexedDB sync complete');
+      this.logger.debug('DocumentService', 'IndexedDB sync complete');
 
       // Update state to Syncing while establishing WebSocket connection
       this.updateSyncStatus(documentId, DocumentSyncState.Syncing);
@@ -275,7 +284,8 @@ export class DocumentService {
       // Make sure the documentId is properly formatted for WebSocket URL
       // Remove any leading '/' characters that might cause URL issues
       const formattedDocId = documentId.replace(/^\/+/, '');
-      console.log(
+      this.logger.debug(
+        'DocumentService',
         `Setting up WebSocket connection for document: ${formattedDocId}`
       );
 
@@ -315,19 +325,21 @@ export class DocumentService {
 
       // Handle connection status with enhanced logging
       provider.on('status', ({ status }: { status: string }) => {
-        console.log(
-          `[Document] WebSocket status for document ${documentId}:`,
-          status
+        this.logger.debug(
+          'DocumentService',
+          `WebSocket status for document ${documentId}: ${status}`
         );
 
         // Log WebSocket URL and connection parameters
         if (status === 'connecting') {
-          console.log(
-            `[Document] Connecting to WebSocket URL: ${this.setupService.getWebSocketUrl()}/ws/yjs?documentId=${formattedDocId}`
+          this.logger.debug(
+            'DocumentService',
+            `Connecting to WebSocket URL: ${this.setupService.getWebSocketUrl()}/ws/yjs?documentId=${formattedDocId}`
           );
         } else if (status === 'connected') {
-          console.log(
-            `[Document] Successfully connected to WebSocket server for ${documentId}`
+          this.logger.info(
+            'DocumentService',
+            `Successfully connected to WebSocket server for ${documentId}`
           );
           reconnectAttempts = 0; // Reset on successful connection
           if (reconnectTimeout) {
@@ -335,8 +347,9 @@ export class DocumentService {
             reconnectTimeout = null;
           }
         } else if (status === 'disconnected') {
-          console.log(
-            `[Document] Disconnected from WebSocket server for ${documentId}. Will attempt reconnect.`
+          this.logger.warn(
+            'DocumentService',
+            `Disconnected from WebSocket server for ${documentId}. Will attempt reconnect.`
           );
 
           // Implement exponential backoff for reconnection
@@ -345,17 +358,24 @@ export class DocumentService {
               1000 * Math.pow(2, reconnectAttempts),
               30000
             );
-            console.log(
-              `[Document] Will attempt reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`
+            this.logger.debug(
+              'DocumentService',
+              `Will attempt reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`
             );
 
             reconnectTimeout = window.setTimeout(() => {
-              console.log('[Document] Attempting to reconnect WebSocket...');
+              this.logger.debug(
+                'DocumentService',
+                'Attempting to reconnect WebSocket...'
+              );
               provider.connect();
               reconnectAttempts++;
             }, delay);
           } else {
-            console.warn('[Document] Max reconnection attempts reached');
+            this.logger.warn(
+              'DocumentService',
+              'Max reconnection attempts reached'
+            );
           }
         }
 
@@ -380,16 +400,18 @@ export class DocumentService {
               ? error
               : error.type;
 
-        console.warn(
-          `[Document] WebSocket connection error for ${documentId}:`,
+        this.logger.warn(
+          'DocumentService',
+          `WebSocket connection error for ${documentId}`,
           errorMessage
         );
-        console.log(
-          `[Document] Connection details: URL=${this.setupService.getWebSocketUrl()}/ws/yjs?documentId=${formattedDocId}`
+        this.logger.debug(
+          'DocumentService',
+          `Connection details: URL=${this.setupService.getWebSocketUrl()}/ws/yjs?documentId=${formattedDocId}`
         );
 
         if (error instanceof Error && error.stack) {
-          console.debug(`[Document] Error stack: ${error.stack}`);
+          this.logger.debug('DocumentService', `Error stack: ${error.stack}`);
         }
 
         // Check for authentication errors
@@ -398,12 +420,13 @@ export class DocumentService {
           errorMessage.includes('Unauthorized') ||
           errorMessage.includes('Invalid session')
         ) {
-          console.error(
-            '[Document] Authentication error on WebSocket, session may have expired'
+          this.logger.error(
+            'DocumentService',
+            'Authentication error on WebSocket, session may have expired'
           );
           this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
           // Notify project state service about auth error
-          this.projectState.updateSyncState(
+          this.projectStateService.updateSyncState(
             documentId,
             DocumentSyncState.Unavailable
           );
@@ -418,8 +441,9 @@ export class DocumentService {
 
         // If the error is related to CORS or connection refused, provide more guidance
         if (errorMessage.includes('CORS') || errorMessage.includes('refused')) {
-          console.error(
-            '[Document] WebSocket connection refused. Check if server is running and CORS is properly configured.'
+          this.logger.error(
+            'DocumentService',
+            'WebSocket connection refused. Check if server is running and CORS is properly configured.'
           );
         }
 
@@ -428,8 +452,9 @@ export class DocumentService {
 
       // Setup automatic reconnection when online
       const handleOnline = () => {
-        console.log(
-          '[Document] Network connection restored, attempting to reconnect...'
+        this.logger.info(
+          'DocumentService',
+          'Network connection restored, attempting to reconnect...'
         );
         reconnectAttempts = 0; // Reset attempts on network restore
         provider.connect();
@@ -470,8 +495,9 @@ export class DocumentService {
           if (prevDoc && doc !== prevDoc) {
             const text = doc.textBetween(0, doc.content.size, ' ');
             const count = text.trim().split(/\s+/).filter(Boolean).length;
-            console.log(
-              `[DocumentService] word count updated: ${count} for ${documentId}`
+            this.logger.debug(
+              'DocumentService',
+              `word count updated: ${count} for ${documentId}`
             );
             this.updateWordCount(documentId, count);
           }
@@ -495,14 +521,16 @@ export class DocumentService {
           ' '
         );
         const initialCount = text.trim().split(/\s+/).filter(Boolean).length;
-        console.log(
-          `[DocumentService] initial word count: ${initialCount} for ${documentId}`
+        this.logger.debug(
+          'DocumentService',
+          `initial word count: ${initialCount} for ${documentId}`
         );
         this.updateWordCount(documentId, initialCount);
       }
     } catch (error) {
-      console.warn(
-        `[DocumentService] initial word count skipped due to:`,
+      this.logger.warn(
+        'DocumentService',
+        'initial word count skipped due to error',
         error
       );
     }
@@ -553,7 +581,7 @@ export class DocumentService {
       if (this.syncStatusSignals.has(documentId)) {
         this.syncStatusSignals.get(documentId)!.set(state);
       }
-      this.projectState.updateSyncState(documentId, state);
+      this.projectStateService.updateSyncState(documentId, state);
     });
   }
 

@@ -13,6 +13,7 @@ import * as Y from 'yjs';
 
 import { DocumentSyncState } from '../models/document-sync-state';
 import { DialogGatewayService } from './dialog-gateway.service';
+import { LoggerService } from './logger.service';
 import { OfflineProjectElementsService } from './offline-project-elements.service';
 import { RecentFilesService } from './recent-files.service';
 import { SetupService } from './setup.service';
@@ -53,6 +54,7 @@ export class ProjectStateService {
   private dialogGateway = inject(DialogGatewayService);
   private recentFilesService = inject(RecentFilesService);
   private storageService = inject(StorageService);
+  private logger = inject(LoggerService);
 
   // Document cache
   private documentCacheDb: Promise<IDBDatabase> | null = null;
@@ -75,7 +77,11 @@ export class ProjectStateService {
     const expanded = this.expandedNodeIds();
     const result: ProjectElement[] = [];
     const stack: { id: string; level: number }[] = [];
-    console.log('Assessing elements for visibility', elements);
+    this.logger.debug(
+      'ProjectState',
+      'Assessing elements for visibility',
+      elements
+    );
     for (const element of elements) {
       // Pop ancestors that are not in the current branch
       while (
@@ -133,9 +139,13 @@ export class ProjectStateService {
         this.documentCacheDb = this.storageService.initializeDatabase(
           DOCUMENT_CACHE_CONFIG
         );
-        console.log('Document cache initialized');
+        this.logger.info('ProjectState', 'Document cache initialized');
       } catch (error) {
-        console.error('Failed to initialize document cache:', error);
+        this.logger.error(
+          'ProjectState',
+          'Failed to initialize document cache',
+          error
+        );
       }
     }
   }
@@ -160,7 +170,7 @@ export class ProjectStateService {
       // Restore opened documents from cache after project loads
       await this.restoreOpenedDocumentsFromCache();
     } catch (err) {
-      console.error('Failed to load project:', err);
+      this.logger.error('ProjectState', 'Failed to load project', err);
 
       // Provide more specific error messages based on error type
       let errorMessage = 'Failed to load project';
@@ -255,7 +265,10 @@ export class ProjectStateService {
 
     // Set up WebSocket status handling
     this.provider.on('status', ({ status }: { status: string }) => {
-      console.log(`[ProjectState] WebSocket status for elements: ${status}`);
+      this.logger.debug(
+        'ProjectState',
+        `WebSocket status for elements: ${status}`
+      );
 
       switch (status) {
         case 'connected':
@@ -275,21 +288,26 @@ export class ProjectStateService {
               1000 * Math.pow(2, reconnectAttempts),
               30000
             );
-            console.log(
-              `[ProjectState] Will attempt reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`
+            this.logger.info(
+              'ProjectState',
+              `Will attempt reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`
             );
 
             reconnectTimeout = window.setTimeout(() => {
               if (this.provider) {
-                console.log(
-                  '[ProjectState] Attempting to reconnect WebSocket...'
+                this.logger.info(
+                  'ProjectState',
+                  'Attempting to reconnect WebSocket'
                 );
                 this.provider.connect();
                 reconnectAttempts++;
               }
             }, delay);
           } else {
-            console.warn('[ProjectState] Max reconnection attempts reached');
+            this.logger.warn(
+              'ProjectState',
+              'Max reconnection attempts reached'
+            );
             this.error.set(
               'Unable to connect to server. Please refresh the page.'
             );
@@ -302,7 +320,7 @@ export class ProjectStateService {
 
     // Handle connection errors specifically
     this.provider.on('connection-error', (event: unknown) => {
-      console.error('[ProjectState] WebSocket connection error:', event);
+      this.logger.error('ProjectState', 'WebSocket connection error', event);
 
       // Try to extract error message from the event
       let errorMessage = '';
@@ -321,8 +339,9 @@ export class ProjectStateService {
           errorMessage.includes('Unauthorized') ||
           errorMessage.includes('Invalid session'))
       ) {
-        console.warn(
-          '[ProjectState] Authentication error on WebSocket, session may have expired'
+        this.logger.warn(
+          'ProjectState',
+          'Authentication error on WebSocket, session may have expired'
         );
         this.error.set(
           'Session expired. Please refresh the page to log in again.'
@@ -342,8 +361,9 @@ export class ProjectStateService {
 
     // Listen for online/offline events
     const handleOnline = () => {
-      console.log(
-        '[ProjectState] Network connection restored, attempting to reconnect...'
+      this.logger.info(
+        'ProjectState',
+        'Network connection restored, attempting to reconnect'
       );
       if (this.provider) {
         reconnectAttempts = 0; // Reset attempts on network restore
@@ -352,7 +372,7 @@ export class ProjectStateService {
     };
 
     const handleOffline = () => {
-      console.log('[ProjectState] Network connection lost');
+      this.logger.info('ProjectState', 'Network connection lost');
       this.docSyncState.set(DocumentSyncState.Offline);
     };
 
@@ -540,7 +560,7 @@ export class ProjectStateService {
     const validLevels = new Set<number>();
 
     // Debug logging
-    console.log('GetValidDropLevels Debug:', {
+    this.logger.debug('ProjectState', 'GetValidDropLevels Debug:', {
       nodeAbove: nodeAbove
         ? { name: nodeAbove.name, level: nodeAbove.level, type: nodeAbove.type }
         : null,
@@ -696,9 +716,13 @@ export class ProjectStateService {
         )
       );
 
-      console.log('Project published successfully:', response);
+      this.logger.info(
+        'ProjectState',
+        'Project published successfully',
+        response
+      );
     } catch (error) {
-      console.error('Failed to publish project:', error);
+      this.logger.error('ProjectState', 'Failed to publish project', error);
       this.error.set('Failed to publish project. Please try again later.');
     }
   }
@@ -747,15 +771,19 @@ export class ProjectStateService {
 
     // Add to recent documents if we have a project
     const project = this.project();
-    console.log('Opening document:', element.name, 'Project:', project);
+    this.logger.debug('ProjectState', 'Opening document', {
+      elementName: element.name,
+      project,
+    });
 
     this.recentFilesService.addRecentFile(
       element,
       project!.username,
       project!.slug
     );
-    console.log(
-      'Added to recent files. Current recent files:',
+    this.logger.debug(
+      'ProjectState',
+      'Added to recent files',
       this.recentFilesService.getRecentFilesForProject(
         project!.username,
         project!.slug
@@ -786,7 +814,8 @@ export class ProjectStateService {
     if (index !== -1) {
       // Set index+1 because index 0 is reserved for home tab in the TabInterfaceComponent
       this.selectedTabIndex.set(index + 1);
-      console.log(
+      this.logger.debug(
+        'ProjectState',
         `Document tab "${element.name}" selected at index ${index + 1} (zero-based index: ${index})`
       );
     }
@@ -818,7 +847,8 @@ export class ProjectStateService {
     if (index !== -1) {
       // Set index+1 because index 0 is reserved for home tab in the TabInterfaceComponent
       this.selectedTabIndex.set(index + 1);
-      console.log(
+      this.logger.debug(
+        'ProjectState',
         `System tab "${tabName}" selected at index ${index + 1} (zero-based index: ${index})`
       );
     }
@@ -829,7 +859,10 @@ export class ProjectStateService {
     const closedTab = tabs[index];
 
     if (!closedTab) {
-      console.error(`Attempted to close invalid tab at index ${index}`);
+      this.logger.error(
+        'ProjectState',
+        `Attempted to close invalid tab at index ${index}`
+      );
       return;
     }
 
@@ -919,9 +952,17 @@ export class ProjectStateService {
         `${cacheKey}/tabs`
       );
 
-      console.log('Opened documents and tabs saved to cache:', cacheKey);
+      this.logger.debug(
+        'ProjectState',
+        'Opened documents and tabs saved to cache',
+        cacheKey
+      );
     } catch (error) {
-      console.error('Failed to save opened documents to cache:', error);
+      this.logger.error(
+        'ProjectState',
+        'Failed to save opened documents to cache',
+        error
+      );
     }
   }
 
@@ -944,14 +985,17 @@ export class ProjectStateService {
       );
 
       if (tabs && tabs.length > 0) {
-        console.log('Restoring tabs from cache:', tabs);
+        this.logger.debug('ProjectState', 'Restoring tabs from cache', tabs);
 
         // Validate document tabs still exist in project
         const currentElements = this.elements();
         const validTabs = tabs.filter(tab => {
           // Always keep system tabs
           if (tab.type === 'system') {
-            console.log('Keeping system tab:', tab.name, tab.systemType);
+            this.logger.debug('ProjectState', 'Keeping system tab', {
+              name: tab.name,
+              systemType: tab.systemType,
+            });
             return true;
           }
 
@@ -961,7 +1005,10 @@ export class ProjectStateService {
             currentElements.some(element => element.id === tab.id);
 
           if (!exists) {
-            console.log('Removing invalid tab:', tab.name, tab.id);
+            this.logger.debug('ProjectState', 'Removing invalid tab', {
+              name: tab.name,
+              id: tab.id,
+            });
           }
 
           return exists;
@@ -1008,12 +1055,10 @@ export class ProjectStateService {
           }
 
           this.selectedTabIndex.set(selectedIndex);
-          console.log(
-            'Opened tabs restored from cache:',
-            validTabs.length,
-            'Selected index:',
-            selectedIndex
-          );
+          this.logger.info('ProjectState', 'Opened tabs restored from cache', {
+            tabsCount: validTabs.length,
+            selectedIndex,
+          });
           return;
         }
       }
@@ -1046,14 +1091,19 @@ export class ProjectStateService {
 
           // Set the first document as selected
           this.selectedTabIndex.set(Math.min(1, validDocuments.length));
-          console.log(
-            'Opened documents restored from cache:',
-            validDocuments.length
+          this.logger.info(
+            'ProjectState',
+            'Opened documents restored from cache',
+            { documentsCount: validDocuments.length }
           );
         }
       }
     } catch (error) {
-      console.error('Failed to restore opened documents from cache:', error);
+      this.logger.error(
+        'ProjectState',
+        'Failed to restore opened documents from cache',
+        error
+      );
     }
   }
 

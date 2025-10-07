@@ -14,6 +14,7 @@ import {
 
 import { UserAPIService } from '../../api-client/api/user-api.service';
 import { UserDto } from '../../api-client/model/user-dto';
+import { LoggerService } from './logger.service';
 import { StorageService } from './storage.service';
 import { XsrfService } from './xsrf.service';
 
@@ -43,17 +44,17 @@ const USER_CACHE_CONFIG = {
 
 const CACHE_KEY = 'currentUser';
 const MAX_RETRIES = 3;
-
 @Injectable({
   providedIn: 'root',
 })
 export class UserService {
   private readonly dialog = inject(MatDialog);
-  private readonly userApi = inject(UserAPIService);
+  private readonly userAPI = inject(UserAPIService);
   private readonly xsrfService = inject(XsrfService);
   private readonly authService = inject(AuthService);
-  private readonly storage = inject(StorageService);
   private readonly router = inject(Router);
+  private readonly storage = inject(StorageService);
+  private readonly logger = inject(LoggerService);
 
   readonly currentUser = signal<UserDto>({
     name: 'anonymous',
@@ -72,7 +73,11 @@ export class UserService {
     this.db = this.storage
       .initializeDatabase(USER_CACHE_CONFIG)
       .catch(error => {
-        console.error('User cache initialization failed:', error);
+        this.logger.error(
+          'UserService',
+          'User cache initialization failed',
+          error
+        );
         throw new UserServiceError(
           'SERVER_ERROR',
           'Failed to initialize user cache'
@@ -92,7 +97,7 @@ export class UserService {
           .afterClosed()
       );
     } catch (error) {
-      console.error('Settings dialog error:', error);
+      this.logger.error('UserService', 'Settings dialog error', error);
       throw new UserServiceError(
         'SERVER_ERROR',
         'Failed to open settings dialog'
@@ -130,7 +135,7 @@ export class UserService {
 
       // Fallback to API with retry mechanism
       const user = await firstValueFrom(
-        this.userApi.userControllerGetMe().pipe(
+        this.userAPI.userControllerGetMe().pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
             const userError = this.formatError(error);
@@ -139,9 +144,9 @@ export class UserService {
           })
         )
       );
-      console.log('User result', user);
+      this.logger.debug('UserService', 'User result', user);
       if (user) {
-        console.log('Saving user', user);
+        this.logger.debug('UserService', 'Saving user', user);
         await this.setCurrentUser(user);
       }
     } catch (err) {
@@ -150,7 +155,7 @@ export class UserService {
           ? err
           : new UserServiceError('SERVER_ERROR', 'Failed to load user data');
       this.error.set(error);
-      console.error('User loading error:', error);
+      this.logger.error('UserService', 'User loading error', error);
       throw error;
     } finally {
       this.isLoading.set(false);
@@ -163,7 +168,7 @@ export class UserService {
         const db = await this.db;
         await this.storage.put(db, 'users', user, CACHE_KEY);
       } catch (error) {
-        console.warn('Failed to cache user:', error);
+        this.logger.warn('UserService', 'Failed to cache user', error);
       }
     }
     this.currentUser.set(user);
@@ -201,7 +206,7 @@ export class UserService {
         const db = await this.db;
         await this.storage.delete(db, 'users', CACHE_KEY);
       } catch (error) {
-        console.warn('Failed to clear cached user:', error);
+        this.logger.warn('UserService', 'Failed to clear cached user', error);
       }
     }
     this.currentUser.set({
@@ -230,17 +235,17 @@ export class UserService {
   }
 
   getUserAvatar(username: string): Observable<Blob> {
-    return this.userApi.userControllerGetUserAvatar(
+    return this.userAPI.userControllerGetUserAvatar(
       username
     ) as Observable<Blob>;
   }
 
   uploadAvatar(file: File): Observable<void> {
-    return this.userApi.userControllerUploadAvatar(file) as Observable<void>;
+    return this.userAPI.userControllerUploadAvatar(file) as Observable<void>;
   }
 
   deleteAvatar(): Observable<void> {
-    return this.userApi.userControllerDeleteAvatar() as Observable<void>;
+    return this.userAPI.userControllerDeleteAvatar() as Observable<void>;
   }
 
   private formatError(error: unknown): UserServiceError {
@@ -298,7 +303,7 @@ export class UserService {
       const db = await this.db;
       return await this.storage.get<UserDto>(db, 'users', CACHE_KEY);
     } catch (error) {
-      console.warn('Failed to get cached user:', error);
+      this.logger.warn('UserService', 'Failed to get cached user', error);
       return undefined;
     }
   }
