@@ -250,7 +250,7 @@ describe('ProjectStateService', () => {
 
       await service.loadProject('testuser', 'test-project').catch(() => {});
 
-      expect(service.error()).toBe('Failed to load project');
+      expect(service.error()).toBe('Failed to load project: API Error');
       expect(service.getSyncState()).toBe(DocumentSyncState.Unavailable);
     });
   });
