@@ -46,3 +46,5 @@ Thumbs.db
 /playwright-report/
 /playwright/.cache/
 .jest-cache
+/test-results.json
+debug-screenshot.png

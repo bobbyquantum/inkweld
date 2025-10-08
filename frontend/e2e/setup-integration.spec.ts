@@ -22,11 +22,11 @@ test.describe('Setup Integration Tests', () => {
       await page.goto('/setup');
 
       // Configure server mode
-      await page.locator('button:has-text("Connect to Server")').click();
+      await page.getByTestId('server-mode-button').click();
       await page
-        .locator('input[placeholder="https://your-inkweld-server.com"]')
+        .getByTestId('server-url-input')
         .fill('https://test-server.com');
-      await page.locator('button:has-text("Connect to Server")').click();
+      await page.getByTestId('connect-server-button').click();
 
       // Should redirect to welcome page for authentication
       await expect(page).toHaveURL('/welcome');
@@ -42,14 +42,10 @@ test.describe('Setup Integration Tests', () => {
       await page.goto('/setup');
 
       // Configure offline mode
-      await page.locator('button:has-text("Work Offline")').click();
-      await page
-        .locator('input[placeholder="Enter your username"]')
-        .fill('testuser');
-      await page
-        .locator('input[placeholder="Enter your display name"]')
-        .fill('Test User');
-      await page.locator('button:has-text("Set Up Offline Mode")').click();
+      await page.getByTestId('offline-mode-button').click();
+      await page.getByTestId('offline-username-input').fill('testuser');
+      await page.getByTestId('offline-displayname-input').fill('Test User');
+      await page.getByTestId('start-offline-button').click();
 
       // Should redirect directly to home page
       await expect(page).toHaveURL('/');
@@ -69,14 +65,10 @@ test.describe('Setup Integration Tests', () => {
       await page.goto('/setup');
 
       // Configure offline mode
-      await page.locator('button:has-text("Work Offline")').click();
-      await page
-        .locator('input[placeholder="Enter your username"]')
-        .fill('testuser');
-      await page
-        .locator('input[placeholder="Enter your display name"]')
-        .fill('Test User');
-      await page.locator('button:has-text("Set Up Offline Mode")').click();
+      await page.getByTestId('offline-mode-button').click();
+      await page.getByTestId('offline-username-input').fill('testuser');
+      await page.getByTestId('offline-displayname-input').fill('Test User');
+      await page.getByTestId('start-offline-button').click();
 
       // Should be on home page
       await expect(page).toHaveURL('/');
@@ -104,11 +96,11 @@ test.describe('Setup Integration Tests', () => {
       await page.goto('/setup');
 
       // Configure server mode
-      await page.locator('button:has-text("Connect to Server")').click();
+      await page.getByTestId('server-mode-button').click();
       await page
-        .locator('input[placeholder="https://your-inkweld-server.com"]')
+        .getByTestId('server-url-input')
         .fill('https://test-server.com');
-      await page.locator('button:has-text("Connect to Server")').click();
+      await page.getByTestId('connect-server-button').click();
 
       // Should redirect to welcome page
       await expect(page).toHaveURL('/welcome');
@@ -150,14 +142,10 @@ test.describe('Setup Integration Tests', () => {
       await page.goto('/setup');
 
       // Configure offline mode
-      await page.locator('button:has-text("Work Offline")').click();
-      await page
-        .locator('input[placeholder="Enter your username"]')
-        .fill('testuser');
-      await page
-        .locator('input[placeholder="Enter your display name"]')
-        .fill('Test User');
-      await page.locator('button:has-text("Set Up Offline Mode")').click();
+      await page.getByTestId('offline-mode-button').click();
+      await page.getByTestId('offline-username-input').fill('testuser');
+      await page.getByTestId('offline-displayname-input').fill('Test User');
+      await page.getByTestId('start-offline-button').click();
 
       // Check that configuration is stored in localStorage
       const storedConfig = await page.evaluate(() => {
@@ -177,11 +165,11 @@ test.describe('Setup Integration Tests', () => {
       await page.goto('/setup');
 
       // Configure server mode
-      await page.locator('button:has-text("Connect to Server")').click();
+      await page.getByTestId('server-mode-button').click();
       await page
-        .locator('input[placeholder="https://your-inkweld-server.com"]')
+        .getByTestId('server-url-input')
         .fill('https://test-server.com');
-      await page.locator('button:has-text("Connect to Server")').click();
+      await page.getByTestId('connect-server-button').click();
 
       // Check that configuration is stored in localStorage
       const storedConfig = await page.evaluate(() => {
@@ -205,7 +193,7 @@ test.describe('Setup Integration Tests', () => {
       await page.goto('/setup');
 
       // Should still show setup screen despite corrupted data
-      await expect(page.locator('.setup-card')).toBeVisible();
+      await expect(page.getByTestId('setup-card')).toBeVisible();
       await expect(page.locator('mat-card-title')).toContainText(
         'Welcome to Inkweld'
       );
@@ -218,14 +206,10 @@ test.describe('Setup Integration Tests', () => {
     }) => {
       // First configure offline mode
       await page.goto('/setup');
-      await page.locator('button:has-text("Work Offline")').click();
-      await page
-        .locator('input[placeholder="Enter your username"]')
-        .fill('testuser');
-      await page
-        .locator('input[placeholder="Enter your display name"]')
-        .fill('Test User');
-      await page.locator('button:has-text("Set Up Offline Mode")').click();
+      await page.getByTestId('offline-mode-button').click();
+      await page.getByTestId('offline-username-input').fill('testuser');
+      await page.getByTestId('offline-displayname-input').fill('Test User');
+      await page.getByTestId('start-offline-button').click();
 
       // Should be on home page
       await expect(page).toHaveURL('/');
@@ -239,11 +223,11 @@ test.describe('Setup Integration Tests', () => {
       await page.goto('/setup');
 
       // Configure server mode
-      await page.locator('button:has-text("Connect to Server")').click();
+      await page.getByTestId('server-mode-button').click();
       await page
-        .locator('input[placeholder="https://your-inkweld-server.com"]')
+        .getByTestId('server-url-input')
         .fill('https://test-server.com');
-      await page.locator('button:has-text("Connect to Server")').click();
+      await page.getByTestId('connect-server-button').click();
 
       // Should redirect to welcome page
       await expect(page).toHaveURL('/welcome');
@@ -254,11 +238,11 @@ test.describe('Setup Integration Tests', () => {
     }) => {
       // First configure server mode
       await page.goto('/setup');
-      await page.locator('button:has-text("Connect to Server")').click();
+      await page.getByTestId('server-mode-button').click();
       await page
-        .locator('input[placeholder="https://your-inkweld-server.com"]')
+        .getByTestId('server-url-input')
         .fill('https://test-server.com');
-      await page.locator('button:has-text("Connect to Server")').click();
+      await page.getByTestId('server-mode-button').click();
 
       // Should be on welcome page
       await expect(page).toHaveURL('/welcome');
@@ -272,14 +256,10 @@ test.describe('Setup Integration Tests', () => {
       await page.goto('/setup');
 
       // Configure offline mode
-      await page.locator('button:has-text("Work Offline")').click();
-      await page
-        .locator('input[placeholder="Enter your username"]')
-        .fill('newuser');
-      await page
-        .locator('input[placeholder="Enter your display name"]')
-        .fill('New User');
-      await page.locator('button:has-text("Set Up Offline Mode")').click();
+      await page.getByTestId('offline-mode-button').click();
+      await page.getByTestId('offline-username-input').fill('newuser');
+      await page.getByTestId('offline-displayname-input').fill('New User');
+      await page.getByTestId('start-offline-button').click();
 
       // Should redirect to home page
       await expect(page).toHaveURL('/');
@@ -296,11 +276,11 @@ test.describe('Setup Integration Tests', () => {
       await page.goto('/setup');
 
       // Configure server mode
-      await page.locator('button:has-text("Connect to Server")').click();
+      await page.getByTestId('server-mode-button').click();
       await page
-        .locator('input[placeholder="https://your-inkweld-server.com"]')
+        .getByTestId('server-url-input')
         .fill('https://test-server.com');
-      await page.locator('button:has-text("Connect to Server")').click();
+      await page.getByTestId('connect-server-button').click();
 
       // Should show error message
       await expect(
@@ -317,14 +297,10 @@ test.describe('Setup Integration Tests', () => {
       await page.goto('/setup');
 
       // Configure offline mode with special characters
-      await page.locator('button:has-text("Work Offline")').click();
-      await page
-        .locator('input[placeholder="Enter your username"]')
-        .fill('test-user_123');
-      await page
-        .locator('input[placeholder="Enter your display name"]')
-        .fill('Test User (Admin)');
-      await page.locator('button:has-text("Set Up Offline Mode")').click();
+      await page.getByTestId('offline-mode-button').click();
+      await page.getByTestId('offline-username-input').fill('test-user_123');
+      await page.getByTestId('offline-displayname-input').fill('Test User (Admin)');
+      await page.getByTestId('start-offline-button').click();
 
       // Should handle special characters gracefully
       await expect(page.locator('text=Offline mode configured!')).toBeVisible();
@@ -341,14 +317,10 @@ test.describe('Setup Integration Tests', () => {
         );
 
       // Configure offline mode with long inputs
-      await page.locator('button:has-text("Work Offline")').click();
-      await page
-        .locator('input[placeholder="Enter your username"]')
-        .fill(longUsername);
-      await page
-        .locator('input[placeholder="Enter your display name"]')
-        .fill(longDisplayName);
-      await page.locator('button:has-text("Set Up Offline Mode")').click();
+      await page.getByTestId('offline-mode-button').click();
+      await page.getByTestId('offline-username-input').fill(longUsername);
+      await page.getByTestId('offline-displayname-input').fill(longDisplayName);
+      await page.getByTestId('start-offline-button').click();
 
       // Should either handle gracefully or show appropriate validation
       const successMessage = page.locator('text=Offline mode configured!');
@@ -366,13 +338,9 @@ test.describe('Setup Integration Tests', () => {
       await page.goto('/setup');
 
       // Configure offline mode
-      await page.locator('button:has-text("Work Offline")').click();
-      await page
-        .locator('input[placeholder="Enter your username"]')
-        .fill('testuser');
-      await page
-        .locator('input[placeholder="Enter your display name"]')
-        .fill('Test User');
+      await page.getByTestId('offline-mode-button').click();
+      await page.getByTestId('offline-username-input').fill('testuser');
+      await page.getByTestId('offline-displayname-input').fill('Test User');
 
       // Rapidly click the setup button multiple times
       const setupButton = page.locator(
@@ -396,7 +364,7 @@ test.describe('Setup Integration Tests', () => {
       // For now, we'll test that the setup page loads properly
       await page.goto('/setup');
 
-      await expect(page.locator('.setup-card')).toBeVisible();
+      await expect(page.getByTestId('setup-card')).toBeVisible();
       await expect(page.locator('mat-card-title')).toContainText(
         'Welcome to Inkweld'
       );
@@ -428,17 +396,13 @@ test.describe('Setup Integration Tests', () => {
       await page.goto('/setup');
 
       // Should still show setup screen
-      await expect(page.locator('.setup-card')).toBeVisible();
+      await expect(page.getByTestId('setup-card')).toBeVisible();
 
       // Try to configure offline mode
-      await page.locator('button:has-text("Work Offline")').click();
-      await page
-        .locator('input[placeholder="Enter your username"]')
-        .fill('testuser');
-      await page
-        .locator('input[placeholder="Enter your display name"]')
-        .fill('Test User');
-      await page.locator('button:has-text("Set Up Offline Mode")').click();
+      await page.getByTestId('offline-mode-button').click();
+      await page.getByTestId('offline-username-input').fill('testuser');
+      await page.getByTestId('offline-displayname-input').fill('Test User');
+      await page.getByTestId('start-offline-button').click();
 
       // Should handle localStorage errors gracefully
       // The exact behavior would depend on your error handling implementation

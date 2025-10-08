@@ -1,6 +1,6 @@
 <div class="setup-container">
   <div class="setup-content">
-    <mat-card class="setup-card">
+    <mat-card class="setup-card" data-testid="setup-card">
       <mat-card-header>
         <mat-card-title>
           <mat-icon>settings</mat-icon>
@@ -43,7 +43,10 @@
           <!-- Initial choice screen - only shown when appMode is 'BOTH' -->
           <div class="setup-options">
             @if (canUseServerMode()) {
-              <button class="option-card" (click)="chooseServerMode()">
+              <button
+                class="option-card"
+                (click)="chooseServerMode()"
+                data-testid="server-mode-button">
                 <mat-icon class="option-icon">cloud</mat-icon>
                 <h3>Connect to Server</h3>
                 <p>
@@ -59,7 +62,10 @@
             }
 
             @if (canUseOfflineMode()) {
-              <button class="option-card" (click)="chooseOfflineMode()">
+              <button
+                class="option-card"
+                (click)="chooseOfflineMode()"
+                data-testid="offline-mode-button">
                 <mat-icon class="option-icon">offline_bolt</mat-icon>
                 <h3>Work Offline</h3>
                 <p>
@@ -76,7 +82,11 @@
           <!-- Server setup form -->
           <div class="setup-form">
             @if (appMode() === 'BOTH') {
-              <button mat-icon-button (click)="goBack()" class="back-button">
+              <button
+                mat-icon-button
+                (click)="goBack()"
+                class="back-button"
+                data-testid="server-back-button">
                 <mat-icon>arrow_back</mat-icon>
               </button>
             }
@@ -91,7 +101,8 @@
                 [(ngModel)]="serverUrl"
                 placeholder="http://localhost:8333"
                 type="url"
-                required />
+                required
+                data-testid="server-url-input" />
               <mat-icon matSuffix>link</mat-icon>
             </mat-form-field>
 
@@ -103,7 +114,8 @@
                 mat-raised-button
                 color="primary"
                 (click)="setupServerMode()"
-                [disabled]="isLoading() || !serverUrl.trim()">
+                [disabled]="isLoading() || !serverUrl.trim()"
+                data-testid="connect-server-button">
                 Connect to Server
               </button>
             </div>
@@ -114,7 +126,11 @@
           <!-- Offline setup form -->
           <div class="setup-form">
             @if (appMode() === 'BOTH') {
-              <button mat-icon-button (click)="goBack()" class="back-button">
+              <button
+                mat-icon-button
+                (click)="goBack()"
+                class="back-button"
+                data-testid="offline-back-button">
                 <mat-icon>arrow_back</mat-icon>
               </button>
             }
@@ -128,7 +144,8 @@
                 matInput
                 [(ngModel)]="userName"
                 placeholder="your-username"
-                required />
+                required
+                data-testid="offline-username-input" />
               <mat-icon matSuffix>person</mat-icon>
             </mat-form-field>
 
@@ -138,7 +155,8 @@
                 matInput
                 [(ngModel)]="displayName"
                 placeholder="Your Name"
-                required />
+                required
+                data-testid="offline-displayname-input" />
               <mat-icon matSuffix>badge</mat-icon>
             </mat-form-field>
 
@@ -152,7 +170,8 @@
                 (click)="setupOfflineMode()"
                 [disabled]="
                   isLoading() || !userName.trim() || !displayName.trim()
-                ">
+                "
+                data-testid="start-offline-button">
                 Start Offline Mode
               </button>
             </div>

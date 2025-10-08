@@ -20,7 +20,8 @@
               formControlName="title"
               title="Project Title"
               placeholder="Title"
-              required />
+              required
+              data-testid="project-title-input" />
             @if (
               projectForm.get('title')?.hasError('required') &&
               projectForm.get('title')?.touched
@@ -36,7 +37,8 @@
               formControlName="slug"
               title="Project Slug"
               placeholder="project-slug"
-              required />
+              required
+              data-testid="project-slug-input" />
             @if (
               projectForm.get('slug')?.hasError('required') &&
               projectForm.get('slug')?.touched
@@ -60,7 +62,8 @@
               title="Project Description"
               placeholder="Project Description"
               formControlName="description"
-              rows="4"></textarea>
+              rows="4"
+              data-testid="project-description-input"></textarea>
           </mat-form-field>
 
           @if (projectUrl) {
@@ -80,7 +83,8 @@
             mat-raised-button
             color="primary"
             type="submit"
-            [disabled]="projectForm.invalid || isSaving">
+            [disabled]="projectForm.invalid || isSaving"
+            data-testid="create-project-button">
             Create Project
           </button>
         </mat-card-actions>

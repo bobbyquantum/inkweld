@@ -3,6 +3,7 @@ import { mockApi } from './mock-api';
 import { setupAuthHandlers } from './mock-api/auth';
 import { setupUserHandlers } from './mock-api/users';
 import { setupConfigHandlers } from './mock-api/config';
+import { setupProjectHandlers } from './mock-api/projects';
 
 /**
  * Initialize all mock API handlers
@@ -12,6 +13,7 @@ function initializeMockApi(): void {
   setupAuthHandlers();
   setupUserHandlers();
   setupConfigHandlers();
+  setupProjectHandlers();
   // Add other mock handlers initialization here
 }
 
@@ -158,28 +160,49 @@ export async function loginViaUI(
  * Helper to register a new user via UI interaction
  * @param page Playwright page
  * @param username Username for registration
- * @param password Password for registration
- * @param name Optional display name
+ * @param password Password for registration (defaults to 'ValidPass123!')
  */
 export async function registerViaUI(
   page: Page,
   username: string,
-  password = 'correct-password',
-  name?: string
+  password = 'ValidPass123!'
 ): Promise<void> {
   await page.goto('/register');
-  await page.fill('input[name="username"]', username);
-  await page.fill('input[name="password"]', password);
-  await page.fill('input[name="confirmPassword"]', password);
+  await page.getByTestId('username-input').fill(username);
+  await page.getByTestId('password-input').fill(password);
+  await page.getByTestId('confirm-password-input').fill(password);
 
-  if (name) {
-    await page.fill('input[name="name"]', name);
-  }
-
-  await page.click('button[type="submit"]');
+  await page.getByTestId('register-button').click();
 
   // Wait for redirect to home page
   await page.waitForURL('/');
+}
+
+/**
+ * Helper to create a project via UI interaction
+ * @param page Playwright page
+ * @param title Project title
+ * @param slug Project slug
+ * @param description Optional project description
+ */
+export async function createProjectViaUI(
+  page: Page,
+  title: string,
+  slug: string,
+  description?: string
+): Promise<void> {
+  await page.goto('/create-project');
+  await page.getByTestId('project-title-input').fill(title);
+  await page.getByTestId('project-slug-input').fill(slug);
+  
+  if (description) {
+    await page.getByTestId('project-description-input').fill(description);
+  }
+
+  await page.getByTestId('create-project-button').click();
+
+  // Wait for redirect to project page
+  await page.waitForURL(/.*\/.*/);
 }
 
 // Re-export expect for convenience

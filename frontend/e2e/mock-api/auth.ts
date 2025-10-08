@@ -29,8 +29,58 @@ export function setupAuthHandlers(): void {
       body: JSON.stringify(['github', 'google']) // Add whatever providers you want to test with
     });
   });
-  // POST /api/auth/register - User registration
-  mockApi.addHandler('**/api/auth/register', async (route: Route) => {
+  // GET /api/v1/users/check-username - Check username availability
+  mockApi.addHandler('**/api/v1/users/check-username**', async (route: Route) => {
+    const url = new URL(route.request().url());
+    const username = url.searchParams.get('username');
+
+    if (!username) {
+      await route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          message: 'Username parameter is required',
+          error: 'Bad Request',
+          statusCode: 400
+        })
+      });
+      return;
+    }
+
+    // Check if username exists
+    const existingUser = mockUsers.findByUsername(username);
+    
+    if (existingUser) {
+      // Username is taken, generate suggestions
+      const suggestions = [
+        `${username}123`,
+        `${username}_${Math.floor(Math.random() * 1000)}`,
+        `${username}_user`
+      ];
+      
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          available: false,
+          suggestions: suggestions
+        })
+      });
+    } else {
+      // Username is available
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          available: true,
+          suggestions: []
+        })
+      });
+    }
+  });
+
+  // POST /api/v1/users/register - User registration
+  mockApi.addHandler('**/api/v1/users/register', async (route: Route) => {
     const request = route.request();
     const body = await request.postDataJSON() as any;
 
@@ -52,12 +102,50 @@ export function setupAuthHandlers(): void {
     if (existingUser) {
       console.log(`Registration failed: Username ${body.username} already taken`);
       await route.fulfill({
-        status: 409,
+        status: 400,
         contentType: 'application/json',
         body: JSON.stringify({
           message: 'Username already taken',
-          error: 'Conflict',
-          statusCode: 409
+          errors: {
+            username: ['Username already taken']
+          },
+          error: 'Bad Request',
+          statusCode: 400
+        })
+      });
+      return;
+    }
+
+    // Validate password strength
+    const password = body.password as string;
+    const passwordErrors: string[] = [];
+    if (password.length < 8) {
+      passwordErrors.push('Password must be at least 8 characters long');
+    }
+    if (!/[A-Z]/.test(password)) {
+      passwordErrors.push('Password must contain at least one uppercase letter');
+    }
+    if (!/[a-z]/.test(password)) {
+      passwordErrors.push('Password must contain at least one lowercase letter');
+    }
+    if (!/\d/.test(password)) {
+      passwordErrors.push('Password must contain at least one number');
+    }
+    if (!/[@$!%*?&]/.test(password)) {
+      passwordErrors.push('Password must contain at least one special character (@$!%*?&)');
+    }
+
+    if (passwordErrors.length > 0) {
+      await route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          message: 'Password does not meet requirements',
+          errors: {
+            password: passwordErrors
+          },
+          error: 'Bad Request',
+          statusCode: 400
         })
       });
       return;
@@ -74,10 +162,21 @@ export function setupAuthHandlers(): void {
       mockUsers.addUser(newUser);
       console.log(`Created new user: ${newUser.username}`);
 
+      // Generate session cookie for auto-login after registration
+      const sessionId = `mock-session-${newUser.username}-${Date.now()}`;
+
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
-        body: JSON.stringify(newUser)
+        headers: {
+          'Set-Cookie': `mockSessionId=${sessionId}; Path=/; HttpOnly; SameSite=Lax`
+        },
+        body: JSON.stringify({
+          userId: newUser.id,
+          username: newUser.username,
+          name: newUser.name,
+          requiresApproval: false
+        })
       });
     } catch (error) {
       console.error('Failed to create user:', error);

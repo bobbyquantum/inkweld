@@ -70,22 +70,62 @@ test('admin test', async ({ adminPage: page }) => {
 });
 ```
 
-### Authentication Helpers
+### Test Helpers
 
-The fixtures module provides helper functions for login and registration through the UI:
+The fixtures module provides helper functions for common UI interactions:
 
 ```typescript
-import { test, expect, loginViaUI, registerViaUI } from '../fixtures';
+import { test, expect, loginViaUI, registerViaUI, createProjectViaUI } from '../fixtures';
+import { generateUniqueUsername, TEST_CONSTANTS } from './test-helpers';
 
 test('login flow', async ({ anonymousPage: page }) => {
-  await loginViaUI(page, 'testuser', 'correct-password');
+  await loginViaUI(page, 'testuser', TEST_CONSTANTS.VALID_PASSWORD);
   // Now authenticated
 });
 
 test('registration flow', async ({ anonymousPage: page }) => {
-  await registerViaUI(page, 'newuser', 'correct-password', 'New User');
+  const username = generateUniqueUsername();
+  await registerViaUI(page, username, TEST_CONSTANTS.VALID_PASSWORD);
   // Now registered and authenticated
 });
+
+test('create project flow', async ({ authenticatedPage: page }) => {
+  await createProjectViaUI(page, 'My Project', 'my-project', 'Description');
+  // Project created and navigated to project page
+});
+```
+
+### Utility Functions
+
+Additional utility functions are available in `test-helpers.ts`:
+
+```typescript
+import { 
+  generateUniqueUsername, 
+  generateUniqueSlug,
+  waitForNetworkIdle,
+  clearAllStorage,
+  fillFormFields,
+  TEST_CONSTANTS 
+} from './test-helpers';
+
+// Generate unique identifiers
+const username = generateUniqueUsername('user');
+const slug = generateUniqueSlug('project');
+
+// Fill multiple form fields at once
+await fillFormFields(page, {
+  'project-title-input': 'My Project',
+  'project-slug-input': 'my-project',
+  'project-description-input': 'Description'
+});
+
+// Wait for network to be idle
+await waitForNetworkIdle(page);
+
+// Use common test constants
+const password = TEST_CONSTANTS.VALID_PASSWORD;
+const timeout = TEST_CONSTANTS.TIMEOUTS.MEDIUM;
 ```
 
 ## Mock Credentials
