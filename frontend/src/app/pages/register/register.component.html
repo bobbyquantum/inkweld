@@ -17,7 +17,8 @@
               formControlName="username"
               required
               (blur)="checkUsernameAvailability()"
-              aria-label="Username" />
+              aria-label="Username"
+              data-testid="username-input" />
             <mat-icon matSuffix>
               @switch (usernameAvailability) {
                 @case ('available') {
@@ -60,7 +61,8 @@
               (focus)="onPasswordFocus()"
               (blur)="onPasswordBlur()"
               (input)="onPasswordInput($event)"
-              aria-label="Password" />
+              aria-label="Password"
+              data-testid="password-input" />
             <mat-error>{{ getPasswordErrorMessage() }}</mat-error>
           </mat-form-field>
 
@@ -93,7 +95,8 @@
               type="password"
               formControlName="confirmPassword"
               required
-              aria-label="Confirm Password" />
+              aria-label="Confirm Password"
+              data-testid="confirm-password-input" />
             <mat-error>{{ getConfirmPasswordErrorMessage() }}</mat-error>
           </mat-form-field>
 
@@ -122,7 +125,8 @@
             color="primary"
             type="submit"
             [disabled]="registerForm.invalid || isRegistering"
-            class="register-button">
+            class="register-button"
+            data-testid="register-button">
             @if (!isRegistering) {
               <span>Register</span>
             }

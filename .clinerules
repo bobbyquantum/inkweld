@@ -1,26 +1,19 @@
-# Code Quality Rules
+# Cline-Specific Rules
 
-1. Test Coverage:
+## See AGENTS.md for Full Instructions
 
-   - Before attempting completion, always make sure that any code changes have test coverage
-   - Ensure all tests pass before submitting changes
+All comprehensive AI agent instructions, development guidelines, and best practices are documented in [AGENTS.md](./AGENTS.md).
 
-2. Lint Rules:
+This file contains Cline-specific overrides and quick references only.
 
-   - Never disable any lint rules without explicit user approval
-   - If a lint rule needs to be disabled, ask the user first and explain why
-   - Prefer fixing the underlying issue over disabling the lint rule
-   - Document any approved lint rule disabling with a comment explaining the reason
+---
 
-3. Angular Control Flow:
-   - Angular Control Flow Guidance: Use @if/@else for conditionals (optionally assigning results with as), @for with track (prefer unique IDs like item.id, avoid identity, use @empty for empty states), leverage contextual variables ($index, $count, etc.) and aliasing, and @switch/@case with strict equality (===), replacing legacy \*ngIf, \*ngFor, and \*ngSwitch directives.
+## Quick Reference
 
-## Project Information
+- **DO NOT create summary markdown files** unless explicitly requested
+- Never disable lint rules without approval
+- All tests must pass before completion
+- Frontend: Angular 19, use `inject()`, modern control flow (`@if`, `@for`, `@switch`)
+- Backend: NestJS 10 on Bun, use `import type` for Request/Response
 
-1. /frontend - The frontend is Angular 19. Preference is to use inject() syntax rather than constructor injection. Everything is standalone, no modules. The dev server is run on node. All tests are jest based. Do not use jasmine.
-
-2. /server - The server is NestJS 10. This project runs on bun rather than node. Tests are run with jest. If you need Request or Response from type, import it with "import type" not regular import.
-
-## General Requests
-
-- If there are issues, loops, or problems requiring user intervention encountered, which could have been prevented by a new rule, then summarise the lessons learned and suggest new rules to remedy.
+For complete details, see [AGENTS.md](./AGENTS.md)

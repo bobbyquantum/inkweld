@@ -81,6 +81,42 @@ export const mockUsers = new MockUsers();
  * Set up mock handlers for user-related API endpoints
  */
 export function setupUserHandlers(): void {
+  // GET /api/v1/users/check-username - Check username availability
+  mockApi.addHandler('**/api/v1/users/check-username/**', async (route: Route) => {
+    const url = route.request().url();
+    const username = url.split('/').pop()?.split('?')[0] || '';
+
+    const existingUser = mockUsers.findByUsername(username);
+    
+    if (existingUser) {
+      // Username is taken, provide suggestions
+      const suggestions = [
+        `${username}1`,
+        `${username}2`,
+        `${username}_user`,
+      ];
+      
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          available: false,
+          suggestions
+        })
+      });
+    } else {
+      // Username is available
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          available: true,
+          suggestions: []
+        })
+      });
+    }
+  });
+
   // GET /api/v1/users/me - Current user endpoint (Cookie based)
   mockApi.addHandler('**/api/v1/users/me', async (route: Route) => {
     const request = route.request();
