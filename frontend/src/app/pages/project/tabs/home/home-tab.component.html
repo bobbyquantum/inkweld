@@ -2,7 +2,19 @@
   <div class="full-width-column">
     <div class="full-width-header">
       <div class="header-content">
-        <div>
+        @if (coverImageUrl()) {
+          <div class="cover-image-container">
+            <img
+              [src]="coverImageUrl()"
+              alt="Project cover"
+              class="cover-image" />
+          </div>
+        } @else if (showCoverPlaceholder()) {
+          <div class="cover-image-container cover-placeholder">
+            <mat-icon>image</mat-icon>
+          </div>
+        }
+        <div class="project-info">
           <h2>{{ projectState.project()?.title }}</h2>
           <p>{{ projectState.project()?.description }}</p>
         </div>
