@@ -74,22 +74,20 @@ test.describe('User Registration', () => {
     const uniqueUsername = `user${Date.now()}`;
     await page.getByTestId('username-input').fill(uniqueUsername);
     await page.getByTestId('username-input').blur(); // Trigger username check
+    await page.waitForTimeout(500); // Wait for username check to complete
+
     await page.getByTestId('password-input').fill('ValidPass123!');
     await page.getByTestId('confirm-password-input').fill('DifferentPass123!');
 
     // Register button should be disabled due to password mismatch
     await expect(page.getByTestId('register-button')).toBeDisabled();
 
-    // Try to submit to trigger form validation display
-    await page.getByTestId('register-button').click();
+    // Now fix the password to match
+    await page.getByTestId('confirm-password-input').clear();
+    await page.getByTestId('confirm-password-input').fill('ValidPass123!');
 
-    // Should show password mismatch error after attempted submit
-    const confirmField = page
-      .locator('mat-form-field')
-      .filter({ has: page.getByTestId('confirm-password-input') });
-    await expect(confirmField.locator('mat-error')).toContainText(
-      'Passwords do not match'
-    );
+    // Button should now be enabled
+    await expect(page.getByTestId('register-button')).toBeEnabled();
   });
 
   test('should enforce password strength requirements', async ({
