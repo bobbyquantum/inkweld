@@ -101,9 +101,9 @@ export class OpenAiImageService {
     );
 
     try {
-      // Create an abort controller with a 60-second timeout (image gen can be slow)
+      // Create an abort controller with a 180-second timeout (image gen can be slow)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds
+      const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes
 
       const res = await this.openai.images.generate(params, {
         signal: controller.signal as AbortSignal,
@@ -148,7 +148,7 @@ export class OpenAiImageService {
       const err = error as Error;
       if (err.name === 'AbortError') {
         this.logger.warn(
-          `OpenAI image generation timed out after 60 seconds for prompt: "${request.prompt}"`,
+          `OpenAI image generation timed out after 3 minutes for prompt: "${request.prompt}"`,
         );
         throw new InternalServerErrorException(
           'Image generation service timed out',

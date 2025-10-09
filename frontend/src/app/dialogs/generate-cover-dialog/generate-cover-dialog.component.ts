@@ -93,9 +93,9 @@ export class GenerateCoverDialogComponent implements OnInit {
   }
 
   onApprove(): void {
-    // For now, we're just closing the dialog when approved
-    // In the future, we could save the image to the project
-    this.dialogRef.close(true);
+    // Return the image data (base64 or URL) to the caller
+    const imageData = this.imageBase64 || this.imageUrl;
+    this.dialogRef.close({ approved: true, imageData });
   }
 
   onCancel(): void {

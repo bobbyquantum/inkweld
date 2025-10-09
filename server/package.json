@@ -44,7 +44,7 @@
     "http-proxy-middleware": "3.0.5",
     "lodash.debounce": "4.0.8",
     "nest-winston": "^1.10.2",
-    "openai": "^5.0.0",
+    "openai": "^6.2.0",
     "passport": "0.7.0",
     "passport-github": "1.1.0",
     "passport-github2": "0.1.12",
