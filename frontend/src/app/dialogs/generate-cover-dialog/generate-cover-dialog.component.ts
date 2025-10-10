@@ -99,7 +99,7 @@ export class GenerateCoverDialogComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.dialogRef.close(false);
+    this.dialogRef.close({ approved: false, imageData: null });
   }
 
   onRetry(): void {

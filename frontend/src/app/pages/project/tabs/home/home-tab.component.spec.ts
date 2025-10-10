@@ -3,21 +3,28 @@ import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterModule } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
+import { ProjectAPIService } from '@inkweld/api/project-api.service';
 import { ProjectDto, ProjectElementDto } from '@inkweld/index';
 
+import { DialogGatewayService } from '../../../../services/dialog-gateway.service';
+import { ProjectService } from '../../../../services/project.service';
 import { ProjectImportExportService } from '../../../../services/project-import-export.service';
 import { ProjectStateService } from '../../../../services/project-state.service';
 import { RecentFilesService } from '../../../../services/recent-files.service';
 import { HomeTabComponent } from './home-tab.component';
-
 describe('HomeTabComponent', () => {
   let component: HomeTabComponent;
   let fixture: ComponentFixture<HomeTabComponent>;
   let projectStateService: Partial<ProjectStateService>;
+  let projectService: Partial<ProjectService>;
+  let projectApiService: Partial<ProjectAPIService>;
   let recentFilesService: Partial<RecentFilesService>;
   let importExportService: Partial<ProjectImportExportService>;
+  let dialogGateway: Partial<DialogGatewayService>;
+  let snackBar: Partial<MatSnackBar>;
 
   const mockProject = {
     id: '1',
@@ -39,6 +46,14 @@ describe('HomeTabComponent', () => {
       type: 'IMAGE',
     },
   ];
+
+  // Mock URL.createObjectURL which isn't available in Jest environment
+  beforeAll(() => {
+    // Only mock if not already defined
+    if (!global.URL.createObjectURL) {
+      global.URL.createObjectURL = jest.fn().mockReturnValue('mock-blob-url');
+    }
+  });
 
   const setupMockServices = () => {
     // Initialize signals for ProjectStateService
@@ -62,6 +77,25 @@ describe('HomeTabComponent', () => {
       exportProjectZip: jest.fn().mockResolvedValue(undefined),
       importProjectZip: jest.fn().mockResolvedValue(undefined),
     };
+
+    projectService = {
+      getProjectCover: jest
+        .fn()
+        .mockRejectedValue(new Error('Cover image not found')),
+    };
+
+    projectApiService = {
+      coverControllerUploadCover: jest.fn(),
+    } as any;
+
+    dialogGateway = {
+      openGenerateCoverDialog: jest.fn(),
+      openNewElementDialog: jest.fn(),
+    };
+
+    snackBar = {
+      open: jest.fn(),
+    } as any;
   };
 
   beforeEach(async () => {
@@ -78,13 +112,21 @@ describe('HomeTabComponent', () => {
       ],
       providers: [
         { provide: ProjectStateService, useValue: projectStateService },
+        { provide: ProjectService, useValue: projectService },
+        { provide: ProjectAPIService, useValue: projectApiService },
         { provide: RecentFilesService, useValue: recentFilesService },
         { provide: ProjectImportExportService, useValue: importExportService },
+        { provide: DialogGatewayService, useValue: dialogGateway },
+        { provide: MatSnackBar, useValue: snackBar },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(HomeTabComponent);
     component = fixture.componentInstance;
+
+    // Wait for the effect to settle before detecting changes
+    await Promise.resolve();
+
     fixture.detectChanges();
   });
 
