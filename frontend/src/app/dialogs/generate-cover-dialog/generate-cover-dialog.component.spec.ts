@@ -245,14 +245,21 @@ describe('GenerateCoverDialogComponent', () => {
   });
 
   describe('dialog actions', () => {
-    it('should close dialog with true when approving', () => {
+    it('should close dialog with result object when approving', () => {
+      component.imageBase64 = 'data:image/png;base64,test';
       component.onApprove();
-      expect(dialogRef.close).toHaveBeenCalledWith(true);
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        approved: true,
+        imageData: 'data:image/png;base64,test',
+      });
     });
 
-    it('should close dialog with false when cancelling', () => {
+    it('should close dialog with rejection object when cancelling', () => {
       component.onCancel();
-      expect(dialogRef.close).toHaveBeenCalledWith(false);
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        approved: false,
+        imageData: null,
+      });
     });
 
     it('should retry image generation', () => {
