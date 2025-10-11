@@ -49,10 +49,7 @@ describe('HomeTabComponent', () => {
 
   // Mock URL.createObjectURL which isn't available in Jest environment
   beforeAll(() => {
-    // Only mock if not already defined
-    if (!global.URL.createObjectURL) {
-      global.URL.createObjectURL = jest.fn().mockReturnValue('mock-blob-url');
-    }
+    global.URL.createObjectURL = jest.fn().mockReturnValue('mock-blob-url');
   });
 
   const setupMockServices = () => {
@@ -67,6 +64,7 @@ describe('HomeTabComponent', () => {
       openDocument: jest.fn(),
       publishProject: jest.fn().mockResolvedValue(undefined),
       showEditProjectDialog: jest.fn(),
+      openSystemTab: jest.fn(),
     };
 
     recentFilesService = {
@@ -79,18 +77,27 @@ describe('HomeTabComponent', () => {
     };
 
     projectService = {
-      getProjectCover: jest
-        .fn()
-        .mockRejectedValue(new Error('Cover image not found')),
+      getProjectCover: jest.fn().mockImplementation(() => {
+        // Return a promise that never resolves by default
+        // Tests will override this with specific behavior
+        return new Promise(() => {});
+      }),
+    };
+
+    const mockObservable = {
+      pipe: jest.fn().mockReturnThis(),
+      subscribe: jest.fn(),
     };
 
     projectApiService = {
-      coverControllerUploadCover: jest.fn(),
+      coverControllerUploadCover: jest.fn().mockReturnValue(mockObservable),
     } as any;
 
     dialogGateway = {
-      openGenerateCoverDialog: jest.fn(),
-      openNewElementDialog: jest.fn(),
+      openGenerateCoverDialog: jest
+        .fn()
+        .mockResolvedValue({ approved: false, imageData: null }),
+      openNewElementDialog: jest.fn().mockResolvedValue(undefined),
     };
 
     snackBar = {
@@ -256,5 +263,192 @@ describe('HomeTabComponent', () => {
 
     // Second item is an image
     expect(recentFileItems[1].textContent.trim()).toBe('image');
+  });
+
+  it('should open new file dialog when new file button is clicked', () => {
+    component.onNewFileClick();
+    expect(dialogGateway.openNewElementDialog).toHaveBeenCalled();
+  });
+
+  it('should open generate cover dialog when generate cover button is clicked', async () => {
+    const mockResult = {
+      approved: true,
+      imageData: 'data:image/png;base64,test123',
+    };
+    (dialogGateway.openGenerateCoverDialog as jest.Mock).mockResolvedValue(
+      mockResult
+    );
+
+    component.onGenerateCoverClick();
+    await Promise.resolve();
+
+    expect(dialogGateway.openGenerateCoverDialog).toHaveBeenCalledWith(
+      mockProject
+    );
+  });
+
+  it('should save cover image when dialog approves with image data', async () => {
+    const mockResult = {
+      approved: true,
+      imageData: 'data:image/png;base64,test123',
+    };
+    (dialogGateway.openGenerateCoverDialog as jest.Mock).mockResolvedValue(
+      mockResult
+    );
+    const mockObservable = {
+      pipe: jest.fn().mockReturnThis(),
+      subscribe: jest.fn(),
+    };
+    (projectApiService.coverControllerUploadCover as jest.Mock).mockReturnValue(
+      mockObservable
+    );
+
+    component.onGenerateCoverClick();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(projectApiService.coverControllerUploadCover).toHaveBeenCalled();
+  });
+
+  it('should not save cover image when dialog is cancelled', async () => {
+    const mockResult = { approved: false, imageData: null };
+    (dialogGateway.openGenerateCoverDialog as jest.Mock).mockResolvedValue(
+      mockResult
+    );
+
+    component.onGenerateCoverClick();
+    await Promise.resolve();
+
+    expect(projectApiService.coverControllerUploadCover).not.toHaveBeenCalled();
+  });
+
+  it('should open project files tab', () => {
+    component.openProjectFilesTab();
+    expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+      'project-files'
+    );
+  });
+
+  it('should open documents tab', () => {
+    component.openDocumentsTab();
+    expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
+      'documents-list'
+    );
+  });
+
+  describe('cover image', () => {
+    it('should load cover image when project is set', async () => {
+      const mockBlob = new Blob(['test'], { type: 'image/png' });
+      (projectService.getProjectCover as jest.Mock).mockResolvedValue(mockBlob);
+
+      // Wait for initial effect to complete
+      await fixture.whenStable();
+
+      // Clear previous calls
+      (projectService.getProjectCover as jest.Mock).mockClear();
+
+      // Trigger the effect by setting a new project
+      (projectStateService.project as any).set({
+        ...mockProject,
+        username: 'newuser',
+        slug: 'newproject',
+      });
+
+      // Wait for effect to run and async operations to complete
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(projectService.getProjectCover).toHaveBeenCalledWith(
+        'newuser',
+        'newproject'
+      );
+      expect((component as any).coverImageUrl()).toBe('mock-blob-url');
+      expect((component as any).coverImageLoading()).toBe(false);
+    });
+
+    it('should handle cover image not found error', async () => {
+      (projectService.getProjectCover as jest.Mock).mockRejectedValue(
+        new Error('Cover image not found')
+      );
+
+      // Wait for initial effect to complete
+      await fixture.whenStable();
+
+      // Clear previous calls
+      (projectService.getProjectCover as jest.Mock).mockClear();
+
+      // Trigger the effect by setting a new project
+      (projectStateService.project as any).set({
+        ...mockProject,
+        username: 'nocover',
+        slug: 'project',
+      });
+
+      // Wait for effect to run and async operations to complete
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect((component as any).coverImageUrl()).toBe(null);
+      expect((component as any).coverImageLoading()).toBe(false);
+      expect((component as any).showCoverPlaceholder()).toBe(true);
+    });
+
+    it('should handle other cover image errors', async () => {
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      (projectService.getProjectCover as jest.Mock).mockRejectedValue(
+        new Error('Network error')
+      );
+
+      // Wait for initial effect to complete
+      await fixture.whenStable();
+
+      // Clear previous calls
+      (projectService.getProjectCover as jest.Mock).mockClear();
+
+      // Trigger the effect by setting a new project
+      (projectStateService.project as any).set({
+        ...mockProject,
+        username: 'error',
+        slug: 'project',
+      });
+
+      // Wait for effect to run and async operations to complete
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect((component as any).coverImageUrl()).toBe(null);
+      expect((component as any).coverImageLoading()).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[HomeTab] Failed to load cover image:',
+        expect.objectContaining({
+          message: 'Network error',
+        })
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should show placeholder when no cover is loading and no URL', () => {
+      (component as any).coverImageUrl.set(null);
+      (component as any).coverImageLoading.set(false);
+
+      expect((component as any).showCoverPlaceholder()).toBe(true);
+    });
+
+    it('should not show placeholder when cover is loading', () => {
+      (component as any).coverImageUrl.set(null);
+      (component as any).coverImageLoading.set(true);
+
+      expect((component as any).showCoverPlaceholder()).toBe(false);
+    });
+
+    it('should not show placeholder when cover URL exists', () => {
+      (component as any).coverImageUrl.set('mock-blob-url');
+      (component as any).coverImageLoading.set(false);
+
+      expect((component as any).showCoverPlaceholder()).toBe(false);
+    });
   });
 });
