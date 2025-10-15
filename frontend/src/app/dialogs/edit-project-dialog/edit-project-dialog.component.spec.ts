@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { signal } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -8,6 +8,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ProjectDto, UserDto } from '@inkweld/index';
 import { of } from 'rxjs';
+import {describe, it, expect, beforeEach, afterEach, beforeAll, MockedObject, vi} from 'vitest';
 
 import { ProjectAPIService } from '../../../api-client/api/project-api.service';
 import { ProjectService } from '../../services/project.service';
@@ -23,11 +24,11 @@ const createMockFile = (name: string, type: string, size: number): File => {
 describe('EditProjectDialogComponent', () => {
   let component: EditProjectDialogComponent;
   let fixture: ComponentFixture<EditProjectDialogComponent>;
-  let dialogRef: jest.Mocked<MatDialogRef<EditProjectDialogComponent>>;
-  let importExportService: jest.Mocked<ProjectImportExportService>;
-  let snackBar: jest.Mocked<MatSnackBar>;
-  let projectAPIService: jest.Mocked<ProjectAPIService>;
-  let projectService: jest.Mocked<ProjectService>;
+  let dialogRef: MockedObject<MatDialogRef<EditProjectDialogComponent>>;
+  let importExportService: MockedObject<ProjectImportExportService>;
+  let snackBar: MockedObject<MatSnackBar>;
+  let projectAPIService: MockedObject<ProjectAPIService>;
+  let projectService: MockedObject<ProjectService>;
 
   const mockUser: UserDto = {
     username: 'testuser',
@@ -51,40 +52,38 @@ describe('EditProjectDialogComponent', () => {
   beforeAll(() => {
     // Only mock if not already defined
     if (!global.URL.createObjectURL) {
-      global.URL.createObjectURL = jest.fn().mockReturnValue('mock-blob-url');
+      global.URL.createObjectURL = vi.fn().mockReturnValue('mock-blob-url');
     }
   });
 
   beforeEach(async () => {
     dialogRef = {
-      close: jest.fn(),
+      close: vi.fn(),
     } as any;
 
     importExportService = {
-      exportProject: jest.fn(),
-      exportProjectZip: jest.fn(),
-      importProject: jest.fn(),
-      isProcessing: jest.fn().mockReturnValue(signal(false)()),
-      progress: jest.fn().mockReturnValue(signal(0)()),
-      error: jest.fn().mockReturnValue(signal(undefined)()),
+      exportProject: vi.fn(),
+      exportProjectZip: vi.fn(),
+      importProject: vi.fn(),
+      isProcessing: vi.fn().mockReturnValue(signal(false)()),
+      progress: vi.fn().mockReturnValue(signal(0)()),
+      error: vi.fn().mockReturnValue(signal(undefined)()),
     } as any;
 
     snackBar = {
-      open: jest.fn(),
+      open: vi.fn(),
     } as any;
 
     projectAPIService = {
-      projectControllerUpdateProject: jest
-        .fn()
-        .mockReturnValue(of(mockProject)),
+      projectControllerUpdateProject: vi.fn().mockReturnValue(of(mockProject)),
     } as any;
 
     // Mock ProjectService methods
     projectService = {
-      getProjectCover: jest.fn().mockResolvedValue(mockCoverBlob),
-      uploadProjectCover: jest.fn().mockResolvedValue(undefined),
-      deleteProjectCover: jest.fn().mockResolvedValue(undefined),
-      updateProject: jest.fn().mockResolvedValue(mockProject),
+      getProjectCover: vi.fn().mockResolvedValue(mockCoverBlob),
+      uploadProjectCover: vi.fn().mockResolvedValue(undefined),
+      deleteProjectCover: vi.fn().mockResolvedValue(undefined),
+      updateProject: vi.fn().mockResolvedValue(mockProject),
     } as any;
 
     // Mock XSRF token cookie
@@ -97,6 +96,7 @@ describe('EditProjectDialogComponent', () => {
         NoopAnimationsModule,
       ],
       providers: [
+        provideZonelessChangeDetection(),
         FormBuilder,
         provideHttpClient(),
         provideHttpClientTesting(),
@@ -111,13 +111,25 @@ describe('EditProjectDialogComponent', () => {
 
     fixture = TestBed.createComponent(EditProjectDialogComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges(); // ngOnInit runs here
+    
+    // Manually initialize to avoid async timing issues in ngOnInit
+    component.project = mockProject;
+    component.form.patchValue({
+      title: mockProject.title,
+      description: mockProject.description,
+    });
+    
+    // Call loadCoverImage manually so tests can control timing
+    await component.loadCoverImage();
+    
+    // Now run change detection
+    fixture.detectChanges();
   });
 
   afterEach(() => {
     // Clean up XSRF token cookie
     document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
 
     // Reset mocks between tests
     projectService.getProjectCover.mockReset();
@@ -166,19 +178,16 @@ describe('EditProjectDialogComponent', () => {
       // Manually mark loading as true initially, as the component would
       component.isLoadingCover = true;
 
-      // Execute the method directly - we don't await because we want to check the state after the Promise chain completes
-      const promise = component.loadCoverImage().then(() => {
-        // Verify the properties are set correctly
-        expect(component.coverImage).toBe(mockCoverBlob);
-        expect(component.coverImageUrl).toBeDefined();
-        expect(component.isLoadingCover).toBe(false);
-      });
-
-      fixture.detectChanges();
-      return promise; // Return the promise for Jest to track
+      // Execute the method directly and verify state
+      await component.loadCoverImage();
+      
+      // Verify the properties are set correctly
+      expect(component.coverImage).toBe(mockCoverBlob);
+      expect(component.coverImageUrl).toBeDefined();
+      expect(component.isLoadingCover).toBe(false);
     });
 
-    it('should handle "Cover image not found" error gracefully', () => {
+    it('should handle "Cover image not found" error gracefully', async () => {
       // This test needs to run outside of fakeAsync due to how Promise rejections are handled
       const notFoundError = new Error('Cover image not found');
       projectService.getProjectCover.mockReset();
@@ -187,46 +196,44 @@ describe('EditProjectDialogComponent', () => {
       // Re-create component with the mock rejection setup
       fixture = TestBed.createComponent(EditProjectDialogComponent);
       component = fixture.componentInstance;
+      component.project = mockProject; // Set project property
 
-      // Need to manually call loadCoverImage to get control over the Promise handling
-      return component.loadCoverImage().catch(() => {
-        // After promise rejection handling completes
-        fixture.detectChanges();
+      // Call loadCoverImage and verify error handling
+      await component.loadCoverImage();
 
-        expect(component.coverImage).toBeUndefined();
-        expect(component.coverImageUrl).toBeUndefined();
-        expect(snackBar.open).not.toHaveBeenCalled(); // Should not show error for not found
-        expect(component.isLoadingCover).toBe(false);
-      });
+      expect(component.coverImage).toBeUndefined();
+      expect(component.coverImageUrl).toBeUndefined();
+      expect(snackBar.open).not.toHaveBeenCalled(); // Should not show error for not found
+      expect(component.isLoadingCover).toBe(false);
     });
 
-    it('should handle generic errors during cover load', () => {
+    it('should handle generic errors during cover load', async () => {
       // This test needs to run outside of fakeAsync due to how Promise rejections are handled
       const genericError = new Error('Network failed');
       projectService.getProjectCover.mockReset();
       projectService.getProjectCover.mockRejectedValue(genericError);
 
       // Set up spy before component creation
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {});
 
       // Re-create component with the mock rejection setup
       fixture = TestBed.createComponent(EditProjectDialogComponent);
       component = fixture.componentInstance;
+      component.project = mockProject; // Set project property
 
-      // Need to manually call loadCoverImage to get control over the Promise handling
-      return component.loadCoverImage().catch(() => {
-        // After promise rejection handling completes
-        fixture.detectChanges();
+      // Call loadCoverImage and verify error handling
+      await component.loadCoverImage();
 
-        expect(component.coverImage).toBeUndefined();
-        expect(component.coverImageUrl).toBeUndefined();
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          'Error loading cover image:',
-          genericError
-        );
-        consoleWarnSpy.mockRestore();
-        expect(component.isLoadingCover).toBe(false);
-      });
+      expect(component.coverImage).toBeUndefined();
+      expect(component.coverImageUrl).toBeUndefined();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'Error loading cover image:',
+        genericError
+      );
+      consoleWarnSpy.mockRestore();
+      expect(component.isLoadingCover).toBe(false);
     });
   });
 
@@ -249,7 +256,6 @@ describe('EditProjectDialogComponent', () => {
       });
 
       component.onCoverImageSelected(mockEvent);
-      fixture.detectChanges();
 
       expect(component.coverImage).toBe(mockCoverFile);
       expect(component.coverImageUrl).toBeDefined();
@@ -264,7 +270,6 @@ describe('EditProjectDialogComponent', () => {
       });
 
       component.onCoverImageSelected(mockEvent);
-      fixture.detectChanges();
 
       expect(component.coverImage).not.toBe(invalidFile); // Should not be set
       expect(snackBar.open).toHaveBeenCalledWith(
@@ -283,7 +288,6 @@ describe('EditProjectDialogComponent', () => {
       const initialCoverUrl = component.coverImageUrl;
 
       component.onCoverImageSelected(mockEvent);
-      fixture.detectChanges();
 
       expect(component.coverImage).toBe(initialCoverImage);
       expect(component.coverImageUrl).toBe(initialCoverUrl);
@@ -298,7 +302,7 @@ describe('EditProjectDialogComponent', () => {
       coverInput.type = 'file';
       // Manually assign to the component property for the test
       component.coverImageInput = { nativeElement: coverInput };
-      const clickSpy = jest.spyOn(coverInput, 'click');
+      const clickSpy = vi.spyOn(coverInput, 'click');
 
       component.openCoverImageSelector();
 
@@ -313,7 +317,6 @@ describe('EditProjectDialogComponent', () => {
       // Assign a dummy URL string to simulate the state
       component.coverImageUrl = 'blob:http://localhost/mockurl';
       component.project = mockProject; // Ensure project context is set
-      fixture.detectChanges();
     });
 
     it('should call deleteProjectCover and clear local state on success', () => {

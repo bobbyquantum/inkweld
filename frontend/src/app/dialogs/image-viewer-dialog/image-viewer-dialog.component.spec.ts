@@ -1,6 +1,8 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { vi } from 'vitest';
 
 import {
   ImageViewerDialogComponent,
@@ -12,7 +14,7 @@ describe('ImageViewerDialogComponent', () => {
   let fixture: ComponentFixture<ImageViewerDialogComponent>;
 
   const mockDialogRef = {
-    close: jest.fn(),
+    close: vi.fn(),
   };
 
   const mockDialogData: ImageViewerDialogData = {
@@ -24,6 +26,7 @@ describe('ImageViewerDialogComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ImageViewerDialogComponent, NoopAnimationsModule],
       providers: [
+        provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockDialogData },
       ],

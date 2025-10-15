@@ -1,24 +1,18 @@
-import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
-
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { MockedObject } from 'vitest';
 import { ProjectComponent } from '../pages/project/project.component';
 import { CanDeactivateProjectGuard } from './can-deactivate-project.guard';
 
 describe('CanDeactivateProjectGuard', () => {
-  let spectator: SpectatorService<CanDeactivateProjectGuard>;
   let guard: CanDeactivateProjectGuard;
-  let mockProjectComponent: jest.Mocked<ProjectComponent>;
-
-  const createService = createServiceFactory({
-    service: CanDeactivateProjectGuard,
-  });
+  let mockProjectComponent: MockedObject<ProjectComponent>;
 
   beforeEach(() => {
     mockProjectComponent = {
-      canDeactivate: jest.fn(),
-    } as unknown as jest.Mocked<ProjectComponent>;
+      canDeactivate: vi.fn(),
+    } as unknown as MockedObject<ProjectComponent>;
 
-    spectator = createService();
-    guard = spectator.service;
+    guard = new CanDeactivateProjectGuard();
   });
 
   it('should be created', () => {

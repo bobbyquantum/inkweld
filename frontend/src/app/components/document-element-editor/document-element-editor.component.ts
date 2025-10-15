@@ -26,15 +26,6 @@ import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
 import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
 
-// Determine if we're in a test environment to avoid styleUrl issues in tests
-const isTestEnvironment = () => {
-  return (
-    typeof process !== 'undefined' &&
-    process.env &&
-    process.env['JEST_WORKER_ID'] !== undefined
-  );
-};
-
 @Component({
   selector: 'app-document-element-editor',
   standalone: true,
@@ -227,12 +218,6 @@ export class DocumentElementEditorComponent
    * This ensures the CSS is properly applied to the editor instance
    */
   private addLintStyles(): void {
-    // Skip if we're in a test environment
-    if (isTestEnvironment()) {
-      console.log('[DocumentEditor] Skipping lint styles in test environment');
-      return;
-    }
-
     // Check if we're running in a browser environment
     if (
       typeof window === 'undefined' ||

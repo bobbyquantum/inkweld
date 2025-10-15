@@ -1,33 +1,37 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
 
 import { LoggerService } from './logger.service';
 
 describe('LoggerService', () => {
   let service: LoggerService;
   let consoleSpy: {
-    log: jest.SpyInstance;
-    warn: jest.SpyInstance;
-    error: jest.SpyInstance;
-    group: jest.SpyInstance;
-    groupEnd: jest.SpyInstance;
+    log: ReturnType<typeof vi.spyOn>;
+    warn: ReturnType<typeof vi.spyOn>;
+    error: ReturnType<typeof vi.spyOn>;
+    group: ReturnType<typeof vi.spyOn>;
+    groupEnd: ReturnType<typeof vi.spyOn>;
   };
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: [provideZonelessChangeDetection()],
+    });
     service = TestBed.inject(LoggerService);
 
     // Spy on console methods
     consoleSpy = {
-      log: jest.spyOn(console, 'log').mockImplementation(),
-      warn: jest.spyOn(console, 'warn').mockImplementation(),
-      error: jest.spyOn(console, 'error').mockImplementation(),
-      group: jest.spyOn(console, 'group').mockImplementation(),
-      groupEnd: jest.spyOn(console, 'groupEnd').mockImplementation(),
+      log: vi.spyOn(console, 'log').mockImplementation(() => {}),
+      warn: vi.spyOn(console, 'warn').mockImplementation(() => {}),
+      error: vi.spyOn(console, 'error').mockImplementation(() => {}),
+      group: vi.spyOn(console, 'group').mockImplementation(() => {}),
+      groupEnd: vi.spyOn(console, 'groupEnd').mockImplementation(() => {}),
     };
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should be created', () => {

@@ -5,7 +5,7 @@ import angular from 'angular-eslint';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import unusedImportsPlugin from 'eslint-plugin-unused-imports';
 import simpleImportSortPlugin from 'eslint-plugin-simple-import-sort';
-import jest from 'eslint-plugin-jest';
+import vitest from 'eslint-plugin-vitest';
 
 export default tseslint.config(
   {
@@ -55,7 +55,7 @@ export default tseslint.config(
     plugins: {
       'unused-imports': unusedImportsPlugin,
       'simple-import-sort': simpleImportSortPlugin,
-      jest: jest,
+      vitest: vitest,
     },
     rules: {
       '@angular-eslint/directive-selector': [
@@ -84,7 +84,7 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
-      'jest/unbound-method': 'off',
+      'vitest/expect-expect': 'off',
     },
   },
   {

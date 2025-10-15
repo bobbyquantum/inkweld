@@ -1,5 +1,7 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
+import { Mock, MockedObject, vi } from 'vitest';
 
 import { ConfigService } from '../../api-client/api/config.service';
 import { ConfigControllerGetSystemFeatures200Response } from '../../api-client/model/config-controller-get-system-features200-response';
@@ -7,9 +9,9 @@ import { SystemConfigService } from './system-config.service';
 
 describe('SystemConfigService', () => {
   let service: SystemConfigService;
-  let mockConfigService: jest.Mocked<ConfigService>;
-  let consoleSpy: jest.SpyInstance;
-  let consoleWarnSpy: jest.SpyInstance;
+  let mockConfigService: MockedObject<ConfigService>;
+  let consoleSpy: ReturnType<typeof vi.spyOn>;
+  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
 
   const mockSystemFeatures: ConfigControllerGetSystemFeatures200Response = {
     aiLinting: true,
@@ -17,24 +19,25 @@ describe('SystemConfigService', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock ConfigService
     mockConfigService = {
-      configControllerGetSystemFeatures: jest.fn(),
-    } as unknown as jest.Mocked<ConfigService>;
+      configControllerGetSystemFeatures: vi.fn(),
+    } as MockedObject<ConfigService>;
 
     // Mock console methods to avoid test output noise, but keep spies for testing
-    consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     // Set up default successful response
     (
-      mockConfigService.configControllerGetSystemFeatures as jest.Mock
+      mockConfigService.configControllerGetSystemFeatures as Mock
     ).mockReturnValue(of(mockSystemFeatures));
 
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         SystemConfigService,
         { provide: ConfigService, useValue: mockConfigService },
       ],
@@ -44,7 +47,7 @@ describe('SystemConfigService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('Initialization', () => {
@@ -61,9 +64,7 @@ describe('SystemConfigService', () => {
 
     it('should have correct initial values', () => {
       // Reset the service with no API call to test initial state
-      (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
-      ).mockClear();
+      (mockConfigService.configControllerGetSystemFeatures as Mock).mockClear();
 
       // Check the signals are functions
       expect(typeof service.systemFeatures).toBe('function');
@@ -74,17 +75,18 @@ describe('SystemConfigService', () => {
   });
 
   describe('loadSystemFeatures', () => {
-    it('should handle API errors gracefully', done => {
+    it('should handle API errors gracefully', () => {
       const error = new Error('API Error');
 
       // Reset TestBed with error mock
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as Mock
       ).mockReturnValue(throwError(() => error));
 
       TestBed.configureTestingModule({
         providers: [
+          provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigService, useValue: mockConfigService },
         ],
@@ -93,102 +95,111 @@ describe('SystemConfigService', () => {
       const errorService = TestBed.inject(SystemConfigService);
 
       // Wait for async operation to complete
-      setTimeout(() => {
-        expect(errorService.systemFeatures()).toEqual({
-          aiLinting: false,
-          aiImageGeneration: false,
-          captcha: { enabled: false },
-          userApprovalRequired: true,
-        });
-        expect(errorService.isConfigLoaded()).toBe(true);
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          '[SystemConfig] Failed to load system features, using defaults:',
-          error
-        );
-        done();
-      }, 10);
+      return new Promise<void>(resolve => {
+        setTimeout(() => {
+          expect(errorService.systemFeatures()).toEqual({
+            aiLinting: false,
+            aiImageGeneration: false,
+            captcha: { enabled: false },
+            userApprovalRequired: true,
+          });
+          expect(errorService.isConfigLoaded()).toBe(true);
+          expect(consoleWarnSpy).toHaveBeenCalledWith(
+            '[SystemConfig] Failed to load system features, using defaults:',
+            error
+          );
+          resolve();
+        }, 10);
+      });
     });
 
-    it('should log successful feature loading', done => {
+    it('should log successful feature loading', () => {
       // Wait for initial load to complete
-      setTimeout(() => {
-        expect(consoleSpy).toHaveBeenCalledWith(
-          '[SystemConfig] Loaded system features:',
-          mockSystemFeatures
-        );
-        done();
-      }, 10);
+      return new Promise<void>(resolve => {
+        setTimeout(() => {
+          expect(consoleSpy).toHaveBeenCalledWith(
+            '[SystemConfig] Loaded system features:',
+            mockSystemFeatures
+          );
+          resolve();
+        }, 10);
+      });
     });
   });
 
   describe('refreshSystemFeatures', () => {
-    it('should refresh system features and reload configuration', done => {
+    it('should refresh system features and reload configuration', () => {
       const newFeatures: ConfigControllerGetSystemFeatures200Response = {
         aiLinting: false,
         aiImageGeneration: true,
       };
 
       // Wait for initial load
-      setTimeout(() => {
-        expect(service.isConfigLoaded()).toBe(true);
-        expect(service.systemFeatures()).toEqual(mockSystemFeatures);
-
-        // Clear previous calls and set up new return value
-        (
-          mockConfigService.configControllerGetSystemFeatures as jest.Mock
-        ).mockClear();
-        (
-          mockConfigService.configControllerGetSystemFeatures as jest.Mock
-        ).mockReturnValue(of(newFeatures));
-
-        service.refreshSystemFeatures();
-
+      return new Promise<void>(resolve => {
         setTimeout(() => {
-          expect(service.systemFeatures()).toEqual(newFeatures);
           expect(service.isConfigLoaded()).toBe(true);
-          expect(
-            mockConfigService.configControllerGetSystemFeatures
-          ).toHaveBeenCalledTimes(1);
-          done();
+          expect(service.systemFeatures()).toEqual(mockSystemFeatures);
+
+          // Clear previous calls and set up new return value
+          (
+            mockConfigService.configControllerGetSystemFeatures as Mock
+          ).mockClear();
+          (
+            mockConfigService.configControllerGetSystemFeatures as Mock
+          ).mockReturnValue(of(newFeatures));
+
+          service.refreshSystemFeatures();
+
+          setTimeout(() => {
+            expect(service.systemFeatures()).toEqual(newFeatures);
+            expect(service.isConfigLoaded()).toBe(true);
+            expect(
+              mockConfigService.configControllerGetSystemFeatures
+            ).toHaveBeenCalledTimes(1);
+            resolve();
+          }, 10);
         }, 10);
-      }, 10);
+      });
     });
 
-    it('should set isLoaded to false temporarily during refresh', done => {
+    it('should set isLoaded to false temporarily during refresh', () => {
       // Wait for initial load
-      setTimeout(() => {
-        expect(service.isConfigLoaded()).toBe(true);
-
-        // Setup a fresh observable for refresh
-        (
-          mockConfigService.configControllerGetSystemFeatures as jest.Mock
-        ).mockReturnValue(of(mockSystemFeatures));
-
-        // Trigger refresh
-        service.refreshSystemFeatures();
-
-        // Since the refresh completes synchronously with our mock,
-        // we just verify that the method was called and the service still works
+      return new Promise<void>(resolve => {
         setTimeout(() => {
           expect(service.isConfigLoaded()).toBe(true);
-          expect(
-            mockConfigService.configControllerGetSystemFeatures
-          ).toHaveBeenCalled();
-          done();
+
+          // Setup a fresh observable for refresh
+          (
+            mockConfigService.configControllerGetSystemFeatures as Mock
+          ).mockReturnValue(of(mockSystemFeatures));
+
+          // Trigger refresh
+          service.refreshSystemFeatures();
+
+          // Since the refresh completes synchronously with our mock,
+          // we just verify that the method was called and the service still works
+          setTimeout(() => {
+            expect(service.isConfigLoaded()).toBe(true);
+            expect(
+              mockConfigService.configControllerGetSystemFeatures
+            ).toHaveBeenCalled();
+            resolve();
+          }, 10);
         }, 10);
-      }, 10);
+      });
     });
   });
 
   describe('Computed Properties', () => {
-    it('should compute isAiLintingEnabled correctly', done => {
+    it('should compute isAiLintingEnabled correctly', () => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as Mock
       ).mockReturnValue(of({ aiLinting: true, aiImageGeneration: false }));
 
       TestBed.configureTestingModule({
         providers: [
+          provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigService, useValue: mockConfigService },
         ],
@@ -196,16 +207,18 @@ describe('SystemConfigService', () => {
 
       const testService = TestBed.inject(SystemConfigService);
 
-      setTimeout(() => {
-        expect(testService.isAiLintingEnabled()).toBe(true);
-        done();
-      }, 10);
+      return new Promise<void>(resolve => {
+        setTimeout(() => {
+          expect(testService.isAiLintingEnabled()).toBe(true);
+          resolve();
+        }, 10);
+      });
     });
 
-    it('should compute isAiLintingEnabled as false when undefined', done => {
+    it('should compute isAiLintingEnabled as false when undefined', () => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as Mock
       ).mockReturnValue(
         of({
           aiImageGeneration: false,
@@ -214,6 +227,7 @@ describe('SystemConfigService', () => {
 
       TestBed.configureTestingModule({
         providers: [
+          provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigService, useValue: mockConfigService },
         ],
@@ -221,20 +235,23 @@ describe('SystemConfigService', () => {
 
       const testService = TestBed.inject(SystemConfigService);
 
-      setTimeout(() => {
-        expect(testService.isAiLintingEnabled()).toBe(false);
-        done();
-      }, 10);
+      return new Promise<void>(resolve => {
+        setTimeout(() => {
+          expect(testService.isAiLintingEnabled()).toBe(false);
+          resolve();
+        }, 10);
+      });
     });
 
-    it('should compute isAiImageGenerationEnabled correctly', done => {
+    it('should compute isAiImageGenerationEnabled correctly', () => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as Mock
       ).mockReturnValue(of({ aiLinting: false, aiImageGeneration: true }));
 
       TestBed.configureTestingModule({
         providers: [
+          provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigService, useValue: mockConfigService },
         ],
@@ -242,22 +259,25 @@ describe('SystemConfigService', () => {
 
       const testService = TestBed.inject(SystemConfigService);
 
-      setTimeout(() => {
-        expect(testService.isAiImageGenerationEnabled()).toBe(true);
-        done();
-      }, 10);
+      return new Promise<void>(resolve => {
+        setTimeout(() => {
+          expect(testService.isAiImageGenerationEnabled()).toBe(true);
+          resolve();
+        }, 10);
+      });
     });
 
-    it('should compute isAiImageGenerationEnabled as false when undefined', done => {
+    it('should compute isAiImageGenerationEnabled as false when undefined', () => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as Mock
       ).mockReturnValue(
         of({ aiLinting: false } as ConfigControllerGetSystemFeatures200Response)
       );
 
       TestBed.configureTestingModule({
         providers: [
+          provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigService, useValue: mockConfigService },
         ],
@@ -265,20 +285,23 @@ describe('SystemConfigService', () => {
 
       const testService = TestBed.inject(SystemConfigService);
 
-      setTimeout(() => {
-        expect(testService.isAiImageGenerationEnabled()).toBe(false);
-        done();
-      }, 10);
+      return new Promise<void>(resolve => {
+        setTimeout(() => {
+          expect(testService.isAiImageGenerationEnabled()).toBe(false);
+          resolve();
+        }, 10);
+      });
     });
 
-    it('should handle null/undefined system features gracefully', done => {
+    it('should handle null/undefined system features gracefully', () => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as Mock
       ).mockReturnValue(of({} as ConfigControllerGetSystemFeatures200Response));
 
       TestBed.configureTestingModule({
         providers: [
+          provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigService, useValue: mockConfigService },
         ],
@@ -286,26 +309,29 @@ describe('SystemConfigService', () => {
 
       const testService = TestBed.inject(SystemConfigService);
 
-      setTimeout(() => {
-        expect(testService.isAiLintingEnabled()).toBe(false);
-        expect(testService.isAiImageGenerationEnabled()).toBe(false);
-        done();
-      }, 10);
+      return new Promise<void>(resolve => {
+        setTimeout(() => {
+          expect(testService.isAiLintingEnabled()).toBe(false);
+          expect(testService.isAiImageGenerationEnabled()).toBe(false);
+          resolve();
+        }, 10);
+      });
     });
   });
 
   describe('Signal Reactivity', () => {
-    it('should update computed properties when system features change', done => {
+    it('should update computed properties when system features change', () => {
       const initialFeatures = { aiLinting: false, aiImageGeneration: false };
       const updatedFeatures = { aiLinting: true, aiImageGeneration: true };
 
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as Mock
       ).mockReturnValueOnce(of(initialFeatures));
 
       TestBed.configureTestingModule({
         providers: [
+          provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigService, useValue: mockConfigService },
         ],
@@ -313,23 +339,25 @@ describe('SystemConfigService', () => {
 
       const testService = TestBed.inject(SystemConfigService);
 
-      setTimeout(() => {
-        expect(testService.isAiLintingEnabled()).toBe(false);
-        expect(testService.isAiImageGenerationEnabled()).toBe(false);
-
-        // Update features
-        (
-          mockConfigService.configControllerGetSystemFeatures as jest.Mock
-        ).mockReturnValueOnce(of(updatedFeatures));
-
-        testService.refreshSystemFeatures();
-
+      return new Promise<void>(resolve => {
         setTimeout(() => {
-          expect(testService.isAiLintingEnabled()).toBe(true);
-          expect(testService.isAiImageGenerationEnabled()).toBe(true);
-          done();
+          expect(testService.isAiLintingEnabled()).toBe(false);
+          expect(testService.isAiImageGenerationEnabled()).toBe(false);
+
+          // Update features
+          (
+            mockConfigService.configControllerGetSystemFeatures as Mock
+          ).mockReturnValueOnce(of(updatedFeatures));
+
+          testService.refreshSystemFeatures();
+
+          setTimeout(() => {
+            expect(testService.isAiLintingEnabled()).toBe(true);
+            expect(testService.isAiImageGenerationEnabled()).toBe(true);
+            resolve();
+          }, 10);
         }, 10);
-      }, 10);
+      });
     });
 
     it('should provide readonly access to signals', () => {
@@ -342,16 +370,17 @@ describe('SystemConfigService', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle network errors during initial load', done => {
+    it('should handle network errors during initial load', () => {
       const networkError = new Error('Network unavailable');
 
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as jest.Mock
+        mockConfigService.configControllerGetSystemFeatures as Mock
       ).mockReturnValue(throwError(() => networkError));
 
       TestBed.configureTestingModule({
         providers: [
+          provideZonelessChangeDetection(),
           SystemConfigService,
           { provide: ConfigService, useValue: mockConfigService },
         ],
@@ -359,50 +388,54 @@ describe('SystemConfigService', () => {
 
       const testService = TestBed.inject(SystemConfigService);
 
-      setTimeout(() => {
-        expect(testService.systemFeatures()).toEqual({
-          aiLinting: false,
-          aiImageGeneration: false,
-          captcha: { enabled: false },
-          userApprovalRequired: true,
-        });
-        expect(testService.isConfigLoaded()).toBe(true);
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          '[SystemConfig] Failed to load system features, using defaults:',
-          networkError
-        );
-        done();
-      }, 10);
-    });
-
-    it('should handle errors during refresh', done => {
-      // Wait for initial successful load
-      setTimeout(() => {
-        expect(service.isConfigLoaded()).toBe(true);
-
-        // Now simulate error on refresh
-        const refreshError = new Error('Refresh failed');
-        (
-          mockConfigService.configControllerGetSystemFeatures as jest.Mock
-        ).mockReturnValue(throwError(() => refreshError));
-
-        service.refreshSystemFeatures();
-
+      return new Promise<void>(resolve => {
         setTimeout(() => {
-          expect(service.systemFeatures()).toEqual({
+          expect(testService.systemFeatures()).toEqual({
             aiLinting: false,
             aiImageGeneration: false,
             captcha: { enabled: false },
             userApprovalRequired: true,
           });
-          expect(service.isConfigLoaded()).toBe(true);
+          expect(testService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
             '[SystemConfig] Failed to load system features, using defaults:',
-            refreshError
+            networkError
           );
-          done();
+          resolve();
         }, 10);
-      }, 10);
+      });
+    });
+
+    it('should handle errors during refresh', () => {
+      // Wait for initial successful load
+      return new Promise<void>(resolve => {
+        setTimeout(() => {
+          expect(service.isConfigLoaded()).toBe(true);
+
+          // Now simulate error on refresh
+          const refreshError = new Error('Refresh failed');
+          (
+            mockConfigService.configControllerGetSystemFeatures as Mock
+          ).mockReturnValue(throwError(() => refreshError));
+
+          service.refreshSystemFeatures();
+
+          setTimeout(() => {
+            expect(service.systemFeatures()).toEqual({
+              aiLinting: false,
+              aiImageGeneration: false,
+              captcha: { enabled: false },
+              userApprovalRequired: true,
+            });
+            expect(service.isConfigLoaded()).toBe(true);
+            expect(consoleWarnSpy).toHaveBeenCalledWith(
+              '[SystemConfig] Failed to load system features, using defaults:',
+              refreshError
+            );
+            resolve();
+          }, 10);
+        }, 10);
+      });
     });
   });
 });

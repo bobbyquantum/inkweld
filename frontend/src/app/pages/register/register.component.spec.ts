@@ -1,4 +1,5 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -8,76 +9,77 @@ import {
   UserAPIService,
   UserControllerCheckUsernameAvailability200Response,
   UserDto,
-  UserRegisterDto,
 } from '@inkweld/index';
 import { RecaptchaService } from '@services/recaptcha.service';
 import { SystemConfigService } from '@services/system-config.service';
 import { UserService } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
-import { Observable, of, throwError } from 'rxjs';
+import { of, throwError } from 'rxjs';
+import { MockedObject, vi } from 'vitest';
 
 import { RegisterComponent } from './register.component';
 
-jest.mock('@angular/common/http');
-jest.mock('@angular/router');
-jest.mock('@services/xsrf.service');
+vi.mock('@angular/common/http');
+vi.mock('@angular/router');
+vi.mock('@services/xsrf.service');
 
 describe('RegisterComponent', () => {
   let component: RegisterComponent;
   let fixture: ComponentFixture<RegisterComponent>;
-  let httpClient: jest.Mocked<HttpClient>;
-  let router: jest.Mocked<Router>;
-  let snackBar: jest.Mocked<MatSnackBar>;
-  let userService: jest.Mocked<UserAPIService>;
-  let xsrfService: jest.Mocked<XsrfService>;
-  let userAuthService: jest.Mocked<UserService>;
-  let systemConfigService: jest.Mocked<SystemConfigService>;
-  let recaptchaService: jest.Mocked<RecaptchaService>;
+  let httpClient: MockedObject<HttpClient>;
+  let router: MockedObject<Router>;
+  let snackBar: MockedObject<MatSnackBar>;
+  let userService: MockedObject<UserAPIService>;
+  let xsrfService: MockedObject<XsrfService>;
+  let userAuthService: MockedObject<UserService>;
+  let systemConfigService: MockedObject<SystemConfigService>;
+  let recaptchaService: MockedObject<RecaptchaService>;
 
   beforeEach(async () => {
     httpClient = {
-      get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-    } as unknown as jest.Mocked<HttpClient>;
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    } as unknown as MockedObject<HttpClient>;
 
     router = {
-      navigate: jest.fn().mockResolvedValue(true),
-    } as unknown as jest.Mocked<Router>;
+      navigate: vi.fn().mockResolvedValue(true),
+    } as unknown as MockedObject<Router>;
 
     snackBar = {
-      open: jest.fn(),
-    } as unknown as jest.Mocked<MatSnackBar>;
+      open: vi.fn(),
+    } as unknown as MockedObject<MatSnackBar>;
 
     userService = {
-      userControllerRegister: jest.fn(),
-      userControllerCheckUsernameAvailability: jest.fn(),
-    } as unknown as jest.Mocked<UserAPIService>;
+      userControllerRegister: vi.fn(),
+      userControllerCheckUsernameAvailability: vi.fn(),
+    } as unknown as MockedObject<UserAPIService>;
 
     xsrfService = {
-      getXsrfToken: jest.fn().mockReturnValue('mock-xsrf-token'),
-    } as unknown as jest.Mocked<XsrfService>;
+      getXsrfToken: vi.fn().mockReturnValue('mock-xsrf-token'),
+    } as unknown as MockedObject<XsrfService>;
 
     userAuthService = {
-      loadCurrentUser: jest.fn().mockResolvedValue(true),
-    } as unknown as jest.Mocked<UserService>;
+      loadCurrentUser: vi.fn().mockResolvedValue(true),
+    } as unknown as MockedObject<UserService>;
 
     systemConfigService = {
-      isCaptchaEnabled: jest.fn().mockReturnValue(false),
-      isConfigLoaded: jest.fn().mockReturnValue(true),
-      captchaSiteKey: jest.fn().mockReturnValue('test-site-key'),
-    } as unknown as jest.Mocked<SystemConfigService>;
+      isCaptchaEnabled: vi.fn().mockReturnValue(false),
+      isConfigLoaded: vi.fn().mockReturnValue(true),
+      captchaSiteKey: vi.fn().mockReturnValue('test-site-key'),
+    } as unknown as MockedObject<SystemConfigService>;
 
     recaptchaService = {
-      render: jest.fn().mockResolvedValue(0),
-      getResponse: jest.fn().mockReturnValue('test-captcha-token'),
-      reset: jest.fn(),
-    } as unknown as jest.Mocked<RecaptchaService>;
+      render: vi.fn().mockResolvedValue(0),
+      getResponse: vi.fn().mockReturnValue('test-captcha-token'),
+      reset: vi.fn(),
+    } as unknown as MockedObject<RecaptchaService>;
 
     await TestBed.configureTestingModule({
       imports: [RegisterComponent, NoopAnimationsModule, ReactiveFormsModule],
       providers: [
+        provideZonelessChangeDetection(),
         { provide: HttpClient, useValue: httpClient },
         { provide: Router, useValue: router },
         { provide: MatSnackBar, useValue: snackBar },
@@ -202,12 +204,7 @@ describe('RegisterComponent', () => {
   describe('username availability', () => {
     it('should check username availability when username is valid', async () => {
       const checkUsernameAvailabilityMock =
-        userService.userControllerCheckUsernameAvailability as unknown as jest.MockedFunction<
-          (
-            username: string,
-            observe: 'body'
-          ) => Observable<UserControllerCheckUsernameAvailability200Response>
-        >;
+        userService.userControllerCheckUsernameAvailability as any;
       const mockResponse: UserControllerCheckUsernameAvailability200Response = {
         available: true,
         suggestions: [],
@@ -227,12 +224,7 @@ describe('RegisterComponent', () => {
 
     it('should mark username as unavailable when taken', async () => {
       const checkUsernameAvailabilityMock =
-        userService.userControllerCheckUsernameAvailability as unknown as jest.MockedFunction<
-          (
-            username: string,
-            observe: 'body'
-          ) => Observable<UserControllerCheckUsernameAvailability200Response>
-        >;
+        userService.userControllerCheckUsernameAvailability as any;
       const mockResponse: UserControllerCheckUsernameAvailability200Response = {
         available: false,
         suggestions: ['testuser1', 'testuser2'],
@@ -261,12 +253,7 @@ describe('RegisterComponent', () => {
 
     it('should handle username availability check error', async () => {
       const checkUsernameAvailabilityMock =
-        userService.userControllerCheckUsernameAvailability as unknown as jest.MockedFunction<
-          (
-            username: string,
-            observe: 'body'
-          ) => Observable<UserControllerCheckUsernameAvailability200Response>
-        >;
+        userService.userControllerCheckUsernameAvailability as any;
       checkUsernameAvailabilityMock.mockReturnValue(
         throwError(() => new Error('Network error'))
       );
@@ -280,12 +267,7 @@ describe('RegisterComponent', () => {
 
     it('should select a suggested username', () => {
       const checkUsernameAvailabilityMock =
-        userService.userControllerCheckUsernameAvailability as unknown as jest.MockedFunction<
-          (
-            username: string,
-            observe: 'body'
-          ) => Observable<UserControllerCheckUsernameAvailability200Response>
-        >;
+        userService.userControllerCheckUsernameAvailability as any;
       const mockResponse: UserControllerCheckUsernameAvailability200Response = {
         available: true,
         suggestions: [],
@@ -420,14 +402,7 @@ describe('RegisterComponent', () => {
     });
 
     it('should successfully register user', async () => {
-      const registerUserMock =
-        userService.userControllerRegister as unknown as jest.MockedFunction<
-          (
-            token: string,
-            request: UserRegisterDto,
-            observe: 'body'
-          ) => Observable<UserDto>
-        >;
+      const registerUserMock = userService.userControllerRegister as any;
 
       const mockUser: UserDto = {
         username: 'testuser',
@@ -457,14 +432,7 @@ describe('RegisterComponent', () => {
     });
 
     it('should handle registration error', async () => {
-      const registerUserMock =
-        userService.userControllerRegister as unknown as jest.MockedFunction<
-          (
-            token: string,
-            request: UserRegisterDto,
-            observe: 'body'
-          ) => Observable<UserDto>
-        >;
+      const registerUserMock = userService.userControllerRegister as any;
       const errorResponse = new HttpErrorResponse({
         error: 'Registration failed',
         status: 400,
@@ -483,14 +451,7 @@ describe('RegisterComponent', () => {
     });
 
     it('should handle unknown registration error', async () => {
-      const registerUserMock =
-        userService.userControllerRegister as unknown as jest.MockedFunction<
-          (
-            token: string,
-            request: UserRegisterDto,
-            observe: 'body'
-          ) => Observable<UserDto>
-        >;
+      const registerUserMock = userService.userControllerRegister as any;
       registerUserMock.mockReturnValue(
         throwError(() => new Error('Unknown error'))
       );
@@ -506,14 +467,7 @@ describe('RegisterComponent', () => {
     });
 
     it('should reset isRegistering flag after registration attempt', async () => {
-      const registerUserMock =
-        userService.userControllerRegister as unknown as jest.MockedFunction<
-          (
-            token: string,
-            request: UserRegisterDto,
-            observe: 'body'
-          ) => Observable<UserDto>
-        >;
+      const registerUserMock = userService.userControllerRegister as any;
 
       // Success case
       const mockUser: UserDto = {

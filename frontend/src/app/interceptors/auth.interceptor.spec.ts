@@ -3,30 +3,33 @@ import {
   HttpRequest,
   HttpResponse,
 } from '@angular/common/http';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { describe, it, expect, beforeEach, MockedObject, vi } from 'vitest';
 
 import { SetupService } from '../services/setup.service';
 import { AuthInterceptor } from './auth.interceptor';
 
 describe('AuthInterceptor', () => {
   let interceptor: AuthInterceptor;
-  let router: jest.Mocked<Router> & { url: string };
-  let setupService: jest.Mocked<SetupService>;
+  let router: MockedObject<Router> & { url: string };
+  let setupService: MockedObject<SetupService>;
 
   beforeEach(() => {
     const routerMock = {
       url: '/',
-      navigate: jest.fn().mockResolvedValue(true),
+      navigate: vi.fn().mockResolvedValue(true),
     };
 
     const setupServiceMock = {
-      getMode: jest.fn().mockReturnValue('server'),
+      getMode: vi.fn().mockReturnValue('server'),
     };
 
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         AuthInterceptor,
         { provide: Router, useValue: routerMock },
         { provide: SetupService, useValue: setupServiceMock },
@@ -34,27 +37,39 @@ describe('AuthInterceptor', () => {
     });
 
     interceptor = TestBed.inject(AuthInterceptor);
-    router = TestBed.inject(Router) as jest.Mocked<Router> & { url: string };
-    setupService = TestBed.inject(SetupService) as jest.Mocked<SetupService>;
+    router = TestBed.inject(Router) as MockedObject<Router> & { url: string };
+    setupService = TestBed.inject(SetupService) as MockedObject<SetupService>;
   });
 
   it('should be created', () => {
     expect(interceptor).toBeTruthy();
   });
 
-  it('should redirect to welcome on 401 error in server mode', () => {
+  it('should redirect to welcome on 401 error in server mode', async () => {
+    // Set router URL to something other than '/', '/welcome', or '/register'
+    router.url = '/projects';
+    
     const request = new HttpRequest('GET', '/api/test');
     const error = new HttpErrorResponse({ status: 401 });
 
     const mockHandler = {
-      handle: jest.fn().mockReturnValue(throwError(() => error)),
+      handle: vi.fn().mockReturnValue(throwError(() => error)),
     };
 
-    interceptor.intercept(request, mockHandler).subscribe({
-      error: err => {
-        expect(err).toBe(error);
-        expect(router.navigate).toHaveBeenCalledWith(['/welcome']);
-      },
+    return new Promise<void>((resolve, reject) => {
+      interceptor.intercept(request, mockHandler).subscribe({
+        error: async err => {
+          try {
+            expect(err).toBe(error);
+            // Wait for the navigate promise to resolve
+            await Promise.resolve();
+            expect(router.navigate).toHaveBeenCalledWith(['/welcome']);
+            resolve();
+          } catch (e) {
+            reject(e instanceof Error ? e : new Error(String(e)));
+          }
+        },
+      });
     });
   });
 
@@ -64,7 +79,7 @@ describe('AuthInterceptor', () => {
     const error = new HttpErrorResponse({ status: 401 });
 
     const mockHandler = {
-      handle: jest.fn().mockReturnValue(throwError(() => error)),
+      handle: vi.fn().mockReturnValue(throwError(() => error)),
     };
 
     interceptor.intercept(request, mockHandler).subscribe({
@@ -81,7 +96,7 @@ describe('AuthInterceptor', () => {
     const error = new HttpErrorResponse({ status: 401 });
 
     const mockHandler = {
-      handle: jest.fn().mockReturnValue(throwError(() => error)),
+      handle: vi.fn().mockReturnValue(throwError(() => error)),
     };
 
     interceptor.intercept(request, mockHandler).subscribe({
@@ -97,7 +112,7 @@ describe('AuthInterceptor', () => {
     const error = new HttpErrorResponse({ status: 500 });
 
     const mockHandler = {
-      handle: jest.fn().mockReturnValue(throwError(() => error)),
+      handle: vi.fn().mockReturnValue(throwError(() => error)),
     };
 
     interceptor.intercept(request, mockHandler).subscribe({
@@ -113,7 +128,7 @@ describe('AuthInterceptor', () => {
     const response = new HttpResponse({ status: 200 });
 
     const mockHandler = {
-      handle: jest.fn().mockReturnValue(of(response)),
+      handle: vi.fn().mockReturnValue(of(response)),
     };
 
     interceptor.intercept(request, mockHandler).subscribe(result => {

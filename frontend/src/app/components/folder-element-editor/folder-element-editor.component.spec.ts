@@ -1,9 +1,10 @@
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { Component } from '@angular/core';
+import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { vi } from 'vitest';
 
 import { ProjectElement } from '../../models/project-element';
 import { ProjectStateService } from '../../services/project-state.service';
@@ -66,12 +67,12 @@ describe('FolderElementEditorComponent', () => {
 
   beforeEach(async () => {
     mockProjectStateService = {
-      elements: jest.fn().mockReturnValue(mockElements),
+      elements: vi.fn().mockReturnValue(mockElements),
       isLoading: signal(false),
       error: signal(undefined),
-      openDocument: jest.fn(),
-      updateElements: jest.fn(),
-      showNewElementDialog: jest.fn(),
+      openDocument: vi.fn(),
+      updateElements: vi.fn(),
+      showNewElementDialog: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -82,6 +83,7 @@ describe('FolderElementEditorComponent', () => {
       ],
       declarations: [],
       providers: [
+        provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectStateService },
       ],
     }).compileComponents();
@@ -108,7 +110,7 @@ describe('FolderElementEditorComponent', () => {
 
   it('should change view mode and save to metadata', () => {
     // Spy on the private method
-    jest.spyOn<any, any>(component, 'saveViewModeToMetadata');
+    vi.spyOn<any, any>(component, 'saveViewModeToMetadata');
 
     component.setViewMode('list');
 

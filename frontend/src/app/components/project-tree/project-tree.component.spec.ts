@@ -7,13 +7,17 @@ import {
   CdkDropList,
 } from '@angular/cdk/drag-drop';
 import { provideHttpClient } from '@angular/common/http';
-import { signal, WritableSignal } from '@angular/core';
-import { fakeAsync, tick } from '@angular/core/testing';
+import {
+  provideZonelessChangeDetection,
+  signal,
+  WritableSignal,
+} from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ProjectAPIService } from '@inkweld/index';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
+import { describe, it, expect, beforeEach, afterEach, MockedObject, vi } from 'vitest';
 
 import { projectServiceMock } from '../../../testing/project-api.mock';
 import { ProjectElement } from '../../models/project-element';
@@ -23,14 +27,14 @@ import { ProjectTreeComponent } from './project-tree.component';
 describe('ProjectTreeComponent', () => {
   let component: ProjectTreeComponent;
   let fixture: ComponentFixture<ProjectTreeComponent>;
-  let projectStateService: jest.Mocked<ProjectStateService>;
-  let settingsService: jest.Mocked<SettingsService>;
+  let projectStateService: MockedObject<ProjectStateService>;
+  let settingsService: MockedObject<SettingsService>;
   let elementsSignal: WritableSignal<ProjectElement[]>;
   let visibleElementsSignal: WritableSignal<ProjectElement[]>;
   let loadingSignal: WritableSignal<boolean>;
   let savingSignal: WritableSignal<boolean>;
   let errorSignal: WritableSignal<string | undefined>;
-  let dialogGatewayService: jest.Mocked<DialogGatewayService>;
+  let dialogGatewayService: MockedObject<DialogGatewayService>;
 
   const mockDto: ProjectElement = {
     id: '1',
@@ -59,8 +63,8 @@ describe('ProjectTreeComponent', () => {
     errorSignal = signal<string | undefined>(undefined);
 
     settingsService = {
-      getSetting: jest.fn().mockReturnValue(false),
-    } as unknown as jest.Mocked<SettingsService>;
+      getSetting: vi.fn().mockReturnValue(false),
+    } as unknown as MockedObject<SettingsService>;
 
     projectStateService = {
       elements: elementsSignal,
@@ -71,34 +75,35 @@ describe('ProjectTreeComponent', () => {
       openTabs: signal([]),
       selectedTabIndex: signal(0),
       project: signal({ title: 'Test Project' }),
-      saveProjectElements: jest.fn().mockResolvedValue(undefined),
-      showEditProjectDialog: jest.fn(),
-      openDocument: jest.fn(),
-      updateProject: jest.fn(),
-      renameNode: jest.fn(),
-      showNewElementDialog: jest.fn(),
-      toggleExpanded: jest.fn(),
-      moveElement: jest.fn().mockResolvedValue(undefined),
-      renameElement: jest.fn().mockResolvedValue(undefined),
-      deleteElement: jest.fn().mockResolvedValue(undefined),
-      closeTabByElementId: jest.fn(),
-      getValidDropLevels: jest
+      saveProjectElements: vi.fn().mockResolvedValue(undefined),
+      showEditProjectDialog: vi.fn(),
+      openDocument: vi.fn(),
+      updateProject: vi.fn(),
+      renameNode: vi.fn(),
+      showNewElementDialog: vi.fn(),
+      toggleExpanded: vi.fn(),
+      moveElement: vi.fn().mockResolvedValue(undefined),
+      renameElement: vi.fn().mockResolvedValue(undefined),
+      deleteElement: vi.fn().mockResolvedValue(undefined),
+      closeTabByElementId: vi.fn(),
+      getValidDropLevels: vi
         .fn()
         .mockReturnValue({ levels: [1], defaultLevel: 1 }),
-      getDropInsertIndex: jest.fn().mockReturnValue(1),
-      isValidDrop: jest.fn().mockReturnValue(true),
-    } as unknown as jest.Mocked<ProjectStateService>;
+      getDropInsertIndex: vi.fn().mockReturnValue(1),
+      isValidDrop: vi.fn().mockReturnValue(true),
+    } as unknown as MockedObject<ProjectStateService>;
 
     dialogGatewayService = {
-      openConfirmationDialog: jest.fn().mockResolvedValue(true),
-      openRenameDialog: jest.fn().mockResolvedValue('New Name'),
-      openEditProjectDialog: jest.fn().mockResolvedValue(null),
-      openNewElementDialog: jest.fn().mockResolvedValue(null),
-    } as unknown as jest.Mocked<DialogGatewayService>;
+      openConfirmationDialog: vi.fn().mockResolvedValue(true),
+      openRenameDialog: vi.fn().mockResolvedValue('New Name'),
+      openEditProjectDialog: vi.fn().mockResolvedValue(null),
+      openNewElementDialog: vi.fn().mockResolvedValue(null),
+    } as unknown as MockedObject<DialogGatewayService>;
 
     await TestBed.configureTestingModule({
       imports: [ProjectTreeComponent, NoopAnimationsModule],
       providers: [
+        provideZonelessChangeDetection(),
         { provide: SettingsService, useValue: settingsService },
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: ProjectAPIService, useValue: projectServiceMock },
@@ -173,7 +178,7 @@ describe('ProjectTreeComponent', () => {
     });
 
     describe('Drop Handling', () => {
-      it('should handle valid drops without confirmation', fakeAsync(() => {
+      it('should handle valid drops without confirmation', () => {
         settingsService.getSetting.mockReturnValue(false); // confirmElementMoves disabled
 
         // Set up the dragged node for the test
@@ -182,14 +187,13 @@ describe('ProjectTreeComponent', () => {
         void component.drop(event);
         expect(projectStateService.isValidDrop).toHaveBeenCalled();
         expect(projectStateService.getDropInsertIndex).toHaveBeenCalled();
-        tick();
         expect(projectStateService.moveElement).toHaveBeenCalled();
         expect(
           dialogGatewayService.openConfirmationDialog
         ).not.toHaveBeenCalled();
-      }));
+      });
 
-      it('should show confirmation dialog when confirmElementMoves is enabled', fakeAsync(() => {
+      it('should show confirmation dialog when confirmElementMoves is enabled', () => {
         settingsService.getSetting.mockReturnValue(true); // confirmElementMoves enabled
         // Set up the dragged node for the test
         component.draggedNode = mockDto;
@@ -199,9 +203,9 @@ describe('ProjectTreeComponent', () => {
         void component.drop(event);
         expect(projectStateService.isValidDrop).toHaveBeenCalled();
         expect(dialogGatewayService.openConfirmationDialog).toHaveBeenCalled();
-      }));
+      });
 
-      it('should not move element when confirmation is cancelled', fakeAsync(() => {
+      it('should not move element when confirmation is cancelled', () => {
         settingsService.getSetting.mockReturnValue(true); // confirmElementMoves enabled
         // Set up the dragged node for the test
         dialogGatewayService.openConfirmationDialog.mockResolvedValue(false);
@@ -211,11 +215,10 @@ describe('ProjectTreeComponent', () => {
         void component.drop(event);
         expect(projectStateService.isValidDrop).toHaveBeenCalled();
         expect(dialogGatewayService.openConfirmationDialog).toHaveBeenCalled();
-        tick();
         expect(projectStateService.moveElement).not.toHaveBeenCalled();
-      }));
+      });
 
-      it('should not proceed when drop is invalid', fakeAsync(() => {
+      it('should not proceed when drop is invalid', () => {
         projectStateService.isValidDrop.mockReturnValue(false);
         const event = createTestDragEvent();
 
@@ -223,13 +226,12 @@ describe('ProjectTreeComponent', () => {
         component.draggedNode = mockDto;
         void component.drop(event);
         expect(projectStateService.isValidDrop).toHaveBeenCalled();
-        tick();
         expect(projectStateService.getDropInsertIndex).not.toHaveBeenCalled();
         expect(projectStateService.moveElement).not.toHaveBeenCalled();
         expect(
           dialogGatewayService.openConfirmationDialog
         ).not.toHaveBeenCalled();
-      }));
+      });
     });
 
     const createTestNode = (
@@ -303,15 +305,17 @@ describe('ProjectTreeComponent', () => {
       } as CdkDragMove<ArrayDataSource<ProjectElement>>;
 
       // Mock the getBoundingClientRect to return valid dimensions
-      jest
-        .spyOn(component.treeContainer.nativeElement, 'getBoundingClientRect')
-        .mockReturnValue({ left: 50, width: 300 } as DOMRect);
+      vi.spyOn(
+        component.treeContainer.nativeElement,
+        'getBoundingClientRect'
+      ).mockReturnValue({ left: 50, width: 300 } as DOMRect);
 
       // Mock the querySelector to return a placeholder element
       const mockPlaceholder = document.createElement('div');
-      jest
-        .spyOn(component.treeContainer.nativeElement, 'querySelector')
-        .mockReturnValue(mockPlaceholder);
+      vi.spyOn(
+        component.treeContainer.nativeElement,
+        'querySelector'
+      ).mockReturnValue(mockPlaceholder);
 
       // Set up valid levels
       component.validLevelsArray = [0, 1, 2];
@@ -338,9 +342,10 @@ describe('ProjectTreeComponent', () => {
       pointerPosition: { x: 100, y: 0 },
     } as CdkDragMove<ArrayDataSource<ProjectElement>>;
 
-    jest
-      .spyOn(component.treeContainer.nativeElement, 'getBoundingClientRect')
-      .mockReturnValue({ left: NaN, width: NaN } as DOMRect);
+    vi.spyOn(
+      component.treeContainer.nativeElement,
+      'getBoundingClientRect'
+    ).mockReturnValue({ left: NaN, width: NaN } as DOMRect);
 
     component.dragMove(mockMoveEvent);
     expect(component.currentDropLevel).toBe(0);
@@ -366,11 +371,11 @@ describe('ProjectTreeComponent', () => {
     beforeEach(() => {
       node = { ...mockDto, id: 'test-touch-id' };
       mockTouchEvent = {
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
       } as unknown as TouchEvent;
       mockClickEvent = {
-        stopPropagation: jest.fn(),
+        stopPropagation: vi.fn(),
       } as unknown as MouseEvent;
     });
 
@@ -407,21 +412,23 @@ describe('ProjectTreeComponent', () => {
       );
     });
 
-    it('should clear touch flag after timeout', fakeAsync(() => {
+    it('should clear touch flag after timeout', () => {
+      vi.useFakeTimers();
       // Handle touch event
       component.toggleExpandedTouch(node, mockTouchEvent);
 
       // Fast-forward time past the timeout
-      tick(300);
+      vi.advanceTimersByTime(300);
 
       // Now click should work normally
       component.toggleExpandedClick(node, mockClickEvent);
 
       expect(projectStateService.toggleExpanded).toHaveBeenCalledTimes(2);
-    }));
+      vi.useRealTimers();
+    });
 
     it('should clear existing timeout when new touch event occurs', () => {
-      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+      const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
 
       // First touch event
       component.toggleExpandedTouch(node, mockTouchEvent);

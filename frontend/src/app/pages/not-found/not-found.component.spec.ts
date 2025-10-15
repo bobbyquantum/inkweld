@@ -1,3 +1,4 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, RouterLink } from '@angular/router';
 
@@ -10,7 +11,10 @@ describe('NotFoundComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [NotFoundComponent, RouterLink],
-      providers: [provideRouter([{ path: '', component: NotFoundComponent }])],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideRouter([{ path: '', component: NotFoundComponent }]),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(NotFoundComponent);

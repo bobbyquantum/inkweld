@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -11,6 +11,7 @@ import { Router } from '@angular/router';
 import { ProjectElementDto } from '@inkweld/model/project-element-dto';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
+import { Mock, vi } from 'vitest';
 
 import { DocumentSyncState } from '../../../../models/document-sync-state';
 import { DocumentsListTabComponent } from './documents-list-tab.component';
@@ -70,17 +71,17 @@ describe('DocumentsListTabComponent', () => {
     projectStateService = {
       project: signal(mockProject),
       elements: signal(mockElements),
-      openDocument: jest.fn(),
+      openDocument: vi.fn(),
     };
 
     documentService = {
-      getSyncStatusSignal: jest
+      getSyncStatusSignal: vi
         .fn()
         .mockReturnValue(() => DocumentSyncState.Synced),
     } as Partial<DocumentService>;
 
     router = {
-      navigate: jest.fn(),
+      navigate: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -95,6 +96,7 @@ describe('DocumentsListTabComponent', () => {
         DocumentsListTabComponent,
       ],
       providers: [
+        provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: DocumentService, useValue: documentService },
         { provide: Router, useValue: router },
@@ -153,7 +155,7 @@ describe('DocumentsListTabComponent', () => {
   it('should create a new document', () => {
     component.createNewDocument();
     expect(projectStateService.openDocument).toHaveBeenCalled();
-    const newDocArg = (projectStateService.openDocument as jest.Mock).mock
+    const newDocArg = (projectStateService.openDocument as Mock).mock
       .calls[0][0];
     expect(newDocArg.type).toBe(ProjectElementDto.TypeEnum.Item);
     expect(newDocArg.name).toBe('New Document');

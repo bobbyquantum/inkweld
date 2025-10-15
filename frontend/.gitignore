@@ -48,3 +48,4 @@ Thumbs.db
 .jest-cache
 /test-results.json
 debug-screenshot.png
+.npmrc

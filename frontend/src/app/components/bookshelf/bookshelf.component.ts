@@ -59,6 +59,7 @@ export class BookshelfComponent
 
   // Recalculation flag for view update
   private needsRecalculation = false;
+  private isDestroyed = false;
 
   // Debounced functions
   private debouncedUpdateCenteredItem = debounce(this.updateCenteredItem, 100);
@@ -218,7 +219,7 @@ export class BookshelfComponent
   }
 
   updateCenteredItem() {
-    if (!this.projectsGrid?.nativeElement) return;
+    if (this.isDestroyed || !this.projectsGrid?.nativeElement) return;
 
     const grid = this.projectsGrid.nativeElement;
     const cards = Array.from(grid.querySelectorAll('.project-card-wrapper'));
@@ -242,7 +243,7 @@ export class BookshelfComponent
 
     // Use the local center-selector within this bookshelf instance
     const grid = this.projectsGrid.nativeElement;
-    const container = grid.closest('.bookshelf-container');
+    const container = grid.closest?.('.bookshelf-container');
     let centerX: number;
 
     if (container) {
@@ -262,7 +263,9 @@ export class BookshelfComponent
       centerX = window.innerWidth / 2;
     }
 
-    const cards = Array.from(grid.querySelectorAll('.project-card-wrapper'));
+    const cardList = grid.querySelectorAll?.('.project-card-wrapper');
+    if (!cardList) return -1;
+    const cards = Array.from(cardList);
 
     if (cards.length === 0) return -1;
 
@@ -285,7 +288,7 @@ export class BookshelfComponent
   }
 
   scrollToCard(index: number, smoothTransition = false) {
-    if (!this.projectsGrid?.nativeElement) return;
+    if (this.isDestroyed || !this.projectsGrid?.nativeElement) return;
 
     const grid = this.projectsGrid.nativeElement;
     const cards = Array.from(grid.querySelectorAll('.project-card-wrapper'));
@@ -347,6 +350,7 @@ export class BookshelfComponent
   }
 
   scrollToNext() {
+    if (this.isDestroyed) return;
     const currentIndex = this.activeCardIndex();
     const projectCount = this.projects.length;
 
@@ -358,6 +362,7 @@ export class BookshelfComponent
   }
 
   scrollToPrevious() {
+    if (this.isDestroyed) return;
     const currentIndex = this.activeCardIndex();
 
     if (currentIndex > 0) {
@@ -485,6 +490,8 @@ export class BookshelfComponent
   }
 
   ngOnDestroy() {
+    this.isDestroyed = true;
+
     if (this.projectsGrid?.nativeElement) {
       this.projectsGrid.nativeElement.removeEventListener(
         'wheel',

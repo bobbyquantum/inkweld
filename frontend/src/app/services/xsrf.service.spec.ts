@@ -1,24 +1,27 @@
 import { DOCUMENT } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { CSRFService } from '@inkweld/index';
 import { of } from 'rxjs';
+import { Mock, vi } from 'vitest';
 
 import { XsrfService } from './xsrf.service';
 
 describe('XsrfService', () => {
   let service: XsrfService;
-  let mockCsrfService: { csrfControllerGetCsrfToken: jest.Mock };
+  let mockCsrfService: { csrfControllerGetCsrfToken: Mock };
 
   beforeEach(() => {
     mockCsrfService = {
-      csrfControllerGetCsrfToken: jest
+      csrfControllerGetCsrfToken: vi
         .fn()
         .mockReturnValue(of({ token: 'test-token' })),
     };
 
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         {
           provide: DOCUMENT,
           useValue: { cookie: '' },
@@ -59,7 +62,7 @@ describe('XsrfService', () => {
   describe('getToken()', () => {
     it('should refresh token when none exists', async () => {
       // Spy on refreshToken method
-      jest.spyOn(service, 'refreshToken').mockResolvedValue('new-token');
+      vi.spyOn(service, 'refreshToken').mockResolvedValue('new-token');
 
       const token = await service.getToken();
 

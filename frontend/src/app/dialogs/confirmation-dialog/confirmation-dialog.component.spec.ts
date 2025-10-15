@@ -1,22 +1,25 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MockedObject, vi } from 'vitest';
 
 import { ConfirmationDialogComponent } from './confirmation-dialog.component';
 
 describe('ConfirmationDialogComponent', () => {
   let component: ConfirmationDialogComponent;
   let fixture: ComponentFixture<ConfirmationDialogComponent>;
-  let dialogRef: jest.Mocked<MatDialogRef<ConfirmationDialogComponent>>;
+  let dialogRef: MockedObject<MatDialogRef<ConfirmationDialogComponent>>;
 
   beforeEach(async () => {
     dialogRef = {
-      close: jest.fn(),
-    } as unknown as jest.Mocked<MatDialogRef<ConfirmationDialogComponent>>;
+      close: vi.fn(),
+    } as unknown as MockedObject<MatDialogRef<ConfirmationDialogComponent>>;
 
     await TestBed.configureTestingModule({
       imports: [ConfirmationDialogComponent, NoopAnimationsModule],
       providers: [
+        provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },
         {
           provide: MAT_DIALOG_DATA,

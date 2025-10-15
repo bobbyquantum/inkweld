@@ -1,13 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { signal } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { RouterModule } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
+import { Router } from '@angular/router';
 import { ProjectAPIService } from '@inkweld/api/project-api.service';
 import { ProjectDto, ProjectElementDto } from '@inkweld/index';
+import { Mock, vi } from 'vitest';
 
 import { DialogGatewayService } from '../../../../services/dialog-gateway.service';
 import { ProjectService } from '../../../../services/project.service';
@@ -49,35 +49,42 @@ describe('HomeTabComponent', () => {
 
   // Mock URL.createObjectURL which isn't available in Jest environment
   beforeAll(() => {
-    global.URL.createObjectURL = jest.fn().mockReturnValue('mock-blob-url');
+    global.URL.createObjectURL = vi.fn().mockReturnValue('mock-blob-url');
   });
+
+  let mockRouter: Partial<Router>;
 
   const setupMockServices = () => {
     // Initialize signals for ProjectStateService
     const projectSignal = signal(mockProject);
     const elementsSignal = signal<ProjectElementDto[]>([]);
 
+    // Mock Router
+    mockRouter = {
+      navigate: vi.fn().mockResolvedValue(true),
+    };
+
     // Mock services
     projectStateService = {
       project: projectSignal,
       elements: elementsSignal,
-      openDocument: jest.fn(),
-      publishProject: jest.fn().mockResolvedValue(undefined),
-      showEditProjectDialog: jest.fn(),
-      openSystemTab: jest.fn(),
+      openDocument: vi.fn(),
+      publishProject: vi.fn().mockResolvedValue(undefined),
+      showEditProjectDialog: vi.fn(),
+      openSystemTab: vi.fn(),
     };
 
     recentFilesService = {
-      getRecentFilesForProject: jest.fn().mockReturnValue(mockRecentFiles),
+      getRecentFilesForProject: vi.fn().mockReturnValue(mockRecentFiles),
     };
 
     importExportService = {
-      exportProjectZip: jest.fn().mockResolvedValue(undefined),
-      importProjectZip: jest.fn().mockResolvedValue(undefined),
+      exportProjectZip: vi.fn().mockResolvedValue(undefined),
+      importProjectZip: vi.fn().mockResolvedValue(undefined),
     };
 
     projectService = {
-      getProjectCover: jest.fn().mockImplementation(() => {
+      getProjectCover: vi.fn().mockImplementation(() => {
         // Return a promise that never resolves by default
         // Tests will override this with specific behavior
         return new Promise(() => {});
@@ -85,23 +92,23 @@ describe('HomeTabComponent', () => {
     };
 
     const mockObservable = {
-      pipe: jest.fn().mockReturnThis(),
-      subscribe: jest.fn(),
+      pipe: vi.fn().mockReturnThis(),
+      subscribe: vi.fn(),
     };
 
     projectApiService = {
-      coverControllerUploadCover: jest.fn().mockReturnValue(mockObservable),
+      coverControllerUploadCover: vi.fn().mockReturnValue(mockObservable),
     } as any;
 
     dialogGateway = {
-      openGenerateCoverDialog: jest
+      openGenerateCoverDialog: vi
         .fn()
         .mockResolvedValue({ approved: false, imageData: null }),
-      openNewElementDialog: jest.fn().mockResolvedValue(undefined),
+      openNewElementDialog: vi.fn().mockResolvedValue(undefined),
     };
 
     snackBar = {
-      open: jest.fn(),
+      open: vi.fn(),
     } as any;
   };
 
@@ -109,15 +116,10 @@ describe('HomeTabComponent', () => {
     setupMockServices();
 
     await TestBed.configureTestingModule({
-      imports: [
-        CommonModule,
-        MatButtonModule,
-        MatIconModule,
-        RouterModule,
-        RouterTestingModule,
-        HomeTabComponent,
-      ],
+      imports: [CommonModule, MatButtonModule, MatIconModule, HomeTabComponent],
       providers: [
+        provideZonelessChangeDetection(),
+        { provide: Router, useValue: mockRouter },
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: ProjectService, useValue: projectService },
         { provide: ProjectAPIService, useValue: projectApiService },
@@ -184,7 +186,7 @@ describe('HomeTabComponent', () => {
       metadata: {},
     } as ProjectElementDto;
 
-    jest.spyOn(component, 'onRecentDocumentClick');
+    vi.spyOn(component, 'onRecentDocumentClick');
     (projectStateService.elements as any).set([mockElement]);
 
     component.onRecentDocumentKeydown(mockKeyboardEvent, document.id);
@@ -206,7 +208,7 @@ describe('HomeTabComponent', () => {
       metadata: {},
     } as ProjectElementDto;
 
-    jest.spyOn(component, 'onRecentDocumentClick');
+    vi.spyOn(component, 'onRecentDocumentClick');
     (projectStateService.elements as any).set([mockElement]);
 
     component.onRecentDocumentKeydown(mockKeyboardEvent, document.id);
@@ -218,7 +220,7 @@ describe('HomeTabComponent', () => {
     const document = mockRecentFiles[0];
     const mockKeyboardEvent = new KeyboardEvent('keydown', { key: 'A' });
 
-    jest.spyOn(component, 'onRecentDocumentClick');
+    vi.spyOn(component, 'onRecentDocumentClick');
 
     component.onRecentDocumentKeydown(mockKeyboardEvent, document.id);
 
@@ -231,7 +233,7 @@ describe('HomeTabComponent', () => {
   });
 
   it('should emit import event when import button is clicked', () => {
-    jest.spyOn(component.importRequested, 'emit');
+    vi.spyOn(component.importRequested, 'emit');
     component.onImportClick();
     expect(component.importRequested.emit).toHaveBeenCalled();
   });
@@ -275,7 +277,7 @@ describe('HomeTabComponent', () => {
       approved: true,
       imageData: 'data:image/png;base64,test123',
     };
-    (dialogGateway.openGenerateCoverDialog as jest.Mock).mockResolvedValue(
+    (dialogGateway.openGenerateCoverDialog as Mock).mockResolvedValue(
       mockResult
     );
 
@@ -292,14 +294,14 @@ describe('HomeTabComponent', () => {
       approved: true,
       imageData: 'data:image/png;base64,test123',
     };
-    (dialogGateway.openGenerateCoverDialog as jest.Mock).mockResolvedValue(
+    (dialogGateway.openGenerateCoverDialog as Mock).mockResolvedValue(
       mockResult
     );
     const mockObservable = {
-      pipe: jest.fn().mockReturnThis(),
-      subscribe: jest.fn(),
+      pipe: vi.fn().mockReturnThis(),
+      subscribe: vi.fn(),
     };
-    (projectApiService.coverControllerUploadCover as jest.Mock).mockReturnValue(
+    (projectApiService.coverControllerUploadCover as Mock).mockReturnValue(
       mockObservable
     );
 
@@ -312,7 +314,7 @@ describe('HomeTabComponent', () => {
 
   it('should not save cover image when dialog is cancelled', async () => {
     const mockResult = { approved: false, imageData: null };
-    (dialogGateway.openGenerateCoverDialog as jest.Mock).mockResolvedValue(
+    (dialogGateway.openGenerateCoverDialog as Mock).mockResolvedValue(
       mockResult
     );
 
@@ -339,13 +341,13 @@ describe('HomeTabComponent', () => {
   describe('cover image', () => {
     it('should load cover image when project is set', async () => {
       const mockBlob = new Blob(['test'], { type: 'image/png' });
-      (projectService.getProjectCover as jest.Mock).mockResolvedValue(mockBlob);
+      (projectService.getProjectCover as Mock).mockResolvedValue(mockBlob);
 
       // Wait for initial effect to complete
       await fixture.whenStable();
 
       // Clear previous calls
-      (projectService.getProjectCover as jest.Mock).mockClear();
+      (projectService.getProjectCover as Mock).mockClear();
 
       // Trigger the effect by setting a new project
       (projectStateService.project as any).set({
@@ -367,7 +369,7 @@ describe('HomeTabComponent', () => {
     });
 
     it('should handle cover image not found error', async () => {
-      (projectService.getProjectCover as jest.Mock).mockRejectedValue(
+      (projectService.getProjectCover as Mock).mockRejectedValue(
         new Error('Cover image not found')
       );
 
@@ -375,7 +377,7 @@ describe('HomeTabComponent', () => {
       await fixture.whenStable();
 
       // Clear previous calls
-      (projectService.getProjectCover as jest.Mock).mockClear();
+      (projectService.getProjectCover as Mock).mockClear();
 
       // Trigger the effect by setting a new project
       (projectStateService.project as any).set({
@@ -394,10 +396,10 @@ describe('HomeTabComponent', () => {
     });
 
     it('should handle other cover image errors', async () => {
-      const consoleErrorSpy = jest
+      const consoleErrorSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      (projectService.getProjectCover as jest.Mock).mockRejectedValue(
+      (projectService.getProjectCover as Mock).mockRejectedValue(
         new Error('Network error')
       );
 
@@ -405,7 +407,7 @@ describe('HomeTabComponent', () => {
       await fixture.whenStable();
 
       // Clear previous calls
-      (projectService.getProjectCover as jest.Mock).mockClear();
+      (projectService.getProjectCover as Mock).mockClear();
 
       // Trigger the effect by setting a new project
       (projectStateService.project as any).set({

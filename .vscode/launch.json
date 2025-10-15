@@ -26,6 +26,22 @@
       "console": "integratedTerminal",
       "sourceMaps": true,
       "resolveSourceMapLocations": ["${workspaceFolder}/server/**/*.ts"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "🚀 DebugTest",
+      "runtimeExecutable": "ng",
+      "runtimeArgs": [
+        "test",
+        "--debug",
+        "--watch=false",
+        "--include=**/document-element-editor.component.spec.ts"
+      ],
+      "cwd": "${workspaceFolder}/frontend",
+      "console": "integratedTerminal",
+      "sourceMaps": true,
+      "resolveSourceMapLocations": ["${workspaceFolder}/frontend/**/*.ts"]
     }
   ],
   "compounds": [

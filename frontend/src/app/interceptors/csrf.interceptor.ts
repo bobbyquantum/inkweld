@@ -15,6 +15,7 @@ import { XsrfService } from '../services/xsrf.service';
 @Injectable()
 export class CsrfInterceptor implements HttpInterceptor {
   private xsrfService = inject(XsrfService);
+  private document = inject(DOCUMENT);
   private refreshingToken = false;
   private tokenRefreshPromise: Promise<string> | null = null;
 
@@ -134,8 +135,7 @@ export class CsrfInterceptor implements HttpInterceptor {
    * Helper to get a cookie value by name
    */
   private getCookieValue(name: string): string {
-    const doc = inject(DOCUMENT);
-    const value = `; ${doc.cookie}`;
+    const value = `; ${this.document.cookie}`;
     const parts = value.split(`; ${name}=`);
     if (parts.length === 2) {
       return parts.pop()?.split(';').shift() || '';

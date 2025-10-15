@@ -9,6 +9,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
@@ -16,6 +17,7 @@ import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-
 import { AuthService, UserDto } from '@inkweld/index';
 import { UserAPIService } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
+import { Mock, vi } from 'vitest';
 
 import { userServiceMock } from '../../testing/user-api.mock';
 import { StorageService } from './storage.service';
@@ -37,20 +39,20 @@ describe('UserService', () => {
   let storageService: StorageService;
   let httpTestingController: HttpTestingController;
   let authServiceMock: {
-    authControllerLogin: jest.Mock;
-    authControllerLogout: jest.Mock;
+    authControllerLogin: Mock;
+    authControllerLogout: Mock;
   };
-  let dialogMock: { open: jest.Mock };
-  let routerMock: { navigate: jest.Mock };
+  let dialogMock: { open: Mock };
+  let routerMock: { navigate: Mock };
 
   beforeEach(() => {
     userServiceMock.userControllerGetMe.mockReturnValue(of(TEST_USER));
     authServiceMock = {
-      authControllerLogin: jest.fn(),
-      authControllerLogout: jest.fn(),
+      authControllerLogin: vi.fn(),
+      authControllerLogout: vi.fn(),
     };
-    dialogMock = { open: jest.fn() };
-    routerMock = { navigate: jest.fn() };
+    dialogMock = { open: vi.fn() };
+    routerMock = { navigate: vi.fn() };
 
     dialogMock.open.mockReturnValue({
       afterClosed: () => of(true),
@@ -58,6 +60,7 @@ describe('UserService', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         provideHttpClient(),
         provideHttpClientTesting(),
         UserService,
@@ -88,7 +91,7 @@ describe('UserService', () => {
 
   afterEach(() => {
     indexedDB = new IDBFactory();
-    httpTestingController.verify();
+    httpTestingController?.verify();
   });
 
   it('should be created', () => {
@@ -183,15 +186,15 @@ describe('UserService', () => {
     });
 
     it('should persist user to storage when available', async () => {
-      const spy = jest.spyOn(storageService, 'put');
+      const spy = vi.spyOn(storageService, 'put');
       await service.setCurrentUser(TEST_USER);
       expect(spy).toHaveBeenCalled();
     });
 
     it('should handle storage errors gracefully', async () => {
-      jest
-        .spyOn(storageService, 'put')
-        .mockRejectedValue(new Error('Storage error'));
+      vi.spyOn(storageService, 'put').mockRejectedValue(
+        new Error('Storage error')
+      );
       await expect(service.setCurrentUser(TEST_USER)).resolves.not.toThrow();
       expect(service.currentUser()).toEqual(TEST_USER);
     });
@@ -245,7 +248,7 @@ describe('UserService', () => {
 
   describe('hasCachedUser', () => {
     it('should return false when storage is not available', async () => {
-      jest.spyOn(storageService, 'isAvailable').mockReturnValue(false);
+      vi.spyOn(storageService, 'isAvailable').mockReturnValue(false);
       const result = await service.hasCachedUser();
       expect(result).toBe(false);
     });
@@ -342,10 +345,10 @@ describe('UserService', () => {
       const router = TestBed.inject(Router);
       const service = TestBed.inject(UserService);
 
-      jest
-        .spyOn(authService, 'authControllerLogout')
-        .mockReturnValue(of(new HttpResponse({ status: 200 })));
-      const clearCurrentUserSpy = jest
+      vi.spyOn(authService, 'authControllerLogout').mockReturnValue(
+        of(new HttpResponse({ status: 200 }))
+      );
+      const clearCurrentUserSpy = vi
         .spyOn(service, 'clearCurrentUser')
         .mockResolvedValue();
 
@@ -364,10 +367,10 @@ describe('UserService', () => {
         'SERVER_ERROR',
         'Failed to load user data'
       );
-      jest
-        .spyOn(authService, 'authControllerLogout')
-        .mockReturnValue(throwError(() => new Error('Logout failed')));
-      const clearCurrentUserSpy = jest
+      vi.spyOn(authService, 'authControllerLogout').mockReturnValue(
+        throwError(() => new Error('Logout failed'))
+      );
+      const clearCurrentUserSpy = vi
         .spyOn(service, 'clearCurrentUser')
         .mockResolvedValue();
 

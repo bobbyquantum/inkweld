@@ -1,29 +1,32 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { AuthService } from '@inkweld/index';
-import { Observable, of, throwError } from 'rxjs';
+import { of, throwError } from 'rxjs';
+import { MockedObject, vi } from 'vitest';
 
 import { OAuthProviderListComponent } from './oauth-provider-list.component';
 
 describe('OAuthProviderListComponent', () => {
   let component: OAuthProviderListComponent;
   let fixture: ComponentFixture<OAuthProviderListComponent>;
-  let authService: jest.Mocked<AuthService>;
-  let snackBar: jest.Mocked<MatSnackBar>;
+  let authService: MockedObject<AuthService>;
+  let snackBar: MockedObject<MatSnackBar>;
 
   beforeEach(async () => {
     authService = {
-      authControllerGetOAuthProviders: jest.fn(),
-    } as unknown as jest.Mocked<AuthService>;
+      authControllerGetOAuthProviders: vi.fn(),
+    } as unknown as MockedObject<AuthService>;
 
     snackBar = {
-      open: jest.fn(),
-    } as unknown as jest.Mocked<MatSnackBar>;
+      open: vi.fn(),
+    } as unknown as MockedObject<MatSnackBar>;
 
     await TestBed.configureTestingModule({
       imports: [OAuthProviderListComponent, NoopAnimationsModule],
       providers: [
+        provideZonelessChangeDetection(),
         { provide: AuthService, useValue: authService },
         { provide: MatSnackBar, useValue: snackBar },
       ],
@@ -79,9 +82,7 @@ describe('OAuthProviderListComponent', () => {
   describe('initialization', () => {
     it('should load OAuth2 providers on init', async () => {
       const getEnabledOAuth2ProvidersMock =
-        authService.authControllerGetOAuthProviders as unknown as jest.MockedFunction<
-          (observe: 'body') => Observable<string[]>
-        >;
+        authService.authControllerGetOAuthProviders as any;
       getEnabledOAuth2ProvidersMock.mockReturnValue(of(['github', 'google']));
 
       // Initial state should be empty
@@ -108,9 +109,7 @@ describe('OAuthProviderListComponent', () => {
 
     it('should handle OAuth2 providers loading error', async () => {
       const getEnabledOAuth2ProvidersMock =
-        authService.authControllerGetOAuthProviders as unknown as jest.MockedFunction<
-          (observe: 'body') => Observable<string[]>
-        >;
+        authService.authControllerGetOAuthProviders as any;
       getEnabledOAuth2ProvidersMock.mockReturnValue(
         throwError(() => new Error('Failed to load providers'))
       );
