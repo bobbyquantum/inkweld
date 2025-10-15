@@ -1,9 +1,11 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { vi } from 'vitest';
 
 import { FileSizePipe } from '../../pipes/file-size.pipe';
 import { DialogGatewayService } from '../../services/dialog-gateway.service';
@@ -27,7 +29,7 @@ describe('FileListComponent', () => {
 
   // Mock DialogGatewayService
   const mockDialogGateway = {
-    openImageViewerDialog: jest.fn(),
+    openImageViewerDialog: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -41,6 +43,7 @@ describe('FileListComponent', () => {
         FileSizePipe,
       ],
       providers: [
+        provideZonelessChangeDetection(),
         { provide: DialogGatewayService, useValue: mockDialogGateway },
       ],
     }).compileComponents();
@@ -49,7 +52,7 @@ describe('FileListComponent', () => {
     component = fixture.componentInstance;
 
     // Reset mock before each test
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should create', () => {
@@ -83,7 +86,7 @@ describe('FileListComponent', () => {
     component.files = mockFiles;
     fixture.detectChanges();
 
-    const spy = jest.spyOn(component.deleteFile, 'emit');
+    const spy = vi.spyOn(component.deleteFile, 'emit');
     const deleteButton = fixture.debugElement.query(
       By.css('button[title="Delete file"]')
     );

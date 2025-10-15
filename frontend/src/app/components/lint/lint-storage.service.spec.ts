@@ -1,4 +1,6 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
 
 import { CorrectionDto } from '../../../api-client/model/correction-dto';
 import { ExtendedCorrectionDto } from './correction-dto.extension';
@@ -6,7 +8,7 @@ import { LintStorageService } from './lint-storage.service';
 
 describe('LintStorageService', () => {
   let service: LintStorageService;
-  let localStorageSpy: Record<string, jest.SpyInstance>;
+  let localStorageSpy: Record<string, any>;
 
   const mockCorrection: CorrectionDto = {
     from: 0,
@@ -23,13 +25,15 @@ describe('LintStorageService', () => {
   beforeEach(() => {
     // Mock localStorage
     localStorageSpy = {
-      getItem: jest.spyOn(Storage.prototype, 'getItem'),
-      setItem: jest.spyOn(Storage.prototype, 'setItem'),
-      removeItem: jest.spyOn(Storage.prototype, 'removeItem'),
-      clear: jest.spyOn(Storage.prototype, 'clear'),
+      getItem: vi.spyOn(Storage.prototype, 'getItem'),
+      setItem: vi.spyOn(Storage.prototype, 'setItem'),
+      removeItem: vi.spyOn(Storage.prototype, 'removeItem'),
+      clear: vi.spyOn(Storage.prototype, 'clear'),
     };
 
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: [provideZonelessChangeDetection()],
+    });
     service = TestBed.inject(LintStorageService);
 
     // Clear localStorage before each test
@@ -43,7 +47,7 @@ describe('LintStorageService', () => {
 
   afterEach(() => {
     // Restore original localStorage methods
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should be created', () => {
@@ -92,7 +96,9 @@ describe('LintStorageService', () => {
     localStorageSpy['getItem'].mockImplementation(() => {
       throw new Error('Storage error');
     });
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
 
     // Re-create service to trigger constructor logic
     service = new LintStorageService();
@@ -109,7 +115,9 @@ describe('LintStorageService', () => {
     localStorageSpy['setItem'].mockImplementation(() => {
       throw new Error('Storage error');
     });
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
 
     service.rejectSuggestion(mockCorrection);
 
@@ -121,7 +129,7 @@ describe('LintStorageService', () => {
   });
 
   it('should reject suggestion when lint-correction-reject event is dispatched', () => {
-    const rejectSpy = jest.spyOn(service, 'rejectSuggestion');
+    const rejectSpy = vi.spyOn(service, 'rejectSuggestion');
     const event = new CustomEvent('lint-correction-reject', {
       detail: mockCorrection,
     });

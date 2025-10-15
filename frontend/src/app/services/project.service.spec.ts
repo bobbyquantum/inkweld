@@ -1,7 +1,9 @@
 import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
-import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
-import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { Observable } from 'rxjs';
+import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { ProjectAPIService } from '../../api-client/api/project-api.service';
 import { ProjectDto } from '../../api-client/model/project-dto';
@@ -30,9 +32,6 @@ const BASE: ProjectDto[] = [
   },
 ];
 const DB = {} as IDBDatabase;
-const createService = createServiceFactory({
-  service: ProjectService,
-});
 
 /* Convenience alias for mock */
 type ApiMock = DeepMockProxy<ProjectAPIService>;
@@ -40,7 +39,7 @@ type StoreMock = DeepMockProxy<StorageService>;
 type XsrfMock = DeepMockProxy<XsrfService>;
 
 describe('ProjectService', () => {
-  let spec: SpectatorService<ProjectService>;
+  let service: ProjectService;
   let api: ApiMock;
   let store: StoreMock;
   let xsrf: XsrfMock;
@@ -76,19 +75,23 @@ describe('ProjectService', () => {
     api.coverControllerDeleteCover.mockReturnValue(apiOk(undefined));
     api.coverControllerUploadCover.mockReturnValue(apiOk(undefined));
 
-    spec = createService({
+    TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
+        ProjectService,
         { provide: ProjectAPIService, useValue: api },
         { provide: StorageService, useValue: store },
         { provide: XsrfService, useValue: xsrf },
       ],
     });
+    
+    service = TestBed.inject(ProjectService);
   });
 
   it('loads projects from API when cache is empty', async () => {
     store.get.mockResolvedValue(undefined);
 
-    await spec.service.loadAllProjects();
+    await service.loadAllProjects();
 
     expect(api.projectControllerGetAllProjects).toHaveBeenCalled();
     expect(store.put).toHaveBeenCalledWith(
@@ -97,8 +100,8 @@ describe('ProjectService', () => {
       BASE,
       'allProjects'
     );
-    expect(spec.service.projects()).toEqual(BASE);
-    expect(spec.service.error()).toBeUndefined();
+    expect(service.projects()).toEqual(BASE);
+    expect(service.error()).toBeUndefined();
   });
 
   describe('getProjectByUsernameAndSlug', () => {
@@ -108,14 +111,14 @@ describe('ProjectService', () => {
       store.get.mockReset();
       xsrf.getXsrfToken.mockReset();
       xsrf.getXsrfToken.mockReturnValue('test-token');
-      spec.service.error.set(undefined);
+      service.error.set(undefined);
     });
 
     it('returns a project from cache if available', async () => {
       // Mock cached project
       store.get.mockResolvedValue(BASE[0]);
 
-      const result = await spec.service.getProjectByUsernameAndSlug(
+      const result = await service.getProjectByUsernameAndSlug(
         'alice',
         'project-1'
       );
@@ -145,7 +148,7 @@ describe('ProjectService', () => {
         apiOk(BASE[0])
       );
 
-      const result = await spec.service.getProjectByUsernameAndSlug(
+      const result = await service.getProjectByUsernameAndSlug(
         'alice',
         'project-1'
       );
@@ -189,7 +192,7 @@ describe('ProjectService', () => {
       );
 
       // Should be able to get the project even though the API would fail
-      const result = await spec.service.getProjectByUsernameAndSlug(
+      const result = await service.getProjectByUsernameAndSlug(
         'alice',
         'project-1'
       );
@@ -207,7 +210,7 @@ describe('ProjectService', () => {
         apiOk(BASE[1])
       );
 
-      const result = await spec.service.getProjectByUsernameAndSlug(
+      const result = await service.getProjectByUsernameAndSlug(
         'bob',
         'project-2'
       );
@@ -247,11 +250,11 @@ describe('ProjectService', () => {
 
       // Should throw an error
       await expect(
-        spec.service.getProjectByUsernameAndSlug('alice', 'project-1')
+        service.getProjectByUsernameAndSlug('alice', 'project-1')
       ).rejects.toThrow();
 
       // Error should be set with correct code
-      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
+      expect(service.error()?.code).toBe('NETWORK_ERROR');
     });
 
     it('handles not found errors correctly', async () => {
@@ -265,11 +268,11 @@ describe('ProjectService', () => {
 
       // Should throw an error
       await expect(
-        spec.service.getProjectByUsernameAndSlug('alice', 'nonexistent')
+        service.getProjectByUsernameAndSlug('alice', 'nonexistent')
       ).rejects.toThrow();
 
       // Error should be set with correct code
-      expect(spec.service.error()?.code).toBe('PROJECT_NOT_FOUND');
+      expect(service.error()?.code).toBe('PROJECT_NOT_FOUND');
     });
   });
 
@@ -290,7 +293,7 @@ describe('ProjectService', () => {
 
       // We can't call refreshProjectInBackground directly as it's private
       // But we can test its effect after a call to getProjectByUsernameAndSlug
-      await spec.service.getProjectByUsernameAndSlug('alice', 'project-1');
+      await service.getProjectByUsernameAndSlug('alice', 'project-1');
 
       // Should update cache with the new data
       expect(store.put).toHaveBeenCalledWith(
@@ -300,7 +303,7 @@ describe('ProjectService', () => {
         'alice/project-1'
       );
       // Should not set error
-      expect(spec.service.error()).toBeUndefined();
+      expect(service.error()).toBeUndefined();
     });
 
     it('handles API errors gracefully when refreshing', async () => {
@@ -318,7 +321,7 @@ describe('ProjectService', () => {
       );
 
       // Should be able to get the project even though the API would fail
-      const result = await spec.service.getProjectByUsernameAndSlug(
+      const result = await service.getProjectByUsernameAndSlug(
         'alice',
         'project-1'
       );
@@ -336,10 +339,10 @@ describe('ProjectService', () => {
       xsrf.getXsrfToken.mockReturnValue('test-token');
       store.get.mockReset();
       store.put.mockReset();
-      spec.service.error.set(undefined);
+      service.error.set(undefined);
 
       // Reset the projects signal
-      spec.service.projects.set([]);
+      service.projects.set([]);
     });
 
     it('loads projects from API and caches them', async () => {
@@ -351,13 +354,13 @@ describe('ProjectService', () => {
         return Promise.resolve(undefined);
       });
 
-      await spec.service.loadAllProjects();
+      await service.loadAllProjects();
 
       // Should have called the API with token
       expect(api.projectControllerGetAllProjects).toHaveBeenCalledWith();
 
       // Should have set the projects signal
-      expect(spec.service.projects()).toEqual(BASE);
+      expect(service.projects()).toEqual(BASE);
     });
 
     it('returns cached projects when available and refreshes in background', async () => {
@@ -372,10 +375,10 @@ describe('ProjectService', () => {
       // Clear previous calls
       api.projectControllerGetAllProjects.mockClear();
 
-      await spec.service.loadAllProjects();
+      await service.loadAllProjects();
 
       // Should have set the projects signal from cache
-      expect(spec.service.projects()).toEqual(BASE);
+      expect(service.projects()).toEqual(BASE);
 
       // API should still be called to refresh in background
       expect(api.projectControllerGetAllProjects).toHaveBeenCalledWith();
@@ -395,10 +398,10 @@ describe('ProjectService', () => {
         apiErr(new HttpErrorResponse({ status: 500 }))
       );
 
-      await spec.service.loadAllProjects();
+      await service.loadAllProjects();
 
       // Should still set projects from cache
-      expect(spec.service.projects()).toEqual(BASE);
+      expect(service.projects()).toEqual(BASE);
     });
 
     it('handles API errors when no cache is available', async () => {
@@ -410,14 +413,14 @@ describe('ProjectService', () => {
         apiErr(new HttpErrorResponse({ status: 0 }))
       );
 
-      await expect(spec.service.loadAllProjects()).rejects.toThrow();
+      await expect(service.loadAllProjects()).rejects.toThrow();
 
       // Error should be set
-      expect(spec.service.error()).toBeDefined();
-      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
+      expect(service.error()).toBeDefined();
+      expect(service.error()?.code).toBe('NETWORK_ERROR');
 
       // Projects signal should remain empty
-      expect(spec.service.projects()).toEqual([]);
+      expect(service.projects()).toEqual([]);
     });
   });
 
@@ -431,7 +434,7 @@ describe('ProjectService', () => {
       api.projectControllerGetAllProjects.mockReset();
       xsrf.getXsrfToken.mockReset();
       xsrf.getXsrfToken.mockReturnValue('test-token');
-      spec.service.error.set(undefined);
+      service.error.set(undefined);
     });
 
     it('creates a new project and updates cache', async () => {
@@ -450,7 +453,7 @@ describe('ProjectService', () => {
       // Mock API response
       api.projectControllerCreateProject.mockReturnValue(apiOk(newProject));
 
-      const result = await spec.service.createProject(newProject);
+      const result = await service.createProject(newProject);
 
       // Verify the token is used
       expect(xsrf.getXsrfToken).toHaveBeenCalled();
@@ -478,10 +481,10 @@ describe('ProjectService', () => {
         apiErr(new HttpErrorResponse({ status: 500 }))
       );
 
-      await expect(spec.service.createProject(newProject)).rejects.toThrow(
+      await expect(service.createProject(newProject)).rejects.toThrow(
         ProjectServiceError
       );
-      expect(spec.service.error()?.code).toBe('SERVER_ERROR');
+      expect(service.error()?.code).toBe('SERVER_ERROR');
     });
 
     it('handles network errors correctly', async () => {
@@ -498,10 +501,10 @@ describe('ProjectService', () => {
         apiErr(new HttpErrorResponse({ status: 0 }))
       );
 
-      await expect(spec.service.createProject(newProject)).rejects.toThrow(
+      await expect(service.createProject(newProject)).rejects.toThrow(
         ProjectServiceError
       );
-      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
+      expect(service.error()?.code).toBe('NETWORK_ERROR');
     });
   });
 
@@ -515,7 +518,7 @@ describe('ProjectService', () => {
       api.projectControllerGetAllProjects.mockReset();
       xsrf.getXsrfToken.mockReset();
       xsrf.getXsrfToken.mockReturnValue('test-token');
-      spec.service.error.set(undefined);
+      service.error.set(undefined);
     });
 
     it('updates a project and refreshes cache', async () => {
@@ -531,7 +534,7 @@ describe('ProjectService', () => {
       api.projectControllerUpdateProject.mockReturnValue(apiOk(updatedProject));
       api.projectControllerGetAllProjects.mockReturnValue(apiOk(BASE));
 
-      const result = await spec.service.updateProject(
+      const result = await service.updateProject(
         'alice',
         'project-1',
         updatedProject
@@ -566,9 +569,9 @@ describe('ProjectService', () => {
       );
 
       await expect(
-        spec.service.updateProject('alice', 'nonexistent', updatedProject)
+        service.updateProject('alice', 'nonexistent', updatedProject)
       ).rejects.toThrow(ProjectServiceError);
-      expect(spec.service.error()?.code).toBe('PROJECT_NOT_FOUND');
+      expect(service.error()?.code).toBe('PROJECT_NOT_FOUND');
     });
 
     it('handles network errors correctly', async () => {
@@ -585,9 +588,9 @@ describe('ProjectService', () => {
       );
 
       await expect(
-        spec.service.updateProject('alice', 'project-1', updatedProject)
+        service.updateProject('alice', 'project-1', updatedProject)
       ).rejects.toThrow(ProjectServiceError);
-      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
+      expect(service.error()?.code).toBe('NETWORK_ERROR');
     });
 
     it('handles unauthorized errors correctly', async () => {
@@ -604,9 +607,9 @@ describe('ProjectService', () => {
       );
 
       await expect(
-        spec.service.updateProject('alice', 'project-1', updatedProject)
+        service.updateProject('alice', 'project-1', updatedProject)
       ).rejects.toThrow(ProjectServiceError);
-      expect(spec.service.error()?.code).toBe('SESSION_EXPIRED');
+      expect(service.error()?.code).toBe('SESSION_EXPIRED');
     });
   });
 
@@ -621,7 +624,7 @@ describe('ProjectService', () => {
       store.delete.mockReset();
       xsrf.getXsrfToken.mockReset();
       xsrf.getXsrfToken.mockReturnValue('test-token');
-      spec.service.error.set(undefined);
+      service.error.set(undefined);
     });
 
     it('deletes a project and refreshes the project list', async () => {
@@ -631,7 +634,7 @@ describe('ProjectService', () => {
       // Mock API response
       api.projectControllerDeleteProject.mockReturnValue(apiOk(null));
 
-      await spec.service.deleteProject('alice', 'project-1');
+      await service.deleteProject('alice', 'project-1');
 
       // Verify the token is used
       expect(xsrf.getXsrfToken).toHaveBeenCalled();
@@ -658,9 +661,9 @@ describe('ProjectService', () => {
       );
 
       await expect(
-        spec.service.deleteProject('alice', 'nonexistent')
+        service.deleteProject('alice', 'nonexistent')
       ).rejects.toThrow(ProjectServiceError);
-      expect(spec.service.error()?.code).toBe('PROJECT_NOT_FOUND');
+      expect(service.error()?.code).toBe('PROJECT_NOT_FOUND');
     });
 
     it('handles network errors correctly', async () => {
@@ -670,9 +673,9 @@ describe('ProjectService', () => {
       );
 
       await expect(
-        spec.service.deleteProject('alice', 'project-1')
+        service.deleteProject('alice', 'project-1')
       ).rejects.toThrow(ProjectServiceError);
-      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
+      expect(service.error()?.code).toBe('NETWORK_ERROR');
     });
 
     it('handles unauthorized errors correctly', async () => {
@@ -682,9 +685,9 @@ describe('ProjectService', () => {
       );
 
       await expect(
-        spec.service.deleteProject('alice', 'project-1')
+        service.deleteProject('alice', 'project-1')
       ).rejects.toThrow(ProjectServiceError);
-      expect(spec.service.error()?.code).toBe('SESSION_EXPIRED');
+      expect(service.error()?.code).toBe('SESSION_EXPIRED');
     });
   });
 
@@ -695,14 +698,14 @@ describe('ProjectService', () => {
     beforeEach(() => {
       // Reset mocks before each test
       api.coverControllerGetProjectCover.mockReset();
-      spec.service.error.set(undefined);
+      service.error.set(undefined);
     });
 
     it('retrieves project cover blob from API', async () => {
       const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
       api.coverControllerGetProjectCover.mockReturnValue(apiOk(coverBlob));
 
-      const result = await spec.service.getProjectCover('alice', 'project-1');
+      const result = await service.getProjectCover('alice', 'project-1');
 
       // Should call API without token parameter (cover controller doesn't use token)
       expect(api.coverControllerGetProjectCover).toHaveBeenCalledWith(
@@ -720,9 +723,9 @@ describe('ProjectService', () => {
 
       // The service seems to handle this error internally rather than throwing
       await expect(
-        spec.service.getProjectCover('alice', 'nonexistent')
+        service.getProjectCover('alice', 'nonexistent')
       ).rejects.toThrow();
-      expect(spec.service.error()?.code).toBe('PROJECT_NOT_FOUND');
+      expect(service.error()?.code).toBe('PROJECT_NOT_FOUND');
     });
 
     it('handles network errors correctly', async () => {
@@ -733,9 +736,9 @@ describe('ProjectService', () => {
 
       // The service seems to handle this error internally rather than throwing
       await expect(
-        spec.service.getProjectCover('alice', 'project-1')
+        service.getProjectCover('alice', 'project-1')
       ).rejects.toThrow();
-      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
+      expect(service.error()?.code).toBe('NETWORK_ERROR');
     });
   });
 
@@ -750,7 +753,7 @@ describe('ProjectService', () => {
       xsrf.getXsrfToken.mockReset();
       xsrf.getXsrfToken.mockReturnValue('test-token');
       store.delete.mockReset();
-      spec.service.error.set(undefined);
+      service.error.set(undefined);
     });
 
     it('deletes a project cover and refreshes project', async () => {
@@ -758,7 +761,7 @@ describe('ProjectService', () => {
       api.coverControllerDeleteCover.mockReturnValue(apiOk(undefined));
       api.projectControllerGetAllProjects.mockReturnValue(apiOk(BASE));
 
-      await spec.service.deleteProjectCover('alice', 'project-1');
+      await service.deleteProjectCover('alice', 'project-1');
 
       // Should call API without token parameter (cover controller doesn't use token)
       expect(api.coverControllerDeleteCover).toHaveBeenCalledWith(
@@ -775,11 +778,11 @@ describe('ProjectService', () => {
 
       // The service throws the error
       await expect(
-        spec.service.deleteProjectCover('alice', 'nonexistent')
+        service.deleteProjectCover('alice', 'nonexistent')
       ).rejects.toThrow();
 
       // Verify error was set with correct code
-      expect(spec.service.error()?.code).toBe('PROJECT_NOT_FOUND');
+      expect(service.error()?.code).toBe('PROJECT_NOT_FOUND');
     });
 
     it('handles network errors correctly', async () => {
@@ -790,11 +793,11 @@ describe('ProjectService', () => {
 
       // The service throws the error
       await expect(
-        spec.service.deleteProjectCover('alice', 'project-1')
+        service.deleteProjectCover('alice', 'project-1')
       ).rejects.toThrow();
 
       // Verify error was set with correct code
-      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
+      expect(service.error()?.code).toBe('NETWORK_ERROR');
     });
   });
 
@@ -805,7 +808,7 @@ describe('ProjectService', () => {
       api.projectControllerGetAllProjects.mockReset();
       xsrf.getXsrfToken.mockReset();
       xsrf.getXsrfToken.mockReturnValue('test-token');
-      spec.service.error.set(undefined);
+      service.error.set(undefined);
     });
 
     it('uploads a project cover and refreshes project', async () => {
@@ -815,7 +818,7 @@ describe('ProjectService', () => {
       api.coverControllerUploadCover.mockReturnValue(apiOk(undefined));
       api.projectControllerGetAllProjects.mockReturnValue(apiOk(BASE));
 
-      await spec.service.uploadProjectCover('alice', 'project-1', coverBlob);
+      await service.uploadProjectCover('alice', 'project-1', coverBlob);
 
       // Should call API without token parameter (cover controller doesn't use token)
       expect(api.coverControllerUploadCover).toHaveBeenCalledWith(
@@ -837,12 +840,12 @@ describe('ProjectService', () => {
       );
 
       await expect(
-        spec.service.uploadProjectCover('alice', 'project-1', coverBlob)
+        service.uploadProjectCover('alice', 'project-1', coverBlob)
       ).rejects.toThrow();
 
       // Verify error was set with correct code
-      expect(spec.service.error()?.code).toBe('SERVER_ERROR');
-      expect(spec.service.error()?.message).toContain(
+      expect(service.error()?.code).toBe('SERVER_ERROR');
+      expect(service.error()?.message).toContain(
         'An unexpected error occurred'
       );
     });
@@ -856,11 +859,11 @@ describe('ProjectService', () => {
       );
 
       await expect(
-        spec.service.uploadProjectCover('alice', 'project-1', coverBlob)
+        service.uploadProjectCover('alice', 'project-1', coverBlob)
       ).rejects.toThrow();
 
       // Verify error was set with correct code
-      expect(spec.service.error()?.code).toBe('NETWORK_ERROR');
+      expect(service.error()?.code).toBe('NETWORK_ERROR');
     });
 
     it('handles unauthorized errors correctly', async () => {
@@ -872,11 +875,11 @@ describe('ProjectService', () => {
       );
 
       await expect(
-        spec.service.uploadProjectCover('alice', 'project-1', coverBlob)
+        service.uploadProjectCover('alice', 'project-1', coverBlob)
       ).rejects.toThrow();
 
       // Verify error was set with correct code
-      expect(spec.service.error()?.code).toBe('SESSION_EXPIRED');
+      expect(service.error()?.code).toBe('SESSION_EXPIRED');
     });
   });
 
@@ -894,9 +897,9 @@ describe('ProjectService', () => {
       // Mock storage is available
       store.isAvailable.mockReturnValue(true);
       // Mock the current projects
-      spec.service.projects.set(BASE);
+      service.projects.set(BASE);
 
-      await spec.service.clearCache();
+      await service.clearCache();
 
       // Should check if storage is available
       expect(store.isAvailable).toHaveBeenCalled();
@@ -918,16 +921,16 @@ describe('ProjectService', () => {
       }
 
       // Should reset the projects signal
-      expect(spec.service.projects()).toEqual([]);
+      expect(service.projects()).toEqual([]);
     });
 
     it('handles case when storage is unavailable', async () => {
       // Mock storage is unavailable
       store.isAvailable.mockReturnValue(false);
       // Mock the current projects
-      spec.service.projects.set(BASE);
+      service.projects.set(BASE);
 
-      await spec.service.clearCache();
+      await service.clearCache();
 
       // Should check if storage is available
       expect(store.isAvailable).toHaveBeenCalled();
@@ -936,7 +939,7 @@ describe('ProjectService', () => {
       expect(store.delete).not.toHaveBeenCalled();
 
       // Should still reset the projects signal
-      expect(spec.service.projects()).toEqual([]);
+      expect(service.projects()).toEqual([]);
     });
 
     it('handles errors when clearing cache', async () => {
@@ -945,13 +948,13 @@ describe('ProjectService', () => {
       store.delete.mockRejectedValue(new Error('Storage error'));
 
       // Mock the current projects
-      spec.service.projects.set(BASE);
+      service.projects.set(BASE);
 
       // Should not throw even if cache clearing fails
-      await expect(spec.service.clearCache()).resolves.not.toThrow();
+      await expect(service.clearCache()).resolves.not.toThrow();
 
       // Should still reset the projects signal
-      expect(spec.service.projects()).toEqual([]);
+      expect(service.projects()).toEqual([]);
     });
   });
 
@@ -966,13 +969,13 @@ describe('ProjectService', () => {
     ${500} | ${'SERVER_ERROR'}
   `('formats HTTP $status → $code', ({ status, code }) => {
     const err = new HttpErrorResponse({ status });
-    const out = (spec.service as any).formatError(err) as ProjectServiceError;
+    const out = (service as any).formatError(err) as ProjectServiceError;
     expect(out.code).toBe(code);
   });
 
   it('handles non-HttpErrorResponse errors', () => {
     const err = new Error('Generic error');
-    const out = (spec.service as any).formatError(err) as ProjectServiceError;
+    const out = (service as any).formatError(err) as ProjectServiceError;
     expect(out.code).toBe('SERVER_ERROR');
     expect(out.message).toBe('Generic error');
   });
@@ -983,10 +986,10 @@ describe('ProjectService', () => {
       apiErr(new HttpErrorResponse({ status: 500 }))
     );
 
-    await expect(spec.service.loadAllProjects()).rejects.toBeInstanceOf(
+    await expect(service.loadAllProjects()).rejects.toBeInstanceOf(
       ProjectServiceError
     );
-    expect(spec.service.error()?.code).toBe('SERVER_ERROR');
+    expect(service.error()?.code).toBe('SERVER_ERROR');
   });
 
   it('refreshes cache in background', async () => {
@@ -1005,8 +1008,8 @@ describe('ProjectService', () => {
     store.get.mockResolvedValue(BASE);
     api.projectControllerGetAllProjects.mockReturnValue(apiOk(fresh));
 
-    await spec.service.loadAllProjects(); // wait until the method resolves
+    await service.loadAllProjects(); // wait until the method resolves
 
-    expect(spec.service.projects()).toEqual(fresh);
+    expect(service.projects()).toEqual(fresh);
   });
 });

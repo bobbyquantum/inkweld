@@ -1,7 +1,9 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ProjectDto } from '@inkweld/model/project-dto';
 import { of } from 'rxjs';
+import { Mock, MockedObject, vi } from 'vitest';
 
 import {
   ConfirmationDialogComponent,
@@ -21,20 +23,21 @@ import { DialogGatewayService } from './dialog-gateway.service';
 
 describe('DialogGatewayService', () => {
   let service: DialogGatewayService;
-  let dialogMock: jest.Mocked<MatDialog>;
+  let dialogMock: MockedObject<MatDialog>;
   let dialogRefMock: Partial<MatDialogRef<any>>;
 
   beforeEach(() => {
     dialogRefMock = {
-      afterClosed: jest.fn().mockReturnValue(of(null)),
+      afterClosed: vi.fn().mockReturnValue(of(null)),
     };
 
     dialogMock = {
-      open: jest.fn().mockReturnValue(dialogRefMock as MatDialogRef<any>),
-    } as unknown as jest.Mocked<MatDialog>;
+      open: vi.fn().mockReturnValue(dialogRefMock as MatDialogRef<any>),
+    } as unknown as MockedObject<MatDialog>;
 
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         DialogGatewayService,
         { provide: MatDialog, useValue: dialogMock },
       ],
@@ -52,7 +55,7 @@ describe('DialogGatewayService', () => {
       title: 'Test',
       message: 'Test message',
     };
-    (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(of(true));
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(true));
 
     const result = await service.openConfirmationDialog(data);
 
@@ -73,9 +76,7 @@ describe('DialogGatewayService', () => {
       name: 'Updated Project',
     } as ProjectDto;
 
-    (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(
-      of(updatedProject)
-    );
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(updatedProject));
 
     const result = await service.openEditProjectDialog(project);
 
@@ -92,7 +93,7 @@ describe('DialogGatewayService', () => {
       name: 'New Element',
       type: 'ITEM',
     };
-    (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(of(dialogResult));
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(dialogResult));
 
     const result = await service.openNewElementDialog();
 
@@ -107,7 +108,7 @@ describe('DialogGatewayService', () => {
     const data: RenameDialogData = {
       currentName: 'Rename Element',
     };
-    (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(of('New Name'));
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of('New Name'));
 
     const result = await service.openRenameDialog(data);
 
@@ -121,7 +122,7 @@ describe('DialogGatewayService', () => {
 
   it('should open file upload dialog', async () => {
     const testFile = new File(['test'], 'test.txt', { type: 'text/plain' });
-    (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(of(testFile));
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(testFile));
 
     const result = await service.openFileUploadDialog();
 
@@ -133,7 +134,7 @@ describe('DialogGatewayService', () => {
   });
 
   it('should handle dialog cancellation', async () => {
-    (dialogRefMock.afterClosed as jest.Mock).mockReturnValue(of(null));
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(null));
 
     const result = await service.openRenameDialog({ currentName: 'Test' });
 

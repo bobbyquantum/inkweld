@@ -1,11 +1,9 @@
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import { CommonModule } from '@angular/common';
-import { signal } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import {
   ComponentFixture,
-  fakeAsync,
   TestBed,
-  tick,
 } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -22,6 +20,7 @@ import {
 } from '@angular/router';
 import { ProjectDto, ProjectElementDto } from '@inkweld/index';
 import { of, Subject } from 'rxjs';
+import { describe, it, expect, beforeEach, afterEach, Mock, vi } from 'vitest';
 
 import { DocumentSyncState } from '../../../models/document-sync-state';
 import { DialogGatewayService } from '../../../services/dialog-gateway.service';
@@ -109,30 +108,30 @@ describe('TabInterfaceComponent', () => {
       openTabs: openTabsSignal,
       selectedTabIndex: selectedTabIndexSignal,
       isLoading: isLoadingSignal,
-      openDocument: jest.fn(),
-      closeDocument: jest.fn(),
-      closeTab: jest.fn(),
-      renameNode: jest.fn(),
-      openSystemTab: jest.fn(),
+      openDocument: vi.fn(),
+      closeDocument: vi.fn(),
+      closeTab: vi.fn(),
+      renameNode: vi.fn(),
+      openSystemTab: vi.fn(),
     };
 
     // Mock document service
     documentService = {
-      initializeSyncStatus: jest.fn(),
-      getSyncStatusSignal: jest
+      initializeSyncStatus: vi.fn(),
+      getSyncStatusSignal: vi
         .fn()
         .mockReturnValue(() => DocumentSyncState.Synced), // Default mock
     };
 
     // Mock dialog gateway service
     dialogGatewayService = {
-      openRenameDialog: jest.fn().mockResolvedValue('New Name'),
+      openRenameDialog: vi.fn().mockResolvedValue('New Name'),
     };
 
     // Mock router
     routerEvents = new Subject<NavigationEnd>();
     router = {
-      navigate: jest.fn().mockResolvedValue(true),
+      navigate: vi.fn().mockResolvedValue(true),
       events: routerEvents.asObservable(),
       url: '/testuser/test-project',
     };
@@ -154,7 +153,7 @@ describe('TabInterfaceComponent', () => {
 
     // Mock dialog
     dialog = {
-      open: jest.fn().mockReturnValue({
+      open: vi.fn().mockReturnValue({
         afterClosed: () => of(true),
       }),
     };
@@ -179,6 +178,7 @@ describe('TabInterfaceComponent', () => {
         NoopAnimationsModule,
       ],
       providers: [
+        provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: DocumentService, useValue: documentService },
         { provide: DialogGatewayService, useValue: dialogGatewayService },
@@ -207,7 +207,7 @@ describe('TabInterfaceComponent', () => {
   });
 
   it('should change tab when onTabChange is called', () => {
-    const selectedTabIndexSpy = jest.spyOn(
+    const selectedTabIndexSpy = vi.spyOn(
       projectStateService.selectedTabIndex as any,
       'set'
     );
@@ -226,7 +226,7 @@ describe('TabInterfaceComponent', () => {
     fixture.detectChanges();
 
     // Mock tab change method
-    jest.spyOn(component, 'onTabChange');
+    vi.spyOn(component, 'onTabChange');
 
     // Close the current tab
     component.closeTab(1);
@@ -243,8 +243,8 @@ describe('TabInterfaceComponent', () => {
 
   it('should handle click event when closing a tab', () => {
     const mockEvent = new MouseEvent('click');
-    jest.spyOn(mockEvent, 'preventDefault');
-    jest.spyOn(mockEvent, 'stopPropagation');
+    vi.spyOn(mockEvent, 'preventDefault');
+    vi.spyOn(mockEvent, 'stopPropagation');
 
     component.closeTab(1, mockEvent);
 
@@ -285,9 +285,7 @@ describe('TabInterfaceComponent', () => {
   it('should rename a tab element', async () => {
     const tab = mockTabs[0];
     const newName = 'New Document Name';
-    (dialogGatewayService.openRenameDialog as jest.Mock).mockResolvedValue(
-      newName
-    );
+    (dialogGatewayService.openRenameDialog as Mock).mockResolvedValue(newName);
 
     await component.onRenameTabElement(tab);
 
@@ -302,7 +300,7 @@ describe('TabInterfaceComponent', () => {
   });
 
   it('should emit importRequested when onImportRequested is called', () => {
-    jest.spyOn(component.importRequested, 'emit');
+    vi.spyOn(component.importRequested, 'emit');
     component.onImportRequested();
     expect(component.importRequested.emit).toHaveBeenCalled();
   });
@@ -314,7 +312,7 @@ describe('TabInterfaceComponent', () => {
     );
   });
 
-  it('should update selected tab from URL', fakeAsync(() => {
+  it('should update selected tab from URL', () => {
     const mockRoute = {
       root: {
         firstChild: {
@@ -334,19 +332,18 @@ describe('TabInterfaceComponent', () => {
     (component as any)['route'] = mockRoute as any;
 
     // Mock selectedTabIndex.set method
-    const selectedTabIndexSpy = jest.spyOn(
+    const selectedTabIndexSpy = vi.spyOn(
       projectStateService.selectedTabIndex as any,
       'set'
     );
 
     component.updateSelectedTabFromUrl();
-    tick();
 
     // Should set tab index to document index + 1 (for home tab)
     expect(selectedTabIndexSpy).toHaveBeenCalled();
-  }));
+  });
 
-  it('should set selectedTabIndex to 0 when URL has no tabId', fakeAsync(() => {
+  it('should set selectedTabIndex to 0 when URL has no tabId', () => {
     const mockRoute = {
       root: {
         firstChild: {
@@ -366,20 +363,19 @@ describe('TabInterfaceComponent', () => {
     (component as any)['route'] = mockRoute as any;
 
     // Mock selectedTabIndex.set method
-    const selectedTabIndexSpy = jest.spyOn(
+    const selectedTabIndexSpy = vi.spyOn(
       projectStateService.selectedTabIndex as any,
       'set'
     );
 
     component.updateSelectedTabFromUrl();
-    tick();
 
     // Should set tab index to 0 (home tab)
     expect(selectedTabIndexSpy).toHaveBeenCalledWith(0);
-  }));
+  });
 
-  it('should handle router navigation events', fakeAsync(() => {
-    jest.spyOn(component, 'updateSelectedTabFromUrl');
+  it('should handle router navigation events', () => {
+    vi.spyOn(component, 'updateSelectedTabFromUrl');
 
     // Set initialSyncDone to true to allow the navigation event handler to run
     component['initialSyncDone'] = true;
@@ -387,19 +383,18 @@ describe('TabInterfaceComponent', () => {
     // Create a navigation end event
     const navigationEndEvent = new NavigationEnd(1, 'test', 'test');
     routerEvents.next(navigationEndEvent);
-    tick();
 
     expect(component.updateSelectedTabFromUrl).toHaveBeenCalled();
-  }));
+  });
 
   it('should clean up subscriptions on destroy', () => {
     const mockSubscription = {
-      unsubscribe: jest.fn(),
+      unsubscribe: vi.fn(),
     };
     component['routerSubscription'] = mockSubscription as any;
 
-    const destroyNextSpy = jest.spyOn(component['destroy$'] as any, 'next');
-    const destroyCompleteSpy = jest.spyOn(
+    const destroyNextSpy = vi.spyOn(component['destroy$'] as any, 'next');
+    const destroyCompleteSpy = vi.spyOn(
       component['destroy$'] as any,
       'complete'
     );

@@ -80,7 +80,7 @@
     {
       "label": "Lint Frontend",
       "type": "shell",
-      "command": "bun run lint",
+      "command": "bun run lint:fix",
       "options": {
         "cwd": "${workspaceFolder}/frontend"
       },

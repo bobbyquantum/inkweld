@@ -1,13 +1,15 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import JSZip from '@progress/jszip-esm';
 import { of } from 'rxjs';
+import { vi } from 'vitest';
 
 import { DocumentService } from './document.service';
 import { ProjectImportExportService } from './project-import-export.service';
 import { ProjectStateService } from './project-state.service';
 
-(global as any).URL.createObjectURL = jest.fn(() => 'dummy-url');
-(global as any).URL.revokeObjectURL = jest.fn();
+(global as any).URL.createObjectURL = vi.fn(() => 'dummy-url');
+(global as any).URL.revokeObjectURL = vi.fn();
 
 describe('ProjectImportExportService', () => {
   let service: ProjectImportExportService;
@@ -44,19 +46,20 @@ describe('ProjectImportExportService', () => {
 
   beforeEach(() => {
     mockProjectStateService = {
-      project: jest.fn(),
-      elements: jest.fn(),
-      updateProject: jest.fn(),
-      updateElements: jest.fn(),
+      project: vi.fn(),
+      elements: vi.fn(),
+      updateProject: vi.fn(),
+      updateElements: vi.fn(),
     };
 
     mockDocumentService = {
-      exportDocument: jest.fn(),
-      importDocument: jest.fn(),
+      exportDocument: vi.fn(),
+      importDocument: vi.fn(),
     };
 
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         ProjectImportExportService,
         { provide: ProjectStateService, useValue: mockProjectStateService },
         { provide: DocumentService, useValue: mockDocumentService },
@@ -65,7 +68,7 @@ describe('ProjectImportExportService', () => {
 
     service = TestBed.inject(ProjectImportExportService);
     // Override private triggerDownload to avoid actual DOM manipulation in tests
-    (service as any).triggerDownload = jest.fn(() => Promise.resolve());
+    (service as any).triggerDownload = vi.fn(() => Promise.resolve());
   });
 
   describe('exportProject', () => {
@@ -92,7 +95,7 @@ describe('ProjectImportExportService', () => {
     it('should handle error when createProjectArchive fails in exportProject', async () => {
       mockProjectStateService.project.mockReturnValue(dummyProject);
       // Force createProjectArchive to throw an error
-      (service as any).createProjectArchive = jest.fn(() => {
+      (service as any).createProjectArchive = vi.fn(() => {
         throw new Error('Test createProjectArchive error');
       });
       await expect(service.exportProject()).rejects.toThrow(
@@ -107,7 +110,7 @@ describe('ProjectImportExportService', () => {
       mockProjectStateService.elements.mockReturnValue(dummyElements);
       mockDocumentService.exportDocument.mockReturnValue(of('dummy content'));
       // Simulate failure in triggerDownload
-      (service as any).triggerDownload = jest.fn(() =>
+      (service as any).triggerDownload = vi.fn(() =>
         Promise.reject(new Error('Download error'))
       );
       await expect(service.exportProject()).rejects.toThrow('Download error');
@@ -139,7 +142,7 @@ describe('ProjectImportExportService', () => {
     it('should handle error when createProjectArchive fails in exportProjectZip', async () => {
       mockProjectStateService.project.mockReturnValue(dummyProject);
       // Force createProjectArchive to throw an error
-      (service as any).createProjectArchive = jest.fn(() => {
+      (service as any).createProjectArchive = vi.fn(() => {
         throw new Error('Test createProjectArchive error');
       });
       await expect(service.exportProjectZip()).rejects.toThrow(
@@ -154,7 +157,7 @@ describe('ProjectImportExportService', () => {
       mockProjectStateService.elements.mockReturnValue(dummyElements);
       mockDocumentService.exportDocument.mockReturnValue(of('dummy content'));
       // Simulate failure in triggerDownload
-      (service as any).triggerDownload = jest.fn(() =>
+      (service as any).triggerDownload = vi.fn(() =>
         Promise.reject(new Error('Download error'))
       );
       await expect(service.exportProjectZip()).rejects.toThrow(
@@ -203,7 +206,7 @@ describe('ProjectImportExportService', () => {
       const fakeFile = {
         text: () => Promise.resolve(jsonContent),
       } as unknown as File;
-      (service as any).updateProjectState = jest.fn(() => {
+      (service as any).updateProjectState = vi.fn(() => {
         throw new Error('Test updateProjectState error');
       });
       await expect(service.importProject(fakeFile)).rejects.toThrow(
@@ -363,7 +366,7 @@ describe('ProjectImportExportService', () => {
       const fakeFile = {
         arrayBuffer: () => Promise.resolve(arrayBuffer),
       } as unknown as File;
-      (service as any).updateProjectState = jest.fn(() => {
+      (service as any).updateProjectState = vi.fn(() => {
         throw new Error('Test updateProjectState error');
       });
       await expect(service.importProjectZip(fakeFile)).rejects.toThrow(
@@ -408,7 +411,7 @@ describe('ProjectImportExportService', () => {
             },
           ],
         };
-        jest.spyOn(console, 'warn');
+        vi.spyOn(console, 'warn');
         (service as any).updateProjectState(archive);
         expect(console.warn).toHaveBeenCalledWith(
           'Document content is missing for item:',
@@ -435,7 +438,7 @@ describe('ProjectImportExportService', () => {
             },
           ],
         };
-        jest.spyOn(mockDocumentService, 'importDocument');
+        vi.spyOn(mockDocumentService, 'importDocument');
         (service as any).updateProjectState(archive);
         expect(mockDocumentService.importDocument).toHaveBeenCalledWith(
           'itemValid',

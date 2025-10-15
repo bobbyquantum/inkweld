@@ -1,16 +1,16 @@
+import { vi } from 'vitest';
+
 import { HttpHeaders, HttpParameterCodec } from "@angular/common/http";
 import { Configuration } from "@inkweld/configuration";
 import { UserDto, UserControllerCheckUsernameAvailability200Response, UserRegisterDto } from "@inkweld/index";
 import { Observable } from "rxjs";
 
-
-
 export const userServiceMock = {
   defaultHeaders: new HttpHeaders(),
   configuration: new Configuration(),
   encoder: {} as HttpParameterCodec,
-  userControllerCheckUsernameAvailability: jest.fn<Observable<UserControllerCheckUsernameAvailability200Response>, [string]>(),
-  userControllerGetMe: jest.fn<Observable<UserDto>, []>(),
-  userControllerGetOAuthProviders: jest.fn<Observable<string[]>, []>(),
-  userControllerRegister: jest.fn<Observable<UserDto>, [UserRegisterDto]>()
+  userControllerCheckUsernameAvailability: vi.fn<(username: string) => Observable<UserControllerCheckUsernameAvailability200Response>>(),
+  userControllerGetMe: vi.fn<() => Observable<UserDto>>(),
+  userControllerGetOAuthProviders: vi.fn<() => Observable<string[]>>(),
+  userControllerRegister: vi.fn<(dto: UserRegisterDto) => Observable<UserDto>>()
 };

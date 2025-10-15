@@ -1,5 +1,7 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ProjectDto } from '@inkweld/index';
+import { MockedObject, vi } from 'vitest';
 
 import { OfflineProjectService } from './offline-project.service';
 import { OfflineProjectElementsService } from './offline-project-elements.service';
@@ -7,15 +9,15 @@ import { SetupService } from './setup.service';
 
 describe('OfflineProjectService', () => {
   let service: OfflineProjectService;
-  let mockSetupService: jest.Mocked<SetupService>;
-  let mockElementsService: jest.Mocked<OfflineProjectElementsService>;
+  let mockSetupService: MockedObject<SetupService>;
+  let mockElementsService: MockedObject<OfflineProjectElementsService>;
 
   // Mock localStorage
   const mockLocalStorage = {
-    getItem: jest.fn(),
-    setItem: jest.fn(),
-    removeItem: jest.fn(),
-    clear: jest.fn(),
+    getItem: vi.fn(),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+    clear: vi.fn(),
   };
 
   const mockUserProfile = {
@@ -32,11 +34,11 @@ describe('OfflineProjectService', () => {
 
     // Create mocked services
     mockSetupService = {
-      getOfflineUserProfile: jest.fn().mockReturnValue(mockUserProfile),
+      getOfflineUserProfile: vi.fn().mockReturnValue(mockUserProfile),
     } as any;
 
     mockElementsService = {
-      createDefaultStructure: jest.fn().mockReturnValue([]),
+      createDefaultStructure: vi.fn().mockReturnValue([]),
     } as any;
 
     // Reset mocks
@@ -50,6 +52,7 @@ describe('OfflineProjectService', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         OfflineProjectService,
         { provide: SetupService, useValue: mockSetupService },
         {
@@ -66,7 +69,7 @@ describe('OfflineProjectService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('initialization', () => {
@@ -441,6 +444,7 @@ describe('OfflineProjectService', () => {
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
         providers: [
+          provideZonelessChangeDetection(),
           OfflineProjectService,
           { provide: SetupService, useValue: mockSetupService },
           {
@@ -463,6 +467,7 @@ describe('OfflineProjectService', () => {
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
         providers: [
+          provideZonelessChangeDetection(),
           OfflineProjectService,
           { provide: SetupService, useValue: mockSetupService },
           {
@@ -473,7 +478,9 @@ describe('OfflineProjectService', () => {
       });
 
       mockLocalStorage.getItem.mockReturnValue('invalid-json');
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
       const newService = TestBed.inject(OfflineProjectService);
 

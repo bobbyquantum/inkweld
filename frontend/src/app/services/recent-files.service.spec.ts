@@ -1,37 +1,48 @@
+import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { ProjectElementDto } from '@inkweld/index';
-import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
-
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { RecentFilesService } from './recent-files.service';
 import { SettingsService } from './settings.service';
+import { LoggerService } from './logger.service';
 
 describe('RecentFilesService', () => {
-  let spectator: SpectatorService<RecentFilesService>;
   let service: RecentFilesService;
   let settingsService: SettingsService;
   let settingsStorageMock: Record<string, unknown> = {};
 
-  const createService = createServiceFactory({
-    service: RecentFilesService,
-    providers: [
-      {
-        provide: SettingsService,
-        useValue: {
-          getSetting: jest.fn((key: string, defaultValue: unknown) => {
-            return settingsStorageMock[key] || defaultValue;
-          }),
-          setSetting: jest.fn((key: string, value: unknown) => {
-            settingsStorageMock[key] = value;
-          }),
-        },
-      },
-    ],
-  });
-
   beforeEach(() => {
     settingsStorageMock = {};
-    spectator = createService();
-    service = spectator.service;
-    settingsService = spectator.inject(SettingsService);
+    
+    // Create mock settings service
+    const mockSettingsService = {
+      getSetting: vi.fn((key: string, defaultValue: unknown) => {
+        return settingsStorageMock[key] || defaultValue;
+      }),
+      setSetting: vi.fn((key: string, value: unknown) => {
+        settingsStorageMock[key] = value;
+      }),
+    };
+    
+    const mockLoggerService = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+    
+    // Set up TestBed
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        RecentFilesService,
+        { provide: SettingsService, useValue: mockSettingsService },
+        { provide: LoggerService, useValue: mockLoggerService },
+      ],
+    });
+    
+    service = TestBed.inject(RecentFilesService);
+    settingsService = TestBed.inject(SettingsService);
   });
 
   it('should be created', () => {
@@ -175,7 +186,7 @@ describe('RecentFilesService', () => {
     };
 
     // Reset the mock before this specific test
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     service.addRecentFile(file, 'user', 'slug');
     expect(service.recentFiles().length).toBe(1);

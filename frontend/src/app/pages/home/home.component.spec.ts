@@ -1,7 +1,7 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { HttpClient } from '@angular/common/http';
 import { provideLocationMocks } from '@angular/common/testing';
-import { signal } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
@@ -15,50 +15,49 @@ import { UnifiedProjectService } from '@services/unified-project.service';
 import { UnifiedUserService } from '@services/unified-user.service';
 import { ThemeService } from '@themes/theme.service';
 import { of } from 'rxjs';
+import { MockedObject, vi } from 'vitest';
 
 import { HomeComponent } from './home.component';
 
-jest.mock('@themes/theme.service');
-jest.mock('@angular/cdk/layout');
+vi.mock('@themes/theme.service');
+vi.mock('@angular/cdk/layout');
 
 describe('HomeComponent', () => {
   let component: HomeComponent;
   let fixture: ComponentFixture<HomeComponent>;
-  let themeService: jest.Mocked<ThemeService>;
-  let userService: jest.Mocked<UnifiedUserService>;
+  let themeService: MockedObject<ThemeService>;
+  let userService: MockedObject<UnifiedUserService>;
   let projectService: Partial<UnifiedProjectService>;
-  let breakpointObserver: jest.Mocked<BreakpointObserver>;
-  let httpClient: jest.Mocked<HttpClient>;
-  let router: jest.Mocked<Router>;
+  let breakpointObserver: MockedObject<BreakpointObserver>;
+  let httpClient: MockedObject<HttpClient>;
+  let router: MockedObject<Router>;
 
   const mockLoadingSignal = signal(false);
   const mockProjectsSignal = signal<ProjectDto[]>([]);
 
   beforeEach(async () => {
     themeService = {
-      update: jest.fn(),
-      isDarkMode: jest.fn(),
-    } as unknown as jest.Mocked<ThemeService>;
+      update: vi.fn(),
+      isDarkMode: vi.fn(),
+    } as unknown as MockedObject<ThemeService>;
 
     breakpointObserver = {
-      observe: jest
-        .fn()
-        .mockReturnValue(of({ matches: true, breakpoints: {} })),
-    } as unknown as jest.Mocked<BreakpointObserver>;
+      observe: vi.fn().mockReturnValue(of({ matches: true, breakpoints: {} })),
+    } as unknown as MockedObject<BreakpointObserver>;
 
     httpClient = {
-      get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-    } as unknown as jest.Mocked<HttpClient>;
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    } as unknown as MockedObject<HttpClient>;
 
-    router = { navigate: jest.fn() } as unknown as jest.Mocked<Router>;
+    router = { navigate: vi.fn() } as unknown as MockedObject<Router>;
 
     userService = {
       currentUser: signal<UserDto | undefined>(undefined),
       isAuthenticated: signal(true),
-    } as unknown as jest.Mocked<UnifiedUserService>;
+    } as unknown as MockedObject<UnifiedUserService>;
 
     // Reset mock signals once before all tests
     mockLoadingSignal.set(false);
@@ -68,12 +67,13 @@ describe('HomeComponent', () => {
     projectService = {
       isLoading: mockLoadingSignal,
       projects: mockProjectsSignal,
-      loadProjects: jest.fn().mockResolvedValue(undefined),
+      loadProjects: vi.fn().mockResolvedValue(undefined),
     };
 
     await TestBed.configureTestingModule({
       imports: [HomeComponent, NoopAnimationsModule],
       providers: [
+        provideZonelessChangeDetection(),
         provideRouter([
           { path: '', component: HomeComponent },
           { path: ':id', component: HomeComponent },
@@ -103,7 +103,7 @@ describe('HomeComponent', () => {
   });
 
   it('should load projects on init', () => {
-    const loadProjectsSpy = jest.spyOn(component as any, 'loadProjects');
+    const loadProjectsSpy = vi.spyOn(component as any, 'loadProjects');
     component.ngOnInit();
     expect(loadProjectsSpy).toHaveBeenCalled();
   });
@@ -150,7 +150,7 @@ describe('HomeComponent', () => {
   it('should handle error when loading projects', async () => {
     // Simulate an error scenario
     const loadError = new Error('Failed to load projects');
-    projectService.loadProjects = jest.fn().mockRejectedValue(loadError);
+    projectService.loadProjects = vi.fn().mockRejectedValue(loadError);
 
     await component.loadProjects();
 

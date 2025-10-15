@@ -4,13 +4,13 @@
 import { Schema } from 'prosemirror-model';
 import { EditorState, Plugin } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
+import { MockedObject, vi } from 'vitest';
 
 import { LintResponseDto } from '../../../api-client/model/lint-response-dto';
 import { LintApiService } from './lint-api.service';
 import { createLintPlugin, pluginKey } from './lint-plugin';
 
-// Disable jest timeout warning and coverage thresholds
-jest.setTimeout(10000);
+// Test timeout configuration is handled by vitest.config.ts
 
 // Basic schema for tests
 const testSchema = new Schema({
@@ -35,7 +35,7 @@ const testSchema = new Schema({
 
 describe('LintPlugin', () => {
   let plugin: Plugin;
-  let mockLintApiService: jest.Mocked<LintApiService>;
+  let mockLintApiService: MockedObject<LintApiService>;
   let editorView: EditorView;
   let editorState: EditorState;
 
@@ -83,8 +83,8 @@ describe('LintPlugin', () => {
   beforeEach(() => {
     // Create mock for LintApiService
     mockLintApiService = {
-      run: jest.fn().mockResolvedValue(createMockLintResponse()),
-    } as unknown as jest.Mocked<LintApiService>;
+      run: vi.fn().mockResolvedValue(createMockLintResponse()),
+    } as unknown as MockedObject<LintApiService>;
 
     // Create the plugin
     plugin = createLintPlugin(mockLintApiService);
@@ -104,18 +104,18 @@ describe('LintPlugin', () => {
     // Create a real EditorView with mocked dispatch
     editorView = new EditorView(editorElement, {
       state: editorState,
-      dispatchTransaction: jest.fn(),
+      dispatchTransaction: vi.fn(),
     });
 
     // Mock dispatch method for spying
-    jest.spyOn(editorView, 'dispatch');
+    vi.spyOn(editorView, 'dispatch');
   });
 
   afterEach(() => {
     // Clean up
     editorView.destroy();
     document.body.innerHTML = '';
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should create the plugin successfully', () => {
@@ -155,7 +155,7 @@ describe('LintPlugin', () => {
         }, 800);
       });
     } else {
-      fail('Plugin view handler update method is not defined');
+      throw new Error('Plugin view handler update method is not defined');
     }
   });
 

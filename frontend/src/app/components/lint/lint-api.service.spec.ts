@@ -1,5 +1,8 @@
 import { HttpContext } from '@angular/common/http';
-import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { mockDeep, DeepMockProxy } from 'vitest-mock-extended';
 
 import { LintService } from '../../../api-client/api/lint.service';
 import { LintRequestDto } from '../../../api-client/model/lint-request-dto';
@@ -10,35 +13,39 @@ import { ABORT_SIGNAL, LintApiService } from './lint-api.service';
 // Add AbortSignal.timeout if it doesn't exist in the test environment
 if (!('timeout' in AbortSignal)) {
   // @ts-expect-error - Adding missing API for tests
-  AbortSignal.timeout = jest.fn(() => new AbortController().signal);
+  AbortSignal.timeout = vi.fn(() => new AbortController().signal);
 }
 
 describe('LintApiService', () => {
-  let spectator: SpectatorService<LintApiService>;
-  let lintService: jest.Mocked<LintService>;
-
-  const createService = createServiceFactory({
-    service: LintApiService,
-    mocks: [LintService],
-  });
+  let service: LintApiService;
+  let lintService: DeepMockProxy<LintService>;
 
   beforeEach(() => {
-    spectator = createService();
-    lintService = spectator.inject(LintService) as jest.Mocked<LintService>;
+    lintService = mockDeep<LintService>();
+    
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        LintApiService,
+        { provide: LintService, useValue: lintService },
+      ],
+    });
+    
+    service = TestBed.inject(LintApiService);
 
     // Reset mocks before each test
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock AbortSignal.timeout if it exists
     if ('timeout' in AbortSignal) {
-      jest.spyOn(AbortSignal, 'timeout').mockImplementation(() => {
+      vi.spyOn(AbortSignal, 'timeout').mockImplementation(() => {
         return new AbortController().signal;
       });
     }
   });
 
   it('should be created', () => {
-    expect(spectator.service).toBeTruthy();
+    expect(service).toBeTruthy();
   });
 
   it('should call lintControllerLintParagraph with the correct parameters', async () => {
@@ -56,7 +63,7 @@ describe('LintApiService', () => {
     );
 
     // Call the service
-    const result = await spectator.service.run('test text');
+    const result = await service.run('test text');
 
     // Assertions
     expect(lintService.lintControllerLintParagraph).toHaveBeenCalledWith(
@@ -93,7 +100,7 @@ describe('LintApiService', () => {
     );
 
     // Call with custom parameters
-    await spectator.service.run(
+    await service.run(
       'test text',
       'academic',
       'medium' as LintRequestDto.LevelEnum
@@ -119,10 +126,10 @@ describe('LintApiService', () => {
     );
 
     // Spy on HttpContext.set
-    const contextSpy = jest.spyOn(HttpContext.prototype, 'set');
+    const contextSpy = vi.spyOn(HttpContext.prototype, 'set');
 
     // Call the service
-    await spectator.service.run('test text');
+    await service.run('test text');
 
     // Verify context was set with the abort signal
     expect(contextSpy).toHaveBeenCalledWith(
@@ -139,12 +146,12 @@ describe('LintApiService', () => {
     );
 
     // Spy on console.error and mock implementation to avoid noise in test output
-    const consoleErrorSpy = jest
+    const consoleErrorSpy = vi
       .spyOn(console, 'error')
       .mockImplementation(() => {});
 
     // Call the service
-    const result = await spectator.service.run('test text');
+    const result = await service.run('test text');
 
     // Assertions
     expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -168,7 +175,7 @@ describe('LintApiService', () => {
     );
 
     // Call the service
-    await spectator.service.run('test text');
+    await service.run('test text');
 
     // Verify timeout was set to 10 seconds (10000 ms)
     if ('timeout' in AbortSignal) {

@@ -1,23 +1,15 @@
-import { createPipeFactory } from '@ngneat/spectator/jest';
-
+import { describe, it, expect, beforeEach } from 'vitest';
 import { FileSizePipe } from './file-size.pipe';
 
 describe('FileSizePipe', () => {
-  // Create a direct instance for more efficient testing of transform method
   let pipe: FileSizePipe;
-
-  // Setup for the template-based testing using Spectator
-  const createPipe = createPipeFactory({
-    pipe: FileSizePipe,
-  });
 
   beforeEach(() => {
     pipe = new FileSizePipe();
   });
 
   it('should create', () => {
-    const spectator = createPipe(`{{ 0 | fileSize }}`);
-    expect(spectator.element).toBeTruthy();
+    expect(pipe).toBeTruthy();
   });
 
   it('should handle zero bytes', () => {
@@ -35,13 +27,5 @@ describe('FileSizePipe', () => {
   it('should handle decimal places correctly', () => {
     expect(pipe.transform(1500)).toBe('1.46 KB');
     expect(pipe.transform(1500000)).toBe('1.43 MB');
-  });
-
-  // Additional test using Spectator's template-based testing
-  it('should format values in template correctly', () => {
-    const spectator = createPipe(`{{ value | fileSize }}`, {
-      hostProps: { value: 1024 },
-    });
-    expect(spectator.element).toHaveText('1 KB');
   });
 });

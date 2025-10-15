@@ -1,3 +1,4 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   MAT_DIALOG_DATA,
@@ -5,6 +6,7 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MockedObject, vi } from 'vitest';
 
 import {
   RenameDialogComponent,
@@ -14,7 +16,7 @@ import {
 describe('RenameDialogComponent', () => {
   let component: RenameDialogComponent;
   let fixture: ComponentFixture<RenameDialogComponent>;
-  let mockDialogRef: jest.Mocked<MatDialogRef<RenameDialogComponent>>;
+  let mockDialogRef: MockedObject<MatDialogRef<RenameDialogComponent>>;
 
   const mockData: RenameDialogData = {
     currentName: 'Test Item',
@@ -23,14 +25,15 @@ describe('RenameDialogComponent', () => {
 
   beforeEach(async () => {
     mockDialogRef = {
-      close: jest.fn(),
-    } as Partial<MatDialogRef<RenameDialogComponent>> as jest.Mocked<
+      close: vi.fn(),
+    } as Partial<MatDialogRef<RenameDialogComponent>> as MockedObject<
       MatDialogRef<RenameDialogComponent>
     >;
 
     await TestBed.configureTestingModule({
       imports: [RenameDialogComponent, NoopAnimationsModule, MatDialogModule],
       providers: [
+        provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockData },
       ],

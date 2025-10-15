@@ -1,4 +1,10 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  inject,
+  OnDestroy,
+  OnInit,
+} from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
@@ -23,6 +29,7 @@ export class FolderTabComponent implements OnInit, OnDestroy {
   protected readonly projectState = inject(ProjectStateService);
   protected readonly documentService = inject(DocumentService);
   protected readonly route = inject(ActivatedRoute);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
     // Subscribe to route param changes instead of using snapshot
@@ -39,8 +46,11 @@ export class FolderTabComponent implements OnInit, OnDestroy {
       // Update element ID
       this.elementId = newElementId;
 
-      // Calculate full element ID once
-      this.fullElementId = this.calculateFullElementId();
+      // Use Promise.resolve to schedule update after current change detection
+      void Promise.resolve().then(() => {
+        this.fullElementId = this.calculateFullElementId();
+        this.cdr.markForCheck();
+      });
     });
   }
 

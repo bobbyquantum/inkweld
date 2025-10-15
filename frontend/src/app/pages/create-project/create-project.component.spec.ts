@@ -1,5 +1,9 @@
 import { provideLocationMocks } from '@angular/common/testing';
-import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
+import {
+  CUSTOM_ELEMENTS_SCHEMA,
+  provideZonelessChangeDetection,
+  signal,
+} from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,6 +24,7 @@ import { ProjectDto } from '@inkweld/index';
 import { UnifiedProjectService } from '@services/unified-project.service';
 import { UnifiedUserService } from '@services/unified-user.service';
 import { of } from 'rxjs';
+import { MockedObject, vi } from 'vitest';
 
 import { CreateProjectComponent } from './create-project.component';
 
@@ -27,9 +32,9 @@ describe('CreateProjectComponent', () => {
   let component: CreateProjectComponent;
   let fixture: ComponentFixture<CreateProjectComponent>;
   let userService: Partial<UnifiedUserService>;
-  let projectService: jest.Mocked<UnifiedProjectService>;
-  let snackBar: jest.Mocked<MatSnackBar>;
-  let router: jest.Mocked<Router>;
+  let projectService: MockedObject<UnifiedProjectService>;
+  let snackBar: MockedObject<MatSnackBar>;
+  let router: MockedObject<Router>;
 
   const mockUser = {
     username: 'testuser',
@@ -52,20 +57,20 @@ describe('CreateProjectComponent', () => {
   beforeEach(async () => {
     userService = {
       currentUser: signal(mockUser),
-      getMode: jest.fn().mockReturnValue('offline'),
+      getMode: vi.fn().mockReturnValue('offline'),
     };
 
     projectService = {
-      createProject: jest.fn().mockResolvedValue(mockProject),
-    } as unknown as jest.Mocked<UnifiedProjectService>;
+      createProject: vi.fn().mockResolvedValue(mockProject),
+    } as unknown as MockedObject<UnifiedProjectService>;
 
     snackBar = {
-      open: jest.fn(),
-    } as unknown as jest.Mocked<MatSnackBar>;
+      open: vi.fn(),
+    } as unknown as MockedObject<MatSnackBar>;
 
     router = {
-      navigate: jest.fn().mockResolvedValue(true),
-    } as unknown as jest.Mocked<Router>;
+      navigate: vi.fn().mockResolvedValue(true),
+    } as unknown as MockedObject<Router>;
 
     await TestBed.configureTestingModule({
       imports: [
@@ -80,6 +85,7 @@ describe('CreateProjectComponent', () => {
         NoopAnimationsModule,
       ],
       providers: [
+        provideZonelessChangeDetection(),
         provideRouter([
           { path: 'create-project', component: CreateProjectComponent },
         ]),

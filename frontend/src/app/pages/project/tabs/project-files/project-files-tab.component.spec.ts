@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,6 +12,7 @@ import {
 } from '@services/project-file.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { of, throwError } from 'rxjs';
+import { Mock, vi } from 'vitest';
 
 import { ProjectFilesTabComponent } from './project-files-tab.component';
 
@@ -62,18 +63,16 @@ describe('ProjectFilesTabComponent', () => {
     };
 
     fileService = {
-      getProjectFiles: jest.fn().mockReturnValue(of(mockFiles)),
-      uploadFile: jest.fn().mockReturnValue(of(mockFiles[0])),
-      deleteFile: jest.fn().mockReturnValue(of({ message: 'File deleted' })),
-      getFileUrl: jest.fn(),
-      formatFileSize: jest.fn(),
+      getProjectFiles: vi.fn().mockReturnValue(of(mockFiles)),
+      uploadFile: vi.fn().mockReturnValue(of(mockFiles[0])),
+      deleteFile: vi.fn().mockReturnValue(of({ message: 'File deleted' })),
+      getFileUrl: vi.fn(),
+      formatFileSize: vi.fn(),
     };
 
     dialogGateway = {
-      openFileUploadDialog: jest
-        .fn()
-        .mockResolvedValue(new File([], 'test.jpg')),
-      openConfirmationDialog: jest.fn().mockResolvedValue(true),
+      openFileUploadDialog: vi.fn().mockResolvedValue(new File([], 'test.jpg')),
+      openConfirmationDialog: vi.fn().mockResolvedValue(true),
     };
 
     await TestBed.configureTestingModule({
@@ -86,6 +85,7 @@ describe('ProjectFilesTabComponent', () => {
         MockFileListComponent,
       ],
       providers: [
+        provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: ProjectFileService, useValue: fileService },
         { provide: DialogGatewayService, useValue: dialogGateway },
@@ -122,7 +122,7 @@ describe('ProjectFilesTabComponent', () => {
   });
 
   it('should handle error when loading files', async () => {
-    (fileService.getProjectFiles as jest.Mock).mockReturnValueOnce(
+    (fileService.getProjectFiles as Mock).mockReturnValueOnce(
       throwError(() => new Error('Network error'))
     );
 
@@ -133,7 +133,7 @@ describe('ProjectFilesTabComponent', () => {
   });
 
   it('should retry loading on error', () => {
-    const loadFilesSpy = jest
+    const loadFilesSpy = vi
       .spyOn(component, 'loadFiles')
       .mockImplementation(() => Promise.resolve());
     component.error.set('Error loading files');
@@ -151,7 +151,7 @@ describe('ProjectFilesTabComponent', () => {
   });
 
   it('should handle file upload error', async () => {
-    (fileService.uploadFile as jest.Mock).mockReturnValueOnce(
+    (fileService.uploadFile as Mock).mockReturnValueOnce(
       throwError(() => new Error('Upload failed'))
     );
 

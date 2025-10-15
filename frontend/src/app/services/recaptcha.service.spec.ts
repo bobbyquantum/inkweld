@@ -1,20 +1,25 @@
-import { Renderer2, RendererFactory2 } from '@angular/core';
+import {
+  provideZonelessChangeDetection,
+  Renderer2,
+  RendererFactory2,
+} from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { MockedObject, vi } from 'vitest';
 
 import { RecaptchaService } from './recaptcha.service';
 
 // Mock the global grecaptcha object
 interface MockReCaptcha {
-  render: jest.Mock;
-  execute: jest.Mock;
-  getResponse: jest.Mock;
-  reset: jest.Mock;
+  render: ReturnType<typeof vi.fn>;
+  execute: ReturnType<typeof vi.fn>;
+  getResponse: ReturnType<typeof vi.fn>;
+  reset: ReturnType<typeof vi.fn>;
 }
 
 describe('RecaptchaService', () => {
   let service: RecaptchaService;
-  let mockRenderer: jest.Mocked<Renderer2>;
-  let mockRendererFactory: jest.Mocked<RendererFactory2>;
+  let mockRenderer: MockedObject<Renderer2>;
+  let mockRendererFactory: MockedObject<RendererFactory2>;
   let mockGrecaptcha: MockReCaptcha;
 
   beforeEach(() => {
@@ -22,30 +27,31 @@ describe('RecaptchaService', () => {
     delete (window as any).grecaptcha;
 
     // Mock console methods to reduce test noise
-    jest.spyOn(console, 'log').mockImplementation();
-    jest.spyOn(console, 'error').mockImplementation();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     // Create mock renderer
     mockRenderer = {
-      createElement: jest.fn(),
-      appendChild: jest.fn(),
-    } as unknown as jest.Mocked<Renderer2>;
+      createElement: vi.fn(),
+      appendChild: vi.fn(),
+    } as unknown as MockedObject<Renderer2>;
 
     // Create mock renderer factory
     mockRendererFactory = {
-      createRenderer: jest.fn().mockReturnValue(mockRenderer),
-    } as unknown as jest.Mocked<RendererFactory2>;
+      createRenderer: vi.fn().mockReturnValue(mockRenderer),
+    } as unknown as MockedObject<RendererFactory2>;
 
     // Create mock grecaptcha
     mockGrecaptcha = {
-      render: jest.fn(),
-      execute: jest.fn(),
-      getResponse: jest.fn(),
-      reset: jest.fn(),
+      render: vi.fn(),
+      execute: vi.fn(),
+      getResponse: vi.fn(),
+      reset: vi.fn(),
     };
 
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         RecaptchaService,
         { provide: RendererFactory2, useValue: mockRendererFactory },
       ],
@@ -55,7 +61,7 @@ describe('RecaptchaService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     delete (window as any).grecaptcha;
   });
 
@@ -88,9 +94,9 @@ describe('RecaptchaService', () => {
       mockHead = document.createElement('head');
 
       mockRenderer.createElement.mockReturnValue(mockScript);
-      jest
-        .spyOn(document, 'getElementsByTagName')
-        .mockReturnValue([mockHead] as unknown as HTMLCollectionOf<Element>);
+      vi.spyOn(document, 'getElementsByTagName').mockReturnValue([
+        mockHead,
+      ] as unknown as HTMLCollectionOf<Element>);
     });
 
     it('should load recaptcha script successfully', async () => {
@@ -189,7 +195,7 @@ describe('RecaptchaService', () => {
 
     it('should render recaptcha widget successfully', async () => {
       // Mock successful script loading
-      jest.spyOn(service, 'loadRecaptcha').mockResolvedValue();
+      vi.spyOn(service, 'loadRecaptcha').mockResolvedValue();
 
       const widgetId = await service.render(mockElement, 'test-site-key');
 
@@ -202,8 +208,8 @@ describe('RecaptchaService', () => {
     });
 
     it('should render recaptcha widget with callback', async () => {
-      jest.spyOn(service, 'loadRecaptcha').mockResolvedValue();
-      const mockCallback = jest.fn();
+      vi.spyOn(service, 'loadRecaptcha').mockResolvedValue();
+      const mockCallback = vi.fn();
 
       const widgetId = await service.render(
         mockElement,
@@ -219,7 +225,7 @@ describe('RecaptchaService', () => {
     });
 
     it('should throw error if grecaptcha not available after loading', async () => {
-      jest.spyOn(service, 'loadRecaptcha').mockResolvedValue();
+      vi.spyOn(service, 'loadRecaptcha').mockResolvedValue();
       delete (window as any).grecaptcha;
 
       await expect(
@@ -228,7 +234,7 @@ describe('RecaptchaService', () => {
     });
 
     it('should wait for grecaptcha.render to be available', async () => {
-      jest.spyOn(service, 'loadRecaptcha').mockResolvedValue();
+      vi.spyOn(service, 'loadRecaptcha').mockResolvedValue();
 
       // Initially grecaptcha exists but render is not a function
       (window as any).grecaptcha = { render: undefined };
@@ -245,7 +251,7 @@ describe('RecaptchaService', () => {
     });
 
     it('should timeout if grecaptcha.render never becomes available', async () => {
-      jest.spyOn(service, 'loadRecaptcha').mockResolvedValue();
+      vi.spyOn(service, 'loadRecaptcha').mockResolvedValue();
 
       // grecaptcha exists but render never becomes a function
       (window as any).grecaptcha = { render: undefined };

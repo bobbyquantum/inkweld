@@ -1,59 +1,66 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { HttpClient } from '@angular/common/http';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { UserService, UserServiceError } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
 import { of } from 'rxjs';
+import { MockedObject, vi } from 'vitest';
 
 import { WelcomeComponent } from './welcome.component';
 
-jest.mock('@angular/common/http');
-jest.mock('@angular/router');
-jest.mock('@services/xsrf.service');
+vi.mock('@angular/common/http');
+vi.mock('@angular/router');
+vi.mock('@services/xsrf.service');
 
 describe('WelcomeComponent', () => {
   let component: WelcomeComponent;
   let fixture: ComponentFixture<WelcomeComponent>;
-  let httpClient: jest.Mocked<HttpClient>;
-  let router: jest.Mocked<Router>;
-  let snackBar: jest.Mocked<MatSnackBar>;
-  let xsrfService: jest.Mocked<XsrfService>;
-  let userService: jest.Mocked<UserService>;
-  let breakpointObserver: jest.Mocked<BreakpointObserver>;
+  let httpClient: MockedObject<HttpClient>;
+  let router: MockedObject<Router>;
+  let snackBar: MockedObject<MatSnackBar>;
+  let xsrfService: MockedObject<XsrfService>;
+  let userService: MockedObject<UserService>;
+  let breakpointObserver: MockedObject<BreakpointObserver>;
 
   beforeEach(async () => {
     httpClient = {
-      post: jest.fn(),
-    } as unknown as jest.Mocked<HttpClient>;
+      post: vi.fn(),
+    } as unknown as MockedObject<HttpClient>;
 
     router = {
-      navigate: jest.fn().mockResolvedValue(true),
-    } as unknown as jest.Mocked<Router>;
+      navigate: vi.fn().mockResolvedValue(true),
+    } as unknown as MockedObject<Router>;
 
     snackBar = {
-      open: jest.fn(),
-    } as unknown as jest.Mocked<MatSnackBar>;
+      open: vi.fn(),
+    } as unknown as MockedObject<MatSnackBar>;
 
     xsrfService = {
-      getXsrfToken: jest.fn().mockReturnValue('mock-xsrf-token'),
-    } as unknown as jest.Mocked<XsrfService>;
+      getXsrfToken: vi.fn().mockReturnValue('mock-xsrf-token'),
+    } as unknown as MockedObject<XsrfService>;
 
     userService = {
-      login: jest.fn(),
-    } as unknown as jest.Mocked<UserService>;
+      login: vi.fn(),
+    } as unknown as MockedObject<UserService>;
 
     breakpointObserver = {
-      observe: jest.fn().mockReturnValue(of({ matches: false })),
-    } as unknown as jest.Mocked<BreakpointObserver>;
+      observe: vi.fn().mockReturnValue(of({ matches: false })),
+    } as unknown as MockedObject<BreakpointObserver>;
 
     await TestBed.configureTestingModule({
       imports: [WelcomeComponent, NoopAnimationsModule],
       providers: [
+        provideZonelessChangeDetection(),
         { provide: HttpClient, useValue: httpClient },
         { provide: Router, useValue: router },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { queryParams: {} } },
+        },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: XsrfService, useValue: xsrfService },
         { provide: UserService, useValue: userService },

@@ -1,9 +1,10 @@
 import { HttpEvent } from '@angular/common/http';
-import { fakeAsync, flush } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { FileDeleteResponseDto, FileUploadResponseDto } from '@inkweld/index';
-import { createServiceFactory, SpectatorService } from '@ngneat/spectator/jest';
-import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { Observable, of } from 'rxjs';
+import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { ProjectAPIService } from '../../api-client/api/project-api.service';
 import {
@@ -13,17 +14,7 @@ import {
 } from './project-file.service';
 import { XsrfService } from './xsrf.service';
 
-describe('ProjectFileService (spectator flavour)', () => {
-  const createService = createServiceFactory({
-    service: ProjectFileService,
-    providers: [
-      {
-        provide: ProjectAPIService,
-        useFactory: () => mockDeep<ProjectAPIService>(),
-      },
-      { provide: XsrfService, useFactory: () => mockDeep<XsrfService>() },
-    ],
-  });
+describe('ProjectFileService', () => {
 
   const TEST_DATE = '2025-03-16T10:00:00.000Z';
 
@@ -40,19 +31,29 @@ describe('ProjectFileService (spectator flavour)', () => {
     message: 'File deleted successfully',
   };
 
-  let spectator: SpectatorService<ProjectFileService>;
   type ApiMock = DeepMockProxy<ProjectAPIService>;
   type XsrfMock = DeepMockProxy<XsrfService>;
 
+  let service: ProjectFileService;
   let api!: ApiMock;
   let xsrf!: XsrfMock;
 
   beforeEach(() => {
-    spectator = createService();
+    // Create mock instances
+    api = mockDeep<ProjectAPIService>();
+    xsrf = mockDeep<XsrfService>();
 
-    // Get the actual injected mock instances
-    api = spectator.inject(ProjectAPIService) as ApiMock;
-    xsrf = spectator.inject(XsrfService) as XsrfMock;
+    // Configure TestBed
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        ProjectFileService,
+        { provide: ProjectAPIService, useValue: api },
+        { provide: XsrfService, useValue: xsrf },
+      ],
+    });
+
+    service = TestBed.inject(ProjectFileService);
 
     /* default stubbing for every test */
     api.projectFilesControllerListFiles.mockReturnValue(
@@ -77,13 +78,12 @@ describe('ProjectFileService (spectator flavour)', () => {
     };
   });
 
-  it('lists project files', fakeAsync(() => {
+  it('lists project files', () => {
     let files!: ProjectFile[];
 
-    spectator.service
+    service
       .getProjectFiles('alice', 'proj')
       .subscribe((f: ProjectFile[]) => (files = f));
-    flush();
 
     expect(api.projectFilesControllerListFiles).toHaveBeenCalledWith(
       'alice',
@@ -91,10 +91,10 @@ describe('ProjectFileService (spectator flavour)', () => {
     );
     expect(files[0]).toMatchObject({ originalName: 'test.jpg' });
     expect(files[0].uploadDate.toISOString()).toBe(TEST_DATE);
-  }));
+  });
 
   it('builds a file URL from the API basePath', () => {
-    const url = spectator.service.getFileUrl(
+    const url = service.getFileUrl(
       'alice',
       'proj',
       'stored-test.jpg'
@@ -105,15 +105,14 @@ describe('ProjectFileService (spectator flavour)', () => {
     );
   });
 
-  it('uploads then deletes a file', fakeAsync(() => {
+  it('uploads then deletes a file', () => {
     const testFile = new File(['x'], 'test.jpg', { type: 'image/jpeg' });
 
     /* upload */
     let uploaded!: ProjectFile;
-    spectator.service
+    service
       .uploadFile('alice', 'proj', testFile)
       .subscribe((f: ProjectFile) => (uploaded = f));
-    flush();
 
     expect(api.projectFilesControllerUploadFile).toHaveBeenCalledWith(
       'alice',
@@ -125,10 +124,9 @@ describe('ProjectFileService (spectator flavour)', () => {
 
     /* delete */
     let delResp!: FileDeleteResponse;
-    spectator.service
+    service
       .deleteFile('alice', 'proj', 'stored-test.jpg')
       .subscribe((r: FileDeleteResponse) => (delResp = r));
-    flush();
 
     expect(api.projectFilesControllerDeleteFile).toHaveBeenCalledWith(
       'alice',
@@ -137,7 +135,7 @@ describe('ProjectFileService (spectator flavour)', () => {
       'test-token'
     );
     expect(delResp.message).toBe('File deleted successfully');
-  }));
+  });
 
   it.each([
     [0, '0 Bytes'],
@@ -146,6 +144,6 @@ describe('ProjectFileService (spectator flavour)', () => {
     [1048576, '1 MB'],
     [1073741824, '1 GB'],
   ])('formats %d bytes → %s', (bytes, expected) => {
-    expect(spectator.service.formatFileSize(bytes)).toBe(expected);
+    expect(service.formatFileSize(bytes)).toBe(expected);
   });
 });

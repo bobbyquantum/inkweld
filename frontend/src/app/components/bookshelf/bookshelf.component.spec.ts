@@ -1,10 +1,11 @@
 import { CdkDragEnd } from '@angular/cdk/drag-drop';
 import { ProjectDto } from '@inkweld/index';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { BookshelfComponent } from './bookshelf.component';
 
 // Mock the ProjectCardComponent
-jest.mock('@components/project-card/project-card.component', () => ({
+vi.mock('@components/project-card/project-card.component', () => ({
   ProjectCardComponent: class {
     project: any;
   },
@@ -15,6 +16,13 @@ describe('BookshelfComponent', () => {
   let mockProjects: ProjectDto[];
 
   beforeEach(() => {
+    // Mock window object for the component
+    Object.defineProperty(window, 'innerWidth', {
+      writable: true,
+      configurable: true,
+      value: 1024,
+    });
+
     // Mock project data
     mockProjects = [
       {
@@ -45,30 +53,30 @@ describe('BookshelfComponent', () => {
     component.projectsGrid = {
       nativeElement: {
         classList: {
-          add: jest.fn(),
-          remove: jest.fn(),
-          contains: jest.fn().mockReturnValue(false),
+          add: vi.fn(),
+          remove: vi.fn(),
+          contains: vi.fn().mockReturnValue(false),
         },
-        querySelectorAll: jest.fn().mockReturnValue([]),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
+        querySelectorAll: vi.fn().mockReturnValue([]),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
         style: {},
         offsetWidth: 100,
         // Mock closest to return a container with querySelector and getBoundingClientRect
-        closest: jest.fn().mockImplementation((selector: string) => {
+        closest: vi.fn().mockImplementation((selector: string) => {
           if (selector === '.bookshelf-container') {
             return {
-              querySelector: jest.fn().mockImplementation((sel: string) => {
+              querySelector: vi.fn().mockImplementation((sel: string) => {
                 if (sel === '.center-selector') {
                   return {
-                    getBoundingClientRect: jest
+                    getBoundingClientRect: vi
                       .fn()
                       .mockReturnValue({ left: 500, width: 10 }),
                   };
                 }
                 return null;
               }),
-              getBoundingClientRect: jest
+              getBoundingClientRect: vi
                 .fn()
                 .mockReturnValue({ left: 400, width: 800 }),
             };
@@ -81,6 +89,13 @@ describe('BookshelfComponent', () => {
     component['cardWidth'] = 350;
   });
 
+  afterEach(() => {
+    // Clean up component and cancel any pending debounced operations
+    if (component) {
+      component.ngOnDestroy();
+    }
+  });
+
   it('should create', () => {
     expect(component).toBeTruthy();
   });
@@ -88,7 +103,7 @@ describe('BookshelfComponent', () => {
   describe('Navigation', () => {
     it('should scroll to next card when scrollToNext is called', () => {
       // Setup
-      jest.spyOn(component, 'scrollToCard');
+      vi.spyOn(component, 'scrollToCard');
       component['activeCardIndex'].set(0);
 
       // Execute
@@ -100,7 +115,7 @@ describe('BookshelfComponent', () => {
 
     it('should scroll to previous card when scrollToPrevious is called', () => {
       // Setup
-      jest.spyOn(component, 'scrollToCard');
+      vi.spyOn(component, 'scrollToCard');
       component['activeCardIndex'].set(1);
 
       // Execute
@@ -113,8 +128,8 @@ describe('BookshelfComponent', () => {
     it('should add bump animation when at first card and scrolling previous', () => {
       // Setup
       component['activeCardIndex'].set(0);
-      jest.spyOn(component as any, 'addBumpAnimation');
-      jest.spyOn(component, 'scrollToCard');
+      vi.spyOn(component as any, 'addBumpAnimation');
+      vi.spyOn(component, 'scrollToCard');
 
       // Execute
       component.scrollToPrevious();
@@ -127,8 +142,8 @@ describe('BookshelfComponent', () => {
     it('should add bump animation when at last card and scrolling next', () => {
       // Setup
       component['activeCardIndex'].set(mockProjects.length - 1);
-      jest.spyOn(component as any, 'addBumpAnimation');
-      jest.spyOn(component, 'scrollToCard');
+      vi.spyOn(component as any, 'addBumpAnimation');
+      vi.spyOn(component, 'scrollToCard');
 
       // Execute
       component.scrollToNext();
@@ -142,9 +157,9 @@ describe('BookshelfComponent', () => {
   describe('Keyboard Navigation', () => {
     it('should handle left arrow key', () => {
       // Setup
-      jest.spyOn(component, 'scrollToPrevious');
+      vi.spyOn(component, 'scrollToPrevious');
       const event = new KeyboardEvent('keydown', { key: 'ArrowLeft' });
-      jest.spyOn(event, 'preventDefault');
+      vi.spyOn(event, 'preventDefault');
 
       // Execute
       component.handleKeyboardEvent(event);
@@ -156,9 +171,9 @@ describe('BookshelfComponent', () => {
 
     it('should handle right arrow key', () => {
       // Setup
-      jest.spyOn(component, 'scrollToNext');
+      vi.spyOn(component, 'scrollToNext');
       const event = new KeyboardEvent('keydown', { key: 'ArrowRight' });
-      jest.spyOn(event, 'preventDefault');
+      vi.spyOn(event, 'preventDefault');
 
       // Execute
       component.handleKeyboardEvent(event);
@@ -170,10 +185,10 @@ describe('BookshelfComponent', () => {
 
     it('should not respond to other keys', () => {
       // Setup
-      jest.spyOn(component, 'scrollToPrevious');
-      jest.spyOn(component, 'scrollToNext');
+      vi.spyOn(component, 'scrollToPrevious');
+      vi.spyOn(component, 'scrollToNext');
       const event = new KeyboardEvent('keydown', { key: 'A' });
-      jest.spyOn(event, 'preventDefault');
+      vi.spyOn(event, 'preventDefault');
 
       // Execute
       component.handleKeyboardEvent(event);
@@ -189,7 +204,7 @@ describe('BookshelfComponent', () => {
     it('should emit selected project when clicking on active card', () => {
       // Setup
       const selectedProject = mockProjects[0];
-      jest.spyOn(component.projectSelected, 'emit');
+      vi.spyOn(component.projectSelected, 'emit');
       component['activeCardIndex'].set(0);
       component['recentlyDragged'] = false;
 
@@ -205,8 +220,8 @@ describe('BookshelfComponent', () => {
     it('should scroll to card but not emit when clicking on non-active card', () => {
       // Setup
       const nonActiveProject = mockProjects[1];
-      jest.spyOn(component.projectSelected, 'emit');
-      jest.spyOn(component, 'scrollToCard');
+      vi.spyOn(component.projectSelected, 'emit');
+      vi.spyOn(component, 'scrollToCard');
       component['activeCardIndex'].set(0);
 
       // Execute
@@ -220,8 +235,8 @@ describe('BookshelfComponent', () => {
     it('should not emit or scroll when recently dragged', () => {
       // Setup
       const selectedProject = mockProjects[0];
-      jest.spyOn(component.projectSelected, 'emit');
-      jest.spyOn(component, 'scrollToCard');
+      vi.spyOn(component.projectSelected, 'emit');
+      vi.spyOn(component, 'scrollToCard');
       component['recentlyDragged'] = true;
 
       // Execute
@@ -252,8 +267,8 @@ describe('BookshelfComponent', () => {
 
     it('should update card visuals during drag', () => {
       // Setup
-      jest.spyOn(component, 'findCenterCardIndex').mockReturnValue(1);
-      jest.spyOn(component as any, 'updateCardVisuals');
+      vi.spyOn(component, 'findCenterCardIndex').mockReturnValue(1);
+      vi.spyOn(component as any, 'updateCardVisuals');
 
       // Execute
       component.onDragMoved();
@@ -267,39 +282,39 @@ describe('BookshelfComponent', () => {
       // Setup a mock drag event
       const mockEvent = {
         source: {
-          reset: jest.fn(),
-          getFreeDragPosition: jest.fn().mockReturnValue({ x: 0, y: 0 }),
+          reset: vi.fn(),
+          getFreeDragPosition: vi.fn().mockReturnValue({ x: 0, y: 0 }),
         },
       } as unknown as CdkDragEnd;
 
-      jest.spyOn(component, 'findCenterCardIndex').mockReturnValue(1);
-      jest.spyOn(component, 'scrollToCard').mockImplementation(() => {});
+      vi.spyOn(component, 'findCenterCardIndex').mockReturnValue(1);
+      vi.spyOn(component, 'scrollToCard').mockImplementation(() => {});
 
       // Create mock cards
       const mockCards = mockProjects.map(() => {
         return {
-          getBoundingClientRect: jest
+          getBoundingClientRect: vi
             .fn()
             .mockReturnValue({ left: 100, width: 100 }),
           style: {},
           classList: {
-            add: jest.fn(),
-            remove: jest.fn(),
+            add: vi.fn(),
+            remove: vi.fn(),
           },
         } as unknown as HTMLElement;
       });
 
       // Update the mock to return our cards
-      component.projectsGrid!.nativeElement.querySelectorAll = jest
+      component.projectsGrid!.nativeElement.querySelectorAll = vi
         .fn()
         .mockReturnValue(mockCards);
       // Also mock querySelector for card width measurement
-      component.projectsGrid!.nativeElement.querySelector = jest
+      component.projectsGrid!.nativeElement.querySelector = vi
         .fn()
         .mockReturnValue(mockCards[0]);
 
       // Mock setTimeout
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
       // Execute
       component.onDragEnded(mockEvent);
@@ -311,21 +326,21 @@ describe('BookshelfComponent', () => {
       ).toHaveBeenCalledWith('dragging');
 
       // Fast-forward timers
-      jest.advanceTimersByTime(400); // past all timeouts
+      vi.advanceTimersByTime(400); // past all timeouts
 
       // Check final state
       expect(component['recentlyDragged']).toBe(false);
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
   });
 
   describe('Cleanup', () => {
     it('should clean up event listeners and cancel debounced functions on destroy', () => {
       // Setup - the mock for projectsGrid is already set up in beforeEach
-      jest.spyOn(component['debouncedUpdateCenteredItem'], 'cancel');
-      jest.spyOn(component['debouncedDragUpdate'], 'cancel');
-      jest.spyOn(component['debouncedWheelHandler'], 'cancel');
+      vi.spyOn(component['debouncedUpdateCenteredItem'], 'cancel');
+      vi.spyOn(component['debouncedDragUpdate'], 'cancel');
+      vi.spyOn(component['debouncedWheelHandler'], 'cancel');
 
       // Execute
       component.ngOnDestroy();
@@ -348,7 +363,7 @@ describe('BookshelfComponent', () => {
       const centerRect = { left: 500, width: 10 };
 
       // Mock document.querySelector to return our center element
-      jest.spyOn(document, 'querySelector').mockImplementation(
+      vi.spyOn(document, 'querySelector').mockImplementation(
         () =>
           ({
             getBoundingClientRect: () => centerRect,
@@ -363,11 +378,11 @@ describe('BookshelfComponent', () => {
       ];
 
       // Update the mock to return our cards
-      component.projectsGrid!.nativeElement.querySelectorAll = jest
+      component.projectsGrid!.nativeElement.querySelectorAll = vi
         .fn()
         .mockReturnValue(mockCards as any);
       // Also mock querySelector for card width measurement
-      component.projectsGrid!.nativeElement.querySelector = jest
+      component.projectsGrid!.nativeElement.querySelector = vi
         .fn()
         .mockReturnValue(mockCards[0]);
 
@@ -380,7 +395,7 @@ describe('BookshelfComponent', () => {
 
     it('should return -1 when no cards are found', () => {
       // Update the mock to return empty array
-      component.projectsGrid!.nativeElement.querySelectorAll = jest
+      component.projectsGrid!.nativeElement.querySelectorAll = vi
         .fn()
         .mockReturnValue([]);
 
@@ -396,13 +411,13 @@ describe('BookshelfComponent', () => {
     it('should handle vertical wheel events', () => {
       // Setup
       const wheelEvent = new WheelEvent('wheel', { deltaY: 100 });
-      jest.spyOn(wheelEvent, 'preventDefault');
-      jest
-        .spyOn(component['debouncedWheelHandler'], 'cancel')
-        .mockImplementation(() => {});
+      vi.spyOn(wheelEvent, 'preventDefault');
+      vi.spyOn(component['debouncedWheelHandler'], 'cancel').mockImplementation(
+        () => {}
+      );
 
       // We need to spy on the private method
-      const handleWheelSpy = jest.spyOn(component as any, 'handleWheel');
+      const handleWheelSpy = vi.spyOn(component as any, 'handleWheel');
 
       // Execute the method directly since we can't easily trigger wheel events
       component['handleWheel'](wheelEvent);
@@ -415,10 +430,10 @@ describe('BookshelfComponent', () => {
     it('should handle horizontal wheel events', () => {
       // Setup
       const wheelEvent = new WheelEvent('wheel', { deltaX: 100, deltaY: 0 });
-      jest.spyOn(wheelEvent, 'preventDefault');
-      jest
-        .spyOn(component['debouncedWheelHandler'], 'cancel')
-        .mockImplementation(() => {});
+      vi.spyOn(wheelEvent, 'preventDefault');
+      vi.spyOn(component['debouncedWheelHandler'], 'cancel').mockImplementation(
+        () => {}
+      );
 
       // Execute the method directly
       component['handleWheel'](wheelEvent);
@@ -435,17 +450,17 @@ describe('BookshelfComponent', () => {
 
       // Create mock card for measurement
       const mockCard = {
-        getBoundingClientRect: jest.fn().mockReturnValue({ width: 320 }),
+        getBoundingClientRect: vi.fn().mockReturnValue({ width: 320 }),
       } as unknown as HTMLElement;
 
       // Mock querySelector to return our card
-      component.projectsGrid!.nativeElement.querySelector = jest
+      component.projectsGrid!.nativeElement.querySelector = vi
         .fn()
         .mockReturnValue(mockCard);
 
       // Spy on scrollToCard and updateCardVisuals
-      jest.spyOn(component, 'scrollToCard');
-      jest.spyOn(component as any, 'updateCardVisuals');
+      vi.spyOn(component, 'scrollToCard');
+      vi.spyOn(component as any, 'updateCardVisuals');
 
       // Execute
       component.ngAfterViewChecked();
@@ -465,10 +480,10 @@ describe('BookshelfComponent', () => {
       component['needsRecalculation'] = true;
       component['activeCardIndex'].set(10); // Out of bounds
 
-      component.projectsGrid!.nativeElement.querySelector = jest
+      component.projectsGrid!.nativeElement.querySelector = vi
         .fn()
         .mockReturnValue({
-          getBoundingClientRect: jest.fn().mockReturnValue({ width: 320 }),
+          getBoundingClientRect: vi.fn().mockReturnValue({ width: 320 }),
         });
 
       // Execute
@@ -484,12 +499,12 @@ describe('BookshelfComponent', () => {
       component['_projects'] = []; // Empty project array
 
       // Mock querySelectorAll method to return empty array
-      component.projectsGrid!.nativeElement.querySelectorAll = jest
+      component.projectsGrid!.nativeElement.querySelectorAll = vi
         .fn()
         .mockReturnValue([]);
 
       // We need to mock querySelector as well
-      component.projectsGrid!.nativeElement.querySelector = jest
+      component.projectsGrid!.nativeElement.querySelector = vi
         .fn()
         .mockReturnValue(null);
 
@@ -505,15 +520,15 @@ describe('BookshelfComponent', () => {
     it('should update card width and reposition cards on window resize', () => {
       // Setup - mock a card with new width after resize
       const mockCard = {
-        getBoundingClientRect: jest.fn().mockReturnValue({ width: 300 }), // Changed width
+        getBoundingClientRect: vi.fn().mockReturnValue({ width: 300 }), // Changed width
       } as unknown as HTMLElement;
 
-      component.projectsGrid!.nativeElement.querySelector = jest
+      component.projectsGrid!.nativeElement.querySelector = vi
         .fn()
         .mockReturnValue(mockCard);
 
       component['activeCardIndex'].set(1);
-      jest.spyOn(component, 'scrollToCard');
+      vi.spyOn(component, 'scrollToCard');
 
       // Execute
       component.onWindowResize();
@@ -527,8 +542,8 @@ describe('BookshelfComponent', () => {
   describe('Debounced methods', () => {
     it('should handle wheel scroll in the debounced wheel handler', () => {
       // Setup
-      jest.spyOn(component, 'scrollToNext');
-      jest.spyOn(component, 'scrollToPrevious');
+      vi.spyOn(component, 'scrollToNext');
+      vi.spyOn(component, 'scrollToPrevious');
 
       // Since we can't easily test the debounced function directly,
       // we'll replace it with a direct implementation for testing
@@ -542,8 +557,8 @@ describe('BookshelfComponent', () => {
           component.scrollToPrevious();
         }
       };
-      mockWheelHandler.cancel = jest.fn();
-      mockWheelHandler.flush = jest.fn();
+      mockWheelHandler.cancel = vi.fn();
+      mockWheelHandler.flush = vi.fn();
 
       component['debouncedWheelHandler'] = mockWheelHandler;
 
@@ -555,7 +570,7 @@ describe('BookshelfComponent', () => {
       expect(component.scrollToPrevious).not.toHaveBeenCalled();
 
       // Reset spies
-      jest.clearAllMocks();
+      vi.clearAllMocks();
 
       // Execute with negative delta (scroll left)
       component['debouncedWheelHandler'](-100);
@@ -570,7 +585,7 @@ describe('BookshelfComponent', () => {
 
     it('should update centered item in debounced handleScroll', () => {
       // Setup
-      jest.spyOn(component, 'findCenterCardIndex').mockReturnValue(2);
+      vi.spyOn(component, 'findCenterCardIndex').mockReturnValue(2);
 
       // Execute
       component['handleScroll']();
@@ -581,8 +596,8 @@ describe('BookshelfComponent', () => {
 
     it('should handle drag update with debounced function', () => {
       // Setup
-      jest.spyOn(component, 'findCenterCardIndex').mockReturnValue(2);
-      jest.spyOn(component as any, 'updateCardVisuals');
+      vi.spyOn(component, 'findCenterCardIndex').mockReturnValue(2);
+      vi.spyOn(component as any, 'updateCardVisuals');
       component['activeCardIndex'].set(1); // Different from what findCenterCardIndex will return
 
       // We need to directly call the code inside the debounced function
@@ -604,7 +619,7 @@ describe('BookshelfComponent', () => {
   describe('CSS animations and transitions', () => {
     it('should add bump animation with the correct direction and timing', () => {
       // Setup
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
       // Mock the style completely with getters and setters to track values
       let transitionValue = '';
@@ -632,7 +647,7 @@ describe('BookshelfComponent', () => {
         component.projectsGrid!.nativeElement,
         'offsetWidth',
         {
-          get: jest.fn().mockReturnValue(100),
+          get: vi.fn().mockReturnValue(100),
         }
       );
 
@@ -665,7 +680,7 @@ describe('BookshelfComponent', () => {
       expect(transformValue).toBe('translateX(20px)');
 
       // Fast-forward past the timeout
-      jest.advanceTimersByTime(150);
+      vi.advanceTimersByTime(150);
 
       // Check the final values
       expect(transitionValue).toBe(
@@ -673,7 +688,7 @@ describe('BookshelfComponent', () => {
       );
       expect(transformValue).toBe('');
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     // Other tests remain unchanged
@@ -683,8 +698,8 @@ describe('BookshelfComponent', () => {
     it('should handle selecting a project when recentlyDragged is true', () => {
       // Setup
       component['recentlyDragged'] = true;
-      jest.spyOn(component, 'scrollToCard');
-      jest.spyOn(component.projectSelected, 'emit');
+      vi.spyOn(component, 'scrollToCard');
+      vi.spyOn(component.projectSelected, 'emit');
 
       // Execute
       component.selectProject(mockProjects[0]);
@@ -703,8 +718,8 @@ describe('BookshelfComponent', () => {
         username: 'testuser',
       } as ProjectDto;
 
-      jest.spyOn(component, 'scrollToCard');
-      jest.spyOn(component.projectSelected, 'emit');
+      vi.spyOn(component, 'scrollToCard');
+      vi.spyOn(component.projectSelected, 'emit');
 
       // Execute
       component.selectProject(unknownProject);
@@ -721,12 +736,12 @@ describe('BookshelfComponent', () => {
     it('should update card styles based on distance from center', () => {
       // Setup
       const mockCards = [
-        { classList: { add: jest.fn(), remove: jest.fn() }, style: {} },
-        { classList: { add: jest.fn(), remove: jest.fn() }, style: {} },
-        { classList: { add: jest.fn(), remove: jest.fn() }, style: {} },
+        { classList: { add: vi.fn(), remove: vi.fn() }, style: {} },
+        { classList: { add: vi.fn(), remove: vi.fn() }, style: {} },
+        { classList: { add: vi.fn(), remove: vi.fn() }, style: {} },
       ] as unknown as HTMLElement[];
 
-      component.projectsGrid!.nativeElement.querySelectorAll = jest
+      component.projectsGrid!.nativeElement.querySelectorAll = vi
         .fn()
         .mockReturnValue(mockCards);
 
@@ -755,14 +770,14 @@ describe('BookshelfComponent', () => {
 
     it('should handle updateCenteredItem properly', () => {
       // Setup
-      jest.spyOn(component, 'findCenterCardIndex').mockReturnValue(2);
+      vi.spyOn(component, 'findCenterCardIndex').mockReturnValue(2);
       const mockCards = [
-        { classList: { add: jest.fn(), remove: jest.fn() } },
-        { classList: { add: jest.fn(), remove: jest.fn() } },
-        { classList: { add: jest.fn(), remove: jest.fn() } },
+        { classList: { add: vi.fn(), remove: vi.fn() } },
+        { classList: { add: vi.fn(), remove: vi.fn() } },
+        { classList: { add: vi.fn(), remove: vi.fn() } },
       ] as unknown as HTMLElement[];
 
-      component.projectsGrid!.nativeElement.querySelectorAll = jest
+      component.projectsGrid!.nativeElement.querySelectorAll = vi
         .fn()
         .mockReturnValue(mockCards);
 
@@ -778,11 +793,11 @@ describe('BookshelfComponent', () => {
 
     it('should do nothing when no cards are found in updateCenteredItem', () => {
       // Setup
-      component.projectsGrid!.nativeElement.querySelectorAll = jest
+      component.projectsGrid!.nativeElement.querySelectorAll = vi
         .fn()
         .mockReturnValue([]);
 
-      jest.spyOn(component['activeCardIndex'], 'set');
+      vi.spyOn(component['activeCardIndex'], 'set');
 
       // Execute
       component.updateCenteredItem();
@@ -795,14 +810,14 @@ describe('BookshelfComponent', () => {
   describe('Full lifecycle initialization', () => {
     beforeEach(() => {
       // Mock Angular's effect() function
-      jest.mock('@angular/core', () => {
-        const originalModule = jest.requireActual('@angular/core');
+      vi.mock('@angular/core', async () => {
+        const originalModule = await vi.importActual('@angular/core');
         return {
           ...originalModule,
-          effect: jest.fn().mockImplementation(fn => {
+          effect: vi.fn().mockImplementation(fn => {
             fn();
             return {
-              destroy: jest.fn(),
+              destroy: vi.fn(),
             };
           }),
         };
@@ -810,15 +825,28 @@ describe('BookshelfComponent', () => {
     });
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      // Use fake timers to clear any pending debounced operations
+      vi.useFakeTimers();
+      
+      // Cancel any pending debounced operations
+      if (component) {
+        component.ngOnDestroy();
+      }
+      
+      // Clear all pending timers
+      vi.clearAllTimers();
+      
+      // Restore real timers
+      vi.useRealTimers();
+      vi.restoreAllMocks();
     });
 
     it('should set up proper state during ngAfterViewInit', () => {
       // Setup
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
       // Skip the effect call since we've mocked it
-      jest.spyOn(component, 'ngAfterViewInit').mockImplementation(() => {
+      vi.spyOn(component, 'ngAfterViewInit').mockImplementation(() => {
         if (!component.projectsGrid?.nativeElement) return;
 
         const gridElement = component.projectsGrid.nativeElement;
@@ -847,14 +875,14 @@ describe('BookshelfComponent', () => {
       });
 
       const mockCard = {
-        getBoundingClientRect: jest.fn().mockReturnValue({ width: 300 }),
+        getBoundingClientRect: vi.fn().mockReturnValue({ width: 300 }),
       };
 
-      component.projectsGrid!.nativeElement.querySelector = jest
+      component.projectsGrid!.nativeElement.querySelector = vi
         .fn()
         .mockReturnValue(mockCard);
 
-      jest.spyOn(component, 'scrollToCard');
+      vi.spyOn(component, 'scrollToCard');
 
       // Execute
       component.ngAfterViewInit();
@@ -871,16 +899,16 @@ describe('BookshelfComponent', () => {
       expect(component['cardWidth']).toBe(300);
 
       // Should scroll to first card
-      jest.advanceTimersByTime(100);
+      vi.advanceTimersByTime(100);
       expect(component.scrollToCard).toHaveBeenCalledWith(0);
 
       // Should add initialized class
-      jest.advanceTimersByTime(200);
+      vi.advanceTimersByTime(200);
       expect(
         component.projectsGrid!.nativeElement.classList.add
       ).toHaveBeenCalledWith('initialized');
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should handle ngAfterViewInit when projectsGrid is not defined', () => {
@@ -888,7 +916,7 @@ describe('BookshelfComponent', () => {
       component.projectsGrid = undefined;
 
       // Mock the method to avoid effect() call
-      jest.spyOn(component, 'ngAfterViewInit').mockImplementation(() => {
+      vi.spyOn(component, 'ngAfterViewInit').mockImplementation(() => {
         // Do nothing - we're just testing that no error occurs
       });
 

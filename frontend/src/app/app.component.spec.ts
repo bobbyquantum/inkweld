@@ -2,7 +2,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { signal } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -13,6 +13,7 @@ import { Configuration, UserAPIService } from '@inkweld/index';
 import { SetupService } from '@services/setup.service';
 import { UnifiedUserService } from '@services/unified-user.service';
 import { Subject } from 'rxjs';
+import { MockedObject, vi } from 'vitest';
 
 import { userServiceMock } from '../testing/user-api.mock';
 import { ThemeService } from '../themes/theme.service';
@@ -31,8 +32,8 @@ class TestError extends Error {
 describe('AppComponent', () => {
   let httpTestingController: HttpTestingController;
   let routerEvents: Subject<Event>;
-  let unifiedUserService: jest.Mocked<UnifiedUserService>;
-  let setupService: jest.Mocked<SetupService>;
+  let unifiedUserService: MockedObject<UnifiedUserService>;
+  let setupService: MockedObject<SetupService>;
   let fixture: ComponentFixture<AppComponent>;
   let component: AppComponent;
   let errorSignal: any;
@@ -50,14 +51,14 @@ describe('AppComponent', () => {
       error: errorSignal,
       initialized: initializedSignal,
       currentUser: currentUserSignal,
-      logout: jest.fn().mockResolvedValue(undefined),
-      initialize: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<UnifiedUserService>;
+      logout: vi.fn().mockResolvedValue(undefined),
+      initialize: vi.fn().mockResolvedValue(undefined),
+    } as unknown as MockedObject<UnifiedUserService>;
 
     setupService = {
-      checkConfiguration: jest.fn().mockReturnValue(true),
-      getMode: jest.fn().mockReturnValue('server'),
-    } as unknown as jest.Mocked<SetupService>;
+      checkConfiguration: vi.fn().mockReturnValue(true),
+      getMode: vi.fn().mockReturnValue('server'),
+    } as unknown as MockedObject<SetupService>;
 
     await TestBed.configureTestingModule({
       imports: [
@@ -67,6 +68,7 @@ describe('AppComponent', () => {
         MatButtonModule,
       ],
       providers: [
+        provideZonelessChangeDetection(),
         provideHttpClientTesting(),
         { provide: UserAPIService, useValue: userServiceMock },
         { provide: UnifiedUserService, useValue: unifiedUserService },
@@ -78,14 +80,14 @@ describe('AppComponent', () => {
         {
           provide: ThemeService,
           useValue: {
-            initTheme: jest.fn(),
+            initTheme: vi.fn(),
           },
         },
         {
           provide: Router,
           useValue: {
             events: routerEvents.asObservable(),
-            navigate: jest.fn().mockResolvedValue(true),
+            navigate: vi.fn().mockResolvedValue(true),
           },
         },
       ],
@@ -98,7 +100,7 @@ describe('AppComponent', () => {
   });
 
   afterEach(() => {
-    httpTestingController.verify();
+    httpTestingController?.verify();
   });
 
   it('should create the app', () => {
@@ -175,7 +177,7 @@ describe('AppComponent', () => {
     });
 
     it('should handle re-authentication and navigate to welcome', async () => {
-      const reAuthSpy = jest.spyOn(
+      const reAuthSpy = vi.spyOn(
         component as AppComponent & {
           handleReAuthenticate: () => Promise<void>;
         },
@@ -194,7 +196,7 @@ describe('AppComponent', () => {
     });
 
     it('should handle continue offline', () => {
-      const offlineSpy = jest.spyOn(
+      const offlineSpy = vi.spyOn(
         component as AppComponent & { handleContinueOffline: () => void },
         'handleContinueOffline'
       );

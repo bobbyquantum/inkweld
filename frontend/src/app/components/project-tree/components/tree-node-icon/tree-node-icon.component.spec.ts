@@ -1,3 +1,4 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { TreeNodeIconComponent } from './tree-node-icon.component';
@@ -8,6 +9,7 @@ describe('TreeNodeIconComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      providers: [provideZonelessChangeDetection()],
       imports: [TreeNodeIconComponent],
     }).compileComponents();
 
@@ -21,7 +23,7 @@ describe('TreeNodeIconComponent', () => {
     fixture.detectChanges();
     const matIconEl: HTMLElement =
       fixture.nativeElement.querySelector('mat-icon');
-    expect(matIconEl.textContent!.trim()).toBe('folder_open');
+    expect(matIconEl.textContent.trim()).toBe('folder_open');
   });
 
   it('should display folder icon when expandable and not expanded', () => {
@@ -30,7 +32,7 @@ describe('TreeNodeIconComponent', () => {
     fixture.detectChanges();
     const matIconEl: HTMLElement =
       fixture.nativeElement.querySelector('mat-icon');
-    expect(matIconEl.textContent!.trim()).toBe('folder');
+    expect(matIconEl.textContent.trim()).toBe('folder');
   });
 
   it('should display image icon when not expandable and type is IMAGE', () => {
@@ -39,7 +41,7 @@ describe('TreeNodeIconComponent', () => {
     fixture.detectChanges();
     const matIconEl: HTMLElement =
       fixture.nativeElement.querySelector('mat-icon');
-    expect(matIconEl.textContent!.trim()).toBe('image');
+    expect(matIconEl.textContent.trim()).toBe('image');
   });
 
   it('should display description icon when not expandable and type is not IMAGE', () => {
@@ -48,6 +50,6 @@ describe('TreeNodeIconComponent', () => {
     fixture.detectChanges();
     const matIconEl: HTMLElement =
       fixture.nativeElement.querySelector('mat-icon');
-    expect(matIconEl.textContent!.trim()).toBe('description');
+    expect(matIconEl.textContent.trim()).toBe('description');
   });
 });

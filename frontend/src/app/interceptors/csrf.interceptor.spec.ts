@@ -4,39 +4,40 @@ import {
   HttpClientTestingModule,
   HttpTestingController,
 } from '@angular/common/http/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
+import { Mock, vi, beforeEach, afterEach, it, expect, describe } from 'vitest';
 
 import { XsrfService } from '../services/xsrf.service';
 import { CsrfInterceptor } from './csrf.interceptor';
 
-// Mock environment
-jest.mock('../../environments/environment', () => ({
-  environment: {
-    apiUrl: 'http://test-api.example.com',
-  },
-}));
 describe('CsrfInterceptor', () => {
   let httpClient: HttpClient;
   let httpTestingController: HttpTestingController;
   let mockXsrfService: {
-    getXsrfToken: jest.Mock;
-    refreshToken: jest.Mock;
+    getXsrfToken: Mock;
+    refreshToken: Mock;
   };
-  const apiUrl = 'http://test-api.example.com';
+  // Use the actual environment apiUrl to match what the interceptor checks
+  let apiUrl: string;
   let mockDocument: { cookie: string };
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Import environment dynamically to avoid instantiating TestBed too early
+    const { environment } = await import('../../environments/environment');
+    apiUrl = environment.apiUrl;
     // Create mocks
     mockDocument = { cookie: '' };
     mockXsrfService = {
-      getXsrfToken: jest.fn().mockReturnValue('test-token'),
-      refreshToken: jest.fn().mockResolvedValue('new-token'),
+      getXsrfToken: vi.fn().mockReturnValue('test-token'),
+      refreshToken: vi.fn().mockResolvedValue('new-token'),
     };
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [
+        provideZonelessChangeDetection(),
         {
           provide: HTTP_INTERCEPTORS,
           useClass: CsrfInterceptor,
@@ -52,7 +53,8 @@ describe('CsrfInterceptor', () => {
   });
 
   afterEach(() => {
-    httpTestingController.verify();
+    httpTestingController?.verify();
+    TestBed.resetTestingModule();
   });
 
   it('should not add token for GET requests', () => {
@@ -141,9 +143,13 @@ describe('CsrfInterceptor', () => {
       httpClient.post(`${apiUrl}/data`, {})
     );
 
-    // We need to let the async tasks complete first
+    // We need to let the async tasks complete first - add more ticks
     await Promise.resolve();
     await Promise.resolve();
+    await Promise.resolve();
+    
+    // Allow microtasks to process
+    await new Promise(resolve => setTimeout(resolve, 0));
 
     // Now we can check if the request was made with the correct token
     const req = httpTestingController.expectOne(`${apiUrl}/data`);
@@ -168,7 +174,9 @@ describe('CsrfInterceptor', () => {
     // Set up an observable with error handler
     let errorCaught = false;
     httpClient.post(`${apiUrl}/data`, {}).subscribe({
-      next: () => fail('Should not succeed'),
+      next: () => {
+        throw new Error('Should not succeed');
+      },
       error: error => {
         errorCaught = true;
         expect(error.status).toBe(403);
@@ -206,6 +214,7 @@ describe('CsrfInterceptor', () => {
 
     // Wait for requests to be processed by the interceptor
     await Promise.resolve();
+    await Promise.resolve();
 
     // Both requests should be pending, waiting for the token
     // Resolve the token promise
@@ -213,6 +222,8 @@ describe('CsrfInterceptor', () => {
 
     // Allow the token promise to resolve
     await Promise.resolve();
+    await Promise.resolve();
+    await new Promise(resolve => setTimeout(resolve, 0));
 
     // Now handle both HTTP requests
     const req1 = httpTestingController.expectOne(`${apiUrl}/data1`);

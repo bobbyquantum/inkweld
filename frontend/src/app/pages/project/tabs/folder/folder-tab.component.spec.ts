@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -8,6 +8,7 @@ import { ProjectDto } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { BehaviorSubject, of } from 'rxjs';
+import { vi } from 'vitest';
 
 import { FolderTabComponent } from './folder-tab.component';
 
@@ -61,8 +62,8 @@ describe('FolderTabComponent', () => {
 
     // Set up mocked services
     documentService = {
-      disconnect: jest.fn(),
-      getSyncStatus: jest.fn().mockReturnValue(of({})),
+      disconnect: vi.fn(),
+      getSyncStatus: vi.fn().mockReturnValue(of({})),
     };
 
     projectStateService = {
@@ -81,6 +82,7 @@ describe('FolderTabComponent', () => {
         MockFolderElementEditorComponent,
       ],
       providers: [
+        provideZonelessChangeDetection(),
         { provide: DocumentService, useValue: documentService },
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: ActivatedRoute, useValue: route },
@@ -132,9 +134,13 @@ describe('FolderTabComponent', () => {
     );
   });
 
-  it('should update elementId when route params change', () => {
+  it('should update elementId when route params change', async () => {
     // Change the route param
     paramsSubject.next(convertToParamMap({ tabId: 'folder2' }));
+    fixture.detectChanges();
+
+    // Wait for setTimeout to complete
+    await new Promise(resolve => setTimeout(resolve, 10));
     fixture.detectChanges();
 
     // Element ID should be updated
@@ -144,11 +150,15 @@ describe('FolderTabComponent', () => {
     );
   });
 
-  it('should calculate fullElementId correctly when ID has colons', () => {
+  it('should calculate fullElementId correctly when ID has colons', async () => {
     // Change the route param to an ID that already contains project info
     paramsSubject.next(
       convertToParamMap({ tabId: 'otheruser:other-project:folder3' })
     );
+    fixture.detectChanges();
+
+    // Wait for setTimeout to complete
+    await new Promise(resolve => setTimeout(resolve, 10));
     fixture.detectChanges();
 
     // Should use the full ID as is, without prepending project info
@@ -157,9 +167,13 @@ describe('FolderTabComponent', () => {
     );
   });
 
-  it('should calculate fullElementId using project info when ID has no colons', () => {
+  it('should calculate fullElementId using project info when ID has no colons', async () => {
     // Change the route param to a simple ID
     paramsSubject.next(convertToParamMap({ tabId: 'simple-folder-id' }));
+    fixture.detectChanges();
+
+    // Wait for setTimeout to complete
+    await new Promise(resolve => setTimeout(resolve, 10));
     fixture.detectChanges();
 
     // Should build the full ID using project info
@@ -168,9 +182,13 @@ describe('FolderTabComponent', () => {
     );
   });
 
-  it('should handle missing element ID gracefully', () => {
+  it('should handle missing element ID gracefully', async () => {
     // Change the route param to an empty ID
     paramsSubject.next(convertToParamMap({ tabId: '' }));
+    fixture.detectChanges();
+
+    // Wait for setTimeout to complete
+    await new Promise(resolve => setTimeout(resolve, 10));
     fixture.detectChanges();
 
     // Should have an empty ID
@@ -178,13 +196,14 @@ describe('FolderTabComponent', () => {
     expect((component as any).fullElementId).toBe('');
   });
 
-  it('should handle missing project gracefully', () => {
+  it('should handle missing project gracefully', async () => {
     // Set project to undefined
     (projectStateService.project as any).set(undefined);
+    paramsSubject.next(convertToParamMap({ tabId: 'folder1' }));
     fixture.detectChanges();
 
-    // Reset route params to trigger recalculation
-    paramsSubject.next(convertToParamMap({ tabId: 'folder1' }));
+    // Wait for setTimeout to complete
+    await new Promise(resolve => setTimeout(resolve, 10));
     fixture.detectChanges();
 
     // Should fall back to just the element ID
@@ -197,7 +216,7 @@ describe('FolderTabComponent', () => {
 
   it('should clean up subscription on destroy', () => {
     const mockSubscription = {
-      unsubscribe: jest.fn(),
+      unsubscribe: vi.fn(),
     };
     component['paramSubscription'] = mockSubscription as any;
 
