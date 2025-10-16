@@ -28,7 +28,7 @@ describe('SetupService', () => {
     });
 
     // Mock fetch for server health checks
-    global.fetch = vi.fn();
+    globalThis.fetch = vi.fn();
 
     TestBed.configureTestingModule({
       providers: [provideZonelessChangeDetection()],
@@ -89,7 +89,7 @@ describe('SetupService', () => {
   describe('configureServerMode', () => {
     it('should configure server mode successfully', async () => {
       const serverUrl = 'https://api.example.com';
-      (global.fetch as Mock).mockResolvedValue({
+      (globalThis.fetch as Mock).mockResolvedValue({
         ok: true,
       });
 
@@ -106,7 +106,7 @@ describe('SetupService', () => {
 
     it('should handle server connection failure', async () => {
       const serverUrl = 'https://unreachable.example.com';
-      (global.fetch as Mock).mockResolvedValue({
+      (globalThis.fetch as Mock).mockResolvedValue({
         ok: false,
       });
       const consoleSpy = vi
@@ -125,7 +125,7 @@ describe('SetupService', () => {
 
     it('should handle fetch errors', async () => {
       const serverUrl = 'https://error.example.com';
-      (global.fetch as Mock).mockRejectedValue(new Error('Network error'));
+      (globalThis.fetch as Mock).mockRejectedValue(new Error('Network error'));
       const consoleSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
@@ -142,7 +142,7 @@ describe('SetupService', () => {
 
     it('should set loading state correctly during operation', async () => {
       const serverUrl = 'https://api.example.com';
-      (global.fetch as Mock).mockImplementation(() => {
+      (globalThis.fetch as Mock).mockImplementation(() => {
         expect(service.isLoading()).toBe(true);
         return Promise.resolve({ ok: true });
       });
@@ -222,7 +222,7 @@ describe('SetupService', () => {
 
     it('should return server URL when in server mode', async () => {
       const serverUrl = 'https://api.example.com';
-      (global.fetch as Mock).mockResolvedValue({ ok: true });
+      (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
       await service.configureServerMode(serverUrl);
 
       expect(service.getServerUrl()).toBe(serverUrl);
@@ -319,7 +319,7 @@ describe('SetupService', () => {
 
     it('should return null when in server mode', async () => {
       const serverUrl = 'https://api.example.com';
-      (global.fetch as Mock).mockResolvedValue({ ok: true });
+      (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
       await service.configureServerMode(serverUrl);
 
       expect(service.getOfflineUserProfile()).toBe(null);

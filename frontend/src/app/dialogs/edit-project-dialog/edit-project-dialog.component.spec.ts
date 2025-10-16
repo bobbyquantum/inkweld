@@ -60,8 +60,8 @@ describe('EditProjectDialogComponent', () => {
   // Mock URL.createObjectURL which isn't available in Jest environment
   beforeAll(() => {
     // Only mock if not already defined
-    if (!global.URL.createObjectURL) {
-      global.URL.createObjectURL = vi.fn().mockReturnValue('mock-blob-url');
+    if (!globalThis.URL.createObjectURL) {
+      globalThis.URL.createObjectURL = vi.fn().mockReturnValue('mock-blob-url');
     }
   });
 

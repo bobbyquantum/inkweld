@@ -49,7 +49,7 @@ describe('HomeTabComponent', () => {
 
   // Mock URL.createObjectURL which isn't available in Jest environment
   beforeAll(() => {
-    global.URL.createObjectURL = vi.fn().mockReturnValue('mock-blob-url');
+    globalThis.URL.createObjectURL = vi.fn().mockReturnValue('mock-blob-url');
   });
 
   let mockRouter: Partial<Router>;

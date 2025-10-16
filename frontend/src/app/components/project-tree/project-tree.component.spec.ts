@@ -436,7 +436,7 @@ describe('ProjectTreeComponent', () => {
     });
 
     it('should clear existing timeout when new touch event occurs', () => {
-      const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
+      const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
 
       // First touch event
       component.toggleExpandedTouch(node, mockTouchEvent);
