@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import { FileSizePipe } from './file-size.pipe';
 
 describe('FileSizePipe', () => {

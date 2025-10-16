@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { GenerateCoverDialogComponent } from './generate-cover-dialog.component';
 
 // TODO: Convert from Spectator to TestBed - currently skipped

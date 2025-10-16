@@ -1,6 +1,6 @@
 import { CdkDragEnd } from '@angular/cdk/drag-drop';
 import { ProjectDto } from '@inkweld/index';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BookshelfComponent } from './bookshelf.component';
 
@@ -827,15 +827,15 @@ describe('BookshelfComponent', () => {
     afterEach(() => {
       // Use fake timers to clear any pending debounced operations
       vi.useFakeTimers();
-      
+
       // Cancel any pending debounced operations
       if (component) {
         component.ngOnDestroy();
       }
-      
+
       // Clear all pending timers
       vi.clearAllTimers();
-      
+
       // Restore real timers
       vi.useRealTimers();
       vi.restoreAllMocks();

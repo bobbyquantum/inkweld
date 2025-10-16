@@ -7,7 +7,7 @@ import {
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
-import { Mock, vi, beforeEach, afterEach, it, expect, describe } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { XsrfService } from '../services/xsrf.service';
 import { CsrfInterceptor } from './csrf.interceptor';
@@ -147,7 +147,7 @@ describe('CsrfInterceptor', () => {
     await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
-    
+
     // Allow microtasks to process
     await new Promise(resolve => setTimeout(resolve, 0));
 

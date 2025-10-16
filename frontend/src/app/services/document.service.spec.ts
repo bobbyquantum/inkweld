@@ -1,13 +1,13 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { DocumentAPIService } from '../../api-client/api/document-api.service';
-import { describe, it, expect, beforeEach, vi, Mock, afterEach } from 'vitest';
-import { mockDeep, DeepMockProxy } from 'vitest-mock-extended';
 import { Editor } from 'ngx-editor';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DeepMockProxy } from 'vitest-mock-extended';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
+import { DocumentAPIService } from '../../api-client/api/document-api.service';
 import { LintApiService } from '../components/lint/lint-api.service';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { DocumentService } from './document.service';
@@ -57,15 +57,13 @@ describe('DocumentService', () => {
 
   const testDocumentId = 'test-doc';
 
-  
-
   beforeEach(() => {
     // Reset mocks before each test
     vi.clearAllMocks();
 
     // Use real Y.Doc since Yjs works fine in tests now
     mockYDoc = new Y.Doc() as unknown as DeepMockProxy<Y.Doc>;
-    
+
     // Mock WebSocket and IndexedDB providers (these have side effects)
     mockWebSocketProvider = {
       on: vi.fn().mockReturnValue(() => {}), // Return cleanup function
@@ -73,12 +71,12 @@ describe('DocumentService', () => {
       destroy: vi.fn(),
       awareness: {},
     } as unknown as DeepMockProxy<WebsocketProvider>;
-    
+
     mockIndexedDbProvider = {
       whenSynced: Promise.resolve(),
       destroy: vi.fn(),
     } as unknown as DeepMockProxy<IndexeddbPersistence>;
-    
+
     // Mock Editor (ngx-editor) - needs view property for real ProseMirror
     mockEditor = {
       view: {
@@ -145,7 +143,7 @@ describe('DocumentService', () => {
         { provide: SystemConfigService, useValue: mockSystemConfigService },
       ],
     });
-    
+
     service = TestBed.inject(DocumentService);
 
     // Mock window location for WebSocket URL
@@ -283,7 +281,6 @@ describe('DocumentService', () => {
   });
 
   describe('Document Import/Export', () => {
-
     it.skip('should export document content', async () => {
       // Skip: Requires setupCollaboration which creates internal Y.Doc - complex to test
       await service.setupCollaboration(mockEditor, testDocumentId);
@@ -313,9 +310,9 @@ describe('DocumentService', () => {
 
     it('should throw error when importing to non-existent document', () => {
       const mockContent = '<p>Test content</p>';
-      expect(() =>
-        service.importDocument('non-existent', mockContent)
-      ).toThrow('No connection found for document non-existent');
+      expect(() => service.importDocument('non-existent', mockContent)).toThrow(
+        'No connection found for document non-existent'
+      );
     });
 
     it.skip('should import XML string into document fragment', () => {

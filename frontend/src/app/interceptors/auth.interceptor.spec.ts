@@ -7,7 +7,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { describe, it, expect, beforeEach, MockedObject, vi } from 'vitest';
+import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
 
 import { SetupService } from '../services/setup.service';
 import { AuthInterceptor } from './auth.interceptor';
@@ -48,7 +48,7 @@ describe('AuthInterceptor', () => {
   it('should redirect to welcome on 401 error in server mode', async () => {
     // Set router URL to something other than '/', '/welcome', or '/register'
     router.url = '/projects';
-    
+
     const request = new HttpRequest('GET', '/api/test');
     const error = new HttpErrorResponse({ status: 401 });
 
@@ -58,6 +58,7 @@ describe('AuthInterceptor', () => {
 
     return new Promise<void>((resolve, reject) => {
       interceptor.intercept(request, mockHandler).subscribe({
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         error: async err => {
           try {
             expect(err).toBe(error);

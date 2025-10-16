@@ -4,34 +4,34 @@ import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogModule } from '@angular/material/dialog';
 import { By } from '@angular/platform-browser';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock child components
-@Component({ 
-  selector: 'app-general-settings', 
+@Component({
+  selector: 'app-general-settings',
   standalone: true,
-  template: '<div>General Settings</div>' 
+  template: '<div>General Settings</div>',
 })
 class MockGeneralSettingsComponent {}
 
-@Component({ 
-  selector: 'app-account-settings', 
+@Component({
+  selector: 'app-account-settings',
   standalone: true,
-  template: '<div>Account Settings</div>' 
+  template: '<div>Account Settings</div>',
 })
 class MockAccountSettingsComponent {}
 
-@Component({ 
-  selector: 'app-project-tree-settings', 
+@Component({
+  selector: 'app-project-tree-settings',
   standalone: true,
-  template: '<div>Project Tree Settings</div>' 
+  template: '<div>Project Tree Settings</div>',
 })
 class MockProjectTreeSettingsComponent {}
 
-@Component({ 
-  selector: 'app-project-settings', 
+@Component({
+  selector: 'app-project-settings',
   standalone: true,
-  template: '<div>Project Settings</div>' 
+  template: '<div>Project Settings</div>',
 })
 class MockProjectSettingsComponent {}
 
@@ -70,8 +70,16 @@ describe('UserSettingsDialogComponent', () => {
       template: `
         <div class="settings-dialog">
           <nav class="settings-nav">
-            <button (click)="selectCategory('general')" [attr.aria-selected]="selectedCategory === 'general'">General</button>
-            <button (click)="selectCategory('account')" [attr.aria-selected]="selectedCategory === 'account'">Account</button>
+            <button
+              (click)="selectCategory('general')"
+              [attr.aria-selected]="selectedCategory === 'general'">
+              General
+            </button>
+            <button
+              (click)="selectCategory('account')"
+              [attr.aria-selected]="selectedCategory === 'account'">
+              Account
+            </button>
           </nav>
           <div class="settings-content">
             @if (selectedCategory === 'general') {
@@ -165,16 +173,18 @@ describe('UserSettingsDialogComponent', () => {
   it('should have correct aria-selected attribute for nav items', () => {
     // Test component state instead of DOM to avoid ExpressionChangedAfterItHasBeenCheckedError
     expect(component.selectedCategory).toBe('general');
-    
+
     component.selectCategory('account');
     expect(component.selectedCategory).toBe('account');
-    
+
     component.selectCategory('general');
     expect(component.selectedCategory).toBe('general');
   });
 
   it('should change category when nav item is clicked', () => {
-    const navItems = fixture.debugElement.queryAll(By.css('.settings-nav button'));
+    const navItems = fixture.debugElement.queryAll(
+      By.css('.settings-nav button')
+    );
     (navItems[1].nativeElement as HTMLElement).click();
     expect(component.selectedCategory).toBe('account');
 
