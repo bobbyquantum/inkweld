@@ -8,8 +8,8 @@ import { DocumentService } from './document.service';
 import { ProjectImportExportService } from './project-import-export.service';
 import { ProjectStateService } from './project-state.service';
 
-(global as any).URL.createObjectURL = vi.fn(() => 'dummy-url');
-(global as any).URL.revokeObjectURL = vi.fn();
+(globalThis as any).URL.createObjectURL = vi.fn(() => 'dummy-url');
+(globalThis as any).URL.revokeObjectURL = vi.fn();
 
 describe('ProjectImportExportService', () => {
   let service: ProjectImportExportService;
