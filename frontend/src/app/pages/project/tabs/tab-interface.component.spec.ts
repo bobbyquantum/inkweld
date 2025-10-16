@@ -1,10 +1,7 @@
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import { CommonModule } from '@angular/common';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import {
-  ComponentFixture,
-  TestBed,
-} from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,7 +17,7 @@ import {
 } from '@angular/router';
 import { ProjectDto, ProjectElementDto } from '@inkweld/index';
 import { of, Subject } from 'rxjs';
-import { describe, it, expect, beforeEach, afterEach, Mock, vi } from 'vitest';
+import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { DocumentSyncState } from '../../../models/document-sync-state';
 import { DialogGatewayService } from '../../../services/dialog-gateway.service';

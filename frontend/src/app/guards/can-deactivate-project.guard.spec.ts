@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockedObject } from 'vitest';
+
 import { ProjectComponent } from '../pages/project/project.component';
 import { CanDeactivateProjectGuard } from './can-deactivate-project.guard';
 

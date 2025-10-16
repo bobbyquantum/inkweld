@@ -2,8 +2,8 @@ import { HttpEvent } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FileDeleteResponseDto, FileUploadResponseDto } from '@inkweld/index';
-import { describe, it, expect, beforeEach } from 'vitest';
 import { Observable, of } from 'rxjs';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { ProjectAPIService } from '../../api-client/api/project-api.service';
@@ -15,7 +15,6 @@ import {
 import { XsrfService } from './xsrf.service';
 
 describe('ProjectFileService', () => {
-
   const TEST_DATE = '2025-03-16T10:00:00.000Z';
 
   const uploadResp: FileUploadResponseDto = {
@@ -94,11 +93,7 @@ describe('ProjectFileService', () => {
   });
 
   it('builds a file URL from the API basePath', () => {
-    const url = service.getFileUrl(
-      'alice',
-      'proj',
-      'stored-test.jpg'
-    );
+    const url = service.getFileUrl('alice', 'proj', 'stored-test.jpg');
 
     expect(url).toBe(
       'http://localhost:3000/api/v1/projects/alice/proj/files/stored-test.jpg'

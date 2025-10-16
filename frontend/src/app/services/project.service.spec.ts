@@ -1,8 +1,8 @@
 import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { describe, it, expect, beforeEach } from 'vitest';
 import { Observable } from 'rxjs';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { ProjectAPIService } from '../../api-client/api/project-api.service';
@@ -84,7 +84,7 @@ describe('ProjectService', () => {
         { provide: XsrfService, useValue: xsrf },
       ],
     });
-    
+
     service = TestBed.inject(ProjectService);
   });
 
@@ -672,9 +672,9 @@ describe('ProjectService', () => {
         apiErr(new HttpErrorResponse({ status: 0 }))
       );
 
-      await expect(
-        service.deleteProject('alice', 'project-1')
-      ).rejects.toThrow(ProjectServiceError);
+      await expect(service.deleteProject('alice', 'project-1')).rejects.toThrow(
+        ProjectServiceError
+      );
       expect(service.error()?.code).toBe('NETWORK_ERROR');
     });
 
@@ -684,9 +684,9 @@ describe('ProjectService', () => {
         apiErr(new HttpErrorResponse({ status: 401 }))
       );
 
-      await expect(
-        service.deleteProject('alice', 'project-1')
-      ).rejects.toThrow(ProjectServiceError);
+      await expect(service.deleteProject('alice', 'project-1')).rejects.toThrow(
+        ProjectServiceError
+      );
       expect(service.error()?.code).toBe('SESSION_EXPIRED');
     });
   });

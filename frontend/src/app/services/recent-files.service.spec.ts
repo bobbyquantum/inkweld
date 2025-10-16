@@ -1,10 +1,11 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ProjectElementDto } from '@inkweld/index';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { LoggerService } from './logger.service';
 import { RecentFilesService } from './recent-files.service';
 import { SettingsService } from './settings.service';
-import { LoggerService } from './logger.service';
 
 describe('RecentFilesService', () => {
   let service: RecentFilesService;
@@ -13,7 +14,7 @@ describe('RecentFilesService', () => {
 
   beforeEach(() => {
     settingsStorageMock = {};
-    
+
     // Create mock settings service
     const mockSettingsService = {
       getSetting: vi.fn((key: string, defaultValue: unknown) => {
@@ -23,14 +24,14 @@ describe('RecentFilesService', () => {
         settingsStorageMock[key] = value;
       }),
     };
-    
+
     const mockLoggerService = {
       debug: vi.fn(),
       info: vi.fn(),
       warn: vi.fn(),
       error: vi.fn(),
     };
-    
+
     // Set up TestBed
     TestBed.configureTestingModule({
       providers: [
@@ -40,7 +41,7 @@ describe('RecentFilesService', () => {
         { provide: LoggerService, useValue: mockLoggerService },
       ],
     });
-    
+
     service = TestBed.inject(RecentFilesService);
     settingsService = TestBed.inject(SettingsService);
   });

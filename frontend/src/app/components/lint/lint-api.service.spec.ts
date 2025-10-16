@@ -1,8 +1,8 @@
 import { HttpContext } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mockDeep, DeepMockProxy } from 'vitest-mock-extended';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { LintService } from '../../../api-client/api/lint.service';
 import { LintRequestDto } from '../../../api-client/model/lint-request-dto';
@@ -22,7 +22,7 @@ describe('LintApiService', () => {
 
   beforeEach(() => {
     lintService = mockDeep<LintService>();
-    
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -30,7 +30,7 @@ describe('LintApiService', () => {
         { provide: LintService, useValue: lintService },
       ],
     });
-    
+
     service = TestBed.inject(LintApiService);
 
     // Reset mocks before each test

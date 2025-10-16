@@ -17,7 +17,15 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ProjectAPIService } from '@inkweld/index';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
-import { describe, it, expect, beforeEach, afterEach, MockedObject, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  MockedObject,
+  vi,
+} from 'vitest';
 
 import { projectServiceMock } from '../../../testing/project-api.mock';
 import { ProjectElement } from '../../models/project-element';

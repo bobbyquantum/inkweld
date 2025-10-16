@@ -8,7 +8,16 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ProjectDto, UserDto } from '@inkweld/index';
 import { of } from 'rxjs';
-import {describe, it, expect, beforeEach, afterEach, beforeAll, MockedObject, vi} from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  MockedObject,
+  vi,
+} from 'vitest';
 
 import { ProjectAPIService } from '../../../api-client/api/project-api.service';
 import { ProjectService } from '../../services/project.service';
@@ -111,17 +120,17 @@ describe('EditProjectDialogComponent', () => {
 
     fixture = TestBed.createComponent(EditProjectDialogComponent);
     component = fixture.componentInstance;
-    
+
     // Manually initialize to avoid async timing issues in ngOnInit
     component.project = mockProject;
     component.form.patchValue({
       title: mockProject.title,
       description: mockProject.description,
     });
-    
+
     // Call loadCoverImage manually so tests can control timing
     await component.loadCoverImage();
-    
+
     // Now run change detection
     fixture.detectChanges();
   });
@@ -180,7 +189,7 @@ describe('EditProjectDialogComponent', () => {
 
       // Execute the method directly and verify state
       await component.loadCoverImage();
-      
+
       // Verify the properties are set correctly
       expect(component.coverImage).toBe(mockCoverBlob);
       expect(component.coverImageUrl).toBeDefined();
