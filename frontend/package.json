@@ -46,8 +46,8 @@
     "yjs": "13.6.27"
   },
   "devDependencies": {
-    "@angular/build": "20.3.5",
-    "@angular/cli": "20.3.5",
+    "@angular/build": "20.3.7",
+    "@angular/cli": "20.3.7",
     "@angular/compiler-cli": "20.3.4",
     "@playwright/test": "1.56.0",
     "@types/lodash-es": "4.17.12",
