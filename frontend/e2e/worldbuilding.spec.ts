@@ -114,7 +114,7 @@ test.describe('Worldbuilding Templates', () => {
 
     // Modify the template
     await page.getByTestId('template-description-input').fill('Updated character template');
-    
+
     // Add a new field
     await page.getByTestId('add-field-button').first().click();
     await page.getByTestId('field-label-input').last().fill('Backstory');
