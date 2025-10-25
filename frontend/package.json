@@ -78,7 +78,7 @@
     "prosemirror-inputrules": "1.4.0",
     "prosemirror-keymap": "1.2.2",
     "prosemirror-model": "1.25.2",
-    "prosemirror-schema-list": "1.4.1",
+    "prosemirror-schema-list": "1.5.1",
     "prosemirror-state": "1.4.3",
     "prosemirror-transform": "1.10.2",
     "prosemirror-view": "1.40.1"
