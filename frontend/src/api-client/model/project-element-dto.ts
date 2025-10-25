@@ -44,10 +44,19 @@ export interface ProjectElementDto {
     metadata: { [key: string]: string; };
 }
 export namespace ProjectElementDto {
-    export type TypeEnum = 'FOLDER' | 'ITEM';
+    export type TypeEnum = 'FOLDER' | 'ITEM' | 'CHARACTER' | 'LOCATION' | 'WB_ITEM' | 'MAP' | 'RELATIONSHIP' | 'PHILOSOPHY' | 'CULTURE' | 'SPECIES' | 'SYSTEMS';
     export const TypeEnum = {
         Folder: 'FOLDER' as TypeEnum,
-        Item: 'ITEM' as TypeEnum
+        Item: 'ITEM' as TypeEnum,
+        Character: 'CHARACTER' as TypeEnum,
+        Location: 'LOCATION' as TypeEnum,
+        WbItem: 'WB_ITEM' as TypeEnum,
+        Map: 'MAP' as TypeEnum,
+        Relationship: 'RELATIONSHIP' as TypeEnum,
+        Philosophy: 'PHILOSOPHY' as TypeEnum,
+        Culture: 'CULTURE' as TypeEnum,
+        Species: 'SPECIES' as TypeEnum,
+        Systems: 'SYSTEMS' as TypeEnum
     };
 }
 

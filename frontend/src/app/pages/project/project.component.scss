@@ -54,7 +54,10 @@ as-split {
   left: 50%;
   transform: translate(-50%, -50%);
   opacity: 0.6;
-  transition: opacity 0.2s ease, width 0.2s ease, background-color 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    width 0.2s ease,
+    background-color 0.2s ease;
 
   .inkweld-gutter:hover & {
     opacity: 1;
@@ -70,7 +73,8 @@ as-split {
 }
 
 // Sidebar content - both split and mobile sidenav
-.sidenav-content, .sidebar-area {
+.sidenav-content,
+.sidebar-area {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -120,35 +124,36 @@ as-split {
   cursor: pointer;
   position: relative;
   transition: background-color 0.2s ease;
-  
-  &:hover, &:focus {
+
+  &:hover,
+  &:focus {
     background-color: var(--sys-surface-container-highest);
   }
-  
+
   &.active {
     background-color: var(--sys-primary-container);
     color: var(--sys-on-primary-container);
   }
-  
+
   mat-icon {
     font-size: 18px;
     width: 18px;
     height: 18px;
     line-height: 18px;
   }
-  
+
   .mobile-tab-name {
     flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  
+
   .mobile-close-tab {
     width: 24px;
     height: 24px;
     line-height: 24px;
-    
+
     mat-icon {
       font-size: 16px;
       width: 16px;

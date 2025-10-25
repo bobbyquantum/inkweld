@@ -7,7 +7,7 @@ import {
   FileMetadata,
 } from '../files/file-storage.service.js';
 import { ProjectService } from '../project.service.js';
-import { ElementType } from '../element/element-type.enum.js';
+import { ElementType, isExportableToEpub } from '../element/element-type.enum.js';
 import { ProjectElementDto } from '../element/project-element.dto.js';
 import { DocumentRendererService } from '../document/document-renderer.service.js';
 import { LevelDBManagerService } from '../../common/persistence/leveldb-manager.service.js';
@@ -167,9 +167,9 @@ export class ProjectPublishEpubService {
     epub: Epub,
     elements: ProjectElementDto[],
   ): Promise<void> {
-    // Filter to only include ITEM elements (chapters)
+    // Filter to only include exportable elements (chapters/document items)
     const chapterElements = elements.filter(
-      (element) => element.type === ElementType.ITEM,
+      (element) => isExportableToEpub(element.type as ElementType),
     );
 
     this.logger.log(`Adding ${chapterElements.length} chapters to EPUB`);

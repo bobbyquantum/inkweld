@@ -2,8 +2,14 @@
   padding: 16px;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  // Desktop with tabs: toolbar (48px) + tabs header (~82px) = 130px
+  height: calc(100vh - 130px);
   overflow: auto;
+
+  // Mobile without tabs: only toolbar (48px) + padding (~34px) = 82px
+  @media (max-width: 759px) {
+    height: calc(100vh - 82px);
+  }
 }
 
 .documents-header {
@@ -43,7 +49,8 @@
   }
 }
 
-.error-card, .empty-card {
+.error-card,
+.empty-card {
   max-width: 500px;
   margin: 0 auto;
 
@@ -99,9 +106,10 @@
   display: flex;
   align-items: center;
   z-index: 1000;
-  box-shadow: 0px 3px 5px -1px rgba(0, 0, 0, 0.2),
-              0px 6px 10px 0px rgba(0, 0, 0, 0.14),
-              0px 1px 18px 0px rgba(0, 0, 0, 0.12);
+  box-shadow:
+    0px 3px 5px -1px rgba(0, 0, 0, 0.2),
+    0px 6px 10px 0px rgba(0, 0, 0, 0.14),
+    0px 1px 18px 0px rgba(0, 0, 0, 0.12);
 
   &.success {
     background-color: #43a047;

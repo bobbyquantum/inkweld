@@ -61,6 +61,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private routerSubscription: Subscription | null = null;
   private initialSyncDone = false; // Flag to ensure initial sync runs only once
+  private lastProjectId: string | undefined; // Track project changes
 
   // Context menu tracking
   contextTabIndex: number | null = null;
@@ -70,15 +71,34 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     return this.projectState.selectedTabIndex();
   }
   constructor() {
+    // Watch for project changes and reset sync flag
+    effect(() => {
+      const project = this.projectState.project();
+      const isLoading = this.projectState.isLoading();
+
+      // Detect project change by comparing IDs
+      const currentProjectId = project?.id;
+      if (currentProjectId !== this.lastProjectId) {
+        this.initialSyncDone = false;
+        this.lastProjectId = currentProjectId;
+      }
+
+      // Also reset when loading starts
+      if (isLoading && this.initialSyncDone) {
+        this.initialSyncDone = false;
+      }
+    });
+
     // Watch for changes to the selected tab index and navigate accordingly
     effect(() => {
       const tabIndex = this.projectState.selectedTabIndex();
       const project = this.projectState.project();
+      const isLoading = this.projectState.isLoading();
 
-      console.log('[TabInterface] Tab index changed to:', tabIndex);
-
-      // Skip navigation during initial load
-      if (!this.initialSyncDone || !project) return;
+      // Skip navigation during initial load OR while loading
+      if (!this.initialSyncDone || !project || isLoading) {
+        return;
+      }
 
       // Get available tabs
       const tabs = this.projectState.openTabs();
@@ -86,12 +106,10 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
       // Navigate based on the tab index
       if (tabIndex === 0) {
         // Home tab
-        console.log('[TabInterface] Effect: Navigating to home tab');
         void this.router.navigate(['/', project.username, project.slug]);
       } else if (tabIndex > 0 && tabs.length >= tabIndex) {
         // Get the tab info
         const tab = tabs[tabIndex - 1]; // -1 to account for home tab
-        console.log('[TabInterface] Effect: Navigating to tab:', tab);
 
         // Handle different tab types
         if (tab.type === 'system') {
@@ -118,19 +136,20 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     // Effect to handle initial tab synchronization after project state is loaded
     effect(() => {
       const isLoading = this.projectState.isLoading();
-      console.log(
-        '[TabInterface] isLoading effect triggered. isLoading:',
-        isLoading,
-        'InitialSyncDone:',
-        this.initialSyncDone
-      );
-      if (!isLoading && !this.initialSyncDone) {
-        console.log(
-          '[TabInterface] Project loaded, performing initial tab sync.'
-        );
-        this.updateSelectedTabFromUrl();
-        this.initialSyncDone = true;
-        this.cdr.detectChanges(); // Trigger change detection after initial sync
+      const project = this.projectState.project();
+      const currentUrl = this.router.url;
+
+      if (!isLoading && !this.initialSyncDone && project) {
+        // Verify the project matches the current URL before syncing
+        const urlParts = currentUrl.split('/').filter(p => p);
+        const urlUsername = urlParts[0];
+        const urlSlug = urlParts[1];
+
+        if (urlUsername === project.username && urlSlug === project.slug) {
+          this.updateSelectedTabFromUrl();
+          this.initialSyncDone = true;
+          this.cdr.detectChanges(); // Trigger change detection after initial sync
+        }
       }
     });
   }
@@ -144,16 +163,38 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$)
       )
       .subscribe(event => {
-        console.log('[TabInterface] NavigationEnd event:', event);
+        // Extract project info from URL to detect project changes
+        const urlParts = event.url.split('/').filter(p => p);
+        const urlUsername = urlParts[0];
+        const urlSlug = urlParts[1];
+        const currentProject = this.projectState.project();
+        const isLoading = this.projectState.isLoading();
+
+        // Reset sync flag if project is loading OR URL doesn't match current project
+        if (isLoading) {
+          this.initialSyncDone = false;
+        } else if (
+          currentProject &&
+          urlUsername &&
+          urlSlug &&
+          (urlUsername !== currentProject.username ||
+            urlSlug !== currentProject.slug)
+        ) {
+          console.warn(
+            '[TabInterface] URL/Project mismatch - forcing reload',
+            `URL: ${urlUsername}/${urlSlug}`,
+            `Project: ${currentProject.username}/${currentProject.slug}`
+          );
+          this.initialSyncDone = false;
+
+          // Force reload the correct project from the URL
+          void this.projectState.loadProject(urlUsername, urlSlug);
+        }
+
         // Avoid redundant sync if initial sync is happening via effect
         if (this.initialSyncDone) {
-          console.log('[TabInterface] Handling tab update from NavigationEnd.');
           this.updateSelectedTabFromUrl();
           this.cdr.detectChanges(); // Trigger change detection after URL update
-        } else {
-          console.log(
-            '[TabInterface] Skipping NavigationEnd update, waiting for initial load effect.'
-          );
         }
       });
 
@@ -169,7 +210,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
   }
 
   updateSelectedTabFromUrl(): void {
-    console.log('[TabInterface] updateSelectedTabFromUrl called');
     // Get current route URL
     let currentRoute = this.route.root;
     let tabId: string | null = null;
@@ -184,6 +224,8 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
         systemRoute = 'documents-list';
       } else if (url === `${projectBaseUrl}/project-files`) {
         systemRoute = 'project-files';
+      } else if (url === `${projectBaseUrl}/templates-list`) {
+        systemRoute = 'templates-list';
       }
     }
 
@@ -200,17 +242,8 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
       }
     }
 
-    console.log('[TabInterface] URL analysis:', { tabId, systemRoute, url });
-    console.log(
-      '[TabInterface] Current openTabs:',
-      this.projectState.openTabs().map(t => `${t.name} (${t.id}) - ${t.type}`)
-    );
-
     // Check if we are at the project root (home tab)
     if (!tabId && !systemRoute) {
-      console.log(
-        '[TabInterface] No tab identifiers found, setting index to 0 (Home)'
-      );
       this.projectState.selectedTabIndex.set(0);
       return;
     }
@@ -229,7 +262,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
       // If system tab not found in the existing tabs, create it
       if (tabIndex === -1) {
         this.projectState.openSystemTab(
-          systemRoute as 'documents-list' | 'project-files'
+          systemRoute as 'documents-list' | 'project-files' | 'templates-list'
         );
         // Re-find the tab index after creating
         tabIndex = this.projectState
@@ -246,22 +279,11 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     }
     if (tabIndex !== -1) {
       const newIndex = tabIndex + 1; // +1 to account for home tab
-      console.log(
-        `[TabInterface] Found tabId ${tabId} at index ${tabIndex}, setting selectedTabIndex to ${newIndex}`
-      );
       this.projectState.selectedTabIndex.set(newIndex);
-    } else {
-      console.warn(
-        `[TabInterface] Tab ID ${tabId} found in URL, but not in open documents. Current index: ${this.projectState.selectedTabIndex()}`
-      );
-      // Optional: Consider if fallback is needed here, or if state should remain unchanged
-      // this.projectState.selectedTabIndex.set(0);
     }
   }
 
   onTabChange(index: number): void {
-    console.log(`[TabInterface] Tab change requested to index ${index}`);
-
     // Update the project state - navigation will be handled by the effect
     this.projectState.selectedTabIndex.set(index);
 
@@ -291,10 +313,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
   }
 
   openDocument(document: ProjectElementDto): void {
-    console.log(
-      `[TabInterface] Opening document: ${document.name} (${document.id})`
-    );
-
     const project = this.projectState.project();
     if (!project) return;
 
@@ -305,16 +323,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     // Open the document in the state service - this will trigger the effect to handle navigation
     this.projectState.openDocument(document);
 
-    console.log(
-      `[TabInterface] Current selected tab index: ${this.projectState.selectedTabIndex()}`
-    );
-    console.log(
-      `[TabInterface] Open documents: ${this.projectState
-        .openDocuments()
-        .map(d => d.name)
-        .join(', ')}`
-    );
-
     // Force synchronous change detection to update the view
     this.cdr.detectChanges();
   }
@@ -324,10 +332,12 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Opens a system tab for documents-list or project-files
+   * Opens a system tab for documents-list, project-files, or templates-list
    * @param type The type of system tab to open
    */
-  openSystemTab(type: 'documents-list' | 'project-files'): void {
+  openSystemTab(
+    type: 'documents-list' | 'project-files' | 'templates-list'
+  ): void {
     console.log(`[TabInterface] Opening system tab: ${type}`);
     this.projectState.openSystemTab(type);
   }
@@ -348,6 +358,55 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
   onContextMenuClose(): void {
     this.contextTabIndex = null;
     this.contextTab = null;
+  }
+
+  /**
+   * Get the Material icon name for a tab based on its type
+   */
+  getTabIcon(tab: AppTab): string {
+    if (tab.type === 'system') {
+      if (tab.systemType === 'documents-list') {
+        return 'list';
+      } else if (tab.systemType === 'project-files') {
+        return 'attach_file';
+      } else if (tab.systemType === 'templates-list') {
+        return 'description';
+      }
+      return 'article';
+    }
+
+    if (tab.type === 'folder') {
+      return 'folder';
+    }
+
+    if (tab.type === 'worldbuilding' && tab.elementType) {
+      const iconMap: Record<string, string> = {
+        [ProjectElementDto.TypeEnum.Character]: 'person',
+        [ProjectElementDto.TypeEnum.Location]: 'place',
+        [ProjectElementDto.TypeEnum.WbItem]: 'category',
+        [ProjectElementDto.TypeEnum.Map]: 'map',
+        [ProjectElementDto.TypeEnum.Relationship]: 'diversity_1',
+        [ProjectElementDto.TypeEnum.Philosophy]: 'auto_stories',
+        [ProjectElementDto.TypeEnum.Culture]: 'groups',
+        [ProjectElementDto.TypeEnum.Species]: 'pets',
+        [ProjectElementDto.TypeEnum.Systems]: 'settings',
+      };
+
+      // Check if it's a built-in type
+      if (iconMap[tab.elementType]) {
+        return iconMap[tab.elementType];
+      }
+
+      // For custom types, try to load from cached metadata or fallback
+      // Note: We can't use async here, so we'll need to cache icons in the tab metadata
+      if (tab.element?.metadata && tab.element.metadata['icon']) {
+        return tab.element.metadata['icon'];
+      }
+
+      return 'description';
+    }
+
+    return 'insert_drive_file';
   }
 
   /**

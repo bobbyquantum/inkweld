@@ -266,4 +266,20 @@ export class HomeTabComponent {
       ]);
     }
   }
+
+  /**
+   * Opens the templates tab
+   */
+  openTemplatesTab(): void {
+    this.projectState.openSystemTab('templates-list');
+    const project = this.projectState.project();
+    if (project) {
+      void this.router.navigate([
+        '/',
+        project.username,
+        project.slug,
+        'templates-list',
+      ]);
+    }
+  }
 }

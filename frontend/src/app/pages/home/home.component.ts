@@ -134,7 +134,14 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   selectProject(project: ProjectDto) {
     // Add logging to debug project navigation
-    console.log('Navigating to project:', project.username, project.slug);
+    console.log('[HomeComponent] selectProject called with:', {
+      project: {
+        username: project.username,
+        slug: project.slug,
+        title: project.title,
+      },
+      fullProject: project,
+    });
 
     // Force complete route reload by using onSameUrlNavigation: 'reload' option
     // and ensuring we're navigating with a unique navigationId
