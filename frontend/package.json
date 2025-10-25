@@ -75,7 +75,7 @@
   "resolutions": {
     "prosemirror-commands": "1.6.2",
     "prosemirror-history": "1.4.1",
-    "prosemirror-inputrules": "1.4.0",
+    "prosemirror-inputrules": "1.5.1",
     "prosemirror-keymap": "1.2.2",
     "prosemirror-model": "1.25.2",
     "prosemirror-schema-list": "1.4.1",
