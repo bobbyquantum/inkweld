@@ -34,6 +34,7 @@ import { ProjectService } from './project.service.js';
 import { ProjectDto } from './project.dto.js';
 import { ProjectEntity } from './project.entity.js';
 import { CoverController } from './cover/cover.controller.js';
+import { SchemaService } from './schemas/schema.service.js';
 
 @ApiTags('Project API')
 @ApiCookieAuth()
@@ -44,6 +45,7 @@ export class ProjectController {
   constructor(
     private readonly projectService: ProjectService,
     private readonly coverController: CoverController,
+    private readonly schemaService: SchemaService,
   ) {}
 
   @Get()
@@ -146,6 +148,16 @@ export class ProjectController {
         req.user.id,
         projectEntity,
       );
+
+      // Initialize schema library with default schemas (async, don't block)
+      this.schemaService
+        .initializeProjectSchemasInDB(req.user.username, newProjectEntity.slug)
+        .catch((schemaError) => {
+          this.logger.error(
+            `Failed to initialize schema library for ${req.user.username}/${newProjectEntity.slug}`,
+            schemaError,
+          );
+        });
 
       // Generate default cover image asynchronously (don't block response)
       // Use the username from the session and slug/title from the created entity

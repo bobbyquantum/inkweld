@@ -1,4 +1,6 @@
 import { CdkDragEnd } from '@angular/cdk/drag-drop';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { ProjectDto } from '@inkweld/index';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,6 +18,11 @@ describe('BookshelfComponent', () => {
   let mockProjects: ProjectDto[];
 
   beforeEach(() => {
+    // Configure TestBed for injection context
+    TestBed.configureTestingModule({
+      providers: [provideZonelessChangeDetection()],
+    });
+
     // Mock window object for the component
     Object.defineProperty(window, 'innerWidth', {
       writable: true,
@@ -45,8 +52,8 @@ describe('BookshelfComponent', () => {
       },
     ] as ProjectDto[];
 
-    // Create component directly without TestBed to avoid DOM manipulation
-    component = new BookshelfComponent();
+    // Create component within injection context
+    component = TestBed.runInInjectionContext(() => new BookshelfComponent());
     component.projects = mockProjects;
 
     // Mock the projectsGrid element

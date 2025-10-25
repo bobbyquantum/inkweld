@@ -1,0 +1,291 @@
+<h2 mat-dialog-title>
+  <mat-icon>edit</mat-icon>
+  Edit Template
+</h2>
+
+<mat-dialog-content class="dialog-content">
+  <!-- Basic Information Section -->
+  <section class="section">
+    <h3>Basic Information</h3>
+    <form [formGroup]="basicForm">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Template Name</mat-label>
+        <input matInput formControlName="name" placeholder="e.g., Character" />
+        @if (basicForm.get('name')?.hasError('required')) {
+          <mat-error>Name is required</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Icon</mat-label>
+        <mat-select formControlName="icon">
+          @for (icon of availableIcons; track icon) {
+            <mat-option [value]="icon">
+              <mat-icon>{{ icon }}</mat-icon>
+              {{ icon }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Description</mat-label>
+        <textarea
+          matInput
+          formControlName="description"
+          placeholder="Describe this template..."
+          rows="3"></textarea>
+      </mat-form-field>
+    </form>
+  </section>
+
+  <!-- Tabs Section -->
+  <section class="section">
+    <div class="section-header">
+      <h3>Tabs</h3>
+      <button mat-raised-button color="primary" (click)="addTab()">
+        <mat-icon>add</mat-icon>
+        Add Tab
+      </button>
+    </div>
+
+    @if (tabs().length === 0) {
+      <div class="empty-state">
+        <mat-icon>tab</mat-icon>
+        <p>No tabs yet. Add a tab to organize fields.</p>
+      </div>
+    } @else {
+      <div class="tabs-editor">
+        <!-- Tab List -->
+        <div
+          class="tabs-list"
+          role="list"
+          cdkDropList
+          (cdkDropListDropped)="onTabsDrop($event)">
+          @for (tab of tabs(); track tab.key; let i = $index) {
+            <div
+              class="tab-item"
+              cdkDrag
+              role="listitem"
+              [class.selected]="selectedTabIndex() === i">
+              <mat-icon class="drag-handle" cdkDragHandle
+                >drag_indicator</mat-icon
+              >
+              <button
+                class="tab-select-button"
+                (click)="selectedTabIndex.set(i)">
+                <mat-icon>{{ tab.icon || 'article' }}</mat-icon>
+                <span class="tab-label">{{ tab.label }}</span>
+              </button>
+              <button
+                mat-icon-button
+                class="tab-close-button"
+                (click)="removeTab(i)"
+                [disabled]="tabs().length === 1">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+
+        <!-- Tab Editor -->
+        @if (tabs()[selectedTabIndex()]; as currentTab) {
+          <div class="tab-editor">
+            <div class="tab-editor-header">
+              <h4>{{ currentTab.label }}</h4>
+            </div>
+
+            <div class="tab-editor-content">
+              <!-- Tab Properties -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Tab Label</mat-label>
+                <input
+                  matInput
+                  [value]="currentTab.label"
+                  (input)="
+                    updateTab(selectedTabIndex(), {
+                      label: $any($event.target).value,
+                    })
+                  "
+                  placeholder="e.g., Basic Info" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Tab Icon</mat-label>
+                <mat-select
+                  [value]="currentTab.icon || 'article'"
+                  (selectionChange)="
+                    updateTab(selectedTabIndex(), { icon: $event.value })
+                  ">
+                  @for (icon of availableIcons; track icon) {
+                    <mat-option [value]="icon">
+                      <mat-icon>{{ icon }}</mat-icon>
+                      {{ icon }}
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <!-- Fields Section -->
+              <div class="fields-section">
+                <div class="section-header">
+                  <h5>Fields</h5>
+                  <button
+                    mat-raised-button
+                    color="accent"
+                    (click)="addField(selectedTabIndex())">
+                    <mat-icon>add</mat-icon>
+                    Add Field
+                  </button>
+                </div>
+
+                @if (currentTab.fields.length === 0) {
+                  <div class="empty-state">
+                    <mat-icon>input</mat-icon>
+                    <p>No fields yet. Add fields to this tab.</p>
+                  </div>
+                } @else {
+                  <div
+                    class="fields-list"
+                    cdkDropList
+                    (cdkDropListDropped)="
+                      onFieldsDrop($event, selectedTabIndex())
+                    ">
+                    @for (
+                      field of currentTab.fields;
+                      track field.key;
+                      let j = $index
+                    ) {
+                      <mat-expansion-panel class="field-panel">
+                        <mat-expansion-panel-header>
+                          <mat-panel-title>
+                            <mat-icon
+                              class="drag-handle"
+                              cdkDragHandle
+                              (click)="$event.stopPropagation()">
+                              drag_indicator
+                            </mat-icon>
+                            <mat-icon>input</mat-icon>
+                            <span>{{ field.label || 'Untitled Field' }}</span>
+                            <mat-chip class="field-type-chip">{{
+                              field.type
+                            }}</mat-chip>
+                          </mat-panel-title>
+                        </mat-expansion-panel-header>
+
+                        <div class="field-editor">
+                          <mat-form-field
+                            appearance="outline"
+                            class="full-width">
+                            <mat-label>Field Key</mat-label>
+                            <input
+                              matInput
+                              [value]="field.key"
+                              (input)="
+                                updateField(selectedTabIndex(), j, {
+                                  key: $any($event.target).value,
+                                })
+                              "
+                              placeholder="e.g., fullName" />
+                          </mat-form-field>
+
+                          <mat-form-field
+                            appearance="outline"
+                            class="full-width">
+                            <mat-label>Field Label</mat-label>
+                            <input
+                              matInput
+                              [value]="field.label"
+                              (input)="
+                                updateField(selectedTabIndex(), j, {
+                                  label: $any($event.target).value,
+                                })
+                              "
+                              placeholder="e.g., Full Name" />
+                          </mat-form-field>
+
+                          <mat-form-field
+                            appearance="outline"
+                            class="full-width">
+                            <mat-label>Field Type</mat-label>
+                            <mat-select
+                              [value]="field.type"
+                              (selectionChange)="
+                                updateField(selectedTabIndex(), j, {
+                                  type: $event.value,
+                                })
+                              ">
+                              @for (type of fieldTypes; track type.value) {
+                                <mat-option [value]="type.value">
+                                  {{ type.label }}
+                                </mat-option>
+                              }
+                            </mat-select>
+                          </mat-form-field>
+
+                          <mat-form-field
+                            appearance="outline"
+                            class="full-width">
+                            <mat-label>Placeholder</mat-label>
+                            <input
+                              matInput
+                              [value]="field.placeholder || ''"
+                              (input)="
+                                updateField(selectedTabIndex(), j, {
+                                  placeholder: $any($event.target).value,
+                                })
+                              "
+                              placeholder="e.g., Enter name..." />
+                          </mat-form-field>
+
+                          <mat-form-field
+                            appearance="outline"
+                            class="full-width">
+                            <mat-label>Description</mat-label>
+                            <textarea
+                              matInput
+                              [value]="field.description || ''"
+                              (input)="
+                                updateField(selectedTabIndex(), j, {
+                                  description: $any($event.target).value,
+                                })
+                              "
+                              placeholder="Help text for this field..."
+                              rows="2"></textarea>
+                          </mat-form-field>
+
+                          <button
+                            mat-stroked-button
+                            color="warn"
+                            (click)="removeField(selectedTabIndex(), j)">
+                            <mat-icon>delete</mat-icon>
+                            Remove Field
+                          </button>
+                        </div>
+                      </mat-expansion-panel>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </section>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="save()"
+    [disabled]="basicForm.invalid || isSaving()">
+    @if (isSaving()) {
+      <span>Saving...</span>
+    } @else {
+      <span>Save Changes</span>
+    }
+  </button>
+</mat-dialog-actions>

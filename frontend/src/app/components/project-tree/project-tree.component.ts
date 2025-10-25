@@ -34,6 +34,7 @@ import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
 
 import { ProjectElement } from '../../models/project-element';
+import { isWorldbuildingType } from '../../models/worldbuilding-schemas';
 import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { LoggerService } from '../../services/logger.service';
 import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
@@ -493,10 +494,17 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     this.projectStateService.openDocument(dto);
     this.documentOpened.emit(dto);
     setTimeout(() => this.updateIndicator());
-    // Navigate to document or folder route
+    // Navigate to document, folder, or worldbuilding route
     const project = this.projectStateService.project();
     if (project?.username && project?.slug) {
-      const typeRoute = dto.type === 'FOLDER' ? 'folder' : 'document';
+      let typeRoute: string;
+      if (dto.type === 'FOLDER') {
+        typeRoute = 'folder';
+      } else if (isWorldbuildingType(dto.type)) {
+        typeRoute = 'worldbuilding';
+      } else {
+        typeRoute = 'document';
+      }
       void this.router.navigate([
         '/',
         project.username,

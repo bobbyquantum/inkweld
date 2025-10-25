@@ -18,6 +18,7 @@ export * from './login-response-dto';
 export * from './project-dto';
 export * from './project-element-dto';
 export * from './publish-epub-response-dto';
+export * from './schemas-controller-initialize-default-schemas200-response';
 export * from './style-recommendation-dto';
 export * from './user-controller-check-username-availability200-response';
 export * from './user-dto';

@@ -53,7 +53,9 @@ export class DialogGatewayService {
   openNewElementDialog(): Promise<NewElementDialogResult | null> {
     const dialogRef = this.dialog.open(NewElementDialogComponent, {
       disableClose: true,
-      width: '400px',
+      width: '800px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

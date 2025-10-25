@@ -1,0 +1,12 @@
+@if (elementId() && elementType()) {
+  <app-worldbuilding-editor
+    [elementId]="elementId()"
+    [elementType]="elementType()!"
+    [username]="username()"
+    [slug]="slug()"></app-worldbuilding-editor>
+} @else {
+  <div class="error-message">
+    <p>Unable to load worldbuilding element.</p>
+    <p>Element ID: {{ elementId() || 'Not provided' }}</p>
+  </div>
+}

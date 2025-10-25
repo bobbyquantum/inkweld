@@ -9,6 +9,8 @@ import { DocumentsListTabComponent } from './pages/project/tabs/documents-list/d
 import { FolderTabComponent } from './pages/project/tabs/folder/folder-tab.component';
 import { HomeTabComponent } from './pages/project/tabs/home/home-tab.component';
 import { ProjectFilesTabComponent } from './pages/project/tabs/project-files/project-files-tab.component';
+import { TemplatesTabComponent } from './pages/project/tabs/templates/templates-tab.component';
+import { WorldbuildingTabComponent } from './pages/project/tabs/worldbuilding/worldbuilding-tab.component';
 
 export const routes: Routes = [
   {
@@ -105,6 +107,20 @@ export const routes: Routes = [
       {
         path: 'project-files',
         component: ProjectFilesTabComponent,
+        data: {
+          reuseComponent: false,
+        },
+      },
+      {
+        path: 'templates-list',
+        component: TemplatesTabComponent,
+        data: {
+          reuseComponent: false,
+        },
+      },
+      {
+        path: 'worldbuilding/:tabId',
+        component: WorldbuildingTabComponent,
         data: {
           reuseComponent: false,
         },

@@ -60,7 +60,8 @@
       <app-tree-node-icon
         [isExpandable]="node.expandable"
         [isExpanded]="node.expanded"
-        [type]="node.type">
+        [type]="node.type"
+        [metadata]="node.metadata">
       </app-tree-node-icon>
 
       <div
@@ -88,7 +89,8 @@
           <app-tree-node-icon
             [isExpandable]="node.expandable"
             [isExpanded]="node.expanded"
-            [type]="node.type">
+            [type]="node.type"
+            [metadata]="node.metadata">
           </app-tree-node-icon>
         }
         <div class="node-title">
@@ -100,7 +102,8 @@
         <app-tree-node-icon
           [isExpandable]="node.expandable"
           [isExpanded]="node.expanded"
-          [type]="node.type"></app-tree-node-icon>
+          [type]="node.type"
+          [metadata]="node.metadata"></app-tree-node-icon>
         <div class="node-title">{{ node.name }}</div>
       </div>
     </mat-tree-node>

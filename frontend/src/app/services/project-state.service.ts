@@ -19,6 +19,7 @@ import { RecentFilesService } from './recent-files.service';
 import { SetupService } from './setup.service';
 import { StorageService } from './storage.service';
 import { UnifiedProjectService } from './unified-project.service';
+import { WorldbuildingService } from './worldbuilding.service';
 
 // Constants for document cache configuration
 const DOCUMENT_CACHE_CONFIG = {
@@ -38,9 +39,10 @@ export interface ValidDropLevels {
 export interface AppTab {
   id: string;
   name: string;
-  type: 'document' | 'folder' | 'system';
-  systemType?: 'documents-list' | 'project-files' | 'home';
+  type: 'document' | 'folder' | 'system' | 'worldbuilding';
+  systemType?: 'documents-list' | 'project-files' | 'templates-list' | 'home';
   element?: ProjectElementDto;
+  elementType?: ProjectElementDto.TypeEnum;
 }
 
 @Injectable({
@@ -55,6 +57,7 @@ export class ProjectStateService {
   private recentFilesService = inject(RecentFilesService);
   private storageService = inject(StorageService);
   private logger = inject(LoggerService);
+  private worldbuildingService = inject(WorldbuildingService);
 
   // Document cache
   private documentCacheDb: Promise<IDBDatabase> | null = null;
@@ -151,11 +154,49 @@ export class ProjectStateService {
   }
 
   // Project Loading and Initialization
+
+  /**
+   * Clear all project-specific state when switching projects
+   */
+  private clearProjectState(): void {
+    const currentProject = this.project();
+    this.logger.info('ProjectState', '🧹 Clearing project state', {
+      currentProjectId: currentProject?.id,
+      currentProjectSlug: currentProject?.slug,
+      currentTabCount: this.openTabs().length,
+      currentTabs: this.openTabs().map(t => ({
+        name: t.name,
+        id: t.id,
+        type: t.type,
+      })),
+    });
+
+    // Close all tabs - THIS IS CRITICAL!
+    // Must happen before loading new project to prevent tab restoration from wrong project
+    this.openTabs.set([]);
+    this.openDocuments.set([]);
+    this.selectedTabIndex.set(0);
+
+    // Clear elements
+    this.elements.set([]);
+
+    // Clear expansion state
+    this.expandedNodeIds.set(new Set());
+
+    // Clear any error state
+    this.error.set(undefined);
+
+    // Note: We don't clear project() here as it will be set by loadProject
+  }
+
   async loadProject(username: string, slug: string): Promise<void> {
     this.isLoading.set(true);
     this.error.set(undefined);
 
     try {
+      // Clear previous project state before loading new one
+      this.clearProjectState();
+
       // Check if we're in offline mode
       const mode = this.setupService.getMode();
 
@@ -477,9 +518,10 @@ export class ProjectStateService {
     type: ProjectElementDto['type'],
     name: string,
     parentId?: string
-  ): void {
+  ): string | undefined {
     const mode = this.setupService.getMode();
     const project = this.project();
+    let newElementId: string | undefined;
 
     if (mode === 'offline' && project) {
       // Add element in offline mode
@@ -495,6 +537,19 @@ export class ProjectStateService {
       // Auto-expand parent when adding new element
       if (parentId) {
         this.setExpanded(parentId, true);
+      }
+
+      // Initialize worldbuilding elements with default Yjs data
+      const newElement = newElements.find(
+        e => e.name === name && e.type === type
+      );
+      if (newElement?.id && project) {
+        newElementId = newElement.id;
+        void this.worldbuildingService.initializeWorldbuildingElement(
+          newElement,
+          project.username,
+          project.slug
+        );
       }
     } else {
       // Add element in server mode
@@ -515,6 +570,8 @@ export class ProjectStateService {
         metadata: {},
       };
 
+      newElementId = newElement.id;
+
       const newElements = [...elements];
       newElements.splice(parentIndex + 1, 0, newElement);
       this.updateElements(this.recomputePositions(newElements));
@@ -523,7 +580,18 @@ export class ProjectStateService {
       if (parentId) {
         this.setExpanded(parentId, true);
       }
+
+      // Initialize worldbuilding elements with default Yjs data
+      if (newElement.id && project) {
+        void this.worldbuildingService.initializeWorldbuildingElement(
+          newElement,
+          project.username,
+          project.slug
+        );
+      }
     }
+
+    return newElementId;
   }
 
   isValidDrop(
@@ -790,19 +858,64 @@ export class ProjectStateService {
       )
     );
 
+    // Add to open documents if not already there
     if (!documents.some(d => d.id === element.id)) {
       this.openDocuments.set([...documents, element]);
+    }
 
-      // Add to tabs
+    // Determine the tab type based on element type
+    let tabType: 'document' | 'folder' | 'worldbuilding' = 'document';
+    if (element.type === ProjectElementDto.TypeEnum.Folder) {
+      tabType = 'folder';
+    } else if (element.type === ProjectElementDto.TypeEnum.Item) {
+      // ITEM is always a document
+      tabType = 'document';
+    } else {
+      // All other types (built-in worldbuilding or custom templates) are worldbuilding
+      tabType = 'worldbuilding';
+    }
+
+    // Always ensure the tab exists (create if missing)
+    if (!tabs.some(t => t.id === element.id)) {
       const newTab: AppTab = {
         id: element.id,
         name: element.name,
-        type: element.type === 'FOLDER' ? 'folder' : 'document',
+        type: tabType,
         element: element,
+        elementType: element.type,
       };
 
-      if (!tabs.some(t => t.id === element.id)) {
-        this.openTabs.set([...tabs, newTab]);
+      this.openTabs.set([...tabs, newTab]);
+      this.logger.debug(
+        'ProjectState',
+        `Created new tab for "${element.name}" (type: ${tabType})`
+      );
+
+      // Initialize worldbuilding data if needed
+      if (tabType === 'worldbuilding') {
+        void this.initializeWorldbuildingForElement(element);
+
+        // Cache icon for custom types
+        if (element.type.startsWith('CUSTOM_') && project) {
+          void this.worldbuildingService
+            .getIconForType(element.type, project.username, project.slug)
+            .then(icon => {
+              // Update element metadata with the icon
+              const updatedElement = { ...element };
+              updatedElement.metadata = { ...element.metadata, icon };
+
+              // Update the tab's element reference
+              const currentTabs = this.openTabs();
+              const tabIndex = currentTabs.findIndex(t => t.id === element.id);
+              if (tabIndex !== -1) {
+                currentTabs[tabIndex].element = updatedElement;
+                this.openTabs.set([...currentTabs]);
+              }
+            })
+            .catch(err => {
+              console.warn(`Failed to load icon for ${element.type}:`, err);
+            });
+        }
       }
 
       // Save updated opened documents to cache
@@ -818,16 +931,28 @@ export class ProjectStateService {
         'ProjectState',
         `Document tab "${element.name}" selected at index ${index + 1} (zero-based index: ${index})`
       );
+    } else {
+      this.logger.error(
+        'ProjectState',
+        `Failed to find tab for element "${element.name}" after creation`
+      );
     }
   }
 
   /**
-   * Opens a system tab like documents list or project files
+   * Opens a system tab like documents list, project files, or templates
    */
-  openSystemTab(type: 'documents-list' | 'project-files'): void {
+  openSystemTab(
+    type: 'documents-list' | 'project-files' | 'templates-list'
+  ): void {
     const tabs = this.openTabs();
     const tabId = `system-${type}`;
-    const tabName = type === 'documents-list' ? 'Documents' : 'Files';
+    const tabName =
+      type === 'documents-list'
+        ? 'Documents'
+        : type === 'project-files'
+          ? 'Files'
+          : 'Templates';
 
     if (!tabs.some(t => t.id === tabId)) {
       const newTab: AppTab = {
@@ -932,6 +1057,20 @@ export class ProjectStateService {
     if (!project || !project.username || !project.slug) return;
 
     const cacheKey = `${project.username}/${project.slug}/documents`;
+    const tabsCacheKey = `${cacheKey}/tabs`;
+
+    // CRITICAL DEBUG: Log what we're saving and where
+    const tabsToSave = this.openTabs();
+    this.logger.info(
+      'ProjectState',
+      `💾 Saving ${tabsToSave.length} tabs to cache key: "${tabsCacheKey}"`,
+      {
+        projectId: project.id,
+        username: project.username,
+        slug: project.slug,
+        tabs: tabsToSave.map(t => ({ name: t.name, id: t.id, type: t.type })),
+      }
+    );
 
     try {
       const db = await this.documentCacheDb;
@@ -948,14 +1087,13 @@ export class ProjectStateService {
       await this.storageService.put(
         db,
         'openedDocuments',
-        this.openTabs(),
-        `${cacheKey}/tabs`
+        tabsToSave,
+        tabsCacheKey
       );
 
-      this.logger.debug(
+      this.logger.info(
         'ProjectState',
-        'Opened documents and tabs saved to cache',
-        cacheKey
+        `✅ Successfully saved tabs to cache: "${tabsCacheKey}"`
       );
     } catch (error) {
       this.logger.error(
@@ -973,6 +1111,18 @@ export class ProjectStateService {
     if (!project || !project.username || !project.slug) return;
 
     const cacheKey = `${project.username}/${project.slug}/documents`;
+    const tabsCacheKey = `${cacheKey}/tabs`;
+
+    // CRITICAL DEBUG: Log the exact cache key we're using
+    this.logger.info(
+      'ProjectState',
+      `🔍 Restoring tabs from cache key: "${tabsCacheKey}"`,
+      {
+        projectId: project.id,
+        username: project.username,
+        slug: project.slug,
+      }
+    );
 
     try {
       const db = await this.documentCacheDb;
@@ -981,11 +1131,15 @@ export class ProjectStateService {
       const tabs = await this.storageService.get<AppTab[]>(
         db,
         'openedDocuments',
-        `${cacheKey}/tabs`
+        tabsCacheKey
       );
 
       if (tabs && tabs.length > 0) {
-        this.logger.debug('ProjectState', 'Restoring tabs from cache', tabs);
+        this.logger.info(
+          'ProjectState',
+          `✅ Found ${tabs.length} cached tabs:`,
+          tabs.map(t => ({ name: t.name, id: t.id, type: t.type }))
+        );
 
         // Validate document tabs still exist in project
         const currentElements = this.elements();
@@ -1047,6 +1201,11 @@ export class ProjectStateService {
               t => t.systemType === 'project-files'
             );
             selectedIndex = selectedIndex !== -1 ? selectedIndex : 0;
+          } else if (lastSegment === 'templates') {
+            selectedIndex = validTabs.findIndex(
+              t => t.systemType === 'templates-list'
+            );
+            selectedIndex = selectedIndex !== -1 ? selectedIndex : 0;
           } else if (lastSegment.match(/^[a-f0-9-]+$/)) {
             // If URL has a document ID, find and select that document tab
             const potentialDocId = lastSegment;
@@ -1071,32 +1230,7 @@ export class ProjectStateService {
       );
 
       if (documents && documents.length > 0) {
-        // Validate that all documents still exist in the current project
-        const currentElements = this.elements();
-        const validDocuments = documents.filter(doc =>
-          currentElements.some(element => element.id === doc.id)
-        );
-
-        if (validDocuments.length > 0) {
-          this.openDocuments.set(validDocuments);
-
-          // Convert to tabs
-          const tabs: AppTab[] = validDocuments.map(doc => ({
-            id: doc.id,
-            name: doc.name,
-            type: doc.type === 'FOLDER' ? 'folder' : 'document',
-            element: doc,
-          }));
-          this.openTabs.set(tabs);
-
-          // Set the first document as selected
-          this.selectedTabIndex.set(Math.min(1, validDocuments.length));
-          this.logger.info(
-            'ProjectState',
-            'Opened documents restored from cache',
-            { documentsCount: validDocuments.length }
-          );
-        }
+        this.openDocuments.set(documents);
       }
     } catch (error) {
       this.logger.error(
@@ -1107,11 +1241,33 @@ export class ProjectStateService {
     }
   }
 
+  // Worldbuilding initialization
+  private async initializeWorldbuildingForElement(
+    element: ProjectElementDto
+  ): Promise<void> {
+    if (element.id) {
+      await this.worldbuildingService.initializeWorldbuildingElement(element);
+    }
+  }
+
   // Dialog Handlers
   showNewElementDialog(parentElement?: ProjectElementDto): void {
     void this.dialogGateway.openNewElementDialog().then(result => {
       if (result) {
-        void this.addElement(result.type, result.name, parentElement?.id);
+        const newElementId = this.addElement(
+          result.type,
+          result.name,
+          parentElement?.id
+        );
+
+        // Automatically open the newly created element
+        if (newElementId) {
+          const elements = this.elements();
+          const newElement = elements.find(e => e.id === newElementId);
+          if (newElement) {
+            this.openDocument(newElement);
+          }
+        }
       }
     });
   }
@@ -1165,7 +1321,47 @@ export class ProjectStateService {
 
     const elementsArray = this.doc.getArray<ProjectElementDto>('elements');
     elementsArray.observe(() => {
-      this.elements.set(elementsArray.toArray());
+      const elements = elementsArray.toArray();
+      this.elements.set(elements);
+
+      // Enrich custom type elements with icons from schema library
+      void this.enrichElementsWithIcons(elements);
     });
+  }
+
+  /**
+   * Enrich elements with custom type icons from the schema library
+   */
+  private async enrichElementsWithIcons(
+    elements: ProjectElementDto[]
+  ): Promise<void> {
+    const project = this.project();
+    if (!project) return;
+
+    // Find all custom type elements that need icons
+    const customElements = elements.filter(
+      el => el.type.startsWith('CUSTOM_') && !el.metadata?.['icon']
+    );
+
+    if (customElements.length === 0) return;
+
+    // Fetch icons for all custom types
+    for (const element of customElements) {
+      try {
+        const icon = await this.worldbuildingService.getIconForType(
+          element.type,
+          project.username,
+          project.slug
+        );
+
+        // Update element metadata
+        element.metadata = { ...element.metadata, icon };
+      } catch (err) {
+        console.warn(`Failed to load icon for ${element.type}:`, err);
+      }
+    }
+
+    // Trigger update
+    this.elements.set([...elements]);
   }
 }

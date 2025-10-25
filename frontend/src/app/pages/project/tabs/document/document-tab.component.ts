@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { DocumentElementEditorComponent } from '@components/document-element-editor/document-element-editor.component';
+import { SettingsService } from '@services/settings.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -17,10 +18,10 @@ export class DocumentTabComponent {
   // Exposed to template
   protected fullDocumentId: string = '';
 
+  protected readonly settingsService = inject(SettingsService);
   // protected readonly projectState = inject(ProjectStateService);
   // protected readonly documentService = inject(DocumentService);
   // protected readonly route = inject(ActivatedRoute);
-  // protected readonly settingsService = inject(SettingsService);
   // protected readonly DocumentSyncState = DocumentSyncState;
 
   // ngOnInit(): void {
@@ -93,7 +94,7 @@ export class DocumentTabComponent {
   /**
    * Check if tabs are enabled in desktop mode
    */
-  // protected useTabsDesktop(): boolean {
-  //   return this.settingsService.getSetting<boolean>('useTabsDesktop', true);
-  // }
+  protected useTabsDesktop(): boolean {
+    return this.settingsService.getSetting<boolean>('useTabsDesktop', true);
+  }
 }

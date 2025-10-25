@@ -1,0 +1,248 @@
+{
+  "id": "character-v1",
+  "type": "CHARACTER",
+  "name": "Character",
+  "icon": "person",
+  "description": "A character in your story or world",
+  "version": 1,
+  "isBuiltIn": true,
+  "tabs": [
+    {
+      "key": "basic",
+      "label": "Basic Info",
+      "icon": "info",
+      "order": 1,
+      "fields": [
+        {
+          "key": "fullName",
+          "label": "Full Name",
+          "type": "text",
+          "placeholder": "Character's full name",
+          "validation": { "required": true },
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "age",
+          "label": "Age",
+          "type": "text",
+          "placeholder": "e.g., 35, Ancient, Young Adult",
+          "layout": { "span": 6 }
+        },
+        {
+          "key": "gender",
+          "label": "Gender",
+          "type": "text",
+          "placeholder": "e.g., Male, Female, Non-binary",
+          "layout": { "span": 6 }
+        },
+        {
+          "key": "species",
+          "label": "Species",
+          "type": "text",
+          "placeholder": "e.g., Human, Elf, Dragon",
+          "layout": { "span": 6 }
+        },
+        {
+          "key": "occupation",
+          "label": "Occupation",
+          "type": "text",
+          "placeholder": "e.g., Knight, Scholar, Merchant",
+          "layout": { "span": 6 }
+        },
+        {
+          "key": "summary",
+          "label": "Summary",
+          "type": "textarea",
+          "placeholder": "Brief character summary...",
+          "rows": 3,
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "notes",
+          "label": "Notes",
+          "type": "textarea",
+          "placeholder": "Additional notes about the character...",
+          "rows": 5,
+          "layout": { "span": 12 }
+        }
+      ]
+    },
+    {
+      "key": "appearance",
+      "label": "Appearance",
+      "icon": "visibility",
+      "order": 2,
+      "fields": [
+        {
+          "key": "appearance.height",
+          "label": "Height",
+          "type": "text",
+          "placeholder": "e.g., 6'2\", 180cm, Tall",
+          "layout": { "span": 6 }
+        },
+        {
+          "key": "appearance.weight",
+          "label": "Weight",
+          "type": "text",
+          "placeholder": "e.g., 180lbs, Athletic, Heavy",
+          "layout": { "span": 6 }
+        },
+        {
+          "key": "appearance.eyeColor",
+          "label": "Eye Color",
+          "type": "text",
+          "placeholder": "e.g., Blue, Brown, Heterochromia",
+          "layout": { "span": 6 }
+        },
+        {
+          "key": "appearance.hairColor",
+          "label": "Hair Color",
+          "type": "text",
+          "placeholder": "e.g., Black, Blonde, Silver",
+          "layout": { "span": 6 }
+        },
+        {
+          "key": "appearance.distinguishingFeatures",
+          "label": "Distinguishing Features",
+          "type": "textarea",
+          "placeholder": "Scars, tattoos, unique physical traits...",
+          "rows": 3,
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "appearance.clothing",
+          "label": "Clothing Style",
+          "type": "textarea",
+          "placeholder": "Typical clothing and style...",
+          "rows": 3,
+          "layout": { "span": 12 }
+        }
+      ]
+    },
+    {
+      "key": "personality",
+      "label": "Personality",
+      "icon": "psychology",
+      "order": 3,
+      "fields": [
+        {
+          "key": "personality.traits",
+          "label": "Personality Traits",
+          "type": "array",
+          "placeholder": "Add a trait",
+          "description": "Key personality characteristics",
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "personality.strengths",
+          "label": "Strengths",
+          "type": "array",
+          "placeholder": "Add a strength",
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "personality.weaknesses",
+          "label": "Weaknesses",
+          "type": "array",
+          "placeholder": "Add a weakness",
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "personality.fears",
+          "label": "Fears",
+          "type": "array",
+          "placeholder": "Add a fear",
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "personality.goals",
+          "label": "Goals",
+          "type": "array",
+          "placeholder": "Add a goal",
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "personality.motivations",
+          "label": "Motivations",
+          "type": "array",
+          "placeholder": "Add a motivation",
+          "layout": { "span": 12 }
+        }
+      ]
+    },
+    {
+      "key": "background",
+      "label": "Background",
+      "icon": "history_edu",
+      "order": 4,
+      "fields": [
+        {
+          "key": "background.birthplace",
+          "label": "Birthplace",
+          "type": "text",
+          "placeholder": "Where was the character born?",
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "background.family",
+          "label": "Family",
+          "type": "textarea",
+          "placeholder": "Family members, relationships...",
+          "rows": 3,
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "background.education",
+          "label": "Education",
+          "type": "textarea",
+          "placeholder": "Educational background, training...",
+          "rows": 3,
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "background.history",
+          "label": "History",
+          "type": "textarea",
+          "placeholder": "Character's backstory and important events...",
+          "rows": 6,
+          "layout": { "span": 12 }
+        }
+      ]
+    },
+    {
+      "key": "abilities",
+      "label": "Abilities",
+      "icon": "stars",
+      "order": 5,
+      "fields": [
+        {
+          "key": "abilities.skills",
+          "label": "Skills",
+          "type": "array",
+          "placeholder": "Add a skill",
+          "description": "Learned skills and proficiencies",
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "abilities.powers",
+          "label": "Powers & Magic",
+          "type": "array",
+          "placeholder": "Add a power",
+          "description": "Magical abilities, supernatural powers",
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "abilities.equipment",
+          "label": "Equipment & Items",
+          "type": "array",
+          "placeholder": "Add equipment",
+          "description": "Important items and equipment",
+          "layout": { "span": 12 }
+        }
+      ]
+    }
+  ],
+  "defaultValues": {
+    "type": "CHARACTER"
+  }
+}

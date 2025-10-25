@@ -1,0 +1,251 @@
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 500px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+
+  h3,
+  h5 {
+    margin: 0;
+  }
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  text-align: center;
+  opacity: 0.6;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 8px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+/* Tabs Editor */
+.tabs-editor {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 16px;
+  min-height: 400px;
+}
+
+.tabs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: var(--sys-surface-container-low);
+  border-radius: 8px;
+}
+
+.tab-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+
+  &.selected {
+    background: var(--sys-primary-container);
+    color: var(--sys-on-primary-container);
+  }
+
+  .drag-handle {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    cursor: grab;
+    opacity: 0.5;
+    margin: 0 4px;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  .tab-select-button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border: none;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    text-align: left;
+    min-width: 0;
+
+    &:hover {
+      background: var(--sys-surface-container-highest);
+    }
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .tab-label {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .tab-close-button {
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    flex-shrink: 0;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+.tab-editor {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background: var(--sys-surface-container-low);
+  border-radius: 8px;
+  overflow-y: auto;
+}
+
+.tab-editor-header {
+  margin-bottom: 16px;
+
+  h4 {
+    margin: 0;
+    font-size: 18px;
+  }
+}
+
+.tab-editor-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Fields Section */
+.fields-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--sys-outline-variant);
+}
+
+.fields-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-panel {
+  background: var(--sys-surface-container);
+
+  ::ng-deep .mat-expansion-panel-header {
+    padding: 12px 16px;
+  }
+
+  mat-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .drag-handle {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      cursor: grab;
+      opacity: 0.5;
+
+      &:active {
+        cursor: grabbing;
+      }
+    }
+
+    mat-icon:not(.drag-handle) {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    span {
+      flex: 1;
+    }
+
+    .field-type-chip {
+      font-size: 11px;
+      min-height: 20px;
+      padding: 0 8px;
+    }
+  }
+}
+
+.field-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+/* Dialog Actions */
+mat-dialog-actions {
+  padding: 16px 24px;
+  margin: 0;
+  border-top: 1px solid var(--sys-outline-variant);
+}
+
+/* CDK Drag Preview */
+.cdk-drag-preview {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0.9;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.4;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}

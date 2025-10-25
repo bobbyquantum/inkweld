@@ -1,0 +1,241 @@
+.templates-tab-container {
+  padding: 24px;
+  // Desktop with tabs: toolbar (48px) + tabs header (~82px) = 130px
+  height: calc(100vh - 130px);
+  overflow-y: auto;
+
+  // Mobile without tabs: only toolbar (48px) + padding (~34px) = 82px
+  @media (max-width: 759px) {
+    height: calc(100vh - 82px);
+  }
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  gap: 16px;
+
+  .loading-message {
+    color: inherit;
+    opacity: 0.7;
+  }
+}
+
+/* Error State */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  gap: 16px;
+  color: var(--error-color, #f44336);
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .error-message {
+    font-size: 16px;
+    margin: 0;
+  }
+}
+
+/* Empty State */
+.empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  text-align: center;
+  padding: 0 32px;
+
+  .empty-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    opacity: 0.4;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 400;
+    opacity: 0.87;
+  }
+
+  p {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    max-width: 500px;
+    opacity: 0.7;
+  }
+
+  .help-text {
+    font-size: 13px;
+    opacity: 0.6;
+  }
+
+  button {
+    margin-top: 16px;
+
+    .button-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      mat-spinner {
+        display: inline-block;
+      }
+    }
+  }
+}
+
+/* Header */
+.templates-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+
+  .header-content {
+    h2 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0 0 4px 0;
+      font-size: 24px;
+      font-weight: 500;
+
+      mat-icon {
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+      }
+    }
+
+    .subtitle {
+      margin: 0;
+      font-size: 14px;
+      opacity: 0.7;
+    }
+  }
+}
+
+/* Templates Grid */
+.templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+/* Template Card */
+.template-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  mat-card-header {
+    position: relative;
+
+    mat-icon[mat-card-avatar] {
+      font-size: 32px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--primary-color, #3f51b5);
+      color: white;
+      border-radius: 50%;
+    }
+
+    mat-card-title {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    mat-card-subtitle {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .template-menu-button {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+    }
+  }
+
+  mat-card-content {
+    padding-top: 12px;
+
+    .description {
+      font-size: 14px;
+      opacity: 0.7;
+      margin: 0 0 16px 0;
+      line-height: 1.5;
+    }
+
+    .template-stats {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+
+      .stat {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        opacity: 0.7;
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+          opacity: 0.7;
+        }
+      }
+    }
+  }
+
+  /* Built-in indicator */
+  &.built-in {
+    border-left: 4px solid var(--primary-color, #3f51b5);
+  }
+}
+
+/* Chips */
+.built-in-chip {
+  --mdc-chip-label-text-color: var(--primary-color, #3f51b5);
+  --mdc-chip-elevated-container-color: rgba(63, 81, 181, 0.1);
+  font-size: 11px;
+  min-height: 20px;
+  padding: 0 8px;
+}
+
+.custom-chip {
+  --mdc-chip-label-text-color: var(--accent-color, #ff4081);
+  --mdc-chip-elevated-container-color: rgba(255, 64, 129, 0.1);
+  font-size: 11px;
+  min-height: 20px;
+  padding: 0 8px;
+}

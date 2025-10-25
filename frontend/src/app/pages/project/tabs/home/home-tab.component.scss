@@ -1,9 +1,15 @@
 .home-tab-content {
   padding: 16px;
-  height: calc(100vh - 81px);
+  // Desktop with tabs: toolbar (48px) + tabs header (~82px) = 130px
+  height: calc(100vh - 130px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+
+  // Mobile without tabs: only toolbar (48px) + padding (~34px) = 82px
+  @media (max-width: 759px) {
+    height: calc(100vh - 82px);
+  }
 }
 
 .full-width-column {
@@ -44,7 +50,7 @@
 
 .cover-placeholder {
   border: 2px dashed rgba(255, 255, 255, 0.3);
-  
+
   mat-icon {
     font-size: 32px;
     width: 32px;

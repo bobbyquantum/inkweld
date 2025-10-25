@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProjectEntity } from './project.entity.js';
 import { UserEntity } from '../user/user.entity.js';
+import { SchemaService } from './schemas/schema.service.js';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -19,6 +20,7 @@ export class ProjectService {
     private readonly projectRepo: Repository<ProjectEntity>,
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
+    private readonly schemaService: SchemaService,
   ) {}
 
   async findAllForCurrentUser(userId: string): Promise<ProjectEntity[]> {
@@ -65,7 +67,26 @@ export class ProjectService {
     }
     // Assign the user relationship
     project.user = user;
-    return this.projectRepo.save(project);
+    const savedProject = await this.projectRepo.save(project);
+
+    // Initialize worldbuilding schemas for the new project
+    try {
+      await this.schemaService.initializeProjectSchemasInDB(
+        user.username,
+        project.slug,
+      );
+      this.logger.log(
+        `Initialized worldbuilding schemas for project ${user.username}/${project.slug}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to initialize schemas for project ${user.username}/${project.slug}:`,
+        error,
+      );
+      // Don't fail project creation if schema init fails
+    }
+
+    return savedProject;
   }
 
   async update(
@@ -137,14 +158,14 @@ export class ProjectService {
     for (const project of projects) {
       const projectPath = this.getProjectPath(project.user.username, project.slug);
       const size = await this.getDirectorySize(projectPath);
-      
+
       projectSizes.push({
         username: project.user.username,
         slug: project.slug,
         title: project.title,
         size,
       });
-      
+
       totalSize += size;
     }
 
@@ -160,17 +181,17 @@ export class ProjectService {
     }
 
     let size = 0;
-    
+
     try {
       const stat = await fs.promises.stat(dirPath);
-      
+
       if (stat.isFile()) {
         return stat.size;
       }
-      
+
       if (stat.isDirectory()) {
         const items = await fs.promises.readdir(dirPath);
-        
+
         for (const item of items) {
           const itemPath = path.join(dirPath, item);
           size += await this.getDirectorySize(itemPath);
@@ -179,17 +200,17 @@ export class ProjectService {
     } catch (error) {
       this.logger.warn(`Error calculating size for ${dirPath}:`, error);
     }
-    
+
     return size;
   }
 
   formatBytes(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }

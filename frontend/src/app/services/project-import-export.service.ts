@@ -219,7 +219,13 @@ export class ProjectImportExportService {
    */
   private async createProjectArchive(): Promise<ProjectArchive> {
     const currentProject = this.projectStateService.project()!; // Assume project exists as exportProject and exportProjectZip check for it
-    const elements = this.projectStateService.elements();
+    const allElements = this.projectStateService.elements();
+    // Only export FOLDER and ITEM types, exclude worldbuilding elements
+    const elements = allElements.filter(
+      elem =>
+        elem.type === ProjectElementDto.TypeEnum.Folder ||
+        elem.type === ProjectElementDto.TypeEnum.Item
+    );
 
     const archive: ProjectArchive = {
       version: CURRENT_ARCHIVE_VERSION,
@@ -232,7 +238,7 @@ export class ProjectImportExportService {
       elements: elements.map(elem => ({
         id: elem.id,
         name: elem.name,
-        type: elem.type,
+        type: elem.type as 'FOLDER' | 'ITEM',
         position: elem.position,
         level: elem.level,
         version: elem.version,

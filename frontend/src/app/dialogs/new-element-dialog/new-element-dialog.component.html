@@ -1,38 +1,161 @@
-<h2 mat-dialog-title>New Element</h2>
+@if (currentStep() === 1) {
+  <!-- Step 1: Choose Type -->
+  <h2 mat-dialog-title>Choose Element Type</h2>
 
-<form [formGroup]="form" (ngSubmit)="onCreate()">
-  <mat-dialog-content>
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Name</mat-label>
-      <input matInput [formControl]="$any(form.controls.name)" required />
-      @if (form.controls.name.errors?.['required']) {
-        <mat-error> Name is required </mat-error>
-      }
+  <mat-dialog-content class="type-selection-content">
+    <!-- Search Field -->
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Search element types...</mat-label>
+      <input
+        matInput
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="searchQuery.set($event)"
+        placeholder="e.g., character, location, map..." />
+      <mat-icon matSuffix>search</mat-icon>
     </mat-form-field>
 
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Type</mat-label>
-      <mat-select [formControl]="$any(form.controls.type)" required>
-        @for (type of elementTypes; track type) {
-          <mat-option [value]="type">
-            {{ type }}
-          </mat-option>
-        }
-      </mat-select>
-      @if (form.controls.type.errors?.['required']) {
-        <mat-error> Type is required </mat-error>
-      }
-    </mat-form-field>
+    <!-- Document Types Section -->
+    @if (documentOptions().length > 0) {
+      <div class="category-section">
+        <h3 class="category-title">
+          <mat-icon>folder_open</mat-icon>
+          Documents & Organization
+        </h3>
+        <div class="type-grid">
+          @for (option of documentOptions(); track option.type) {
+            <mat-card
+              class="type-card"
+              [class.selected]="selectedType() === option.type"
+              (click)="selectType(option.type)">
+              <mat-icon
+                class="type-icon"
+                [style.color]="
+                  option.category === 'document' ? '#4CAF50' : '#2196F3'
+                ">
+                {{ option.icon }}
+              </mat-icon>
+              <h4 class="type-label">{{ option.label }}</h4>
+              <p class="type-description">{{ option.description }}</p>
+            </mat-card>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Worldbuilding Types Section -->
+    @if (worldbuildingOptions().length > 0) {
+      <div class="category-section">
+        <h3 class="category-title">
+          <mat-icon>language</mat-icon>
+          Worldbuilding Elements
+        </h3>
+        <div class="type-grid">
+          @for (option of worldbuildingOptions(); track option.type) {
+            <mat-card
+              class="type-card"
+              [class.selected]="selectedType() === option.type"
+              (click)="selectType(option.type)">
+              <mat-icon class="type-icon" [style.color]="'#9C27B0'">
+                {{ option.icon }}
+              </mat-icon>
+              <h4 class="type-label">{{ option.label }}</h4>
+              <p class="type-description">{{ option.description }}</p>
+            </mat-card>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- No Results Message -->
+    @if (filteredOptions().length === 0) {
+      <div class="no-results">
+        <mat-icon>search_off</mat-icon>
+        <p>No element types match your search.</p>
+      </div>
+    }
   </mat-dialog-content>
 
   <mat-dialog-actions align="end">
     <button mat-button type="button" (click)="onCancel()">Cancel</button>
-    <button
-      mat-raised-button
-      color="primary"
-      type="submit"
-      [disabled]="!form.valid">
-      Create
-    </button>
   </mat-dialog-actions>
-</form>
+} @else {
+  <!-- Step 2: Enter Name -->
+  <h2 mat-dialog-title>
+    <button
+      mat-icon-button
+      (click)="previousStep()"
+      matTooltip="Back to type selection">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    New {{ getSelectedOption()?.label }}
+  </h2>
+
+  <form [formGroup]="form" (ngSubmit)="onCreate()">
+    <mat-dialog-content class="name-content">
+      <!-- Show selected type info -->
+      <div class="selected-type-info">
+        <mat-icon
+          class="type-icon-large"
+          [style.color]="
+            getSelectedOption()?.category === 'document'
+              ? '#4CAF50'
+              : getSelectedOption()?.category === 'worldbuilding'
+                ? '#9C27B0'
+                : '#2196F3'
+          ">
+          {{ getSelectedOption()?.icon }}
+        </mat-icon>
+        <p class="type-description">{{ getSelectedOption()?.description }}</p>
+      </div>
+
+      <!-- Name Input -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>{{ getSelectedOption()?.label }} Name</mat-label>
+        <input
+          matInput
+          [formControl]="$any(form.controls.name)"
+          required
+          [placeholder]="
+            getSelectedOption()?.type === 'CHARACTER'
+              ? 'e.g., Aragorn, Hermione Granger'
+              : getSelectedOption()?.type === 'LOCATION'
+                ? 'e.g., Rivendell, Kings Landing'
+                : getSelectedOption()?.type === 'WB_ITEM'
+                  ? 'e.g., Excalibur, Elder Wand'
+                  : getSelectedOption()?.type === 'MAP'
+                    ? 'e.g., Middle Earth Map, City Layout'
+                    : getSelectedOption()?.type === 'RELATIONSHIP'
+                      ? 'e.g., Frodo & Sam, Romeo & Juliet'
+                      : getSelectedOption()?.type === 'PHILOSOPHY'
+                        ? 'e.g., The Force, Stoicism'
+                        : getSelectedOption()?.type === 'CULTURE'
+                          ? 'e.g., Elvish Culture, Viking Society'
+                          : getSelectedOption()?.type === 'SPECIES'
+                            ? 'e.g., Dragons, Time Lords'
+                            : getSelectedOption()?.type === 'SYSTEMS'
+                              ? 'e.g., Magic System, FTL Travel'
+                              : getSelectedOption()?.type === 'FOLDER'
+                                ? 'e.g., Act 1, Characters, Research'
+                                : 'e.g., Chapter 1, Prologue'
+          " />
+        @if (form.controls.name.errors?.['required']) {
+          <mat-error>Name is required</mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Optional: Tags or initial metadata could go here -->
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button type="button" (click)="previousStep()">Back</button>
+      <button mat-button type="button" (click)="onCancel()">Cancel</button>
+      <button
+        mat-raised-button
+        color="primary"
+        type="submit"
+        [disabled]="!form.valid">
+        Create {{ getSelectedOption()?.label }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+}

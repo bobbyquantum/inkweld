@@ -1,4 +1,3 @@
-
 .tab-interface-container {
   width: 100%;
   position: relative;
@@ -7,14 +6,14 @@
 .tab-nav-bar {
   background-color: var(--sys-surface-container);
   width: 100%;
-  overflow-x: auto;  // Allow scrolling for many tabs
+  overflow-x: auto; // Allow scrolling for many tabs
 
   // Hide scrollbar but allow scrolling
   &::-webkit-scrollbar {
     display: none;
   }
-  -ms-overflow-style: none;  // IE and Edge
-  scrollbar-width: none;  // Firefox
+  -ms-overflow-style: none; // IE and Edge
+  scrollbar-width: none; // Firefox
 }
 
 // Tab label styling
@@ -22,16 +21,16 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  max-width: 260px;  // Increased max-width
-  width: 100%;  // Take up available space
-  position: relative;  // For absolute positioning of close button
+  max-width: 260px; // Increased max-width
+  width: 100%; // Take up available space
+  position: relative; // For absolute positioning of close button
 
   // Text content styling
   span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    flex-grow: 1;  // Allow text to take available space
+    flex-grow: 1; // Allow text to take available space
   }
 
   // Icon styling for different tab types
@@ -137,10 +136,15 @@
 mat-tab-nav-panel {
   height: calc(100% - 48px);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 router-outlet + * {
-  display: block;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   overflow: hidden;
+  flex: 1;
+  min-height: 0;
 }

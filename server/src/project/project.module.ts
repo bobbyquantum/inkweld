@@ -23,6 +23,7 @@ import { ProjectPublishEpubService } from './epub/project-publish-epub.service.j
 import { ProjectPublishEpubController } from './epub/project-publish-epub.controller.js';
 import { CoverController } from './cover/cover.controller.js';
 import { StorageModule } from '../common/storage/storage.module.js';
+import { SchemaModule } from './schemas/schema.module.js';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { StorageModule } from '../common/storage/storage.module.js';
     UserModule,
     ConfigModule,
     StorageModule.register(),
+    SchemaModule,
   ],
   controllers: [
     ProjectController,

@@ -48,7 +48,18 @@ export class BookshelfComponent
 
   protected activeCardIndex = signal(-1);
 
+  // Set up effect in constructor (injection context)
+  constructor() {
+    this.projectsEffectRef = effect(() => {
+      // Access projects to track changes
+      void this._projects;
+      // Just set the flag; actual recalculation will happen in ngAfterViewChecked
+      this.needsRecalculation = true;
+    });
+  }
+
   private recentlyDragged = false;
+  private recentlyScrolled = false;
   private dragTargetIndex = -1;
   private dragStartActiveIndex = -1;
   private wheelHandler = (e: WheelEvent) => this.handleWheel(e);
@@ -456,35 +467,82 @@ export class BookshelfComponent
       });
 
       if (this.projects.length > 0) {
-        this.scrollToCard(0);
+        // Always start at index 0 (first project)
+        // Don't try to restore position - it causes navigation issues
+        const initialIndex = 0;
+
+        console.log(
+          '[Bookshelf] Initializing at index:',
+          initialIndex,
+          'projects count:',
+          this.projects.length
+        );
+
+        this.scrollToCard(initialIndex);
 
         setTimeout(() => {
           gridElement.classList.add('initialized');
         }, 200);
       }
     }, 100);
-    // Set up effect to react to changes in projects signal
-    this.projectsEffectRef = effect(() => {
-      // Just set the flag; actual recalculation will happen in ngAfterViewChecked
-      this.needsRecalculation = true;
-    });
   }
 
   selectProject(project: ProjectDto) {
+    console.log('[Bookshelf] selectProject called');
+    console.log('[Bookshelf] recentlyDragged:', this.recentlyDragged);
+    console.log('[Bookshelf] recentlyScrolled:', this.recentlyScrolled);
+
     if (this.recentlyDragged) {
+      console.log('[Bookshelf] Ignoring click - recently dragged');
+      return;
+    }
+
+    if (this.recentlyScrolled) {
+      console.log('[Bookshelf] Ignoring click - recently scrolled');
       return;
     }
 
     // Find the index of the clicked project
     const clickedIndex = this.projects.findIndex(p => p.slug === project.slug);
+    const currentActiveIndex = this.activeCardIndex();
+
+    console.log('[Bookshelf] Project clicked:', {
+      clickedProject: {
+        username: project.username,
+        slug: project.slug,
+        title: project.title,
+      },
+      clickedIndex,
+      currentActiveIndex,
+      allProjects: this.projects.map(p => ({
+        username: p.username,
+        slug: p.slug,
+        title: p.title,
+      })),
+    });
 
     // If the clicked card isn't the active one, ONLY scroll to it first
-    if (clickedIndex !== -1 && clickedIndex !== this.activeCardIndex()) {
+    if (clickedIndex !== -1 && clickedIndex !== currentActiveIndex) {
+      console.log('[Bookshelf] Scrolling to card index:', clickedIndex);
+
+      // Set flag to prevent immediate re-clicks during scroll
+      this.recentlyScrolled = true;
+      setTimeout(() => {
+        this.recentlyScrolled = false;
+        console.log('[Bookshelf] Scroll cooldown complete, clicks enabled');
+      }, 600); // Longer timeout to account for smooth scroll animation
+
       this.scrollToCard(clickedIndex);
       // DO NOT navigate - just visually center the card
+      // DO NOT save the index yet - wait until actual navigation
     } else {
       // If it's already the active card, THEN emit the selection for navigation
-      console.log('Navigating to project:', project);
+      console.log('[Bookshelf] Emitting projectSelected event for:', {
+        username: project.username,
+        slug: project.slug,
+        title: project.title,
+      });
+
       this.projectSelected.emit(project);
     }
   }

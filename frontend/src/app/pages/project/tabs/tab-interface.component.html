@@ -29,17 +29,7 @@
         (contextmenu)="onTabContextMenu(i + 1, tab)"
         tabindex="0">
         <div class="tab-label">
-          <mat-icon class="tab-icon">
-            {{
-              tab.type === 'system'
-                ? tab.systemType === 'documents-list'
-                  ? 'description'
-                  : 'folder_special'
-                : tab.type === 'folder'
-                  ? 'folder'
-                  : 'insert_drive_file'
-            }}
-          </mat-icon>
+          <mat-icon class="tab-icon">{{ getTabIcon(tab) }}</mat-icon>
           <span class="tab-name">{{ tab.name }}</span>
           <button
             mat-icon-button

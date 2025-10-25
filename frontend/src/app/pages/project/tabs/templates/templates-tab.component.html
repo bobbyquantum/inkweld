@@ -1,0 +1,146 @@
+<div class="templates-tab-container">
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Loading templates...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-container">
+      <mat-icon>error_outline</mat-icon>
+      <p class="error-message">{{ error() }}</p>
+      <button mat-raised-button color="primary" (click)="refresh()">
+        <mat-icon>refresh</mat-icon>
+        Retry
+      </button>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!isLoading() && !error() && !hasTemplates()) {
+    <div class="empty-container">
+      <mat-icon class="empty-icon">description</mat-icon>
+      <h3>No Templates Found</h3>
+      <p>
+        This project doesn't have any worldbuilding templates configured yet.
+      </p>
+      <p class="help-text">
+        Templates define the structure for worldbuilding elements like
+        characters, locations, and more.
+      </p>
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="loadDefaultTemplates()"
+        [disabled]="isLoadingDefaults()">
+        @if (isLoadingDefaults()) {
+          <span class="button-content">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span>Loading...</span>
+          </span>
+        } @else {
+          <span class="button-content">
+            <mat-icon>download</mat-icon>
+            <span>Load Default Templates</span>
+          </span>
+        }
+      </button>
+    </div>
+  }
+
+  <!-- Templates List -->
+  @if (!isLoading() && !error() && hasTemplates()) {
+    <div class="templates-header">
+      <div class="header-content">
+        <h2>
+          <mat-icon>description</mat-icon>
+          Worldbuilding Templates
+        </h2>
+        <p class="subtitle">
+          {{ templates().length }} template{{
+            templates().length === 1 ? '' : 's'
+          }}
+          available
+        </p>
+      </div>
+      <button
+        mat-icon-button
+        (click)="refresh()"
+        matTooltip="Refresh templates">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+
+    <div class="templates-grid">
+      @for (template of templates(); track template.type) {
+        <mat-card class="template-card" [class.built-in]="template.isBuiltIn">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>{{ template.icon }}</mat-icon>
+            <mat-card-title>{{ template.label }}</mat-card-title>
+            <mat-card-subtitle>
+              @if (template.isBuiltIn) {
+                <mat-chip class="built-in-chip">Built-in</mat-chip>
+              } @else {
+                <mat-chip class="custom-chip">Custom</mat-chip>
+              }
+            </mat-card-subtitle>
+
+            <!-- Actions menu -->
+            <button
+              mat-icon-button
+              [matMenuTriggerFor]="templateMenu"
+              class="template-menu-button"
+              aria-label="Template actions">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+
+            <mat-menu #templateMenu="matMenu">
+              @if (!template.isBuiltIn) {
+                <button mat-menu-item (click)="editTemplate(template)">
+                  <mat-icon>edit</mat-icon>
+                  <span>Edit</span>
+                </button>
+              }
+              <button mat-menu-item (click)="cloneTemplate(template)">
+                <mat-icon>content_copy</mat-icon>
+                <span>Clone</span>
+              </button>
+              @if (!template.isBuiltIn) {
+                <button mat-menu-item (click)="deleteTemplate(template)">
+                  <mat-icon>delete</mat-icon>
+                  <span>Delete</span>
+                </button>
+              }
+            </mat-menu>
+          </mat-card-header>
+
+          <mat-card-content>
+            @if (template.description) {
+              <p class="description">{{ template.description }}</p>
+            }
+
+            <div class="template-stats">
+              <div class="stat">
+                <mat-icon>tab</mat-icon>
+                <span
+                  >{{ template.tabCount }}
+                  {{ template.tabCount === 1 ? 'tab' : 'tabs' }}</span
+                >
+              </div>
+              <div class="stat">
+                <mat-icon>input</mat-icon>
+                <span
+                  >{{ template.fieldCount }}
+                  {{ template.fieldCount === 1 ? 'field' : 'fields' }}</span
+                >
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  }
+</div>
