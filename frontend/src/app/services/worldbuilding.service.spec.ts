@@ -532,9 +532,9 @@ describe('WorldbuildingService', () => {
 
       // Mock setupCollaboration to return dataMap and set up connection
       vi.spyOn(service, 'setupCollaboration').mockImplementation(
-        async (elementId: string) => {
+        (elementId: string) => {
           (service as any).connections.set(elementId, mockConnection);
-          return mockDataMap;
+          return Promise.resolve(mockDataMap);
         }
       );
 
@@ -579,9 +579,9 @@ describe('WorldbuildingService', () => {
 
       // Mock setupCollaboration to return dataMap with type already set
       vi.spyOn(service, 'setupCollaboration').mockImplementation(
-        async (elementId: string) => {
+        (elementId: string) => {
           (service as any).connections.set(elementId, mockConnection);
-          return mockDataMap;
+          return Promise.resolve(mockDataMap);
         }
       );
 
