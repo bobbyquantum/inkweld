@@ -6,6 +6,8 @@ import { ProjectEntity } from './project.entity.js';
 import { UserEntity } from '../user/user.entity.js';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, jest, spyOn } from 'bun:test';
+import { SchemaService } from './schemas/schema.service.js';
+
 describe('ProjectService', () => {
   let service: ProjectService;
   let projectRepository: Repository<ProjectEntity>;
@@ -19,6 +21,7 @@ describe('ProjectService', () => {
     name: 'Test User',
     email: 'test@example.com',
     enabled: true,
+    approved: true,
   };
 
   const mockProject: ProjectEntity = {
@@ -49,6 +52,17 @@ describe('ProjectService', () => {
           provide: getRepositoryToken(UserEntity),
           useValue: {
             findOne: jest.fn(),
+          },
+        },
+        {
+          provide: SchemaService,
+          useValue: {
+            initializeProjectSchemas: jest.fn(),
+            initializeProjectSchemasInDB: jest.fn(),
+            getProjectSchemaLibrary: jest.fn(),
+            getSchemaFromLibrary: jest.fn(),
+            saveSchemaToLibrary: jest.fn(),
+            deleteSchemaFromLibrary: jest.fn(),
           },
         },
       ],

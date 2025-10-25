@@ -242,7 +242,7 @@ describe('SchemaService', () => {
         username,
         slug,
       );
-      expect(mockDb.getYDoc).toHaveBeenCalledWith('__schemas__');
+      expect(mockDb.getYDoc).toHaveBeenCalledWith('testuser:test-project:__schemas__');
       expect(mockDb.storeUpdate).toHaveBeenCalled();
     });
 
