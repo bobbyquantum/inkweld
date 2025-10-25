@@ -99,7 +99,9 @@ describe('DialogGatewayService', () => {
 
     expect(dialogMock.open).toHaveBeenCalledWith(NewElementDialogComponent, {
       disableClose: true,
-      width: '400px',
+      width: '800px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
     });
     expect(result).toEqual(dialogResult);
   });

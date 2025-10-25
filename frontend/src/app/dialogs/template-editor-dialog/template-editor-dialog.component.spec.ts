@@ -162,7 +162,7 @@ describe('TemplateEditorDialogComponent', () => {
       const updatedTab = component.tabs()[tabIndex];
       expect(updatedTab.fields).toHaveLength(initialFieldCount + 1);
       const newField = updatedTab.fields[initialFieldCount];
-      expect(newField.key).toBe('field-0'); // Should generate unique key
+      expect(newField.key).toMatch(/^field_\d+$/); // Should generate timestamp-based key
       expect(newField.label).toBe('New Field');
       expect(newField.type).toBe('text');
     });

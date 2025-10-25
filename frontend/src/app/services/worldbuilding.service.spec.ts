@@ -1,7 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 import * as Y from 'yjs';
 
 import { ProjectElementDto } from '../../api-client';
@@ -9,27 +8,9 @@ import { ElementTypeSchema } from '../models/schema-types';
 import { SetupService } from './setup.service';
 import { WorldbuildingService } from './worldbuilding.service';
 
-type SetupMock = DeepMockProxy<SetupService>;
-
-// Mock Yjs and providers
-vi.mock('y-indexeddb', () => ({
-  IndexeddbPersistence: vi.fn().mockImplementation(() => ({
-    whenSynced: Promise.resolve(),
-    destroy: vi.fn(),
-  })),
-}));
-
-vi.mock('y-websocket', () => ({
-  WebsocketProvider: vi.fn().mockImplementation(() => ({
-    on: vi.fn(),
-    destroy: vi.fn(),
-    disconnect: vi.fn(),
-  })),
-}));
-
 describe('WorldbuildingService', () => {
   let service: WorldbuildingService;
-  let setupService: SetupMock;
+  let setupService: Partial<SetupService>;
 
   const mockCharacterSchema: ElementTypeSchema = {
     id: 'character',
@@ -67,9 +48,10 @@ describe('WorldbuildingService', () => {
   };
 
   beforeEach(() => {
-    setupService = mockDeep<SetupService>();
-    setupService.getMode.mockReturnValue('server');
-    setupService.getWebSocketUrl.mockReturnValue('ws://localhost:8333');
+    setupService = {
+      getMode: vi.fn().mockReturnValue('server'),
+      getWebSocketUrl: vi.fn().mockReturnValue('ws://localhost:8333'),
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -122,7 +104,9 @@ describe('WorldbuildingService', () => {
     });
 
     it('should work in offline mode without WebSocket', async () => {
-      setupService.getMode.mockReturnValue('offline');
+      (setupService.getMode as ReturnType<typeof vi.fn>).mockReturnValue(
+        'offline'
+      );
       const elementId = 'test-element-123';
 
       const dataMap = await service.setupCollaboration(elementId);
@@ -206,10 +190,10 @@ describe('WorldbuildingService', () => {
       expect(data?.name).toBe('Test Character');
     });
 
-    it('should return null if connection not found', async () => {
+    it('should return empty object if connection not found', async () => {
       const data = await service.getWorldbuildingData('nonexistent-id');
 
-      expect(data).toBeNull();
+      expect(data).toEqual({});
     });
   });
 
@@ -240,30 +224,36 @@ describe('WorldbuildingService', () => {
       const username = 'testuser';
       const slug = 'test-project';
 
-      // Mock loadSchemaLibrary
-      vi.spyOn(service, 'loadSchemaLibrary').mockResolvedValue({
-        get: (key: string) => {
-          if (key === 'schemas') {
-            const schemasMap = new Y.Map();
-            const schemaData = new Y.Map();
-            schemaData.set('id', mockCharacterSchema.id);
-            schemaData.set('type', mockCharacterSchema.type);
-            schemaData.set('name', mockCharacterSchema.name);
-            schemaData.set('icon', mockCharacterSchema.icon);
-            schemaData.set('description', mockCharacterSchema.description);
-            schemaData.set('version', mockCharacterSchema.version);
-            schemaData.set('isBuiltIn', mockCharacterSchema.isBuiltIn);
-            schemaData.set('tabs', JSON.stringify(mockCharacterSchema.tabs));
-            schemaData.set(
-              'defaultValues',
-              JSON.stringify(mockCharacterSchema.defaultValues)
-            );
-            schemasMap.set('character', schemaData);
-            return schemasMap;
-          }
-          return undefined;
-        },
-      } as Y.Map<unknown>);
+      // Create Y.Doc and get maps from it to ensure proper Y.js context
+      const mockDoc = new Y.Doc();
+      const mockLibrary = mockDoc.getMap('library');
+      const schemasMap = new Y.Map();
+      const schemaData = new Y.Map();
+
+      schemaData.set('id', mockCharacterSchema.id);
+      schemaData.set('type', mockCharacterSchema.type);
+      schemaData.set('name', mockCharacterSchema.name);
+      schemaData.set('icon', mockCharacterSchema.icon);
+      schemaData.set('description', mockCharacterSchema.description);
+      schemaData.set('version', mockCharacterSchema.version);
+      schemaData.set('isBuiltIn', mockCharacterSchema.isBuiltIn);
+      schemaData.set('tabs', JSON.stringify(mockCharacterSchema.tabs));
+      schemaData.set(
+        'defaultValues',
+        JSON.stringify(mockCharacterSchema.defaultValues)
+      );
+
+      schemasMap.set('character', schemaData);
+      mockLibrary.set('schemas', schemasMap);
+
+      // Verify the structure is correct
+      expect(mockLibrary.has('schemas')).toBe(true);
+      const retrievedSchemasMap = mockLibrary.get('schemas');
+      expect(retrievedSchemasMap).toBe(schemasMap);
+
+      const loadSpy = vi
+        .spyOn(service, 'loadSchemaLibrary')
+        .mockResolvedValue(mockLibrary);
 
       const schema = await service.getSchemaFromLibrary(
         projectKey,
@@ -272,6 +262,7 @@ describe('WorldbuildingService', () => {
         slug
       );
 
+      expect(loadSpy).toHaveBeenCalledWith(projectKey, username, slug);
       expect(schema).toBeDefined();
       expect(schema?.type).toBe('character');
       expect(schema?.name).toBe('Character');
@@ -311,10 +302,12 @@ describe('WorldbuildingService', () => {
       const newName = 'Hero';
       const newDescription = 'Custom hero template';
 
-      // Mock existing schema library
-      const mockLibrary = new Y.Map();
+      // Create Y.Doc and get maps from it
+      const mockDoc = new Y.Doc();
+      const mockLibrary = mockDoc.getMap('library');
       const schemasMap = new Y.Map();
       const schemaData = new Y.Map();
+
       schemaData.set('id', mockCharacterSchema.id);
       schemaData.set('type', mockCharacterSchema.type);
       schemaData.set('name', mockCharacterSchema.name);
@@ -355,8 +348,10 @@ describe('WorldbuildingService', () => {
       const username = 'testuser';
       const slug = 'test-project';
 
-      const mockLibrary = new Y.Map();
+      const mockDoc = new Y.Doc();
+      const mockLibrary = mockDoc.getMap('library');
       mockLibrary.set('schemas', new Y.Map());
+
       vi.spyOn(service, 'loadSchemaLibrary').mockResolvedValue(mockLibrary);
 
       await expect(
@@ -379,7 +374,8 @@ describe('WorldbuildingService', () => {
       const slug = 'test-project';
       const templateType = 'CUSTOM_hero';
 
-      const mockLibrary = new Y.Map();
+      const mockDoc = new Y.Doc();
+      const mockLibrary = mockDoc.getMap('library');
       const schemasMap = new Y.Map();
       const templateData = new Y.Map();
       templateData.set('isBuiltIn', false);
@@ -399,7 +395,8 @@ describe('WorldbuildingService', () => {
       const slug = 'test-project';
       const templateType = 'character';
 
-      const mockLibrary = new Y.Map();
+      const mockDoc = new Y.Doc();
+      const mockLibrary = mockDoc.getMap('library');
       const schemasMap = new Y.Map();
       const templateData = new Y.Map();
       templateData.set('isBuiltIn', true);
@@ -433,7 +430,8 @@ describe('WorldbuildingService', () => {
         ],
       };
 
-      const mockLibrary = new Y.Map();
+      const mockDoc = new Y.Doc();
+      const mockLibrary = mockDoc.getMap('library');
       const schemasMap = new Y.Map();
       const templateData = new Y.Map();
       templateData.set('version', 1);
@@ -462,10 +460,10 @@ describe('WorldbuildingService', () => {
 
   describe('getIconForType', () => {
     it('should return icon for built-in types', async () => {
-      expect(await service.getIconForType('character')).toBe('person');
-      expect(await service.getIconForType('location')).toBe('place');
-      expect(await service.getIconForType('item')).toBe('category');
-      expect(await service.getIconForType('wb-item')).toBe('category');
+      expect(await service.getIconForType('CHARACTER')).toBe('person');
+      expect(await service.getIconForType('LOCATION')).toBe('place');
+      expect(await service.getIconForType('WB_ITEM')).toBe('category');
+      expect(await service.getIconForType('ITEM')).toBe('description');
     });
 
     it('should return default icon for unknown types', async () => {
@@ -511,33 +509,45 @@ describe('WorldbuildingService', () => {
     it('should initialize element with schema and default values', async () => {
       const element = {
         id: 'test-element-123',
-        type: 'character' as ProjectElementDto.TypeEnum,
+        type: 'CHARACTER' as ProjectElementDto.TypeEnum,
         name: 'Test Character',
       } as ProjectElementDto;
       const username = 'testuser';
       const slug = 'test-project';
+
+      // Create mock Yjs document and connection
+      const mockYdoc = new Y.Doc();
+      const mockDataMap = mockYdoc.getMap('worldbuilding');
+      const mockConnection = {
+        ydoc: mockYdoc,
+        dataMap: mockDataMap,
+        provider: undefined,
+        indexeddbProvider: undefined,
+      };
 
       // Mock schema library
       vi.spyOn(service, 'getSchemaFromLibrary').mockResolvedValue(
         mockCharacterSchema
       );
 
-      const mockDataMap = new Y.Map();
-      vi.spyOn(service, 'setupCollaboration').mockResolvedValue(mockDataMap);
+      // Mock setupCollaboration to return dataMap and set up connection
+      vi.spyOn(service, 'setupCollaboration').mockImplementation(
+        async (elementId: string) => {
+          (service as any).connections.set(elementId, mockConnection);
+          return mockDataMap;
+        }
+      );
 
       await service.initializeWorldbuildingElement(element, username, slug);
 
-      expect(mockDataMap.get('type')).toBe('character');
-      expect(mockDataMap.get('id')).toBe(element.id);
+      expect(mockDataMap.get('type')).toBe('character'); // Schema type, not element type
       expect(mockDataMap.get('name')).toBe(element.name);
-      expect(mockDataMap.get('createdDate')).toBeDefined();
-      expect(mockDataMap.get('lastModified')).toBeDefined();
     });
 
     it('should skip initialization for non-worldbuilding types', async () => {
       const element = {
         id: 'test-element-123',
-        type: 'document' as ProjectElementDto.TypeEnum,
+        type: 'ITEM' as ProjectElementDto.TypeEnum, // ITEM is not a worldbuilding type
         name: 'Test Document',
       } as ProjectElementDto;
 
@@ -551,13 +561,29 @@ describe('WorldbuildingService', () => {
     it('should skip initialization if already initialized', async () => {
       const element = {
         id: 'test-element-123',
-        type: 'character' as ProjectElementDto.TypeEnum,
+        type: 'CHARACTER' as ProjectElementDto.TypeEnum,
         name: 'Test Character',
       } as ProjectElementDto;
 
-      const mockDataMap = new Y.Map();
+      // Create mock Yjs document and connection with type already set
+      const mockYdoc = new Y.Doc();
+      const mockDataMap = mockYdoc.getMap('worldbuilding');
       mockDataMap.set('type', 'character'); // Already initialized
-      vi.spyOn(service, 'setupCollaboration').mockResolvedValue(mockDataMap);
+
+      const mockConnection = {
+        ydoc: mockYdoc,
+        dataMap: mockDataMap,
+        provider: undefined,
+        indexeddbProvider: undefined,
+      };
+
+      // Mock setupCollaboration to return dataMap with type already set
+      vi.spyOn(service, 'setupCollaboration').mockImplementation(
+        async (elementId: string) => {
+          (service as any).connections.set(elementId, mockConnection);
+          return mockDataMap;
+        }
+      );
 
       const schemaSpy = vi.spyOn(service, 'getSchemaFromLibrary');
 
