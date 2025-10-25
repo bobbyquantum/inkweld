@@ -1,0 +1,184 @@
+{
+  "id": "location-v1",
+  "type": "LOCATION",
+  "name": "Location",
+  "icon": "place",
+  "description": "A place or location in your world",
+  "version": 1,
+  "isBuiltIn": true,
+  "tabs": [
+    {
+      "key": "basic",
+      "label": "Basic Info",
+      "icon": "info",
+      "order": 1,
+      "fields": [
+        {
+          "key": "name",
+          "label": "Location Name",
+          "type": "text",
+          "placeholder": "Name of the location",
+          "validation": { "required": true },
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "type",
+          "label": "Type",
+          "type": "select",
+          "placeholder": "Select location type",
+          "options": [
+            "City",
+            "Town",
+            "Village",
+            "Kingdom",
+            "Landmark",
+            "Building",
+            "Natural Feature",
+            "Other"
+          ],
+          "layout": { "span": 6 }
+        },
+        {
+          "key": "population",
+          "label": "Population",
+          "type": "text",
+          "placeholder": "e.g., 5000, Large, Uninhabited",
+          "layout": { "span": 6 }
+        },
+        {
+          "key": "climate",
+          "label": "Climate",
+          "type": "text",
+          "placeholder": "e.g., Temperate, Tropical, Arctic",
+          "layout": { "span": 6 }
+        },
+        {
+          "key": "region",
+          "label": "Region/Area",
+          "type": "text",
+          "placeholder": "What region is this in?",
+          "layout": { "span": 6 }
+        },
+        {
+          "key": "summary",
+          "label": "Summary",
+          "type": "textarea",
+          "placeholder": "Brief description of the location...",
+          "rows": 3,
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "notes",
+          "label": "Notes",
+          "type": "textarea",
+          "placeholder": "Additional notes...",
+          "rows": 5,
+          "layout": { "span": 12 }
+        }
+      ]
+    },
+    {
+      "key": "description",
+      "label": "Description",
+      "icon": "description",
+      "order": 2,
+      "fields": [
+        {
+          "key": "appearance",
+          "label": "Visual Appearance",
+          "type": "textarea",
+          "placeholder": "What does this location look like?",
+          "rows": 5,
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "landmarks",
+          "label": "Notable Landmarks",
+          "type": "array",
+          "placeholder": "Add a landmark",
+          "description": "Important features or landmarks",
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "atmosphere",
+          "label": "Atmosphere",
+          "type": "textarea",
+          "placeholder": "What does it feel like to be here?",
+          "rows": 3,
+          "layout": { "span": 12 }
+        }
+      ]
+    },
+    {
+      "key": "culture",
+      "label": "Culture & Society",
+      "icon": "groups",
+      "order": 3,
+      "fields": [
+        {
+          "key": "culture.government",
+          "label": "Government",
+          "type": "text",
+          "placeholder": "e.g., Democracy, Monarchy, Tribal",
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "culture.economy",
+          "label": "Economy",
+          "type": "textarea",
+          "placeholder": "Main industries, trade, wealth...",
+          "rows": 3,
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "culture.customs",
+          "label": "Customs & Traditions",
+          "type": "array",
+          "placeholder": "Add a custom or tradition",
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "culture.languages",
+          "label": "Languages",
+          "type": "array",
+          "placeholder": "Add a language",
+          "layout": { "span": 12 }
+        }
+      ]
+    },
+    {
+      "key": "history",
+      "label": "History",
+      "icon": "history",
+      "order": 4,
+      "fields": [
+        {
+          "key": "history.founded",
+          "label": "Founded",
+          "type": "text",
+          "placeholder": "When was this location established?",
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "history.events",
+          "label": "Major Events",
+          "type": "array",
+          "placeholder": "Add a historical event",
+          "description": "Important events in this location's history",
+          "layout": { "span": 12 }
+        },
+        {
+          "key": "history.background",
+          "label": "Background",
+          "type": "textarea",
+          "placeholder": "Historical context and background...",
+          "rows": 6,
+          "layout": { "span": 12 }
+        }
+      ]
+    }
+  ],
+  "defaultValues": {
+    "type": "LOCATION"
+  }
+}

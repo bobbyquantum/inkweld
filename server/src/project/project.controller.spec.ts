@@ -24,6 +24,8 @@ import { Repository } from 'typeorm';
 import { CoverController } from './cover/cover.controller.js';
 import { FileStorageService } from './files/file-storage.service.js';
 import { ProjectPublishEpubService } from './epub/project-publish-epub.service.js';
+import { SchemaService } from './schemas/schema.service.js';
+import { LevelDBManagerService } from '../common/persistence/leveldb-manager.service.js';
 
 const mockFsPromises = {
   mkdir: jest.fn(),
@@ -69,6 +71,7 @@ describe('ProjectController', () => {
     password: '',
     githubId: '',
     enabled: false,
+    approved: true,
   };
   const mockProject: ProjectEntity = {
     id: 'project-1',
@@ -122,6 +125,20 @@ describe('ProjectController', () => {
       publish: jest.fn(),
     };
 
+    const mockSchemaService = {
+      initializeProjectSchemas: jest.fn(),
+      initializeProjectSchemasInDB: jest.fn().mockResolvedValue(undefined),
+      getProjectSchemaLibrary: jest.fn(),
+      getSchemaFromLibrary: jest.fn(),
+      saveSchemaToLibrary: jest.fn(),
+      deleteSchemaFromLibrary: jest.fn(),
+    };
+
+    const mockLevelDBManager = {
+      getConnection: jest.fn(),
+      closeConnection: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ProjectController],
       providers: [
@@ -152,6 +169,14 @@ describe('ProjectController', () => {
         {
           provide: ProjectPublishEpubService,
           useValue: mockProjectPublishEpubService,
+        },
+        {
+          provide: SchemaService,
+          useValue: mockSchemaService,
+        },
+        {
+          provide: LevelDBManagerService,
+          useValue: mockLevelDBManager,
         },
         SessionAuthGuard,
       ],

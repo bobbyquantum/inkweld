@@ -36,11 +36,12 @@
   align-items: center;
   overflow-x: hidden;
   width: 100%;
+  // Desktop with tabs: toolbar (48px) + tabs header (~82px) + status bar (24px) + toolbar (4px padding) = 158px
   height: calc(100vh - 158px);
 
-  // Adjust height when tabs are not shown (add this class from parent component)
+  // Desktop without tabs: toolbar (48px) + status bar (24px) + padding (~38px) = 110px
   &.no-tabs {
-    height: calc(100vh - 110px);  
+    height: calc(100vh - 110px);
   }
 
   &.zen-mode-container {
@@ -187,12 +188,19 @@
 }
 
 @keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
 }
 
-// Hide editor toolbar on mobile and adjust editor height to account for project mobile toolbar (56px) and status bar (24px)
+// Hide editor toolbar on mobile and adjust editor height
+// Mobile: toolbar (48px) + status bar (24px) + padding (~26px) = 98px
 @media (max-width: 759px) {
   .editor-toolbar {
     display: none !important;
