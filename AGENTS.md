@@ -268,7 +268,22 @@ import { Request, Response } from 'express';
 ### API Client
 - Auto-generated from OpenAPI specification
 - Located in `frontend/src/api-client/`
-- Regenerate with: `cd server && bun run generate:angular-client`
+- **Regenerate**: First generate OpenAPI spec, then Angular client
+
+**Important - OpenAPI Generation**: The `generate:openapi` script doesn't terminate automatically. Use a 30-second timeout:
+
+```powershell
+# PowerShell (Windows)
+$job = Start-Job -ScriptBlock { Set-Location server; bun run generate:openapi 2>&1 }
+$null = Wait-Job $job -Timeout 30
+Stop-Job $job -ErrorAction SilentlyContinue
+Remove-Job $job
+
+# Then generate Angular client
+cd server && bun run generate:angular-client
+```
+
+**Note**: OpenAPI generation runs in "preview mode" and doesn't need database connectivity. It will succeed even if database connection fails afterward (that's expected).
 
 ---
 

@@ -1,0 +1,70 @@
+<h2 mat-dialog-title>
+  <mat-icon color="warn">warning</mat-icon>
+  Restore Snapshot?
+</h2>
+
+<mat-dialog-content>
+  <div class="warning-message">
+    <p>
+      <strong>Warning:</strong> Restoring this snapshot will
+      <strong>overwrite</strong> the current document content. This action
+      cannot be undone.
+    </p>
+  </div>
+
+  <div class="snapshot-details">
+    <h3>Snapshot Details</h3>
+    <dl>
+      <dt>Name:</dt>
+      <dd>{{ data.snapshot.name }}</dd>
+
+      @if (data.snapshot.description) {
+        <dt>Description:</dt>
+        <dd>{{ data.snapshot.description }}</dd>
+      }
+
+      <dt>Created:</dt>
+      <dd>{{ formatDate(data.snapshot.createdAt) }}</dd>
+
+      <dt>Created By:</dt>
+      <dd>{{ data.snapshot.createdBy.username }}</dd>
+
+      @if (data.snapshot.wordCount !== undefined) {
+        <dt>Word Count:</dt>
+        <dd>{{ data.snapshot.wordCount.toLocaleString() }} words</dd>
+      }
+
+      @if (data.currentWordCount !== undefined) {
+        <dt>Current Document:</dt>
+        <dd>{{ data.currentWordCount.toLocaleString() }} words</dd>
+      }
+    </dl>
+  </div>
+
+  <div class="recommendation">
+    <mat-icon>tips_and_updates</mat-icon>
+    <p>
+      <strong>Tip:</strong> Consider creating a snapshot of the current state
+      before restoring, so you can revert if needed.
+    </p>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    mat-button
+    (click)="onCancel()"
+    data-testid="cancel-restore-btn"
+    type="button">
+    Cancel
+  </button>
+  <button
+    mat-raised-button
+    color="warn"
+    (click)="onConfirm()"
+    data-testid="confirm-restore-btn"
+    type="button">
+    <mat-icon>restore</mat-icon>
+    Restore Snapshot
+  </button>
+</mat-dialog-actions>

@@ -24,10 +24,18 @@ import { ProjectPublishEpubController } from './epub/project-publish-epub.contro
 import { CoverController } from './cover/cover.controller.js';
 import { StorageModule } from '../common/storage/storage.module.js';
 import { SchemaModule } from './schemas/schema.module.js';
+import { DocumentSnapshotEntity } from './snapshot/document-snapshot.entity.js';
+import { DocumentSnapshotService } from './snapshot/document-snapshot.service.js';
+import { DocumentSnapshotController } from './snapshot/document-snapshot.controller.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ProjectEntity, UserEntity, UserSessionEntity]),
+    TypeOrmModule.forFeature([
+      ProjectEntity,
+      UserEntity,
+      UserSessionEntity,
+      DocumentSnapshotEntity,
+    ]),
     UserModule,
     ConfigModule,
     StorageModule.register(),
@@ -40,6 +48,7 @@ import { SchemaModule } from './schemas/schema.module.js';
     DocumentController,
     ProjectPublishEpubController,
     CoverController,
+    DocumentSnapshotController,
   ],
   providers: [
     ProjectService,
@@ -50,6 +59,7 @@ import { SchemaModule } from './schemas/schema.module.js';
     DocumentRendererService,
     ProjectPublishEpubService,
     CoverController,
+    DocumentSnapshotService,
     {
       provide: TypeOrmSessionStore,
       useFactory: (sessionRepository: Repository<UserSessionEntity>) => {
