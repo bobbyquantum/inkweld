@@ -10,7 +10,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { SchemasAPIService } from '@inkweld/api/schemas-api.service';
+import { DefaultTemplatesService } from '@services/default-templates.service';
 import { DialogGatewayService } from '@services/dialog-gateway.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding.service';
@@ -85,10 +85,10 @@ interface TemplateSchema {
 export class TemplatesTabComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly worldbuildingService = inject(WorldbuildingService);
-  private readonly schemasAPI = inject(SchemasAPIService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly dialog = inject(MatDialog);
+  private readonly defaultTemplatesService = inject(DefaultTemplatesService);
 
   readonly project = this.projectState.project;
   readonly templates = signal<TemplateSchema[]>([]);
@@ -218,7 +218,7 @@ export class TemplatesTabComponent {
   }
 
   /**
-   * Load default templates from the server
+   * Load default templates from client-side assets
    */
   async loadDefaultTemplates(): Promise<void> {
     const project = this.project();
@@ -230,27 +230,50 @@ export class TemplatesTabComponent {
     this.error.set(null);
 
     try {
-      const response = await new Promise((resolve, reject) => {
-        this.schemasAPI
-          .schemasControllerInitializeDefaultSchemas(
-            project.username,
-            project.slug
-          )
-          .subscribe({
-            next: resolve,
-            error: reject,
-          });
-      });
+      // Load default templates from assets
+      const defaultTemplates =
+        await this.defaultTemplatesService.loadDefaultTemplates();
 
-      const schemaCount = (response as { schemaCount: number }).schemaCount;
+      const projectKey = `${project.username}:${project.slug}`;
+      const library = await this.worldbuildingService.loadSchemaLibrary(
+        projectKey,
+        project.username,
+        project.slug
+      );
 
-      this.snackBar.open(`✓ Loaded ${schemaCount} default templates`, 'Close', {
-        duration: 3000,
-      });
+      // Get or create schemas map in the library
+      let schemasMap = library.get('schemas') as Y.Map<unknown>;
+      if (!schemasMap) {
+        schemasMap = new Y.Map();
+        library.set('schemas', schemasMap);
+      }
 
-      // Wait a moment for the WebSocket to sync the new data
-      // The server writes to LevelDB, but the Yjs doc needs to sync via WebSocket
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Save each template to the schema library
+      const templateArray = Object.values(defaultTemplates);
+      for (const schema of templateArray) {
+        const schemaYMap = new Y.Map<unknown>();
+        schemaYMap.set('id', schema.id);
+        schemaYMap.set('type', schema.type);
+        schemaYMap.set('name', schema.name);
+        schemaYMap.set('icon', schema.icon);
+        schemaYMap.set('description', schema.description);
+        schemaYMap.set('version', schema.version);
+        schemaYMap.set('isBuiltIn', schema.isBuiltIn);
+        schemaYMap.set('tabs', JSON.stringify(schema.tabs));
+        if (schema.defaultValues) {
+          schemaYMap.set('defaultValues', JSON.stringify(schema.defaultValues));
+        }
+
+        schemasMap.set(schema.type, schemaYMap);
+      }
+
+      this.snackBar.open(
+        `✓ Loaded ${templateArray.length} default templates`,
+        'Close',
+        {
+          duration: 3000,
+        }
+      );
 
       // Reload templates list to show the new templates
       await this.loadTemplates();

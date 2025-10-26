@@ -4,7 +4,6 @@ import type {
   ElementTypeSchema,
   ProjectSchemaLibrary,
 } from './worldbuilding-schema.interface.js';
-import { DEFAULT_SCHEMAS, getAllDefaultSchemas } from './default-schemas/index.js';
 import { LevelDBManagerService } from '../../common/persistence/leveldb-manager.service.js';
 
 /**
@@ -19,27 +18,6 @@ export class SchemaService {
   private readonly SCHEMA_DOC_ID = '__schemas__';
 
   constructor(private readonly levelDBManager: LevelDBManagerService) {}
-
-  /**
-   * Initialize a new project's schema library with default schemas
-   * This is called when a project is created
-   */
-  initializeProjectSchemas(projectId: string): ProjectSchemaLibrary {
-    const now = new Date().toISOString();
-
-    const library: ProjectSchemaLibrary = {
-      projectId,
-      schemas: { ...DEFAULT_SCHEMAS },
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.logger.log(
-      `Initialized schema library for project ${projectId} with ${Object.keys(library.schemas).length} default schemas`,
-    );
-
-    return library;
-  }
 
   /**
    * Get a schema from a project's library
@@ -223,51 +201,6 @@ export class SchemaService {
       },
       updatedAt: now,
     };
-  }
-
-  /**
-   * Get all default schemas (for new projects)
-   */
-  getDefaultSchemas(): ElementTypeSchema[] {
-    return getAllDefaultSchemas();
-  }
-
-  /**
-   * Initialize schemas for a new project in LevelDB
-   * Creates a Yjs document with the default schema library
-   */
-  async initializeProjectSchemasInDB(
-    username: string,
-    slug: string,
-  ): Promise<void> {
-    try {
-      const projectKey = `${username}:${slug}`;
-      const library = this.initializeProjectSchemas(projectKey);
-
-      // Get the LevelDB instance for this project
-      const db = await this.levelDBManager.getProjectDatabase(username, slug);
-
-      // Get or create the schema Yjs document
-      // Use the project-prefixed document ID format: username:slug:__schemas__
-      const docId = `${username}:${slug}:${this.SCHEMA_DOC_ID}`;
-      const ydoc = await db.getYDoc(docId);
-
-      // Store the schema library in the Y.Doc
-      this.storeLibraryInYDoc(ydoc, library);
-
-      // Persist to LevelDB
-      await db.storeUpdate(docId, Y.encodeStateAsUpdate(ydoc));
-
-      this.logger.log(
-        `Initialized schema library for project ${username}/${slug} with ${Object.keys(library.schemas).length} schemas`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to initialize schemas for project ${username}/${slug}:`,
-        error,
-      );
-      throw error;
-    }
   }
 
   /**

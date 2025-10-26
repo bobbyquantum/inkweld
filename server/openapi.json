@@ -1425,56 +1425,6 @@
         ]
       }
     },
-    "/api/v1/projects/{username}/{slug}/schemas/initialize-defaults": {
-      "post": {
-        "description": "Loads the default worldbuilding templates into the project schema library. This can be used to restore default templates or add them to existing projects.",
-        "operationId": "SchemasController_initializeDefaultSchemas",
-        "parameters": [
-          {
-            "name": "username",
-            "required": true,
-            "in": "path",
-            "description": "Project owner username",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "description": "Project slug",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default schemas successfully initialized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "schemaCount": {
-                      "type": "number"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "Initialize or reset project schemas to defaults",
-        "tags": [
-          "Schemas API"
-        ]
-      }
-    },
     "/mcp/sse": {
       "get": {
         "operationId": "McpController_getSse",

@@ -69,23 +69,6 @@ export class ProjectService {
     project.user = user;
     const savedProject = await this.projectRepo.save(project);
 
-    // Initialize worldbuilding schemas for the new project
-    try {
-      await this.schemaService.initializeProjectSchemasInDB(
-        user.username,
-        project.slug,
-      );
-      this.logger.log(
-        `Initialized worldbuilding schemas for project ${user.username}/${project.slug}`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to initialize schemas for project ${user.username}/${project.slug}:`,
-        error,
-      );
-      // Don't fail project creation if schema init fails
-    }
-
     return savedProject;
   }
 
