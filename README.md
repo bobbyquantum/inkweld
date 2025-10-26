@@ -29,6 +29,28 @@ Inkweld is ideal for:
 - **Technical Documentation**: Maintain up-to-date documentation with multiple contributors
 - **Research Projects**: Collaborate on academic papers and research notes
 
+---
+
+## Screenshots
+
+### Project Bookshelf (Dark Mode)
+
+![Bookshelf - Desktop Dark Mode](assets/screenshots/bookshelf-desktop-dark.png)
+*Desktop View*
+
+![Bookshelf - Mobile Dark Mode](assets/screenshots/bookshelf-mobile-dark.png)
+*Mobile View*
+
+### Project Editor (Dark Mode)
+
+![Editor - Desktop Dark Mode](assets/screenshots/editor-desktop-dark.png)
+*Desktop Editor with Real-time Collaboration*
+
+![Editor - Mobile Dark Mode](assets/screenshots/editor-mobile-dark.png)
+*Mobile Editor with Formatting Menu*
+
+---
+
 ### Feature Overview
 
 | Feature                        | Description                                                                 |
