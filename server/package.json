@@ -73,7 +73,7 @@
     "@types/express-session": "1.18.2",
     "@types/multer": "^2.0.0",
     "@types/node": "24.7.2",
-    "@types/passport-github": "1.1.12",
+    "@types/passport-github": "1.1.13",
     "@types/passport-github2": "1.2.9",
     "@types/passport-local": "1.0.38",
     "@types/supertest": "^6.0.3",
