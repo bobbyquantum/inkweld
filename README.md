@@ -10,7 +10,9 @@
 ---
 
 **Quick Links:**  
+
 - [Getting Started](docs/GETTING_STARTED.md)  
+- [Changelog](CHANGELOG.md)  
 - [API Documentation](server/openapi.json)  
 - [CI/CD Pipeline](docs/CI_CD.md)  
 - [Contributing](#contributing)  
@@ -56,22 +58,27 @@ flowchart TD
 ## Project Setup
 
 > **Requirements:**  
+>
 > - [Bun 1.2+](https://bun.sh/)  
 > - [NodeJS 20+](https://nodejs.org/en)
 
 1. **Clone the repository:**
+
     ```bash
     git clone https://github.com/bobbyquantum/inkweld.git
     cd inkweld
     ```
 
 2. **Install dependencies:**
+
     ```bash
     npm run install-all
     ```
+
     > This script installs dependencies for both the frontend and backend using the appropriate package managers.
 
 3. **Set up environment variables:**
+
     - Copy `.env.example` to `.env` and update the values as needed.
 
 > There are VSCode workspaces available. For general development or trying it out, it's recommended to load the full workspace with backend and frontend folders configured.
@@ -156,59 +163,67 @@ This will execute the unit tests for both the frontend and backend projects.
 
 ## Production Readiness Checklist
 
+> **Note:** Inkweld v0.1.0 is the initial public release. Some features are planned for future versions.
+
 ### Core Functionality
 
-- [x] Basic document editing with Prosemirror over YJS
+- [x] Basic document editing with ProseMirror over Yjs
 - [x] In-browser IndexedDB storage
 - [x] Backend LevelDB storage
+- [x] Templated worldbuilding features (character/location templates with real-time collaboration)
+- [x] Real-time collaborative editing with WebSocket sync
 - [ ] Complete import/export to archive functionality (partially done)
-- [ ] Add project renaming and slug changing capabilities
-- [ ] Implement templated worldbuilding features (character/location templates)
-- [ ] Enhance collaborative editing features
+- [ ] Project renaming and slug changing capabilities
+- [ ] Offline-first capabilities with automatic sync
 
 ### Content Export
 
-- [ ] Implement PDF export functionality
-- [x] Develop EPUB export capability
-- [ ] Add Markdown export options
-- [ ] Create print-friendly formatting
+- [x] EPUB export capability
+- [ ] PDF export functionality
+- [ ] Markdown export options
+- [ ] Print-friendly formatting
 
 ### User Experience
 
-- [ ] Develop improved onboarding for first-time users
-- [ ] Enable username changes and profile customization
-- [ ] Enhance user dashboard/homepage
-- [ ] Optimize responsive design for mobile devices
-- [ ] Add MCP support for optional AI collaboration.
+- [ ] Improved onboarding for first-time users
+- [ ] Username changes and profile customization
+- [ ] Enhanced user dashboard/homepage
+- [ ] Optimized responsive design for mobile devices
+- [ ] MCP support for optional AI collaboration (in progress)
 
 ### Authentication & Security
 
-- [x] Basic password authentication
-- [x] GitHub OAuth integration
-- [ ] Add additional OAuth providers beyond GitHub
-- [ ] Implement enhanced security features
-- [ ] Refine user permissions system
-- [ ] Add session management capabilities
+- [x] Password authentication with strong password requirements
+- [x] Session-based authentication with httpOnly cookies
+- [x] GitHub OAuth integration (optional)
+- [x] CSRF protection
+- [x] User approval system for new registrations
+- [ ] Additional OAuth providers (Google, etc.)
+- [ ] Two-factor authentication
+- [ ] Fine-grained user permissions system
 
 ### Open Source Project Structure
 
-- [ ] Create GitHub templates (issues, PRs, etc.)
-- [ ] Develop comprehensive contributor documentation
-- [ ] Add code of conduct and contribution guidelines
-- [ ] Set up automated project boards
+- [x] GitHub issue templates
+- [x] Pull request template
+- [ ] CONTRIBUTING.md
+- [ ] CODE_OF_CONDUCT.md
+- [ ] SECURITY.md
+- [ ] Automated release process
 
 ### DevOps & Deployment
 
-- [x] Docker support with working Dockerfile
+- [x] Docker support with optimized multi-stage Dockerfile
 - [x] Docker Compose configuration
 - [x] Support for SQLite and PostgreSQL databases
-- [x] Basic CI that runs tests
-- [x] Automated Docker image publishing
-- [x] Multi-stage CI/CD pipeline
-- [x] GitHub Container Registry integration
-- [ ] Optimize Docker build process
-- [ ] Develop self-hosting documentation
-- [ ] Implement monitoring and logging
+- [x] CI/CD pipeline with automated testing
+- [x] Automated Docker image publishing to GHCR
+- [x] GitHub Actions workflows
+- [ ] Production logging framework (currently using console logs)
+- [ ] Self-hosting documentation
+- [ ] Monitoring and observability setup
+
+> **Note for Production Deployments:** The current version (v0.1.0) uses console logging for simplicity during development. For production deployments, we recommend implementing a proper logging framework such as Winston, Pino, or a similar solution with log rotation, severity levels, and external logging service integration.
 
 ---
 
@@ -222,7 +237,8 @@ The software is designed to be self-hosted and secure. There are no backdoors, a
 
 ## Contributing
 
-We welcome contributions! Please see [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines (or create this file if it does not exist).  
+We welcome contributions! Please see [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines (or create this file if it does not exist).
+
 - Open issues for bugs or feature requests.
 - Submit pull requests for improvements.
 - See the [Production Readiness Checklist](#production-readiness-checklist) for areas needing help.
