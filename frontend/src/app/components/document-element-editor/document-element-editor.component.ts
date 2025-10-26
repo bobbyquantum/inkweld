@@ -255,11 +255,11 @@ export class DocumentElementEditorComponent
         cursor: pointer;
         position: relative;
       }
-      
+
       .lint-error:hover {
         background-color: rgba(255, 220, 0, 0.3) !important;
       }
-      
+
       .ProseMirror .lint-error {
         background-color: rgba(255, 220, 0, 0.2) !important;
         border-bottom: 1px dashed #ffd700 !important;
@@ -281,16 +281,16 @@ export class DocumentElementEditorComponent
         line-height: 1.4;
         display: none;
       }
-      
+
       .lint-error:hover .lint-tooltip {
         display: block;
       }
-      
+
       .lint-tooltip-title {
         font-weight: bold;
         margin-bottom: 4px;
       }
-      
+
       .lint-tooltip-reason {
         font-style: italic;
         color: #e0e0e0;
@@ -303,7 +303,7 @@ export class DocumentElementEditorComponent
         margin-top: 8px;
         justify-content: flex-end;
       }
-      
+
       .lint-action-button {
         cursor: pointer !important;
         margin-left: 8px !important;
@@ -314,17 +314,17 @@ export class DocumentElementEditorComponent
         display: flex !important;
         align-items: center !important;
       }
-      
+
       .lint-accept-button {
         background-color: #4caf50 !important;
         color: white !important;
       }
-      
+
       .lint-reject-button {
         background-color: #f44336 !important;
         color: white !important;
       }
-      
+
       .lint-action-button-icon {
         margin-right: 4px !important;
       }

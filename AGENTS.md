@@ -7,6 +7,7 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 ## Project Overview
 
 **Inkweld** is a collaborative creative writing platform built with:
+
 - **Frontend**: Angular 19 (standalone components, modern control flow)
 - **Backend**: NestJS 10 running on Bun
 - **Database**: PostgreSQL or SQLite (TypeORM) + LevelDB (per-project document storage)
@@ -46,6 +47,7 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 ## Frontend Architecture (Angular 19)
 
 ### Technology Stack
+
 - **Framework**: Angular 19 with standalone components
 - **Dependency Injection**: Use `inject()` syntax, **NOT constructor injection**
 - **Control Flow**: Use `@if`, `@for`, `@switch` directives (not `*ngIf`, `*ngFor`, `*ngSwitch`)
@@ -55,6 +57,7 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 - **Package Manager**: npm (dev server runs on Node.js)
 
 ### Angular Control Flow Guidelines
+
 - Use `@if`/`@else` for conditionals (optionally assigning results with `as`)
 - Use `@for` with `track` (prefer unique IDs like `item.id`, avoid identity)
 - Use `@empty` for empty states in `@for` loops
@@ -63,6 +66,7 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 - **Replace all legacy** `*ngIf`, `*ngFor`, `*ngSwitch` directives
 
 ### Directory Structure
+
 ```
 src/app/
 ├── components/      # Shared UI components
@@ -78,6 +82,7 @@ src/app/
 ```
 
 ### Frontend Best Practices
+
 - Always use `inject()` for dependency injection
 - Keep components focused and composable
 - Use signals for reactive state when appropriate
@@ -90,6 +95,7 @@ src/app/
 ## Backend Architecture (NestJS 10)
 
 ### Technology Stack
+
 - **Runtime**: Bun (NOT Node.js)
 - **Framework**: NestJS 10
 - **Database**: TypeORM with PostgreSQL/SQLite + LevelDB (Yjs documents)
@@ -98,12 +104,14 @@ src/app/
 - **Package Manager**: Bun
 
 ### Important Backend Rules
+
 - **Run on Bun**: Use `bun` commands, not `npm` or `node`
 - **Type Imports**: Import Request/Response types using `import type`, not regular import
 - **Per-Project LevelDB**: Each project has its own LevelDB instance for document storage
 - **Session Management**: Uses TypeORM session store for authentication
 
 ### Directory Structure
+
 ```
 src/
 ├── auth/            # Authentication module
@@ -115,6 +123,7 @@ src/
 ```
 
 ### Backend Best Practices
+
 - Follow NestJS dependency injection patterns
 - Use decorators appropriately (`@Injectable()`, `@Controller()`, etc.)
 - Keep modules focused and well-separated
@@ -126,6 +135,7 @@ src/
 ## Testing Guidelines
 
 ### Unit Tests (Jest)
+
 - **Location**: `*.spec.ts` files next to the code
 - **Coverage Thresholds** (Frontend):
   - Statements: 80%
@@ -137,6 +147,7 @@ src/
 - Use `@ngneat/spectator` for Angular component testing
 
 ### E2E Tests (Playwright - Frontend)
+
 - **Location**: `frontend/e2e/`
 - **Run**: `npm run e2e` or `bun run e2e`
 - **CI Mode**: `npm run e2e:ci`
@@ -149,6 +160,7 @@ src/
   - `e2e/BEST_PRACTICES.md` - Detailed e2e testing guidelines
 
 ### Testing Best Practices
+
 - Write tests before or alongside implementation
 - Test behavior, not implementation details
 - Keep tests isolated and independent
@@ -161,6 +173,7 @@ src/
 ## Development Workflow
 
 ### Getting Started
+
 ```bash
 # Install dependencies
 npm run install-all
@@ -173,6 +186,7 @@ npm test
 ```
 
 ### Common Commands
+
 ```bash
 # Frontend
 cd frontend
@@ -190,6 +204,7 @@ bun run generate:openapi  # Generate OpenAPI spec
 ```
 
 ### Code Style
+
 - Use Prettier for formatting (configured in `.prettierrc`)
 - Follow ESLint rules (configured in `eslint.config.*`)
 - Use meaningful variable and function names
@@ -202,6 +217,7 @@ bun run generate:openapi  # Generate OpenAPI spec
 ## Common Patterns
 
 ### Frontend Service Injection
+
 ```typescript
 // ✅ Correct - use inject()
 export class MyComponent {
@@ -215,6 +231,7 @@ export class MyComponent {
 ```
 
 ### Angular Control Flow
+
 ```typescript
 // ✅ Correct - new control flow
 @if (condition) {
@@ -235,6 +252,7 @@ export class MyComponent {
 ```
 
 ### Backend Type Imports
+
 ```typescript
 // ✅ Correct - use import type
 import type { Request, Response } from 'express';
@@ -248,24 +266,28 @@ import { Request, Response } from 'express';
 ## Project-Specific Context
 
 ### Real-time Collaboration
+
 - Uses Yjs for CRDT-based collaborative editing
 - WebSocket connections for real-time sync
 - LevelDB stores per-project document state
 - Offline editing capability with automatic sync
 
 ### Authentication
+
 - Session-based auth with httpOnly cookies
 - CSRF protection on all state-changing requests
 - GitHub OAuth support (optional)
 - User approval system (configurable)
 
 ### File Structure
+
 - Projects contain documents and elements
 - Documents use ProseMirror for rich text editing
 - Elements are hierarchical (folders, files, etc.)
 - Files stored in project-specific directories
 
 ### API Client
+
 - Auto-generated from OpenAPI specification
 - Located in `frontend/src/api-client/`
 - **Regenerate**: First generate OpenAPI spec, then Angular client
@@ -290,6 +312,7 @@ cd server && bun run generate:angular-client
 ## Debugging Tips
 
 ### Frontend Debugging
+
 - Use Angular DevTools browser extension
 - Check browser console for errors
 - Use `ng.probe()` in console for component inspection
@@ -297,6 +320,7 @@ cd server && bun run generate:angular-client
 - Review Playwright traces for e2e test failures: `npx playwright show-trace <trace-file>`
 
 ### Backend Debugging
+
 - Use VS Code debugger (configured in `.vscode/launch.json`)
 - Check server logs for stack traces
 - Verify database connections
@@ -308,12 +332,14 @@ cd server && bun run generate:angular-client
 ## When Things Go Wrong
 
 ### Build Failures
+
 - Clear node_modules and reinstall: `rm -rf node_modules && npm install`
 - Clear Angular cache: `rm -rf .angular`
 - Check for TypeScript errors: `npx tsc --noEmit`
 - Verify all dependencies are installed
 
 ### Test Failures
+
 - Run single test: `npm test -- <test-file-pattern>`
 - Check for async timing issues
 - Verify mock setup is correct
@@ -321,6 +347,7 @@ cd server && bun run generate:angular-client
 - Check Playwright trace files for e2e failures
 
 ### Lint Errors
+
 - Run auto-fix: `npm run lint:fix`
 - Check ESLint configuration
 - Verify Prettier formatting
@@ -331,6 +358,7 @@ cd server && bun run generate:angular-client
 ## Contributing
 
 ### Before Submitting Changes
+
 1. ✅ All tests pass (`npm test` in both frontend and server)
 2. ✅ Linting passes (`npm run lint`)
 3. ✅ Code is properly formatted
@@ -339,6 +367,7 @@ cd server && bun run generate:angular-client
 6. ✅ No console errors or warnings
 
 ### Pull Request Guidelines
+
 - Keep PRs focused on a single feature or fix
 - Write clear commit messages
 - Reference related issues
@@ -353,7 +382,7 @@ cd server && bun run generate:angular-client
 - **CI/CD Pipeline**: [docs/CI_CD.md](docs/CI_CD.md)
 - **E2E Testing**: [frontend/e2e/BEST_PRACTICES.md](frontend/e2e/BEST_PRACTICES.md)
 - **Admin CLI**: [server/ADMIN_CLI.md](server/ADMIN_CLI.md)
-- **API Documentation**: http://localhost:8333/api (when server is running)
+- **API Documentation**: <http://localhost:8333/api> (when server is running)
 - **OpenAPI Spec**: [server/openapi.json](server/openapi.json)
 
 ---

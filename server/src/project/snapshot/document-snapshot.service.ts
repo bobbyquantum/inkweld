@@ -72,9 +72,9 @@ export class DocumentSnapshotService {
     // 4. Load current Yjs document
     // The docId parameter is the FULL document ID from the URL path
     const documentId = docId;
-    
+
     this.logger.debug(`Creating snapshot for document "${documentId}" (username="${username}", projectSlug="${projectSlug}", docId="${docId}")`);
-    
+
     const db = await this.levelDBManager.getProjectDatabase(
       username,
       projectSlug,
@@ -170,10 +170,10 @@ export class DocumentSnapshotService {
     // (e.g., "test:test44444:documentId" which includes colons)
     // Do NOT prepend username:projectSlug as that would duplicate it
     const documentId = docId;
-    
+
     // Debug: Log what we're comparing
     this.logger.debug(`Comparing snapshot.documentId="${snapshot.documentId}" with received docId="${documentId}"`);
-    
+
     // 3. Verify document match
     if (snapshot.documentId !== documentId) {
       this.logger.error(
@@ -201,40 +201,40 @@ export class DocumentSnapshotService {
 
     // 6. Import the docs Map from y-websocket-utils to get the live document
     const { docs } = await import('../document/y-websocket-utils.js');
-    
+
     // Check if there's a live WebSocket document for this ID
     const liveDoc = docs.get(documentId);
-    
+
     if (liveDoc) {
       // Document has active connections - apply update to live doc so it broadcasts
       this.logger.log(`Applying snapshot to live document ${documentId} with ${liveDoc.conns.size} active connections`);
-      
+
       // Debug: Log snapshot size
       this.logger.debug(`Snapshot state size: ${snapshot.yDocState.length} bytes, word count: ${snapshot.wordCount}`);
-      
+
       // To restore a snapshot in Yjs, we need to work with CRDT semantics
       // The correct approach: Completely replace the document state by:
       // 1. Destroying the current document's internal state
       // 2. Applying the snapshot state to a fresh doc
       // 3. Using the y-leveldb persistence to ensure it's saved
-      
+
       // To restore a snapshot in a CRDT system where updates are already distributed:
       // 1. We CANNOT just apply the old update (Yjs will ignore it - already seen those client IDs)
       // 2. We MUST create NEW updates that transform current state to snapshot state
       // 3. These updates will be broadcast to all connected clients
-      
+
       // Load snapshot into temp doc to inspect its content
       const snapshotDoc = new Y.Doc();
       Y.applyUpdate(snapshotDoc, new Uint8Array(snapshot.yDocState));
       const snapshotFragment = snapshotDoc.getXmlFragment('prosemirror');
-      
+
       this.logger.debug(`Snapshot fragment length: ${snapshotFragment.length}`);
       this.logger.debug(`Snapshot fragment toString: ${snapshotFragment.toString().substring(0, 200)}`);
-      
+
       // Get current live doc state
       const liveFragment = liveDoc.getXmlFragment('prosemirror');
       this.logger.debug(`Live doc fragment length BEFORE restore: ${liveFragment.length}`);
-      
+
       // Perform the restore in a single transaction
       // This creates ONE update that will be broadcast to all clients
       liveDoc.transact(() => {
@@ -242,7 +242,7 @@ export class DocumentSnapshotService {
         while (liveFragment.length > 0) {
           liveFragment.delete(0, liveFragment.length);
         }
-        
+
         // 2. Manually reconstruct the snapshot content
         // We need to clone the XML structure from the snapshot
         snapshotFragment.forEach((item) => {
@@ -251,16 +251,16 @@ export class DocumentSnapshotService {
           liveFragment.push([cloned]);
         });
       });
-      
+
       this.logger.debug(`Live doc fragment length AFTER restore: ${liveFragment.length}`);
       this.logger.debug(`Live doc fragment toString: ${liveFragment.toString().substring(0, 200)}`);
-      
+
       // The update will be automatically persisted to LevelDB via the persistence binding
       // and broadcast to all connected WebSocket clients via the updateHandler
     } else {
       // No active connections - update LevelDB document directly
       this.logger.log(`No active connections for ${documentId}, updating LevelDB directly`);
-      
+
       // Clear the document first
       ydoc.transact(() => {
         const fragment = ydoc.getXmlFragment('prosemirror');

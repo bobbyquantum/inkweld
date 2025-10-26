@@ -29,10 +29,10 @@
 
   .snapshot-toggle-btn {
     margin-left: auto;
-    
+
     &.active {
       background-color: var(--mat-primary-color-lighter, #e3f2fd);
-      
+
       mat-icon {
         color: var(--mat-primary-color, #1976d2);
       }
