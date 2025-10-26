@@ -47,7 +47,7 @@
         "eslint-plugin-simple-import-sort": "12.1.1",
         "eslint-plugin-unused-imports": "4.2.0",
         "eslint-plugin-vitest": "^0.5.4",
-        "fake-indexeddb": "6.2.3",
+        "fake-indexeddb": "6.2.4",
         "jsdom": "^25.0.1",
         "playwright-ng-schematics": "2.1.1",
         "prettier": "3.6.2",
@@ -823,7 +823,7 @@
 
     "express-rate-limit": ["express-rate-limit@7.5.1", "", { "peerDependencies": { "express": ">= 4.11" } }, "sha512-7iN8iPMDzOMHPUYllBEsQdWVB6fPDMPqwjBaFrgr4Jgr/+okjvzAy+UHlYYL/Vs0OsOrMkwS6PJDkFlJwoxUnw=="],
 
-    "fake-indexeddb": ["fake-indexeddb@6.2.3", "", {}, "sha512-idzJXFtDIHNShFZ9ssS8IdsRgAP0t9zwWvSdCKsWK2dgh2xcXA6/2Oteaxar5GJqmwzZXCrKRO6F5IEiR4yJzw=="],
+    "fake-indexeddb": ["fake-indexeddb@6.2.4", "", {}, "sha512-INKeIKEtSViN4yVtEWEUqbsqmaIy7Ls+MfU0yxQVXg67pOJ/sH1ZxcVrP8XrKULUFohcPD9gnmym+qBfEybACw=="],
 
     "fast-deep-equal": ["fast-deep-equal@3.1.3", "", {}, "sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q=="],
 
