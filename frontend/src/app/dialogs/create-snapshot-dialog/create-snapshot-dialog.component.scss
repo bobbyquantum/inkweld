@@ -1,0 +1,28 @@
+mat-dialog-content {
+  min-width: 400px;
+  max-width: 500px;
+}
+
+.word-count-info {
+  margin: 0 0 16px 0;
+  padding: 12px;
+  background: var(--mat-app-background-color, #fafafa);
+  border-radius: 4px;
+  font-size: 14px;
+
+  strong {
+    color: var(--mat-primary-color, #1976d2);
+  }
+}
+
+.full-width {
+  width: 100%;
+  display: block;
+  margin-bottom: 16px;
+}
+
+form {
+  mat-form-field:last-child {
+    margin-bottom: 0;
+  }
+}

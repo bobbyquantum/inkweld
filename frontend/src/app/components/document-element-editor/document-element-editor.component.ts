@@ -18,6 +18,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
@@ -25,6 +26,7 @@ import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
 
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
 import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
+import { SnapshotPanelComponent } from '../snapshot-panel/snapshot-panel.component';
 
 @Component({
   selector: 'app-document-element-editor',
@@ -32,11 +34,13 @@ import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
   imports: [
     MatButtonModule,
     MatIconModule,
+    MatTooltipModule,
     NgxEditorModule,
     MatSelectModule,
     MatOptionModule,
     DragDropModule,
     LintFloatingMenuComponent,
+    SnapshotPanelComponent,
   ],
   templateUrl: './document-element-editor.component.html',
   styleUrls: [
@@ -63,6 +67,10 @@ export class DocumentElementEditorComponent
   }
   @Input() zenMode = false;
   @Input() tabsDisabled = false;
+
+  /** Whether to show the snapshot panel */
+  showSnapshotPanel = signal(false);
+
   editor!: Editor;
   toolbar: Toolbar = [
     ['bold', 'italic'],

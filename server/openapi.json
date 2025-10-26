@@ -899,6 +899,503 @@
         ]
       }
     },
+    "/api/v1/projects/{username}/{slug}/docs/{docId}/snapshots": {
+      "post": {
+        "description": "Captures the complete state of a document including content and metadata. Snapshots can be used to restore the document to a previous version.",
+        "operationId": "DocumentSnapshotController_createSnapshot",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "description": "Project owner username",
+            "schema": {
+              "example": "testuser",
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "description": "Project slug",
+            "schema": {
+              "example": "my-project",
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "required": true,
+            "in": "path",
+            "description": "Document identifier",
+            "schema": {
+              "example": "chapter1",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSnapshotDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Snapshot created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "No access to this project"
+          },
+          "404": {
+            "description": "Project or document not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Create a snapshot of the current document state",
+        "tags": [
+          "Document Snapshots API"
+        ]
+      },
+      "get": {
+        "description": "Retrieves a paginated list of snapshots for the specified document.",
+        "operationId": "DocumentSnapshotController_listSnapshots",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "description": "Project owner username",
+            "schema": {
+              "example": "testuser",
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "description": "Project slug",
+            "schema": {
+              "example": "my-project",
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "required": true,
+            "in": "path",
+            "description": "Document identifier",
+            "schema": {
+              "example": "chapter1",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Maximum number of snapshots to return",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Number of snapshots to skip",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "orderBy",
+            "required": false,
+            "in": "query",
+            "description": "Field to sort by",
+            "schema": {
+              "default": "createdAt",
+              "type": "string",
+              "enum": [
+                "createdAt",
+                "name"
+              ]
+            }
+          },
+          {
+            "name": "order",
+            "required": false,
+            "in": "query",
+            "description": "Sort order",
+            "schema": {
+              "default": "DESC",
+              "type": "string",
+              "enum": [
+                "ASC",
+                "DESC"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshots retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedSnapshotsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "List all snapshots for a document",
+        "tags": [
+          "Document Snapshots API"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/docs/{docId}/snapshots/{snapshotId}": {
+      "get": {
+        "description": "Retrieves detailed information about a single snapshot.",
+        "operationId": "DocumentSnapshotController_getSnapshot",
+        "parameters": [
+          {
+            "name": "snapshotId",
+            "required": true,
+            "in": "path",
+            "description": "Snapshot UUID",
+            "schema": {
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "required": true,
+            "in": "path",
+            "description": "Document identifier",
+            "schema": {
+              "example": "chapter1"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "description": "Project slug",
+            "schema": {
+              "example": "my-project"
+            }
+          },
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "description": "Project owner username",
+            "schema": {
+              "example": "testuser"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshot retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Snapshot not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Get a specific snapshot",
+        "tags": [
+          "Document Snapshots API"
+        ]
+      },
+      "delete": {
+        "description": "Permanently deletes a snapshot. Only the snapshot creator or project owner can delete snapshots.",
+        "operationId": "DocumentSnapshotController_deleteSnapshot",
+        "parameters": [
+          {
+            "name": "snapshotId",
+            "required": true,
+            "in": "path",
+            "description": "Snapshot UUID to delete",
+            "schema": {
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "required": true,
+            "in": "path",
+            "description": "Document identifier",
+            "schema": {
+              "example": "chapter1"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "description": "Project slug",
+            "schema": {
+              "example": "my-project"
+            }
+          },
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "description": "Project owner username",
+            "schema": {
+              "example": "testuser"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshot deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "deletedId": {
+                      "type": "string",
+                      "example": "123e4567-e89b-12d3-a456-426614174000"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "No permission to delete this snapshot"
+          },
+          "404": {
+            "description": "Snapshot not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Delete a snapshot",
+        "tags": [
+          "Document Snapshots API"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/docs/{docId}/snapshots/{snapshotId}/restore": {
+      "post": {
+        "description": "Replaces the current document content with the content from the snapshot. This operation will be broadcast to all connected users via WebSocket. Warning: This cannot be undone (except by restoring another snapshot).",
+        "operationId": "DocumentSnapshotController_restoreSnapshot",
+        "parameters": [
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "description": "Project owner username",
+            "schema": {
+              "example": "testuser",
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "description": "Project slug",
+            "schema": {
+              "example": "my-project",
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "required": true,
+            "in": "path",
+            "description": "Document identifier",
+            "schema": {
+              "example": "chapter1",
+              "type": "string"
+            }
+          },
+          {
+            "name": "snapshotId",
+            "required": true,
+            "in": "path",
+            "description": "Snapshot UUID to restore",
+            "schema": {
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document restored successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreSnapshotDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Snapshot does not match document"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "No permission to modify this document"
+          },
+          "404": {
+            "description": "Snapshot not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Restore document to a previous snapshot",
+        "tags": [
+          "Document Snapshots API"
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/docs/{docId}/snapshots/{snapshotId}/preview": {
+      "get": {
+        "description": "Renders the snapshot content as static HTML for preview purposes.",
+        "operationId": "DocumentSnapshotController_previewSnapshot",
+        "parameters": [
+          {
+            "name": "snapshotId",
+            "required": true,
+            "in": "path",
+            "description": "Snapshot UUID to preview",
+            "schema": {
+              "example": "123e4567-e89b-12d3-a456-426614174000",
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "required": true,
+            "in": "path",
+            "description": "Document identifier",
+            "schema": {
+              "example": "chapter1"
+            }
+          },
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "description": "Project slug",
+            "schema": {
+              "example": "my-project"
+            }
+          },
+          {
+            "name": "username",
+            "required": true,
+            "in": "path",
+            "description": "Project owner username",
+            "schema": {
+              "example": "testuser"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTML preview rendered successfully",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "Snapshot not found"
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Preview a snapshot as HTML",
+        "tags": [
+          "Document Snapshots API"
+        ]
+      }
+    },
     "/api/v1/users/me": {
       "get": {
         "description": "Retrieves the profile information of the authenticated user.",
@@ -1901,6 +2398,147 @@
           "contentType",
           "size",
           "uploadDate"
+        ]
+      },
+      "CreateSnapshotDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the snapshot",
+            "example": "Chapter 1 - First Draft",
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description of the snapshot",
+            "example": "First complete draft before editing"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "SnapshotDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the snapshot",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "documentId": {
+            "type": "string",
+            "description": "The document ID this snapshot belongs to",
+            "example": "testuser:my-project:chapter1"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the snapshot",
+            "example": "Chapter 1 - First Draft"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description",
+            "example": "First complete draft before editing"
+          },
+          "wordCount": {
+            "type": "number",
+            "description": "Word count at the time of snapshot",
+            "example": 1523
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the snapshot was created",
+            "example": "2025-10-26T12:34:56.789Z"
+          },
+          "createdBy": {
+            "type": "object",
+            "description": "User who created the snapshot",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "username": {
+                "type": "string"
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional metadata"
+          }
+        },
+        "required": [
+          "id",
+          "documentId",
+          "name",
+          "createdAt",
+          "createdBy"
+        ]
+      },
+      "PaginatedSnapshotsDto": {
+        "type": "object",
+        "properties": {
+          "snapshots": {
+            "description": "Array of snapshots",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SnapshotDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total number of snapshots for this document",
+            "example": 25
+          },
+          "limit": {
+            "type": "number",
+            "description": "Number of results per page",
+            "example": 50
+          },
+          "offset": {
+            "type": "number",
+            "description": "Number of results skipped",
+            "example": 0
+          }
+        },
+        "required": [
+          "snapshots",
+          "total",
+          "limit",
+          "offset"
+        ]
+      },
+      "RestoreSnapshotDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the restoration was successful",
+            "example": true
+          },
+          "documentId": {
+            "type": "string",
+            "description": "The document ID that was restored",
+            "example": "testuser:my-project:chapter1"
+          },
+          "restoredFrom": {
+            "type": "string",
+            "description": "The snapshot ID that was restored from",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "restoredAt": {
+            "type": "string",
+            "description": "When the restoration occurred",
+            "example": "2025-10-26T12:34:56.789Z"
+          }
+        },
+        "required": [
+          "success",
+          "documentId",
+          "restoredFrom",
+          "restoredAt"
         ]
       },
       "UserDto": {

@@ -1,0 +1,140 @@
+.snapshot-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--mat-app-background-color);
+  overflow: hidden;
+  color: var(--mat-app-text-color);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--mat-divider-color);
+  background: var(--mat-app-background-color);
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+  }
+}
+
+.panel-actions {
+  padding: 16px;
+  border-bottom: 1px solid var(--mat-divider-color);
+  background: var(--mat-app-background-color);
+
+  button {
+    width: 100%;
+    
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+}
+
+.loading-container,
+.error-container,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+  opacity: 0.7;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+  }
+
+  p {
+    margin: 8px 0;
+  }
+}
+
+.error-container {
+  mat-icon {
+    color: var(--mat-warn-color);
+  }
+}
+
+.snapshots-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.snapshot-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: var(--mat-app-background-color);
+  border: 1px solid var(--mat-divider-color);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-color: var(--mat-primary);
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.snapshot-info {
+  flex: 1;
+  min-width: 0; // Allow text truncation
+}
+
+.snapshot-name {
+  font-weight: 500;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.snapshot-description {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.snapshot-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.snapshot-actions {
+  flex-shrink: 0;
+}

@@ -1,0 +1,125 @@
+<div class="snapshot-panel">
+  <!-- Header -->
+  <div class="panel-header">
+    <h2>Snapshots</h2>
+    <button
+      mat-icon-button
+      (click)="closePanel.emit()"
+      matTooltip="Close panel"
+      data-testid="close-snapshot-panel">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Create Snapshot Button -->
+  <div class="panel-actions">
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="createSnapshot()"
+      data-testid="create-snapshot-btn">
+      <mat-icon>add_photo_alternate</mat-icon>
+      New Snapshot
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading snapshots...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-container">
+      <mat-icon color="warn">error</mat-icon>
+      <p>{{ error() }}</p>
+      <button mat-button (click)="loadSnapshots()">Retry</button>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!loading() && !error() && snapshots().length === 0) {
+    <div class="empty-state">
+      <mat-icon>photo_library</mat-icon>
+      <h3>No snapshots yet</h3>
+      <p>Create a snapshot to save the current state of your document.</p>
+    </div>
+  }
+
+  <!-- Snapshots List -->
+  @if (!loading() && !error() && snapshots().length > 0) {
+    <div class="snapshots-list">
+      @for (snapshot of snapshots(); track snapshot.id) {
+        <div
+          class="snapshot-item"
+          [attr.data-testid]="'snapshot-' + snapshot.id">
+          <!-- Snapshot Info -->
+          <div class="snapshot-info">
+            <div class="snapshot-name">{{ snapshot.name }}</div>
+
+            @if (snapshot.description) {
+              <div class="snapshot-description">{{ snapshot.description }}</div>
+            }
+
+            <div class="snapshot-meta">
+              <span class="meta-item">
+                <mat-icon>schedule</mat-icon>
+                {{ formatDate(snapshot.createdAt) }}
+              </span>
+
+              <span class="meta-item">
+                <mat-icon>person</mat-icon>
+                {{ snapshot.createdBy.username }}
+              </span>
+
+              <span class="meta-item">
+                <mat-icon>text_fields</mat-icon>
+                {{ formatWordCount(snapshot.wordCount) }} words
+              </span>
+            </div>
+          </div>
+
+          <!-- Actions Menu -->
+          <div class="snapshot-actions">
+            <button
+              mat-icon-button
+              [matMenuTriggerFor]="snapshotMenu"
+              [attr.data-testid]="'snapshot-menu-' + snapshot.id"
+              matTooltip="Actions">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+
+            <mat-menu #snapshotMenu="matMenu">
+              <button
+                mat-menu-item
+                (click)="restoreSnapshot(snapshot)"
+                [attr.data-testid]="'restore-snapshot-' + snapshot.id">
+                <mat-icon>restore</mat-icon>
+                <span>Restore</span>
+              </button>
+
+              <button
+                mat-menu-item
+                (click)="previewSnapshot(snapshot)"
+                [attr.data-testid]="'preview-snapshot-' + snapshot.id">
+                <mat-icon>preview</mat-icon>
+                <span>Preview HTML</span>
+              </button>
+
+              <button
+                mat-menu-item
+                (click)="deleteSnapshot(snapshot)"
+                [attr.data-testid]="'delete-snapshot-' + snapshot.id">
+                <mat-icon color="warn">delete</mat-icon>
+                <span>Delete</span>
+              </button>
+            </mat-menu>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

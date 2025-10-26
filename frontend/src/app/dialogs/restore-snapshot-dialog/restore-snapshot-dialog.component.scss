@@ -1,0 +1,81 @@
+h2[mat-dialog-title] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mat-warn-color);
+}
+
+mat-dialog-content {
+  min-width: 450px;
+  max-width: 600px;
+}
+
+.warning-message {
+  padding: 16px;
+  background: color-mix(in srgb, var(--mat-warn-color) 10%, transparent);
+  border-left: 4px solid var(--mat-warn-color);
+  border-radius: 4px;
+  margin-bottom: 16px;
+
+  p {
+    margin: 0;
+    color: var(--mat-app-on-surface);
+
+    strong {
+      color: var(--mat-warn-color);
+    }
+  }
+}
+
+.snapshot-details {
+  margin-bottom: 16px;
+
+  h3 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 16px;
+  }
+
+  dt {
+    font-weight: 500;
+    color: var(--mat-app-on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+    color: var(--mat-app-on-surface);
+  }
+}
+
+.recommendation {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--mat-primary-color) 10%, transparent);
+  border-radius: 4px;
+
+  mat-icon {
+    color: var(--mat-primary-color);
+    flex-shrink: 0;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--mat-app-on-surface);
+  }
+}
+
+button[color='warn'] {
+  mat-icon {
+    margin-right: 4px;
+  }
+}

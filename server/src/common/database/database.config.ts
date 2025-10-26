@@ -4,6 +4,7 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { UserEntity } from '../../user/user.entity.js';
 import { UserSessionEntity } from '../../auth/session.entity.js';
 import { ProjectEntity } from '../../project/project.entity.js';
+import { DocumentSnapshotEntity } from '../../project/snapshot/document-snapshot.entity.js';
 import * as path from 'path';
 
 /**
@@ -22,7 +23,12 @@ export class DatabaseConfigService {
 
     // Common configuration for both database types
     const baseConfig: Partial<TypeOrmModuleOptions> = {
-      entities: [UserEntity, UserSessionEntity, ProjectEntity],
+      entities: [
+        UserEntity,
+        UserSessionEntity,
+        ProjectEntity,
+        DocumentSnapshotEntity,
+      ],
       // Enable synchronize for transient deployments to auto-create tables
       synchronize: true,
       logging: this.configService.get('DB_LOGGING') === 'true',
