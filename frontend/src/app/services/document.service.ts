@@ -30,8 +30,8 @@ import { SystemConfigService } from './system-config.service';
 interface DocumentConnection {
   /** The Yjs document instance */
   ydoc: Y.Doc;
-  /** WebSocket provider for real-time sync */
-  provider: WebsocketProvider;
+  /** WebSocket provider for real-time sync (null in offline mode) */
+  provider: WebsocketProvider | null;
   /** XML fragment used for ProseMirror content */
   type: Y.XmlFragment;
   /** IndexedDB provider for offline persistence */
@@ -274,193 +274,205 @@ export class DocumentService {
       await indexeddbProvider.whenSynced;
       this.logger.debug('DocumentService', 'IndexedDB sync complete');
 
-      // Update state to Syncing while establishing WebSocket connection
-      this.updateSyncStatus(documentId, DocumentSyncState.Syncing);
+      // Try to setup WebSocket provider if URL is available
+      let provider: WebsocketProvider | null = null;
+      const websocketUrl = this.setupService.getWebSocketUrl();
 
-      // Setup WebSocket provider
-      if (!this.setupService.getWebSocketUrl()) {
-        throw new Error('WebSocket URL is not configured in environment');
-      }
-      // Make sure the documentId is properly formatted for WebSocket URL
-      // Remove any leading '/' characters that might cause URL issues
-      const formattedDocId = documentId.replace(/^\/+/, '');
-      this.logger.debug(
-        'DocumentService',
-        `Setting up WebSocket connection for document: ${formattedDocId}`
-      );
+      if (websocketUrl) {
+        // Update state to Syncing while establishing WebSocket connection
+        this.updateSyncStatus(documentId, DocumentSyncState.Syncing);
 
-      const provider = new WebsocketProvider(
-        this.setupService.getWebSocketUrl() + '/ws/yjs?documentId=',
-        formattedDocId,
-        ydoc,
-        {
-          connect: true,
-          resyncInterval: 10000, // Attempt to resync every 10 seconds when offline
-        }
-      );
-
-      // Track unsynced changes by listening to Yjs document updates
-      this.unsyncedChanges.set(documentId, false);
-      ydoc.on(
-        'update',
-        (
-          update: Uint8Array,
-          origin: unknown,
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          doc: Y.Doc,
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          transaction: unknown
-        ) => {
-          // Only mark as unsynced if the change originated locally
-          if (origin !== provider) {
-            this.unsyncedChanges.set(documentId, true);
-          }
-        }
-      );
-
-      // Track connection attempts for exponential backoff
-      let reconnectAttempts = 0;
-      const maxReconnectAttempts = 5;
-      let reconnectTimeout: number | null = null;
-
-      // Handle connection status with enhanced logging
-      provider.on('status', ({ status }: { status: string }) => {
+        // Make sure the documentId is properly formatted for WebSocket URL
+        // Remove any leading '/' characters that might cause URL issues
+        const formattedDocId = documentId.replace(/^\/+/, '');
         this.logger.debug(
           'DocumentService',
-          `WebSocket status for document ${documentId}: ${status}`
+          `Setting up WebSocket connection for document: ${formattedDocId}`
         );
 
-        // Log WebSocket URL and connection parameters
-        if (status === 'connecting') {
+        provider = new WebsocketProvider(
+          websocketUrl + '/ws/yjs?documentId=',
+          formattedDocId,
+          ydoc,
+          {
+            connect: true,
+            resyncInterval: 10000, // Attempt to resync every 10 seconds when offline
+          }
+        );
+
+        // Track unsynced changes by listening to Yjs document updates
+        this.unsyncedChanges.set(documentId, false);
+        ydoc.on(
+          'update',
+          (
+            update: Uint8Array,
+            origin: unknown,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            doc: Y.Doc,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            transaction: unknown
+          ) => {
+            // Only mark as unsynced if the change originated locally
+            if (origin !== provider) {
+              this.unsyncedChanges.set(documentId, true);
+            }
+          }
+        );
+
+        // Track connection attempts for exponential backoff
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        let reconnectTimeout: number | null = null;
+
+        // Handle connection status with enhanced logging
+        provider.on('status', ({ status }: { status: string }) => {
           this.logger.debug(
             'DocumentService',
-            `Connecting to WebSocket URL: ${this.setupService.getWebSocketUrl()}/ws/yjs?documentId=${formattedDocId}`
-          );
-        } else if (status === 'connected') {
-          this.logger.info(
-            'DocumentService',
-            `Successfully connected to WebSocket server for ${documentId}`
-          );
-          reconnectAttempts = 0; // Reset on successful connection
-          if (reconnectTimeout) {
-            clearTimeout(reconnectTimeout);
-            reconnectTimeout = null;
-          }
-        } else if (status === 'disconnected') {
-          this.logger.warn(
-            'DocumentService',
-            `Disconnected from WebSocket server for ${documentId}. Will attempt reconnect.`
+            `WebSocket status for document ${documentId}: ${status}`
           );
 
-          // Implement exponential backoff for reconnection
-          if (reconnectAttempts < maxReconnectAttempts) {
-            const delay = Math.min(
-              1000 * Math.pow(2, reconnectAttempts),
-              30000
-            );
+          // Log WebSocket URL and connection parameters
+          if (status === 'connecting') {
             this.logger.debug(
               'DocumentService',
-              `Will attempt reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`
+              `Connecting to WebSocket URL: ${websocketUrl}/ws/yjs?documentId=${formattedDocId}`
             );
-
-            reconnectTimeout = window.setTimeout(() => {
-              this.logger.debug(
-                'DocumentService',
-                'Attempting to reconnect WebSocket...'
-              );
-              provider.connect();
-              reconnectAttempts++;
-            }, delay);
-          } else {
+          } else if (status === 'connected') {
+            this.logger.info(
+              'DocumentService',
+              `Successfully connected to WebSocket server for ${documentId}`
+            );
+            reconnectAttempts = 0; // Reset on successful connection
+            if (reconnectTimeout) {
+              clearTimeout(reconnectTimeout);
+              reconnectTimeout = null;
+            }
+          } else if (status === 'disconnected') {
             this.logger.warn(
               'DocumentService',
-              'Max reconnection attempts reached'
+              `Disconnected from WebSocket server for ${documentId}. Will attempt reconnect.`
+            );
+
+            // Implement exponential backoff for reconnection
+            if (reconnectAttempts < maxReconnectAttempts) {
+              const delay = Math.min(
+                1000 * Math.pow(2, reconnectAttempts),
+                30000
+              );
+              this.logger.debug(
+                'DocumentService',
+                `Will attempt reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`
+              );
+
+              reconnectTimeout = window.setTimeout(() => {
+                this.logger.debug(
+                  'DocumentService',
+                  'Attempting to reconnect WebSocket...'
+                );
+                provider!.connect();
+                reconnectAttempts++;
+              }, delay);
+            } else {
+              this.logger.warn(
+                'DocumentService',
+                'Max reconnection attempts reached'
+              );
+            }
+          }
+
+          const newState =
+            status === 'connected'
+              ? DocumentSyncState.Synced
+              : DocumentSyncState.Offline;
+          this.updateSyncStatus(documentId, newState);
+
+          // When we reconnect successfully, clear the unsynced changes flag
+          if (newState === DocumentSyncState.Synced) {
+            this.unsyncedChanges.set(documentId, false);
+          }
+        });
+
+        // Handle connection errors with enhanced debugging
+        provider.on('connection-error', (error: Error | string | Event) => {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : typeof error === 'string'
+                ? error
+                : error.type;
+
+          this.logger.warn(
+            'DocumentService',
+            `WebSocket connection error for ${documentId}`,
+            errorMessage
+          );
+          this.logger.debug(
+            'DocumentService',
+            `Connection details: URL=${websocketUrl}/ws/yjs?documentId=${formattedDocId}`
+          );
+
+          if (error instanceof Error && error.stack) {
+            this.logger.debug('DocumentService', `Error stack: ${error.stack}`);
+          }
+
+          // Check for authentication errors
+          if (
+            errorMessage.includes('401') ||
+            errorMessage.includes('Unauthorized') ||
+            errorMessage.includes('Invalid session')
+          ) {
+            this.logger.error(
+              'DocumentService',
+              'Authentication error on WebSocket, session may have expired'
+            );
+            this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
+            // Notify project state service about auth error
+            this.projectStateService.updateSyncState(
+              documentId,
+              DocumentSyncState.Unavailable
+            );
+            // Stop retry attempts on auth errors
+            if (reconnectTimeout) {
+              clearTimeout(reconnectTimeout);
+              reconnectTimeout = null;
+            }
+            reconnectAttempts = maxReconnectAttempts;
+            return; // Don't set to Offline for auth errors
+          }
+
+          // If the error is related to CORS or connection refused, provide more guidance
+          if (
+            errorMessage.includes('CORS') ||
+            errorMessage.includes('refused')
+          ) {
+            this.logger.error(
+              'DocumentService',
+              'WebSocket connection refused. Check if server is running and CORS is properly configured.'
             );
           }
-        }
 
-        const newState =
-          status === 'connected'
-            ? DocumentSyncState.Synced
-            : DocumentSyncState.Offline;
-        this.updateSyncStatus(documentId, newState);
+          this.updateSyncStatus(documentId, DocumentSyncState.Offline);
+        });
 
-        // When we reconnect successfully, clear the unsynced changes flag
-        if (newState === DocumentSyncState.Synced) {
-          this.unsyncedChanges.set(documentId, false);
-        }
-      });
-
-      // Handle connection errors with enhanced debugging
-      provider.on('connection-error', (error: Error | string | Event) => {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : typeof error === 'string'
-              ? error
-              : error.type;
-
-        this.logger.warn(
-          'DocumentService',
-          `WebSocket connection error for ${documentId}`,
-          errorMessage
-        );
-        this.logger.debug(
-          'DocumentService',
-          `Connection details: URL=${this.setupService.getWebSocketUrl()}/ws/yjs?documentId=${formattedDocId}`
-        );
-
-        if (error instanceof Error && error.stack) {
-          this.logger.debug('DocumentService', `Error stack: ${error.stack}`);
-        }
-
-        // Check for authentication errors
-        if (
-          errorMessage.includes('401') ||
-          errorMessage.includes('Unauthorized') ||
-          errorMessage.includes('Invalid session')
-        ) {
-          this.logger.error(
+        // Setup automatic reconnection when online
+        const handleOnline = () => {
+          this.logger.info(
             'DocumentService',
-            'Authentication error on WebSocket, session may have expired'
+            'Network connection restored, attempting to reconnect...'
           );
-          this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
-          // Notify project state service about auth error
-          this.projectStateService.updateSyncState(
-            documentId,
-            DocumentSyncState.Unavailable
-          );
-          // Stop retry attempts on auth errors
-          if (reconnectTimeout) {
-            clearTimeout(reconnectTimeout);
-            reconnectTimeout = null;
-          }
-          reconnectAttempts = maxReconnectAttempts;
-          return; // Don't set to Offline for auth errors
-        }
+          reconnectAttempts = 0; // Reset attempts on network restore
+          provider!.connect();
+        };
 
-        // If the error is related to CORS or connection refused, provide more guidance
-        if (errorMessage.includes('CORS') || errorMessage.includes('refused')) {
-          this.logger.error(
-            'DocumentService',
-            'WebSocket connection refused. Check if server is running and CORS is properly configured.'
-          );
-        }
-
-        this.updateSyncStatus(documentId, DocumentSyncState.Offline);
-      });
-
-      // Setup automatic reconnection when online
-      const handleOnline = () => {
+        window.addEventListener('online', handleOnline);
+      } else {
+        // No WebSocket URL available - staying in offline mode
         this.logger.info(
           'DocumentService',
-          'Network connection restored, attempting to reconnect...'
+          `No WebSocket URL configured, document ${documentId} will remain in offline mode`
         );
-        reconnectAttempts = 0; // Reset attempts on network restore
-        provider.connect();
-      };
-
-      window.addEventListener('online', handleOnline);
+        this.updateSyncStatus(documentId, DocumentSyncState.Offline);
+      }
 
       connection = { ydoc, provider, type, indexeddbProvider };
       this.connections.set(documentId, connection);
@@ -468,16 +480,22 @@ export class DocumentService {
 
     // Get the underlying ProseMirror view
     const view = editor.view;
-    if (!connection.type || !connection.provider) {
+    if (!connection.type) {
       throw new Error('Editor Yjs not properly initialized');
     }
 
     // Add collaboration plugins to the existing editor
-    const plugins = [
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+    const plugins: Plugin<any>[] = [
       ySyncPlugin(connection.type),
-      yCursorPlugin(connection.provider.awareness),
       yUndoPlugin(),
-    ] as Plugin[];
+    ];
+
+    // Add cursor plugin only if we have a WebSocket provider
+    if (connection.provider) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      plugins.push(yCursorPlugin(connection.provider.awareness));
+    }
 
     // Add the linting plugin
     if (this.systemConfigService.isAiLintingEnabled()) {
@@ -546,7 +564,7 @@ export class DocumentService {
       // Disconnect specific document
       const connection = this.connections.get(documentId);
       if (connection) {
-        connection.provider.destroy();
+        connection.provider?.destroy();
         void connection.indexeddbProvider.destroy();
         connection.ydoc.destroy();
         this.connections.delete(documentId);
@@ -554,7 +572,7 @@ export class DocumentService {
     } else {
       // Disconnect all documents
       for (const connection of this.connections.values()) {
-        connection.provider.destroy();
+        connection.provider?.destroy();
         void connection.indexeddbProvider.destroy();
         connection.ydoc.destroy();
       }
