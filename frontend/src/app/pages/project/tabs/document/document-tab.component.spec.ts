@@ -75,6 +75,8 @@ describe('DocumentTabComponent', () => {
 
     projectStateService = {
       project: signal(mockProject),
+      openTabs: signal([]),
+      selectedTabIndex: signal(0),
     };
 
     settingsService = {
