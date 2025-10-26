@@ -1,5 +1,7 @@
 import { Route } from '@playwright/test';
 import { mockApi } from './index';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Mock Project DTO
@@ -10,6 +12,7 @@ export interface MockProjectDto {
   slug: string;
   description?: string;
   username: string;
+  coverImageUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -82,17 +85,7 @@ class MockProjects {
   }
 
   public resetProjects(): void {
-    this.projects = [
-      {
-        id: '1',
-        title: 'Test Project',
-        slug: 'test-project',
-        description: 'A test project for e2e tests',
-        username: 'testuser',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
+    this.projects = [];
   }
 }
 
@@ -103,146 +96,225 @@ export const mockProjects = new MockProjects();
  */
 export function setupProjectHandlers(): void {
   // GET /api/v1/projects - List all projects for current user
-  mockApi.addHandler('**/api/v1/projects', async (route: Route) => {
-    const request = route.request();
-    const cookieHeader = request.headers()['cookie'];
-    let username = '';
+  // Use $ to ensure exact match (not matching /projects/...)
+  mockApi.addHandler('**/api/v1/projects$', async (route: Route) => {
+    const method = route.request().method();
+    console.log(`Handling /api/v1/projects request - method: ${method}`);
 
-    // Extract username from session cookie
-    if (cookieHeader) {
-      const cookies = cookieHeader.split('; ');
-      const sessionCookie = cookies.find(c => c.startsWith('mockSessionId='));
-      if (sessionCookie) {
-        const sessionId = sessionCookie.split('=')[1];
-        const parts = sessionId.split('-');
-        if (parts.length >= 3 && parts[0] === 'mock' && parts[1] === 'session') {
-          username = parts[2];
+    // Handle GET requests
+    if (method === 'GET') {
+      const request = route.request();
+      const cookieHeader = request.headers()['cookie'];
+      let username = '';
+
+      // Extract username from session cookie
+      if (cookieHeader) {
+        console.log('Cookie header:', cookieHeader);
+        const cookies = cookieHeader.split('; ');
+        const sessionCookie = cookies.find(c => c.startsWith('mockSessionId='));
+        if (sessionCookie) {
+          const sessionId = sessionCookie.split('=')[1];
+          console.log('Session ID:', sessionId);
+          const parts = sessionId.split('-');
+          if (parts.length >= 3 && parts[0] === 'mock' && parts[1] === 'session') {
+            username = parts[2];
+            console.log('Extracted username:', username);
+          }
+        }
+      } else {
+        console.log('No cookie header found');
+      }
+
+      if (!username) {
+        console.log('No username - returning 401');
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            message: 'Unauthorized',
+            error: 'Unauthorized',
+            statusCode: 401,
+          }),
+        });
+        return;
+      }
+
+      const userProjects = mockProjects.getProjectsByUsername(username);
+      console.log(`Found ${userProjects.length} projects for user ${username}:`, userProjects.map(p => p.title));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(userProjects),
+      });
+      return;
+    }
+
+    // Handle POST requests
+    if (method === 'POST') {
+      const request = route.request();
+      const cookieHeader = request.headers()['cookie'];
+      let username = '';
+
+      // Extract username from session cookie
+      if (cookieHeader) {
+        const cookies = cookieHeader.split('; ');
+        const sessionCookie = cookies.find(c => c.startsWith('mockSessionId='));
+        if (sessionCookie) {
+          const sessionId = sessionCookie.split('=')[1];
+          const parts = sessionId.split('-');
+          if (parts.length >= 3 && parts[0] === 'mock' && parts[1] === 'session') {
+            username = parts[2];
+          }
         }
       }
-    }
 
-    if (!username) {
-      await route.fulfill({
-        status: 401,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          message: 'Unauthorized',
-          error: 'Unauthorized',
-          statusCode: 401,
-        }),
-      });
-      return;
-    }
-
-    const userProjects = mockProjects.getProjectsByUsername(username);
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(userProjects),
-    });
-  });
-
-  // POST /api/v1/projects - Create new project
-  mockApi.addHandler('**/api/v1/projects', async (route: Route) => {
-    if (route.request().method() !== 'POST') {
-      return;
-    }
-
-    const request = route.request();
-    const cookieHeader = request.headers()['cookie'];
-    let username = '';
-
-    // Extract username from session cookie
-    if (cookieHeader) {
-      const cookies = cookieHeader.split('; ');
-      const sessionCookie = cookies.find(c => c.startsWith('mockSessionId='));
-      if (sessionCookie) {
-        const sessionId = sessionCookie.split('=')[1];
-        const parts = sessionId.split('-');
-        if (parts.length >= 3 && parts[0] === 'mock' && parts[1] === 'session') {
-          username = parts[2];
-        }
+      if (!username) {
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            message: 'Unauthorized',
+            error: 'Unauthorized',
+            statusCode: 401,
+          }),
+        });
+        return;
       }
-    }
 
-    if (!username) {
+      const body = (await request.postDataJSON()) as {
+        title: string;
+        slug: string;
+        description?: string;
+      };
+
+      // Validate required fields
+      if (!body.title || !body.slug) {
+        await route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            message: 'Title and slug are required',
+            error: 'Bad Request',
+            statusCode: 400,
+          }),
+        });
+        return;
+      }
+
+      // Check for duplicate slug
+      const existing = mockProjects.findBySlugAndUsername(username, body.slug);
+      if (existing) {
+        await route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            message: 'A project with this slug already exists',
+            error: 'Conflict',
+            statusCode: 409,
+          }),
+        });
+        return;
+      }
+
+      // Create new project
+      const newProject: MockProjectDto = {
+        id: Date.now().toString(),
+        title: body.title,
+        slug: body.slug,
+        description: body.description,
+        username,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      mockProjects.addProject(newProject);
+      console.log(`Created project: ${newProject.title} (${newProject.slug})`);
+
       await route.fulfill({
-        status: 401,
+        status: 201,
         contentType: 'application/json',
-        body: JSON.stringify({
-          message: 'Unauthorized',
-          error: 'Unauthorized',
-          statusCode: 401,
-        }),
+        body: JSON.stringify(newProject),
       });
       return;
     }
-
-    const body = (await request.postDataJSON()) as {
-      title: string;
-      slug: string;
-      description?: string;
-    };
-
-    // Validate required fields
-    if (!body.title || !body.slug) {
-      await route.fulfill({
-        status: 400,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          message: 'Title and slug are required',
-          error: 'Bad Request',
-          statusCode: 400,
-        }),
-      });
-      return;
-    }
-
-    // Check for duplicate slug
-    const existing = mockProjects.findBySlugAndUsername(username, body.slug);
-    if (existing) {
-      await route.fulfill({
-        status: 409,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          message: 'A project with this slug already exists',
-          error: 'Conflict',
-          statusCode: 409,
-        }),
-      });
-      return;
-    }
-
-    // Create new project
-    const newProject: MockProjectDto = {
-      id: Date.now().toString(),
-      title: body.title,
-      slug: body.slug,
-      description: body.description,
-      username,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    mockProjects.addProject(newProject);
-    console.log(`Created project: ${newProject.title} (${newProject.slug})`);
-
-    await route.fulfill({
-      status: 201,
-      contentType: 'application/json',
-      body: JSON.stringify(newProject),
-    });
   });
 
   // GET /api/v1/projects/:username/:slug - Get specific project
   mockApi.addHandler(
     '**/api/v1/projects/*/*',
     async (route: Route) => {
+      const url = route.request().url();
+
+      // Check if it's a cover image request
+      if (url.endsWith('/cover')) {
+        if (route.request().method() !== 'GET') {
+          return;
+        }
+
+        const parts = url.split('/');
+        parts.pop(); // Remove 'cover'
+        const slug = parts.pop() || '';
+        const username = parts.pop() || '';
+
+        const project = mockProjects.findBySlugAndUsername(username, slug);
+
+        if (!project) {
+          await route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              message: 'Cover image not found',
+              error: 'Not Found',
+              statusCode: 404,
+            }),
+          });
+          return;
+        }
+
+        if (!project.coverImageUrl) {
+          await route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              message: 'Cover image not found',
+              error: 'Not Found',
+              statusCode: 404,
+            }),
+          });
+          return;
+        }
+
+        // Serve the actual image file
+        // Convert the URL path to a file system path
+        const imagePath = path.join(process.cwd(), '..', project.coverImageUrl);
+
+        try {
+          const imageBuffer = fs.readFileSync(imagePath);
+          await route.fulfill({
+            status: 200,
+            contentType: 'image/png',
+            body: imageBuffer,
+          });
+        } catch (error) {
+          console.error(`Failed to read cover image: ${imagePath}`, error);
+          await route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              message: 'Cover image file not found',
+              error: 'Not Found',
+              statusCode: 404,
+            }),
+          });
+        }
+        return;
+      }
+
+      // Regular project GET request
       if (route.request().method() !== 'GET') {
         return;
       }
 
-      const url = route.request().url();
       const parts = url.split('/');
       const slug = parts.pop() || '';
       const username = parts.pop() || '';

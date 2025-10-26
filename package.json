@@ -1,6 +1,6 @@
 {
   "name": "inkweld",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Inkweld",
   "scripts": {
     "install-all": "cd frontend && bun install --save-text-lockfile && cd ../server && bun install --save-text-lockfile",

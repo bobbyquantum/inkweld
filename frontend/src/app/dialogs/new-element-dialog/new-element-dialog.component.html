@@ -26,6 +26,7 @@
             <mat-card
               class="type-card"
               [class.selected]="selectedType() === option.type"
+              [attr.data-testid]="'element-type-' + option.type.toLowerCase()"
               (click)="selectType(option.type)">
               <mat-icon
                 class="type-icon"
@@ -114,6 +115,7 @@
         <input
           matInput
           [formControl]="$any(form.controls.name)"
+          data-testid="element-name-input"
           required
           [placeholder]="
             getSelectedOption()?.type === 'CHARACTER'

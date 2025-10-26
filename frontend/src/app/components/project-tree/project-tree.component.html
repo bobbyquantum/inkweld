@@ -49,6 +49,7 @@
         <button
           mat-icon-button
           type="button"
+          data-testid="expand-folder-button"
           (click)="toggleExpandedClick(node, $event)"
           (touchend)="toggleExpandedTouch(node, $event)"
           [disabled]="isLoading()">
