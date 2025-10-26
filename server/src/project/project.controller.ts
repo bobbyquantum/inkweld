@@ -149,16 +149,6 @@ export class ProjectController {
         projectEntity,
       );
 
-      // Initialize schema library with default schemas (async, don't block)
-      this.schemaService
-        .initializeProjectSchemasInDB(req.user.username, newProjectEntity.slug)
-        .catch((schemaError) => {
-          this.logger.error(
-            `Failed to initialize schema library for ${req.user.username}/${newProjectEntity.slug}`,
-            schemaError,
-          );
-        });
-
       // Generate default cover image asynchronously (don't block response)
       // Use the username from the session and slug/title from the created entity
       this.coverController

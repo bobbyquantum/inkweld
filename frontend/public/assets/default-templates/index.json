@@ -1,0 +1,16 @@
+{
+  "templates": [
+    {
+      "id": "character-v1",
+      "type": "CHARACTER",
+      "name": "Character",
+      "file": "character.json"
+    },
+    {
+      "id": "location-v1",
+      "type": "LOCATION",
+      "name": "Location",
+      "file": "location.json"
+    }
+  ]
+}

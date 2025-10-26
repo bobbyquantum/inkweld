@@ -11,7 +11,6 @@ api/image.service.ts
 api/lint.service.ts
 api/mcp.service.ts
 api/project-api.service.ts
-api/schemas-api.service.ts
 api/user-api.service.ts
 configuration.ts
 encoder.ts
@@ -38,7 +37,6 @@ model/models.ts
 model/project-dto.ts
 model/project-element-dto.ts
 model/publish-epub-response-dto.ts
-model/schemas-controller-initialize-default-schemas200-response.ts
 model/style-recommendation-dto.ts
 model/user-controller-check-username-availability200-response.ts
 model/user-dto.ts

@@ -58,20 +58,6 @@ describe('SchemaService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('initializeProjectSchemas', () => {
-    it('should create a project schema library with default schemas', () => {
-      const projectId = 'testuser:test-project';
-
-      const library = service.initializeProjectSchemas(projectId);
-
-      expect(library.projectId).toBe(projectId);
-      expect(library.schemas).toBeDefined();
-      expect(Object.keys(library.schemas).length).toBeGreaterThan(0);
-      expect(library.createdAt).toBeDefined();
-      expect(library.updatedAt).toBeDefined();
-    });
-  });
-
   describe('getSchemaFromLibrary', () => {
     it('should retrieve schema from library', () => {
       const library: ProjectSchemaLibrary = {
@@ -227,39 +213,6 @@ describe('SchemaService', () => {
     });
   });
 
-  describe('initializeProjectSchemasInDB', () => {
-    it('should initialize schemas in LevelDB', async () => {
-      const username = 'testuser';
-      const slug = 'test-project';
-      const mockYDoc = new Y.Doc();
-
-      mockDb.getYDoc.mockResolvedValueOnce(mockYDoc);
-      mockDb.storeUpdate.mockResolvedValueOnce(undefined);
-
-      await service.initializeProjectSchemasInDB(username, slug);
-
-      expect(levelDBManager.getProjectDatabase).toHaveBeenCalledWith(
-        username,
-        slug,
-      );
-      expect(mockDb.getYDoc).toHaveBeenCalledWith('testuser:test-project:__schemas__');
-      expect(mockDb.storeUpdate).toHaveBeenCalled();
-    });
-
-    it('should handle database errors', async () => {
-      const username = 'testuser';
-      const slug = 'test-project';
-
-      (levelDBManager.getProjectDatabase as ReturnType<typeof jest.fn>).mockRejectedValueOnce(
-        new Error('Database error'),
-      );
-
-      await expect(
-        service.initializeProjectSchemasInDB(username, slug),
-      ).rejects.toThrow('Database error');
-    });
-  });
-
   describe('loadProjectSchemas', () => {
     it('should load schemas from LevelDB', async () => {
       const username = 'testuser';
@@ -267,7 +220,14 @@ describe('SchemaService', () => {
       const mockYDoc = new Y.Doc();
 
       // Setup Y.Doc with a schema library
-      const library = service.initializeProjectSchemas('testuser:test-project');
+      const library: ProjectSchemaLibrary = {
+        projectId: 'testuser:test-project',
+        schemas: {
+          character: mockCharacterSchema,
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
       service.storeLibraryInYDoc(mockYDoc, library);
 
       mockDb.getYDoc.mockResolvedValueOnce(mockYDoc);
@@ -310,18 +270,6 @@ describe('SchemaService', () => {
       const loadedSchema = service.loadSchemaFromElementDoc(ydoc);
 
       expect(loadedSchema).toBeNull();
-    });
-  });
-
-  describe('getDefaultSchemas', () => {
-    it('should return default schemas', () => {
-      const schemas = service.getDefaultSchemas();
-
-      expect(Array.isArray(schemas)).toBe(true);
-      expect(schemas.length).toBeGreaterThan(0);
-      expect(schemas[0]).toHaveProperty('id');
-      expect(schemas[0]).toHaveProperty('type');
-      expect(schemas[0]).toHaveProperty('tabs');
     });
   });
 });
