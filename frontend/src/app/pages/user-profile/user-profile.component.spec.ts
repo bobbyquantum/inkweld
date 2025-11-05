@@ -14,8 +14,8 @@ import { UserProfileComponent } from './user-profile.component';
 describe('UserProfileComponent', () => {
   let component: UserProfileComponent;
   let fixture: ComponentFixture<UserProfileComponent>;
-  let subjectCompleteSpy: ReturnType<typeof vi.spyOn>;
-  let subjectNextSpy: ReturnType<typeof vi.spyOn>;
+  let subjectCompleteSpy: any;
+  let subjectNextSpy: any;
   let userService: MockedObject<UserService>;
   let breakpointObserver: MockedObject<BreakpointObserver>;
   let projectService: Partial<ProjectService>;

@@ -7,11 +7,11 @@ import { LoggerService } from './logger.service';
 describe('LoggerService', () => {
   let service: LoggerService;
   let consoleSpy: {
-    log: ReturnType<typeof vi.spyOn>;
-    warn: ReturnType<typeof vi.spyOn>;
-    error: ReturnType<typeof vi.spyOn>;
-    group: ReturnType<typeof vi.spyOn>;
-    groupEnd: ReturnType<typeof vi.spyOn>;
+    log: any;
+    warn: any;
+    error: any;
+    group: any;
+    groupEnd: any;
   };
 
   beforeEach(() => {
