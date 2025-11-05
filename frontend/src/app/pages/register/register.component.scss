@@ -1,53 +1,27 @@
+// Optimized register.component.scss
 .register-container {
   display: flex;
   justify-content: center;
-  align-items: flex-start; // Changed from center to flex-start
+  align-items: flex-start;
   min-height: 100vh;
   padding: 20px;
   box-sizing: border-box;
-  background-image: url('/inkweld_background.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background: url('/inkweld_background.jpg') center/cover no-repeat;
   position: relative;
-  overflow-y: auto; // Add overflow handling
-
+  overflow-y: auto;
   &::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(
-      255,
-      255,
-      255,
-      0.1
-    ); // Very light overlay for light mode
+    inset: 0;
+    background-color: rgba(255, 255, 255, 0.1);
     z-index: 0;
   }
-
-  // Dark mode styling
   .dark-theme & {
     &::before {
-      background-color: rgba(0, 0, 0, 0.6); // Darker overlay for dark mode
-      // Apply vendor prefixes and provide proper browser support for backdrop-filter
-      -webkit-backdrop-filter: saturate(70%);
-      backdrop-filter: saturate(
-        70%
-      ); // Reduces saturation to wash out the image
-      @supports not (
-        (backdrop-filter: saturate(70%)) or
-          (-webkit-backdrop-filter: saturate(70%))
-      ) {
-        // Fallback for browsers that don't support backdrop-filter
-        background-color: rgba(
-          0,
-          0,
-          0,
-          0.7
-        ); // Slightly darker overlay as fallback
+      background-color: rgba(0, 0, 0, 0.6);
+      backdrop-filter: saturate(70%);
+      @supports not ((backdrop-filter: saturate(70%)) or (-webkit-backdrop-filter: saturate(70%))) {
+        background-color: rgba(0, 0, 0, 0.7);
       }
     }
   }
@@ -58,14 +32,12 @@
   max-width: 400px;
   text-align: center;
   position: relative;
-  z-index: 1; // Ensure content is above the overlay
-  margin-top: 60px; // Add top margin to make room for the logo
-  padding-top: 20px; // Add top padding for better spacing
+  z-index: 1;
+  margin-top: 60px;
+  padding-top: 20px;
 }
 
-h1 {
-  margin-bottom: 24px;
-}
+h1 { margin-bottom: 24px; }
 
 mat-card {
   margin-bottom: 24px;
@@ -89,12 +61,9 @@ mat-card {
   object-fit: contain;
 }
 
-.card-content {
-  padding-top: 30px; // Reduced from 50px to 30px
-}
-
+.card-content { padding-top: 30px; }
 .title {
-  margin-top: 8px; // Reduced from 16px to 8px
+  margin-top: 8px;
   margin-bottom: 24px;
 }
 
@@ -109,18 +78,11 @@ form {
   display: flex;
   flex-direction: column;
   gap: 12px;
-
-  h3 {
-    margin-bottom: 8px;
-  }
-
+  h3 { margin-bottom: 8px; }
   button {
     width: 100%;
-    mat-icon {
-      margin-right: 8px;
-    }
+    mat-icon { margin-right: 8px; }
   }
-
   .loading-spinner {
     display: flex;
     flex-direction: column;
@@ -128,50 +90,26 @@ form {
     gap: 12px;
     padding: 16px 0;
     color: var(--mat-theme-text-secondary-on-background);
-
-    mat-progress-spinner {
-      margin-bottom: 4px;
-    }
-
-    span {
-      font-size: 0.9em;
-    }
+    mat-progress-spinner { margin-bottom: 4px; }
+    span { font-size: 0.9em; }
   }
 }
 
-mat-divider {
-  margin: 24px 0;
-}
-
-.register-button,
-.login-button {
-  width: 100%;
-}
+mat-divider { margin: 24px 0; }
+.register-button, .login-button { width: 100%; }
 
 .mobile {
-  .content-wrapper {
-    max-width: 100%;
-  }
-
-  mat-card {
-    padding: 16px;
-  }
-
-  .oauth-container {
-    button {
-      padding: 8px 16px;
-    }
-  }
+  .content-wrapper { max-width: 100%; }
+  mat-card { padding: 16px; }
+  .oauth-container button { padding: 8px 16px; }
 }
 
-// Styles for username suggestions
 .username-suggestions {
   margin-bottom: 16px;
   padding: 12px;
   border-radius: 4px;
   background-color: rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(0, 0, 0, 0.06);
-
   .dark-theme & {
     background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -199,7 +137,6 @@ mat-divider {
   height: auto;
 }
 
-// Password validation errors styling
 .password-validation-errors {
   margin-top: -8px;
   margin-bottom: 16px;
@@ -228,10 +165,7 @@ mat-divider {
   margin-bottom: 4px;
   font-size: 0.85em;
   color: var(--custom-error-color);
-
-  &:last-child {
-    margin-bottom: 0;
-  }
+  &:last-child { margin-bottom: 0; }
 }
 
 .validation-error-icon {
@@ -241,26 +175,20 @@ mat-divider {
   width: 16px;
 }
 
-// Error message styling
 .password-error-message {
   display: flex;
   align-items: center;
   color: var(--custom-error-color);
   margin-bottom: 16px;
-
   .error-icon {
     margin-right: 8px;
     font-size: 20px;
     height: 20px;
     width: 20px;
   }
-
-  span {
-    font-size: 0.9em;
-  }
+  span { font-size: 0.9em; }
 }
 
-// Password validation checklist styling
 .password-validation-checklist {
   margin-top: -8px;
   margin-bottom: 16px;
@@ -270,8 +198,7 @@ mat-divider {
   border: 1px solid rgba(25, 118, 210, 0.2);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   position: relative;
-  
-  // Add a small arrow pointing up to the password field
+  animation: slideInDown 0.2s ease-out;
   &::before {
     content: '';
     position: absolute;
@@ -283,7 +210,6 @@ mat-divider {
     border-right: 6px solid transparent;
     border-bottom: 6px solid rgba(25, 118, 210, 0.2);
   }
-  
   &::after {
     content: '';
     position: absolute;
@@ -295,21 +221,11 @@ mat-divider {
     border-right: 6px solid transparent;
     border-bottom: 6px solid rgba(25, 118, 210, 0.08);
   }
-  
-  // Animation
-  animation: slideInDown 0.2s ease-out;
-
   .dark-theme & {
     background-color: rgba(144, 202, 249, 0.12);
     border: 1px solid rgba(144, 202, 249, 0.3);
-    
-    &::before {
-      border-bottom-color: rgba(144, 202, 249, 0.3);
-    }
-    
-    &::after {
-      border-bottom-color: rgba(144, 202, 249, 0.12);
-    }
+    &::before { border-bottom-color: rgba(144, 202, 249, 0.3); }
+    &::after { border-bottom-color: rgba(144, 202, 249, 0.12); }
   }
 }
 
@@ -343,22 +259,13 @@ mat-divider {
   margin-bottom: 4px;
   font-size: 0.85em;
   color: var(--mat-theme-on-surface-variant);
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-
+  &:last-child { margin-bottom: 0; }
   &.met {
     color: var(--custom-success-color);
-    .validation-checklist-icon {
-      color: var(--custom-success-color);
-    }
+    .validation-checklist-icon { color: var(--custom-success-color); }
   }
-
   &:not(.met) {
-    .validation-checklist-icon {
-      color: var(--custom-error-color);
-    }
+    .validation-checklist-icon { color: var(--custom-error-color); }
   }
 }
 
@@ -369,7 +276,6 @@ mat-divider {
   width: 16px;
 }
 
-// Captcha styling
 .captcha-container {
   margin-bottom: 16px;
   display: flex;
@@ -382,7 +288,7 @@ mat-divider {
   position: relative;
   display: flex;
   justify-content: center;
-  min-height: 78px; // Standard reCAPTCHA height
+  min-height: 78px;
 }
 
 .recaptcha-element {
@@ -392,10 +298,7 @@ mat-divider {
 
 .captcha-loading-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -405,10 +308,7 @@ mat-divider {
   border-radius: 4px;
   color: var(--mat-theme-on-surface-variant);
   z-index: 2;
-  
-  span {
-    font-size: 0.9em;
-  }
+  span { font-size: 0.9em; }
 }
 
 .captcha-error {
@@ -417,7 +317,6 @@ mat-divider {
   gap: 8px;
   color: var(--custom-error-color);
   font-size: 0.9em;
-
   mat-icon {
     font-size: 18px;
     height: 18px;
@@ -425,7 +324,6 @@ mat-divider {
   }
 }
 
-// Password Requirements Tooltip (Overlay)
 .password-requirements-tooltip {
   background: var(--password-tooltip-bg);
   border-radius: 8px;
@@ -436,10 +334,6 @@ mat-divider {
   min-width: 240px;
   z-index: 1000;
   color: var(--mat-theme-on-surface);
-  
-  /* Remove backdrop blur for solid appearance */
-  /* backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px); */
 }
 
 .tooltip-header {
@@ -475,27 +369,14 @@ mat-divider {
   margin-bottom: 6px;
   font-size: 0.85em;
   color: var(--mat-theme-on-surface-variant);
-  
-  &:last-child {
-    margin-bottom: 0;
-  }
-  
+  &:last-child { margin-bottom: 0; }
   &.met {
-    .requirement-icon {
-      color: var(--custom-success-color);
-    }
-    .requirement-text {
-      color: var(--custom-success-color);
-    }
+    .requirement-icon { color: var(--custom-success-color); }
+    .requirement-text { color: var(--custom-success-color); }
   }
-  
   &:not(.met) {
-    .requirement-icon {
-      color: var(--custom-error-color);
-    }
-    .requirement-text {
-      color: var(--mat-theme-on-surface-variant);
-    }
+    .requirement-icon { color: var(--custom-error-color); }
+    .requirement-text { color: var(--mat-theme-on-surface-variant); }
   }
 }
 
@@ -506,6 +387,4 @@ mat-divider {
   flex-shrink: 0;
 }
 
-.requirement-text {
-  line-height: 1.3;
-}
+.requirement-text { line-height: 1.3; }
