@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,6 +18,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterModule } from '@angular/router';
 import { BookshelfComponent } from '@components/bookshelf/bookshelf.component';
+import { SideNavComponent } from '@components/side-nav/side-nav.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { ProjectDto } from '@inkweld/index';
 import { ProjectServiceError } from '@services/project.service';
@@ -25,14 +27,18 @@ import { UnifiedUserService } from '@services/unified-user.service';
 import { Subject } from 'rxjs';
 import { debounceTime, takeUntil } from 'rxjs/operators';
 
+type ViewMode = 'tiles' | 'bookshelf' | 'list';
+
 @Component({
   selector: 'app-home',
   imports: [
     UserMenuComponent,
     BookshelfComponent,
+    SideNavComponent,
     MatToolbarModule,
     MatIconModule,
     MatButtonModule,
+    MatButtonToggleModule,
     MatFormFieldModule,
     MatInputModule,
     RouterModule,
@@ -55,6 +61,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   selectedProject: ProjectDto | null = null;
   isMobile = false;
   searchControl = new FormControl('');
+  sideNavOpen = signal(true); // Open by default on desktop
+  mobileSearchActive = signal(false); // Track mobile search mode
+  viewMode = signal<ViewMode>('bookshelf'); // Default to bookshelf view
 
   protected user = this.userService.currentUser;
   protected isLoading = this.projectService.isLoading;
@@ -129,7 +138,37 @@ export class HomeComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(result => {
         this.isMobile = result.matches;
+        // Close side nav on mobile by default
+        if (this.isMobile) {
+          this.sideNavOpen.set(false);
+        } else {
+          this.sideNavOpen.set(true);
+        }
       });
+  }
+
+  toggleSideNav(): void {
+    this.sideNavOpen.set(!this.sideNavOpen());
+  }
+
+  toggleMobileSearch(): void {
+    this.mobileSearchActive.set(!this.mobileSearchActive());
+    // Clear search when closing
+    if (!this.mobileSearchActive()) {
+      this.searchControl.setValue('');
+    }
+  }
+
+  setViewMode(mode: ViewMode): void {
+    this.viewMode.set(mode);
+  }
+
+  getCoverUrl(project: ProjectDto): string {
+    const baseUrl =
+      window.location.hostname === 'localhost'
+        ? 'http://localhost:8333'
+        : window.location.origin;
+    return `${baseUrl}/api/v1/projects/${project.username}/${project.slug}/cover`;
   }
 
   selectProject(project: ProjectDto) {

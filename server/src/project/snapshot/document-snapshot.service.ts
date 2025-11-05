@@ -112,8 +112,8 @@ export class DocumentSnapshotService {
    * List all snapshots for a document
    */
   async listSnapshots(
-    username: string,
-    projectSlug: string,
+    _username: string,
+    _projectSlug: string,
     docId: string,
     query: ListSnapshotsQuery,
   ): Promise<PaginatedSnapshotsDto> {
