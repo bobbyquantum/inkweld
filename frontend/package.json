@@ -68,7 +68,7 @@
     "jsdom": "^25.0.1",
     "playwright-ng-schematics": "2.1.1",
     "prettier": "3.6.2",
-    "rimraf": "6.0.1",
+    "rimraf": "6.1.0",
     "typescript": "5.9.3",
     "typescript-eslint": "8.46.3",
     "vitest": "^3.2.4",

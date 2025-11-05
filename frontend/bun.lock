@@ -51,7 +51,7 @@
         "jsdom": "^25.0.1",
         "playwright-ng-schematics": "2.1.1",
         "prettier": "3.6.2",
-        "rimraf": "6.0.1",
+        "rimraf": "6.1.0",
         "typescript": "5.9.3",
         "typescript-eslint": "8.46.3",
         "vitest": "^3.2.4",
@@ -1249,7 +1249,7 @@
 
     "rfdc": ["rfdc@1.4.1", "", {}, "sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA=="],
 
-    "rimraf": ["rimraf@6.0.1", "", { "dependencies": { "glob": "^11.0.0", "package-json-from-dist": "^1.0.0" }, "bin": { "rimraf": "dist/esm/bin.mjs" } }, "sha512-9dkvaxAsk/xNXSJzMgFqqMCuFgt2+KsOFek3TMLfo8NCPfWpBmqwyNn5Y+NX56QUYfCtsyhF3ayiboEoUmJk/A=="],
+    "rimraf": ["rimraf@6.1.0", "", { "dependencies": { "glob": "^11.0.3", "package-json-from-dist": "^1.0.1" }, "bin": { "rimraf": "dist/esm/bin.mjs" } }, "sha512-DxdlA1bdNzkZK7JiNWH+BAx1x4tEJWoTofIopFo6qWUU94jYrFZ0ubY05TqH3nWPJ1nKa1JWVFDINZ3fnrle/A=="],
 
     "rollup": ["rollup@4.52.3", "", { "dependencies": { "@types/estree": "1.0.8" }, "optionalDependencies": { "@rollup/rollup-android-arm-eabi": "4.52.3", "@rollup/rollup-android-arm64": "4.52.3", "@rollup/rollup-darwin-arm64": "4.52.3", "@rollup/rollup-darwin-x64": "4.52.3", "@rollup/rollup-freebsd-arm64": "4.52.3", "@rollup/rollup-freebsd-x64": "4.52.3", "@rollup/rollup-linux-arm-gnueabihf": "4.52.3", "@rollup/rollup-linux-arm-musleabihf": "4.52.3", "@rollup/rollup-linux-arm64-gnu": "4.52.3", "@rollup/rollup-linux-arm64-musl": "4.52.3", "@rollup/rollup-linux-loong64-gnu": "4.52.3", "@rollup/rollup-linux-ppc64-gnu": "4.52.3", "@rollup/rollup-linux-riscv64-gnu": "4.52.3", "@rollup/rollup-linux-riscv64-musl": "4.52.3", "@rollup/rollup-linux-s390x-gnu": "4.52.3", "@rollup/rollup-linux-x64-gnu": "4.52.3", "@rollup/rollup-linux-x64-musl": "4.52.3", "@rollup/rollup-openharmony-arm64": "4.52.3", "@rollup/rollup-win32-arm64-msvc": "4.52.3", "@rollup/rollup-win32-ia32-msvc": "4.52.3", "@rollup/rollup-win32-x64-gnu": "4.52.3", "@rollup/rollup-win32-x64-msvc": "4.52.3", "fsevents": "~2.3.2" }, "bin": { "rollup": "dist/bin/rollup" } }, "sha512-RIDh866U8agLgiIcdpB+COKnlCreHJLfIhWC3LVflku5YHfpnsIKigRZeFfMfCc4dVcqNVfQQ5gO/afOck064A=="],
 
