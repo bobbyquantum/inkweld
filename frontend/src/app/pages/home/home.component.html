@@ -1,191 +1,377 @@
 <div class="content-container" [class.is-mobile]="isMobile">
   <!-- Header section with logo and search bar (always visible) -->
   <div class="header-section">
-    <div class="search-container">
-      <img class="app-logo" src="/logo.png" alt="InkWeld logo" />
+    <div
+      class="search-container"
+      [class.mobile-search-mode]="mobileSearchActive()">
+      <!-- Mobile search mode: Back button + Search field -->
+      @if (isMobile && mobileSearchActive()) {
+        <div class="left-section">
+          <button
+            mat-icon-button
+            (click)="toggleMobileSearch()"
+            aria-label="Close search"
+            class="back-btn">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+        </div>
 
-      @if (isAuthenticated()) {
-        <mat-form-field
-          appearance="outline"
-          density="compact"
-          class="custom-search-field"
-          hideRequiredMarker="true"
-          subscriptSizing="dynamic">
-          <input
-            matInput
-            placeholder="Search projects"
-            [formControl]="searchControl" />
-          <mat-icon matPrefix>search</mat-icon>
-          @if (searchControl.value) {
+        <div class="center-section mobile-search">
+          <mat-form-field
+            appearance="outline"
+            density="compact"
+            class="custom-search-field"
+            hideRequiredMarker="true"
+            subscriptSizing="dynamic">
+            <input
+              matInput
+              placeholder="Search projects"
+              [formControl]="searchControl" />
+            <mat-icon matPrefix>search</mat-icon>
+            @if (searchControl.value) {
+              <button
+                matSuffix
+                mat-icon-button
+                aria-label="Clear"
+                (click)="searchControl.setValue('')">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="right-section"></div>
+      } @else {
+        <!-- Normal mode: Hamburger/Logo + Search icon + User menu -->
+        <!-- Left section: Hamburger + Logo -->
+        <div class="left-section">
+          @if (isAuthenticated() && isMobile) {
             <button
-              matSuffix
               mat-icon-button
-              aria-label="Clear"
-              (click)="searchControl.setValue('')">
-              <mat-icon>close</mat-icon>
+              (click)="toggleSideNav()"
+              aria-label="Toggle navigation menu"
+              class="hamburger-btn">
+              <mat-icon>menu</mat-icon>
             </button>
           }
-        </mat-form-field>
-      }
+          <img class="app-logo" src="/logo.png" alt="InkWeld logo" />
+        </div>
 
-      <!-- Show user menu if authenticated, otherwise show login/register buttons -->
-      @if (isAuthenticated()) {
-        <app-user-menu
-          [user]="userService.currentUser()"
-          [miniMode]="true"></app-user-menu>
-      } @else {
-        <div class="auth-buttons">
-          <button
-            mat-stroked-button
-            color="primary"
-            (click)="navigateToLogin()"
-            class="login-btn">
-            Login
-          </button>
-          <button
-            mat-raised-button
-            color="primary"
-            (click)="navigateToRegister()"
-            class="register-btn">
-            Register
-          </button>
+        <!-- Center section: Search box (desktop only) -->
+        @if (isAuthenticated() && !isMobile) {
+          <div class="center-section">
+            <mat-form-field
+              appearance="outline"
+              density="compact"
+              class="custom-search-field"
+              hideRequiredMarker="true"
+              subscriptSizing="dynamic">
+              <input
+                matInput
+                placeholder="Search projects"
+                [formControl]="searchControl" />
+              <mat-icon matPrefix>search</mat-icon>
+              @if (searchControl.value) {
+                <button
+                  matSuffix
+                  mat-icon-button
+                  aria-label="Clear"
+                  (click)="searchControl.setValue('')">
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+            </mat-form-field>
+          </div>
+        }
+
+        <!-- Right section: Search icon (mobile) + Create button + User menu -->
+        <div class="right-section">
+          @if (isAuthenticated() && isMobile) {
+            <button
+              mat-icon-button
+              (click)="toggleMobileSearch()"
+              aria-label="Search projects"
+              class="search-icon-btn">
+              <mat-icon>search</mat-icon>
+            </button>
+          }
+
+          @if (isAuthenticated() && projectService.projects().length > 0) {
+            <button
+              mat-button
+              (click)="openNewProjectDialog()"
+              aria-label="Create new project"
+              class="create-btn">
+              <mat-icon>add</mat-icon>
+              <span>Create</span>
+            </button>
+          }
+
+          <!-- Show user menu if authenticated, otherwise show login/register buttons -->
+          @if (isAuthenticated()) {
+            <app-user-menu
+              [user]="userService.currentUser()"
+              [miniMode]="true"></app-user-menu>
+          } @else {
+            <div class="auth-buttons">
+              <button
+                mat-stroked-button
+                color="primary"
+                (click)="navigateToLogin()"
+                class="login-btn">
+                Login
+              </button>
+              <button
+                mat-raised-button
+                color="primary"
+                (click)="navigateToRegister()"
+                class="register-btn">
+                Register
+              </button>
+            </div>
+          }
         </div>
       }
     </div>
   </div>
 
-  <!-- Main content section -->
-  @if (!isAuthenticated()) {
-    <!-- Content for unauthenticated users -->
-    <div class="welcome-content">
-      <div class="hero-section">
-        <h1>Welcome to InkWeld</h1>
-        <p class="hero-description">
-          InkWeld is a collaborative writing platform designed for anyone who
-          wants to write. Organize your projects, collaborate with others, and
-          bring your stories to life.
-        </p>
-      </div>
+  <!-- Main content area with side nav -->
+  <div class="main-layout" [class.has-sidenav]="isAuthenticated()">
+    <!-- Side navigation -->
+    @if (isAuthenticated()) {
+      <app-side-nav [isOpen]="sideNavOpen" [isMobile]="isMobile">
+      </app-side-nav>
+    }
 
-      <div class="features-section">
-        <div class="feature-grid">
-          <div class="feature-card">
-            <mat-icon class="feature-icon">edit_note</mat-icon>
-            <h3>Write & Organize</h3>
-            <p>
-              Organize your manuscripts, scripts, and creative projects with
-              intuitive folder structures and document management.
-            </p>
-          </div>
-
-          <div class="feature-card">
-            <mat-icon class="feature-icon">group</mat-icon>
-            <h3>Collaborate</h3>
-            <p>
-              Work together with co-authors, editors, and beta readers. Share
-              projects and get feedback in real-time.
-            </p>
-          </div>
-
-          <div class="feature-card">
-            <mat-icon class="feature-icon">history</mat-icon>
-            <h3>Version Control</h3>
-            <p>
-              Track changes, manage revisions, and never lose your work with
-              built-in version control for writers.
-            </p>
-          </div>
-
-          <div class="feature-card">
-            <mat-icon class="feature-icon">publish</mat-icon>
-            <h3>Share & Publish</h3>
-            <p>
-              Export your work in multiple formats and share your projects with
-              the community.
-            </p>
-          </div>
+    <!-- Main content section -->
+    <div class="main-content">
+      <!-- Floating view mode toggle -->
+      @if (isAuthenticated() && projectService.projects().length > 0) {
+        <div class="floating-view-toggle">
+          <mat-button-toggle-group
+            [value]="viewMode()"
+            (change)="setViewMode($event.value)"
+            class="view-toggle"
+            aria-label="View mode">
+            <mat-button-toggle value="tiles" aria-label="Tiles view">
+              <mat-icon>grid_view</mat-icon>
+            </mat-button-toggle>
+            <mat-button-toggle value="bookshelf" aria-label="Bookshelf view">
+              <mat-icon>auto_stories</mat-icon>
+            </mat-button-toggle>
+            <mat-button-toggle value="list" aria-label="List view">
+              <mat-icon>view_list</mat-icon>
+            </mat-button-toggle>
+          </mat-button-toggle-group>
         </div>
-      </div>
+      }
 
-      <div class="cta-section">
-        <h2>Ready to start writing?</h2>
-        <p>
-          Please note this is a development version of InkWeld. Some features
-          may not be available. Data may be erased without warning.
-        </p>
-        <div class="cta-buttons">
-          <button
-            mat-raised-button
-            color="primary"
-            size="large"
-            (click)="navigateToRegister()"
-            class="cta-register">
-            Get Started
-          </button>
-          <button
-            mat-stroked-button
-            color="primary"
-            size="large"
-            (click)="navigateToLogin()"
-            class="cta-login">
-            Sign In
-          </button>
-        </div>
-      </div>
-    </div>
-  } @else {
-    <!-- Content for authenticated users (existing project management) -->
-    @if (isLoading()) {
-      <div class="loading-state">
-        <mat-spinner diameter="40" />
-        <p>Loading projects...</p>
-      </div>
-    } @else if (loadError) {
-      <div class="error-state">
-        <mat-icon class="error-icon">error_outline</mat-icon>
-        <h2>Failed to load projects</h2>
-        <p>There was a problem connecting to the server</p>
-        <button mat-raised-button color="primary" (click)="loadProjects()">
-          <mat-icon>refresh</mat-icon>
-          Retry
-        </button>
-      </div>
-    } @else if (filteredProjects().length === 0 && !searchControl.value) {
-      <div class="empty-state">
-        <mat-icon class="empty-icon">add_circle_outline</mat-icon>
-        <h2>Create Your First Project</h2>
-        <p>Get started by creating a new project</p>
-        <button mat-button (click)="openNewProjectDialog()">
-          Create Project
-        </button>
-      </div>
-    } @else {
-      @if (filteredProjects().length === 0 && searchControl.value) {
-        <div class="empty-search-results">
-          <mat-icon>search_off</mat-icon>
-          <h3>No projects found</h3>
-          <p>Try a different search term</p>
+      @if (!isAuthenticated()) {
+        <!-- Content for unauthenticated users -->
+        <div class="welcome-content">
+          <div class="hero-section">
+            <h1>Welcome to InkWeld</h1>
+            <p class="hero-description">
+              InkWeld is a collaborative writing platform designed for anyone
+              who wants to write. Organize your projects, collaborate with
+              others, and bring your stories to life.
+            </p>
+          </div>
+
+          <div class="features-section">
+            <div class="feature-grid">
+              <div class="feature-card">
+                <mat-icon class="feature-icon">edit_note</mat-icon>
+                <h3>Write & Organize</h3>
+                <p>
+                  Organize your manuscripts, scripts, and creative projects with
+                  intuitive folder structures and document management.
+                </p>
+              </div>
+
+              <div class="feature-card">
+                <mat-icon class="feature-icon">group</mat-icon>
+                <h3>Collaborate</h3>
+                <p>
+                  Work together with co-authors, editors, and beta readers.
+                  Share projects and get feedback in real-time.
+                </p>
+              </div>
+
+              <div class="feature-card">
+                <mat-icon class="feature-icon">history</mat-icon>
+                <h3>Version Control</h3>
+                <p>
+                  Track changes, manage revisions, and never lose your work with
+                  built-in version control for writers.
+                </p>
+              </div>
+
+              <div class="feature-card">
+                <mat-icon class="feature-icon">publish</mat-icon>
+                <h3>Share & Publish</h3>
+                <p>
+                  Export your work in multiple formats and share your projects
+                  with the community.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="cta-section">
+            <h2>Ready to start writing?</h2>
+            <p>
+              Please note this is a development version of InkWeld. Some
+              features may not be available. Data may be erased without warning.
+            </p>
+            <div class="cta-buttons">
+              <button
+                mat-raised-button
+                color="primary"
+                size="large"
+                (click)="navigateToRegister()"
+                class="cta-register">
+                Get Started
+              </button>
+              <button
+                mat-stroked-button
+                color="primary"
+                size="large"
+                (click)="navigateToLogin()"
+                class="cta-login">
+                Sign In
+              </button>
+            </div>
+          </div>
         </div>
       } @else {
-        <app-bookshelf
-          [projects]="filteredProjects()"
-          (projectSelected)="selectProject($event)">
-        </app-bookshelf>
+        <!-- Content for authenticated users (existing project management) -->
+        @if (isLoading()) {
+          <div class="loading-state">
+            <mat-spinner diameter="40" />
+            <p>Loading projects...</p>
+          </div>
+        } @else if (loadError) {
+          <div class="error-state">
+            <mat-icon class="error-icon">error_outline</mat-icon>
+            <h2>Failed to load projects</h2>
+            <p>There was a problem connecting to the server</p>
+            <button mat-raised-button color="primary" (click)="loadProjects()">
+              <mat-icon>refresh</mat-icon>
+              Retry
+            </button>
+          </div>
+        } @else if (filteredProjects().length === 0 && !searchControl.value) {
+          <div class="empty-state">
+            <mat-icon class="empty-icon">add_circle_outline</mat-icon>
+            <h2>Create Your First Project</h2>
+            <p>Get started by creating a new project</p>
+            <button mat-button (click)="openNewProjectDialog()">
+              Create Project
+            </button>
+          </div>
+        } @else {
+          @if (filteredProjects().length === 0 && searchControl.value) {
+            <div class="empty-search-results">
+              <mat-icon>search_off</mat-icon>
+              <h3>No projects found</h3>
+              <p>Try a different search term</p>
+            </div>
+          } @else {
+            <!-- Bookshelf view -->
+            @if (viewMode() === 'bookshelf') {
+              <app-bookshelf
+                [projects]="filteredProjects()"
+                (projectSelected)="selectProject($event)">
+              </app-bookshelf>
+            }
+
+            <!-- Tiles view -->
+            @if (viewMode() === 'tiles') {
+              <div class="tiles-view">
+                @for (project of filteredProjects(); track project.id) {
+                  <div
+                    class="project-tile"
+                    (click)="selectProject(project)"
+                    (keyup.enter)="selectProject(project)"
+                    tabindex="0"
+                    role="button">
+                    <div class="tile-cover-container">
+                      <img
+                        [src]="getCoverUrl(project)"
+                        [alt]="project.title + ' cover'"
+                        [title]="project.title"
+                        class="tile-cover"
+                        (error)="$any($event.target).style.display = 'none'" />
+                      <div
+                        class="tile-cover-placeholder"
+                        [style.display]="'flex'">
+                        <mat-icon>auto_stories</mat-icon>
+                      </div>
+                    </div>
+                    <div class="tile-info">
+                      <h3>{{ project.title }}</h3>
+                      <p class="tile-author">by {{ project.username }}</p>
+                      @if (project.description) {
+                        <p class="tile-description">
+                          {{ project.description }}
+                        </p>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- List view -->
+            @if (viewMode() === 'list') {
+              <div class="list-view">
+                @for (project of filteredProjects(); track project.id) {
+                  <div
+                    class="project-list-item"
+                    (click)="selectProject(project)"
+                    (keyup.enter)="selectProject(project)"
+                    tabindex="0"
+                    role="button">
+                    <img
+                      [src]="getCoverUrl(project)"
+                      [alt]="project.title + ' cover'"
+                      [title]="project.title"
+                      class="list-cover"
+                      (error)="$any($event.target).style.display = 'none'" />
+                    <div
+                      class="list-cover-placeholder"
+                      [style.display]="'flex'">
+                      <mat-icon>auto_stories</mat-icon>
+                    </div>
+                    <div class="list-info">
+                      <h3>{{ project.title }}</h3>
+                      <p class="list-author">by {{ project.username }}</p>
+                      @if (project.description) {
+                        <p class="list-description">
+                          {{ project.description }}
+                        </p>
+                      }
+                    </div>
+                    <mat-icon class="list-arrow">chevron_right</mat-icon>
+                  </div>
+                }
+              </div>
+            }
+          }
+        }
       }
-    }
-  }
+    </div>
+  </div>
 </div>
 
-<!-- FAB for creating new projects (only for authenticated users) -->
-@if (isAuthenticated() && projectService.projects().length > 0) {
-  <button
-    mat-fab
-    extended
-    color="accent"
-    class="add-project-fab"
-    (click)="openNewProjectDialog()"
-    aria-label="Add new project">
-    <mat-icon>add</mat-icon>
-    New Project
-  </button>
+<!-- Mobile overlay when side nav is open -->
+@if (isAuthenticated() && isMobile && sideNavOpen()) {
+  <div
+    class="side-nav-overlay"
+    (click)="toggleSideNav()"
+    (keyup.enter)="toggleSideNav()"
+    tabindex="0"
+    role="button"
+    aria-label="Close navigation menu"></div>
 }

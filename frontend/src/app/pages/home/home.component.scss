@@ -1,12 +1,13 @@
 app-bookshelf {
-  min-height: 30vh;
-  height: calc(100vh - 96px);
+  position: relative;
   width: 100%;
+  height: calc(100vh - 180px); // Start lower - more space at top
+  margin-top: 60px; // Push bookshelf down from top
   display: flex;
   flex-direction: column;
-  margin-top: 48px;
   box-sizing: border-box;
   overflow: visible;
+  z-index: 1; // Same level as main-content, below side nav
 }
 
 .empty-search-results {
@@ -50,14 +51,14 @@ app-bookshelf {
 .content-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
   min-height: 100vh;
-  overflow-y: auto;
-  overflow-x: hidden;
+  height: 100vh; // Fixed height
+  overflow: hidden; // Prevent body scroll
   background-image: url('/home_background.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+
   &::before {
     content: '';
     position: absolute;
@@ -67,56 +68,135 @@ app-bookshelf {
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     pointer-events: none;
+    z-index: 0;
   }
-  padding: 60px 40px;
-  box-sizing: border-box;
+
   &.is-mobile {
-    padding: 60px 40px;
-  }
-  
-  &:has(app-bookshelf) {
-    height: 100vh;
-    overflow: hidden;
+    overflow-x: hidden;
   }
 }
 
-.search-container {
+// Main layout with side nav
+.main-layout {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  margin-top: 56px; // Height of header
+  height: calc(100vh - 56px); // Fixed height to prevent double scroll
 
-  // Override for when inside header-section (avoid double styling)
-  .header-section & {
-    position: static;
-    margin-bottom: 0;
-    padding: 0;
-    background: none;
-    backdrop-filter: none;
-  }
-
-  app-user-menu {
-    margin-left: 16px;
-  }
-  .app-logo {
-    height: 32px;
-    width: auto;
-    margin-right: 16px;
-    
-    // Slightly smaller logo for compact header
-    .header-section:not(:has(input)) & {
-      height: 28px;
+  &.has-sidenav {
+    .main-content {
+      margin-left: 0; // Side nav component handles its own width
     }
   }
 }
 
-.add-project-fab {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1; // Below side nav (which is z-index: 10)
+
+  // For bookshelf view - remove padding and allow full height
+  &:has(app-bookshelf) {
+    padding: 0;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // For tiles and list views - keep scrolling on main-content, don't override
+  &:has(.tiles-view),
+  &:has(.list-view) {
+    padding: 0; // Remove padding since views have their own
+    overflow-y: auto; // Ensure scrolling stays on this container
+  }
 }
 
-.user-menu-fab {
-  display: none !important;
+.search-container {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 12px;
+
+  // Left section: hamburger + logo
+  .left-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-self: start;
+  }
+
+  .hamburger-btn {
+    flex-shrink: 0;
+  }
+
+  .app-logo {
+    height: 32px;
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  // Center section: search box
+  .center-section {
+    display: flex;
+    justify-content: center;
+    justify-self: center;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .custom-search-field {
+    width: 600px;
+    max-width: 100%; // Only shrink if container is smaller than 600px
+  }
+
+  // Right section: create button + user menu
+  .right-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-self: end;
+  }
+
+  .create-btn {
+    flex-shrink: 0;
+    font-weight: 500;
+    padding: 0 16px;
+
+    mat-icon {
+      margin-right: 4px;
+    }
+
+    @media (max-width: 768px) {
+      padding: 0 12px;
+      font-size: 14px;
+    }
+  }
+
+  app-user-menu {
+    flex-shrink: 0;
+  }
+
+  .auth-buttons {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+
+    .login-btn,
+    .register-btn {
+      min-width: 80px;
+      font-weight: 500;
+    }
+  }
 }
 
 .loading-state {
@@ -137,7 +217,7 @@ app-bookshelf {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  min-height: calc(100vh - 200px); // Better vertical centering
   text-align: center;
   padding: 20px;
 
@@ -216,8 +296,9 @@ app-bookshelf {
   padding: 16px;
   background-color: rgba(30, 30, 30, 0.7);
   border-radius: 8px;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: center;
@@ -228,7 +309,7 @@ app-bookshelf {
 .user-avatar-container {
   margin-right: 24px;
   flex-shrink: 0;
-  
+
   app-user-avatar {
     display: block;
     width: 150px;
@@ -236,14 +317,14 @@ app-bookshelf {
     border-radius: 50%;
     overflow: hidden;
     border: 4px solid rgba(255, 255, 255, 0.1);
-    
+
     ::ng-deep img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
   }
-  
+
   @media (max-width: 768px) {
     margin-right: 0;
     margin-bottom: 16px;
@@ -272,7 +353,7 @@ app-bookshelf {
   display: flex;
   gap: 24px;
   margin-top: 16px;
-  
+
   @media (max-width: 768px) {
     justify-content: center;
   }
@@ -283,7 +364,7 @@ app-bookshelf {
   align-items: center;
   gap: 8px;
   color: rgba(255, 255, 255, 0.8);
-  
+
   mat-icon {
     font-size: 20px;
     height: 20px;
@@ -300,6 +381,7 @@ app-bookshelf {
   background-color: rgba(30, 30, 30, 0.7);
   border-radius: 8px;
   padding: 24px;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
 
@@ -319,11 +401,11 @@ app-bookshelf {
   padding: 16px;
   background-color: rgba(50, 50, 50, 0.5);
   border-radius: 8px;
-  
+
   mat-icon {
     color: rgba(255, 255, 255, 0.7);
   }
-  
+
   p {
     margin: 0;
     color: rgba(255, 255, 255, 0.9);
@@ -337,32 +419,30 @@ app-bookshelf {
   left: 0;
   right: 0;
   z-index: 100;
-  background-color: rgba(18, 18, 18, 0.8);
-  backdrop-filter: blur(5px);
+  background-color: rgba(18, 18, 18, 0.95);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   padding: 12px 20px;
-  
-  // More compact for unauthenticated users (when no search field is active)
-  &:not(:has(input)) {
-    padding: 8px 20px; // Even more compact when no search input
-  }
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.auth-buttons {
-  display: flex;
-  gap: 12px;
-  margin-left: 16px;
-  
-  .login-btn, .register-btn {
-    min-width: 80px;
-    font-weight: 500;
-  }
+// Mobile overlay for side nav
+.side-nav-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 98;
+  cursor: pointer;
 }
 
 .welcome-content {
-  margin-top: 80px;
   width: 100%;
   max-width: 1200px;
-  padding: 0 20px;
+  margin: 0 auto;
+  padding: 40px 20px;
   position: relative;
   z-index: 1;
 }
@@ -370,18 +450,18 @@ app-bookshelf {
 .hero-section {
   text-align: center;
   margin-bottom: 64px;
-  
+
   h1 {
     font-size: 48px;
     font-weight: 700;
     margin: 0 0 24px;
     color: rgba(255, 255, 255, 0.95);
     background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
-    background-clip: text;
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
   }
-  
+
   .hero-description {
     font-size: 20px;
     line-height: 1.6;
@@ -407,15 +487,18 @@ app-bookshelf {
   border-radius: 12px;
   padding: 32px 24px;
   text-align: center;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: transform 0.2s ease, border-color 0.2s ease;
-  
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+
   &:hover {
     transform: translateY(-4px);
     border-color: rgba(255, 255, 255, 0.2);
   }
-  
+
   .feature-icon {
     font-size: 48px;
     height: 48px;
@@ -423,14 +506,14 @@ app-bookshelf {
     margin-bottom: 16px;
     color: #3f51b5;
   }
-  
+
   h3 {
     font-size: 20px;
     font-weight: 600;
     margin: 0 0 12px;
     color: rgba(255, 255, 255, 0.95);
   }
-  
+
   p {
     font-size: 14px;
     line-height: 1.5;
@@ -444,9 +527,10 @@ app-bookshelf {
   padding: 48px 32px;
   background-color: rgba(30, 30, 30, 0.7);
   border-radius: 12px;
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  
+
   h2 {
     font-size: 32px;
     font-weight: 600;
@@ -460,8 +544,9 @@ app-bookshelf {
   gap: 16px;
   justify-content: center;
   flex-wrap: wrap;
-  
-  .cta-register, .cta-login {
+
+  .cta-register,
+  .cta-login {
     min-width: 140px;
     height: 48px;
     font-size: 16px;
@@ -470,58 +555,444 @@ app-bookshelf {
   }
 }
 
-// Mobile responsiveness
-@media (max-width: 768px) {
-  .search-container {
-    flex-direction: column;
-    gap: 16px;
-    padding: 16px;
-    
-    .app-logo {
-      height: 28px;
-      margin-right: 0;
-      margin-bottom: 8px;
+// Floating view toggle
+.floating-view-toggle {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  z-index: 50;
+  border-radius: 24px;
+  padding: 4px;
+  box-shadow: var(--mat-app-level-3);
+  background-color: rgba(255, 255, 255, 0.95);
+
+  @media (prefers-color-scheme: dark) {
+    background-color: rgba(30, 30, 30, 0.95);
+  }
+
+  @media (max-width: 768px) {
+    top: 70px;
+    right: 16px;
+    border-radius: 20px;
+    padding: 3px;
+  }
+
+  .view-toggle {
+    height: 40px;
+
+    @media (max-width: 768px) {
+      height: 36px;
+    }
+
+    ::ng-deep {
+      .mat-button-toggle-group {
+        border: none;
+      }
+
+      .mat-button-toggle {
+        border: none;
+        background-color: rgba(0, 0, 0, 0.05) !important;
+        color: rgba(0, 0, 0, 0.87) !important;
+
+        @media (prefers-color-scheme: dark) {
+          background-color: rgba(255, 255, 255, 0.1) !important;
+          color: rgba(255, 255, 255, 0.87) !important;
+        }
+
+        &:first-child {
+          border-radius: 20px 0 0 20px;
+        }
+
+        &:last-child {
+          border-radius: 0 20px 20px 0;
+        }
+
+        .mat-button-toggle-button {
+          height: 40px;
+          padding: 0 14px;
+
+          @media (max-width: 768px) {
+            height: 36px;
+            padding: 0 10px;
+          }
+        }
+
+        &.mat-button-toggle-checked {
+          background-color: #1976d2 !important;
+          color: white !important;
+
+          .mat-button-toggle-label-content::before {
+            display: none !important;
+          }
+
+          mat-icon {
+            color: white !important;
+          }
+        }
+
+        .mat-pseudo-checkbox {
+          display: none !important;
+        }
+
+        mat-icon {
+          font-size: 20px;
+          height: 20px;
+          width: 20px;
+
+          @media (max-width: 768px) {
+            font-size: 18px;
+            height: 18px;
+            width: 18px;
+          }
+        }
+      }
     }
   }
-  
-  .auth-buttons {
-    margin-left: 0;
-    justify-content: center;
+} // Tiles view
+.tiles-view {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 20px;
+  padding-right: 32px; // Extra right padding
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  min-height: 100%; // Ensure it fills the container but doesn't create its own scroll
+
+  // Limit maximum tile width to prevent excessive stretching
+  @media (min-width: 1600px) {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 250px));
   }
-  
+}
+
+.tile-cover,
+.tile-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.tile-cover {
+  z-index: 1;
+}
+
+.tile-cover-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    rgba(63, 81, 181, 0.2) 0%,
+    rgba(63, 81, 181, 0.1) 100%
+  );
+  z-index: 0;
+
+  mat-icon {
+    font-size: 64px;
+    height: 64px;
+    width: 64px;
+    opacity: 0.5;
+  }
+}
+
+.project-tile {
+  background-color: rgba(30, 30, 30, 0.7);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  &:focus {
+    outline: 2px solid #3f51b5;
+    outline-offset: 2px;
+  }
+
+  .tile-cover-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1.6; // This creates the height based on width
+    overflow: hidden;
+  }
+
+  .tile-info {
+    position: relative;
+    z-index: 2;
+    flex: 0 0 auto; // Don't grow, fixed size
+  }
+}
+
+.tile-info {
+  padding: 16px;
+
+  h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tile-author {
+    margin: 0 0 6px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .tile-description {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.3;
+    color: rgba(255, 255, 255, 0.7);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-height: 2.6em; // Limit height to 2 lines
+  }
+}
+
+// List view
+.list-view {
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 20px;
+  padding-right: 32px; // Extra right padding
+  min-height: 100%; // Ensure it fills the container but doesn't create its own scroll
+}
+
+.list-cover,
+.list-cover-placeholder {
+  width: 80px;
+  height: 128px; // 1:1.6 aspect ratio (matches book covers exactly: 80 * 1.6 = 128)
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  position: absolute;
+}
+
+.list-cover {
+  z-index: 1;
+}
+
+.list-cover-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    rgba(63, 81, 181, 0.2) 0%,
+    rgba(63, 81, 181, 0.1) 100%
+  );
+  z-index: 0;
+
+  mat-icon {
+    font-size: 32px;
+    height: 32px;
+    width: 32px;
+    opacity: 0.5;
+  }
+}
+
+.project-list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background-color: rgba(30, 30, 30, 0.7);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  padding-left: 112px; // Space for cover image (80px + 16px gap + 16px padding)
+  min-height: 128px; // Ensure height accommodates the cover
+
+  &:hover {
+    background-color: rgba(40, 40, 40, 0.9);
+  }
+
+  &:focus {
+    outline: 2px solid #3f51b5;
+    outline-offset: 2px;
+  }
+
+  .list-cover,
+  .list-cover-placeholder {
+    position: absolute;
+    left: 16px;
+    top: 16px; // Align to top with padding instead of center
+  }
+}
+
+.list-info {
+  flex: 1;
+  min-width: 0;
+
+  h3 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .list-author {
+    margin: 0 0 8px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .list-description {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.7);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+.list-arrow {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+// Mobile responsiveness
+@media (max-width: 768px) {
+  app-bookshelf {
+    margin-top: 120px; // More top margin on mobile to fit at least one book
+    height: calc(100vh - 280px); // Reduce height to ensure book fits in view
+  }
+
+  .tiles-view {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+    padding: 16px;
+    padding-right: 24px; // Extra right padding on mobile too
+  }
+
+  .list-view {
+    padding: 16px;
+    padding-right: 24px; // Extra right padding on mobile too
+  }
+
+  .project-list-item {
+    padding: 12px;
+    padding-left: 88px; // Adjust for smaller cover (60px + 16px gap + 12px padding)
+    min-height: 96px; // Match smaller cover height
+
+    .list-cover,
+    .list-cover-placeholder {
+      width: 60px;
+      height: 96px; // 1:1.6 aspect ratio (60 * 1.6 = 96)
+      left: 12px;
+      top: 12px;
+    }
+
+    .list-cover-placeholder mat-icon {
+      font-size: 24px;
+      height: 24px;
+      width: 24px;
+    }
+  }
+
+  .search-container {
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    padding: 0 8px;
+
+    // Mobile search mode takes full width
+    &.mobile-search-mode {
+      grid-template-columns: auto 1fr auto;
+
+      .center-section.mobile-search {
+        display: flex;
+        max-width: none;
+
+        .custom-search-field {
+          width: 100%;
+        }
+      }
+    }
+
+    .center-section {
+      display: none; // Hide search on mobile by default
+    }
+
+    .left-section {
+      gap: 8px;
+
+      .app-logo {
+        height: 28px;
+      }
+    }
+
+    .right-section {
+      gap: 8px;
+    }
+  }
+  .main-content {
+    padding: 16px;
+  }
+
   .welcome-content {
-    margin-top: 120px;
-    padding: 0 16px;
+    padding: 20px 16px;
   }
-  
+
   .hero-section {
     h1 {
       font-size: 36px;
     }
-    
+
     .hero-description {
       font-size: 18px;
     }
   }
-  
+
   .feature-grid {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .cta-section {
     padding: 32px 24px;
-    
+
     h2 {
       font-size: 24px;
     }
   }
-  
+
   .cta-buttons {
     flex-direction: column;
     align-items: center;
-    
-    .cta-register, .cta-login {
+
+    .cta-register,
+    .cta-login {
       width: 100%;
       max-width: 280px;
     }

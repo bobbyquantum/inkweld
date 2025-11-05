@@ -149,7 +149,7 @@ $light-theme: mat.define-theme(
       system-variables-prefix: sys,
     ),
     density: (
-      scale: 0,
+      scale: -4,
     ),
   )
 );
@@ -168,7 +168,7 @@ $dark-theme: mat.define-theme(
       system-variables-prefix: sys,
     ),
     density: (
-      scale: 0,
+      scale: -4,
     ),
   )
 );
@@ -218,7 +218,7 @@ $dark-theme: mat.define-theme(
     --sync-dot-offline-color: var(--sys-outline);
     --sync-dot-syncing-color: var(--sys-secondary);
     --sync-dot-synced-color: var(--sys-primary);
-    
+
     /* Custom success and error colors for light theme */
     --custom-success-color: #2e7d32; /* Material Green 800 */
     --custom-error-color: var(--sys-error);
@@ -291,9 +291,7 @@ $dark-theme: mat.define-theme(
     --ngx-editor-wrapper-border-color: rgba(0, 0, 0, 0.2);
     --ngx-editor-menu-item-border-radius: 50%;
     --ngx-editor-menubar-bg-color: var(--sys-surface-container-high);
-    --ngx-editor-menu-item-hover-bg-color: var(
-      --sys-surface-container-highest
-    );
+    --ngx-editor-menu-item-hover-bg-color: var(--sys-surface-container-highest);
     --ngx-editor-menubar-padding: 3px;
     --ngx-editor-menubar-height: 30px;
     --ngx-editor-blockquote-color: #ddd;
@@ -312,7 +310,7 @@ $dark-theme: mat.define-theme(
     --ngx-editor-focus-ring-color: #5e9ed6;
     --ngx-editor-error-color: red;
     --ngx-editor-click-pointer: pointer;
-    
+
     /* Custom success and error colors for dark theme */
     --custom-success-color: #4caf50; /* Material Green 500 - brighter for dark theme */
     --custom-error-color: var(--sys-error);

@@ -1,0 +1,21 @@
+<div class="side-nav-container" [class.mobile]="isMobile">
+  <nav class="side-nav" [class.collapsed]="!isOpen()">
+    <mat-nav-list>
+      @for (item of navItems; track item.label) {
+        <a
+          mat-list-item
+          (click)="onNavItemClick(item)"
+          (keyup.enter)="onNavItemClick(item)"
+          [class.active]="item.route && router.url.includes(item.route)"
+          class="nav-item"
+          tabindex="0"
+          role="button">
+          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+          @if (isOpen()) {
+            <span matListItemTitle>{{ item.label }}</span>
+          }
+        </a>
+      }
+    </mat-nav-list>
+  </nav>
+</div>

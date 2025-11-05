@@ -1,5 +1,12 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { Component, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  inject,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
@@ -36,6 +43,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   protected projectService = inject(UnifiedProjectService);
   protected breakpointObserver = inject(BreakpointObserver);
   private dialogGateway = inject(DialogGatewayService);
+  private cdr = inject(ChangeDetectorRef);
 
   @ViewChild(UserAvatarComponent) private avatarComponent!: UserAvatarComponent;
 
@@ -76,18 +84,24 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   private loadUserProfile() {
     this.isLoading = true;
     this.loadError = false;
-    try {
-      // For now, we'll use the current user as a placeholder
-      // In a real implementation, we would fetch the profile for the specific username
-      this.profileUser = this.userService.currentUser();
-      this.isOwner =
-        this.profileUser?.username === this.userService.currentUser().username;
-    } catch (error) {
-      console.error('Failed to load user profile:', error);
-      this.loadError = true;
-    } finally {
-      this.isLoading = false;
-    }
+
+    // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      try {
+        // For now, we'll use the current user as a placeholder
+        // In a real implementation, we would fetch the profile for the specific username
+        this.profileUser = this.userService.currentUser();
+        this.isOwner =
+          this.profileUser?.username ===
+          this.userService.currentUser().username;
+      } catch (error) {
+        console.error('Failed to load user profile:', error);
+        this.loadError = true;
+      } finally {
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   private async loadUserProjects() {
