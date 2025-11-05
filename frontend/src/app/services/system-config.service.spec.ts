@@ -10,8 +10,8 @@ import { SystemConfigService } from './system-config.service';
 describe('SystemConfigService', () => {
   let service: SystemConfigService;
   let mockConfigService: MockedObject<ConfigService>;
-  let consoleSpy: ReturnType<typeof vi.spyOn>;
-  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+  let consoleSpy: any;
+  let consoleWarnSpy: any;
 
   const mockSystemFeatures: ConfigControllerGetSystemFeatures200Response = {
     aiLinting: true,
