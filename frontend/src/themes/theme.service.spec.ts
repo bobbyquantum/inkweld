@@ -15,7 +15,7 @@ describe('ThemeService', () => {
   let document: Document;
   let matIconRegistry: MatIconRegistry;
   let domSanitizer: DomSanitizer;
-  let localStorageSpy: ReturnType<typeof vi.spyOn>;
+  let localStorageSpy: any;
   let addClassSpy: Mock;
   let removeClassSpy: Mock;
   let mediaQueryList: MediaQueryList;
