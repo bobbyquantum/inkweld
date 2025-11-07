@@ -5,28 +5,36 @@ import { getDataSource } from '../config/database';
 import { UserSession } from '../entities/session.entity';
 import { TypeormStore } from 'connect-typeorm';
 
+let sessionMiddleware: any = null;
+
+function getSessionMiddleware() {
+  if (!sessionMiddleware) {
+    const dataSource = getDataSource();
+    const sessionRepository = dataSource.getRepository(UserSession);
+
+    sessionMiddleware = session({
+      store: new TypeormStore({
+        cleanupLimit: 2,
+        ttl: config.session.maxAge / 1000,
+      }).connect(sessionRepository),
+      secret: config.session.secret,
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        secure: config.session.secure,
+        maxAge: config.session.maxAge,
+        sameSite: 'lax',
+        domain: config.session.domain,
+      },
+    });
+  }
+  return sessionMiddleware;
+}
+
 export function setupSession(): MiddlewareHandler {
-  const dataSource = getDataSource();
-  const sessionRepository = dataSource.getRepository(UserSession);
-
-  const sessionMiddleware = session({
-    store: new TypeormStore({
-      cleanupLimit: 2,
-      ttl: config.session.maxAge / 1000,
-    }).connect(sessionRepository),
-    secret: config.session.secret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: config.session.secure,
-      maxAge: config.session.maxAge,
-      sameSite: 'lax',
-      domain: config.session.domain,
-    },
-  });
-
   return async (c, next) => {
+    const middleware = getSessionMiddleware();
     const req = c.req.raw as any;
     const res = {
       getHeader: () => undefined,
@@ -35,7 +43,7 @@ export function setupSession(): MiddlewareHandler {
     };
 
     await new Promise<void>((resolve, reject) => {
-      sessionMiddleware(req, res as any, (err?: any) => {
+      middleware(req, res as any, (err?: any) => {
         if (err) reject(err);
         else resolve();
       });

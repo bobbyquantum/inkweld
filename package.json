@@ -3,14 +3,20 @@
   "version": "0.1.0",
   "description": "Inkweld",
   "scripts": {
-    "install-all": "cd frontend && bun install --save-text-lockfile && cd ../server && bun install --save-text-lockfile",
-    "lint": "cd frontend && npm run lint && cd ../server && bun run lint",
+    "install-all": "cd frontend && bun install --save-text-lockfile && cd ../server && bun install --save-text-lockfile && cd ../backend && bun install",
+    "install-backend": "cd backend && bun install",
+    "lint": "cd frontend && npm run lint && cd ../server && bun run lint && cd ../backend && bun run lint",
+    "lint:backend": "cd backend && bun run lint",
     "test": "cd frontend && npm test && cd ../server && bun test",
+    "test:backend": "cd backend && bun test",
     "build:prod": "cd frontend && bun run clean && bun run build && bun run compress && cd ../server && bun run build",
+    "build:backend": "cd backend && bun run build",
     "build:image:prod": "cd frontend && bun run clean && bun run build && bun run compress && cd .. && docker build -t inkweld:prod -f server/Dockerfile .",
     "compose:up:prod": "cd frontend && bun run clean && bun run build && bun run compress && cd .. && docker compose -f compose.yaml up -d --build ",
     "deploy:cloudflare": "npm run build:prod && cd frontend && wrangler pages deploy dist/browser --project-name inkweld-frontend && cd ../server && wrangler deploy",
-    "dev": "concurrently \"cd server && bun run bun:dev\" \"cd frontend && bun run start\""
+    "dev": "concurrently \"cd server && bun run bun:dev\" \"cd frontend && bun run start\"",
+    "dev:backend": "cd backend && bun run dev",
+    "dev:with-new-backend": "concurrently \"cd backend && bun run dev\" \"cd frontend && bun run start\""
   },
   "devDependencies": {
     "concurrently": "^9.0.0"
