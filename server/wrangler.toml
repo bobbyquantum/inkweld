@@ -1,0 +1,25 @@
+name = "inkweld-backend"
+main = "src/worker.adapter.ts"
+compatibility_date = "2025-01-01"
+
+# Node.js compatibility mode
+compatibility_flags = ["nodejs_compat"]
+
+# Workers have 10ms CPU time on free tier, 30s on paid
+# No file system access
+# No traditional WebSockets without Durable Objects
+
+# These would be needed for real deployment:
+# [[durable_objects.bindings]]
+# name = "YJS_DOCUMENTS"
+# class_name = "YjsDocument"
+# script_name = "inkweld-backend"
+
+# [[r2_buckets]]
+# binding = "STORAGE"
+# bucket_name = "inkweld-storage"
+
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "inkweld-db"
+# database_id = "your-database-id"

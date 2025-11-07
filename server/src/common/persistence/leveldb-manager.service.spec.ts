@@ -59,7 +59,7 @@ describe('LevelDBManagerService', () => {
     spyOn(fs, 'readdirSync').mockReturnValue([
       'user1',
       'user2',
-    ] as unknown as fs.Dirent[]);
+    ] as any);
     spyOn(fs, 'statSync').mockReturnValue({
       isDirectory: () => true,
     } as unknown as fs.Stats);
