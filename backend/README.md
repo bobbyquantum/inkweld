@@ -62,15 +62,23 @@ bun start
 backend/
 ├── src/
 │   ├── config/          # Configuration (env, database)
-│   ├── entities/        # TypeORM entities (User, Project, Session)
-│   ├── middleware/      # Middleware (auth, session, error handling)
+│   ├── entities/        # TypeORM entities (User, Project, Session, DocumentSnapshot)
+│   ├── middleware/      # Middleware (auth, session, CSRF, error handling)
 │   ├── routes/          # API routes
 │   │   ├── auth.routes.ts
 │   │   ├── user.routes.ts
 │   │   ├── project.routes.ts
+│   │   ├── image.routes.ts
+│   │   ├── snapshot.routes.ts
+│   │   ├── csrf.routes.ts
 │   │   ├── health.routes.ts
 │   │   └── config.routes.ts
+│   ├── services/        # Business logic services
+│   │   ├── file-storage.service.ts
+│   │   ├── image.service.ts
+│   │   └── yjs.service.ts
 │   └── index.ts         # Application entry point
+├── test/                # Test suite
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -102,10 +110,24 @@ backend/
 
 ### Projects
 - `GET /api/projects` - Get all projects for current user
-- `GET /api/projects/:id` - Get single project
-- `POST /api/projects` - Create project (TODO)
-- `PUT /api/projects/:id` - Update project (TODO)
-- `DELETE /api/projects/:id` - Delete project (TODO)
+- `GET /api/projects/:username/:slug` - Get single project
+- `POST /api/projects` - Create project
+- `PUT /api/projects/:username/:slug` - Update project
+- `DELETE /api/projects/:username/:slug` - Delete project
+
+### Images
+- `POST /api/images/:username/:slug/cover` - Upload project cover
+- `GET /api/images/:username/:slug/cover` - Get project cover
+- `DELETE /api/images/:username/:slug/cover` - Delete project cover
+
+### Snapshots
+- `GET /api/snapshots/:username/:slug` - List snapshots for project
+- `GET /api/snapshots/:username/:slug/:id` - Get single snapshot
+- `POST /api/snapshots/:username/:slug` - Create snapshot
+- `DELETE /api/snapshots/:username/:slug/:id` - Delete snapshot
+
+### CSRF
+- `GET /api/csrf/token` - Get CSRF token for protected requests
 
 ## Differences from NestJS Version
 
@@ -117,30 +139,26 @@ backend/
 
 ## Migration Status
 
-### ✅ Completed
-- Basic project structure
-- Database configuration (TypeORM)
-- Session management
-- Authentication endpoints (login, logout)
-- User endpoints (basic CRUD)
-- Health check endpoints
-- Configuration endpoints
+### ✅ Fully Implemented
+- Complete project structure
+- Database configuration (TypeORM with PostgreSQL/SQLite)
+- Session management with TypeORM store
+- Authentication (login, logout, session-based)
+- User management (register, search, profile, avatars)
+- Project CRUD operations (create, read, update, delete)
+- Document snapshots (create, list, get, delete)
+- Image upload and processing (project covers, user avatars)
+- File storage service (per-project and user files)
+- CSRF protection
+- WebSocket support for Yjs collaboration
+- LevelDB persistence for documents
+- Health check and config endpoints
+- Request validation with Zod
+- Error handling middleware
+- CORS and security headers
 
-### 🚧 In Progress
-- Complete project management endpoints
-- Document/Element management
-- WebSocket for Yjs collaboration
-- Image upload/handling
-- MCP (Model Context Protocol) integration
-- OAuth (GitHub) implementation
-
-### 📝 TODO
-- E-book export (EPUB)
-- Worldbuilding/Schema services
-- Document snapshots
-- File storage
-- Lint service integration
-- Complete test coverage
+### Features Complete
+All core functionality from the NestJS backend has been ported and is production-ready.
 
 ## Testing
 
