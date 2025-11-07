@@ -6,6 +6,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import { config } from './config/env';
 import { setupDatabase } from './config/database';
 import { setupSession } from './middleware/session';
+import { setupCSRF } from './middleware/csrf';
 import { errorHandler } from './middleware/error-handler';
 
 // Import routes
@@ -14,6 +15,9 @@ import userRoutes from './routes/user.routes';
 import projectRoutes from './routes/project.routes';
 import healthRoutes from './routes/health.routes';
 import configRoutes from './routes/config.routes';
+import imageRoutes from './routes/image.routes';
+import csrfRoutes from './routes/csrf.routes';
+import snapshotRoutes from './routes/snapshot.routes';
 
 const app = new Hono();
 
@@ -42,10 +46,16 @@ app.use(
 // Session middleware
 app.use('*', setupSession());
 
+// CSRF protection middleware
+app.use('*', setupCSRF());
+
 // Routes
 app.route('/api/auth', authRoutes);
+app.route('/api/csrf', csrfRoutes);
 app.route('/api/user', userRoutes);
 app.route('/api/projects', projectRoutes);
+app.route('/api/images', imageRoutes);
+app.route('/api/snapshots', snapshotRoutes);
 app.route('/api/health', healthRoutes);
 app.route('/api/config', configRoutes);
 
@@ -65,8 +75,11 @@ app.get('/api', (c) => {
     version: config.version,
     endpoints: {
       auth: '/api/auth',
+      csrf: '/api/csrf',
       user: '/api/user',
       projects: '/api/projects',
+      images: '/api/images',
+      snapshots: '/api/snapshots',
       health: '/api/health',
       config: '/api/config',
     },

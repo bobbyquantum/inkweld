@@ -3,6 +3,7 @@ import { config } from './env';
 import { User } from '../entities/user.entity';
 import { UserSession } from '../entities/session.entity';
 import { Project } from '../entities/project.entity';
+import { DocumentSnapshot } from '../entities/document-snapshot.entity';
 
 let dataSource: DataSource | null = null;
 
@@ -20,7 +21,7 @@ export async function setupDatabase(): Promise<DataSource> {
     username: dbConfig.type === 'postgres' ? dbConfig.username : undefined,
     password: dbConfig.type === 'postgres' ? dbConfig.password : undefined,
     database: dbConfig.type === 'sqlite' ? './data/inkweld.db' : dbConfig.database,
-    entities: [User, UserSession, Project],
+    entities: [User, UserSession, Project, DocumentSnapshot],
     synchronize: dbConfig.synchronize,
     logging: config.nodeEnv === 'development',
   });

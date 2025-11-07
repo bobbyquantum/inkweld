@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
 import { getDataSource } from '../config/database';
 import { User } from '../entities/user.entity';
+import { fileStorageService } from '../services/file-storage.service';
+import { imageService } from '../services/image.service';
 
 const userRoutes = new Hono();
 
@@ -142,23 +144,79 @@ userRoutes.get('/check-username', async (c) => {
   });
 });
 
-// Get user avatar (placeholder)
+// Get user avatar
 userRoutes.get('/:username/avatar', async (c) => {
-  const _username = c.req.param('username');
-  // TODO: Implement avatar retrieval
-  return c.json({ message: 'Avatar retrieval not yet implemented' }, 404);
+  const username = c.req.param('username');
+
+  const hasAvatar = await fileStorageService.hasUserAvatar(username);
+  if (!hasAvatar) {
+    return c.json({ error: 'Avatar not found' }, 404);
+  }
+
+  const buffer = await fileStorageService.getUserAvatar(username);
+
+  return c.body(buffer, 200, {
+    'Content-Type': 'image/png',
+    'Content-Length': buffer.length.toString(),
+  });
 });
 
-// Upload user avatar (placeholder)
+// Upload user avatar
 userRoutes.post('/avatar', requireAuth, async (c) => {
-  // TODO: Implement avatar upload
-  return c.json({ message: 'Avatar upload not yet implemented' });
+  const userId = c.get('user').id;
+  const dataSource = getDataSource();
+  const userRepo = dataSource.getRepository(User);
+
+  const user = await userRepo.findOne({ where: { id: userId } });
+  if (!user || !user.username) {
+    return c.json({ error: 'User not found' }, 404);
+  }
+
+  // Get the uploaded file
+  const body = await c.req.parseBody();
+  const file = body['avatar'] as File;
+
+  if (!file) {
+    return c.json({ error: 'No file uploaded' }, 400);
+  }
+
+  // Read file buffer
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  // Validate image
+  const validation = await imageService.validateImage(buffer);
+  if (!validation.valid) {
+    return c.json({ error: validation.error || 'Invalid image' }, 400);
+  }
+
+  // Process avatar
+  const processedAvatar = await imageService.processAvatar(buffer);
+
+  // Save avatar
+  await fileStorageService.saveUserAvatar(user.username, processedAvatar);
+
+  return c.json({ message: 'Avatar uploaded successfully' });
 });
 
-// Delete user avatar (placeholder)
+// Delete user avatar
 userRoutes.post('/avatar/delete', requireAuth, async (c) => {
-  // TODO: Implement avatar deletion
-  return c.json({ message: 'Avatar deletion not yet implemented' });
+  const userId = c.get('user').id;
+  const dataSource = getDataSource();
+  const userRepo = dataSource.getRepository(User);
+
+  const user = await userRepo.findOne({ where: { id: userId } });
+  if (!user || !user.username) {
+    return c.json({ error: 'User not found' }, 404);
+  }
+
+  const hasAvatar = await fileStorageService.hasUserAvatar(user.username);
+  if (!hasAvatar) {
+    return c.json({ error: 'Avatar not found' }, 404);
+  }
+
+  await fileStorageService.deleteUserAvatar(user.username);
+
+  return c.json({ message: 'Avatar deleted successfully' });
 });
 
 export default userRoutes;
