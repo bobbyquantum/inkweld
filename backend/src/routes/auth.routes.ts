@@ -73,7 +73,7 @@ authRoutes.post(
 
     // Create session
     await authService.createSession(c, user);
-    
+
     console.log('[Login] Session created for user:', user.username);
 
     // Return flat structure to match old NestJS server

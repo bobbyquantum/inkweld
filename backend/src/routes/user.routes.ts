@@ -55,7 +55,7 @@ userRoutes.get(
   async (c) => {
     const userId = c.get('user').id;
     console.log('[/me endpoint] User ID from session:', userId);
-    
+
     const dataSource = getDataSource();
     const userRepo = dataSource.getRepository(User);
 
