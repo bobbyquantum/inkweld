@@ -54,21 +54,35 @@ userRoutes.get(
   requireAuth,
   async (c) => {
     const userId = c.get('user').id;
+    console.log('[/me endpoint] User ID from session:', userId);
+    
     const dataSource = getDataSource();
     const userRepo = dataSource.getRepository(User);
 
-    const user = await userRepo.findOne({ where: { id: userId } });
+    const user = await userRepo.findOne({
+      where: { id: userId },
+      select: ['id', 'username', 'name', 'email', 'enabled', 'approved'],
+    });
+
+    console.log('[/me endpoint] User from database:', user);
 
     if (!user) {
       return c.json({ error: 'User not found' }, 404);
     }
 
-    return c.json({
+    // Explicitly construct response to ensure all fields are present
+    const response = {
       id: user.id,
       username: user.username,
-      name: user.name,
+      name: user.name || null,
+      email: user.email || undefined,
       enabled: user.enabled,
-    });
+      approved: user.approved,
+    };
+
+    console.log('[/me endpoint] Response being sent:', response);
+
+    return c.json(response);
   }
 );
 

@@ -49,10 +49,23 @@ projectRoutes.get(
 
     const projects = await projectRepo.find({
       where: { user: { id: userId } },
+      relations: ['user'],
       order: { updatedDate: 'DESC' },
     });
 
-    return c.json(projects);
+    // Map projects to flat structure matching old NestJS server
+    const projectsFlat = projects.map((project) => ({
+      id: project.id,
+      version: project.version,
+      slug: project.slug,
+      title: project.title,
+      description: project.description,
+      createdDate: project.createdDate,
+      updatedDate: project.updatedDate,
+      username: project.user.username, // Flat, not nested
+    }));
+
+    return c.json(projectsFlat);
   }
 );
 
@@ -120,7 +133,17 @@ projectRoutes.get(
       throw new HTTPException(403, { message: 'Access denied' });
     }
 
-    return c.json(project);
+    // Return flat structure matching old NestJS server
+    return c.json({
+      id: project.id,
+      version: project.version,
+      slug: project.slug,
+      title: project.title,
+      description: project.description,
+      createdDate: project.createdDate,
+      updatedDate: project.updatedDate,
+      username: project.user.username, // Flat, not nested
+    });
   }
 );
 
@@ -192,7 +215,20 @@ projectRoutes.post(
 
     await projectRepo.save(project);
 
-    return c.json(project, 201);
+    // Return flat structure matching old NestJS server
+    return c.json(
+      {
+        id: project.id,
+        version: project.version,
+        slug: project.slug,
+        title: project.title,
+        description: project.description,
+        createdDate: project.createdDate,
+        updatedDate: project.updatedDate,
+        username: user.username, // Flat, not nested
+      },
+      201
+    );
   }
 );
 
@@ -276,7 +312,17 @@ projectRoutes.put(
 
     await projectRepo.save(project);
 
-    return c.json(project);
+    // Return flat structure matching old NestJS server
+    return c.json({
+      id: project.id,
+      version: project.version,
+      slug: project.slug,
+      title: project.title,
+      description: project.description,
+      createdDate: project.createdDate,
+      updatedDate: project.updatedDate,
+      username: project.user.username, // Flat, not nested
+    });
   }
 );
 

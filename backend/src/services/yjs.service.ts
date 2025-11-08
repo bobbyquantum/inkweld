@@ -25,7 +25,7 @@ export class YjsService {
   /**
    * Get or create a document
    */
-  getDocument(documentId: string): WSSharedDoc {
+  async getDocument(documentId: string): Promise<WSSharedDoc> {
     let doc = this.docs.get(documentId);
     if (!doc) {
       const ydoc = new Y.Doc();
@@ -39,7 +39,7 @@ export class YjsService {
       };
 
       // Set up persistence
-      this.setupPersistence(documentId, ydoc);
+      await this.setupPersistence(documentId, ydoc);
 
       this.docs.set(documentId, doc);
     }
@@ -49,7 +49,7 @@ export class YjsService {
   /**
    * Setup LevelDB persistence for a document
    */
-  private setupPersistence(documentId: string, ydoc: Y.Doc) {
+  private async setupPersistence(documentId: string, ydoc: Y.Doc) {
     // Parse documentId format: username:projectSlug:docName
     const parts = documentId.split(':');
     if (parts.length < 3) {
@@ -66,15 +66,36 @@ export class YjsService {
       this.persistences.set(documentId, persistence);
     }
 
-    // Bind document to persistence
-    persistence.bindState(documentId, ydoc);
+    // Load existing state from persistence
+    try {
+      const persistedState = await persistence.getYDoc(documentId);
+      if (persistedState && persistedState.store && persistedState.store.clients.size > 0) {
+        // Apply persisted state to the document
+        const stateVector = Y.encodeStateVector(ydoc);
+        const diff = Y.encodeStateAsUpdate(persistedState, stateVector);
+        Y.applyUpdate(ydoc, diff);
+      }
+
+      // Listen for updates and persist them
+      ydoc.on('update', async (update: Uint8Array) => {
+        try {
+          if (persistence) {
+            await persistence.storeUpdate(documentId, update);
+          }
+        } catch (error) {
+          console.error('Error persisting update:', error);
+        }
+      });
+    } catch (error) {
+      console.error('Error loading persisted state:', error);
+    }
   }
 
   /**
-   * Handle WebSocket connection for a document
+   * Handle WebSocket connection for a document - returns the doc for message handling
    */
-  handleConnection(ws: WebSocket, documentId: string, userId?: string) {
-    const doc = this.getDocument(documentId);
+  async handleConnection(ws: any, documentId: string, userId?: string): Promise<WSSharedDoc> {
+    const doc = await this.getDocument(documentId);
 
     // Add connection
     doc.conns.set(ws, new Set());
@@ -97,41 +118,31 @@ export class YjsService {
       ws.send(encoding.toUint8Array(encoder2));
     }
 
-    // Handle incoming messages
-    ws.on('message', (message: Buffer) => {
-      this.handleMessage(ws, doc, message);
-    });
-
-    // Handle connection close
-    ws.on('close', () => {
-      this.handleDisconnect(ws, doc);
-    });
-
     // Set user awareness
     if (userId) {
       doc.awareness.setLocalStateField('user', { id: userId });
     }
+
+    return doc;
   }
 
   /**
-   * Handle incoming WebSocket message
+   * Handle incoming message - call this from WebSocket onMessage handler
    */
-  private handleMessage(ws: WebSocket, doc: WSSharedDoc, message: Buffer) {
+  handleMessage(ws: any, doc: WSSharedDoc, message: Buffer) {
     try {
       const decoder = decoding.createDecoder(message);
       const messageType = decoding.readVarUint(decoder);
 
       switch (messageType) {
         case messageSync: {
-          encoding.writeVarUint(decoder, messageSync);
-          const syncMessageType = syncProtocol.readSyncMessage(decoder, decoder, doc.doc, ws);
+          const encoder = encoding.createEncoder();
+          encoding.writeVarUint(encoder, messageSync);
+          syncProtocol.readSyncMessage(decoder, encoder, doc.doc, ws);
 
-          if (syncMessageType === syncProtocol.messageYjsSyncStep2) {
-            // Broadcast to all other connections
-            const encoder = encoding.createEncoder();
-            encoding.writeVarUint(encoder, messageSync);
-            syncProtocol.writeSyncStep2(encoder, doc.doc);
-            this.broadcastMessage(doc, encoding.toUint8Array(encoder), ws);
+          // Send response
+          if (encoding.length(encoder) > 1) {
+            ws.send(encoding.toUint8Array(encoder));
           }
           break;
         }
@@ -142,6 +153,8 @@ export class YjsService {
             decoding.readVarUint8Array(decoder),
             ws
           );
+          // Broadcast awareness to others
+          this.broadcastMessage(doc, message, ws);
           break;
       }
     } catch (error) {
@@ -150,20 +163,9 @@ export class YjsService {
   }
 
   /**
-   * Broadcast message to all connections except sender
+   * Handle disconnection - call this from WebSocket onClose handler
    */
-  private broadcastMessage(doc: WSSharedDoc, message: Uint8Array, exclude?: WebSocket) {
-    doc.conns.forEach((_, conn) => {
-      if (conn !== exclude && conn.readyState === WebSocket.OPEN) {
-        conn.send(message);
-      }
-    });
-  }
-
-  /**
-   * Handle WebSocket disconnection
-   */
-  private handleDisconnect(ws: WebSocket, doc: WSSharedDoc) {
+  handleDisconnect(ws: any, doc: WSSharedDoc) {
     doc.conns.delete(ws);
 
     // Clean up document if no more connections
@@ -172,10 +174,25 @@ export class YjsService {
       setTimeout(() => {
         if (doc.conns.size === 0) {
           this.docs.delete(doc.name);
-          doc.doc.destroy();
+          console.log(`Document ${doc.name} cleaned up after inactivity`);
         }
       }, 60000);
     }
+  }
+
+  /**
+   * Broadcast message to all connections except sender
+   */
+  private broadcastMessage(doc: WSSharedDoc, message: Uint8Array, exclude?: any) {
+    doc.conns.forEach((_, conn) => {
+      if (conn !== exclude) {
+        try {
+          conn.send(message);
+        } catch (error) {
+          console.error('Error broadcasting message:', error);
+        }
+      }
+    });
   }
 
   /**

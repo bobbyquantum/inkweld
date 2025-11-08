@@ -73,15 +73,16 @@ authRoutes.post(
 
     // Create session
     await authService.createSession(c, user);
+    
+    console.log('[Login] Session created for user:', user.username);
 
+    // Return flat structure to match old NestJS server
     return c.json({
-      message: 'Login successful',
-      user: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        enabled: user.enabled,
-      },
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      enabled: user.enabled,
+      sessionId: 'cookie-based', // Session is in cookie, not returned
     });
   }
 );
@@ -106,48 +107,6 @@ authRoutes.post(
   async (c) => {
     authService.destroySession(c);
     return c.json({ message: 'Logged out successfully' });
-  }
-);
-
-// Get current user
-authRoutes.get(
-  '/me',
-  describeRoute({
-    description: 'Get current authenticated user',
-    tags: ['Authentication'],
-    responses: {
-      200: {
-        description: 'Current user information',
-        content: {
-          'application/json': {
-            schema: resolver(UserSchema),
-          },
-        },
-      },
-      401: {
-        description: 'Not authenticated',
-        content: {
-          'application/json': {
-            schema: resolver(ErrorResponseSchema),
-          },
-        },
-      },
-    },
-  }),
-  async (c) => {
-    const user = await authService.getUserFromSession(c);
-    if (!user) {
-      return c.json({ error: 'Not authenticated' }, 401);
-    }
-
-    return c.json({
-      id: user.id,
-      username: user.username,
-      name: user.name,
-      email: user.email,
-      enabled: user.enabled,
-      approved: user.approved,
-    });
   }
 );
 

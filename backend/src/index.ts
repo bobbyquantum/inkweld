@@ -26,6 +26,8 @@ import epubRoutes from './routes/epub.routes';
 import lintRoutes from './routes/lint.routes';
 import aiImageRoutes from './routes/ai-image.routes';
 import mcpRoutes from './routes/mcp.routes';
+import yjsRoutes from './routes/yjs.routes';
+import { websocket } from 'hono/bun';
 
 const app = new Hono();
 
@@ -78,6 +80,7 @@ app.route('/api/config', configRoutes);
 app.route('/lint', lintRoutes);
 app.route('/image', aiImageRoutes);
 app.route('/mcp', mcpRoutes);
+app.route('/ws', yjsRoutes);
 
 // Root route
 app.get('/', (c) => {
@@ -169,6 +172,7 @@ if (process.env.NODE_ENV !== 'test') {
 export default {
   port: config.port,
   fetch: app.fetch,
+  websocket, // Required for Bun WebSocket support
 };
 
 export { app };

@@ -84,7 +84,7 @@ describe('Authentication', () => {
     });
   });
 
-  describe('GET /me', () => {
+  describe('GET /api/v1/users/me', () => {
     it('should return current user when authenticated', async () => {
       // First login - cookie persists automatically with TestClient
       await client.request('/login', {
@@ -97,7 +97,7 @@ describe('Authentication', () => {
       });
 
       // Then get current user
-      const { response, json } = await client.request('/me');
+      const { response, json } = await client.request('/api/v1/users/me');
 
       expect(response.status).toBe(200);
       const data = await json();
@@ -107,7 +107,7 @@ describe('Authentication', () => {
     it('should return 401 when not authenticated', async () => {
       // Create a new client without login
       const unauthClient = new TestClient(testServer.baseUrl);
-      const { response } = await unauthClient.request('/me');
+      const { response } = await unauthClient.request('/api/v1/users/me');
       expect(response.status).toBe(401);
     });
   });
