@@ -16,7 +16,11 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "generate:openapi": "bun run scripts/generate-openapi.ts",
-    "admin": "bun run admin-cli.ts"
+    "admin": "bun run admin-cli.ts",
+    "wrangler:dev": "wrangler dev",
+    "wrangler:deploy": "wrangler deploy",
+    "wrangler:deploy:prod": "wrangler deploy --env production",
+    "wrangler:tail": "wrangler tail"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",
