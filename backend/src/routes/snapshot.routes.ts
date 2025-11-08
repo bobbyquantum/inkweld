@@ -1,11 +1,9 @@
 import { Hono } from 'hono';
 import { describeRoute, resolver, validator } from 'hono-openapi';
-import { describeRoute, resolver } from 'hono-openapi';
 import { requireAuth } from '../middleware/auth';
-import { getDataSource } from '../config/database';
-import { DocumentSnapshot } from '../entities/document-snapshot.entity';
-import { Project } from '../entities/project.entity';
-import { User } from '../entities/user.entity';
+import { projectService } from '../services/project.service';
+import { userService } from '../services/user.service';
+import { documentSnapshotService } from '../services/document-snapshot.service';
 import { HTTPException } from 'hono/http-exception';
 import {
   DocumentSnapshotSchema,

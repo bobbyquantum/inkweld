@@ -1,5 +1,4 @@
 import { sqliteTable, text, integer, blob } from 'drizzle-orm/sqlite-core';
-import { sql } from 'drizzle-orm';
 import { projects } from './projects';
 import { users } from './users';
 
@@ -18,9 +17,7 @@ export const documentSnapshots = sqliteTable('document_snapshots', {
   stateVector: blob('state_vector', { mode: 'buffer' }),
   wordCount: integer('word_count'),
   metadata: text('metadata', { mode: 'json' }).$type<Record<string, any>>(),
-  createdAt: integer('created_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: integer('created_at', { mode: 'number' }).notNull(),
 });
 
 export type DocumentSnapshot = typeof documentSnapshots.$inferSelect;

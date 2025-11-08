@@ -4,8 +4,7 @@ import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
 import { imageService } from '../services/image.service';
 import { fileStorageService } from '../services/file-storage.service';
-import { getDataSource } from '../config/database';
-import { Project } from '../entities/project.entity';
+import { projectService } from '../services/project.service';
 import { HTTPException } from 'hono/http-exception';
 
 const imageRoutes = new Hono();
@@ -83,18 +82,13 @@ imageRoutes.post(
     }
 
     // Verify project ownership
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-    const project = await projectRepo.findOne({
-      where: { slug, user: { username } },
-      relations: ['user'],
-    });
+    const project = await projectService.findByUsernameAndSlug(username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
     }
 
-    if (project.user.id !== userId) {
+    if (project.userId !== userId) {
       throw new HTTPException(403, { message: 'Access denied' });
     }
 
@@ -212,18 +206,13 @@ imageRoutes.delete(
     const userId = c.get('user').id;
 
     // Verify project ownership
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-    const project = await projectRepo.findOne({
-      where: { slug, user: { username } },
-      relations: ['user'],
-    });
+    const project = await projectService.findByUsernameAndSlug(username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
     }
 
-    if (project.user.id !== userId) {
+    if (project.userId !== userId) {
       throw new HTTPException(403, { message: 'Access denied' });
     }
 

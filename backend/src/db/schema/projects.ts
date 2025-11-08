@@ -1,5 +1,4 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
-import { sql } from 'drizzle-orm';
 import { users } from './users';
 
 export const projects = sqliteTable('projects', {
@@ -11,12 +10,8 @@ export const projects = sqliteTable('projects', {
   userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  createdDate: integer('created_date', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
-  updatedDate: integer('updated_date', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdDate: integer('created_date', { mode: 'number' }).notNull(),
+  updatedDate: integer('updated_date', { mode: 'number' }).notNull(),
 });
 
 export type Project = typeof projects.$inferSelect;
