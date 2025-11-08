@@ -9,6 +9,7 @@ let sessionMiddleware: any = null;
 
 function getSessionMiddleware() {
   if (!sessionMiddleware) {
+    // Lazy initialization - only when actually needed (not during import)
     const dataSource = getDataSource();
     const sessionRepository = dataSource.getRepository(UserSession);
 
@@ -34,6 +35,7 @@ function getSessionMiddleware() {
 
 export function setupSession(): MiddlewareHandler {
   return async (c, next) => {
+    // Get session middleware on first request, not during setup
     const middleware = getSessionMiddleware();
     const req = c.req.raw as any;
     const res = {

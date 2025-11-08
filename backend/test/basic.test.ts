@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { app } from '../src/index';
+import { app } from './setup.shared.js';
 
 describe('Health Check', () => {
   it('should return 200 for health check', async () => {

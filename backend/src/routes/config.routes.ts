@@ -1,14 +1,39 @@
 import { Hono } from 'hono';
-import { config } from '../config/env';
+import { describeRoute, resolver } from 'hono-openapi';
+import { z } from 'zod';
+import { config } from '../config/env.js';
 
 const configRoutes = new Hono();
 
-configRoutes.get('/', (c) => {
-  return c.json({
-    version: config.version,
-    githubEnabled: config.github.enabled,
-    userApprovalRequired: config.userApprovalRequired,
-  });
+// Schema definition
+const ConfigResponseSchema = z.object({
+  userApprovalRequired: z.boolean().describe('Whether admin approval is required for new users'),
+  githubEnabled: z.boolean().describe('Whether GitHub OAuth is enabled'),
 });
+
+// Get app configuration
+configRoutes.get(
+  '/',
+  describeRoute({
+    description: 'Get public application configuration',
+    tags: ['Configuration'],
+    responses: {
+      200: {
+        description: 'Application configuration',
+        content: {
+          'application/json': {
+            schema: resolver(ConfigResponseSchema),
+          },
+        },
+      },
+    },
+  }),
+  (c) => {
+    return c.json({
+      userApprovalRequired: config.userApprovalRequired,
+      githubEnabled: config.github.enabled,
+    });
+  }
+);
 
 export default configRoutes;

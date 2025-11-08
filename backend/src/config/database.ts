@@ -4,32 +4,54 @@ import { User } from '../entities/user.entity';
 import { UserSession } from '../entities/session.entity';
 import { Project } from '../entities/project.entity';
 import { DocumentSnapshot } from '../entities/document-snapshot.entity';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 let dataSource: DataSource | null = null;
 
-export async function setupDatabase(): Promise<DataSource> {
+export async function setupDatabase(testMode = false): Promise<DataSource> {
   if (dataSource?.isInitialized) {
     return dataSource;
   }
 
-  const dbConfig = config.database;
+  try {
+    // Ensure data directory exists (for SQLite and file storage)
+    if (!testMode) {
+      const dataDir = path.dirname(config.dataPath);
+      await fs.mkdir(dataDir, { recursive: true }).catch(() => {});
+      await fs.mkdir(config.dataPath, { recursive: true }).catch(() => {});
+    }
 
-  dataSource = new DataSource({
-    type: dbConfig.type,
-    host: dbConfig.type === 'postgres' ? dbConfig.host : undefined,
-    port: dbConfig.type === 'postgres' ? dbConfig.port : undefined,
-    username: dbConfig.type === 'postgres' ? dbConfig.username : undefined,
-    password: dbConfig.type === 'postgres' ? dbConfig.password : undefined,
-    database: dbConfig.type === 'sqlite' ? './data/inkweld.db' : dbConfig.database,
-    entities: [User, UserSession, Project, DocumentSnapshot],
-    synchronize: dbConfig.synchronize,
-    logging: config.nodeEnv === 'development',
-  });
+    const dbConfig = config.database;
 
-  await dataSource.initialize();
-  console.log(`Database connected: ${dbConfig.type}`);
+    // Use in-memory SQLite for tests
+    const database = testMode
+      ? ':memory:'
+      : dbConfig.type === 'sqlite'
+        ? './data/inkweld.db'
+        : dbConfig.database;
 
-  return dataSource;
+    dataSource = new DataSource({
+      type: testMode ? 'sqlite' : dbConfig.type,
+      host: !testMode && dbConfig.type === 'postgres' ? dbConfig.host : undefined,
+      port: !testMode && dbConfig.type === 'postgres' ? dbConfig.port : undefined,
+      username: !testMode && dbConfig.type === 'postgres' ? dbConfig.username : undefined,
+      password: !testMode && dbConfig.type === 'postgres' ? dbConfig.password : undefined,
+      database,
+      entities: [User, UserSession, Project, DocumentSnapshot],
+      synchronize: testMode || dbConfig.synchronize || config.nodeEnv === 'test',
+      logging: !testMode && config.nodeEnv === 'development',
+    });
+
+    await dataSource.initialize();
+    console.log(`Database connected: ${testMode ? 'sqlite (test)' : dbConfig.type}`);
+
+    return dataSource;
+  } catch (error: any) {
+    console.error('Database setup error:', error);
+    console.error('Stack:', error.stack);
+    throw error;
+  }
 }
 
 export function getDataSource(): DataSource {

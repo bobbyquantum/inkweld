@@ -1,22 +1,29 @@
-import { MiddlewareHandler } from 'hono';
+import { Context, Next } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import type { AppContext, User } from '../types/context.js';
 
-export const requireAuth: MiddlewareHandler = async (c, next) => {
-  const req = c.req.raw as any;
-  const session = req.session;
+interface SessionData {
+  session?: {
+    passport?: {
+      user?: User;
+    };
+  };
+}
 
-  if (!session?.passport?.user) {
-    throw new HTTPException(401, { message: 'Authentication required' });
+export const requireAuth = async (c: Context<AppContext>, next: Next) => {
+  const req = c.req.raw as unknown as SessionData;
+  if (!req.session?.passport?.user) {
+    throw new HTTPException(401, { message: 'Unauthorized' });
   }
 
-  c.set('user', session.passport.user);
+  // Set user in context for downstream handlers
+  c.set('user', req.session.passport.user);
   await next();
 };
 
-export const requireAdmin: MiddlewareHandler = async (c, next) => {
-  const req = c.req.raw as any;
-  const session = req.session;
-  const user = session?.passport?.user;
+export const requireAdmin = async (c: Context<AppContext>, next: Next) => {
+  const req = c.req.raw as unknown as SessionData;
+  const user = req.session?.passport?.user;
 
   if (!user) {
     throw new HTTPException(401, { message: 'Authentication required' });
@@ -30,12 +37,12 @@ export const requireAdmin: MiddlewareHandler = async (c, next) => {
   await next();
 };
 
-export const optionalAuth: MiddlewareHandler = async (c, next) => {
-  const req = c.req.raw as any;
-  const session = req.session;
+export const optionalAuth = async (c: Context<AppContext>, next: Next) => {
+  const req = c.req.raw as unknown as SessionData;
+  const user = req.session?.passport?.user;
 
-  if (session?.passport?.user) {
-    c.set('user', session.passport.user);
+  if (user) {
+    c.set('user', user);
   }
 
   await next();

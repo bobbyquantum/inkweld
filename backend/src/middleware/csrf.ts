@@ -1,5 +1,6 @@
 import { MiddlewareHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { config } from '../config/env.js';
 
 // Simple CSRF token storage (in production, use Redis or similar)
 const csrfTokens = new Map<string, string>();
@@ -10,6 +11,12 @@ export function generateCSRFToken(): string {
 
 export function setupCSRF(): MiddlewareHandler {
   return async (c, next) => {
+    // Skip CSRF in test mode
+    if (config.nodeEnv === 'test') {
+      await next();
+      return;
+    }
+
     const method = c.req.method;
 
     // Skip CSRF check for safe methods

@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
+import { generateSpecs } from 'hono-openapi';
 import { config } from './config/env';
 import { setupDatabase } from './config/database';
 import { setupSession } from './middleware/session';
@@ -86,6 +87,26 @@ app.get('/api', (c) => {
   });
 });
 
+// OpenAPI documentation endpoint
+app.get('/api/openapi.json', async (c) => {
+  const spec = await generateSpecs(app, {
+    documentation: {
+      info: {
+        title: 'Inkweld API',
+        version: '1.0.0',
+        description: 'Collaborative creative writing platform API',
+      },
+      servers: [
+        {
+          url: 'http://localhost:8333',
+          description: 'Local development server',
+        },
+      ],
+    },
+  });
+  return c.json(spec);
+});
+
 // Error handler (must be last)
 app.onError(errorHandler);
 
@@ -108,7 +129,10 @@ async function bootstrap() {
   }
 }
 
-bootstrap();
+// Only run bootstrap if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+  bootstrap();
+}
 
 export default {
   port: config.port,
