@@ -334,41 +334,42 @@ snapshotRoutes.delete(
   }),
   requireAuth,
   async (c) => {
-  const username = c.req.param('username');
-  const slug = c.req.param('slug');
-  const snapshotId = c.req.param('snapshotId');
-  const userId = c.get('user').id;
+    const username = c.req.param('username');
+    const slug = c.req.param('slug');
+    const snapshotId = c.req.param('snapshotId');
+    const userId = c.get('user').id;
 
-  const dataSource = getDataSource();
-  const projectRepo = dataSource.getRepository(Project);
-  const snapshotRepo = dataSource.getRepository(DocumentSnapshot);
+    const dataSource = getDataSource();
+    const projectRepo = dataSource.getRepository(Project);
+    const snapshotRepo = dataSource.getRepository(DocumentSnapshot);
 
-  // Verify project ownership
-  const project = await projectRepo.findOne({
-    where: { slug, user: { username } },
-    relations: ['user'],
-  });
+    // Verify project ownership
+    const project = await projectRepo.findOne({
+      where: { slug, user: { username } },
+      relations: ['user'],
+    });
 
-  if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    if (!project) {
+      throw new HTTPException(404, { message: 'Project not found' });
+    }
+
+    if (project.user.id !== userId) {
+      throw new HTTPException(403, { message: 'Access denied' });
+    }
+
+    // Get and delete snapshot
+    const snapshot = await snapshotRepo.findOne({
+      where: { id: snapshotId, project: { id: project.id } },
+    });
+
+    if (!snapshot) {
+      throw new HTTPException(404, { message: 'Snapshot not found' });
+    }
+
+    await snapshotRepo.remove(snapshot);
+
+    return c.json({ message: 'Snapshot deleted successfully' });
   }
-
-  if (project.user.id !== userId) {
-    throw new HTTPException(403, { message: 'Access denied' });
-  }
-
-  // Get and delete snapshot
-  const snapshot = await snapshotRepo.findOne({
-    where: { id: snapshotId, project: { id: project.id } },
-  });
-
-  if (!snapshot) {
-    throw new HTTPException(404, { message: 'Snapshot not found' });
-  }
-
-  await snapshotRepo.remove(snapshot);
-
-  return c.json({ message: 'Snapshot deleted successfully' });
-});
+);
 
 export default snapshotRoutes;

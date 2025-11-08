@@ -33,7 +33,11 @@ async function generateOpenAPIJson() {
     serverProcess.stdout.on('data', (data: Buffer) => {
       const output = data.toString();
       console.log('STDOUT:', output);
-      if (output.includes('ready on port') || output.includes('Server listening on') || output.includes('Inkweld backend ready')) {
+      if (
+        output.includes('ready on port') ||
+        output.includes('Server listening on') ||
+        output.includes('Inkweld backend ready')
+      ) {
         serverReady = true;
       }
     });
@@ -41,7 +45,11 @@ async function generateOpenAPIJson() {
     serverProcess.stderr.on('data', (data: Buffer) => {
       const output = data.toString();
       console.log('STDERR:', output);
-      if (output.includes('ready on port') || output.includes('Server listening on') || output.includes('Inkweld backend ready')) {
+      if (
+        output.includes('ready on port') ||
+        output.includes('Server listening on') ||
+        output.includes('Inkweld backend ready')
+      ) {
         serverReady = true;
       }
     });

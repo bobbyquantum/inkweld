@@ -57,13 +57,10 @@ export const UpdateProjectRequestSchema = z
       .min(1)
       .optional()
       .openapi({ example: 'My Updated Novel', description: 'Project title' }),
-    description: z
-      .string()
-      .optional()
-      .openapi({
-        example: 'An updated thrilling adventure story',
-        description: 'Project description',
-      }),
+    description: z.string().optional().openapi({
+      example: 'An updated thrilling adventure story',
+      description: 'Project description',
+    }),
   })
   .openapi({ ref: 'UpdateProjectRequest' });
 

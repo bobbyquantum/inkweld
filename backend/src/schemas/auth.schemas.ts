@@ -32,9 +32,7 @@ export const RegisterRequestSchema = z
  */
 export const RegisterResponseSchema = z
   .object({
-    message: z
-      .string()
-      .openapi({ example: 'Registration successful. You can now log in.' }),
+    message: z.string().openapi({ example: 'Registration successful. You can now log in.' }),
     user: UserSchema,
   })
   .openapi({ ref: 'RegisterResponse' });

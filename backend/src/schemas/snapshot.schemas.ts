@@ -13,11 +13,7 @@ export const DocumentSnapshotSchema = z
     id: z.string().openapi({ example: 'snap-123' }),
     documentId: z.string().openapi({ example: 'doc-456' }),
     name: z.string().openapi({ example: 'Chapter 1 Draft' }),
-    description: z
-      .string()
-      .nullable()
-      .optional()
-      .openapi({ example: 'First draft of chapter 1' }),
+    description: z.string().nullable().optional().openapi({ example: 'First draft of chapter 1' }),
     wordCount: z.number().nullable().optional().openapi({ example: 1250 }),
     metadata: z
       .record(z.any())
@@ -45,9 +41,10 @@ export const CreateSnapshotRequestSchema = z
       .max(1000)
       .optional()
       .openapi({ example: 'First draft of chapter 1', description: 'Snapshot description' }),
-    yDocState: z
-      .string()
-      .openapi({ example: 'base64encodedstate...', description: 'Base64 encoded Yjs document state' }),
+    yDocState: z.string().openapi({
+      example: 'base64encodedstate...',
+      description: 'Base64 encoded Yjs document state',
+    }),
     stateVector: z
       .string()
       .optional()
@@ -77,11 +74,7 @@ export const SnapshotWithContentSchema = z
     id: z.string().openapi({ example: 'snap-123' }),
     documentId: z.string().openapi({ example: 'doc-456' }),
     name: z.string().openapi({ example: 'Chapter 1 Draft' }),
-    description: z
-      .string()
-      .nullable()
-      .optional()
-      .openapi({ example: 'First draft of chapter 1' }),
+    description: z.string().nullable().optional().openapi({ example: 'First draft of chapter 1' }),
     wordCount: z.number().nullable().optional().openapi({ example: 1250 }),
     metadata: z
       .record(z.any())
@@ -90,10 +83,6 @@ export const SnapshotWithContentSchema = z
       .openapi({ example: { version: 1 } }),
     createdAt: z.string().datetime().openapi({ example: '2023-01-01T00:00:00.000Z' }),
     yDocState: z.string().openapi({ example: 'base64encodedstate...' }),
-    stateVector: z
-      .string()
-      .nullable()
-      .optional()
-      .openapi({ example: 'base64vector...' }),
+    stateVector: z.string().nullable().optional().openapi({ example: 'base64vector...' }),
   })
   .openapi({ ref: 'SnapshotWithContent' });

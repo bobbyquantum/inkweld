@@ -208,34 +208,35 @@ imageRoutes.delete(
   requireAuth,
   async (c) => {
     const username = c.req.param('username');
-  const slug = c.req.param('slug');
-  const userId = c.get('user').id;
+    const slug = c.req.param('slug');
+    const userId = c.get('user').id;
 
-  // Verify project ownership
-  const dataSource = getDataSource();
-  const projectRepo = dataSource.getRepository(Project);
-  const project = await projectRepo.findOne({
-    where: { slug, user: { username } },
-    relations: ['user'],
-  });
+    // Verify project ownership
+    const dataSource = getDataSource();
+    const projectRepo = dataSource.getRepository(Project);
+    const project = await projectRepo.findOne({
+      where: { slug, user: { username } },
+      relations: ['user'],
+    });
 
-  if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    if (!project) {
+      throw new HTTPException(404, { message: 'Project not found' });
+    }
+
+    if (project.user.id !== userId) {
+      throw new HTTPException(403, { message: 'Access denied' });
+    }
+
+    const exists = await fileStorageService.projectFileExists(username, slug, 'cover.jpg');
+
+    if (!exists) {
+      throw new HTTPException(404, { message: 'Cover image not found' });
+    }
+
+    await fileStorageService.deleteProjectFile(username, slug, 'cover.jpg');
+
+    return c.json({ message: 'Cover image deleted successfully' });
   }
-
-  if (project.user.id !== userId) {
-    throw new HTTPException(403, { message: 'Access denied' });
-  }
-
-  const exists = await fileStorageService.projectFileExists(username, slug, 'cover.jpg');
-
-  if (!exists) {
-    throw new HTTPException(404, { message: 'Cover image not found' });
-  }
-
-  await fileStorageService.deleteProjectFile(username, slug, 'cover.jpg');
-
-  return c.json({ message: 'Cover image deleted successfully' });
-});
+);
 
 export default imageRoutes;
