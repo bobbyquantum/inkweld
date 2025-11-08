@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
+import { describeRoute, resolver, validator } from 'hono-openapi';
 import { describeRoute, resolver } from 'hono-openapi';
 import { requireAuth } from '../middleware/auth';
 import { getDataSource } from '../config/database';
@@ -158,7 +158,7 @@ projectRoutes.post(
     },
   }),
   requireAuth,
-  zValidator('json', CreateProjectRequestSchema),
+  validator('json', CreateProjectRequestSchema),
   async (c) => {
     const { slug, title, description } = c.req.valid('json');
     const userId = c.get('user').id;
@@ -246,7 +246,7 @@ projectRoutes.put(
     },
   }),
   requireAuth,
-  zValidator('json', UpdateProjectRequestSchema),
+  validator('json', UpdateProjectRequestSchema),
   async (c) => {
     const username = c.req.param('username');
     const slug = c.req.param('slug');

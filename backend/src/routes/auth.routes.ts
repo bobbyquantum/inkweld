@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import { describeRoute, resolver } from 'hono-openapi';
+import { describeRoute, resolver, validator } from 'hono-openapi';
 import { getDataSource } from '../config/database';
 import { User } from '../entities/user.entity';
 import { config } from '../config/env';
@@ -42,7 +41,7 @@ authRoutes.post(
       },
     },
   }),
-  zValidator('json', RegisterRequestSchema),
+  validator('json', RegisterRequestSchema),
   async (c) => {
     const { username, email, password } = c.req.valid('json');
     const dataSource = getDataSource();
@@ -126,7 +125,7 @@ authRoutes.post(
       },
     },
   }),
-  zValidator('json', LoginRequestSchema),
+  validator('json', LoginRequestSchema),
   async (c) => {
     const { username, password } = c.req.valid('json');
     const dataSource = getDataSource();

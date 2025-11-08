@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
+import { describeRoute, resolver, validator } from 'hono-openapi';
 import { describeRoute, resolver } from 'hono-openapi';
 import { requireAuth } from '../middleware/auth';
 import { getDataSource } from '../config/database';
@@ -229,7 +229,7 @@ snapshotRoutes.post(
     },
   }),
   requireAuth,
-  zValidator('json', CreateSnapshotRequestSchema),
+  validator('json', CreateSnapshotRequestSchema),
   async (c) => {
     const username = c.req.param('username');
     const slug = c.req.param('slug');

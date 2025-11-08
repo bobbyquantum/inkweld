@@ -40,6 +40,15 @@
               }
             }
           }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
         }
       }
     },
@@ -78,6 +87,15 @@
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
               }
             }
           }
@@ -381,6 +399,40 @@
               }
             }
           }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "minLength": 3
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "captchaToken": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "username",
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -651,6 +703,15 @@
               }
             }
           }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectRequest"
+              }
+            }
+          }
         }
       }
     },
@@ -776,6 +837,15 @@
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectRequest"
               }
             }
           }
@@ -1277,6 +1347,15 @@
             }
           }
         },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSnapshotRequest"
+              }
+            }
+          }
+        },
         "parameters": [
           {
             "schema": {
@@ -1627,6 +1706,34 @@
           "error"
         ]
       },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "example": "johndoe",
+            "description": "Username (minimum 3 characters)"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john@example.com",
+            "description": "Email address"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "example": "secret123",
+            "description": "Password (minimum 6 characters)"
+          }
+        },
+        "required": [
+          "username",
+          "email",
+          "password"
+        ]
+      },
       "LoginResponse": {
         "type": "object",
         "properties": {
@@ -1646,6 +1753,27 @@
           "message",
           "user",
           "sessionId"
+        ]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "example": "johndoe",
+            "description": "Username"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "example": "secret123",
+            "description": "Password"
+          }
+        },
+        "required": [
+          "username",
+          "password"
         ]
       },
       "MessageResponse": {
@@ -1754,6 +1882,49 @@
           "createdDate",
           "updatedDate"
         ]
+      },
+      "CreateProjectRequest": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$",
+            "minLength": 3,
+            "example": "my-novel",
+            "description": "URL-friendly project identifier (lowercase, numbers, hyphens only)"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "example": "My Novel",
+            "description": "Project title"
+          },
+          "description": {
+            "type": "string",
+            "example": "A thrilling adventure story",
+            "description": "Project description"
+          }
+        },
+        "required": [
+          "slug",
+          "title"
+        ]
+      },
+      "UpdateProjectRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "example": "My Updated Novel",
+            "description": "Project title"
+          },
+          "description": {
+            "type": "string",
+            "example": "An updated thrilling adventure story",
+            "description": "Project description"
+          }
+        }
       },
       "SnapshotsListResponse": {
         "type": "array",
@@ -1874,6 +2045,57 @@
           "documentId",
           "name",
           "createdAt",
+          "yDocState"
+        ]
+      },
+      "CreateSnapshotRequest": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "example": "doc-456",
+            "description": "Document ID"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "Chapter 1 Draft",
+            "description": "Snapshot name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000,
+            "example": "First draft of chapter 1",
+            "description": "Snapshot description"
+          },
+          "yDocState": {
+            "type": "string",
+            "example": "base64encodedstate...",
+            "description": "Base64 encoded Yjs document state"
+          },
+          "stateVector": {
+            "type": "string",
+            "example": "base64vector...",
+            "description": "Base64 encoded state vector"
+          },
+          "wordCount": {
+            "type": "number",
+            "example": 1250,
+            "description": "Word count"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "example": {
+              "version": 1
+            },
+            "description": "Additional metadata"
+          }
+        },
+        "required": [
+          "documentId",
+          "name",
           "yDocState"
         ]
       }

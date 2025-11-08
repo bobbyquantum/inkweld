@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
+import { describeRoute, resolver, validator } from 'hono-openapi';
 import { describeRoute, resolver } from 'hono-openapi';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
@@ -197,7 +197,7 @@ userRoutes.post(
       },
     },
   }),
-  zValidator('json', registerSchema),
+  validator('json', registerSchema),
   async (c) => {
     const { username, email, password, name } = c.req.valid('json');
     const dataSource = getDataSource();
