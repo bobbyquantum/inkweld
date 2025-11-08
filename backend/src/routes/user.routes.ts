@@ -317,10 +317,7 @@ userRoutes.get(
       return c.json({ error: 'Username must be at least 3 characters' }, 400);
     }
 
-    const dataSource = getDataSource();
-    const userRepo = dataSource.getRepository(User);
-
-    const existingUser = await userRepo.findOne({ where: { username } });
+    const existingUser = await userService.findByUsername(username);
 
     return c.json({
       available: !existingUser,
@@ -425,10 +422,8 @@ userRoutes.post(
   requireAuth,
   async (c) => {
     const userId = c.get('user').id;
-    const dataSource = getDataSource();
-    const userRepo = dataSource.getRepository(User);
 
-    const user = await userRepo.findOne({ where: { id: userId } });
+    const user = await userService.findById(userId);
     if (!user || !user.username) {
       return c.json({ error: 'User not found' }, 404);
     }
@@ -500,10 +495,8 @@ userRoutes.post(
   requireAuth,
   async (c) => {
     const userId = c.get('user').id;
-    const dataSource = getDataSource();
-    const userRepo = dataSource.getRepository(User);
 
-    const user = await userRepo.findOne({ where: { id: userId } });
+    const user = await userService.findById(userId);
     if (!user || !user.username) {
       return c.json({ error: 'User not found' }, 404);
     }

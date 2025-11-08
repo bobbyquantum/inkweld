@@ -1,10 +1,8 @@
 import { Hono } from 'hono';
 import { describeRoute, resolver, validator } from 'hono-openapi';
-import { describeRoute, resolver } from 'hono-openapi';
 import { requireAuth } from '../middleware/auth';
-import { getDataSource } from '../config/database';
-import { Project } from '../entities/project.entity';
-import { User } from '../entities/user.entity';
+import { projectService } from '../services/project.service';
+import { userService } from '../services/user.service';
 import { HTTPException } from 'hono/http-exception';
 import {
   ProjectSchema,
@@ -44,28 +42,10 @@ projectRoutes.get(
   requireAuth,
   async (c) => {
     const userId = c.get('user').id;
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
 
-    const projects = await projectRepo.find({
-      where: { user: { id: userId } },
-      relations: ['user'],
-      order: { updatedDate: 'DESC' },
-    });
+    const projects = await projectService.findByUserId(userId);
 
-    // Map projects to flat structure matching old NestJS server
-    const projectsFlat = projects.map((project) => ({
-      id: project.id,
-      version: project.version,
-      slug: project.slug,
-      title: project.title,
-      description: project.description,
-      createdDate: project.createdDate,
-      updatedDate: project.updatedDate,
-      username: project.user.username, // Flat, not nested
-    }));
-
-    return c.json(projectsFlat);
+    return c.json(projects);
   }
 );
 
@@ -116,20 +96,14 @@ projectRoutes.get(
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
 
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-
-    const project = await projectRepo.findOne({
-      where: { slug, user: { username } },
-      relations: ['user'],
-    });
+    const project = await projectService.findByUsernameAndSlug(username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
     }
 
     // Check if user owns this project
-    if (project.user.id !== userId) {
+    if (project.userId !== userId) {
       throw new HTTPException(403, { message: 'Access denied' });
     }
 
@@ -142,7 +116,7 @@ projectRoutes.get(
       description: project.description,
       createdDate: project.createdDate,
       updatedDate: project.updatedDate,
-      username: project.user.username, // Flat, not nested
+      username: project.username, // Flat, not nested
     });
   }
 );
@@ -186,34 +160,26 @@ projectRoutes.post(
     const { slug, title, description } = c.req.valid('json');
     const userId = c.get('user').id;
 
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-    const userRepo = dataSource.getRepository(User);
-
     // Get user
-    const user = await userRepo.findOne({ where: { id: userId } });
-    if (!user) {
+    const user = await userService.findById(userId);
+    if (!user || !user.username) {
       throw new HTTPException(404, { message: 'User not found' });
     }
 
     // Check if project with same slug exists for this user
-    const existing = await projectRepo.findOne({
-      where: { slug, user: { id: userId } },
-    });
+    const existing = await projectService.findByUsernameAndSlug(user.username, slug);
 
     if (existing) {
       throw new HTTPException(400, { message: 'Project with this slug already exists' });
     }
 
     // Create project
-    const project = projectRepo.create({
+    const project = await projectService.create({
       slug,
       title,
       description,
-      user,
+      userId,
     });
-
-    await projectRepo.save(project);
 
     // Return flat structure matching old NestJS server
     return c.json(
@@ -289,39 +255,36 @@ projectRoutes.put(
     const userId = c.get('user').id;
     const updates = c.req.valid('json');
 
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-
-    const project = await projectRepo.findOne({
-      where: { slug, user: { username } },
-      relations: ['user'],
-    });
+    const project = await projectService.findByUsernameAndSlug(username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
     }
 
     // Check ownership
-    if (project.user.id !== userId) {
+    if (project.userId !== userId) {
       throw new HTTPException(403, { message: 'Access denied' });
     }
 
-    // Update fields
-    if (updates.title) project.title = updates.title;
-    if (updates.description !== undefined) project.description = updates.description;
+    // Update project
+    await projectService.update(project.id, updates);
 
-    await projectRepo.save(project);
+    // Get updated project
+    const updated = await projectService.findById(project.id);
+    if (!updated) {
+      throw new HTTPException(500, { message: 'Failed to update project' });
+    }
 
     // Return flat structure matching old NestJS server
     return c.json({
-      id: project.id,
-      version: project.version,
-      slug: project.slug,
-      title: project.title,
-      description: project.description,
-      createdDate: project.createdDate,
-      updatedDate: project.updatedDate,
-      username: project.user.username, // Flat, not nested
+      id: updated.id,
+      version: updated.version,
+      slug: updated.slug,
+      title: updated.title,
+      description: updated.description,
+      createdDate: updated.createdDate,
+      updatedDate: updated.updatedDate,
+      username: project.username, // Flat, not nested
     });
   }
 );
@@ -373,24 +336,18 @@ projectRoutes.delete(
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
 
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-
-    const project = await projectRepo.findOne({
-      where: { slug, user: { username } },
-      relations: ['user'],
-    });
+    const project = await projectService.findByUsernameAndSlug(username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
     }
 
     // Check ownership
-    if (project.user.id !== userId) {
+    if (project.userId !== userId) {
       throw new HTTPException(403, { message: 'Access denied' });
     }
 
-    await projectRepo.remove(project);
+    await projectService.delete(project.id);
 
     return c.json({ message: 'Project deleted successfully' });
   }
