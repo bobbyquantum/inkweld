@@ -7,7 +7,7 @@ import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
 import { generateSpecs } from 'hono-openapi';
 import { config } from './config/env';
-import { setupDatabase } from './config/database';
+import { setupDatabase } from './db';
 import { errorHandler } from './middleware/error-handler';
 
 // Import routes

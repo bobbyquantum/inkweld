@@ -1,19 +1,23 @@
 import { MiddlewareHandler } from 'hono';
 import session from 'express-session';
 import { config } from '../config/env';
-import { DrizzleSessionStore } from './drizzle-session-store';
+import { getDataSource } from '../config/database';
+import { UserSession } from '../entities/session.entity';
+import { TypeormStore } from 'connect-typeorm';
 
 let sessionMiddleware: any = null;
 
 function getSessionMiddleware() {
   if (!sessionMiddleware) {
     // Lazy initialization - only when actually needed (not during import)
-    const store = new DrizzleSessionStore({
-      ttl: config.session.maxAge / 1000,
-    });
+    const dataSource = getDataSource();
+    const sessionRepository = dataSource.getRepository(UserSession);
 
     sessionMiddleware = session({
-      store,
+      store: new TypeormStore({
+        cleanupLimit: 2,
+        ttl: config.session.maxAge / 1000,
+      }).connect(sessionRepository),
       secret: config.session.secret,
       resave: false,
       saveUninitialized: false,

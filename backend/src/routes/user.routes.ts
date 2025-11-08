@@ -2,12 +2,14 @@ import { Hono } from 'hono';
 import { describeRoute, resolver, validator } from 'hono-openapi';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
-import { getDataSource } from '../config/database';
-import { User } from '../entities/user.entity';
+import { getDatabase } from '../db';
+import { users as usersTable } from '../db/schema/users';
+import { userService } from '../services/user.service';
 import { fileStorageService } from '../services/file-storage.service';
 import { imageService } from '../services/image.service';
 import { recaptchaService } from '../services/recaptcha.service';
 import { config } from '../config/env';
+import { eq, like, or, asc, desc } from 'drizzle-orm';
 import {
   UserSchema,
   PaginatedUsersResponseSchema,
@@ -56,13 +58,7 @@ userRoutes.get(
     const userId = c.get('user').id;
     console.log('[/me endpoint] User ID from session:', userId);
 
-    const dataSource = getDataSource();
-    const userRepo = dataSource.getRepository(User);
-
-    const user = await userRepo.findOne({
-      where: { id: userId },
-      select: ['id', 'username', 'name', 'email', 'enabled', 'approved'],
-    });
+    const user = await userService.findById(userId);
 
     console.log('[/me endpoint] User from database:', user);
 
@@ -107,17 +103,24 @@ userRoutes.get(
     const page = parseInt(c.req.query('page') || '1', 10);
     const pageSize = parseInt(c.req.query('pageSize') || '10', 10);
 
-    const dataSource = getDataSource();
-    const userRepo = dataSource.getRepository(User);
+    const db = getDatabase();
 
-    const [users, total] = await userRepo.findAndCount({
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      select: ['id', 'username', 'name', 'enabled'],
-    });
+    const allUsers = await db
+      .select({
+        id: usersTable.id,
+        username: usersTable.username,
+        name: usersTable.name,
+        enabled: usersTable.enabled,
+      })
+      .from(usersTable)
+      .limit(pageSize)
+      .offset((page - 1) * pageSize);
+
+    const totalCount = await db.select().from(usersTable);
+    const total = totalCount.length;
 
     return c.json({
-      users,
+      users: allUsers,
       total,
       page,
       pageSize,
@@ -148,21 +151,39 @@ userRoutes.get(
     const page = parseInt(c.req.query('page') || '1', 10);
     const pageSize = parseInt(c.req.query('pageSize') || '10', 10);
 
-    const dataSource = getDataSource();
-    const userRepo = dataSource.getRepository(User);
+    const db = getDatabase();
 
-    const queryBuilder = userRepo.createQueryBuilder('user');
-    queryBuilder.where('user.username LIKE :term OR user.name LIKE :term', {
-      term: `%${term}%`,
-    });
-    queryBuilder.skip((page - 1) * pageSize);
-    queryBuilder.take(pageSize);
-    queryBuilder.select(['user.id', 'user.username', 'user.name', 'user.enabled']);
+    const searchTerm = `%${term}%`;
+    const foundUsers = await db
+      .select({
+        id: usersTable.id,
+        username: usersTable.username,
+        name: usersTable.name,
+        enabled: usersTable.enabled,
+      })
+      .from(usersTable)
+      .where(
+        or(
+          like(usersTable.username, searchTerm),
+          like(usersTable.name, searchTerm)
+        )
+      )
+      .limit(pageSize)
+      .offset((page - 1) * pageSize);
 
-    const [users, total] = await queryBuilder.getManyAndCount();
+    const totalResults = await db
+      .select()
+      .from(usersTable)
+      .where(
+        or(
+          like(usersTable.username, searchTerm),
+          like(usersTable.name, searchTerm)
+        )
+      );
+    const total = totalResults.length;
 
     return c.json({
-      users,
+      users: foundUsers,
       total,
       page,
       pageSize,
@@ -228,30 +249,24 @@ userRoutes.post(
       }
     }
 
-    const dataSource = getDataSource();
-    const userRepo = dataSource.getRepository(User);
-
     // Check if username already exists
-    const existingUser = await userRepo.findOne({ where: { username } });
+    const existingUser = await userService.findByUsername(username);
     if (existingUser) {
       return c.json({ error: 'Username already exists' }, 400);
     }
 
-    // Hash password
-    const bcrypt = await import('bcryptjs');
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
-    const user = userRepo.create({
+    // Create user using userService
+    const user = await userService.create({
       username,
-      email,
-      password: hashedPassword,
+      email: email || '',
+      password,
       name: name || username,
-      enabled: true,
-      approved: !config.userApprovalRequired, // Approved immediately if approval not required
     });
 
-    await userRepo.save(user);
+    // Update approval status if approval not required
+    if (!config.userApprovalRequired) {
+      await userService.approveUser(user.id);
+    }
 
     return c.json({
       message: config.userApprovalRequired

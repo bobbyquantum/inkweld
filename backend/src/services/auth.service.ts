@@ -3,7 +3,7 @@ import { deleteCookie, getSignedCookie, setSignedCookie } from 'hono/cookie';
 import { sign } from 'hono/jwt';
 import { config } from '../config/env.js';
 import { userService } from './user.service.js';
-import type { User } from '../entities/user.entity.js';
+import type { User } from '../db/schema/users.js';
 
 const SESSION_COOKIE_NAME = 'inkweld_session';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
