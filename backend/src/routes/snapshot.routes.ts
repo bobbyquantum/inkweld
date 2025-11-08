@@ -1,45 +1,21 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { describeRoute, resolver } from 'hono-openapi';
-import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
 import { getDataSource } from '../config/database';
 import { DocumentSnapshot } from '../entities/document-snapshot.entity';
 import { Project } from '../entities/project.entity';
 import { User } from '../entities/user.entity';
 import { HTTPException } from 'hono/http-exception';
+import {
+  DocumentSnapshotSchema,
+  CreateSnapshotRequestSchema,
+  SnapshotsListResponseSchema,
+  SnapshotWithContentSchema,
+} from '../schemas/snapshot.schemas';
+import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
 
 const snapshotRoutes = new Hono();
-
-// Validation schemas
-const createSnapshotSchema = z.object({
-  documentId: z.string().min(1).describe('Document ID'),
-  name: z.string().min(1).max(255).describe('Snapshot name'),
-  description: z.string().max(1000).optional().describe('Snapshot description'),
-  yDocState: z.string().describe('Base64 encoded Yjs document state'),
-  stateVector: z.string().optional().describe('Base64 encoded state vector'),
-  wordCount: z.number().optional().describe('Word count'),
-  metadata: z.record(z.any()).optional().describe('Additional metadata'),
-});
-
-const snapshotSchema = z.object({
-  id: z.string().describe('Snapshot ID'),
-  documentId: z.string().describe('Document ID'),
-  name: z.string().describe('Snapshot name'),
-  description: z.string().nullable().optional().describe('Snapshot description'),
-  wordCount: z.number().nullable().optional().describe('Word count'),
-  metadata: z.record(z.any()).nullable().optional().describe('Additional metadata'),
-  createdAt: z.string().describe('Creation timestamp'),
-});
-
-const snapshotDetailSchema = snapshotSchema.extend({
-  yDocState: z.string().describe('Base64 encoded Yjs document state'),
-  stateVector: z.string().nullable().optional().describe('Base64 encoded state vector'),
-});
-
-const errorSchema = z.object({
-  message: z.string().describe('Error message'),
-});
 
 // Get snapshots for a project
 snapshotRoutes.get(
@@ -52,7 +28,7 @@ snapshotRoutes.get(
         description: 'List of snapshots',
         content: {
           'application/json': {
-            schema: resolver(z.array(snapshotSchema)),
+            schema: resolver(SnapshotsListResponseSchema),
           },
         },
       },
@@ -60,7 +36,7 @@ snapshotRoutes.get(
         description: 'Not authenticated',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -68,7 +44,7 @@ snapshotRoutes.get(
         description: 'Access denied',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -76,7 +52,7 @@ snapshotRoutes.get(
         description: 'Project not found',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -128,7 +104,7 @@ snapshotRoutes.get(
         description: 'Snapshot details with document state',
         content: {
           'application/json': {
-            schema: resolver(snapshotDetailSchema),
+            schema: resolver(SnapshotWithContentSchema),
           },
         },
       },
@@ -136,7 +112,7 @@ snapshotRoutes.get(
         description: 'Not authenticated',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -144,7 +120,7 @@ snapshotRoutes.get(
         description: 'Access denied',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -152,7 +128,7 @@ snapshotRoutes.get(
         description: 'Project or snapshot not found',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -214,7 +190,7 @@ snapshotRoutes.post(
         description: 'Snapshot created successfully',
         content: {
           'application/json': {
-            schema: resolver(snapshotSchema),
+            schema: resolver(DocumentSnapshotSchema),
           },
         },
       },
@@ -222,7 +198,7 @@ snapshotRoutes.post(
         description: 'Invalid input data',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -230,7 +206,7 @@ snapshotRoutes.post(
         description: 'Not authenticated',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -238,7 +214,7 @@ snapshotRoutes.post(
         description: 'Access denied - not project owner',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -246,14 +222,14 @@ snapshotRoutes.post(
         description: 'Project not found',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
     },
   }),
   requireAuth,
-  zValidator('json', createSnapshotSchema),
+  zValidator('json', CreateSnapshotRequestSchema),
   async (c) => {
     const username = c.req.param('username');
     const slug = c.req.param('slug');
@@ -326,11 +302,7 @@ snapshotRoutes.delete(
         description: 'Snapshot deleted successfully',
         content: {
           'application/json': {
-            schema: resolver(
-              z.object({
-                message: z.string().describe('Success message'),
-              })
-            ),
+            schema: resolver(MessageResponseSchema),
           },
         },
       },
@@ -338,7 +310,7 @@ snapshotRoutes.delete(
         description: 'Not authenticated',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -346,7 +318,7 @@ snapshotRoutes.delete(
         description: 'Access denied - not project owner',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -354,7 +326,7 @@ snapshotRoutes.delete(
         description: 'Project or snapshot not found',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },

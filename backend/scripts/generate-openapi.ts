@@ -32,13 +32,18 @@ async function generateOpenAPIJson() {
     // Listen for server output to know when it's ready
     serverProcess.stdout.on('data', (data: Buffer) => {
       const output = data.toString();
-      if (output.includes('ready on port') || output.includes('Server listening on')) {
+      console.log('STDOUT:', output);
+      if (output.includes('ready on port') || output.includes('Server listening on') || output.includes('Inkweld backend ready')) {
         serverReady = true;
       }
     });
 
     serverProcess.stderr.on('data', (data: Buffer) => {
-      // Ignore stderr during startup
+      const output = data.toString();
+      console.log('STDERR:', output);
+      if (output.includes('ready on port') || output.includes('Server listening on') || output.includes('Inkweld backend ready')) {
+        serverReady = true;
+      }
     });
 
     // Wait for server to be ready (max 30 seconds)
