@@ -28,7 +28,7 @@ export async function setupDatabase(testMode = false): Promise<DataSource> {
     const database = testMode
       ? ':memory:'
       : dbConfig.type === 'sqlite'
-        ? './data/inkweld.db'
+        ? process.env.DB_PATH || './data/inkweld.db'
         : dbConfig.database;
 
     dataSource = new DataSource({

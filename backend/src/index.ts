@@ -1,14 +1,13 @@
 import 'reflect-metadata';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { csrf } from 'hono/csrf';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
 import { generateSpecs } from 'hono-openapi';
 import { config } from './config/env';
 import { setupDatabase } from './config/database';
-import { setupSession } from './middleware/session';
-import { setupCSRF } from './middleware/csrf';
 import { errorHandler } from './middleware/error-handler';
 
 // Import routes
@@ -20,6 +19,13 @@ import configRoutes from './routes/config.routes';
 import imageRoutes from './routes/image.routes';
 import csrfRoutes from './routes/csrf.routes';
 import snapshotRoutes from './routes/snapshot.routes';
+import documentRoutes from './routes/document.routes';
+import elementRoutes from './routes/element.routes';
+import fileRoutes from './routes/file.routes';
+import epubRoutes from './routes/epub.routes';
+import lintRoutes from './routes/lint.routes';
+import aiImageRoutes from './routes/ai-image.routes';
+import mcpRoutes from './routes/mcp.routes';
 
 const app = new Hono();
 
@@ -45,21 +51,33 @@ app.use(
   })
 );
 
-// Session middleware
-app.use('*', setupSession());
-
-// CSRF protection middleware
-app.use('*', setupCSRF());
+// CSRF protection - allows same-origin and multiple configured origins
+// Skip CSRF in test mode to allow test requests without proper headers
+if (config.nodeEnv !== 'test') {
+  app.use(
+    '*',
+    csrf({
+      origin: allowedOrigins.length > 0 ? allowedOrigins : undefined,
+    })
+  );
+}
 
 // Routes
-app.route('/api/auth', authRoutes);
-app.route('/api/csrf', csrfRoutes);
-app.route('/api/user', userRoutes);
-app.route('/api/projects', projectRoutes);
+app.route('/', authRoutes); // Root-level, matches old NestJS server (/login, /logout, /me)
+app.route('/csrf', csrfRoutes); // Root-level, matches old NestJS server
+app.route('/api/v1/users', userRoutes);
+app.route('/api/v1/projects', projectRoutes);
+app.route('/api/v1/projects', documentRoutes);
+app.route('/api/v1/projects', elementRoutes);
+app.route('/api/v1/projects', fileRoutes);
+app.route('/api/v1/projects', epubRoutes);
 app.route('/api/images', imageRoutes);
 app.route('/api/snapshots', snapshotRoutes);
-app.route('/api/health', healthRoutes);
+app.route('/health', healthRoutes);
 app.route('/api/config', configRoutes);
+app.route('/lint', lintRoutes);
+app.route('/image', aiImageRoutes);
+app.route('/mcp', mcpRoutes);
 
 // Root route
 app.get('/', (c) => {
@@ -70,6 +88,15 @@ app.get('/', (c) => {
   });
 });
 
+// Legacy OAuth providers endpoint for backward compatibility
+app.get('/providers', (c) => {
+  return c.json({
+    providers: {
+      github: config.github.enabled,
+    },
+  });
+});
+
 // API documentation placeholder
 app.get('/api', (c) => {
   return c.json({
@@ -77,12 +104,16 @@ app.get('/api', (c) => {
     version: config.version,
     endpoints: {
       auth: '/api/auth',
-      csrf: '/api/csrf',
-      user: '/api/user',
-      projects: '/api/projects',
+      csrf: '/csrf',
+      users: '/api/v1/users',
+      projects: '/api/v1/projects',
+      documents: '/api/v1/projects/:username/:slug/docs',
+      elements: '/api/v1/projects/:username/:slug/elements',
+      files: '/api/v1/projects/:username/:slug/files',
+      epub: '/api/v1/projects/:username/:slug/epub',
       images: '/api/images',
       snapshots: '/api/snapshots',
-      health: '/api/health',
+      health: '/health',
       config: '/api/config',
     },
   });

@@ -937,6 +937,742 @@
         ]
       }
     },
+    "/api/projects/{username}/{slug}/docs": {
+      "get": {
+        "operationId": "getApiProjects:username:slugDocs",
+        "description": "List all documents in a project",
+        "tags": [
+          "Documents"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of documents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Document ID"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "Document name"
+                      },
+                      "type": {
+                        "type": "string",
+                        "description": "Document type"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "description": "Creation timestamp"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "description": "Last update timestamp"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "type"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/api/projects/{username}/{slug}/docs/{docId}": {
+      "get": {
+        "operationId": "getApiProjects:username:slugDocs:docId",
+        "description": "Get document metadata",
+        "tags": [
+          "Documents"
+        ],
+        "responses": {
+          "200": {
+            "description": "Document metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Document ID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Document name"
+                    },
+                    "type": {
+                      "type": "string",
+                      "description": "Document type"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "description": "Creation timestamp"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "description": "Last update timestamp"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "type"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "docId",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/api/projects/{username}/{slug}/docs/{docId}/html": {
+      "get": {
+        "operationId": "getApiProjects:username:slugDocs:docIdHtml",
+        "description": "Render document as HTML",
+        "tags": [
+          "Documents"
+        ],
+        "responses": {
+          "200": {
+            "description": "Rendered HTML content",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "docId",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/api/projects/{username}/{slug}/elements": {
+      "get": {
+        "operationId": "getApiProjects:username:slugElements",
+        "description": "Get all project elements (folder structure)",
+        "tags": [
+          "Elements"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of project elements",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Element ID"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "Element name"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "FOLDER",
+                          "ITEM"
+                        ],
+                        "description": "Element type"
+                      },
+                      "parentId": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Parent element ID"
+                      },
+                      "order": {
+                        "type": "number",
+                        "description": "Order in parent"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "description": "Creation timestamp"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "description": "Last update timestamp"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "type",
+                      "parentId",
+                      "order"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/api/projects/{username}/{slug}/files": {
+      "get": {
+        "operationId": "getApiProjects:username:slugFiles",
+        "description": "List all files in a project",
+        "tags": [
+          "Files"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of files",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "File name"
+                      },
+                      "size": {
+                        "type": "number",
+                        "description": "File size in bytes"
+                      },
+                      "uploadDate": {
+                        "type": "string",
+                        "description": "Upload timestamp"
+                      }
+                    },
+                    "required": [
+                      "name"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/api/projects/{username}/{slug}/files/{storedName}": {
+      "get": {
+        "operationId": "getApiProjects:username:slugFiles:storedName",
+        "description": "Download a file from the project",
+        "tags": [
+          "Files"
+        ],
+        "responses": {
+          "200": {
+            "description": "File content",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "storedName",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/api/projects/{username}/{slug}/epub": {
+      "post": {
+        "operationId": "postApiProjects:username:slugEpub",
+        "description": "Export project as EPUB file",
+        "tags": [
+          "Export"
+        ],
+        "responses": {
+          "200": {
+            "description": "EPUB export metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "originalName": {
+                      "type": "string",
+                      "description": "Original filename"
+                    },
+                    "storedName": {
+                      "type": "string",
+                      "description": "Stored filename"
+                    },
+                    "contentType": {
+                      "type": "string",
+                      "description": "MIME type"
+                    },
+                    "size": {
+                      "type": "number",
+                      "description": "File size in bytes"
+                    },
+                    "uploadDate": {
+                      "type": "string",
+                      "description": "Creation timestamp"
+                    }
+                  },
+                  "required": [
+                    "originalName",
+                    "storedName",
+                    "contentType",
+                    "size",
+                    "uploadDate"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Export failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          }
+        ]
+      }
+    },
     "/api/images/{username}/{slug}/cover": {
       "post": {
         "operationId": "postApiImages:username:slugCover",
@@ -1618,6 +2354,10 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "version": {
+                      "type": "string",
+                      "description": "Application version"
+                    },
                     "userApprovalRequired": {
                       "type": "boolean",
                       "description": "Whether admin approval is required for new users"
@@ -1628,8 +2368,412 @@
                     }
                   },
                   "required": [
+                    "version",
                     "userApprovalRequired",
                     "githubEnabled"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lint/status": {
+      "get": {
+        "operationId": "getLintStatus",
+        "description": "Check if AI linting features are available",
+        "tags": [
+          "Linting"
+        ],
+        "responses": {
+          "200": {
+            "description": "AI service status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "Whether AI linting is enabled"
+                    },
+                    "service": {
+                      "type": "string",
+                      "description": "The AI service being used"
+                    }
+                  },
+                  "required": [
+                    "enabled",
+                    "service"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lint": {
+      "post": {
+        "operationId": "postLint",
+        "description": "Lint a paragraph for grammar, spelling, and style issues",
+        "tags": [
+          "Linting"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lint results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "original_paragraph": {
+                      "type": "string",
+                      "description": "The original paragraph"
+                    },
+                    "corrections": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "start_pos": {
+                            "type": "number",
+                            "description": "Start position of the error"
+                          },
+                          "end_pos": {
+                            "type": "number",
+                            "description": "End position of the error"
+                          },
+                          "original_text": {
+                            "type": "string",
+                            "description": "The original text with the error"
+                          },
+                          "corrected_text": {
+                            "type": "string",
+                            "description": "The suggested correction"
+                          },
+                          "error_type": {
+                            "type": "string",
+                            "description": "Type of error"
+                          },
+                          "recommendation": {
+                            "type": "string",
+                            "description": "Explanation of the correction"
+                          }
+                        },
+                        "required": [
+                          "start_pos",
+                          "end_pos",
+                          "original_text",
+                          "corrected_text",
+                          "error_type",
+                          "recommendation"
+                        ]
+                      },
+                      "description": "List of corrections"
+                    },
+                    "style_recommendations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "suggestion": {
+                            "type": "string",
+                            "description": "Style suggestion"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "description": "Reason for the suggestion"
+                          }
+                        },
+                        "required": [
+                          "suggestion",
+                          "reason"
+                        ]
+                      },
+                      "description": "List of style recommendations"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "openai",
+                        "languagetool"
+                      ],
+                      "description": "The linting service source"
+                    }
+                  },
+                  "required": [
+                    "original_paragraph",
+                    "corrections",
+                    "style_recommendations",
+                    "source"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "AI linting service unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/generate": {
+      "post": {
+        "operationId": "postImageGenerate",
+        "description": "Generate an image using AI",
+        "tags": [
+          "AI Image Generation"
+        ],
+        "responses": {
+          "200": {
+            "description": "Image generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "created": {
+                      "type": "number",
+                      "description": "Unix timestamp of creation"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "b64_json": {
+                            "type": "string",
+                            "description": "Base64-encoded JSON image data"
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "URL to the image"
+                          },
+                          "revised_prompt": {
+                            "type": "string",
+                            "description": "The revised prompt used"
+                          }
+                        }
+                      },
+                      "description": "Generated images"
+                    },
+                    "source": {
+                      "type": "string",
+                      "description": "Source service"
+                    }
+                  },
+                  "required": [
+                    "created",
+                    "data",
+                    "source"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "AI image generation service unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image/status": {
+      "get": {
+        "operationId": "getImageStatus",
+        "description": "Check if AI image generation is available",
+        "tags": [
+          "AI Image Generation"
+        ],
+        "responses": {
+          "200": {
+            "description": "Service status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "Whether AI image generation is enabled"
+                    },
+                    "service": {
+                      "type": "string",
+                      "description": "The AI service being used"
+                    }
+                  },
+                  "required": [
+                    "enabled",
+                    "service"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp/sse": {
+      "get": {
+        "operationId": "getMcpSse",
+        "description": "Model Context Protocol Server-Sent Events stream",
+        "tags": [
+          "MCP"
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream of MCP events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "MCP not implemented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  },
+                  "required": [
+                    "error"
                   ]
                 }
               }

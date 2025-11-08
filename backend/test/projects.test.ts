@@ -1,16 +1,20 @@
-import { describe, it, expect, beforeAll } from 'bun:test';
-import { app } from './setup.shared.js';
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { getDataSource } from '../src/config/database.js';
 import { User } from '../src/entities/user.entity.js';
 import { Project } from '../src/entities/project.entity.js';
 import * as bcrypt from 'bcryptjs';
+import { startTestServer, stopTestServer, TestClient } from './server-test-helper.js';
 
 describe('Projects', () => {
   let testUser: User;
-  let sessionCookie: string;
-  let testProject: Project;
+  let client: TestClient;
+  let testProject: { name: string; slug: string; id: string };
 
   beforeAll(async () => {
+    // Start test server
+    const { baseUrl } = await startTestServer();
+    client = new TestClient(baseUrl);
+
     // Clean up any existing test users
     const userRepo = getDataSource().getRepository(User);
     await userRepo.delete({ username: 'projectuser' });
@@ -28,166 +32,186 @@ describe('Projects', () => {
     await userRepo.save(testUser);
 
     // Login to get session
-    const loginRes = await app.request('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: 'projectuser',
-        password: 'testpassword123',
-      }),
-    });
-    sessionCookie = loginRes.headers.get('set-cookie')?.split(';')[0] || '';
+    const loggedIn = await client.login('projectuser', 'testpassword123');
+    expect(loggedIn).toBe(true);
   });
 
-  // Note: These tests are skipped because session/cookie persistence
-  // doesn't work across app.request() calls in Hono test mode.
-  // Would need real HTTP server or different testing approach.
+  afterAll(async () => {
+    // Clean up test projects
+    const projectRepo = getDataSource().getRepository(Project);
+    await projectRepo.delete({ user: { id: testUser.id } });
 
-  describe.skip('POST /api/projects', () => {
+    // Clean up test user
+    const userRepo = getDataSource().getRepository(User);
+    await userRepo.delete({ id: testUser.id });
+
+    // Stop test server
+    await stopTestServer();
+  });
+
+  describe('POST /api/v1/projects', () => {
     it('should create a new project', async () => {
-      const res = await app.request('/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Cookie: sessionCookie,
-        },
-        body: JSON.stringify({
-          name: 'My Test Project',
-          description: 'A test project',
-          genre: 'Fantasy',
-        }),
-      });
-
-      expect(res.status).toBe(201);
-      const json = await res.json();
-      expect(json).toHaveProperty('name', 'My Test Project');
-      expect(json).toHaveProperty('slug');
-      testProject = json;
-    });
-
-    it('should require authentication', async () => {
-      const res = await app.request('/api/projects', {
+      const { response, json } = await client.request('/api/v1/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: 'Unauthorized Project',
+          slug: 'my-test-project',
+          title: 'My Test Project',
+          description: 'A test project',
         }),
       });
 
-      expect(res.status).toBe(401);
-    });
-
-    it('should validate required fields', async () => {
-      const res = await app.request('/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Cookie: sessionCookie,
-        },
-        body: JSON.stringify({
-          description: 'Missing name field',
-        }),
-      });
-
-      expect(res.status).toBe(400);
-    });
-  });
-
-  describe.skip('GET /api/projects', () => {
-    it('should list user projects', async () => {
-      const res = await app.request('/api/projects', {
-        headers: { Cookie: sessionCookie },
-      });
-
-      expect(res.status).toBe(200);
-      const json = await res.json();
-      expect(Array.isArray(json)).toBe(true);
-      expect(json.length).toBeGreaterThan(0);
+      expect(response.status).toBe(201);
+      const data = await json();
+      expect(data).toHaveProperty('title', 'My Test Project');
+      expect(data).toHaveProperty('slug', 'my-test-project');
+      testProject = data;
     });
 
     it('should require authentication', async () => {
-      const res = await app.request('/api/projects');
-      expect(res.status).toBe(401);
+      const unauthClient = new TestClient(client['baseUrl']);
+      const { response } = await unauthClient.request('/api/v1/projects');
+
+      expect(response.status).toBe(401);
     });
   });
 
-  describe.skip('GET /api/projects/:username/:slug', () => {
+  describe('GET /api/v1/projects/:username/:slug', () => {
     it('should get project by slug', async () => {
-      const res = await app.request(`/api/projects/${testUser.username}/${testProject.slug}`, {
-        headers: { Cookie: sessionCookie },
-      });
+      const { response, json } = await client.request(
+        `/api/v1/projects/${testUser.username}/${testProject.slug}`
+      );
 
-      expect(res.status).toBe(200);
-      const json = await res.json();
-      expect(json).toHaveProperty('name', 'My Test Project');
+      expect(response.status).toBe(200);
+      const data = await json();
+      expect(data).toHaveProperty('slug', testProject.slug);
     });
 
     it('should return 404 for non-existent project', async () => {
-      const res = await app.request(`/api/projects/${testUser.username}/nonexistent`, {
-        headers: { Cookie: sessionCookie },
-      });
-
-      expect(res.status).toBe(404);
+      const { response } = await client.request(
+        `/api/v1/projects/${testUser.username}/nonexistent`
+      );
+      expect(response.status).toBe(404);
     });
-  });
 
-  describe.skip('PATCH /api/projects/:username/:slug', () => {
-    it('should update project', async () => {
-      const res = await app.request(`/api/projects/${testUser.username}/${testProject.slug}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Cookie: sessionCookie,
-        },
+    it('should validate required fields', async () => {
+      const { response } = await client.request('/api/v1/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          description: 'Updated description',
+          // Missing slug and title
+          description: 'Incomplete project',
         }),
       });
 
-      expect(res.status).toBe(200);
-      const json = await res.json();
-      expect(json).toHaveProperty('description', 'Updated description');
+      expect(response.status).toBe(400);
+    });
+  });
+
+  describe('GET /api/v1/projects', () => {
+    it('should list user projects', async () => {
+      const { response, json } = await client.request('/api/v1/projects');
+
+      expect(response.status).toBe(200);
+      const data = await json();
+      expect(Array.isArray(data)).toBe(true);
+      expect(data.length).toBeGreaterThan(0);
     });
 
     it('should require authentication', async () => {
-      const res = await app.request(`/api/projects/${testUser.username}/${testProject.slug}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: 'Unauthorized' }),
-      });
+      const unauthClient = new TestClient(client['baseUrl']);
+      const { response } = await unauthClient.request('/api/v1/projects');
 
-      expect(res.status).toBe(401);
+      expect(response.status).toBe(401);
     });
   });
 
-  describe.skip('DELETE /api/projects/:username/:slug', () => {
+  describe('GET /api/v1/projects/:username/:slug', () => {
+    it('should get project by slug', async () => {
+      const { response, json } = await client.request(
+        `/api/v1/projects/${testUser.username}/${testProject.slug}`
+      );
+
+      expect(response.status).toBe(200);
+      const data = await json();
+      expect(data).toHaveProperty('title', 'My Test Project');
+      expect(data).toHaveProperty('slug', 'my-test-project');
+    });
+
+    it('should return 404 for non-existent project', async () => {
+      const { response } = await client.request(
+        `/api/v1/projects/${testUser.username}/nonexistent`
+      );
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe('PATCH /api/v1/projects/:username/:slug', () => {
+    it('should update project', async () => {
+      const { response, json } = await client.request(
+        `/api/v1/projects/${testUser.username}/${testProject.slug}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: 'Updated Project Title',
+            description: 'Updated description',
+          }),
+        }
+      );
+
+      expect(response.status).toBe(200);
+      const data = await json();
+      expect(data).toHaveProperty('title', 'Updated Project Title');
+      expect(data).toHaveProperty('description', 'Updated description');
+    });
+
+    it('should require authentication', async () => {
+      const unauthClient = new TestClient(client['baseUrl']);
+
+      const { response } = await unauthClient.request(
+        `/api/v1/projects/${testUser.username}/${testProject.slug}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'Unauthorized' }),
+        }
+      );
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('DELETE /api/v1/projects/:username/:slug', () => {
     it('should delete project', async () => {
       // Create a project to delete
-      const createRes = await app.request('/api/projects', {
+      const { json: createJson } = await client.request('/api/v1/projects', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Cookie: sessionCookie,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: 'Project to Delete',
+          slug: 'project-to-delete',
+          title: 'Project to Delete',
+          description: 'This project will be deleted',
         }),
       });
-      const project = await createRes.json();
+      const project = await createJson();
 
       // Delete it
-      const res = await app.request(`/api/projects/${testUser.username}/${project.slug}`, {
-        method: 'DELETE',
-        headers: { Cookie: sessionCookie },
-      });
+      const { response } = await client.request(
+        `/api/v1/projects/${testUser.username}/${project.slug}`,
+        {
+          method: 'DELETE',
+        }
+      );
 
-      expect(res.status).toBe(200);
+      expect(response.status).toBe(200);
 
       // Verify it's gone
-      const getRes = await app.request(`/api/projects/${testUser.username}/${project.slug}`, {
-        headers: { Cookie: sessionCookie },
-      });
-      expect(getRes.status).toBe(404);
+      const { response: getResponse } = await client.request(
+        `/api/v1/projects/${testUser.username}/${project.slug}`
+      );
+      expect(getResponse.status).toBe(404);
     });
   });
 });

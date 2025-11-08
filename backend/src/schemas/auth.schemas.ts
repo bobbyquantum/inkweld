@@ -15,14 +15,21 @@ export const RegisterRequestSchema = z
       .string()
       .min(3)
       .openapi({ example: 'johndoe', description: 'Username (minimum 3 characters)' }),
-    email: z
-      .string()
-      .email()
-      .openapi({ example: 'john@example.com', description: 'Email address' }),
     password: z
       .string()
       .min(6)
       .openapi({ example: 'secret123', description: 'Password (minimum 6 characters)' }),
+  })
+  .extend({
+    email: z.string().email().optional().openapi({
+      example: 'john@example.com',
+      description: 'Email address (optional)',
+    }),
+    name: z.string().optional().openapi({ example: 'John Doe', description: 'User display name' }),
+    captchaToken: z.string().optional().openapi({
+      example: '03AGdBq...',
+      description: 'reCAPTCHA token (required if reCAPTCHA is enabled)',
+    }),
   })
   .openapi({ ref: 'RegisterRequest' });
 

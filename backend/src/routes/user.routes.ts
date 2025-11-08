@@ -1,12 +1,13 @@
 import { Hono } from 'hono';
 import { describeRoute, resolver, validator } from 'hono-openapi';
-import { describeRoute, resolver } from 'hono-openapi';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
 import { getDataSource } from '../config/database';
 import { User } from '../entities/user.entity';
 import { fileStorageService } from '../services/file-storage.service';
 import { imageService } from '../services/image.service';
+import { recaptchaService } from '../services/recaptcha.service';
+import { config } from '../config/env';
 import {
   UserSchema,
   PaginatedUsersResponseSchema,
@@ -159,8 +160,8 @@ userRoutes.get(
 // Register user
 const registerSchema = z.object({
   username: z.string().min(3),
-  email: z.string().email(),
   password: z.string().min(6),
+  email: z.string().email().optional(),
   name: z.string().optional(),
   captchaToken: z.string().optional(),
 });
@@ -199,7 +200,20 @@ userRoutes.post(
   }),
   validator('json', registerSchema),
   async (c) => {
-    const { username, email, password, name } = c.req.valid('json');
+    const { username, email, password, name, captchaToken } = c.req.valid('json');
+
+    // Verify reCAPTCHA if enabled
+    if (recaptchaService.isEnabled()) {
+      if (!captchaToken) {
+        return c.json({ error: 'reCAPTCHA token is required' }, 400);
+      }
+
+      const isValid = await recaptchaService.verify(captchaToken);
+      if (!isValid) {
+        return c.json({ error: 'reCAPTCHA verification failed' }, 400);
+      }
+    }
+
     const dataSource = getDataSource();
     const userRepo = dataSource.getRepository(User);
 
@@ -220,17 +234,19 @@ userRoutes.post(
       password: hashedPassword,
       name: name || username,
       enabled: true,
-      approved: false, // Will require approval based on config
+      approved: !config.userApprovalRequired, // Approved immediately if approval not required
     });
 
     await userRepo.save(user);
 
     return c.json({
-      message: 'User registered successfully',
+      message: config.userApprovalRequired
+        ? 'User registered successfully. Awaiting admin approval.'
+        : 'User registered successfully',
       userId: user.id,
       username: user.username,
       name: user.name,
-      requiresApproval: true,
+      requiresApproval: config.userApprovalRequired,
     });
   }
 );

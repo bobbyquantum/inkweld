@@ -46,6 +46,12 @@ export const config = {
     callbackUrl:
       process.env.GITHUB_CALLBACK_URL || 'http://localhost:8333/api/auth/github/callback',
   },
+
+  // OpenAI
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY || '',
+    enabled: !!process.env.OPENAI_API_KEY,
+  },
 } as const;
 
 export type Config = typeof config;

@@ -1,96 +1,21 @@
 import { Hono } from 'hono';
 import { describeRoute, resolver, validator } from 'hono-openapi';
-import { getDataSource } from '../config/database';
-import { User } from '../entities/user.entity';
-import { config } from '../config/env';
-import { requireAuth } from '../middleware/auth';
 import type { AppContext } from '../types/context.js';
+import { authService } from '../services/auth.service.js';
+import { userService } from '../services/user.service.js';
+import { config } from '../config/env.js';
 import {
-  RegisterRequestSchema,
-  RegisterResponseSchema,
   LoginRequestSchema,
   LoginResponseSchema,
   OAuthProvidersResponseSchema,
-} from '../schemas/auth.schemas';
-import { ErrorResponseSchema, MessageResponseSchema, UserSchema } from '../schemas/common.schemas';
+} from '../schemas/auth.schemas.js';
+import {
+  ErrorResponseSchema,
+  MessageResponseSchema,
+  UserSchema,
+} from '../schemas/common.schemas.js';
 
 const authRoutes = new Hono<AppContext>();
-
-// Register endpoint
-authRoutes.post(
-  '/register',
-  describeRoute({
-    description: 'Register a new user account',
-    tags: ['Authentication'],
-    responses: {
-      201: {
-        description: 'User registered successfully',
-        content: {
-          'application/json': {
-            schema: resolver(RegisterResponseSchema),
-          },
-        },
-      },
-      400: {
-        description: 'Invalid input or user already exists',
-        content: {
-          'application/json': {
-            schema: resolver(ErrorResponseSchema),
-          },
-        },
-      },
-    },
-  }),
-  validator('json', RegisterRequestSchema),
-  async (c) => {
-    const { username, email, password } = c.req.valid('json');
-    const dataSource = getDataSource();
-    const userRepo = dataSource.getRepository(User);
-
-    // Check if username already exists
-    const existingUser = await userRepo.findOne({ where: { username } });
-    if (existingUser) {
-      return c.json({ error: 'Username already taken' }, 400);
-    }
-
-    // Check if email already exists
-    const existingEmail = await userRepo.findOne({ where: { email } });
-    if (existingEmail) {
-      return c.json({ error: 'Email already registered' }, 400);
-    }
-
-    // Hash password
-    const bcrypt = await import('bcryptjs');
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
-    const user = userRepo.create({
-      username,
-      email,
-      password: hashedPassword,
-      enabled: true,
-      approved: !config.userApprovalRequired, // Auto-approve if not required
-    });
-
-    await userRepo.save(user);
-
-    return c.json(
-      {
-        message: config.userApprovalRequired
-          ? 'Registration successful. Awaiting admin approval.'
-          : 'Registration successful. You can now log in.',
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          approved: user.approved,
-          enabled: user.enabled,
-        },
-      },
-      201
-    );
-  }
-);
 
 // Login endpoint
 authRoutes.post(
@@ -128,42 +53,26 @@ authRoutes.post(
   validator('json', LoginRequestSchema),
   async (c) => {
     const { username, password } = c.req.valid('json');
-    const dataSource = getDataSource();
-    const userRepo = dataSource.getRepository(User);
 
-    // Find user by username
-    const user = await userRepo.findOne({ where: { username } });
+    // Authenticate user
+    const user = await authService.authenticate(username, password);
 
-    if (!user || !user.password) {
+    if (!user) {
       return c.json({ error: 'Invalid credentials' }, 401);
     }
 
-    // Verify password (using bcrypt - will need to import)
-    const bcrypt = await import('bcryptjs');
-    const isValid = await bcrypt.compare(password, user.password);
-
-    if (!isValid) {
-      return c.json({ error: 'Invalid credentials' }, 401);
+    // Check if user can login
+    if (!userService.canLogin(user)) {
+      if (!user.enabled) {
+        return c.json({ error: 'Account is disabled' }, 403);
+      }
+      if (!user.approved) {
+        return c.json({ error: 'Account pending approval' }, 403);
+      }
     }
 
-    if (!user.enabled) {
-      return c.json({ error: 'Account is disabled' }, 403);
-    }
-
-    if (config.userApprovalRequired && !user.approved) {
-      return c.json({ error: 'Account pending approval' }, 403);
-    }
-
-    // Set session
-    const req = c.req.raw as any;
-    req.session.passport = {
-      user: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        enabled: user.enabled,
-      },
-    };
+    // Create session
+    await authService.createSession(c, user);
 
     return c.json({
       message: 'Login successful',
@@ -173,7 +82,6 @@ authRoutes.post(
         name: user.name,
         enabled: user.enabled,
       },
-      sessionId: req.session.id,
     });
   }
 );
@@ -182,7 +90,7 @@ authRoutes.post(
 authRoutes.post(
   '/logout',
   describeRoute({
-    description: 'Log out and destroy session',
+    description: 'Log out and end session',
     tags: ['Authentication'],
     responses: {
       200: {
@@ -196,16 +104,8 @@ authRoutes.post(
     },
   }),
   async (c) => {
-    const req = c.req.raw as any;
-
-    await new Promise<void>((resolve, reject) => {
-      req.session.destroy((err: any) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
-
-    return c.json({ message: 'Logout successful' });
+    authService.destroySession(c);
+    return c.json({ message: 'Logged out successfully' });
   }
 );
 
@@ -213,7 +113,7 @@ authRoutes.post(
 authRoutes.get(
   '/me',
   describeRoute({
-    description: 'Get currently authenticated user',
+    description: 'Get current authenticated user',
     tags: ['Authentication'],
     responses: {
       200: {
@@ -234,22 +134,32 @@ authRoutes.get(
       },
     },
   }),
-  requireAuth,
   async (c) => {
-    const user = c.get('user');
-    return c.json(user);
+    const user = await authService.getUserFromSession(c);
+    if (!user) {
+      return c.json({ error: 'Not authenticated' }, 401);
+    }
+
+    return c.json({
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      enabled: user.enabled,
+      approved: user.approved,
+    });
   }
 );
 
-// Get OAuth providers
+// List OAuth providers
 authRoutes.get(
   '/providers',
   describeRoute({
-    description: 'Get list of enabled OAuth providers',
+    description: 'List available OAuth providers',
     tags: ['Authentication'],
     responses: {
       200: {
-        description: 'List of enabled OAuth providers',
+        description: 'Available OAuth providers',
         content: {
           'application/json': {
             schema: resolver(OAuthProvidersResponseSchema),
@@ -258,53 +168,16 @@ authRoutes.get(
       },
     },
   }),
-  (c) => {
-    const providers: string[] = [];
-    if (config.github.enabled) {
-      providers.push('github');
-    }
-    return c.json(providers);
+  async (c) => {
+    return c.json({
+      providers: {
+        github: config.github.enabled,
+      },
+    });
   }
 );
 
-// GitHub OAuth routes (placeholder - will implement with passport)
-authRoutes.get(
-  '/authorization/github',
-  describeRoute({
-    description: 'Initiate GitHub OAuth flow (placeholder)',
-    tags: ['Authentication'],
-    responses: {
-      302: {
-        description: 'Redirect to GitHub OAuth callback',
-      },
-    },
-  }),
-  (c) => {
-    // Will be implemented with passport GitHub strategy
-    return c.redirect('/api/auth/code/github');
-  }
-);
-
-authRoutes.get(
-  '/code/github',
-  describeRoute({
-    description: 'GitHub OAuth callback handler (placeholder)',
-    tags: ['Authentication'],
-    responses: {
-      200: {
-        description: 'OAuth callback response',
-        content: {
-          'application/json': {
-            schema: resolver(MessageResponseSchema),
-          },
-        },
-      },
-    },
-  }),
-  (c) => {
-    // Will be implemented with passport GitHub strategy callback
-    return c.json({ message: 'GitHub OAuth callback' });
-  }
-);
+// GitHub OAuth endpoints will be added using @hono/oauth-providers
+// TODO: Implement GitHub OAuth with @hono/oauth-providers/github
 
 export default authRoutes;

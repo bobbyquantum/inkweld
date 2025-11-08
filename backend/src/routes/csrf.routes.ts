@@ -1,59 +1,43 @@
 import { Hono } from 'hono';
 import { describeRoute, resolver } from 'hono-openapi';
 import { z } from 'zod';
-import { generateCSRFToken } from '../middleware/csrf';
 
 const csrfRoutes = new Hono();
 
 // Schema definitions
-const CSRFTokenResponseSchema = z.object({
-  token: z.string().describe('CSRF token to include in state-changing requests'),
+const CSRFInfoResponseSchema = z.object({
+  message: z.string().describe('Information about CSRF protection'),
+  protection: z.string().describe('Type of CSRF protection in use'),
 });
 
-const ErrorResponseSchema = z.object({
-  error: z.string().describe('Error message'),
-});
-
-// Get CSRF token
+// CSRF info endpoint (for backward compatibility)
+// Note: Hono's built-in CSRF middleware handles protection automatically
+// via Origin and Sec-Fetch-Site headers. No token is needed.
 csrfRoutes.get(
   '/token',
   describeRoute({
     description:
-      'Returns a CSRF token for the current session. Required for state-changing operations.',
+      'Returns information about CSRF protection. Note: This API uses automatic CSRF protection via Origin headers, so no token is required.',
     tags: ['Security'],
     responses: {
       200: {
-        description: 'CSRF token retrieved successfully',
+        description: 'CSRF information retrieved successfully',
         content: {
           'application/json': {
-            schema: resolver(CSRFTokenResponseSchema),
-          },
-        },
-      },
-      401: {
-        description: 'No active session',
-        content: {
-          'application/json': {
-            schema: resolver(ErrorResponseSchema),
+            schema: resolver(CSRFInfoResponseSchema),
           },
         },
       },
     },
   }),
   (c) => {
-    const req = c.req.raw as any;
-    const session = req.session;
-
-    if (!session) {
-      return c.json({ error: 'No session' }, 401);
-    }
-
-    // Generate and store token in session
-    if (!session.csrfToken) {
-      session.csrfToken = generateCSRFToken();
-    }
-
-    return c.json({ token: session.csrfToken }, 200);
+    return c.json(
+      {
+        message: 'CSRF protection is enabled via Origin and Sec-Fetch-Site header validation',
+        protection: 'automatic',
+      },
+      200
+    );
   }
 );
 
