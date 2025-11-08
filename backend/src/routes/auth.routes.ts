@@ -1,56 +1,21 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { describeRoute, resolver, validator } from 'hono-openapi';
-import { z } from 'zod';
+import { describeRoute, resolver } from 'hono-openapi';
 import { getDataSource } from '../config/database';
 import { User } from '../entities/user.entity';
 import { config } from '../config/env';
 import { requireAuth } from '../middleware/auth';
 import type { AppContext } from '../types/context.js';
+import {
+  RegisterRequestSchema,
+  RegisterResponseSchema,
+  LoginRequestSchema,
+  LoginResponseSchema,
+  OAuthProvidersResponseSchema,
+} from '../schemas/auth.schemas';
+import { ErrorResponseSchema, MessageResponseSchema, UserSchema } from '../schemas/common.schemas';
 
 const authRoutes = new Hono<AppContext>();
-
-// Schemas
-const registerSchema = z.object({
-  username: z.string().min(3).describe('Username (minimum 3 characters)'),
-  email: z.string().email().describe('Email address'),
-  password: z.string().min(6).describe('Password (minimum 6 characters)'),
-});
-
-const loginSchema = z.object({
-  username: z.string().min(1).describe('Username'),
-  password: z.string().min(1).describe('Password'),
-});
-
-const userResponseSchema = z.object({
-  id: z.string().describe('User ID'),
-  username: z.string().describe('Username'),
-  name: z.string().nullable().optional().describe('Display name'),
-  email: z.string().optional().describe('Email address'),
-  approved: z.boolean().optional().describe('Whether user is approved'),
-  enabled: z.boolean().describe('Whether user is enabled'),
-});
-
-const registerResponseSchema = z.object({
-  message: z.string().describe('Success message'),
-  user: userResponseSchema,
-});
-
-const loginResponseSchema = z.object({
-  message: z.string().describe('Success message'),
-  user: userResponseSchema,
-  sessionId: z.string().describe('Session ID'),
-});
-
-const errorResponseSchema = z.object({
-  error: z.string().describe('Error message'),
-});
-
-const messageResponseSchema = z.object({
-  message: z.string().describe('Message'),
-});
-
-const providersResponseSchema = z.array(z.string()).describe('List of enabled OAuth providers');
 
 // Register endpoint
 authRoutes.post(
@@ -63,7 +28,7 @@ authRoutes.post(
         description: 'User registered successfully',
         content: {
           'application/json': {
-            schema: resolver(registerResponseSchema),
+            schema: resolver(RegisterResponseSchema),
           },
         },
       },
@@ -71,13 +36,13 @@ authRoutes.post(
         description: 'Invalid input or user already exists',
         content: {
           'application/json': {
-            schema: resolver(errorResponseSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
     },
   }),
-  zValidator('json', registerSchema),
+  zValidator('json', RegisterRequestSchema),
   async (c) => {
     const { username, email, password } = c.req.valid('json');
     const dataSource = getDataSource();
@@ -139,7 +104,7 @@ authRoutes.post(
         description: 'Login successful',
         content: {
           'application/json': {
-            schema: resolver(loginResponseSchema),
+            schema: resolver(LoginResponseSchema),
           },
         },
       },
@@ -147,7 +112,7 @@ authRoutes.post(
         description: 'Invalid credentials',
         content: {
           'application/json': {
-            schema: resolver(errorResponseSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -155,13 +120,13 @@ authRoutes.post(
         description: 'Account disabled or pending approval',
         content: {
           'application/json': {
-            schema: resolver(errorResponseSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
     },
   }),
-  zValidator('json', loginSchema),
+  zValidator('json', LoginRequestSchema),
   async (c) => {
     const { username, password } = c.req.valid('json');
     const dataSource = getDataSource();
@@ -225,7 +190,7 @@ authRoutes.post(
         description: 'Logout successful',
         content: {
           'application/json': {
-            schema: resolver(messageResponseSchema),
+            schema: resolver(MessageResponseSchema),
           },
         },
       },
@@ -256,7 +221,7 @@ authRoutes.get(
         description: 'Current user information',
         content: {
           'application/json': {
-            schema: resolver(userResponseSchema),
+            schema: resolver(UserSchema),
           },
         },
       },
@@ -264,7 +229,7 @@ authRoutes.get(
         description: 'Not authenticated',
         content: {
           'application/json': {
-            schema: resolver(errorResponseSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -288,7 +253,7 @@ authRoutes.get(
         description: 'List of enabled OAuth providers',
         content: {
           'application/json': {
-            schema: resolver(providersResponseSchema),
+            schema: resolver(OAuthProvidersResponseSchema),
           },
         },
       },
@@ -331,7 +296,7 @@ authRoutes.get(
         description: 'OAuth callback response',
         content: {
           'application/json': {
-            schema: resolver(messageResponseSchema),
+            schema: resolver(MessageResponseSchema),
           },
         },
       },

@@ -1,43 +1,20 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { describeRoute, resolver } from 'hono-openapi';
-import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
 import { getDataSource } from '../config/database';
 import { Project } from '../entities/project.entity';
 import { User } from '../entities/user.entity';
 import { HTTPException } from 'hono/http-exception';
+import {
+  ProjectSchema,
+  CreateProjectRequestSchema,
+  UpdateProjectRequestSchema,
+  ProjectsListResponseSchema,
+} from '../schemas/project.schemas';
+import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
 
 const projectRoutes = new Hono();
-
-// Validation schemas
-const createProjectSchema = z.object({
-  slug: z.string().min(1).max(100).describe('URL-friendly project identifier'),
-  title: z.string().min(1).max(255).describe('Project title'),
-  description: z.string().max(1000).optional().describe('Project description'),
-});
-
-const updateProjectSchema = z.object({
-  title: z.string().min(1).max(255).optional().describe('Updated project title'),
-  description: z.string().max(1000).optional().describe('Updated project description'),
-});
-
-const projectSchema = z.object({
-  id: z.string().describe('Project ID'),
-  slug: z.string().describe('URL-friendly project identifier'),
-  title: z.string().describe('Project title'),
-  description: z.string().nullable().optional().describe('Project description'),
-  createdDate: z.string().describe('Creation date'),
-  updatedDate: z.string().describe('Last update date'),
-});
-
-const errorSchema = z.object({
-  message: z.string().describe('Error message'),
-});
-
-const messageSchema = z.object({
-  message: z.string().describe('Success message'),
-});
 
 // Get all projects for current user
 projectRoutes.get(
@@ -50,7 +27,7 @@ projectRoutes.get(
         description: 'List of projects',
         content: {
           'application/json': {
-            schema: resolver(z.array(projectSchema)),
+            schema: resolver(ProjectsListResponseSchema),
           },
         },
       },
@@ -58,7 +35,7 @@ projectRoutes.get(
         description: 'Not authenticated',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -90,7 +67,7 @@ projectRoutes.get(
         description: 'Project details',
         content: {
           'application/json': {
-            schema: resolver(projectSchema),
+            schema: resolver(ProjectSchema),
           },
         },
       },
@@ -98,7 +75,7 @@ projectRoutes.get(
         description: 'Not authenticated',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -106,7 +83,7 @@ projectRoutes.get(
         description: 'Access denied',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -114,7 +91,7 @@ projectRoutes.get(
         description: 'Project not found',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -158,7 +135,7 @@ projectRoutes.post(
         description: 'Project created successfully',
         content: {
           'application/json': {
-            schema: resolver(projectSchema),
+            schema: resolver(ProjectSchema),
           },
         },
       },
@@ -166,7 +143,7 @@ projectRoutes.post(
         description: 'Invalid input or project slug already exists',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -174,14 +151,14 @@ projectRoutes.post(
         description: 'Not authenticated',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
     },
   }),
   requireAuth,
-  zValidator('json', createProjectSchema),
+  zValidator('json', CreateProjectRequestSchema),
   async (c) => {
     const { slug, title, description } = c.req.valid('json');
     const userId = c.get('user').id;
@@ -230,7 +207,7 @@ projectRoutes.put(
         description: 'Project updated successfully',
         content: {
           'application/json': {
-            schema: resolver(projectSchema),
+            schema: resolver(ProjectSchema),
           },
         },
       },
@@ -238,7 +215,7 @@ projectRoutes.put(
         description: 'Invalid input',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -246,7 +223,7 @@ projectRoutes.put(
         description: 'Not authenticated',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -254,7 +231,7 @@ projectRoutes.put(
         description: 'Access denied',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -262,14 +239,14 @@ projectRoutes.put(
         description: 'Project not found',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
     },
   }),
   requireAuth,
-  zValidator('json', updateProjectSchema),
+  zValidator('json', UpdateProjectRequestSchema),
   async (c) => {
     const username = c.req.param('username');
     const slug = c.req.param('slug');
@@ -314,7 +291,7 @@ projectRoutes.delete(
         description: 'Project deleted successfully',
         content: {
           'application/json': {
-            schema: resolver(messageSchema),
+            schema: resolver(MessageResponseSchema),
           },
         },
       },
@@ -322,7 +299,7 @@ projectRoutes.delete(
         description: 'Not authenticated',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -330,7 +307,7 @@ projectRoutes.delete(
         description: 'Access denied',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -338,7 +315,7 @@ projectRoutes.delete(
         description: 'Project not found',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },

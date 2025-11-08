@@ -7,28 +7,15 @@ import { getDataSource } from '../config/database';
 import { User } from '../entities/user.entity';
 import { fileStorageService } from '../services/file-storage.service';
 import { imageService } from '../services/image.service';
+import {
+  UserSchema,
+  PaginatedUsersResponseSchema,
+  UsernameAvailabilityResponseSchema,
+} from '../schemas/user.schemas';
+import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
+import { RegisterRequestSchema, RegisterResponseSchema } from '../schemas/auth.schemas';
 
 const userRoutes = new Hono();
-
-// Schemas
-const userSchema = z.object({
-  id: z.string().describe('User ID'),
-  username: z.string().describe('Username'),
-  name: z.string().nullable().optional().describe('Display name'),
-  enabled: z.boolean().describe('Whether user is enabled'),
-});
-
-const paginatedUsersSchema = z.object({
-  users: z.array(userSchema).describe('List of users'),
-  total: z.number().describe('Total number of users'),
-  page: z.number().describe('Current page number'),
-  pageSize: z.number().describe('Number of items per page'),
-  totalPages: z.number().describe('Total number of pages'),
-});
-
-const errorSchema = z.object({
-  error: z.string().describe('Error message'),
-});
 
 // Get current user
 userRoutes.get(
@@ -41,7 +28,7 @@ userRoutes.get(
         description: 'User information',
         content: {
           'application/json': {
-            schema: resolver(userSchema),
+            schema: resolver(UserSchema),
           },
         },
       },
@@ -49,7 +36,7 @@ userRoutes.get(
         description: 'Not authenticated',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -57,7 +44,7 @@ userRoutes.get(
         description: 'User not found',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -95,7 +82,7 @@ userRoutes.get(
         description: 'Paginated list of users',
         content: {
           'application/json': {
-            schema: resolver(paginatedUsersSchema),
+            schema: resolver(PaginatedUsersResponseSchema),
           },
         },
       },
@@ -135,7 +122,7 @@ userRoutes.get(
         description: 'Search results',
         content: {
           'application/json': {
-            schema: resolver(paginatedUsersSchema),
+            schema: resolver(PaginatedUsersResponseSchema),
           },
         },
       },
@@ -204,7 +191,7 @@ userRoutes.post(
         description: 'Username already exists or validation error',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -272,7 +259,7 @@ userRoutes.get(
         description: 'Invalid username',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -319,7 +306,7 @@ userRoutes.get(
         description: 'Avatar not found',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -368,7 +355,7 @@ userRoutes.post(
         description: 'Invalid file or no file uploaded',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -376,7 +363,7 @@ userRoutes.post(
         description: 'Not authenticated',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -384,7 +371,7 @@ userRoutes.post(
         description: 'User not found',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -451,7 +438,7 @@ userRoutes.post(
         description: 'Not authenticated',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
@@ -459,7 +446,7 @@ userRoutes.post(
         description: 'User or avatar not found',
         content: {
           'application/json': {
-            schema: resolver(errorSchema),
+            schema: resolver(ErrorResponseSchema),
           },
         },
       },
