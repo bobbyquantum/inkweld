@@ -41,7 +41,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
-import { UserAPIService, UserRegisterDto } from '@inkweld/index';
+import { UsersService, UserRegisterDto } from '@inkweld/index';
 import { RecaptchaService } from '@services/recaptcha.service';
 import { SystemConfigService } from '@services/system-config.service';
 import { UserService } from '@services/user.service';
@@ -69,11 +69,11 @@ import { firstValueFrom, Subject, takeUntil } from 'rxjs';
   styleUrl: './register.component.scss',
 })
 export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
-  private userService = inject(UserAPIService);
+  private userService = inject(UsersService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private xsrfService = inject(XsrfService);
-  private authService = inject(UserService);
+  private AuthenticationService = inject(UserService);
   private fb = inject(FormBuilder);
   private systemConfigService = inject(SystemConfigService);
   private recaptchaService = inject(RecaptchaService);
@@ -328,7 +328,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
 
     try {
       const response = await firstValueFrom(
-        this.userService.userControllerCheckUsernameAvailability(username)
+        this.userService.getApiUserCheckUsername(username)
       );
 
       if (response.available) {
@@ -461,7 +461,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       };
 
       const response = await firstValueFrom(
-        this.userService.userControllerRegister(
+        this.userService.postApiUserRegister(
           this.xsrfService.getXsrfToken(),
           registerRequest
         )
@@ -470,7 +470,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       // Check if approval is required
       if (response.requiresApproval) {
         // Clear any cached user to prevent automatic authentication attempts
-        await this.authService.clearCurrentUser();
+        await this.AuthenticationService.clearCurrentUser();
 
         // Redirect to dedicated pending approval page
         void this.router.navigate(['/approval-pending'], {
@@ -482,7 +482,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
         });
       } else {
         // Automatically log in after successful registration
-        await this.authService.loadCurrentUser();
+        await this.AuthenticationService.loadCurrentUser();
 
         this.snackBar.open('Registration successful!', 'Close', {
           duration: 3000,
@@ -641,3 +641,9 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       });
   }
 }
+
+
+
+
+
+

@@ -112,10 +112,10 @@ lintRoutes.post(
     },
   }),
   requireAuth,
+  validator('json', lintRequestSchema),
   async (c) => {
     try {
-      const body = await c.req.json();
-      const validatedBody = lintRequestSchema.parse(body);
+      const validatedBody = c.req.valid('json');
 
       if (!openAILintService.isAiEnabled()) {
         return c.json(
@@ -133,12 +133,13 @@ lintRoutes.post(
       );
 
       return c.json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error in lint endpoint:', error);
-      if (error.name === 'ZodError') {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (error instanceof Error && error.name === 'ZodError') {
         return c.json({ error: 'Invalid request body' }, 400);
       }
-      return c.json({ error: error.message || 'Failed to process linting request' }, 500);
+      return c.json({ error: errorMessage || 'Failed to process linting request' }, 500);
     }
   }
 );

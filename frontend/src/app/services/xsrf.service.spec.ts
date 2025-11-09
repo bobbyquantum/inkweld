@@ -2,7 +2,7 @@ import { DOCUMENT } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { CSRFService } from '@inkweld/index';
+import { SecurityService } from '@inkweld/index';
 import { of } from 'rxjs';
 import { Mock, vi } from 'vitest';
 
@@ -26,7 +26,7 @@ describe('XsrfService', () => {
           provide: DOCUMENT,
           useValue: { cookie: '' },
         },
-        { provide: CSRFService, useValue: mockCsrfService },
+        { provide: SecurityService, useValue: mockCsrfService },
         { provide: HttpClient, useValue: {} },
       ],
     });
@@ -38,7 +38,7 @@ describe('XsrfService', () => {
   });
 
   describe('refreshToken()', () => {
-    it('should fetch token using CSRFService', async () => {
+    it('should fetch token using SecurityService', async () => {
       mockCsrfService.csrfControllerGetCsrfToken.mockReturnValue(
         of({ token: 'new-token' })
       );
@@ -71,3 +71,4 @@ describe('XsrfService', () => {
     });
   });
 });
+

@@ -1,6 +1,6 @@
 import { computed, inject, Injectable } from '@angular/core';
 
-import { ProjectDto } from '../../api-client/model/project-dto';
+import { Project } from '../../api-client/model/project-dto';
 import { OfflineProjectService } from './offline-project.service';
 import { ProjectService } from './project.service';
 import { SetupService } from './setup.service';
@@ -57,7 +57,7 @@ export class UnifiedProjectService {
     }
   }
 
-  async getProject(username: string, slug: string): Promise<ProjectDto | null> {
+  async getProject(username: string, slug: string): Promise<Project | null> {
     const mode = this.setupService.getMode();
     if (mode === 'offline') {
       return this.offlineProjectService.getProject(username, slug);
@@ -67,13 +67,13 @@ export class UnifiedProjectService {
     return null;
   }
 
-  async createProject(projectData: Partial<ProjectDto>): Promise<ProjectDto> {
+  async createProject(projectData: Partial<Project>): Promise<Project> {
     const mode = this.setupService.getMode();
     if (mode === 'offline') {
       return this.offlineProjectService.createProject(projectData);
     } else if (mode === 'server') {
       // For server mode, we need to provide required fields
-      const fullProjectData: ProjectDto = {
+      const fullProjectData: Project = {
         title: projectData.title || 'Untitled Project',
         description: projectData.description || '',
         slug: projectData.slug || 'untitled-project',
@@ -90,8 +90,8 @@ export class UnifiedProjectService {
   async updateProject(
     username: string,
     slug: string,
-    updates: Partial<ProjectDto>
-  ): Promise<ProjectDto> {
+    updates: Partial<Project>
+  ): Promise<Project> {
     const mode = this.setupService.getMode();
     if (mode === 'offline') {
       return this.offlineProjectService.updateProject(username, slug, updates);
@@ -101,7 +101,7 @@ export class UnifiedProjectService {
         username,
         slug
       );
-      const fullProjectData: ProjectDto = {
+      const fullProjectData: Project = {
         ...existing,
         ...updates,
         updatedDate: new Date().toISOString(),
@@ -120,7 +120,7 @@ export class UnifiedProjectService {
     }
   }
 
-  getProjectsByUsername(username: string): ProjectDto[] {
+  getProjectsByUsername(username: string): Project[] {
     const mode = this.setupService.getMode();
     if (mode === 'offline') {
       return this.offlineProjectService.getProjectsByUsername(username);
@@ -130,7 +130,7 @@ export class UnifiedProjectService {
     return [];
   }
 
-  importProjects(importedProjects: ProjectDto[]): void {
+  importProjects(importedProjects: Project[]): void {
     const mode = this.setupService.getMode();
     if (mode === 'offline') {
       this.offlineProjectService.importProjects(importedProjects);
@@ -144,3 +144,7 @@ export class UnifiedProjectService {
     return this.setupService.getMode();
   }
 }
+
+
+
+

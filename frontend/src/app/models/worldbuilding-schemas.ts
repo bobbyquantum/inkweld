@@ -1,10 +1,10 @@
-import { ProjectElementDto } from '../../api-client';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../api-client';
 
 // Base interface for all worldbuilding elements
 export interface WorldbuildingBase {
   id: string;
   name: string;
-  type: ProjectElementDto.TypeEnum;
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum;
   summary?: string;
   notes?: string;
   tags?: string[];
@@ -14,7 +14,7 @@ export interface WorldbuildingBase {
 
 // Character schema
 export interface CharacterSchema extends WorldbuildingBase {
-  type: typeof ProjectElementDto.TypeEnum.Character;
+  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Character;
 
   // Basic Information
   fullName?: string;
@@ -69,7 +69,7 @@ export interface CharacterSchema extends WorldbuildingBase {
 
 // Location schema
 export interface LocationSchema extends WorldbuildingBase {
-  type: typeof ProjectElementDto.TypeEnum.Location;
+  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Location;
 
   // Basic Information
   locationType?: string; // city, town, building, region, etc.
@@ -110,7 +110,7 @@ export interface LocationSchema extends WorldbuildingBase {
 
 // Item schema (Worldbuilding Item)
 export interface WBItemSchema extends WorldbuildingBase {
-  type: typeof ProjectElementDto.TypeEnum.WbItem;
+  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.WbItem;
 
   // Basic Information
   itemType?: string; // weapon, artifact, tool, etc.
@@ -143,7 +143,7 @@ export interface WBItemSchema extends WorldbuildingBase {
 
 // Map schema
 export interface MapSchema extends WorldbuildingBase {
-  type: typeof ProjectElementDto.TypeEnum.Map;
+  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Map;
 
   // Map Information
   mapType?: string; // world, region, city, building, etc.
@@ -177,7 +177,7 @@ export interface MapSchema extends WorldbuildingBase {
 
 // Relationship schema
 export interface RelationshipSchema extends WorldbuildingBase {
-  type: typeof ProjectElementDto.TypeEnum.Relationship;
+  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Relationship;
 
   // Relationship Details
   relationshipType?: string; // family, romantic, friendship, rivalry, etc.
@@ -208,7 +208,7 @@ export interface RelationshipSchema extends WorldbuildingBase {
 
 // Philosophy schema
 export interface PhilosophySchema extends WorldbuildingBase {
-  type: typeof ProjectElementDto.TypeEnum.Philosophy;
+  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Philosophy;
 
   // Core Concepts
   coreBeliefs?: string[];
@@ -244,7 +244,7 @@ export interface PhilosophySchema extends WorldbuildingBase {
 
 // Culture schema
 export interface CultureSchema extends WorldbuildingBase {
-  type: typeof ProjectElementDto.TypeEnum.Culture;
+  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Culture;
 
   // Identity
   ethnicity?: string;
@@ -290,7 +290,7 @@ export interface CultureSchema extends WorldbuildingBase {
 
 // Species schema
 export interface SpeciesSchema extends WorldbuildingBase {
-  type: typeof ProjectElementDto.TypeEnum.Species;
+  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Species;
 
   // Biology
   biology?: {
@@ -339,7 +339,7 @@ export interface SpeciesSchema extends WorldbuildingBase {
 
 // Systems schema (Magic systems, Technology systems, etc.)
 export interface SystemsSchema extends WorldbuildingBase {
-  type: typeof ProjectElementDto.TypeEnum.Systems;
+  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Systems;
 
   // System Type
   systemType?: string; // magic, technology, political, economic, etc.
@@ -404,26 +404,26 @@ export type WorldbuildingSchema =
 
 // Helper to get the schema type from element type
 export function getSchemaFromType(
-  type: ProjectElementDto.TypeEnum
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum
 ): string | null {
   switch (type) {
-    case ProjectElementDto.TypeEnum.Character:
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Character:
       return 'character';
-    case ProjectElementDto.TypeEnum.Location:
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Location:
       return 'location';
-    case ProjectElementDto.TypeEnum.WbItem:
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.WbItem:
       return 'wbItem';
-    case ProjectElementDto.TypeEnum.Map:
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Map:
       return 'map';
-    case ProjectElementDto.TypeEnum.Relationship:
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Relationship:
       return 'relationship';
-    case ProjectElementDto.TypeEnum.Philosophy:
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Philosophy:
       return 'philosophy';
-    case ProjectElementDto.TypeEnum.Culture:
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Culture:
       return 'culture';
-    case ProjectElementDto.TypeEnum.Species:
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Species:
       return 'species';
-    case ProjectElementDto.TypeEnum.Systems:
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Systems:
       return 'systems';
     default:
       return null;
@@ -431,7 +431,7 @@ export function getSchemaFromType(
 }
 
 // Helper to check if an element type is a worldbuilding type
-export function isWorldbuildingType(type: ProjectElementDto.TypeEnum): boolean {
+export function isWorldbuildingType(type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum): boolean {
   // Custom templates start with 'CUSTOM_'
   if (typeof type === 'string' && type.startsWith('CUSTOM_')) {
     return true;
@@ -439,3 +439,7 @@ export function isWorldbuildingType(type: ProjectElementDto.TypeEnum): boolean {
   // Check built-in worldbuilding types
   return getSchemaFromType(type) !== null;
 }
+
+
+
+

@@ -14,7 +14,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import { ProjectDto } from '@inkweld/index';
+import { Project } from '@inkweld/index';
 
 import { UnifiedProjectService } from '../../services/unified-project.service';
 import { UnifiedUserService } from '../../services/unified-user.service';
@@ -105,7 +105,7 @@ export class CreateProjectComponent {
 
     this.isSaving = true;
     try {
-      const projectData = this.projectForm.value as Partial<ProjectDto>;
+      const projectData = this.projectForm.value as Partial<Project>;
       const response =
         await this.unifiedProjectService.createProject(projectData);
 
@@ -129,3 +129,7 @@ export class CreateProjectComponent {
     }
   }
 }
+
+
+
+

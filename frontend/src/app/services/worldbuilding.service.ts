@@ -3,7 +3,7 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import { ProjectElementDto } from '../../api-client';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../api-client';
 import { ElementTypeSchema } from '../models/schema-types';
 import {
   isWorldbuildingType,
@@ -241,7 +241,7 @@ export class WorldbuildingService {
    * Uses the project's schema library to get the template
    */
   async initializeWorldbuildingElement(
-    element: ProjectElementDto,
+    element: GetApiV1ProjectsUsernameSlugElements200ResponseInner,
     username?: string,
     slug?: string
   ): Promise<void> {
@@ -361,31 +361,31 @@ export class WorldbuildingService {
 
     // Initialize type-specific default fields (old hard-coded approach)
     switch (elementType) {
-      case ProjectElementDto.TypeEnum.Character:
+      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Character:
         this.initializeCharacterDefaults(dataMap);
         break;
-      case ProjectElementDto.TypeEnum.Location:
+      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Location:
         this.initializeLocationDefaults(dataMap);
         break;
-      case ProjectElementDto.TypeEnum.WbItem:
+      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.WbItem:
         this.initializeItemDefaults(dataMap);
         break;
-      case ProjectElementDto.TypeEnum.Map:
+      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Map:
         this.initializeMapDefaults(dataMap);
         break;
-      case ProjectElementDto.TypeEnum.Relationship:
+      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Relationship:
         this.initializeRelationshipDefaults(dataMap);
         break;
-      case ProjectElementDto.TypeEnum.Philosophy:
+      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Philosophy:
         this.initializePhilosophyDefaults(dataMap);
         break;
-      case ProjectElementDto.TypeEnum.Culture:
+      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Culture:
         this.initializeCultureDefaults(dataMap);
         break;
-      case ProjectElementDto.TypeEnum.Species:
+      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Species:
         this.initializeSpeciesDefaults(dataMap);
         break;
-      case ProjectElementDto.TypeEnum.Systems:
+      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Systems:
         this.initializeSystemsDefaults(dataMap);
         break;
     }
@@ -581,8 +581,8 @@ export class WorldbuildingService {
    */
   getElementsOfType(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _type: ProjectElementDto.TypeEnum
-  ): Promise<ProjectElementDto[]> {
+    _type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum
+  ): Promise<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]> {
     // This would typically query from the project state service
     // For now, returning empty array as placeholder
     return Promise.resolve([]);
@@ -595,8 +595,8 @@ export class WorldbuildingService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _query: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _types?: ProjectElementDto.TypeEnum[]
-  ): Promise<ProjectElementDto[]> {
+    _types?: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum[]
+  ): Promise<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]> {
     // This would typically perform a search across elements
     // For now, returning empty array as placeholder
     return Promise.resolve([]);
@@ -1002,17 +1002,17 @@ export class WorldbuildingService {
   ): Promise<string> {
     // Default icons for built-in types
     const builtInIcons: Record<string, string> = {
-      [ProjectElementDto.TypeEnum.Character]: 'person',
-      [ProjectElementDto.TypeEnum.Location]: 'place',
-      [ProjectElementDto.TypeEnum.WbItem]: 'category',
-      [ProjectElementDto.TypeEnum.Map]: 'map',
-      [ProjectElementDto.TypeEnum.Relationship]: 'diversity_1',
-      [ProjectElementDto.TypeEnum.Philosophy]: 'auto_stories',
-      [ProjectElementDto.TypeEnum.Culture]: 'groups',
-      [ProjectElementDto.TypeEnum.Species]: 'pets',
-      [ProjectElementDto.TypeEnum.Systems]: 'settings',
-      [ProjectElementDto.TypeEnum.Item]: 'description',
-      [ProjectElementDto.TypeEnum.Folder]: 'folder',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Character]: 'person',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Location]: 'place',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.WbItem]: 'category',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Map]: 'map',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Relationship]: 'diversity_1',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Philosophy]: 'auto_stories',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Culture]: 'groups',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Species]: 'pets',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Systems]: 'settings',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item]: 'description',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Folder]: 'folder',
     };
 
     // Check if it's a built-in type
@@ -1045,3 +1045,7 @@ export class WorldbuildingService {
     return 'description';
   }
 }
+
+
+
+

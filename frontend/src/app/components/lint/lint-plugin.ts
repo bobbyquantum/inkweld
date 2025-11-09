@@ -7,7 +7,7 @@ import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 import { debounceTime, Subject, Subscription } from 'rxjs';
 
 import { CorrectionDto } from '../../../api-client/model/correction-dto';
-import { LintResponseDto } from '../../../api-client/model/lint-response-dto';
+import { PostLint200Response } from '../../../api-client/model/lint-response-dto';
 import { ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintApiService } from './lint-api.service';
 import { LintStorageService } from './lint-storage.service';
@@ -180,7 +180,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
   // Create decorations from lint results
   function createDecorations(
     doc: Node,
-    lintResult: LintResponseDto
+    lintResult: PostLint200Response
   ): { decos: DecorationSet; suggestions: ExtendedCorrectionDto[] } {
     if (
       !lintResult ||
@@ -305,7 +305,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
           // Check for proper metadata structure with type safety
           interface DecorationMeta {
             type: string;
-            res?: LintResponseDto;
+            res?: PostLint200Response;
             reqId: number;
           }
 
@@ -417,3 +417,7 @@ export function findSuggestionAtPos(
   }
   return null;
 }
+
+
+
+

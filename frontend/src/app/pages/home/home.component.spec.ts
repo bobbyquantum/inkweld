@@ -10,7 +10,7 @@ import {
   provideRouter,
   Router,
 } from '@angular/router';
-import { ProjectDto, UserDto } from '@inkweld/index';
+import { Project, UserDto } from '@inkweld/index';
 import { UnifiedProjectService } from '@services/unified-project.service';
 import { UnifiedUserService } from '@services/unified-user.service';
 import { ThemeService } from '@themes/theme.service';
@@ -33,7 +33,7 @@ describe('HomeComponent', () => {
   let router: MockedObject<Router>;
 
   const mockLoadingSignal = signal(false);
-  const mockProjectsSignal = signal<ProjectDto[]>([]);
+  const mockProjectsSignal = signal<Project[]>([]);
 
   beforeEach(async () => {
     themeService = {
@@ -122,7 +122,7 @@ describe('HomeComponent', () => {
       name: 'Test Project',
       slug: 'test-project',
       username: 'testuser',
-    } as unknown as ProjectDto;
+    } as unknown as Project;
     component.selectProject(project);
     expect(router.navigate).toHaveBeenCalledWith(['testuser', 'test-project'], {
       onSameUrlNavigation: 'reload',

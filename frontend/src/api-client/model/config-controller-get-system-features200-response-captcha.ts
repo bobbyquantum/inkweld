@@ -17,3 +17,4 @@ export interface ConfigControllerGetSystemFeatures200ResponseCaptcha {
     siteKey?: string;
 }
 
+

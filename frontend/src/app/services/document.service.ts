@@ -15,7 +15,7 @@ import { yCursorPlugin, ySyncPlugin, yUndoPlugin } from 'y-prosemirror';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import { DocumentAPIService } from '../../api-client/api/document-api.service';
+import { DocumentsService } from '../../api-client/api/documents.service';
 import { LintApiService } from '../components/lint/lint-api.service';
 import { createLintPlugin } from '../components/lint/lint-plugin';
 import { DocumentSyncState } from '../models/document-sync-state';
@@ -49,7 +49,7 @@ interface DocumentConnection {
   providedIn: 'root',
 })
 export class DocumentService {
-  private documentAPIService = inject(DocumentAPIService);
+  private documentsService = inject(DocumentsService);
   private setupService = inject(SetupService);
   private ngZone = inject(NgZone);
   private systemConfigService = inject(SystemConfigService);
@@ -226,8 +226,8 @@ export class DocumentService {
         docName = parts[2];
       }
     }
-    this.documentAPIService
-      .documentControllerRenderHtml(username, projectSlug, docName)
+    this.documentsService
+      .getApiProjectsUsernameSlugDocsDocIdHtml(username, projectSlug, docName)
       .subscribe({
         next: (response: string) => {
           const blob = new Blob([response], { type: 'text/html' });

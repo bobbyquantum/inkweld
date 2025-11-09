@@ -29,7 +29,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { Router } from '@angular/router';
-import { ProjectElementDto } from '@inkweld/index';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
 
@@ -130,7 +130,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
   private recentTouchNodeId: string | null = null;
   private touchTimeout: number | null = null;
 
-  @Output() documentOpened = new EventEmitter<ProjectElementDto>();
+  @Output() documentOpened = new EventEmitter<GetApiV1ProjectsUsernameSlugElements200ResponseInner>();
 
   constructor() {
     this.dataSource = new ArrayDataSource<ProjectElement>([]);
@@ -480,8 +480,8 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
    * @param node The node to open.
    */
   public onOpenDocument(node: ProjectElement) {
-    // Convert ProjectElement back to ProjectElementDto
-    const dto: ProjectElementDto = {
+    // Convert ProjectElement back to GetApiV1ProjectsUsernameSlugElements200ResponseInner
+    const dto: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: node.id ?? '',
       name: node.name,
       type: node.type,
@@ -515,3 +515,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     }
   }
 }
+
+
+
+

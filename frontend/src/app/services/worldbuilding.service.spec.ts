@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
-import { ProjectElementDto } from '../../api-client';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../api-client';
 import { ElementTypeSchema } from '../models/schema-types';
 import { SetupService } from './setup.service';
 import { WorldbuildingService } from './worldbuilding.service';
@@ -509,9 +509,9 @@ describe('WorldbuildingService', () => {
     it('should initialize element with schema and default values', async () => {
       const element = {
         id: 'test-element-123',
-        type: 'CHARACTER' as ProjectElementDto.TypeEnum,
+        type: 'CHARACTER' as GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum,
         name: 'Test Character',
-      } as ProjectElementDto;
+      } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
       const username = 'testuser';
       const slug = 'test-project';
 
@@ -547,9 +547,9 @@ describe('WorldbuildingService', () => {
     it('should skip initialization for non-worldbuilding types', async () => {
       const element = {
         id: 'test-element-123',
-        type: 'ITEM' as ProjectElementDto.TypeEnum, // ITEM is not a worldbuilding type
+        type: 'ITEM' as GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum, // ITEM is not a worldbuilding type
         name: 'Test Document',
-      } as ProjectElementDto;
+      } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
 
       const setupSpy = vi.spyOn(service, 'setupCollaboration');
 
@@ -561,9 +561,9 @@ describe('WorldbuildingService', () => {
     it('should skip initialization if already initialized', async () => {
       const element = {
         id: 'test-element-123',
-        type: 'CHARACTER' as ProjectElementDto.TypeEnum,
+        type: 'CHARACTER' as GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum,
         name: 'Test Character',
-      } as ProjectElementDto;
+      } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
 
       // Create mock Yjs document and connection with type already set
       const mockYdoc = new Y.Doc();

@@ -15,7 +15,7 @@ import {
   Router,
   RouterModule,
 } from '@angular/router';
-import { ProjectDto, ProjectElementDto } from '@inkweld/index';
+import { Project, GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 import { of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
@@ -44,9 +44,9 @@ describe('TabInterfaceComponent', () => {
     username: 'testuser',
     slug: 'test-project',
     title: 'Test Project',
-  } as ProjectDto;
+  } as Project;
 
-  const mockDocuments: ProjectElementDto[] = [
+  const mockDocuments: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
     {
       id: 'doc1',
       name: 'Document 1',
@@ -93,7 +93,7 @@ describe('TabInterfaceComponent', () => {
   const setupMockServices = () => {
     // Initialize signals
     const projectSignal = signal(mockProject);
-    const openDocumentsSignal = signal<ProjectElementDto[]>([...mockDocuments]);
+    const openDocumentsSignal = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>([...mockDocuments]);
     const openTabsSignal = signal<AppTab[]>([...mockTabs]);
     const selectedTabIndexSignal = signal<number>(0);
     const isLoadingSignal = signal<boolean>(false);

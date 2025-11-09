@@ -9,7 +9,7 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 
-import { ProjectElementDto } from '../../../../../api-client';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../../../../api-client';
 import { WorldbuildingEditorComponent } from '../../../../components/worldbuilding/worldbuilding-editor/worldbuilding-editor.component';
 import { ProjectStateService } from '../../../../services/project-state.service';
 
@@ -26,7 +26,7 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   private paramSubscription: Subscription | null = null;
 
   protected elementId = signal<string>('');
-  protected elementType = signal<ProjectElementDto.TypeEnum | null>(null);
+  protected elementType = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum | null>(null);
   protected username = signal<string | undefined>(undefined);
   protected slug = signal<string | undefined>(undefined);
 
@@ -91,8 +91,12 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   /**
    * Find element in project tree (flat array)
    */
-  private findElement(elementId: string): ProjectElementDto | null {
+  private findElement(elementId: string): GetApiV1ProjectsUsernameSlugElements200ResponseInner | null {
     const elements = this.projectState.elements();
     return elements.find(el => el.id === elementId) || null;
   }
 }
+
+
+
+

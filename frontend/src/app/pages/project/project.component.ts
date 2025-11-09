@@ -28,7 +28,7 @@ import {
 } from '@angular/router';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import { ProjectDto, ProjectElementDto } from '@inkweld/index';
+import { Project, GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
 import { ProjectStateService } from '@services/project-state.service';
@@ -121,7 +121,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     effect(() => {
-      const project = this.projectState.project() as ProjectDto | null;
+      const project = this.projectState.project() as Project | null;
       if (project) {
         this.title.setTitle(`${project.title}`);
       }
@@ -279,7 +279,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     localStorage.setItem('splitSize', this.splitSize.toString());
   }
 
-  onDocumentOpened = (element: ProjectElementDto) => {
+  onDocumentOpened = (element: GetApiV1ProjectsUsernameSlugElements200ResponseInner) => {
     this.projectState.openDocument(element);
     if (this.isMobile()) {
       void this.sidenav.close();
@@ -516,3 +516,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 }
+
+
+
+

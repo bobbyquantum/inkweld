@@ -60,3 +60,7 @@ export const authGuard: CanActivateFn = async () => {
   // Fallback to setup if no valid mode
   return router.createUrlTree(['/setup']);
 };
+
+
+
+

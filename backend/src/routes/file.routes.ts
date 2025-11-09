@@ -15,6 +15,16 @@ const fileSchema = z.object({
   uploadDate: z.string().optional().describe('Upload timestamp'),
 });
 
+const uploadResponseSchema = z.object({
+  name: z.string().describe('Uploaded file name'),
+  size: z.number().describe('File size in bytes'),
+  uploadDate: z.string().describe('Upload timestamp'),
+});
+
+const deleteResponseSchema = z.object({
+  message: z.string().describe('Success message'),
+});
+
 const errorSchema = z.object({
   error: z.string().describe('Error message'),
 });
@@ -144,6 +154,140 @@ fileRoutes.get(
       });
     } catch {
       return c.json({ error: 'Failed to read file' }, 500);
+    }
+  }
+);
+
+// Upload file
+fileRoutes.post(
+  '/:username/:slug/files',
+  describeRoute({
+    description: 'Upload a file to the project',
+    tags: ['Files'],
+    responses: {
+      200: {
+        description: 'File uploaded successfully',
+        content: {
+          'application/json': {
+            schema: resolver(uploadResponseSchema),
+          },
+        },
+      },
+      401: {
+        description: 'Not authenticated',
+        content: {
+          'application/json': {
+            schema: resolver(errorSchema),
+          },
+        },
+      },
+      404: {
+        description: 'Project not found',
+        content: {
+          'application/json': {
+            schema: resolver(errorSchema),
+          },
+        },
+      },
+    },
+  }),
+  requireAuth,
+  async (c) => {
+    const db = getDb(c);
+    const username = c.req.param('username');
+    const slug = c.req.param('slug');
+
+    // Verify project exists
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
+
+    if (!project) {
+      return c.json({ error: 'Project not found' }, 404);
+    }
+
+    try {
+      const formData = await c.req.formData();
+      const file = formData.get('file') as File;
+
+      if (!file) {
+        return c.json({ error: 'No file provided' }, 400);
+      }
+
+      const buffer = await file.arrayBuffer();
+      const fileName = file.name;
+
+      await fileStorageService.writeProjectFile(username, slug, fileName, Buffer.from(buffer));
+
+      return c.json({
+        name: fileName,
+        size: buffer.byteLength,
+        uploadDate: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('File upload error:', error);
+      return c.json({ error: 'Failed to upload file' }, 500);
+    }
+  }
+);
+
+// Delete file
+fileRoutes.delete(
+  '/:username/:slug/files/:storedName',
+  describeRoute({
+    description: 'Delete a file from the project',
+    tags: ['Files'],
+    responses: {
+      200: {
+        description: 'File deleted successfully',
+        content: {
+          'application/json': {
+            schema: resolver(deleteResponseSchema),
+          },
+        },
+      },
+      401: {
+        description: 'Not authenticated',
+        content: {
+          'application/json': {
+            schema: resolver(errorSchema),
+          },
+        },
+      },
+      404: {
+        description: 'File or project not found',
+        content: {
+          'application/json': {
+            schema: resolver(errorSchema),
+          },
+        },
+      },
+    },
+  }),
+  requireAuth,
+  async (c) => {
+    const db = getDb(c);
+    const username = c.req.param('username');
+    const slug = c.req.param('slug');
+    const storedName = c.req.param('storedName');
+
+    // Verify project exists
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
+
+    if (!project) {
+      return c.json({ error: 'Project not found' }, 404);
+    }
+
+    try {
+      const fileExists = await fileStorageService.projectFileExists(username, slug, storedName);
+      if (!fileExists) {
+        return c.json({ error: 'File not found' }, 404);
+      }
+
+      await fileStorageService.deleteProjectFile(username, slug, storedName);
+
+      return c.json({ message: 'File deleted successfully' });
+    } catch (error) {
+      console.error('File delete error:', error);
+      return c.json({ error: 'Failed to delete file' }, 500);
     }
   }
 );

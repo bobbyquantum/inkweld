@@ -10,7 +10,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MockedObject, vi } from 'vitest';
 
-import { ProjectElementDto } from '../../../api-client/model/project-element-dto';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../../api-client/model/project-element-dto';
 import { NewElementDialogComponent } from './new-element-dialog.component';
 
 describe('NewElementDialogComponent', () => {
@@ -53,7 +53,7 @@ describe('NewElementDialogComponent', () => {
   it('should initialize form with default values', () => {
     expect(component.form.get('name')?.value).toBe('');
     expect(component.form.get('type')?.value).toBe(
-      ProjectElementDto.TypeEnum.Item
+      GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item
     );
   });
 
@@ -62,7 +62,7 @@ describe('NewElementDialogComponent', () => {
 
     component.form.patchValue({
       name: 'Test Element',
-      type: ProjectElementDto.TypeEnum.Item,
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item,
     });
 
     expect(component.form.valid).toBeTruthy();
@@ -76,7 +76,7 @@ describe('NewElementDialogComponent', () => {
   it('should close dialog with form value on create when valid', () => {
     const formValue = {
       name: 'Test Element',
-      type: ProjectElementDto.TypeEnum.Item,
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item,
     };
 
     component.form.patchValue(formValue);

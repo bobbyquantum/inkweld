@@ -6,7 +6,7 @@ import { EditorState, Plugin } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { MockedObject, vi } from 'vitest';
 
-import { LintResponseDto } from '../../../api-client/model/lint-response-dto';
+import { PostLint200Response } from '../../../api-client/model/lint-response-dto';
 import { LintApiService } from './lint-api.service';
 import { createLintPlugin, pluginKey } from './lint-plugin';
 
@@ -58,7 +58,7 @@ describe('LintPlugin', () => {
   };
 
   // Mock correction response
-  const createMockLintResponse = (): LintResponseDto => {
+  const createMockLintResponse = (): PostLint200Response => {
     return {
       original_paragraph: 'This is a test paragraph with some grammar errors.',
       corrections: [

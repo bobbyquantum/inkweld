@@ -43,3 +43,7 @@ export class DocumentTabComponent {
     return this.settingsService.getSetting<boolean>('useTabsDesktop', true);
   }
 }
+
+
+
+

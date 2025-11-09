@@ -13,7 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
-import { ProjectElementDto } from '@inkweld/index';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { format } from 'date-fns';
@@ -41,7 +41,7 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
   protected readonly DocumentSyncState = DocumentSyncState;
 
   // Use signals for reactive updates
-  documents = signal<ProjectElementDto[]>([]);
+  documents = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>([]);
   isLoading = signal<boolean>(true);
   error = signal<string | null>(null);
 
@@ -130,20 +130,20 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
     }
   }
 
-  openDocumentAsHtml(document: ProjectElementDto): void {
+  openDocumentAsHtml(document: GetApiV1ProjectsUsernameSlugElements200ResponseInner): void {
     // Implement HTML preview functionality
     console.log('Opening document as HTML:', document);
   }
 
-  openDocument(document: ProjectElementDto): void {
+  openDocument(document: GetApiV1ProjectsUsernameSlugElements200ResponseInner): void {
     this.projectState.openDocument(document);
   }
 
   createNewDocument(): void {
-    const newDocument: ProjectElementDto = {
+    const newDocument: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: 'new',
       name: 'New Document',
-      type: ProjectElementDto.TypeEnum.Item,
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item,
       level: 0,
       position: 0,
       expandable: false,
@@ -154,3 +154,7 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
     this.openDocument(newDocument);
   }
 }
+
+
+
+

@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 
 import {
   CreateSnapshotDto,
-  DocumentSnapshotsAPIService,
+  SnapshotsService,
   PaginatedSnapshotsDto,
   RestoreSnapshotDto,
   SnapshotDto,
@@ -29,7 +29,7 @@ export interface ListSnapshotsQuery {
   providedIn: 'root',
 })
 export class DocumentSnapshotService {
-  private snapshotsApi = inject(DocumentSnapshotsAPIService);
+  private snapshotsApi = inject(SnapshotsService);
   private projectState = inject(ProjectStateService);
 
   /**
@@ -47,7 +47,7 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    return this.snapshotsApi.documentSnapshotControllerCreateSnapshot(
+    return this.snapshotsApi.postApiSnapshotsUsernameSlug(
       project.username,
       project.slug,
       docId,
@@ -70,7 +70,7 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    return this.snapshotsApi.documentSnapshotControllerListSnapshots(
+    return this.snapshotsApi.getApiSnapshotsUsernameSlug(
       project.username,
       project.slug,
       docId,
@@ -95,7 +95,7 @@ export class DocumentSnapshotService {
     }
 
     // OpenAPI generator bug - parameters are in wrong order
-    return this.snapshotsApi.documentSnapshotControllerGetSnapshot(
+    return this.snapshotsApi.getApiSnapshotsUsernameSlugSnapshotId(
       snapshotId,
       docId,
       project.slug,
@@ -118,7 +118,7 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    return this.snapshotsApi.documentSnapshotControllerRestoreSnapshot(
+    return this.snapshotsApi.postApiSnapshotsUsernameSlugSnapshotIdRestore(
       project.username,
       project.slug,
       docId,
@@ -143,7 +143,7 @@ export class DocumentSnapshotService {
     }
 
     // OpenAPI generator bug - parameters are in wrong order
-    return this.snapshotsApi.documentSnapshotControllerDeleteSnapshot(
+    return this.snapshotsApi.deleteApiSnapshotsUsernameSlugSnapshotId(
       snapshotId,
       docId,
       project.slug,
@@ -166,7 +166,7 @@ export class DocumentSnapshotService {
     }
 
     // OpenAPI generator bug - parameters are in wrong order
-    return this.snapshotsApi.documentSnapshotControllerPreviewSnapshot(
+    return this.snapshotsApi.getApiSnapshotsUsernameSlugSnapshotIdPreview(
       snapshotId,
       docId,
       project.slug,
@@ -174,3 +174,10 @@ export class DocumentSnapshotService {
     );
   }
 }
+
+
+
+
+
+
+

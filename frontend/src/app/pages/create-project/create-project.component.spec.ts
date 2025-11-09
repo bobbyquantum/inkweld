@@ -20,7 +20,7 @@ import {
   provideRouter,
   Router,
 } from '@angular/router';
-import { ProjectDto } from '@inkweld/index';
+import { Project } from '@inkweld/index';
 import { UnifiedProjectService } from '@services/unified-project.service';
 import { UnifiedUserService } from '@services/unified-user.service';
 import { of } from 'rxjs';
@@ -44,7 +44,7 @@ describe('CreateProjectComponent', () => {
     lastName: 'User',
   };
 
-  const mockProject: ProjectDto = {
+  const mockProject: Project = {
     id: '1',
     title: 'Test Project',
     slug: 'test-project',
@@ -233,7 +233,7 @@ describe('CreateProjectComponent', () => {
       description: 'Test Description',
     });
 
-    const incompleteProject = { id: '123' } as ProjectDto;
+    const incompleteProject = { id: '123' } as Project;
     projectService.createProject.mockResolvedValue(incompleteProject);
 
     await component.onSubmit();

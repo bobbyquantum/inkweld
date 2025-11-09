@@ -20,7 +20,7 @@ import { Router, RouterModule } from '@angular/router';
 import { BookshelfComponent } from '@components/bookshelf/bookshelf.component';
 import { SideNavComponent } from '@components/side-nav/side-nav.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import { ProjectDto } from '@inkweld/index';
+import { Project } from '@inkweld/index';
 import { ProjectServiceError } from '@services/project.service';
 import { UnifiedProjectService } from '@services/unified-project.service';
 import { UnifiedUserService } from '@services/unified-user.service';
@@ -58,7 +58,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   // Component state
   loadError = false;
-  selectedProject: ProjectDto | null = null;
+  selectedProject: Project | null = null;
   isMobile = false;
   searchControl = new FormControl('');
   sideNavOpen = signal(true); // Open by default on desktop
@@ -163,7 +163,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.viewMode.set(mode);
   }
 
-  getCoverUrl(project: ProjectDto): string {
+  getCoverUrl(project: Project): string {
     const baseUrl =
       window.location.hostname === 'localhost'
         ? 'http://localhost:8333'
@@ -171,7 +171,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     return `${baseUrl}/api/v1/projects/${project.username}/${project.slug}/cover`;
   }
 
-  selectProject(project: ProjectDto) {
+  selectProject(project: Project) {
     // Add logging to debug project navigation
     console.log('[HomeComponent] selectProject called with:', {
       project: {
@@ -208,3 +208,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 }
+
+
+
+

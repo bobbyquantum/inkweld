@@ -12,7 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
-import { ProjectAPIService } from '@inkweld/api/project-api.service';
+import { ProjectsService } from '@inkweld/api/projects.service';
 import { DialogGatewayService } from '@services/dialog-gateway.service';
 import { ProjectService } from '@services/project.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
@@ -36,7 +36,7 @@ export class HomeTabComponent {
   protected readonly recentFilesService = inject(RecentFilesService);
   protected readonly importExportService = inject(ProjectImportExportService);
   protected readonly dialogGateway = inject(DialogGatewayService);
-  protected readonly projectApi = inject(ProjectAPIService);
+  protected readonly projectApi = inject(ProjectsService);
   protected readonly snackBar = inject(MatSnackBar);
   // Router for navigation
   protected readonly router = inject(Router);
@@ -195,7 +195,7 @@ export class HomeTabComponent {
 
     // Upload the cover image
     this.projectApi
-      .coverControllerUploadCover(username, slug, imageBlob)
+      .postApiImagesUsernameSlugCover(username, slug, imageBlob)
       .pipe(
         catchError((error: unknown) => {
           console.error('Error uploading cover image:', error);
@@ -283,3 +283,9 @@ export class HomeTabComponent {
     }
   }
 }
+
+
+
+
+
+

@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { ProjectElementDto } from '@inkweld/index';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 import { vi } from 'vitest';
 
 import { OfflineProjectElementsService } from './offline-project-elements.service';
@@ -57,7 +57,7 @@ describe('OfflineProjectElementsService', () => {
 
   describe('loadElements', () => {
     it('should load elements from localStorage', () => {
-      const mockElements: ProjectElementDto[] = [
+      const mockElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
         {
           id: 'element-1',
           name: 'Test Element',
@@ -111,7 +111,7 @@ describe('OfflineProjectElementsService', () => {
 
   describe('saveElements', () => {
     it('should save elements to localStorage', () => {
-      const elements: ProjectElementDto[] = [
+      const elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
         {
           id: 'element-1',
           name: 'Test Element',
@@ -137,7 +137,7 @@ describe('OfflineProjectElementsService', () => {
     });
 
     it('should handle localStorage write errors', () => {
-      const elements: ProjectElementDto[] = [];
+      const elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [];
       mockLocalStorage.getItem.mockReturnValue('{}');
       mockLocalStorage.setItem.mockImplementation(() => {
         throw new Error('Storage quota exceeded');
@@ -177,7 +177,7 @@ describe('OfflineProjectElementsService', () => {
 
   describe('addElement', () => {
     beforeEach(() => {
-      const initialElements: ProjectElementDto[] = [
+      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
         {
           id: 'folder-1',
           name: 'Folder 1',
@@ -257,7 +257,7 @@ describe('OfflineProjectElementsService', () => {
 
   describe('deleteElement', () => {
     beforeEach(() => {
-      const initialElements: ProjectElementDto[] = [
+      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
         {
           id: 'folder-1',
           name: 'Folder 1',
@@ -340,7 +340,7 @@ describe('OfflineProjectElementsService', () => {
 
   describe('moveElement', () => {
     beforeEach(() => {
-      const initialElements: ProjectElementDto[] = [
+      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
         {
           id: 'folder-1',
           name: 'Folder 1',
@@ -420,7 +420,7 @@ describe('OfflineProjectElementsService', () => {
 
   describe('renameElement', () => {
     beforeEach(() => {
-      const initialElements: ProjectElementDto[] = [
+      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
         {
           id: 'doc-1',
           name: 'Old Name',
@@ -464,7 +464,7 @@ describe('OfflineProjectElementsService', () => {
 
   describe('project isolation', () => {
     it('should isolate elements by project key', () => {
-      const project1Elements: ProjectElementDto[] = [
+      const project1Elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
         {
           id: 'p1-doc',
           name: 'Project 1 Doc',
@@ -477,7 +477,7 @@ describe('OfflineProjectElementsService', () => {
         },
       ];
 
-      const project2Elements: ProjectElementDto[] = [
+      const project2Elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
         {
           id: 'p2-doc',
           name: 'Project 2 Doc',

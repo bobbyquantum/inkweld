@@ -22,9 +22,9 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import {
-  ProjectAPIService,
-  ProjectDto,
-  ProjectElementDto,
+  ProjectsService,
+  Project,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
 } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -42,12 +42,12 @@ import { StorageService } from './storage.service';
 import { UnifiedProjectService } from './unified-project.service';
 
 // Mock state - will be reset per test
-const mockYArrayState: ProjectElementDto[] = [];
+const mockYArrayState: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [];
 const mockArrayObservers: any[] = [];
 
 function createMockYArray() {
   // Create isolated state for THIS array instance
-  let localArrayState: ProjectElementDto[] = [];
+  let localArrayState: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [];
   const localObservers: any[] = [];
 
   function notifyLocalObservers(event: any) {
@@ -64,7 +64,7 @@ function createMockYArray() {
       // Notify observers once for this deletion.
       notifyLocalObservers({ changes: { added: [], deleted: length } });
     },
-    insert(index: number, elements: ProjectElementDto[]) {
+    insert(index: number, elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]) {
       // Replace entire array with new elements
       localArrayState = elements;
       notifyLocalObservers({
@@ -84,7 +84,7 @@ function createMockYArray() {
 describe('ProjectStateService', () => {
   let service: ProjectStateService;
   let mockDialog: MockedObject<MatDialog>;
-  let mockProjectAPI: MockedObject<ProjectAPIService>;
+  let mockProjectAPI: MockedObject<ProjectsService>;
   let mockWebsocketProvider: MockedObject<WebsocketProvider>;
   let mockIndexeddbProvider: MockedObject<IndexeddbPersistence>;
   let mockYDoc: MockedObject<Y.Doc>;
@@ -98,7 +98,7 @@ describe('ProjectStateService', () => {
 
   const mockDate = new Date('2025-02-22T22:43:16.240Z');
 
-  const mockProject: ProjectDto = {
+  const mockProject: Project = {
     id: '1',
     title: 'Test Project',
     slug: 'test-project',
@@ -108,7 +108,7 @@ describe('ProjectStateService', () => {
     updatedDate: mockDate.toISOString(),
   };
 
-  const mockElementDto: ProjectElementDto = {
+  const mockElementDto: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
     id: '1',
     name: 'Test Element',
     type: 'FOLDER',
@@ -176,10 +176,10 @@ describe('ProjectStateService', () => {
     } as unknown as MockedObject<MatDialog>;
 
     mockProjectAPI = {
-      projectControllerGetProjectByUsernameAndSlug: vi
+      getApiProjectsUsernameSlug: vi
         .fn()
         .mockReturnValue(of(mockProject)),
-    } as unknown as MockedObject<ProjectAPIService>;
+    } as unknown as MockedObject<ProjectsService>;
 
     mockUnifiedProjectService = {
       getProject: vi.fn().mockResolvedValue(mockProject),
@@ -268,7 +268,7 @@ describe('ProjectStateService', () => {
         // Override to force new instance each test
         { provide: ProjectStateService, useClass: ProjectStateService },
         { provide: MatDialog, useValue: mockDialog },
-        { provide: ProjectAPIService, useValue: mockProjectAPI },
+        { provide: ProjectsService, useValue: mockProjectAPI },
         { provide: UnifiedProjectService, useValue: mockUnifiedProjectService },
         { provide: SetupService, useValue: mockSetupService },
         {
@@ -308,7 +308,7 @@ describe('ProjectStateService', () => {
       await service.loadProject('testuser', 'test-project');
 
       expect(
-        mockProjectAPI.projectControllerGetProjectByUsernameAndSlug
+        mockProjectAPI.getApiProjectsUsernameSlug
       ).toHaveBeenCalledWith('testuser', 'test-project');
       expect(service.project()).toEqual(mockProject);
       // Error should be null or undefined (not set)
@@ -316,7 +316,7 @@ describe('ProjectStateService', () => {
     });
 
     it('should handle errors during project loading', async () => {
-      mockProjectAPI.projectControllerGetProjectByUsernameAndSlug.mockReturnValue(
+      mockProjectAPI.getApiProjectsUsernameSlug.mockReturnValue(
         throwError(() => new Error('API Error'))
       );
 
@@ -751,3 +751,5 @@ describe('ProjectStateService', () => {
     });
   });
 });
+
+

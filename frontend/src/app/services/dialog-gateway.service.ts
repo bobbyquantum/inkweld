@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { ProjectDto } from '@inkweld/model/project-dto';
+import { Project } from '@inkweld/model/project-dto';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -41,7 +41,7 @@ export class DialogGatewayService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 
-  openEditProjectDialog(project: ProjectDto): Promise<ProjectDto | null> {
+  openEditProjectDialog(project: Project): Promise<Project | null> {
     const dialogRef = this.dialog.open(EditProjectDialogComponent, {
       data: project,
       disableClose: true,
@@ -94,7 +94,7 @@ export class DialogGatewayService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 
-  openGenerateCoverDialog(project: ProjectDto): Promise<boolean> {
+  openGenerateCoverDialog(project: Project): Promise<boolean> {
     const dialogRef = this.dialog.open(GenerateCoverDialogComponent, {
       data: { project } as GenerateCoverDialogData,
       disableClose: false,
@@ -105,3 +105,7 @@ export class DialogGatewayService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 }
+
+
+
+

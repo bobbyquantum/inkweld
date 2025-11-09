@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { ProjectDto, ProjectElementDto } from '@inkweld/index';
+import { Project, GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 import JSZip from '@progress/jszip-esm';
 import { firstValueFrom } from 'rxjs';
 
@@ -223,8 +223,8 @@ export class ProjectImportExportService {
     // Only export FOLDER and ITEM types, exclude worldbuilding elements
     const elements = allElements.filter(
       elem =>
-        elem.type === ProjectElementDto.TypeEnum.Folder ||
-        elem.type === ProjectElementDto.TypeEnum.Item
+        elem.type === GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Folder ||
+        elem.type === GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item
     );
 
     const archive: ProjectArchive = {
@@ -294,7 +294,7 @@ export class ProjectImportExportService {
    */
   private updateProjectState(archive: ProjectArchive): void {
     // Convert archive to DTO format
-    const projectDto: ProjectDto = {
+    const Project: Project = {
       title: archive.project.title,
       description: archive.project.description || '',
       slug: archive.project.slug,
@@ -303,7 +303,7 @@ export class ProjectImportExportService {
       updatedDate: new Date().toISOString(),
     };
 
-    const elements: ProjectElementDto[] = archive.elements.map(elem => ({
+    const elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = archive.elements.map(elem => ({
       id: elem.id || crypto.randomUUID(), // Generate new ID if not provided
       name: elem.name,
       type: elem.type,
@@ -332,7 +332,7 @@ export class ProjectImportExportService {
     }
 
     // Update project state
-    this.projectStateService.updateProject(projectDto);
+    this.projectStateService.updateProject(Project);
     this.projectStateService.updateElements(elements);
   }
 
@@ -491,3 +491,7 @@ export class ProjectImportExportService {
     }
   }
 }
+
+
+
+

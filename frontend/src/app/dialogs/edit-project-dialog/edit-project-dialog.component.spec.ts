@@ -6,7 +6,7 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ProjectDto, UserDto } from '@inkweld/index';
+import { Project, UserDto } from '@inkweld/index';
 import { of } from 'rxjs';
 import {
   afterEach,
@@ -19,7 +19,7 @@ import {
   vi,
 } from 'vitest';
 
-import { ProjectAPIService } from '../../../api-client/api/project-api.service';
+import { ProjectsService } from '../../../api-client/api/project-api.service';
 import { ProjectService } from '../../services/project.service';
 import { ProjectImportExportService } from '../../services/project-import-export.service';
 import { EditProjectDialogComponent } from './edit-project-dialog.component';
@@ -36,7 +36,7 @@ describe('EditProjectDialogComponent', () => {
   let dialogRef: MockedObject<MatDialogRef<EditProjectDialogComponent>>;
   let importExportService: MockedObject<ProjectImportExportService>;
   let snackBar: MockedObject<MatSnackBar>;
-  let projectAPIService: MockedObject<ProjectAPIService>;
+  let ProjectsService: MockedObject<ProjectsService>;
   let projectService: MockedObject<ProjectService>;
 
   const mockUser: UserDto = {
@@ -44,7 +44,7 @@ describe('EditProjectDialogComponent', () => {
     name: 'Test User',
   };
 
-  const mockProject: ProjectDto = {
+  const mockProject: Project = {
     id: '123',
     title: 'Test Project',
     description: 'Test Description',
@@ -83,7 +83,7 @@ describe('EditProjectDialogComponent', () => {
       open: vi.fn(),
     } as any;
 
-    projectAPIService = {
+    ProjectsService = {
       projectControllerUpdateProject: vi.fn().mockReturnValue(of(mockProject)),
     } as any;
 
@@ -112,7 +112,7 @@ describe('EditProjectDialogComponent', () => {
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockProject },
         { provide: ProjectImportExportService, useValue: importExportService },
-        { provide: ProjectAPIService, useValue: projectAPIService },
+        { provide: ProjectsService, useValue: ProjectsService },
         { provide: ProjectService, useValue: projectService },
         { provide: MatSnackBar, useValue: snackBar },
       ],
@@ -500,3 +500,4 @@ describe('EditProjectDialogComponent', () => {
     });
   });
 });
+

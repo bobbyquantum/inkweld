@@ -5,8 +5,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { ProjectAPIService } from '@inkweld/api/project-api.service';
-import { ProjectDto, ProjectElementDto } from '@inkweld/index';
+import { ProjectsService } from '@inkweld/api/project-api.service';
+import { Project, GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 import { Mock, vi } from 'vitest';
 
 import { DialogGatewayService } from '../../../../services/dialog-gateway.service';
@@ -20,7 +20,7 @@ describe('HomeTabComponent', () => {
   let fixture: ComponentFixture<HomeTabComponent>;
   let projectStateService: Partial<ProjectStateService>;
   let projectService: Partial<ProjectService>;
-  let projectApiService: Partial<ProjectAPIService>;
+  let ProjectsService: Partial<ProjectsService>;
   let recentFilesService: Partial<RecentFilesService>;
   let importExportService: Partial<ProjectImportExportService>;
   let dialogGateway: Partial<DialogGatewayService>;
@@ -32,7 +32,7 @@ describe('HomeTabComponent', () => {
     slug: 'test-project',
     title: 'Test Project',
     description: 'Test project description',
-  } as ProjectDto;
+  } as Project;
 
   const mockRecentFiles = [
     {
@@ -57,7 +57,7 @@ describe('HomeTabComponent', () => {
   const setupMockServices = () => {
     // Initialize signals for ProjectStateService
     const projectSignal = signal(mockProject);
-    const elementsSignal = signal<ProjectElementDto[]>([]);
+    const elementsSignal = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>([]);
 
     // Mock Router
     mockRouter = {
@@ -96,8 +96,8 @@ describe('HomeTabComponent', () => {
       subscribe: vi.fn(),
     };
 
-    projectApiService = {
-      coverControllerUploadCover: vi.fn().mockReturnValue(mockObservable),
+    ProjectsService = {
+      postApiImagesUsernameSlugCover: vi.fn().mockReturnValue(mockObservable),
     } as any;
 
     dialogGateway = {
@@ -122,7 +122,7 @@ describe('HomeTabComponent', () => {
         { provide: Router, useValue: mockRouter },
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: ProjectService, useValue: projectService },
-        { provide: ProjectAPIService, useValue: projectApiService },
+        { provide: ProjectsService, useValue: ProjectsService },
         { provide: RecentFilesService, useValue: recentFilesService },
         { provide: ProjectImportExportService, useValue: importExportService },
         { provide: DialogGatewayService, useValue: dialogGateway },
@@ -162,7 +162,7 @@ describe('HomeTabComponent', () => {
       expandable: false,
       version: 1,
       metadata: {},
-    } as ProjectElementDto;
+    } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
 
     // Setup elements to include the document for lookup
     (projectStateService.elements as any).set([mockElement]);
@@ -184,7 +184,7 @@ describe('HomeTabComponent', () => {
       expandable: false,
       version: 1,
       metadata: {},
-    } as ProjectElementDto;
+    } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
 
     vi.spyOn(component, 'onRecentDocumentClick');
     (projectStateService.elements as any).set([mockElement]);
@@ -206,7 +206,7 @@ describe('HomeTabComponent', () => {
       expandable: false,
       version: 1,
       metadata: {},
-    } as ProjectElementDto;
+    } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
 
     vi.spyOn(component, 'onRecentDocumentClick');
     (projectStateService.elements as any).set([mockElement]);
@@ -301,7 +301,7 @@ describe('HomeTabComponent', () => {
       pipe: vi.fn().mockReturnThis(),
       subscribe: vi.fn(),
     };
-    (projectApiService.coverControllerUploadCover as Mock).mockReturnValue(
+    (ProjectsService.postApiImagesUsernameSlugCover as Mock).mockReturnValue(
       mockObservable
     );
 
@@ -309,7 +309,7 @@ describe('HomeTabComponent', () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(projectApiService.coverControllerUploadCover).toHaveBeenCalled();
+    expect(ProjectsService.postApiImagesUsernameSlugCover).toHaveBeenCalled();
   });
 
   it('should not save cover image when dialog is cancelled', async () => {
@@ -321,7 +321,7 @@ describe('HomeTabComponent', () => {
     component.onGenerateCoverClick();
     await Promise.resolve();
 
-    expect(projectApiService.coverControllerUploadCover).not.toHaveBeenCalled();
+    expect(ProjectsService.postApiImagesUsernameSlugCover).not.toHaveBeenCalled();
   });
 
   it('should open project files tab', () => {
@@ -454,3 +454,5 @@ describe('HomeTabComponent', () => {
     });
   });
 });
+
+

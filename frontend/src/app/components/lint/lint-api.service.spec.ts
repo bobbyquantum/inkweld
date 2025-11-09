@@ -5,8 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { LintService } from '../../../api-client/api/lint.service';
-import { LintRequestDto } from '../../../api-client/model/lint-request-dto';
-import { LintResponseDto } from '../../../api-client/model/lint-response-dto';
+import { PostLintRequest } from '../../../api-client/model/lint-request-dto';
+import { PostLint200Response } from '../../../api-client/model/lint-response-dto';
 import { apiErr, apiOk } from '../../../testing/utils';
 import { ABORT_SIGNAL, LintApiService } from './lint-api.service';
 
@@ -48,9 +48,9 @@ describe('LintApiService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should call lintControllerLintParagraph with the correct parameters', async () => {
+  it('should call postLint with the correct parameters', async () => {
     // Mock response
-    const mockResponse: LintResponseDto = {
+    const mockResponse: PostLint200Response = {
       original_paragraph: 'test text',
       corrections: [],
       style_recommendations: [],
@@ -58,7 +58,7 @@ describe('LintApiService', () => {
     };
 
     // Setup mock to return the response
-    lintService.lintControllerLintParagraph.mockReturnValue(
+    lintService.postLint.mockReturnValue(
       apiOk(mockResponse)
     );
 
@@ -66,7 +66,7 @@ describe('LintApiService', () => {
     const result = await service.run('test text');
 
     // Assertions
-    expect(lintService.lintControllerLintParagraph).toHaveBeenCalledWith(
+    expect(lintService.postLint).toHaveBeenCalledWith(
       expect.objectContaining({
         paragraph: 'test text',
         style: 'default',
@@ -87,7 +87,7 @@ describe('LintApiService', () => {
 
   it('should pass custom style and level parameters correctly', async () => {
     // Mock response
-    const mockResponse: LintResponseDto = {
+    const mockResponse: PostLint200Response = {
       original_paragraph: 'test text',
       corrections: [],
       style_recommendations: [],
@@ -95,7 +95,7 @@ describe('LintApiService', () => {
     };
 
     // Setup mock return value
-    lintService.lintControllerLintParagraph.mockReturnValue(
+    lintService.postLint.mockReturnValue(
       apiOk(mockResponse)
     );
 
@@ -103,11 +103,11 @@ describe('LintApiService', () => {
     await service.run(
       'test text',
       'academic',
-      'medium' as LintRequestDto.LevelEnum
+      'medium' as PostLintRequest.LevelEnum
     );
 
     // Verify custom parameters were passed
-    expect(lintService.lintControllerLintParagraph).toHaveBeenCalledWith(
+    expect(lintService.postLint).toHaveBeenCalledWith(
       expect.objectContaining({
         paragraph: 'test text',
         style: 'academic',
@@ -121,8 +121,8 @@ describe('LintApiService', () => {
 
   it('should set the ABORT_SIGNAL token in the context', async () => {
     // Mock response
-    lintService.lintControllerLintParagraph.mockReturnValue(
-      apiOk({} as LintResponseDto)
+    lintService.postLint.mockReturnValue(
+      apiOk({} as PostLint200Response)
     );
 
     // Spy on HttpContext.set
@@ -141,7 +141,7 @@ describe('LintApiService', () => {
   it('should handle errors and return a default response', async () => {
     // Mock an error response
     const errorMessage = 'Network error';
-    lintService.lintControllerLintParagraph.mockReturnValue(
+    lintService.postLint.mockReturnValue(
       apiErr(new Error(errorMessage))
     );
 
@@ -170,8 +170,8 @@ describe('LintApiService', () => {
 
   it('should create AbortSignal with the correct timeout value', async () => {
     // Mock response
-    lintService.lintControllerLintParagraph.mockReturnValue(
-      apiOk({} as LintResponseDto)
+    lintService.postLint.mockReturnValue(
+      apiOk({} as PostLint200Response)
     );
 
     // Call the service
@@ -183,3 +183,4 @@ describe('LintApiService', () => {
     }
   });
 });
+

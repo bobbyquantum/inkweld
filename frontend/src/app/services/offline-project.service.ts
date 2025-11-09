@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 
-import { ProjectDto } from '../../api-client/model/project-dto';
+import { Project } from '../../api-client/model/project-dto';
 import { OfflineProjectElementsService } from './offline-project-elements.service';
 import { SetupService } from './setup.service';
 
@@ -13,7 +13,7 @@ export class OfflineProjectService {
   private setupService = inject(SetupService);
   private offlineElementsService = inject(OfflineProjectElementsService);
 
-  readonly projects = signal<ProjectDto[]>([]);
+  readonly projects = signal<Project[]>([]);
   readonly isLoading = signal(false);
   readonly initialized = signal(false);
 
@@ -34,7 +34,7 @@ export class OfflineProjectService {
   /**
    * Get a specific project
    */
-  getProject(username: string, slug: string): ProjectDto | null {
+  getProject(username: string, slug: string): Project | null {
     const projects = this.projects();
     return (
       projects.find(p => p.username === username && p.slug === slug) || null
@@ -44,7 +44,7 @@ export class OfflineProjectService {
   /**
    * Create a new project
    */
-  createProject(projectData: Partial<ProjectDto>): ProjectDto {
+  createProject(projectData: Partial<Project>): Project {
     this.isLoading.set(true);
 
     const userProfile = this.setupService.getOfflineUserProfile();
@@ -53,7 +53,7 @@ export class OfflineProjectService {
     }
 
     const now = new Date().toISOString();
-    const project: ProjectDto = {
+    const project: Project = {
       title: projectData.title || 'Untitled Project',
       description: projectData.description || '',
       slug:
@@ -99,8 +99,8 @@ export class OfflineProjectService {
   updateProject(
     username: string,
     slug: string,
-    updates: Partial<ProjectDto>
-  ): ProjectDto {
+    updates: Partial<Project>
+  ): Project {
     this.isLoading.set(true);
 
     try {
@@ -113,7 +113,7 @@ export class OfflineProjectService {
         throw new Error('Project not found');
       }
 
-      const updatedProject: ProjectDto = {
+      const updatedProject: Project = {
         ...projects[projectIndex],
         ...updates,
         updatedDate: new Date().toISOString(),
@@ -153,14 +153,14 @@ export class OfflineProjectService {
   /**
    * Get projects by username
    */
-  getProjectsByUsername(username: string): ProjectDto[] {
+  getProjectsByUsername(username: string): Project[] {
     return this.projects().filter(p => p.username === username);
   }
 
   /**
    * Import projects from an export
    */
-  importProjects(importedProjects: ProjectDto[]): void {
+  importProjects(importedProjects: Project[]): void {
     const currentProjects = this.projects();
     const userProfile = this.setupService.getOfflineUserProfile();
 
@@ -204,17 +204,17 @@ export class OfflineProjectService {
     this.initialized.set(true);
   }
 
-  private getStoredProjects(): ProjectDto[] {
+  private getStoredProjects(): Project[] {
     try {
       const stored = localStorage.getItem(OFFLINE_PROJECTS_STORAGE_KEY);
-      return stored ? (JSON.parse(stored) as ProjectDto[]) : [];
+      return stored ? (JSON.parse(stored) as Project[]) : [];
     } catch (error) {
       console.error('Failed to load offline projects:', error);
       return [];
     }
   }
 
-  private saveProjects(projects: ProjectDto[]): void {
+  private saveProjects(projects: Project[]): void {
     try {
       localStorage.setItem(
         OFFLINE_PROJECTS_STORAGE_KEY,
@@ -236,3 +236,7 @@ export class OfflineProjectService {
       .substring(0, 50);
   }
 }
+
+
+
+

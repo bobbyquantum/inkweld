@@ -1,7 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { ProjectDto } from '@inkweld/model/project-dto';
+import { Project } from '@inkweld/model/project-dto';
 import { of } from 'rxjs';
 import { Mock, MockedObject, vi } from 'vitest';
 
@@ -67,14 +67,14 @@ describe('DialogGatewayService', () => {
   });
 
   it('should open edit project dialog', async () => {
-    const project: ProjectDto = {
+    const project: Project = {
       id: '1',
       name: 'Test Project',
-    } as unknown as ProjectDto;
-    const updatedProject: ProjectDto = {
+    } as unknown as Project;
+    const updatedProject: Project = {
       ...project,
       name: 'Updated Project',
-    } as ProjectDto;
+    } as Project;
 
     (dialogRefMock.afterClosed as Mock).mockReturnValue(of(updatedProject));
 

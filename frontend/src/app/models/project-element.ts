@@ -1,9 +1,9 @@
-import { ProjectElementDto } from '../../api-client/model/project-element-dto';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../api-client/model/project-element-dto';
 
 export interface ProjectElement {
   id: string;
   name: string;
-  type: ProjectElementDto['type']; // Use type from DTO
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInner['type']; // Use type from DTO
   level: number;
   position: number;
   expandable: boolean;
@@ -14,7 +14,7 @@ export interface ProjectElement {
 }
 
 // map DTO to frontend model
-export function mapDtoToProjectElement(dto: ProjectElementDto): ProjectElement {
+export function mapDtoToProjectElement(dto: GetApiV1ProjectsUsernameSlugElements200ResponseInner): ProjectElement {
   return {
     id: dto.id,
     name: dto.name || '',
@@ -28,3 +28,7 @@ export function mapDtoToProjectElement(dto: ProjectElementDto): ProjectElement {
     version: dto.version, // Map version from DTO
   };
 }
+
+
+
+

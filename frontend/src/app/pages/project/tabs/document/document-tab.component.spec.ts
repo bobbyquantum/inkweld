@@ -11,7 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { ProjectDto } from '@inkweld/index';
+import { Project } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
@@ -53,8 +53,8 @@ describe('DocumentTabComponent', () => {
   //   createdDate: new Date().toISOString(),
   //   updatedDate: new Date().toISOString(),
   //   id: '123',
-  // } as ProjectDto;
-  const mockProject = {} as ProjectDto;
+  // } as Project;
+  const mockProject = {} as Project;
   // Mock route params
   let paramsSubject: BehaviorSubject<any>;
 

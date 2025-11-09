@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { FileDeleteResponseDto, FileUploadResponseDto } from '@inkweld/index';
 import { catchError, map, Observable, throwError } from 'rxjs';
 
-import { ProjectAPIService } from '../../api-client/api/project-api.service';
+import { FilesService } from '../../api-client/api/files.service';
 import { XsrfService } from './xsrf.service';
 
 export interface ProjectFile {
@@ -22,7 +22,7 @@ export interface FileDeleteResponse {
   providedIn: 'root',
 })
 export class ProjectFileService {
-  private projectApi = inject(ProjectAPIService);
+  private filesApi = inject(FilesService);
   private xsrfService = inject(XsrfService);
 
   getProjectFiles(
@@ -30,8 +30,8 @@ export class ProjectFileService {
     projectSlug: string
   ): Observable<ProjectFile[]> {
     try {
-      return this.projectApi
-        .projectFilesControllerListFiles(username, projectSlug)
+      return this.filesApi
+        .getApiProjectsUsernameSlugFiles(username, projectSlug)
         .pipe(
           map((files: FileUploadResponseDto[]) =>
             files.map(file => ({
@@ -72,8 +72,8 @@ export class ProjectFileService {
   ): Observable<ProjectFile> {
     try {
       const xsrfToken = this.xsrfService.getXsrfToken();
-      return this.projectApi
-        .projectFilesControllerUploadFile(
+      return this.filesApi
+        .postApiProjectsUsernameSlugFiles(
           username,
           projectSlug,
           xsrfToken,
@@ -116,8 +116,8 @@ export class ProjectFileService {
   ): Observable<FileDeleteResponse> {
     try {
       const xsrfToken = this.xsrfService.getXsrfToken();
-      return this.projectApi
-        .projectFilesControllerDeleteFile(
+      return this.filesApi
+        .deleteApiProjectsUsernameSlugFiles(
           username,
           projectSlug,
           storedName,
@@ -158,7 +158,7 @@ export class ProjectFileService {
     storedName: string
   ): string {
     return (
-      this.projectApi.configuration.basePath +
+      this.filesApi.configuration.basePath +
       `/api/v1/projects/${username}/${projectSlug}/files/${storedName}`
     );
   }

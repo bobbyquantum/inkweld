@@ -27,3 +27,7 @@ export class ImageViewerDialogComponent {
     this.dialogRef.close();
   }
 }
+
+
+
+

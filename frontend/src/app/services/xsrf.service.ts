@@ -1,5 +1,5 @@
 import { DOCUMENT, inject, Injectable } from '@angular/core';
-import { CSRFService } from '@inkweld/index';
+import { SecurityService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../environments/environment';
@@ -21,7 +21,7 @@ interface CsrfTokenResponse {
   providedIn: 'root',
 })
 export class XsrfService {
-  private readonly csrfService = inject(CSRFService);
+  private readonly SecurityService = inject(SecurityService);
   private readonly document = inject(DOCUMENT);
   private readonly logger = inject(LoggerService);
 
@@ -42,9 +42,9 @@ export class XsrfService {
     try {
       this.logger.debug('XsrfService', 'Refreshing CSRF token from server');
 
-      // Use the generated CSRFService to get the token
+      // Use the generated SecurityService to get the token
       const response = (await firstValueFrom(
-        this.csrfService.csrfControllerGetCsrfToken()
+        this.SecurityService.csrfControllerGetCsrfToken()
       )) as CsrfTokenResponse;
 
       if (!response || !response.token || typeof response.token !== 'string') {
@@ -135,3 +135,8 @@ export class XsrfService {
     }
   }
 }
+
+
+
+
+

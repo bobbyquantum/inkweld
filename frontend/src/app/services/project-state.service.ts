@@ -1,8 +1,8 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import {
-  ProjectAPIService,
-  ProjectDto,
-  ProjectElementDto,
+  ProjectsService,
+  Project,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
 } from '@inkweld/index';
 import { ProjectElement } from 'app/models/project-element';
 import { nanoid } from 'nanoid';
@@ -41,15 +41,15 @@ export interface AppTab {
   name: string;
   type: 'document' | 'folder' | 'system' | 'worldbuilding';
   systemType?: 'documents-list' | 'project-files' | 'templates-list' | 'home';
-  element?: ProjectElementDto;
-  elementType?: ProjectElementDto.TypeEnum;
+  element?: GetApiV1ProjectsUsernameSlugElements200ResponseInner;
+  elementType?: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class ProjectStateService {
-  private projectAPIService = inject(ProjectAPIService);
+  private ProjectsService = inject(ProjectsService);
   private unifiedProjectService = inject(UnifiedProjectService);
   private setupService = inject(SetupService);
   private offlineElementsService = inject(OfflineProjectElementsService);
@@ -65,9 +65,9 @@ export class ProjectStateService {
   private readonly documentCacheDocId = signal<string | null>(null);
 
   // Core state signals
-  readonly project = signal<ProjectDto | undefined>(undefined);
-  readonly elements = signal<ProjectElementDto[]>([]);
-  readonly openDocuments = signal<ProjectElementDto[]>([]);
+  readonly project = signal<Project | undefined>(undefined);
+  readonly elements = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>([]);
+  readonly openDocuments = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>([]);
   readonly openTabs = signal<AppTab[]>([]);
   readonly selectedTabIndex = signal<number>(0);
   readonly isLoading = signal<boolean>(false);
@@ -251,14 +251,14 @@ export class ProjectStateService {
     slug: string
   ): Promise<void> {
     // Get project from unified service
-    const projectDto = await this.unifiedProjectService.getProject(
+    const Project = await this.unifiedProjectService.getProject(
       username,
       slug
     );
-    if (!projectDto) {
+    if (!Project) {
       throw new Error('Project not found');
     }
-    this.project.set(projectDto);
+    this.project.set(Project);
 
     // Load elements from offline service
     this.offlineElementsService.loadElements(username, slug);
@@ -272,13 +272,13 @@ export class ProjectStateService {
     username: string,
     slug: string
   ): Promise<void> {
-    const projectDto = await firstValueFrom(
-      this.projectAPIService.projectControllerGetProjectByUsernameAndSlug(
+    const Project = await firstValueFrom(
+      this.ProjectsService.getApiProjectsUsernameSlug(
         username,
         slug
       )
     );
-    this.project.set(projectDto);
+    this.project.set(Project);
 
     this.docId = `${username}:${slug}:elements`;
     this.doc = new Y.Doc();
@@ -424,7 +424,7 @@ export class ProjectStateService {
     this.observeDocChanges();
   }
 
-  updateElements(elements: ProjectElementDto[]): void {
+  updateElements(elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]): void {
     const mode = this.setupService.getMode();
 
     if (mode === 'offline') {
@@ -442,7 +442,7 @@ export class ProjectStateService {
       // Update server elements via Yjs
       if (!this.doc) return;
 
-      const elementsArray = this.doc.getArray<ProjectElementDto>('elements');
+      const elementsArray = this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>('elements');
       this.doc.transact(() => {
         elementsArray.delete(0, elementsArray.length);
         elementsArray.insert(0, elements);
@@ -475,7 +475,7 @@ export class ProjectStateService {
     }
   }
 
-  updateProject(project: ProjectDto): void {
+  updateProject(project: Project): void {
     if (!this.doc) return;
 
     const projectMap = this.doc.getMap('projectMeta');
@@ -515,7 +515,7 @@ export class ProjectStateService {
 
   // Tree Operations
   addElement(
-    type: ProjectElementDto['type'],
+    type: GetApiV1ProjectsUsernameSlugElements200ResponseInner['type'],
     name: string,
     parentId?: string
   ): string | undefined {
@@ -559,7 +559,7 @@ export class ProjectStateService {
         : -1;
       const parentLevel = parentIndex >= 0 ? elements[parentIndex].level : -1;
 
-      const newElement: ProjectElementDto = {
+      const newElement: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
         id: nanoid(),
         name,
         type,
@@ -595,7 +595,7 @@ export class ProjectStateService {
   }
 
   isValidDrop(
-    nodeAbove: ProjectElementDto | null,
+    nodeAbove: GetApiV1ProjectsUsernameSlugElements200ResponseInner | null,
     targetLevel: number
   ): boolean {
     if (!nodeAbove) {
@@ -622,8 +622,8 @@ export class ProjectStateService {
   }
 
   getValidDropLevels(
-    nodeAbove: ProjectElementDto | null,
-    nodeBelow: ProjectElementDto | null
+    nodeAbove: GetApiV1ProjectsUsernameSlugElements200ResponseInner | null,
+    nodeBelow: GetApiV1ProjectsUsernameSlugElements200ResponseInner | null
   ): ValidDropLevels {
     const validLevels = new Set<number>();
 
@@ -686,7 +686,7 @@ export class ProjectStateService {
   }
 
   getDropInsertIndex(
-    nodeAbove: ProjectElementDto | null,
+    nodeAbove: GetApiV1ProjectsUsernameSlugElements200ResponseInner | null,
     targetLevel: number
   ): number {
     if (!nodeAbove) {
@@ -775,10 +775,10 @@ export class ProjectStateService {
     return this.expandedNodeIds().has(elementId);
   }
 
-  async publishProject(project: ProjectDto): Promise<void> {
+  async publishProject(project: Project): Promise<void> {
     try {
       const response = await firstValueFrom(
-        this.projectAPIService.projectPublishEpubControllerPublishEpub(
+        this.ProjectsService.postApiProjectsUsernameSlugEpub(
           project.username,
           project.slug
         )
@@ -833,7 +833,7 @@ export class ProjectStateService {
   }
 
   // Tab Operations
-  openDocument(element: ProjectElementDto): void {
+  openDocument(element: GetApiV1ProjectsUsernameSlugElements200ResponseInner): void {
     const documents = this.openDocuments();
     const tabs = this.openTabs();
 
@@ -865,9 +865,9 @@ export class ProjectStateService {
 
     // Determine the tab type based on element type
     let tabType: 'document' | 'folder' | 'worldbuilding' = 'document';
-    if (element.type === ProjectElementDto.TypeEnum.Folder) {
+    if (element.type === GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Folder) {
       tabType = 'folder';
-    } else if (element.type === ProjectElementDto.TypeEnum.Item) {
+    } else if (element.type === GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item) {
       // ITEM is always a document
       tabType = 'document';
     } else {
@@ -1178,7 +1178,7 @@ export class ProjectStateService {
                 tab.element &&
                 (tab.type === 'document' || tab.type === 'folder')
             )
-            .map(tab => tab.element as ProjectElementDto);
+            .map(tab => tab.element as GetApiV1ProjectsUsernameSlugElements200ResponseInner);
 
           if (documents.length > 0) {
             this.openDocuments.set(documents);
@@ -1223,7 +1223,7 @@ export class ProjectStateService {
       }
 
       // Fallback to legacy document loading
-      const documents = await this.storageService.get<ProjectElementDto[]>(
+      const documents = await this.storageService.get<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>(
         db,
         'openedDocuments',
         cacheKey
@@ -1243,7 +1243,7 @@ export class ProjectStateService {
 
   // Worldbuilding initialization
   private async initializeWorldbuildingForElement(
-    element: ProjectElementDto
+    element: GetApiV1ProjectsUsernameSlugElements200ResponseInner
   ): Promise<void> {
     if (element.id) {
       await this.worldbuildingService.initializeWorldbuildingElement(element);
@@ -1251,7 +1251,7 @@ export class ProjectStateService {
   }
 
   // Dialog Handlers
-  showNewElementDialog(parentElement?: ProjectElementDto): void {
+  showNewElementDialog(parentElement?: GetApiV1ProjectsUsernameSlugElements200ResponseInner): void {
     void this.dialogGateway.openNewElementDialog().then(result => {
       if (result) {
         const newElementId = this.addElement(
@@ -1283,9 +1283,9 @@ export class ProjectStateService {
   }
 
   private getSubtree(
-    elements: ProjectElementDto[],
+    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[],
     startIndex: number
-  ): ProjectElementDto[] {
+  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
     const startLevel = elements[startIndex].level;
     const subtree = [elements[startIndex]];
 
@@ -1301,8 +1301,8 @@ export class ProjectStateService {
   }
 
   private recomputePositions(
-    elements: ProjectElementDto[]
-  ): ProjectElementDto[] {
+    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
     return elements.map((element, index) => ({
       ...element,
       position: index,
@@ -1312,14 +1312,14 @@ export class ProjectStateService {
   private initializeFromDoc(): void {
     if (!this.doc) return;
 
-    const elementsArray = this.doc.getArray<ProjectElementDto>('elements');
+    const elementsArray = this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>('elements');
     this.elements.set(elementsArray.toArray());
   }
 
   private observeDocChanges(): void {
     if (!this.doc) return;
 
-    const elementsArray = this.doc.getArray<ProjectElementDto>('elements');
+    const elementsArray = this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>('elements');
     elementsArray.observe(() => {
       const elements = elementsArray.toArray();
       this.elements.set(elements);
@@ -1333,7 +1333,7 @@ export class ProjectStateService {
    * Enrich elements with custom type icons from the schema library
    */
   private async enrichElementsWithIcons(
-    elements: ProjectElementDto[]
+    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
   ): Promise<void> {
     const project = this.project();
     if (!project) return;
@@ -1365,3 +1365,9 @@ export class ProjectStateService {
     this.elements.set([...elements]);
   }
 }
+
+
+
+
+
+

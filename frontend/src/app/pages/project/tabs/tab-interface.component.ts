@@ -22,7 +22,7 @@ import {
   Router,
   RouterModule,
 } from '@angular/router';
-import { ProjectElementDto } from '@inkweld/index';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { AppTab, ProjectStateService } from '@services/project-state.service';
 import { filter, Subject, Subscription, takeUntil } from 'rxjs';
@@ -312,7 +312,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     this.projectState.closeTab(index - 1);
   }
 
-  openDocument(document: ProjectElementDto): void {
+  openDocument(document: GetApiV1ProjectsUsernameSlugElements200ResponseInner): void {
     const project = this.projectState.project();
     if (!project) return;
 
@@ -381,15 +381,15 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
 
     if (tab.type === 'worldbuilding' && tab.elementType) {
       const iconMap: Record<string, string> = {
-        [ProjectElementDto.TypeEnum.Character]: 'person',
-        [ProjectElementDto.TypeEnum.Location]: 'place',
-        [ProjectElementDto.TypeEnum.WbItem]: 'category',
-        [ProjectElementDto.TypeEnum.Map]: 'map',
-        [ProjectElementDto.TypeEnum.Relationship]: 'diversity_1',
-        [ProjectElementDto.TypeEnum.Philosophy]: 'auto_stories',
-        [ProjectElementDto.TypeEnum.Culture]: 'groups',
-        [ProjectElementDto.TypeEnum.Species]: 'pets',
-        [ProjectElementDto.TypeEnum.Systems]: 'settings',
+        [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Character]: 'person',
+        [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Location]: 'place',
+        [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.WbItem]: 'category',
+        [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Map]: 'map',
+        [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Relationship]: 'diversity_1',
+        [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Philosophy]: 'auto_stories',
+        [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Culture]: 'groups',
+        [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Species]: 'pets',
+        [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Systems]: 'settings',
       };
 
       // Check if it's a built-in type
@@ -428,3 +428,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     }
   }
 }
+
+
+
+

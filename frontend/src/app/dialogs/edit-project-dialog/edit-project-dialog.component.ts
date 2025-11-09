@@ -20,8 +20,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { ProjectAPIService } from '@inkweld/api/project-api.service';
-import { ProjectDto } from '@inkweld/model/project-dto';
+import { ProjectsService } from '@inkweld/api/projects.service';
+import { Project } from '@inkweld/model/project-dto';
 import { ProjectService } from '@services/project.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
 
@@ -43,9 +43,9 @@ import { ProjectImportExportService } from '@services/project-import-export.serv
 export class EditProjectDialogComponent implements OnInit {
   readonly importExportService = inject(ProjectImportExportService);
   private dialogRef = inject(MatDialogRef<EditProjectDialogComponent>);
-  private projectAPIService = inject(ProjectAPIService);
+  private ProjectsService = inject(ProjectsService);
   private projectService = inject(ProjectService);
-  private dialogData = inject<ProjectDto>(MAT_DIALOG_DATA);
+  private dialogData = inject<Project>(MAT_DIALOG_DATA);
   private snackBar = inject(MatSnackBar);
   private sanitizer = inject(DomSanitizer);
 
@@ -59,7 +59,7 @@ export class EditProjectDialogComponent implements OnInit {
 
   isSaving = false;
   isLoadingCover = false;
-  project!: ProjectDto;
+  project!: Project;
   coverImage?: Blob;
   coverImageUrl?: SafeUrl;
   private hasCoverImage = false;
@@ -171,7 +171,7 @@ export class EditProjectDialogComponent implements OnInit {
       }
 
       const formValues = this.form.value as FormValues;
-      const updatedProject: ProjectDto = {
+      const updatedProject: Project = {
         ...this.project,
         title: formValues.title,
         description: formValues.description,
@@ -186,7 +186,7 @@ export class EditProjectDialogComponent implements OnInit {
         {
           title: updatedProject.title,
           description: updatedProject.description,
-        } as ProjectDto
+        } as Project
       );
 
       // Handle cover image upload if we have a new image
@@ -239,3 +239,8 @@ export class EditProjectDialogComponent implements OnInit {
     });
   }
 }
+
+
+
+
+

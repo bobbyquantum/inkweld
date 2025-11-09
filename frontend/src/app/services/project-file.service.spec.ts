@@ -6,7 +6,7 @@ import { Observable, of } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
-import { ProjectAPIService } from '../../api-client/api/project-api.service';
+import { ProjectsService } from '../../api-client/api/project-api.service';
 import {
   FileDeleteResponse,
   ProjectFile,
@@ -30,7 +30,7 @@ describe('ProjectFileService', () => {
     message: 'File deleted successfully',
   };
 
-  type ApiMock = DeepMockProxy<ProjectAPIService>;
+  type ApiMock = DeepMockProxy<ProjectsService>;
   type XsrfMock = DeepMockProxy<XsrfService>;
 
   let service: ProjectFileService;
@@ -39,7 +39,7 @@ describe('ProjectFileService', () => {
 
   beforeEach(() => {
     // Create mock instances
-    api = mockDeep<ProjectAPIService>();
+    api = mockDeep<ProjectsService>();
     xsrf = mockDeep<XsrfService>();
 
     // Configure TestBed
@@ -47,7 +47,7 @@ describe('ProjectFileService', () => {
       providers: [
         provideZonelessChangeDetection(),
         ProjectFileService,
-        { provide: ProjectAPIService, useValue: api },
+        { provide: ProjectsService, useValue: api },
         { provide: XsrfService, useValue: xsrf },
       ],
     });
@@ -55,15 +55,15 @@ describe('ProjectFileService', () => {
     service = TestBed.inject(ProjectFileService);
 
     /* default stubbing for every test */
-    api.projectFilesControllerListFiles.mockReturnValue(
+    api.getApiProjectsUsernameSlugFiles.mockReturnValue(
       of([uploadResp]) as unknown as Observable<
         HttpEvent<FileUploadResponseDto[]>
       >
     );
-    api.projectFilesControllerUploadFile.mockReturnValue(
+    api.postApiProjectsUsernameSlugFiles.mockReturnValue(
       of(uploadResp) as unknown as Observable<HttpEvent<FileUploadResponseDto>>
     );
-    api.projectFilesControllerDeleteFile.mockReturnValue(
+    api.deleteApiProjectsUsernameSlugFiles.mockReturnValue(
       of(deleteResp) as unknown as Observable<HttpEvent<FileDeleteResponseDto>>
     );
 
@@ -84,7 +84,7 @@ describe('ProjectFileService', () => {
       .getProjectFiles('alice', 'proj')
       .subscribe((f: ProjectFile[]) => (files = f));
 
-    expect(api.projectFilesControllerListFiles).toHaveBeenCalledWith(
+    expect(api.getApiProjectsUsernameSlugFiles).toHaveBeenCalledWith(
       'alice',
       'proj'
     );
@@ -109,7 +109,7 @@ describe('ProjectFileService', () => {
       .uploadFile('alice', 'proj', testFile)
       .subscribe((f: ProjectFile) => (uploaded = f));
 
-    expect(api.projectFilesControllerUploadFile).toHaveBeenCalledWith(
+    expect(api.postApiProjectsUsernameSlugFiles).toHaveBeenCalledWith(
       'alice',
       'proj',
       'test-token',
@@ -123,7 +123,7 @@ describe('ProjectFileService', () => {
       .deleteFile('alice', 'proj', 'stored-test.jpg')
       .subscribe((r: FileDeleteResponse) => (delResp = r));
 
-    expect(api.projectFilesControllerDeleteFile).toHaveBeenCalledWith(
+    expect(api.deleteApiProjectsUsernameSlugFiles).toHaveBeenCalledWith(
       'alice',
       'proj',
       'stored-test.jpg',
@@ -142,3 +142,5 @@ describe('ProjectFileService', () => {
     expect(service.formatFileSize(bytes)).toBe(expected);
   });
 });
+
+

@@ -14,3 +14,4 @@ export interface UserControllerCheckUsernameAvailability200Response {
     suggestions?: Array<string>;
 }
 
+

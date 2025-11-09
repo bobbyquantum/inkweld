@@ -8,3 +8,7 @@ export const projectServiceMock = {
   projectControllerUpdateProject: vi.fn<(username: string, slug: string, projectId: string, dto: ProjectDto) => Observable<ProjectDto>>()
 }
 
+
+
+
+

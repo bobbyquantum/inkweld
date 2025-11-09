@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { ProjectElementDto } from '@inkweld/index';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoggerService } from './logger.service';
@@ -51,7 +51,7 @@ describe('RecentFilesService', () => {
   });
 
   it('should add a file to recent files', () => {
-    const mockFile: ProjectElementDto = {
+    const mockFile: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: 'file1',
       name: 'Test File',
       type: 'ITEM',
@@ -74,7 +74,7 @@ describe('RecentFilesService', () => {
 
   it('should move existing file to the top when added again', () => {
     // Add first file
-    const file1: ProjectElementDto = {
+    const file1: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: 'file1',
       name: 'File 1',
       type: 'ITEM',
@@ -86,7 +86,7 @@ describe('RecentFilesService', () => {
     };
 
     // Add second file
-    const file2: ProjectElementDto = {
+    const file2: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: 'file2',
       name: 'File 2',
       type: 'ITEM',
@@ -117,7 +117,7 @@ describe('RecentFilesService', () => {
   });
 
   it('should filter files by project ID', () => {
-    const file1: ProjectElementDto = {
+    const file1: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: 'file1',
       name: 'File 1',
       type: 'ITEM',
@@ -128,7 +128,7 @@ describe('RecentFilesService', () => {
       metadata: {},
     };
 
-    const file2: ProjectElementDto = {
+    const file2: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: 'file2',
       name: 'File 2',
       type: 'ITEM',
@@ -154,7 +154,7 @@ describe('RecentFilesService', () => {
   it('should limit the number of recent files', () => {
     // Add MAX_RECENT_FILES + 1 files
     for (let i = 0; i < 11; i++) {
-      const file: ProjectElementDto = {
+      const file: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
         id: `file${i}`,
         name: `File ${i}`,
         type: 'ITEM',
@@ -175,7 +175,7 @@ describe('RecentFilesService', () => {
   });
 
   it('should clear all recent files', () => {
-    const file: ProjectElementDto = {
+    const file: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: 'file1',
       name: 'Test File',
       type: 'ITEM',

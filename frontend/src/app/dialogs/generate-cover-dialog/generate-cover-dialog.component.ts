@@ -7,15 +7,15 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { ProjectDto } from '@inkweld/model/project-dto';
+import { Project } from '@inkweld/model/project-dto';
 import { catchError, finalize, of } from 'rxjs';
 
-import { ImageService } from '../../../api-client/api/image.service';
+import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
 import { ImageGenerateRequestDto } from '../../../api-client/model/image-generate-request-dto';
 import { ImageResponseDto } from '../../../api-client/model/image-response-dto';
 
 export interface GenerateCoverDialogData {
-  project: ProjectDto;
+  project: Project;
 }
 
 @Component({
@@ -33,7 +33,7 @@ export interface GenerateCoverDialogData {
 export class GenerateCoverDialogComponent implements OnInit {
   dialogRef = inject<MatDialogRef<GenerateCoverDialogComponent>>(MatDialogRef);
   data = inject<GenerateCoverDialogData>(MAT_DIALOG_DATA);
-  private imageService = inject(ImageService);
+  private aiImageService = inject(AIImageGenerationService);
 
   loading = false;
   error: string | null = null;
@@ -66,8 +66,8 @@ export class GenerateCoverDialogComponent implements OnInit {
       background: 'auto', // Let the model decide on appropriate background
     };
 
-    this.imageService
-      .imageControllerGenerateImage(requestDto)
+    this.aiImageService
+      .postImageGenerate(requestDto)
       .pipe(
         catchError((error: unknown) => {
           console.error('Error generating image:', error);

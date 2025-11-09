@@ -20,3 +20,4 @@ export interface UserRegisterResponseDto {
     requiresApproval: boolean;
 }
 
+

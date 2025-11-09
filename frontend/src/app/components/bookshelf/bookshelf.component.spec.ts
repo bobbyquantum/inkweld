@@ -1,7 +1,7 @@
 import { CdkDragEnd } from '@angular/cdk/drag-drop';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { ProjectDto } from '@inkweld/index';
+import { Project } from '@inkweld/index';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BookshelfComponent } from './bookshelf.component';
@@ -15,7 +15,7 @@ vi.mock('@components/project-card/project-card.component', () => ({
 
 describe('BookshelfComponent', () => {
   let component: BookshelfComponent;
-  let mockProjects: ProjectDto[];
+  let mockProjects: Project[];
 
   beforeEach(() => {
     // Configure TestBed for injection context
@@ -50,7 +50,7 @@ describe('BookshelfComponent', () => {
         description: 'Test project 3',
         username: 'testuser',
       },
-    ] as ProjectDto[];
+    ] as Project[];
 
     // Create component within injection context
     component = TestBed.runInInjectionContext(() => new BookshelfComponent());
@@ -723,7 +723,7 @@ describe('BookshelfComponent', () => {
         slug: 'unknown',
         description: 'Not in array',
         username: 'testuser',
-      } as ProjectDto;
+      } as Project;
 
       vi.spyOn(component, 'scrollToCard');
       vi.spyOn(component.projectSelected, 'emit');

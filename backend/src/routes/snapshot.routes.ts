@@ -336,4 +336,155 @@ snapshotRoutes.delete(
   }
 );
 
+// Restore snapshot
+snapshotRoutes.post(
+  '/:username/:slug/:snapshotId/restore',
+  describeRoute({
+    description: 'Restore a document from a snapshot',
+    tags: ['Snapshots'],
+    responses: {
+      200: {
+        description: 'Snapshot restored successfully',
+        content: {
+          'application/json': {
+            schema: resolver(MessageResponseSchema),
+          },
+        },
+      },
+      401: {
+        description: 'Not authenticated',
+        content: {
+          'application/json': {
+            schema: resolver(ErrorResponseSchema),
+          },
+        },
+      },
+      403: {
+        description: 'Access denied - not project owner',
+        content: {
+          'application/json': {
+            schema: resolver(ErrorResponseSchema),
+          },
+        },
+      },
+      404: {
+        description: 'Project or snapshot not found',
+        content: {
+          'application/json': {
+            schema: resolver(ErrorResponseSchema),
+          },
+        },
+      },
+    },
+  }),
+  requireAuth,
+  async (c) => {
+    const db = getDb(c);
+    const username = c.req.param('username');
+    const slug = c.req.param('slug');
+    const snapshotId = c.req.param('snapshotId');
+    const userId = c.get('user').id;
+
+    // Verify project ownership
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
+
+    if (!project) {
+      throw new HTTPException(404, { message: 'Project not found' });
+    }
+
+    if (project.userId !== userId) {
+      throw new HTTPException(403, { message: 'Access denied' });
+    }
+
+    // Get snapshot
+    const snapshot = await documentSnapshotService.findById(db, snapshotId);
+
+    if (!snapshot || snapshot.projectId !== project.id) {
+      throw new HTTPException(404, { message: 'Snapshot not found' });
+    }
+
+    // Note: Actual restoration would be handled by the Yjs service
+    // This endpoint confirms the snapshot exists and user has permission
+    return c.json({ message: 'Snapshot can be restored', snapshotId: snapshot.id });
+  }
+);
+
+// Preview snapshot
+snapshotRoutes.get(
+  '/:username/:slug/:snapshotId/preview',
+  describeRoute({
+    description: 'Get a preview of the snapshot content',
+    tags: ['Snapshots'],
+    responses: {
+      200: {
+        description: 'Snapshot preview',
+        content: {
+          'application/json': {
+            schema: resolver(SnapshotWithContentSchema),
+          },
+        },
+      },
+      401: {
+        description: 'Not authenticated',
+        content: {
+          'application/json': {
+            schema: resolver(ErrorResponseSchema),
+          },
+        },
+      },
+      403: {
+        description: 'Access denied',
+        content: {
+          'application/json': {
+            schema: resolver(ErrorResponseSchema),
+          },
+        },
+      },
+      404: {
+        description: 'Project or snapshot not found',
+        content: {
+          'application/json': {
+            schema: resolver(ErrorResponseSchema),
+          },
+        },
+      },
+    },
+  }),
+  requireAuth,
+  async (c) => {
+    const db = getDb(c);
+    const username = c.req.param('username');
+    const slug = c.req.param('slug');
+    const snapshotId = c.req.param('snapshotId');
+    const userId = c.get('user').id;
+
+    // Verify project ownership
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
+
+    if (!project) {
+      throw new HTTPException(404, { message: 'Project not found' });
+    }
+
+    if (project.userId !== userId) {
+      throw new HTTPException(403, { message: 'Access denied' });
+    }
+
+    // Get snapshot with full state
+    const snapshot = await documentSnapshotService.findById(db, snapshotId);
+
+    if (!snapshot || snapshot.projectId !== project.id) {
+      throw new HTTPException(404, { message: 'Snapshot not found' });
+    }
+
+    // Convert Buffer to Base64 for transmission
+    const response = {
+      ...snapshot,
+      yDocState: snapshot.yDocState.toString('base64'),
+      stateVector: snapshot.stateVector?.toString('base64'),
+    };
+
+    return c.json(response);
+  }
+);
+
 export default snapshotRoutes;

@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { RouterModule } from '@angular/router';
-import { ProjectDto } from '@inkweld/index';
+import { Project } from '@inkweld/index';
 
 import { environment } from '../../../environments/environment';
 
@@ -15,7 +15,7 @@ import { environment } from '../../../environments/environment';
 })
 export class ProjectCardComponent {
   @Input()
-  public project!: ProjectDto;
+  public project!: Project;
 
   /**
    * Check if the project has a cover image
@@ -37,3 +37,7 @@ export class ProjectCardComponent {
     return `${baseUrl}/api/v1/projects/${this.project.username}/${this.project.slug}/cover`;
   }
 }
+
+
+
+

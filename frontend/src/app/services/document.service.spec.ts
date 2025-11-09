@@ -7,7 +7,7 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import { DocumentAPIService } from '../../api-client/api/document-api.service';
+import { DocumentsService } from '../../api-client/api/documents.service';
 import { LintApiService } from '../components/lint/lint-api.service';
 import { DocumentSyncState } from '../models/document-sync-state';
 import { DocumentService } from './document.service';
@@ -46,7 +46,7 @@ vi.mock('ngx-editor', () => ({
 describe('DocumentService', () => {
   let service: DocumentService;
   let mockProjectStateService: DeepMockProxy<ProjectStateService>;
-  let mockDocumentApiService: DeepMockProxy<DocumentAPIService>;
+  let mockDocumentsService: DeepMockProxy<DocumentsService>;
   let mockLintApiService: DeepMockProxy<LintApiService>;
   let mockYDoc: DeepMockProxy<Y.Doc>;
   let mockWebSocketProvider: DeepMockProxy<WebsocketProvider>;
@@ -101,13 +101,13 @@ describe('DocumentService', () => {
       updateSyncState: vi.fn(),
     } as unknown as DeepMockProxy<ProjectStateService>;
 
-    // Mock DocumentAPIService
-    mockDocumentApiService = {
+    // Mock DocumentsService
+    mockDocumentsService = {
       getDocument: vi.fn().mockReturnValue({
         content: '<p>Mocked document content</p>',
       }),
       saveDocument: vi.fn().mockReturnValue(Promise.resolve()),
-    } as unknown as DeepMockProxy<DocumentAPIService>;
+    } as unknown as DeepMockProxy<DocumentsService>;
 
     // Mock LintApiService
     mockLintApiService = {
@@ -137,7 +137,7 @@ describe('DocumentService', () => {
         provideZonelessChangeDetection(),
         DocumentService,
         { provide: ProjectStateService, useValue: mockProjectStateService },
-        { provide: DocumentAPIService, useValue: mockDocumentApiService },
+        { provide: DocumentsService, useValue: mockDocumentsService },
         { provide: LintApiService, useValue: mockLintApiService },
         { provide: SetupService, useValue: mockSetupService },
         { provide: SystemConfigService, useValue: mockSystemConfigService },

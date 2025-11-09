@@ -9,7 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { ConfigService } from '@inkweld/index';
+import { ConfigurationService } from '@inkweld/index';
 
 import { SetupService } from '../../services/setup.service';
 import { UnifiedUserService } from '../../services/unified-user.service';
@@ -47,7 +47,7 @@ interface SystemFeaturesResponse {
 export class SetupComponent implements OnInit {
   private setupService = inject(SetupService);
   private unifiedUserService = inject(UnifiedUserService);
-  private configService = inject(ConfigService);
+  private ConfigurationService = inject(ConfigurationService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
 
@@ -67,8 +67,8 @@ export class SetupComponent implements OnInit {
 
   private async loadSystemConfig(): Promise<void> {
     try {
-      const systemFeatures = await this.configService
-        .configControllerGetSystemFeatures()
+      const systemFeatures = await this.ConfigurationService
+        .getApiConfig()
         .toPromise();
 
       if (systemFeatures) {
@@ -196,3 +196,9 @@ export class SetupComponent implements OnInit {
     this.showOfflineSetup.set(false);
   }
 }
+
+
+
+
+
+

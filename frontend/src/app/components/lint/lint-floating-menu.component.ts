@@ -178,3 +178,7 @@ export class LintFloatingMenuComponent implements OnInit, OnDestroy {
     this.activeSuggestion = null;
   }
 }
+
+
+
+

@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ProjectAPIService } from '@inkweld/index';
+import { ProjectsService } from '@inkweld/index';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
 import {
@@ -114,7 +114,7 @@ describe('ProjectTreeComponent', () => {
         provideZonelessChangeDetection(),
         { provide: SettingsService, useValue: settingsService },
         { provide: ProjectStateService, useValue: projectStateService },
-        { provide: ProjectAPIService, useValue: projectServiceMock },
+        { provide: ProjectsService, useValue: projectServiceMock },
         provideHttpClient(),
         { provide: DialogGatewayService, useValue: dialogGatewayService },
       ],
@@ -554,3 +554,4 @@ describe('ProjectTreeComponent', () => {
     });
   });
 });
+

@@ -3,7 +3,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
-import { AuthService } from '@inkweld/index';
+import { AuthenticationService } from '@inkweld/index';
 import {
   catchError,
   firstValueFrom,
@@ -12,7 +12,7 @@ import {
   throwError,
 } from 'rxjs';
 
-import { UserAPIService } from '../../api-client/api/user-api.service';
+import { UsersService } from '../../api-client/api/users.service';
 import { UserDto } from '../../api-client/model/user-dto';
 import { LoggerService } from './logger.service';
 import { StorageService } from './storage.service';
@@ -49,9 +49,9 @@ const MAX_RETRIES = 3;
 })
 export class UserService {
   private readonly dialog = inject(MatDialog);
-  private readonly userAPI = inject(UserAPIService);
+  private readonly userAPI = inject(UsersService);
   private readonly xsrfService = inject(XsrfService);
-  private readonly authService = inject(AuthService);
+  private readonly AuthenticationService = inject(AuthenticationService);
   private readonly router = inject(Router);
   private readonly storage = inject(StorageService);
   private readonly logger = inject(LoggerService);
@@ -135,7 +135,7 @@ export class UserService {
 
       // Fallback to API with retry mechanism
       const user = await firstValueFrom(
-        this.userAPI.userControllerGetMe().pipe(
+        this.userAPI.getApiUserMe().pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
             const userError = this.formatError(error);
@@ -180,7 +180,7 @@ export class UserService {
 
     try {
       const response = await firstValueFrom(
-        this.authService.authControllerLogin(this.xsrfService.getXsrfToken(), {
+        this.AuthenticationService.postApiAuthLogin(this.xsrfService.getXsrfToken(), {
           username,
           password,
         })
@@ -221,7 +221,7 @@ export class UserService {
 
     try {
       await firstValueFrom(
-        this.authService.authControllerLogout(this.xsrfService.getXsrfToken())
+        this.AuthenticationService.postApiAuthLogout(this.xsrfService.getXsrfToken())
       );
       await this.clearCurrentUser();
       await this.router.navigate(['/welcome']);
@@ -308,3 +308,9 @@ export class UserService {
     }
   }
 }
+
+
+
+
+
+

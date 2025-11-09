@@ -2,8 +2,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
-import { ProjectAPIService } from '../../api-client/api/project-api.service';
-import { ProjectDto } from '../../api-client/model/project-dto';
+import { ProjectsService } from '../../api-client/api/projects.service';
+import { Project } from '../../api-client/model/project-dto';
 import { StorageService } from './storage.service';
 import { XsrfService } from './xsrf.service';
 
@@ -37,11 +37,11 @@ const MAX_RETRIES = 3;
   providedIn: 'root',
 })
 export class ProjectService {
-  private readonly projectApi = inject(ProjectAPIService);
+  private readonly projectApi = inject(ProjectsService);
   private readonly storage = inject(StorageService);
   private readonly xsrfService = inject(XsrfService);
 
-  readonly projects = signal<ProjectDto[]>([]);
+  readonly projects = signal<Project[]>([]);
   readonly isLoading = signal(false);
   readonly error = signal<ProjectServiceError | undefined>(undefined);
   readonly hasProjects = computed(() => this.projects().length > 0);
@@ -70,7 +70,7 @@ export class ProjectService {
     this.error.set(undefined);
 
     try {
-      let cachedProjects: ProjectDto[] | undefined;
+      let cachedProjects: Project[] | undefined;
 
       // Get cached projects if available to display immediately
       if (this.storage.isAvailable()) {
@@ -84,7 +84,7 @@ export class ProjectService {
       // Always fetch from API to get fresh data
       try {
         const projects = await firstValueFrom(
-          this.projectApi.projectControllerGetAllProjects().pipe(
+          this.projectApi.getApiProjects().pipe(
             retry(MAX_RETRIES),
             catchError((error: unknown) => {
               // If we have cached data, log the error but don't propagate it
@@ -109,7 +109,7 @@ export class ProjectService {
         );
 
         if (projects) {
-          // Assume projects is ProjectDto[]
+          // Assume projects is Project[]
           await this.setProjects(projects);
         }
       } catch (err) {
@@ -147,12 +147,12 @@ export class ProjectService {
   async getProjectByUsernameAndSlug(
     username: string,
     slug: string
-  ): Promise<ProjectDto> {
+  ): Promise<Project> {
     this.isLoading.set(true);
     this.error.set(undefined);
 
     const cacheKey = `${username}/${slug}`;
-    let cachedProject: ProjectDto | undefined;
+    let cachedProject: Project | undefined;
 
     try {
       // Try to find project in cached projects first
@@ -173,7 +173,7 @@ export class ProjectService {
       // No cache available, fetch from API with retry mechanism
       const project = await firstValueFrom(
         this.projectApi
-          .projectControllerGetProjectByUsernameAndSlug(username, slug)
+          .getApiProjectsUsernameSlug(username, slug)
           .pipe(
             retry(MAX_RETRIES),
             catchError((error: unknown) => {
@@ -215,7 +215,7 @@ export class ProjectService {
     try {
       const project = await firstValueFrom(
         this.projectApi
-          .projectControllerGetProjectByUsernameAndSlug(username, slug)
+          .getApiProjectsUsernameSlug(username, slug)
           .pipe(
             retry(MAX_RETRIES),
             catchError((error: unknown) => {
@@ -251,7 +251,7 @@ export class ProjectService {
     }
   }
 
-  async createProject(projectDto: ProjectDto): Promise<ProjectDto> {
+  async createProject(Project: Project): Promise<Project> {
     this.isLoading.set(true);
     this.error.set(undefined);
 
@@ -260,7 +260,7 @@ export class ProjectService {
         this.projectApi
           .projectControllerCreateProject(
             this.xsrfService.getXsrfToken(),
-            projectDto
+            Project
           )
           .pipe(
             retry(MAX_RETRIES),
@@ -293,8 +293,8 @@ export class ProjectService {
   async updateProject(
     username: string,
     slug: string,
-    projectDto: ProjectDto
-  ): Promise<ProjectDto> {
+    Project: Project
+  ): Promise<Project> {
     this.isLoading.set(true);
     this.error.set(undefined);
 
@@ -305,7 +305,7 @@ export class ProjectService {
             username,
             slug,
             this.xsrfService.getXsrfToken(),
-            projectDto
+            Project
           )
           .pipe(
             retry(MAX_RETRIES),
@@ -488,7 +488,7 @@ export class ProjectService {
     try {
       await firstValueFrom(
         this.projectApi
-          .coverControllerUploadCover(username, slug, coverImage)
+          .postApiImagesUsernameSlugCover(username, slug, coverImage)
           .pipe(
             retry(MAX_RETRIES),
             catchError(err => throwError(() => this.formatError(err)))
@@ -540,7 +540,7 @@ export class ProjectService {
     this.projects.set([]);
   }
 
-  private async setProjects(projects: ProjectDto[]): Promise<void> {
+  private async setProjects(projects: Project[]): Promise<void> {
     if (this.storage.isAvailable()) {
       try {
         const db = await this.db;
@@ -569,7 +569,7 @@ export class ProjectService {
 
   private async setCachedProject(
     key: string,
-    project: ProjectDto
+    project: Project
   ): Promise<void> {
     if (!this.storage.isAvailable()) return;
 
@@ -581,10 +581,10 @@ export class ProjectService {
     }
   }
 
-  private async getCachedProjects(): Promise<ProjectDto[] | undefined> {
+  private async getCachedProjects(): Promise<Project[] | undefined> {
     try {
       const db = await this.db;
-      return await this.storage.get<ProjectDto[]>(
+      return await this.storage.get<Project[]>(
         db,
         'projectsList',
         PROJECTS_LIST_CACHE_KEY
@@ -595,10 +595,10 @@ export class ProjectService {
     }
   }
 
-  private async getCachedProject(key: string): Promise<ProjectDto | undefined> {
+  private async getCachedProject(key: string): Promise<Project | undefined> {
     try {
       const db = await this.db;
-      return await this.storage.get<ProjectDto>(db, 'projects', key);
+      return await this.storage.get<Project>(db, 'projects', key);
     } catch (error) {
       console.warn(`Failed to get cached project ${key}:`, error);
       return undefined;
@@ -626,3 +626,10 @@ export class ProjectService {
     );
   }
 }
+
+
+
+
+
+
+

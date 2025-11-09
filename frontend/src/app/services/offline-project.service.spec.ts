@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { ProjectDto } from '@inkweld/index';
+import { Project } from '@inkweld/index';
 import { MockedObject, vi } from 'vitest';
 
 import { OfflineProjectService } from './offline-project.service';
@@ -140,7 +140,7 @@ describe('OfflineProjectService', () => {
     });
 
     it('should prevent duplicate slugs', () => {
-      const existingProject: ProjectDto = {
+      const existingProject: Project = {
         title: 'Existing Project',
         slug: 'test-project',
         username: 'testuser',
@@ -190,7 +190,7 @@ describe('OfflineProjectService', () => {
 
   describe('getProject', () => {
     beforeEach(() => {
-      const projects: ProjectDto[] = [
+      const projects: Project[] = [
         {
           title: 'Project 1',
           slug: 'project-1',
@@ -236,7 +236,7 @@ describe('OfflineProjectService', () => {
 
   describe('updateProject', () => {
     beforeEach(() => {
-      const projects: ProjectDto[] = [
+      const projects: Project[] = [
         {
           title: 'Original Title',
           slug: 'test-project',
@@ -279,7 +279,7 @@ describe('OfflineProjectService', () => {
 
   describe('deleteProject', () => {
     beforeEach(() => {
-      const projects: ProjectDto[] = [
+      const projects: Project[] = [
         {
           title: 'Project 1',
           slug: 'project-1',
@@ -320,7 +320,7 @@ describe('OfflineProjectService', () => {
 
   describe('getProjectsByUsername', () => {
     beforeEach(() => {
-      const projects: ProjectDto[] = [
+      const projects: Project[] = [
         {
           title: 'User1 Project 1',
           slug: 'user1-project-1',
@@ -370,7 +370,7 @@ describe('OfflineProjectService', () => {
     });
 
     it('should import projects for current user', () => {
-      const importedProjects: ProjectDto[] = [
+      const importedProjects: Project[] = [
         {
           title: 'Imported Project',
           slug: 'imported-project',
@@ -393,7 +393,7 @@ describe('OfflineProjectService', () => {
     });
 
     it('should handle duplicate imports by updating', () => {
-      const existingProject: ProjectDto = {
+      const existingProject: Project = {
         title: 'Existing Project',
         slug: 'test-project',
         username: 'testuser',
@@ -404,7 +404,7 @@ describe('OfflineProjectService', () => {
 
       service.projects.set([existingProject]);
 
-      const importedProjects: ProjectDto[] = [
+      const importedProjects: Project[] = [
         {
           title: 'Updated Project',
           slug: 'test-project',

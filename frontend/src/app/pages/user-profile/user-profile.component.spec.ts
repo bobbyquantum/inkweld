@@ -3,7 +3,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
-import { ProjectDto, UserDto } from '@inkweld/index';
+import { Project, UserDto } from '@inkweld/index';
 import { ProjectService } from '@services/project.service';
 import { UserService } from '@services/user.service';
 import { of, Subject } from 'rxjs';
@@ -50,7 +50,7 @@ describe('UserProfileComponent', () => {
     // Mock ProjectService to avoid service injection issues
     projectService = {
       loadAllProjects: vi.fn().mockResolvedValue(undefined),
-      projects: signal<ProjectDto[]>([]),
+      projects: signal<Project[]>([]),
     };
 
     await TestBed.configureTestingModule({

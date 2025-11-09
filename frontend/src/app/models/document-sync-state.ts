@@ -4,3 +4,7 @@ export enum DocumentSyncState {
   Syncing = 'syncing', // Currently establishing connection
   Synced = 'synced', // Connected and synced with server
 }
+
+
+
+

@@ -17,7 +17,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
-import { ProjectDto } from '@inkweld/index';
+import { Project } from '@inkweld/index';
 import { debounce } from 'lodash-es';
 
 @Component({
@@ -30,16 +30,16 @@ import { debounce } from 'lodash-es';
 export class BookshelfComponent
   implements AfterViewInit, OnDestroy, AfterViewChecked
 {
-  private _projects: ProjectDto[] = [];
+  private _projects: Project[] = [];
   @Input()
-  set projects(value: ProjectDto[]) {
+  set projects(value: Project[]) {
     this._projects = value;
     this.needsRecalculation = true;
   }
-  get projects(): ProjectDto[] {
+  get projects(): Project[] {
     return this._projects;
   }
-  @Output() projectSelected = new EventEmitter<ProjectDto>();
+  @Output() projectSelected = new EventEmitter<Project>();
 
   // Effect reference for cleanup
   private projectsEffectRef?: EffectRef;
@@ -487,7 +487,7 @@ export class BookshelfComponent
     }, 100);
   }
 
-  selectProject(project: ProjectDto) {
+  selectProject(project: Project) {
     console.log('[Bookshelf] selectProject called');
     console.log('[Bookshelf] recentlyDragged:', this.recentlyDragged);
     console.log('[Bookshelf] recentlyScrolled:', this.recentlyScrolled);
@@ -607,3 +607,7 @@ export class BookshelfComponent
     }
   }
 }
+
+
+
+

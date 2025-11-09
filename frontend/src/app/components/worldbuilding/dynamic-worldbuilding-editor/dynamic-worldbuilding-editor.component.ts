@@ -23,7 +23,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
 import { debounceTime } from 'rxjs';
 
-import { ProjectElementDto } from '../../../../api-client';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../../../api-client';
 import { TemplateEditorDialogComponent } from '../../../dialogs/template-editor-dialog/template-editor-dialog.component';
 import {
   ElementTypeSchema,
@@ -121,7 +121,7 @@ export class DynamicWorldbuildingEditorComponent implements OnDestroy {
           // Find the element from project state to get its type
           const elements = this.projectState.elements();
           const element = elements.find(
-            (el: ProjectElementDto) => el.id === elementId
+            (el: GetApiV1ProjectsUsernameSlugElements200ResponseInner) => el.id === elementId
           );
 
           if (element) {
@@ -435,3 +435,7 @@ export class DynamicWorldbuildingEditorComponent implements OnDestroy {
     }
   }
 }
+
+
+
+

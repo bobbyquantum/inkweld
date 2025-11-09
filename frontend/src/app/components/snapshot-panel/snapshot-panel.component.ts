@@ -260,3 +260,7 @@ export class SnapshotPanelComponent implements OnInit {
     return undefined;
   }
 }
+
+
+
+

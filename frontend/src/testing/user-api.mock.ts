@@ -14,3 +14,6 @@ export const userServiceMock = {
   userControllerGetOAuthProviders: vi.fn<() => Observable<string[]>>(),
   userControllerRegister: vi.fn<(dto: UserRegisterDto) => Observable<UserDto>>()
 };
+
+
+

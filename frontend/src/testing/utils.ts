@@ -8,3 +8,7 @@ export function apiOk<T>(body: T): Observable<HttpEvent<T>> {
 export function apiErr<T>(err: unknown): Observable<HttpEvent<T>> {
   return throwError(() => err) as unknown as Observable<HttpEvent<T>>;
 }
+
+
+
+

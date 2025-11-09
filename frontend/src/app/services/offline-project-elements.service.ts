@@ -1,18 +1,18 @@
 import { Injectable, signal } from '@angular/core';
-import { ProjectElementDto } from '@inkweld/index';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 import { nanoid } from 'nanoid';
 
 const OFFLINE_ELEMENTS_STORAGE_KEY = 'inkweld-offline-elements';
 
 interface StoredProjectElements {
-  [projectKey: string]: ProjectElementDto[];
+  [projectKey: string]: GetApiV1ProjectsUsernameSlugElements200ResponseInner[];
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class OfflineProjectElementsService {
-  readonly elements = signal<ProjectElementDto[]>([]);
+  readonly elements = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>([]);
   readonly isLoading = signal(false);
 
   /**
@@ -36,7 +36,7 @@ export class OfflineProjectElementsService {
   saveElements(
     username: string,
     slug: string,
-    elements: ProjectElementDto[]
+    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
   ): void {
     const projectKey = `${username}:${slug}`;
     const storedElements = this.getStoredElements();
@@ -48,8 +48,8 @@ export class OfflineProjectElementsService {
   /**
    * Create default project structure
    */
-  createDefaultStructure(username: string, slug: string): ProjectElementDto[] {
-    const defaultElements: ProjectElementDto[] = [
+  createDefaultStructure(username: string, slug: string): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
+    const defaultElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
       {
         id: nanoid(),
         name: 'Chapters',
@@ -102,7 +102,7 @@ export class OfflineProjectElementsService {
   updateElements(
     username: string,
     slug: string,
-    elements: ProjectElementDto[]
+    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
   ): void {
     this.saveElements(username, slug, elements);
   }
@@ -113,17 +113,17 @@ export class OfflineProjectElementsService {
   addElement(
     username: string,
     slug: string,
-    type: ProjectElementDto['type'],
+    type: GetApiV1ProjectsUsernameSlugElements200ResponseInner['type'],
     name: string,
     parentId?: string
-  ): ProjectElementDto[] {
+  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
     const elements = this.elements();
     const parentIndex = parentId
       ? elements.findIndex(e => e.id === parentId)
       : -1;
     const parentLevel = parentIndex >= 0 ? elements[parentIndex].level : -1;
 
-    const newElement: ProjectElementDto = {
+    const newElement: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: nanoid(),
       name,
       type,
@@ -149,7 +149,7 @@ export class OfflineProjectElementsService {
     username: string,
     slug: string,
     elementId: string
-  ): ProjectElementDto[] {
+  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
     const elements = this.elements();
     const index = elements.findIndex(e => e.id === elementId);
     if (index === -1) return elements;
@@ -171,7 +171,7 @@ export class OfflineProjectElementsService {
     elementId: string,
     targetIndex: number,
     newLevel: number
-  ): ProjectElementDto[] {
+  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
     const elements = this.elements();
     const elementIndex = elements.findIndex(e => e.id === elementId);
     if (elementIndex === -1) return elements;
@@ -202,7 +202,7 @@ export class OfflineProjectElementsService {
     slug: string,
     elementId: string,
     newName: string
-  ): ProjectElementDto[] {
+  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
     const elements = this.elements();
     const index = elements.findIndex(e => e.id === elementId);
     if (index === -1) return elements;
@@ -237,9 +237,9 @@ export class OfflineProjectElementsService {
   }
 
   private getSubtree(
-    elements: ProjectElementDto[],
+    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[],
     startIndex: number
-  ): ProjectElementDto[] {
+  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
     const startLevel = elements[startIndex].level;
     const subtree = [elements[startIndex]];
 
@@ -255,11 +255,15 @@ export class OfflineProjectElementsService {
   }
 
   private recomputePositions(
-    elements: ProjectElementDto[]
-  ): ProjectElementDto[] {
+    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
     return elements.map((element, index) => ({
       ...element,
       position: index,
     }));
   }
 }
+
+
+
+

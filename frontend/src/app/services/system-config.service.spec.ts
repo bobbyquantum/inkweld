@@ -3,13 +3,13 @@ import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { Mock, MockedObject, vi } from 'vitest';
 
-import { ConfigService } from '../../api-client/api/config.service';
+import { ConfigurationService } from '../../api-client/api/config.service';
 import { ConfigControllerGetSystemFeatures200Response } from '../../api-client/model/config-controller-get-system-features200-response';
 import { SystemConfigService } from './system-config.service';
 
 describe('SystemConfigService', () => {
   let service: SystemConfigService;
-  let mockConfigService: MockedObject<ConfigService>;
+  let mockConfigService: MockedObject<ConfigurationService>;
   let consoleSpy: any;
   let consoleWarnSpy: any;
 
@@ -21,10 +21,10 @@ describe('SystemConfigService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Mock ConfigService
+    // Mock ConfigurationService
     mockConfigService = {
-      configControllerGetSystemFeatures: vi.fn(),
-    } as MockedObject<ConfigService>;
+      getApiConfig: vi.fn(),
+    } as MockedObject<ConfigurationService>;
 
     // Mock console methods to avoid test output noise, but keep spies for testing
     consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -32,14 +32,14 @@ describe('SystemConfigService', () => {
 
     // Set up default successful response
     (
-      mockConfigService.configControllerGetSystemFeatures as Mock
+      mockConfigService.getApiConfig as Mock
     ).mockReturnValue(of(mockSystemFeatures));
 
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         SystemConfigService,
-        { provide: ConfigService, useValue: mockConfigService },
+        { provide: ConfigurationService, useValue: mockConfigService },
       ],
     });
 
@@ -58,13 +58,13 @@ describe('SystemConfigService', () => {
     it('should initialize with default features when constructor is called', () => {
       expect(service).toBeTruthy();
       expect(
-        mockConfigService.configControllerGetSystemFeatures
+        mockConfigService.getApiConfig
       ).toHaveBeenCalled();
     });
 
     it('should have correct initial values', () => {
       // Reset the service with no API call to test initial state
-      (mockConfigService.configControllerGetSystemFeatures as Mock).mockClear();
+      (mockConfigService.getApiConfig as Mock).mockClear();
 
       // Check the signals are functions
       expect(typeof service.systemFeatures).toBe('function');
@@ -81,14 +81,14 @@ describe('SystemConfigService', () => {
       // Reset TestBed with error mock
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as Mock
+        mockConfigService.getApiConfig as Mock
       ).mockReturnValue(throwError(() => error));
 
       TestBed.configureTestingModule({
         providers: [
           provideZonelessChangeDetection(),
           SystemConfigService,
-          { provide: ConfigService, useValue: mockConfigService },
+          { provide: ConfigurationService, useValue: mockConfigService },
         ],
       });
 
@@ -142,10 +142,10 @@ describe('SystemConfigService', () => {
 
           // Clear previous calls and set up new return value
           (
-            mockConfigService.configControllerGetSystemFeatures as Mock
+            mockConfigService.getApiConfig as Mock
           ).mockClear();
           (
-            mockConfigService.configControllerGetSystemFeatures as Mock
+            mockConfigService.getApiConfig as Mock
           ).mockReturnValue(of(newFeatures));
 
           service.refreshSystemFeatures();
@@ -154,7 +154,7 @@ describe('SystemConfigService', () => {
             expect(service.systemFeatures()).toEqual(newFeatures);
             expect(service.isConfigLoaded()).toBe(true);
             expect(
-              mockConfigService.configControllerGetSystemFeatures
+              mockConfigService.getApiConfig
             ).toHaveBeenCalledTimes(1);
             resolve();
           }, 10);
@@ -170,7 +170,7 @@ describe('SystemConfigService', () => {
 
           // Setup a fresh observable for refresh
           (
-            mockConfigService.configControllerGetSystemFeatures as Mock
+            mockConfigService.getApiConfig as Mock
           ).mockReturnValue(of(mockSystemFeatures));
 
           // Trigger refresh
@@ -181,7 +181,7 @@ describe('SystemConfigService', () => {
           setTimeout(() => {
             expect(service.isConfigLoaded()).toBe(true);
             expect(
-              mockConfigService.configControllerGetSystemFeatures
+              mockConfigService.getApiConfig
             ).toHaveBeenCalled();
             resolve();
           }, 10);
@@ -194,14 +194,14 @@ describe('SystemConfigService', () => {
     it('should compute isAiLintingEnabled correctly', () => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as Mock
+        mockConfigService.getApiConfig as Mock
       ).mockReturnValue(of({ aiLinting: true, aiImageGeneration: false }));
 
       TestBed.configureTestingModule({
         providers: [
           provideZonelessChangeDetection(),
           SystemConfigService,
-          { provide: ConfigService, useValue: mockConfigService },
+          { provide: ConfigurationService, useValue: mockConfigService },
         ],
       });
 
@@ -218,7 +218,7 @@ describe('SystemConfigService', () => {
     it('should compute isAiLintingEnabled as false when undefined', () => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as Mock
+        mockConfigService.getApiConfig as Mock
       ).mockReturnValue(
         of({
           aiImageGeneration: false,
@@ -229,7 +229,7 @@ describe('SystemConfigService', () => {
         providers: [
           provideZonelessChangeDetection(),
           SystemConfigService,
-          { provide: ConfigService, useValue: mockConfigService },
+          { provide: ConfigurationService, useValue: mockConfigService },
         ],
       });
 
@@ -246,14 +246,14 @@ describe('SystemConfigService', () => {
     it('should compute isAiImageGenerationEnabled correctly', () => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as Mock
+        mockConfigService.getApiConfig as Mock
       ).mockReturnValue(of({ aiLinting: false, aiImageGeneration: true }));
 
       TestBed.configureTestingModule({
         providers: [
           provideZonelessChangeDetection(),
           SystemConfigService,
-          { provide: ConfigService, useValue: mockConfigService },
+          { provide: ConfigurationService, useValue: mockConfigService },
         ],
       });
 
@@ -270,7 +270,7 @@ describe('SystemConfigService', () => {
     it('should compute isAiImageGenerationEnabled as false when undefined', () => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as Mock
+        mockConfigService.getApiConfig as Mock
       ).mockReturnValue(
         of({ aiLinting: false } as ConfigControllerGetSystemFeatures200Response)
       );
@@ -279,7 +279,7 @@ describe('SystemConfigService', () => {
         providers: [
           provideZonelessChangeDetection(),
           SystemConfigService,
-          { provide: ConfigService, useValue: mockConfigService },
+          { provide: ConfigurationService, useValue: mockConfigService },
         ],
       });
 
@@ -296,14 +296,14 @@ describe('SystemConfigService', () => {
     it('should handle null/undefined system features gracefully', () => {
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as Mock
+        mockConfigService.getApiConfig as Mock
       ).mockReturnValue(of({} as ConfigControllerGetSystemFeatures200Response));
 
       TestBed.configureTestingModule({
         providers: [
           provideZonelessChangeDetection(),
           SystemConfigService,
-          { provide: ConfigService, useValue: mockConfigService },
+          { provide: ConfigurationService, useValue: mockConfigService },
         ],
       });
 
@@ -326,14 +326,14 @@ describe('SystemConfigService', () => {
 
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as Mock
+        mockConfigService.getApiConfig as Mock
       ).mockReturnValueOnce(of(initialFeatures));
 
       TestBed.configureTestingModule({
         providers: [
           provideZonelessChangeDetection(),
           SystemConfigService,
-          { provide: ConfigService, useValue: mockConfigService },
+          { provide: ConfigurationService, useValue: mockConfigService },
         ],
       });
 
@@ -346,7 +346,7 @@ describe('SystemConfigService', () => {
 
           // Update features
           (
-            mockConfigService.configControllerGetSystemFeatures as Mock
+            mockConfigService.getApiConfig as Mock
           ).mockReturnValueOnce(of(updatedFeatures));
 
           testService.refreshSystemFeatures();
@@ -375,14 +375,14 @@ describe('SystemConfigService', () => {
 
       TestBed.resetTestingModule();
       (
-        mockConfigService.configControllerGetSystemFeatures as Mock
+        mockConfigService.getApiConfig as Mock
       ).mockReturnValue(throwError(() => networkError));
 
       TestBed.configureTestingModule({
         providers: [
           provideZonelessChangeDetection(),
           SystemConfigService,
-          { provide: ConfigService, useValue: mockConfigService },
+          { provide: ConfigurationService, useValue: mockConfigService },
         ],
       });
 
@@ -415,7 +415,7 @@ describe('SystemConfigService', () => {
           // Now simulate error on refresh
           const refreshError = new Error('Refresh failed');
           (
-            mockConfigService.configControllerGetSystemFeatures as Mock
+            mockConfigService.getApiConfig as Mock
           ).mockReturnValue(throwError(() => refreshError));
 
           service.refreshSystemFeatures();
@@ -439,3 +439,5 @@ describe('SystemConfigService', () => {
     });
   });
 });
+
+

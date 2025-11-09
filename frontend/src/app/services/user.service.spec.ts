@@ -14,8 +14,8 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
-import { AuthService, UserDto } from '@inkweld/index';
-import { UserAPIService } from '@inkweld/index';
+import { AuthenticationService, UserDto } from '@inkweld/index';
+import { UsersService } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 import { Mock, vi } from 'vitest';
 
@@ -39,17 +39,17 @@ describe('UserService', () => {
   let storageService: StorageService;
   let httpTestingController: HttpTestingController;
   let authServiceMock: {
-    authControllerLogin: Mock;
-    authControllerLogout: Mock;
+    postApiAuthLogin: Mock;
+    postApiAuthLogout: Mock;
   };
   let dialogMock: { open: Mock };
   let routerMock: { navigate: Mock };
 
   beforeEach(() => {
-    userServiceMock.userControllerGetMe.mockReturnValue(of(TEST_USER));
+    userServiceMock.getApiUserMe.mockReturnValue(of(TEST_USER));
     authServiceMock = {
-      authControllerLogin: vi.fn(),
-      authControllerLogout: vi.fn(),
+      postApiAuthLogin: vi.fn(),
+      postApiAuthLogout: vi.fn(),
     };
     dialogMock = { open: vi.fn() };
     routerMock = { navigate: vi.fn() };
@@ -66,11 +66,11 @@ describe('UserService', () => {
         UserService,
         StorageService,
         {
-          provide: UserAPIService,
+          provide: UsersService,
           useValue: userServiceMock,
         },
         {
-          provide: AuthService,
+          provide: AuthenticationService,
           useValue: authServiceMock,
         },
         {
@@ -119,9 +119,9 @@ describe('UserService', () => {
 
   describe('loadCurrentUser', () => {
     it('should load user from API when cache is empty', async () => {
-      userServiceMock.userControllerGetMe.mockClear();
+      userServiceMock.getApiUserMe.mockClear();
       await service.loadCurrentUser();
-      expect(userServiceMock.userControllerGetMe).toHaveBeenCalledTimes(1);
+      expect(userServiceMock.getApiUserMe).toHaveBeenCalledTimes(1);
       expect(service.currentUser()).toEqual(TEST_USER);
       expect(service.isLoading()).toBe(false);
       expect(service.error()).toBeUndefined();
@@ -129,15 +129,15 @@ describe('UserService', () => {
 
     it('should use cached user when available', async () => {
       // First load to cache the user
-      userServiceMock.userControllerGetMe.mockReturnValue(of(TEST_USER));
+      userServiceMock.getApiUserMe.mockReturnValue(of(TEST_USER));
       await service.loadCurrentUser();
 
-      userServiceMock.userControllerGetMe.mockClear();
+      userServiceMock.getApiUserMe.mockClear();
 
-      expect(userServiceMock.userControllerGetMe).not.toHaveBeenCalled();
+      expect(userServiceMock.getApiUserMe).not.toHaveBeenCalled();
       // Second load should use cache
       await service.loadCurrentUser();
-      expect(userServiceMock.userControllerGetMe).not.toHaveBeenCalled();
+      expect(userServiceMock.getApiUserMe).not.toHaveBeenCalled();
       expect(service.currentUser()).toEqual(TEST_USER);
     });
 
@@ -147,7 +147,7 @@ describe('UserService', () => {
         status: 0,
         statusText: 'Network Error',
       });
-      userServiceMock.userControllerGetMe.mockReturnValue(
+      userServiceMock.getApiUserMe.mockReturnValue(
         throwError(() => error)
       );
 
@@ -162,7 +162,7 @@ describe('UserService', () => {
         status: 401,
         statusText: 'Unauthorized',
       });
-      userServiceMock.userControllerGetMe.mockReturnValue(
+      userServiceMock.getApiUserMe.mockReturnValue(
         throwError(() => error)
       );
 
@@ -205,12 +205,12 @@ describe('UserService', () => {
       const username = 'testuser';
       const password = 'password123';
 
-      authServiceMock.authControllerLogin.mockReturnValue(of(TEST_USER));
+      authServiceMock.postApiAuthLogin.mockReturnValue(of(TEST_USER));
 
       await service.login(username, password);
 
       // Verify the auth service was called
-      expect(authServiceMock.authControllerLogin).toHaveBeenCalledWith('', {
+      expect(authServiceMock.postApiAuthLogin).toHaveBeenCalledWith('', {
         username,
         password,
       });
@@ -234,7 +234,7 @@ describe('UserService', () => {
         statusText: 'Unauthorized',
       });
 
-      authServiceMock.authControllerLogin.mockReturnValue(
+      authServiceMock.postApiAuthLogin.mockReturnValue(
         throwError(() => errorResponse)
       );
 
@@ -341,11 +341,11 @@ describe('UserService', () => {
 
   describe('logout', () => {
     it('should logout successfully and clear user', async () => {
-      const authService = TestBed.inject(AuthService);
+      const AuthenticationService = TestBed.inject(AuthenticationService);
       const router = TestBed.inject(Router);
       const service = TestBed.inject(UserService);
 
-      vi.spyOn(authService, 'authControllerLogout').mockReturnValue(
+      vi.spyOn(AuthenticationService, 'postApiAuthLogout').mockReturnValue(
         of(new HttpResponse({ status: 200 }))
       );
       const clearCurrentUserSpy = vi
@@ -354,20 +354,20 @@ describe('UserService', () => {
 
       await service.logout();
 
-      expect(authService.authControllerLogout).toHaveBeenCalled();
+      expect(AuthenticationService.postApiAuthLogout).toHaveBeenCalled();
       expect(clearCurrentUserSpy).toHaveBeenCalled();
       expect(router.navigate).toHaveBeenCalledWith(['/welcome']);
     });
 
     it('should handle logout failure', async () => {
-      const authService = TestBed.inject(AuthService);
+      const AuthenticationService = TestBed.inject(AuthenticationService);
       const service = TestBed.inject(UserService);
 
       const error = new UserServiceError(
         'SERVER_ERROR',
         'Failed to load user data'
       );
-      vi.spyOn(authService, 'authControllerLogout').mockReturnValue(
+      vi.spyOn(AuthenticationService, 'postApiAuthLogout').mockReturnValue(
         throwError(() => new Error('Logout failed'))
       );
       const clearCurrentUserSpy = vi
@@ -379,3 +379,5 @@ describe('UserService', () => {
     });
   });
 });
+
+

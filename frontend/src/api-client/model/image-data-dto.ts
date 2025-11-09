@@ -24,3 +24,4 @@ export interface ImageDataDto {
     revised_prompt?: string;
 }
 
+

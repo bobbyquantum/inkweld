@@ -1,12 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Provider } from '@angular/core';
 import {
-  AuthService,
+  AuthenticationService,
   Configuration,
-  CSRFService,
-  DocumentAPIService,
-  ProjectAPIService,
-  UserAPIService,
+  DocumentsService,
+  ProjectsService,
+  SecurityService,
+  UsersService,
 } from '@inkweld/index';
 
 import { environment } from '../../environments/environment';
@@ -44,9 +44,9 @@ function createApiServiceProvider<T>(
 // All API service providers
 export const API_PROVIDERS: Provider[] = [
   provideApiConfig(),
-  createApiServiceProvider(UserAPIService),
-  createApiServiceProvider(ProjectAPIService),
-  createApiServiceProvider(DocumentAPIService),
-  createApiServiceProvider(AuthService),
-  createApiServiceProvider(CSRFService),
+  createApiServiceProvider(UsersService),
+  createApiServiceProvider(ProjectsService),
+  createApiServiceProvider(DocumentsService),
+  createApiServiceProvider(AuthenticationService),
+  createApiServiceProvider(SecurityService),
 ];

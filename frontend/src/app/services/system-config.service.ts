@@ -2,7 +2,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 
-import { ConfigService } from '../../api-client/api/config.service';
+import { ConfigurationService } from '../../api-client/api/configuration.service';
 import { ConfigControllerGetSystemFeatures200Response } from '../../api-client/model/config-controller-get-system-features200-response';
 
 interface CaptchaConfig {
@@ -20,7 +20,7 @@ interface ExtendedSystemFeatures
   providedIn: 'root',
 })
 export class SystemConfigService {
-  private readonly configApiService = inject(ConfigService);
+  private readonly configApiService = inject(ConfigurationService);
 
   private readonly systemFeaturesSignal = signal<ExtendedSystemFeatures>({
     aiLinting: false,
@@ -59,7 +59,7 @@ export class SystemConfigService {
    */
   private loadSystemFeatures(): void {
     this.configApiService
-      .configControllerGetSystemFeatures()
+      .getApiConfig()
       .pipe(
         tap(features => {
           console.log('[SystemConfig] Loaded system features:', features);
@@ -92,3 +92,9 @@ export class SystemConfigService {
     this.loadSystemFeatures();
   }
 }
+
+
+
+
+
+

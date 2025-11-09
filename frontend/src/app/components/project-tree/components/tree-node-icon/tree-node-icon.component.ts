@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { ProjectElementDto } from '@inkweld/index';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 
 @Component({
   selector: 'app-tree-node-icon',
@@ -25,16 +25,16 @@ export class TreeNodeIconComponent {
     }
 
     const typeMap: Record<string, string> = {
-      [ProjectElementDto.TypeEnum.Character]: 'person',
-      [ProjectElementDto.TypeEnum.Location]: 'place',
-      [ProjectElementDto.TypeEnum.WbItem]: 'category',
-      [ProjectElementDto.TypeEnum.Map]: 'map',
-      [ProjectElementDto.TypeEnum.Relationship]: 'diversity_1',
-      [ProjectElementDto.TypeEnum.Philosophy]: 'auto_stories',
-      [ProjectElementDto.TypeEnum.Culture]: 'groups',
-      [ProjectElementDto.TypeEnum.Species]: 'pets',
-      [ProjectElementDto.TypeEnum.Systems]: 'settings',
-      [ProjectElementDto.TypeEnum.Item]: 'description',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Character]: 'person',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Location]: 'place',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.WbItem]: 'category',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Map]: 'map',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Relationship]: 'diversity_1',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Philosophy]: 'auto_stories',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Culture]: 'groups',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Species]: 'pets',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Systems]: 'settings',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item]: 'description',
       IMAGE: 'image', // Legacy type not in enum
     };
 
@@ -51,3 +51,7 @@ export class TreeNodeIconComponent {
     return 'description';
   }
 }
+
+
+
+

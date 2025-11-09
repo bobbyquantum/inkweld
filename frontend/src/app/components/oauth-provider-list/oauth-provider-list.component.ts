@@ -10,7 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { AuthService } from '@inkweld/index';
+import { AuthenticationService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
@@ -108,7 +108,7 @@ import { environment } from '../../../environments/environment';
   ],
 })
 export class OAuthProviderListComponent implements OnInit {
-  private authService = inject(AuthService);
+  private AuthenticationService = inject(AuthenticationService);
   private snackBar = inject(MatSnackBar);
   private ngZone = inject(NgZone);
 
@@ -168,7 +168,7 @@ export class OAuthProviderListComponent implements OnInit {
 
     try {
       const providers: string[] = await firstValueFrom(
-        this.authService.authControllerGetOAuthProviders()
+        this.AuthenticationService.getApiAuthProviders()
       );
       this.enabledProviders.set(providers);
 

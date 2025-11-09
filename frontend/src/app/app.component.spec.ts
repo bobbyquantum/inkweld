@@ -9,7 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { By } from '@angular/platform-browser';
 import { Event, Router } from '@angular/router';
-import { Configuration, UserAPIService } from '@inkweld/index';
+import { Configuration, UsersService } from '@inkweld/index';
 import { SetupService } from '@services/setup.service';
 import { UnifiedUserService } from '@services/unified-user.service';
 import { Subject } from 'rxjs';
@@ -70,7 +70,7 @@ describe('AppComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClientTesting(),
-        { provide: UserAPIService, useValue: userServiceMock },
+        { provide: UsersService, useValue: userServiceMock },
         { provide: UnifiedUserService, useValue: unifiedUserService },
         { provide: SetupService, useValue: setupService },
         {
@@ -237,3 +237,4 @@ describe('AppComponent', () => {
     });
   });
 });
+

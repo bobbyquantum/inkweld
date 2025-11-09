@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { ProjectElementDto } from '@inkweld/index';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 
 import { LoggerService } from './logger.service';
 import { SettingsService } from './settings.service';
@@ -29,7 +29,7 @@ export class RecentFilesService {
     this.loadRecentFiles();
   }
 
-  addRecentFile(file: ProjectElementDto, username: string, slug: string): void {
+  addRecentFile(file: GetApiV1ProjectsUsernameSlugElements200ResponseInner, username: string, slug: string): void {
     const currentFiles = [...this.recentFiles()];
 
     // Remove the file if it already exists
@@ -91,3 +91,7 @@ export class RecentFilesService {
     this.settingsService.setSetting(this.STORAGE_KEY, this.recentFiles());
   }
 }
+
+
+
+
