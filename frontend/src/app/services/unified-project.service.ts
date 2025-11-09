@@ -74,6 +74,7 @@ export class UnifiedProjectService {
     } else if (mode === 'server') {
       // For server mode, we need to provide required fields
       const fullProjectData: Project = {
+        id: projectData.id || '',
         title: projectData.title || 'Untitled Project',
         description: projectData.description || '',
         slug: projectData.slug || 'untitled-project',

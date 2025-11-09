@@ -1,7 +1,8 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
+import { ImagesService } from '../../api-client/api/images.service';
 import { ProjectsService } from '../../api-client/api/projects.service';
 import { Project } from '../../api-client/model/project';
 import { StorageService } from './storage.service';
@@ -38,6 +39,8 @@ const MAX_RETRIES = 3;
 })
 export class ProjectService {
   private readonly projectApi = inject(ProjectsService);
+  private readonly imagesApi = inject(ImagesService);
+  private readonly http = inject(HttpClient);
   private readonly storage = inject(StorageService);
   private readonly xsrfService = inject(XsrfService);
 
@@ -84,7 +87,7 @@ export class ProjectService {
       // Always fetch from API to get fresh data
       try {
         const projects = await firstValueFrom(
-          this.projectApi.getApiProjects().pipe(
+          this.projectApi.getApiV1Projects().pipe(
             retry(MAX_RETRIES),
             catchError((error: unknown) => {
               // If we have cached data, log the error but don't propagate it
@@ -173,7 +176,7 @@ export class ProjectService {
       // No cache available, fetch from API with retry mechanism
       const project = await firstValueFrom(
         this.projectApi
-          .getApiProjectsUsernameSlug(username, slug)
+          .getApiV1ProjectsUsernameSlug(username, slug)
           .pipe(
             retry(MAX_RETRIES),
             catchError((error: unknown) => {
@@ -215,7 +218,7 @@ export class ProjectService {
     try {
       const project = await firstValueFrom(
         this.projectApi
-          .getApiProjectsUsernameSlug(username, slug)
+          .getApiV1ProjectsUsernameSlug(username, slug)
           .pipe(
             retry(MAX_RETRIES),
             catchError((error: unknown) => {
@@ -256,12 +259,14 @@ export class ProjectService {
     this.error.set(undefined);
 
     try {
+      const createRequest = {
+        slug: Project.slug,
+        title: Project.title,
+        description: Project.description || undefined,
+      };
       const project = await firstValueFrom(
         this.projectApi
-          .projectControllerCreateProject(
-            this.xsrfService.getXsrfToken(),
-            Project
-          )
+          .postApiV1Projects(createRequest)
           .pipe(
             retry(MAX_RETRIES),
             catchError((error: unknown) => {
@@ -299,13 +304,16 @@ export class ProjectService {
     this.error.set(undefined);
 
     try {
+      const updateRequest = {
+        title: Project.title,
+        description: Project.description || undefined,
+      };
       const project = await firstValueFrom(
         this.projectApi
-          .projectControllerUpdateProject(
+          .putApiV1ProjectsUsernameSlug(
             username,
             slug,
-            this.xsrfService.getXsrfToken(),
-            Project
+            updateRequest
           )
           .pipe(
             retry(MAX_RETRIES),
@@ -347,10 +355,9 @@ export class ProjectService {
     try {
       await firstValueFrom(
         this.projectApi
-          .projectControllerDeleteProject(
+          .deleteApiV1ProjectsUsernameSlug(
             username,
-            slug,
-            this.xsrfService.getXsrfToken()
+            slug
           )
           .pipe(
             retry(MAX_RETRIES),
@@ -396,7 +403,7 @@ export class ProjectService {
 
     try {
       return await firstValueFrom(
-        this.projectApi.coverControllerGetProjectCover(username, slug).pipe(
+        this.imagesApi.getApiImagesUsernameSlugCover(username, slug).pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
             const projectError = this.formatError(error);
@@ -446,7 +453,7 @@ export class ProjectService {
     try {
       // Assume delete returns void or similar
       await firstValueFrom(
-        this.projectApi.coverControllerDeleteCover(username, slug).pipe(
+        this.imagesApi.deleteApiImagesUsernameSlugCover(username, slug).pipe(
           retry(MAX_RETRIES),
           catchError(err => throwError(() => this.formatError(err)))
         )
@@ -486,9 +493,14 @@ export class ProjectService {
     this.error.set(undefined);
 
     try {
+      const formData = new FormData();
+      formData.append('cover', coverImage);
+      
       await firstValueFrom(
-        this.projectApi
-          .postApiImagesUsernameSlugCover(username, slug, coverImage)
+        this.http
+          .post(`/api/images/${username}/${slug}/cover`, formData, {
+            withCredentials: true,
+          })
           .pipe(
             retry(MAX_RETRIES),
             catchError(err => throwError(() => this.formatError(err)))

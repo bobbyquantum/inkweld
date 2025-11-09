@@ -1,6 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import {
   ProjectsService,
+  ExportService,
   Project,
   GetApiV1ProjectsUsernameSlugElements200ResponseInner,
 } from '@inkweld/index';
@@ -50,6 +51,7 @@ export interface AppTab {
 })
 export class ProjectStateService {
   private ProjectsService = inject(ProjectsService);
+  private ExportService = inject(ExportService);
   private unifiedProjectService = inject(UnifiedProjectService);
   private setupService = inject(SetupService);
   private offlineElementsService = inject(OfflineProjectElementsService);
@@ -563,9 +565,10 @@ export class ProjectStateService {
         id: nanoid(),
         name,
         type,
+        parentId: parentId || null,
         level: parentLevel + 1,
         expandable: type === 'FOLDER',
-        position: elements.length,
+        order: elements.length,
         version: 0,
         metadata: {},
       };
@@ -778,7 +781,7 @@ export class ProjectStateService {
   async publishProject(project: Project): Promise<void> {
     try {
       const response = await firstValueFrom(
-        this.ProjectsService.postApiProjectsUsernameSlugEpub(
+        this.ExportService.postApiV1ProjectsUsernameSlugEpub(
           project.username,
           project.slug
         )
