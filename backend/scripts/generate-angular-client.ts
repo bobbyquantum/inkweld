@@ -47,7 +47,7 @@ function generateAngularClient() {
     // Generate Angular client using the same settings as /server
     execSync(
       `npx @openapitools/openapi-generator-cli generate -i ${inputPath} -g typescript-angular --enable-post-process-file -o ${outputPath} --additional-properties=fileNaming=kebab-case,sortParamsByRequiredFlag=true,legacyDiscriminatorBehavior=false,ensureUniqueParams=true,sortOperations=true,sortTags=true,ngVersion=20.0.0,zonejsVersion=0.15.0,ngPackagrVersion=20.0.0,serviceSuffix=Service,serviceFileSuffix=.service`,
-      { stdio: 'inherit', shell: 'cmd.exe' }
+      { stdio: 'inherit' }
     );
 
     console.log('');
