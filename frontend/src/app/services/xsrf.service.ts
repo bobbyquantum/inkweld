@@ -44,7 +44,7 @@ export class XsrfService {
 
       // Use the generated SecurityService to get the token
       const response = (await firstValueFrom(
-        this.SecurityService.csrfControllerGetCsrfToken()
+        this.SecurityService.getCsrfToken()
       )) as CsrfTokenResponse;
 
       if (!response || !response.token || typeof response.token !== 'string') {

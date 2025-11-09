@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 
-import { Project } from '../../api-client/model/project-dto';
+import { Project } from '../../api-client/model/project';
 import { OfflineProjectElementsService } from './offline-project-elements.service';
 import { SetupService } from './setup.service';
 

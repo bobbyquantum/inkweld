@@ -13,7 +13,7 @@ import {
 } from 'rxjs';
 
 import { UsersService } from '../../api-client/api/users.service';
-import { UserDto } from '../../api-client/model/user-dto';
+import { User } from '../../api-client/model/user';
 import { LoggerService } from './logger.service';
 import { StorageService } from './storage.service';
 import { XsrfService } from './xsrf.service';
@@ -56,9 +56,11 @@ export class UserService {
   private readonly storage = inject(StorageService);
   private readonly logger = inject(LoggerService);
 
-  readonly currentUser = signal<UserDto>({
+  readonly currentUser = signal<User>({
+    id: '',
     name: 'anonymous',
     username: 'anonymous',
+    enabled: false,
   });
   readonly isLoading = signal(false);
   readonly error = signal<UserServiceError | undefined>(undefined);
@@ -162,7 +164,7 @@ export class UserService {
     }
   }
 
-  async setCurrentUser(user: UserDto): Promise<void> {
+  async setCurrentUser(user: User): Promise<void> {
     if (this.storage.isAvailable()) {
       try {
         const db = await this.db;
@@ -298,10 +300,10 @@ export class UserService {
     return new UserServiceError('SERVER_ERROR', 'Failed to load user data');
   }
 
-  private async getCachedUser(): Promise<UserDto | undefined> {
+  private async getCachedUser(): Promise<User | undefined> {
     try {
       const db = await this.db;
-      return await this.storage.get<UserDto>(db, 'users', CACHE_KEY);
+      return await this.storage.get<User>(db, 'users', CACHE_KEY);
     } catch (error) {
       this.logger.warn('UserService', 'Failed to get cached user', error);
       return undefined;

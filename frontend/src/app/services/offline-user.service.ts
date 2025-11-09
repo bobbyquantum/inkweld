@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 
-import { UserDto } from '../../api-client/model/user-dto';
+import { User } from '../../api-client/model/user';
 import { SetupService } from './setup.service';
 
 const OFFLINE_USER_STORAGE_KEY = 'inkweld-offline-user';
@@ -11,9 +11,11 @@ const OFFLINE_USER_STORAGE_KEY = 'inkweld-offline-user';
 export class OfflineUserService {
   private setupService = inject(SetupService);
 
-  readonly currentUser = signal<UserDto>({
+  readonly currentUser = signal<User>({
+    id: '',
     name: 'anonymous',
     username: 'anonymous',
+    enabled: false,
   });
 
   readonly isLoading = signal(false);
@@ -40,7 +42,7 @@ export class OfflineUserService {
   /**
    * Set the offline user profile
    */
-  setOfflineUser(user: UserDto): void {
+  setOfflineUser(user: User): void {
     this.currentUser.set(user);
     this.isAuthenticated.set(true);
     this.saveOfflineUser(user);
@@ -49,7 +51,7 @@ export class OfflineUserService {
   /**
    * Update the offline user profile
    */
-  updateOfflineUser(updates: Partial<UserDto>): void {
+  updateOfflineUser(updates: Partial<User>): void {
     const current = this.currentUser();
     const updated = { ...current, ...updates };
     this.currentUser.set(updated);
@@ -80,7 +82,7 @@ export class OfflineUserService {
     try {
       const stored = localStorage.getItem(OFFLINE_USER_STORAGE_KEY);
       if (stored) {
-        const user = JSON.parse(stored) as UserDto;
+        const user = JSON.parse(stored) as User;
         this.currentUser.set(user);
         this.isAuthenticated.set(true);
       }
@@ -90,7 +92,7 @@ export class OfflineUserService {
     this.initialized.set(true);
   }
 
-  private saveOfflineUser(user: UserDto): void {
+  private saveOfflineUser(user: User): void {
     try {
       localStorage.setItem(OFFLINE_USER_STORAGE_KEY, JSON.stringify(user));
     } catch (error) {

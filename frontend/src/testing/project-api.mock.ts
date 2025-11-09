@@ -1,11 +1,11 @@
 import { vi } from 'vitest';
 
-import { ProjectDto } from "@inkweld/index";
+import { Project } from "@inkweld/index";
 import { Observable } from "rxjs";
 
 export const projectServiceMock = {
-  projectControllerGetProjectByUsernameAndSlug: vi.fn<(username: string, slug: string) => Observable<ProjectDto>>(),
-  projectControllerUpdateProject: vi.fn<(username: string, slug: string, projectId: string, dto: ProjectDto) => Observable<ProjectDto>>()
+  projectControllerGetProjectByUsernameAndSlug: vi.fn<(username: string, slug: string) => Observable<Project>>(),
+  projectControllerUpdateProject: vi.fn<(username: string, slug: string, projectId: string, dto: Project) => Observable<Project>>()
 }
 
 

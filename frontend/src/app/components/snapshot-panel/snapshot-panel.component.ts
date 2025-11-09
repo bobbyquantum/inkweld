@@ -16,7 +16,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DocumentSnapshotService } from '@services/document-snapshot.service';
 
-import { SnapshotDto } from '../../../api-client';
+import { DocumentSnapshot } from '../../../api-client';
 import {
   CreateSnapshotDialogComponent,
   CreateSnapshotDialogData,
@@ -57,7 +57,7 @@ export class SnapshotPanelComponent implements OnInit {
   loading = signal(false);
 
   /** Snapshots list */
-  snapshots = signal<SnapshotDto[]>([]);
+  snapshots = signal<DocumentSnapshot[]>([]);
 
   /** Error message */
   error = signal<string | null>(null);
@@ -144,7 +144,7 @@ export class SnapshotPanelComponent implements OnInit {
   /**
    * Open dialog to restore a snapshot
    */
-  async restoreSnapshot(snapshot: SnapshotDto) {
+  async restoreSnapshot(snapshot: DocumentSnapshot) {
     const dialogRef = this.dialog.open<
       RestoreSnapshotDialogComponent,
       RestoreSnapshotDialogData,
@@ -187,7 +187,7 @@ export class SnapshotPanelComponent implements OnInit {
   /**
    * Preview snapshot as HTML in new window/tab
    */
-  previewSnapshot(snapshot: SnapshotDto) {
+  previewSnapshot(snapshot: DocumentSnapshot) {
     this.snapshotService
       .previewSnapshot(this.documentId(), snapshot.id)
       .subscribe({
@@ -210,7 +210,7 @@ export class SnapshotPanelComponent implements OnInit {
   /**
    * Delete a snapshot
    */
-  deleteSnapshot(snapshot: SnapshotDto) {
+  deleteSnapshot(snapshot: DocumentSnapshot) {
     if (
       !confirm(
         `Are you sure you want to delete the snapshot "${snapshot.name}"? This cannot be undone.`

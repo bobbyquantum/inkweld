@@ -11,7 +11,7 @@ import {
   RouterStateSnapshot,
   UrlTree,
 } from '@angular/router';
-import { UserDto } from '@inkweld/index';
+import { User } from '@inkweld/index';
 import { SetupService } from '@services/setup.service';
 import { UnifiedUserService } from '@services/unified-user.service';
 import { Mock, vi } from 'vitest';
@@ -22,14 +22,14 @@ describe('authGuard', () => {
   let router: Router;
   let setupService: SetupService;
   let unifiedUserService: UnifiedUserService;
-  let mockCurrentUser: WritableSignal<UserDto | undefined>;
+  let mockCurrentUser: WritableSignal<User | undefined>;
   let mockIsAuthenticated: WritableSignal<boolean>;
 
   const executeGuard: CanActivateFn = (...args) =>
     TestBed.runInInjectionContext(() => authGuard(...args));
 
   beforeEach(() => {
-    mockCurrentUser = signal<UserDto | undefined>(undefined);
+    mockCurrentUser = signal<User | undefined>(undefined);
     mockIsAuthenticated = signal<boolean>(false);
 
     // Create mock services
@@ -100,7 +100,7 @@ describe('authGuard', () => {
   });
 
   it('should allow access when user is authenticated in server mode', async () => {
-    const user: UserDto = {
+    const user: User = {
       username: 'test',
       name: 'Test User',
     };

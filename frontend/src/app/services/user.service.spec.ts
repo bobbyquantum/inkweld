@@ -14,7 +14,7 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
-import { AuthenticationService, UserDto } from '@inkweld/index';
+import { AuthenticationService, User } from '@inkweld/index';
 import { UsersService } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 import { Mock, vi } from 'vitest';
@@ -29,7 +29,7 @@ function createStructuredClone<T>(value: T): T {
 if (!globalThis.structuredClone) {
   globalThis.structuredClone = createStructuredClone;
 }
-const TEST_USER: UserDto = {
+const TEST_USER: User = {
   username: 'testuser',
   name: 'Test User',
 };

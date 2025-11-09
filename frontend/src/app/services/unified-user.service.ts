@@ -1,7 +1,7 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 
-import { UserDto } from '../../api-client/model/user-dto';
+import { User } from '../../api-client/model/user';
 import { OfflineUserService } from './offline-user.service';
 import { SetupService } from './setup.service';
 import { UserService } from './user.service';
@@ -87,7 +87,7 @@ export class UnifiedUserService {
     }
   }
 
-  async updateUser(updates: Partial<UserDto>): Promise<void> {
+  async updateUser(updates: Partial<User>): Promise<void> {
     const mode = this.setupService.getMode();
     if (mode === 'offline') {
       this.offlineUserService.updateOfflineUser(updates);

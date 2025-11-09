@@ -2,11 +2,11 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import {
-  CreateSnapshotDto,
+  CreateSnapshotRequest,
   SnapshotsService,
-  PaginatedSnapshotsDto,
-  RestoreSnapshotDto,
-  SnapshotDto,
+  DocumentSnapshot,
+  SnapshotWithContent,
+  MessageResponse,
 } from '../../api-client';
 import type { DocumentSnapshotControllerDeleteSnapshot200Response } from '../../api-client/model/document-snapshot-controller-delete-snapshot200-response';
 import { ProjectStateService } from './project-state.service';
@@ -40,8 +40,8 @@ export class DocumentSnapshotService {
    */
   createSnapshot(
     docId: string,
-    data: CreateSnapshotDto
-  ): Observable<SnapshotDto> {
+    data: CreateSnapshotRequest
+  ): Observable<DocumentSnapshot> {
     const project = this.projectState.project();
     if (!project) {
       throw new Error('No active project');
@@ -64,7 +64,7 @@ export class DocumentSnapshotService {
   listSnapshots(
     docId: string,
     query?: ListSnapshotsQuery
-  ): Observable<PaginatedSnapshotsDto> {
+  ): Observable<DocumentSnapshot[]> {
     const project = this.projectState.project();
     if (!project) {
       throw new Error('No active project');
@@ -88,7 +88,7 @@ export class DocumentSnapshotService {
    * @param snapshotId The snapshot ID
    * @returns Observable of the snapshot
    */
-  getSnapshot(docId: string, snapshotId: string): Observable<SnapshotDto> {
+  getSnapshot(docId: string, snapshotId: string): Observable<DocumentSnapshot> {
     const project = this.projectState.project();
     if (!project) {
       throw new Error('No active project');
@@ -112,7 +112,7 @@ export class DocumentSnapshotService {
   restoreSnapshot(
     docId: string,
     snapshotId: string
-  ): Observable<RestoreSnapshotDto> {
+  ): Observable<MessageResponse> {
     const project = this.projectState.project();
     if (!project) {
       throw new Error('No active project');

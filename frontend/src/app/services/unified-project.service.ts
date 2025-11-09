@@ -1,6 +1,6 @@
 import { computed, inject, Injectable } from '@angular/core';
 
-import { Project } from '../../api-client/model/project-dto';
+import { Project } from '../../api-client/model/project';
 import { OfflineProjectService } from './offline-project.service';
 import { ProjectService } from './project.service';
 import { SetupService } from './setup.service';

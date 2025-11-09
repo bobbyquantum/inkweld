@@ -48,7 +48,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   @ViewChild(UserAvatarComponent) private avatarComponent!: UserAvatarComponent;
 
   username: string | null = null;
-  profileUser: UserDto | null = null;
+  profileUser: User | null = null;
   isMobile = false;
   isLoading = true;
   loadError = false;

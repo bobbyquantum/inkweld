@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { ProjectsService } from '../../api-client/api/project-api.service';
-import { Project } from '../../api-client/model/project-dto';
+import { Project } from '../../api-client/model/project';
 import { apiErr, apiOk } from '../../testing/utils';
 import { ProjectService, ProjectServiceError } from './project.service';
 import { StorageService } from './storage.service';

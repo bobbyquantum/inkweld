@@ -361,31 +361,31 @@ export class WorldbuildingService {
 
     // Initialize type-specific default fields (old hard-coded approach)
     switch (elementType) {
-      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Character:
+      case 'CHARACTER':
         this.initializeCharacterDefaults(dataMap);
         break;
-      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Location:
+      case 'LOCATION':
         this.initializeLocationDefaults(dataMap);
         break;
-      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.WbItem:
+      case 'WB_ITEM':
         this.initializeItemDefaults(dataMap);
         break;
-      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Map:
+      case 'MAP':
         this.initializeMapDefaults(dataMap);
         break;
-      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Relationship:
+      case 'RELATIONSHIP':
         this.initializeRelationshipDefaults(dataMap);
         break;
-      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Philosophy:
+      case 'PHILOSOPHY':
         this.initializePhilosophyDefaults(dataMap);
         break;
-      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Culture:
+      case 'CULTURE':
         this.initializeCultureDefaults(dataMap);
         break;
-      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Species:
+      case 'SPECIES':
         this.initializeSpeciesDefaults(dataMap);
         break;
-      case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Systems:
+      case 'SYSTEMS':
         this.initializeSystemsDefaults(dataMap);
         break;
     }
@@ -1002,15 +1002,15 @@ export class WorldbuildingService {
   ): Promise<string> {
     // Default icons for built-in types
     const builtInIcons: Record<string, string> = {
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Character]: 'person',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Location]: 'place',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.WbItem]: 'category',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Map]: 'map',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Relationship]: 'diversity_1',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Philosophy]: 'auto_stories',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Culture]: 'groups',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Species]: 'pets',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Systems]: 'settings',
+      'CHARACTER': 'person',
+      'LOCATION': 'place',
+      'WB_ITEM': 'category',
+      'MAP': 'map',
+      'RELATIONSHIP': 'diversity_1',
+      'PHILOSOPHY': 'auto_stories',
+      'CULTURE': 'groups',
+      'SPECIES': 'pets',
+      'SYSTEMS': 'settings',
       [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item]: 'description',
       [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Folder]: 'folder',
     };

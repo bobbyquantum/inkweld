@@ -3,7 +3,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
 import { ProjectsService } from '../../api-client/api/projects.service';
-import { Project } from '../../api-client/model/project-dto';
+import { Project } from '../../api-client/model/project';
 import { StorageService } from './storage.service';
 import { XsrfService } from './xsrf.service';
 
