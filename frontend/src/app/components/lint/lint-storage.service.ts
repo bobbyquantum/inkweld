@@ -76,7 +76,7 @@ export class LintStorageService {
       if (customEvent.detail) {
         console.log(
           '[LintStorage] Suggestion accepted:',
-          customEvent.detail.suggestion
+          customEvent.detail.corrected_text
         );
       }
     });

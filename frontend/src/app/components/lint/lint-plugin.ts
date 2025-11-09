@@ -409,8 +409,8 @@ export function findSuggestionAtPos(
   suggestions: ExtendedCorrectionDto[]
 ): ExtendedCorrectionDto | null {
   for (const suggestion of suggestions) {
-    const from = suggestion.from;
-    const to = suggestion.to;
+    const from = suggestion.start_pos;
+    const to = suggestion.end_pos;
     if (from <= pos && pos <= to) {
       return suggestion;
     }

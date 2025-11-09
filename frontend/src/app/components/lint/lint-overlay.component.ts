@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { MatTooltipModule, TooltipPosition } from '@angular/material/tooltip';
 
-import { PostLint200ResponseCorrectionsInner } from '../../../api-client/model/correction-dto';
+import { PostLint200ResponseCorrectionsInner } from '../../../api-client/model/post-lint200-response-corrections-inner';
 
 @Component({
   selector: 'app-lint-overlay',
@@ -112,8 +112,8 @@ export class LintOverlayComponent implements OnInit, OnChanges {
 
     // Format the recommendations as a nicely formatted list
     const formattedTips = this.recommendations.map(rec => {
-      const suggestion = rec.suggestion || '';
-      const errorText = rec.error || '';
+      const suggestion = rec.corrected_text || '';
+      const errorText = rec.original_text || '';
 
       return (
         `<div class="lint-tip-title">${suggestion}</div>` +

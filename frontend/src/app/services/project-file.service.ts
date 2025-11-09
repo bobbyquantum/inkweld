@@ -37,9 +37,12 @@ export class ProjectFileService {
         .pipe(
           map((files: PostApiV1ProjectsUsernameSlugFiles200Response[]) =>
             files.map(file => ({
-              ...file,
+              originalName: file.name,
+              storedName: file.name, // API doesn't distinguish, use same name
+              contentType: '', // Not provided by API
+              size: file.size,
               uploadDate: new Date(file.uploadDate), // Convert string to Date
-              fileUrl: this.getFileUrl(username, projectSlug, file.storedName), // Add fileUrl
+              fileUrl: this.getFileUrl(username, projectSlug, file.name), // Add fileUrl using name
             }))
           ),
           catchError((error: unknown) => {
@@ -84,7 +87,10 @@ export class ProjectFileService {
         )
         .pipe(
           map((response: PostApiV1ProjectsUsernameSlugFiles200Response) => ({
-            ...response,
+            originalName: response.name,
+            storedName: response.name,
+            contentType: '',
+            size: response.size,
             uploadDate: new Date(response.uploadDate), // Convert string to Date
           })),
           catchError((error: unknown) => {
