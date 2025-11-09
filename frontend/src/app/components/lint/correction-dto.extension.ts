@@ -1,9 +1,9 @@
-import { CorrectionDto } from '../../../api-client/model/correction-dto';
+import { PostLint200ResponseCorrectionsInner } from '../../../api-client/model/post-lint200-response-corrections-inner';
 
 /**
- * Extended CorrectionDto interface for internal use in the lint system
+ * Extended correction interface for internal use in the lint system
  */
-export interface ExtendedCorrectionDto extends CorrectionDto {
+export interface ExtendedCorrectionDto extends PostLint200ResponseCorrectionsInner {
   /**
    * The text content that this correction applies to
    */

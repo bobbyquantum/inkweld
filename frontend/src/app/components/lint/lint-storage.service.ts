@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-import { CorrectionDto } from '../../../api-client/model/correction-dto';
+import { PostLint200ResponseCorrectionsInner } from '../../../api-client/model/post-lint200-response-corrections-inner';
 import { ExtendedCorrectionDto } from './correction-dto.extension';
 
 /**
@@ -21,10 +21,10 @@ export class LintStorageService {
   /**
    * Generate a unique identifier for a correction
    */
-  private getCorrectionId(correction: CorrectionDto): string {
-    const suggestion = correction.suggestion || '';
+  private getCorrectionId(correction: PostLint200ResponseCorrectionsInner): string {
+    const suggestion = correction.corrected_text || '';
     // Since text might not be available in all cases, we'll use from/to as part of the ID
-    const uniqueKey = `${correction.from}-${correction.to}-${suggestion}`;
+    const uniqueKey = `${correction.start_pos}-${correction.end_pos}-${suggestion}`;
 
     // For ExtendedCorrectionDto with text property
     const extendedCorrection = correction as ExtendedCorrectionDto;
@@ -92,20 +92,20 @@ export class LintStorageService {
   /**
    * Add a suggestion to the rejected list
    */
-  public rejectSuggestion(correction: CorrectionDto): void {
+  public rejectSuggestion(correction: PostLint200ResponseCorrectionsInner): void {
     const id = this.getCorrectionId(correction);
     this.rejectedSuggestions.add(id);
     this.saveRejectedSuggestions();
     console.log(
       '[LintStorage] Suggestion rejected and saved:',
-      correction.suggestion
+      correction.corrected_text
     );
   }
 
   /**
    * Check if a suggestion has been rejected
    */
-  public isSuggestionRejected(correction: CorrectionDto): boolean {
+  public isSuggestionRejected(correction: PostLint200ResponseCorrectionsInner): boolean {
     const id = this.getCorrectionId(correction);
     return this.rejectedSuggestions.has(id);
   }

@@ -58,7 +58,16 @@ export interface GetApiV1ProjectsUsernameSlugElements200ResponseInner {
 export namespace GetApiV1ProjectsUsernameSlugElements200ResponseInner {
     export const TypeEnum = {
         Folder: 'FOLDER',
-        Item: 'ITEM'
+        Item: 'ITEM',
+        Character: 'CHARACTER',
+        Location: 'LOCATION',
+        WbItem: 'WB_ITEM',
+        Map: 'MAP',
+        Relationship: 'RELATIONSHIP',
+        Philosophy: 'PHILOSOPHY',
+        Culture: 'CULTURE',
+        Species: 'SPECIES',
+        Systems: 'SYSTEMS'
     } as const;
     export type TypeEnum = typeof TypeEnum[keyof typeof TypeEnum];
 }

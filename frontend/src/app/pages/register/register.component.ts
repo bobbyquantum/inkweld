@@ -328,7 +328,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
 
     try {
       const response = await firstValueFrom(
-        this.userService.getApiUserCheckUsername(username)
+        this.userService.getApiV1UsersCheckUsername(username)
       );
 
       if (response.available) {
@@ -461,8 +461,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       };
 
       const response = await firstValueFrom(
-        this.userService.postApiUserRegister(
-          this.xsrfService.getXsrfToken(),
+        this.userService.postApiV1UsersRegister(
           registerRequest
         )
       );

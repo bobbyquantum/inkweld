@@ -1167,7 +1167,16 @@
                         "type": "string",
                         "enum": [
                           "FOLDER",
-                          "ITEM"
+                          "ITEM",
+                          "CHARACTER",
+                          "LOCATION",
+                          "WB_ITEM",
+                          "MAP",
+                          "RELATIONSHIP",
+                          "PHILOSOPHY",
+                          "CULTURE",
+                          "SPECIES",
+                          "SYSTEMS"
                         ],
                         "description": "Element type"
                       },

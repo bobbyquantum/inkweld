@@ -14,7 +14,7 @@ export interface WorldbuildingBase {
 
 // Character schema
 export interface CharacterSchema extends WorldbuildingBase {
-  type: typeof 'CHARACTER';
+  type: 'CHARACTER';
 
   // Basic Information
   fullName?: string;
@@ -69,7 +69,7 @@ export interface CharacterSchema extends WorldbuildingBase {
 
 // Location schema
 export interface LocationSchema extends WorldbuildingBase {
-  type: typeof 'LOCATION';
+  type: 'LOCATION';
 
   // Basic Information
   locationType?: string; // city, town, building, region, etc.
@@ -110,7 +110,7 @@ export interface LocationSchema extends WorldbuildingBase {
 
 // Item schema (Worldbuilding Item)
 export interface WBItemSchema extends WorldbuildingBase {
-  type: typeof 'WB_ITEM';
+  type: 'WB_ITEM';
 
   // Basic Information
   itemType?: string; // weapon, artifact, tool, etc.
@@ -143,7 +143,7 @@ export interface WBItemSchema extends WorldbuildingBase {
 
 // Map schema
 export interface MapSchema extends WorldbuildingBase {
-  type: typeof 'MAP';
+  type: 'MAP';
 
   // Map Information
   mapType?: string; // world, region, city, building, etc.
@@ -177,7 +177,7 @@ export interface MapSchema extends WorldbuildingBase {
 
 // Relationship schema
 export interface RelationshipSchema extends WorldbuildingBase {
-  type: typeof 'RELATIONSHIP';
+  type: 'RELATIONSHIP';
 
   // Relationship Details
   relationshipType?: string; // family, romantic, friendship, rivalry, etc.
@@ -208,7 +208,7 @@ export interface RelationshipSchema extends WorldbuildingBase {
 
 // Philosophy schema
 export interface PhilosophySchema extends WorldbuildingBase {
-  type: typeof 'PHILOSOPHY';
+  type: 'PHILOSOPHY';
 
   // Core Concepts
   coreBeliefs?: string[];
@@ -244,7 +244,7 @@ export interface PhilosophySchema extends WorldbuildingBase {
 
 // Culture schema
 export interface CultureSchema extends WorldbuildingBase {
-  type: typeof 'CULTURE';
+  type: 'CULTURE';
 
   // Identity
   ethnicity?: string;
@@ -290,7 +290,7 @@ export interface CultureSchema extends WorldbuildingBase {
 
 // Species schema
 export interface SpeciesSchema extends WorldbuildingBase {
-  type: typeof 'SPECIES';
+  type: 'SPECIES';
 
   // Biology
   biology?: {
@@ -339,7 +339,7 @@ export interface SpeciesSchema extends WorldbuildingBase {
 
 // Systems schema (Magic systems, Technology systems, etc.)
 export interface SystemsSchema extends WorldbuildingBase {
-  type: typeof 'SYSTEMS';
+  type: 'SYSTEMS';
 
   // System Type
   systemType?: string; // magic, technology, political, economic, etc.

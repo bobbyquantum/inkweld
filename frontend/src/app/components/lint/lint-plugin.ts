@@ -6,7 +6,7 @@ import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
 import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 import { debounceTime, Subject, Subscription } from 'rxjs';
 
-import { CorrectionDto } from '../../../api-client/model/correction-dto';
+import { PostLint200ResponseCorrectionsInner } from '../../../api-client/model/post-lint200-response-corrections-inner';
 import { PostLint200Response } from '../../../api-client/model/post-lint200-response';
 import { ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintApiService } from './lint-api.service';
@@ -93,13 +93,13 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
     view: EditorView,
     correction: ExtendedCorrectionDto
   ): void {
-    if (!correction || !correction.suggestion) return;
+    if (!correction || !correction.corrected_text) return;
 
-    console.log(`[LintPlugin] Applying correction: ${correction.suggestion}`);
+    console.log(`[LintPlugin] Applying correction: ${correction.corrected_text}`);
     console.log(`[LintPlugin] Original text: "${correction.text || ''}"`);
 
-    let from = correction.from;
-    let to = correction.to;
+    let from = correction.start_pos;
+    let to = correction.end_pos;
 
     // Need to add back the +1 adjustment that was made during decoration creation
     // but removed when storing in the ExtendedCorrectionDto
@@ -130,7 +130,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
     // Check if we need to preserve leading or trailing whitespace
     const originalText = correction.text || '';
-    let suggestion = correction.suggestion;
+    let suggestion = correction.corrected_text;
 
     // Count leading whitespace in original text
     let leadingWhitespace = '';
@@ -198,7 +198,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
     // Filter out rejected suggestions
     const filteredCorrections = lintResult.corrections.filter(
-      (correction: CorrectionDto) =>
+      (correction: PostLint200ResponseCorrectionsInner) =>
         !lintStorage.isSuggestionRejected(correction)
     );
 
@@ -208,7 +208,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
     const extendedSuggestions: ExtendedCorrectionDto[] = [];
     const decos = filteredCorrections
-      .map((correction: CorrectionDto) => {
+      .map((correction: PostLint200ResponseCorrectionsInner) => {
         let reasonText = '';
 
         // Handle both formats of corrections (server might send 'error' or 'reason')
@@ -216,15 +216,15 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
           reasonText = correction.reason;
         } else if (
           'error' in correction &&
-          typeof correction.error === 'string'
+          typeof correction.original_text === 'string'
         ) {
-          reasonText = `Error: ${correction.error}`;
+          reasonText = `Error: ${correction.original_text}`;
         }
 
         // Ensure we have from and to properties - adjust for potential off-by-one issues
         // Note: The server might be sending positions that are off by one character
-        let from = typeof correction.from === 'number' ? correction.from : 0;
-        let to = typeof correction.to === 'number' ? correction.to : 0;
+        let from = typeof correction.start_pos === 'number' ? correction.start_pos : 0;
+        let to = typeof correction.end_pos === 'number' ? correction.end_pos : 0;
 
         // Adjust positions to fix off-by-one server issue
         // Skip the leading space by incrementing from by 1
@@ -265,7 +265,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
           extendedSuggestions.push(extendedCorrection);
 
           console.log(
-            `[LintPlugin] Creating decoration from ${from} to ${to} with suggestion: ${correction.suggestion}`
+            `[LintPlugin] Creating decoration from ${from} to ${to} with suggestion: ${correction.corrected_text}`
           );
 
           // Create decoration with validated positions
