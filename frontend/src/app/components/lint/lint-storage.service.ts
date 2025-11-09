@@ -72,7 +72,7 @@ export class LintStorageService {
    */
   private listenForEvents(): void {
     document.addEventListener('lint-correction-accept', (event: Event) => {
-      const customEvent = event as CustomEvent<CorrectionDto>;
+      const customEvent = event as CustomEvent<PostLint200ResponseCorrectionsInner>;
       if (customEvent.detail) {
         console.log(
           '[LintStorage] Suggestion accepted:',
@@ -82,7 +82,7 @@ export class LintStorageService {
     });
 
     document.addEventListener('lint-correction-reject', (event: Event) => {
-      const customEvent = event as CustomEvent<CorrectionDto>;
+      const customEvent = event as CustomEvent<PostLint200ResponseCorrectionsInner>;
       if (customEvent.detail) {
         this.rejectSuggestion(customEvent.detail);
       }

@@ -1,3 +1,4 @@
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { PostApiV1ProjectsUsernameSlugFiles200Response, MessageResponse } from '@inkweld/index';
 import { catchError, map, Observable, throwError } from 'rxjs';
@@ -23,6 +24,7 @@ export interface FileDeleteResponse {
 })
 export class ProjectFileService {
   private filesApi = inject(FilesService);
+  private http = inject(HttpClient);
   private xsrfService = inject(XsrfService);
 
   getProjectFiles(
@@ -31,7 +33,7 @@ export class ProjectFileService {
   ): Observable<ProjectFile[]> {
     try {
       return this.filesApi
-        .getApiProjectsUsernameSlugFiles(username, projectSlug)
+        .getApiV1ProjectsUsernameSlugFiles(username, projectSlug)
         .pipe(
           map((files: PostApiV1ProjectsUsernameSlugFiles200Response[]) =>
             files.map(file => ({
@@ -71,13 +73,14 @@ export class ProjectFileService {
     file: File
   ): Observable<ProjectFile> {
     try {
-      const xsrfToken = this.xsrfService.getXsrfToken();
-      return this.filesApi
-        .postApiProjectsUsernameSlugFiles(
-          username,
-          projectSlug,
-          xsrfToken,
-          file
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      return this.http
+        .post<PostApiV1ProjectsUsernameSlugFiles200Response>(
+          `/api/v1/projects/${username}/${projectSlug}/files`,
+          formData,
+          { withCredentials: true }
         )
         .pipe(
           map((response: PostApiV1ProjectsUsernameSlugFiles200Response) => ({
@@ -115,13 +118,11 @@ export class ProjectFileService {
     storedName: string
   ): Observable<FileDeleteResponse> {
     try {
-      const xsrfToken = this.xsrfService.getXsrfToken();
       return this.filesApi
-        .deleteApiProjectsUsernameSlugFiles(
+        .deleteApiV1ProjectsUsernameSlugFilesStoredName(
           username,
           projectSlug,
-          storedName,
-          xsrfToken
+          storedName
         )
         .pipe(
           map((response: MessageResponse) => ({

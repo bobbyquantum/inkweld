@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { MatTooltipModule, TooltipPosition } from '@angular/material/tooltip';
 
-import { CorrectionDto } from '../../../api-client/model/correction-dto';
+import { PostLint200ResponseCorrectionsInner } from '../../../api-client/model/correction-dto';
 
 @Component({
   selector: 'app-lint-overlay',
@@ -55,7 +55,7 @@ import { CorrectionDto } from '../../../api-client/model/correction-dto';
 export class LintOverlayComponent implements OnInit, OnChanges {
   private elementRef = inject(ElementRef);
 
-  @Input() recommendations: CorrectionDto[] = [];
+  @Input() recommendations: PostLint200ResponseCorrectionsInner[] = [];
   @Input() position: TooltipPosition = 'below';
 
   tipContent = '';
@@ -63,11 +63,11 @@ export class LintOverlayComponent implements OnInit, OnChanges {
   constructor() {
     // Listen for custom events for accept/reject actions
     document.addEventListener('lint-accept', (event: Event) => {
-      const customEvent = event as CustomEvent<CorrectionDto>;
+      const customEvent = event as CustomEvent<PostLint200ResponseCorrectionsInner>;
       this.handleAccept(customEvent);
     });
     document.addEventListener('lint-reject', (event: Event) => {
-      const customEvent = event as CustomEvent<CorrectionDto>;
+      const customEvent = event as CustomEvent<PostLint200ResponseCorrectionsInner>;
       this.handleReject(customEvent);
     });
   }
@@ -80,7 +80,7 @@ export class LintOverlayComponent implements OnInit, OnChanges {
     this.updateTipContent();
   }
 
-  private handleAccept(event: CustomEvent<CorrectionDto>): void {
+  private handleAccept(event: CustomEvent<PostLint200ResponseCorrectionsInner>): void {
     const correction = event.detail;
     if (correction) {
       // Dispatch a custom event that will be handled by the plugin
@@ -92,7 +92,7 @@ export class LintOverlayComponent implements OnInit, OnChanges {
     }
   }
 
-  private handleReject(event: CustomEvent<CorrectionDto>): void {
+  private handleReject(event: CustomEvent<PostLint200ResponseCorrectionsInner>): void {
     const correction = event.detail;
     if (correction) {
       // Dispatch a custom event that will be handled by the plugin

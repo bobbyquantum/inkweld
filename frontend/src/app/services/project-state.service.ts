@@ -275,7 +275,7 @@ export class ProjectStateService {
     slug: string
   ): Promise<void> {
     const Project = await firstValueFrom(
-      this.ProjectsService.getApiProjectsUsernameSlug(
+      this.ProjectsService.getApiV1ProjectsUsernameSlug(
         username,
         slug
       )

@@ -56,7 +56,8 @@ export class OfflineProjectElementsService {
         type: 'FOLDER',
         level: 0,
         expandable: true,
-        position: 0,
+        order: 0,
+        parentId: null,
         version: 0,
         metadata: {},
       },
@@ -66,7 +67,8 @@ export class OfflineProjectElementsService {
         type: 'ITEM',
         level: 1,
         expandable: false,
-        position: 1,
+        order: 1,
+        parentId: null,
         version: 0,
         metadata: {},
       },
@@ -76,7 +78,8 @@ export class OfflineProjectElementsService {
         type: 'FOLDER',
         level: 0,
         expandable: true,
-        position: 2,
+        order: 2,
+        parentId: null,
         version: 0,
         metadata: {},
       },
@@ -86,7 +89,8 @@ export class OfflineProjectElementsService {
         type: 'ITEM',
         level: 1,
         expandable: false,
-        position: 3,
+        order: 3,
+        parentId: null,
         version: 0,
         metadata: {},
       },
@@ -129,7 +133,8 @@ export class OfflineProjectElementsService {
       type,
       level: parentLevel + 1,
       expandable: type === 'FOLDER',
-      position: elements.length,
+      order: elements.length,
+      parentId: null,
       version: 0,
       metadata: {},
     };
@@ -259,7 +264,8 @@ export class OfflineProjectElementsService {
   ): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
     return elements.map((element, index) => ({
       ...element,
-      position: index,
+      order: index,
+      parentId: null,
     }));
   }
 }

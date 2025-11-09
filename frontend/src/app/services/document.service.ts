@@ -227,7 +227,7 @@ export class DocumentService {
       }
     }
     this.documentsService
-      .getApiProjectsUsernameSlugDocsDocIdHtml(username, projectSlug, docName)
+      .getApiV1ProjectsUsernameSlugDocsDocIdHtml(username, projectSlug, docName)
       .subscribe({
         next: (response: string) => {
           const blob = new Blob([response], { type: 'text/html' });
