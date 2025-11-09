@@ -194,29 +194,24 @@ export class HomeTabComponent {
     const imageBlob = this.base64ToBlob(imageData);
 
     // Upload the cover image
-    this.projectApi
-      .postApiImagesUsernameSlugCover(username, slug, imageBlob)
-      .pipe(
-        catchError((error: unknown) => {
-          console.error('Error uploading cover image:', error);
-          this.snackBar.open('Failed to save cover image', 'Close', {
-            duration: 5000,
-          });
-          return of(null);
-        })
-      )
-      .subscribe((response: unknown) => {
-        if (response) {
-          console.log('Cover image uploaded successfully');
-          this.snackBar.open('Cover image saved successfully', 'Close', {
-            duration: 3000,
-          });
-          // Reload the cover image
-          const project = this.projectState.project();
-          if (project) {
-            void this.loadCoverImage(project.username, project.slug);
-          }
+    this.projectService
+      .uploadProjectCover(username, slug, imageBlob)
+      .then(() => {
+        console.log('Cover image uploaded successfully');
+        this.snackBar.open('Cover image saved successfully', 'Close', {
+          duration: 3000,
+        });
+        // Reload the cover image
+        const project = this.projectState.project();
+        if (project) {
+          void this.loadCoverImage(project.username, project.slug);
         }
+      })
+      .catch((error: unknown) => {
+        console.error('Error uploading cover image:', error);
+        this.snackBar.open('Failed to save cover image', 'Close', {
+          duration: 5000,
+        });
       });
   }
 
