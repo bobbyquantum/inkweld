@@ -44,12 +44,11 @@ Created three core services using Drizzle:
 - create, delete
 
 ### 4. Session Management
-- **Custom Session Store**: `backend/src/middleware/drizzle-session-store.ts`
-  - Implements express-session Store interface
-  - Full CRUD operations for sessions
-  - Automatic cleanup of expired sessions
-  - TTL support
-- **Session Middleware**: Updated to use DrizzleSessionStore
+The backend uses **Hono's native cookie-based authentication** with JWT tokens:
+- `AuthService` (`backend/src/services/auth.service.ts`) manages sessions using signed cookies and JWT
+- Sessions stored as httpOnly cookies with JWT payload
+- No external session store needed - uses Hono's built-in cookie management
+- Automatic expiration and secure cookie handling
 
 ### 5. Routes Migrated (16 Endpoints)
 
@@ -94,8 +93,7 @@ Created three core services using Drizzle:
   },
   "devDependencies": {
     "drizzle-kit": "^latest",
-    "@types/better-sqlite3": "^latest",
-    "@types/express-session": "^latest"
+    "@types/better-sqlite3": "^latest"
   }
 }
 ```
@@ -177,11 +175,17 @@ const project = await projectService.findByUsernameAndSlug('john', 'my-project')
 
 ### Session Management
 ```typescript
-// Session store is automatically used by express-session
-import { DrizzleSessionStore } from './middleware/drizzle-session-store';
+// Authentication using Hono's native cookies and JWT
+import { authService } from './services/auth.service';
 
-const store = new DrizzleSessionStore({ ttl: 86400 });
-// Used in session middleware configuration
+// Create session (stored as signed cookie with JWT)
+await authService.createSession(c, user);
+
+// Get user from session
+const user = await authService.getUserFromSession(c);
+
+// Destroy session
+authService.destroySession(c);
 ```
 
 ## 🔍 Files Modified
@@ -192,22 +196,24 @@ const store = new DrizzleSessionStore({ ttl: 86400 });
 - `backend/src/services/user.service.ts` - Migrated user service
 - `backend/src/services/project.service.ts` - New project service
 - `backend/src/services/document-snapshot.service.ts` - New snapshot service
-- `backend/src/middleware/drizzle-session-store.ts` - Custom session store
 - `backend/drizzle.config.ts` - Drizzle Kit configuration
 - `backend/drizzle/0000_safe_mysterio.sql` - Initial migration
 
 ### Modified Files
-- `backend/src/index.ts` - Updated imports, commented out unmigrated routes
-- `backend/src/middleware/session.ts` - Uses DrizzleSessionStore
-- `backend/src/services/auth.service.ts` - Updated imports
+- `backend/src/index.ts` - Updated imports, all routes enabled
+- `backend/src/services/auth.service.ts` - Updated imports (uses Hono cookies/JWT)
 - `backend/src/routes/user.routes.ts` - Fully migrated to Drizzle
 - `backend/src/routes/project.routes.ts` - Fully migrated to Drizzle
 - `backend/src/routes/image.routes.ts` - Fully migrated to Drizzle
+- `backend/src/routes/document.routes.ts` - Fully migrated to Drizzle
+- `backend/src/routes/element.routes.ts` - Fully migrated to Drizzle
+- `backend/src/routes/file.routes.ts` - Fully migrated to Drizzle
+- `backend/src/routes/snapshot.routes.ts` - Fully migrated to Drizzle
+- `backend/src/routes/epub.routes.ts` - Fully migrated to Drizzle
 - `backend/package.json` - Added Drizzle dependencies
 
 ### Backup Files
 - `backend/src/services/user.service.typeorm.ts.bak` - Original TypeORM version
-- `backend/src/middleware/session.typeorm.ts.bak` - Original session middleware
 
 ## 🚀 Running the Application
 
