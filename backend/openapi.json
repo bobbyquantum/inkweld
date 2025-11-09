@@ -1182,6 +1182,25 @@
                         "type": "number",
                         "description": "Order in parent"
                       },
+                      "level": {
+                        "type": "number",
+                        "description": "Nesting level in tree hierarchy"
+                      },
+                      "expandable": {
+                        "type": "boolean",
+                        "description": "Whether element can be expanded (folders)"
+                      },
+                      "version": {
+                        "type": "number",
+                        "description": "Version number for optimistic locking"
+                      },
+                      "metadata": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "description": "Element metadata key-value pairs"
+                      },
                       "createdAt": {
                         "type": "string",
                         "description": "Creation timestamp"
@@ -1196,7 +1215,11 @@
                       "name",
                       "type",
                       "parentId",
-                      "order"
+                      "order",
+                      "level",
+                      "expandable",
+                      "version",
+                      "metadata"
                     ]
                   }
                 }

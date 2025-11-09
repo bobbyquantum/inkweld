@@ -31,6 +31,22 @@ export interface GetApiV1ProjectsUsernameSlugElements200ResponseInner {
      */
     order: number;
     /**
+     * Nesting level in tree hierarchy
+     */
+    level: number;
+    /**
+     * Whether element can be expanded (folders)
+     */
+    expandable: boolean;
+    /**
+     * Version number for optimistic locking
+     */
+    version: number;
+    /**
+     * Element metadata key-value pairs
+     */
+    metadata: { [key: string]: string; };
+    /**
      * Creation timestamp
      */
     createdAt?: string;

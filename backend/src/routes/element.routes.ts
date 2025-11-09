@@ -14,6 +14,10 @@ const elementSchema = z.object({
   type: z.enum(['FOLDER', 'ITEM']).describe('Element type'),
   parentId: z.string().nullable().describe('Parent element ID'),
   order: z.number().describe('Order in parent'),
+  level: z.number().describe('Nesting level in tree hierarchy'),
+  expandable: z.boolean().describe('Whether element can be expanded (folders)'),
+  version: z.number().describe('Version number for optimistic locking'),
+  metadata: z.record(z.string(), z.string()).describe('Element metadata key-value pairs'),
   createdAt: z.string().optional().describe('Creation timestamp'),
   updatedAt: z.string().optional().describe('Last update timestamp'),
 });
