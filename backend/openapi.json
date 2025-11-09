@@ -378,7 +378,18 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "username",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Username to check"
+          }
+        ]
       }
     },
     "/api/v1/users/{username}/avatar": {
