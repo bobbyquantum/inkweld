@@ -6,7 +6,7 @@ import { EditorState, Plugin } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { MockedObject, vi } from 'vitest';
 
-import { PostLint200Response } from '../../../api-client/model/lint-response-dto';
+import { PostLint200Response } from '../../../api-client/model/post-lint200-response';
 import { LintApiService } from './lint-api.service';
 import { createLintPlugin, pluginKey } from './lint-plugin';
 

@@ -3,8 +3,8 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { LintingService } from '../../../api-client/api/linting.service';
-import { PostLintRequest } from '../../../api-client/model/lint-request-dto';
-import { PostLint200Response } from '../../../api-client/model/lint-response-dto';
+import { PostLintRequest } from '../../../api-client/model/post-lint-request';
+import { PostLint200Response } from '../../../api-client/model/post-lint200-response';
 
 /**
  * Token to pass AbortSignal to the OpenAPI client

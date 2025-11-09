@@ -1,4 +1,4 @@
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../api-client/model/project-element-dto';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../api-client/model/get-api-v1-projects-username-slug-elements200-response-inner';
 
 export interface ProjectElement {
   id: string;
@@ -14,18 +14,18 @@ export interface ProjectElement {
 }
 
 // map DTO to frontend model
-export function mapDtoToProjectElement(dto: GetApiV1ProjectsUsernameSlugElements200ResponseInner): ProjectElement {
+export function mapDtoToProjectElement(dto: GetApiV1ProjectsUsernameSlugElements200ResponseInner, level = 0): ProjectElement {
   return {
     id: dto.id,
     name: dto.name || '',
     type: dto.type || 'ITEM',
-    level: dto.level || 0, // Default to level 0
-    position: dto.position || 0,
+    level: level, // Frontend-specific property
+    position: dto.order || 0, // Map 'order' from API to 'position' in frontend
     expandable: dto.type === 'FOLDER',
     expanded: false,
     visible: true,
-    metadata: dto.metadata,
-    version: dto.version, // Map version from DTO
+    metadata: {}, // Default to empty object (not in new API yet)
+    version: 1, // Default version (not in new API yet)
   };
 }
 

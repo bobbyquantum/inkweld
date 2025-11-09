@@ -14,7 +14,7 @@ export interface WorldbuildingBase {
 
 // Character schema
 export interface CharacterSchema extends WorldbuildingBase {
-  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Character;
+  type: typeof 'CHARACTER';
 
   // Basic Information
   fullName?: string;
@@ -69,7 +69,7 @@ export interface CharacterSchema extends WorldbuildingBase {
 
 // Location schema
 export interface LocationSchema extends WorldbuildingBase {
-  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Location;
+  type: typeof 'LOCATION';
 
   // Basic Information
   locationType?: string; // city, town, building, region, etc.
@@ -110,7 +110,7 @@ export interface LocationSchema extends WorldbuildingBase {
 
 // Item schema (Worldbuilding Item)
 export interface WBItemSchema extends WorldbuildingBase {
-  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.WbItem;
+  type: typeof 'WB_ITEM';
 
   // Basic Information
   itemType?: string; // weapon, artifact, tool, etc.
@@ -143,7 +143,7 @@ export interface WBItemSchema extends WorldbuildingBase {
 
 // Map schema
 export interface MapSchema extends WorldbuildingBase {
-  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Map;
+  type: typeof 'MAP';
 
   // Map Information
   mapType?: string; // world, region, city, building, etc.
@@ -177,7 +177,7 @@ export interface MapSchema extends WorldbuildingBase {
 
 // Relationship schema
 export interface RelationshipSchema extends WorldbuildingBase {
-  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Relationship;
+  type: typeof 'RELATIONSHIP';
 
   // Relationship Details
   relationshipType?: string; // family, romantic, friendship, rivalry, etc.
@@ -208,7 +208,7 @@ export interface RelationshipSchema extends WorldbuildingBase {
 
 // Philosophy schema
 export interface PhilosophySchema extends WorldbuildingBase {
-  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Philosophy;
+  type: typeof 'PHILOSOPHY';
 
   // Core Concepts
   coreBeliefs?: string[];
@@ -244,7 +244,7 @@ export interface PhilosophySchema extends WorldbuildingBase {
 
 // Culture schema
 export interface CultureSchema extends WorldbuildingBase {
-  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Culture;
+  type: typeof 'CULTURE';
 
   // Identity
   ethnicity?: string;
@@ -290,7 +290,7 @@ export interface CultureSchema extends WorldbuildingBase {
 
 // Species schema
 export interface SpeciesSchema extends WorldbuildingBase {
-  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Species;
+  type: typeof 'SPECIES';
 
   // Biology
   biology?: {
@@ -339,7 +339,7 @@ export interface SpeciesSchema extends WorldbuildingBase {
 
 // Systems schema (Magic systems, Technology systems, etc.)
 export interface SystemsSchema extends WorldbuildingBase {
-  type: typeof GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Systems;
+  type: typeof 'SYSTEMS';
 
   // System Type
   systemType?: string; // magic, technology, political, economic, etc.
@@ -407,23 +407,23 @@ export function getSchemaFromType(
   type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum
 ): string | null {
   switch (type) {
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Character:
+    case 'CHARACTER':
       return 'character';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Location:
+    case 'LOCATION':
       return 'location';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.WbItem:
+    case 'WB_ITEM':
       return 'wbItem';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Map:
+    case 'MAP':
       return 'map';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Relationship:
+    case 'RELATIONSHIP':
       return 'relationship';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Philosophy:
+    case 'PHILOSOPHY':
       return 'philosophy';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Culture:
+    case 'CULTURE':
       return 'culture';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Species:
+    case 'SPECIES':
       return 'species';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Systems:
+    case 'SYSTEMS':
       return 'systems';
     default:
       return null;

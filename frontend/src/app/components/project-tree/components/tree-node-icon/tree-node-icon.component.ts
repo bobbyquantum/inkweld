@@ -25,15 +25,15 @@ export class TreeNodeIconComponent {
     }
 
     const typeMap: Record<string, string> = {
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Character]: 'person',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Location]: 'place',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.WbItem]: 'category',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Map]: 'map',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Relationship]: 'diversity_1',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Philosophy]: 'auto_stories',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Culture]: 'groups',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Species]: 'pets',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Systems]: 'settings',
+      ['CHARACTER']: 'person',
+      ['LOCATION']: 'place',
+      ['WB_ITEM']: 'category',
+      ['MAP']: 'map',
+      ['RELATIONSHIP']: 'diversity_1',
+      ['PHILOSOPHY']: 'auto_stories',
+      ['CULTURE']: 'groups',
+      ['SPECIES']: 'pets',
+      ['SYSTEMS']: 'settings',
       [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item]: 'description',
       IMAGE: 'image', // Legacy type not in enum
     };

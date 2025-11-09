@@ -16,7 +16,7 @@ describe('OAuthProviderListComponent', () => {
 
   beforeEach(async () => {
     AuthenticationService = {
-      getApiAuthProviders: vi.fn(),
+      getProviders: vi.fn(),
     } as unknown as MockedObject<AuthenticationService>;
 
     snackBar = {
@@ -82,7 +82,7 @@ describe('OAuthProviderListComponent', () => {
   describe('initialization', () => {
     it('should load OAuth2 providers on init', async () => {
       const getEnabledOAuth2ProvidersMock =
-        AuthenticationService.getApiAuthProviders as any;
+        AuthenticationService.getProviders as any;
       getEnabledOAuth2ProvidersMock.mockReturnValue(of(['github', 'google']));
 
       // Initial state should be empty
@@ -99,7 +99,7 @@ describe('OAuthProviderListComponent', () => {
       await Promise.resolve();
 
       // After loading completes
-      expect(AuthenticationService.getApiAuthProviders).toHaveBeenCalled();
+      expect(AuthenticationService.getProviders).toHaveBeenCalled();
       expect(component.enabledProviders()).toEqual(['github', 'google']);
       expect(component.isLoadingProviders()).toBeFalsy();
       expect(component.githubEnabled()).toBeTruthy();
@@ -109,7 +109,7 @@ describe('OAuthProviderListComponent', () => {
 
     it('should handle OAuth2 providers loading error', async () => {
       const getEnabledOAuth2ProvidersMock =
-        AuthenticationService.getApiAuthProviders as any;
+        AuthenticationService.getProviders as any;
       getEnabledOAuth2ProvidersMock.mockReturnValue(
         throwError(() => new Error('Failed to load providers'))
       );

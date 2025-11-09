@@ -26,8 +26,11 @@
       <dt>Created:</dt>
       <dd>{{ formatDate(data.snapshot.createdAt) }}</dd>
 
+      <!-- TODO: createdBy not available in new API yet -->
+      <!--
       <dt>Created By:</dt>
       <dd>{{ data.snapshot.createdBy.username }}</dd>
+      -->
 
       @if (data.snapshot.wordCount !== undefined) {
         <dt>Word Count:</dt>

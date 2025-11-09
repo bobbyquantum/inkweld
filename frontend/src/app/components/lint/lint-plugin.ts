@@ -7,7 +7,7 @@ import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 import { debounceTime, Subject, Subscription } from 'rxjs';
 
 import { CorrectionDto } from '../../../api-client/model/correction-dto';
-import { PostLint200Response } from '../../../api-client/model/lint-response-dto';
+import { PostLint200Response } from '../../../api-client/model/post-lint200-response';
 import { ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintApiService } from './lint-api.service';
 import { LintStorageService } from './lint-storage.service';

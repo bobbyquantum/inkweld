@@ -5,8 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { LintService } from '../../../api-client/api/lint.service';
-import { PostLintRequest } from '../../../api-client/model/lint-request-dto';
-import { PostLint200Response } from '../../../api-client/model/lint-response-dto';
+import { PostLintRequest } from '../../../api-client/model/post-lint-request';
+import { PostLint200Response } from '../../../api-client/model/post-lint200-response';
 import { apiErr, apiOk } from '../../../testing/utils';
 import { ABORT_SIGNAL, LintApiService } from './lint-api.service';
 
