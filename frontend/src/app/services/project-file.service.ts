@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { FileDeleteResponseDto, FileUploadResponseDto } from '@inkweld/index';
+import { PostApiV1ProjectsUsernameSlugFiles200Response, MessageResponse } from '@inkweld/index';
 import { catchError, map, Observable, throwError } from 'rxjs';
 
 import { FilesService } from '../../api-client/api/files.service';
@@ -33,7 +33,7 @@ export class ProjectFileService {
       return this.filesApi
         .getApiProjectsUsernameSlugFiles(username, projectSlug)
         .pipe(
-          map((files: FileUploadResponseDto[]) =>
+          map((files: PostApiV1ProjectsUsernameSlugFiles200Response[]) =>
             files.map(file => ({
               ...file,
               uploadDate: new Date(file.uploadDate), // Convert string to Date
@@ -80,7 +80,7 @@ export class ProjectFileService {
           file
         )
         .pipe(
-          map((response: FileUploadResponseDto) => ({
+          map((response: PostApiV1ProjectsUsernameSlugFiles200Response) => ({
             ...response,
             uploadDate: new Date(response.uploadDate), // Convert string to Date
           })),
@@ -124,7 +124,7 @@ export class ProjectFileService {
           xsrfToken
         )
         .pipe(
-          map((response: FileDeleteResponseDto) => ({
+          map((response: MessageResponse) => ({
             message: response.message || 'File deleted successfully',
           })),
           catchError((error: unknown) => {

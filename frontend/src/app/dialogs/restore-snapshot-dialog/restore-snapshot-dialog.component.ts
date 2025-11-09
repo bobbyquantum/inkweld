@@ -8,13 +8,13 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 
-import { SnapshotDto } from '../../../api-client';
+import { DocumentSnapshot } from '../../../api-client';
 
 /**
  * Data passed to the RestoreSnapshotDialog
  */
 export interface RestoreSnapshotDialogData {
-  snapshot: SnapshotDto;
+  snapshot: DocumentSnapshot;
   currentWordCount?: number;
 }
 

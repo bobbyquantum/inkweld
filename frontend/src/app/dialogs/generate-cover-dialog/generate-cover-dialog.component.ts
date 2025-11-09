@@ -7,7 +7,7 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Project } from '@inkweld/model/project-dto';
+import { Project } from '@inkweld/index';
 import { catchError, finalize, of } from 'rxjs';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';

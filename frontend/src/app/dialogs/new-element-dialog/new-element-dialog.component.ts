@@ -15,7 +15,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../../api-client/model/project-element-dto';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../../api-client';
 import { ProjectStateService } from '../../services/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding.service';
 

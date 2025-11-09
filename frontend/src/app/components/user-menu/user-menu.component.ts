@@ -4,7 +4,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { RouterModule } from '@angular/router';
-import { UserDto } from '@inkweld/index';
+import { User } from '@inkweld/index';
 import { UnifiedUserService } from '@services/unified-user.service';
 
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
@@ -26,7 +26,7 @@ import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 export class UserMenuComponent {
   protected userService = inject(UnifiedUserService);
 
-  @Input() user: UserDto | undefined = undefined;
+  @Input() user: User | undefined = undefined;
   @Input() miniMode = false;
 
   async onLogout() {
