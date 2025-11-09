@@ -116,8 +116,10 @@ export class SnapshotPanelComponent implements OnInit {
       this.loading.set(true);
       this.snapshotService
         .createSnapshot(this.documentId(), {
+          documentId: this.documentId(),
           name: result.name,
           description: result.description,
+          yDocState: '', // TODO: Get actual yDoc state from editor
         })
         .subscribe({
           next: snapshot => {

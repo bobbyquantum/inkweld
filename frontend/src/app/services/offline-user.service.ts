@@ -63,8 +63,10 @@ export class OfflineUserService {
    */
   clearOfflineUser(): void {
     this.currentUser.set({
+      id: '',
       name: 'anonymous',
       username: 'anonymous',
+      enabled: false,
     });
     this.isAuthenticated.set(false);
     localStorage.removeItem(OFFLINE_USER_STORAGE_KEY);

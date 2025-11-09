@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { User } from '../../api-client/model/user';
 
 export interface AppConfig {
   mode: 'server' | 'offline';
@@ -110,9 +111,16 @@ export class SetupService {
   /**
    * Get the offline user profile if in offline mode
    */
-  getOfflineUserProfile(): { name: string; username: string } | null {
+  getOfflineUserProfile(): User | null {
     const config = this.appConfig();
-    return config?.mode === 'offline' ? config.userProfile || null : null;
+    if (config?.mode === 'offline' && config.userProfile) {
+      return {
+        id: '',
+        ...config.userProfile,
+        enabled: true,
+      };
+    }
+    return null;
   }
 
   /**

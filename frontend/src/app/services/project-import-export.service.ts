@@ -296,6 +296,7 @@ export class ProjectImportExportService {
   private updateProjectState(archive: ProjectArchive): void {
     // Convert archive to DTO format
     const Project: Project = {
+      id: crypto.randomUUID(), // Generate new ID
       title: archive.project.title,
       description: archive.project.description || '',
       slug: archive.project.slug,

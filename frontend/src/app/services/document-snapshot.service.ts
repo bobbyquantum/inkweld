@@ -50,7 +50,6 @@ export class DocumentSnapshotService {
     return this.snapshotsApi.postApiSnapshotsUsernameSlug(
       project.username,
       project.slug,
-      docId,
       data
     );
   }
@@ -94,13 +93,11 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    // OpenAPI generator bug - parameters are in wrong order
     return this.snapshotsApi.getApiSnapshotsUsernameSlugSnapshotId(
-      snapshotId,
-      docId,
+      project.username,
       project.slug,
-      project.username
-    );
+      snapshotId
+    ) as Observable<DocumentSnapshot>;
   }
 
   /**
@@ -121,7 +118,6 @@ export class DocumentSnapshotService {
     return this.snapshotsApi.postApiSnapshotsUsernameSlugSnapshotIdRestore(
       project.username,
       project.slug,
-      docId,
       snapshotId
     );
   }
@@ -142,13 +138,11 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    // OpenAPI generator bug - parameters are in wrong order
     return this.snapshotsApi.deleteApiSnapshotsUsernameSlugSnapshotId(
-      snapshotId,
-      docId,
+      project.username,
       project.slug,
-      project.username
-    );
+      snapshotId
+    ) as Observable<DocumentSnapshotControllerDeleteSnapshot200Response>;
   }
 
   /**
@@ -165,13 +159,11 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    // OpenAPI generator bug - parameters are in wrong order
     return this.snapshotsApi.getApiSnapshotsUsernameSlugSnapshotIdPreview(
-      snapshotId,
-      docId,
+      project.username,
       project.slug,
-      project.username
-    );
+      snapshotId
+    ) as Observable<string>;
   }
 }
 
