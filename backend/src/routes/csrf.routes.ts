@@ -10,7 +10,52 @@ const CSRFTokenResponseSchema = z.object({
   token: z.string().describe('CSRF token for form submissions'),
 });
 
-// CSRF token endpoint - generates a token using Bun.CSRF
+/**
+ * Generate a CSRF token - works in both Bun and Workers
+ */
+async function generateCSRFToken(secret: string): Promise<string> {
+  // Check if we're in Bun runtime
+  // Use globalThis to avoid bundler issues
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const bunRuntime = (globalThis as any).Bun;
+  if (bunRuntime && bunRuntime.CSRF) {
+    // Use Bun.CSRF API
+    return bunRuntime.CSRF.generate(secret, {
+      encoding: 'hex',
+      expiresIn: 60 * 60 * 1000, // 1 hour
+    });
+  }
+
+  // Fallback for Workers: generate a simple signed token
+  const timestamp = Date.now();
+  const expiresAt = timestamp + 60 * 60 * 1000; // 1 hour from now
+  const data = `${timestamp}:${expiresAt}:${crypto.randomUUID()}`;
+
+  // Create HMAC signature using Web Crypto API (available in Workers)
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
+  const signatureHex = Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  // Convert data to hex (Workers-compatible)
+  const dataHex = Array.from(encoder.encode(data))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  return `${dataHex}.${signatureHex}`;
+}
+
+// CSRF token endpoint - generates a token compatible with both Bun and Workers
 csrfRoutes.get(
   '/token',
   describeRoute({
@@ -40,16 +85,13 @@ csrfRoutes.get(
       },
     },
   }),
-  (c) => {
+  async (c) => {
     try {
       // Get the secret from config
       const secret = config.session.secret || 'inkweld-csrf-secret';
 
-      // Generate a token using Bun.CSRF - default expiry is 1 hour
-      const token = Bun.CSRF.generate(secret, {
-        encoding: 'hex',
-        expiresIn: 60 * 60 * 1000, // 1 hour in milliseconds
-      });
+      // Generate a token using our cross-platform function
+      const token = await generateCSRFToken(secret);
 
       // Return the token in the response body
       return c.json({ token });

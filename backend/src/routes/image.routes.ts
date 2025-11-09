@@ -6,8 +6,9 @@ import { imageService } from '../services/image.service';
 import { fileStorageService } from '../services/file-storage.service';
 import { projectService } from '../services/project.service';
 import { HTTPException } from 'hono/http-exception';
+import { getDb, type AppContext } from '../middleware/database.middleware';
 
-const imageRoutes = new Hono();
+const imageRoutes = new Hono<AppContext>();
 
 // Schemas
 const messageSchema = z.object({
@@ -69,6 +70,7 @@ imageRoutes.post(
   }),
   requireAuth,
   async (c) => {
+    const db = getDb(c);
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
@@ -82,7 +84,7 @@ imageRoutes.post(
     }
 
     // Verify project ownership
-    const project = await projectService.findByUsernameAndSlug(username, slug);
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
@@ -150,8 +152,9 @@ imageRoutes.get(
     }
 
     const buffer = await fileStorageService.readProjectFile(username, slug, 'cover.jpg');
+    const uint8Array = new Uint8Array(buffer);
 
-    return c.body(buffer, 200, {
+    return c.body(uint8Array, 200, {
       'Content-Type': 'image/jpeg',
       'Content-Length': buffer.length.toString(),
     });
@@ -201,12 +204,13 @@ imageRoutes.delete(
   }),
   requireAuth,
   async (c) => {
+    const db = getDb(c);
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
 
     // Verify project ownership
-    const project = await projectService.findByUsernameAndSlug(username, slug);
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });

@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
-import { getDataSource } from '../src/config/database.js';
-import { User } from '../src/entities/user.entity.js';
-import { Project } from '../src/entities/project.entity.js';
+import { getDatabase } from '../src/db/index.js';
+import { users, projects } from '../src/db/schema/index.js';
+import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper.js';
 
 describe('Projects', () => {
-  let testUser: User;
+  let testUserId: string;
+  let testUsername: string;
   let client: TestClient;
   let testProject: { name: string; slug: string; id: string };
 
@@ -15,21 +16,28 @@ describe('Projects', () => {
     const { baseUrl } = await startTestServer();
     client = new TestClient(baseUrl);
 
+    const db = getDatabase();
+
     // Clean up any existing test users
-    const userRepo = getDataSource().getRepository(User);
-    await userRepo.delete({ username: 'projectuser' });
+    await db.delete(users).where(eq(users.username, 'projectuser'));
 
     // Create test user
     const hashedPassword = await bcrypt.hash('testpassword123', 10);
 
-    testUser = userRepo.create({
-      username: 'projectuser',
-      email: 'projectuser@example.com',
-      password: hashedPassword,
-      approved: true,
-      enabled: true,
-    });
-    await userRepo.save(testUser);
+    const [testUser] = await db
+      .insert(users)
+      .values({
+        id: crypto.randomUUID(),
+        username: 'projectuser',
+        email: 'projectuser@example.com',
+        password: hashedPassword,
+        approved: true,
+        enabled: true,
+      })
+      .returning();
+
+    testUserId = testUser.id;
+    testUsername = testUser.username!; // username is required
 
     // Login to get session
     const loggedIn = await client.login('projectuser', 'testpassword123');
@@ -37,13 +45,13 @@ describe('Projects', () => {
   });
 
   afterAll(async () => {
+    const db = getDatabase();
+
     // Clean up test projects
-    const projectRepo = getDataSource().getRepository(Project);
-    await projectRepo.delete({ user: { id: testUser.id } });
+    await db.delete(projects).where(eq(projects.userId, testUserId));
 
     // Clean up test user
-    const userRepo = getDataSource().getRepository(User);
-    await userRepo.delete({ id: testUser.id });
+    await db.delete(users).where(eq(users.id, testUserId));
 
     // Stop test server
     await stopTestServer();
@@ -79,7 +87,7 @@ describe('Projects', () => {
   describe('GET /api/v1/projects/:username/:slug', () => {
     it('should get project by slug', async () => {
       const { response, json } = await client.request(
-        `/api/v1/projects/${testUser.username}/${testProject.slug}`
+        `/api/v1/projects/${testUsername}/${testProject.slug}`
       );
 
       expect(response.status).toBe(200);
@@ -88,9 +96,7 @@ describe('Projects', () => {
     });
 
     it('should return 404 for non-existent project', async () => {
-      const { response } = await client.request(
-        `/api/v1/projects/${testUser.username}/nonexistent`
-      );
+      const { response } = await client.request(`/api/v1/projects/${testUsername}/nonexistent`);
       expect(response.status).toBe(404);
     });
 
@@ -129,7 +135,7 @@ describe('Projects', () => {
   describe('GET /api/v1/projects/:username/:slug', () => {
     it('should get project by slug', async () => {
       const { response, json } = await client.request(
-        `/api/v1/projects/${testUser.username}/${testProject.slug}`
+        `/api/v1/projects/${testUsername}/${testProject.slug}`
       );
 
       expect(response.status).toBe(200);
@@ -139,9 +145,7 @@ describe('Projects', () => {
     });
 
     it('should return 404 for non-existent project', async () => {
-      const { response } = await client.request(
-        `/api/v1/projects/${testUser.username}/nonexistent`
-      );
+      const { response } = await client.request(`/api/v1/projects/${testUsername}/nonexistent`);
 
       expect(response.status).toBe(404);
     });
@@ -150,7 +154,7 @@ describe('Projects', () => {
   describe('PATCH /api/v1/projects/:username/:slug', () => {
     it('should update project', async () => {
       const { response, json } = await client.request(
-        `/api/v1/projects/${testUser.username}/${testProject.slug}`,
+        `/api/v1/projects/${testUsername}/${testProject.slug}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -171,7 +175,7 @@ describe('Projects', () => {
       const unauthClient = new TestClient(client['baseUrl']);
 
       const { response } = await unauthClient.request(
-        `/api/v1/projects/${testUser.username}/${testProject.slug}`,
+        `/api/v1/projects/${testUsername}/${testProject.slug}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -199,7 +203,7 @@ describe('Projects', () => {
 
       // Delete it
       const { response } = await client.request(
-        `/api/v1/projects/${testUser.username}/${project.slug}`,
+        `/api/v1/projects/${testUsername}/${project.slug}`,
         {
           method: 'DELETE',
         }
@@ -209,7 +213,7 @@ describe('Projects', () => {
 
       // Verify it's gone
       const { response: getResponse } = await client.request(
-        `/api/v1/projects/${testUser.username}/${project.slug}`
+        `/api/v1/projects/${testUsername}/${project.slug}`
       );
       expect(getResponse.status).toBe(404);
     });

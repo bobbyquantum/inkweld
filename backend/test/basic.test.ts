@@ -120,8 +120,8 @@ describe('Root', () => {
     const res = await app.request('/csrf/token');
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json).toHaveProperty('message');
-    expect(json).toHaveProperty('protection');
-    expect(json.protection).toBe('automatic');
+    expect(json).toHaveProperty('token');
+    expect(typeof json.token).toBe('string');
+    expect(json.token.length).toBeGreaterThan(0);
   });
 });

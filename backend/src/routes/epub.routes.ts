@@ -3,8 +3,9 @@ import { describeRoute, resolver } from 'hono-openapi';
 import { z } from 'zod';
 import { projectService } from '../services/project.service';
 import { requireAuth } from '../middleware/auth';
+import { getDb, type AppContext } from '../middleware/database.middleware';
 
-const epubRoutes = new Hono();
+const epubRoutes = new Hono<AppContext>();
 
 // Schemas
 const epubResponseSchema = z.object({
@@ -62,11 +63,12 @@ epubRoutes.post(
   }),
   requireAuth,
   async (c) => {
+    const db = getDb(c);
     const username = c.req.param('username');
     const slug = c.req.param('slug');
 
     // Verify project exists
-    const project = await projectService.findByUsernameAndSlug(username, slug);
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
     if (!project) {
       return c.json({ error: 'Project not found' }, 404);

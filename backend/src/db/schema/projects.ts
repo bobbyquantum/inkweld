@@ -2,7 +2,9 @@ import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 import { users } from './users';
 
 export const projects = sqliteTable('projects', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   version: integer('version').notNull().default(1),
   slug: text('slug').notNull(),
   title: text('title').notNull(),

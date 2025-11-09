@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
-import { getDataSource } from '../src/config/database.js';
-import { User } from '../src/entities/user.entity.js';
+import { getDatabase } from '../src/db/index.js';
+import { users } from '../src/db/schema/index.js';
+import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper.js';
 
 describe('Authentication', () => {
-  let testUser: User;
+  let testUserId: string;
   let client: TestClient;
   let testServer: { port: number; baseUrl: string };
 
@@ -14,25 +15,31 @@ describe('Authentication', () => {
     testServer = await startTestServer();
     client = new TestClient(testServer.baseUrl);
 
-    // Clean up any existing test user
-    const userRepo = getDataSource().getRepository(User);
-    await userRepo.delete({ username: 'testuser' });
-    await userRepo.delete({ username: 'newuser' });
-    await userRepo.delete({ username: 'invalidemailuser' });
-    await userRepo.delete({ username: 'weakpassuser' });
-    await userRepo.delete({ username: 'meuser' });
+    const db = getDatabase();
+
+    // Clean up any existing test users
+    await db.delete(users).where(eq(users.username, 'testuser'));
+    await db.delete(users).where(eq(users.username, 'newuser'));
+    await db.delete(users).where(eq(users.username, 'invalidemailuser'));
+    await db.delete(users).where(eq(users.username, 'weakpassuser'));
+    await db.delete(users).where(eq(users.username, 'meuser'));
 
     // Create a test user
     const hashedPassword = await bcrypt.hash('testpassword123', 10);
 
-    testUser = userRepo.create({
-      username: 'testuser',
-      email: 'test@example.com',
-      password: hashedPassword,
-      approved: true,
-      enabled: true,
-    });
-    await userRepo.save(testUser);
+    const [testUser] = await db
+      .insert(users)
+      .values({
+        id: crypto.randomUUID(),
+        username: 'testuser',
+        email: 'test@example.com',
+        password: hashedPassword,
+        approved: true,
+        enabled: true,
+      })
+      .returning();
+
+    testUserId = testUser.id;
   });
 
   afterAll(async () => {

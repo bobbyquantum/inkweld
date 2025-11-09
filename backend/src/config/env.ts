@@ -12,13 +12,8 @@ export const config = {
 
   // Database
   database: {
-    type: (process.env.DB_TYPE || 'postgres') as 'postgres' | 'sqlite',
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432', 10),
-    username: process.env.DB_USERNAME || 'inkweld',
-    password: process.env.DB_PASSWORD || 'inkweld',
-    database: process.env.DB_DATABASE || 'inkweld',
-    synchronize: process.env.DB_SYNC === 'true',
+    type: (process.env.DB_TYPE || 'sqlite') as 'sqlite' | 'd1',
+    // SQLite/D1 only - Postgres support removed
   },
 
   // Session

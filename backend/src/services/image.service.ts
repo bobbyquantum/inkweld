@@ -1,4 +1,28 @@
-import sharp from 'sharp';
+// Lazy-loaded sharp - only works in Node/Bun, not in Workers
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let sharpInstance: any = null;
+let sharpLoadAttempted = false;
+
+async function getSharp() {
+  if (sharpLoadAttempted) return sharpInstance;
+
+  sharpLoadAttempted = true;
+
+  // Check if we're in Workers runtime
+  const isWorkers =
+    typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers';
+  if (isWorkers) {
+    return null;
+  }
+
+  try {
+    const sharpModule = await import('sharp');
+    sharpInstance = sharpModule.default;
+    return sharpInstance;
+  } catch {
+    return null;
+  }
+}
 
 export class ImageService {
   /**
@@ -14,6 +38,14 @@ export class ImageService {
       quality?: number;
     } = {}
   ): Promise<Buffer> {
+    const sharp = await getSharp();
+
+    // In Workers, skip processing and return original buffer
+    if (!sharp) {
+      console.warn('[ImageService] Running in Workers mode - image processing disabled');
+      return buffer;
+    }
+
     const { width = 800, height, fit = 'inside', format = 'jpeg', quality = 80 } = options;
 
     let image = sharp(buffer);
@@ -69,6 +101,17 @@ export class ImageService {
    * Validate image file
    */
   async validateImage(buffer: Buffer): Promise<{ valid: boolean; error?: string }> {
+    const sharp = await getSharp();
+
+    // In Workers, do basic validation only
+    if (!sharp) {
+      // Check file size (max 10MB)
+      if (buffer.length > 10 * 1024 * 1024) {
+        return { valid: false, error: 'Image too large (max 10MB)' };
+      }
+      return { valid: true };
+    }
+
     try {
       const metadata = await sharp(buffer).metadata();
 
@@ -83,7 +126,7 @@ export class ImageService {
       }
 
       return { valid: true };
-    } catch (_error) {
+    } catch {
       return { valid: false, error: 'Invalid image file' };
     }
   }

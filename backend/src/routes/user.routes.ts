@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { describeRoute, resolver, validator } from 'hono-openapi';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
-import { getDatabase } from '../db';
+import { getDb, type AppContext } from '../middleware/database.middleware';
 import { users as usersTable } from '../db/schema/users';
 import { userService } from '../services/user.service';
 import { fileStorageService } from '../services/file-storage.service';
@@ -18,7 +18,7 @@ import {
 import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
 import { RegisterRequestSchema, RegisterResponseSchema } from '../schemas/auth.schemas';
 
-const userRoutes = new Hono();
+const userRoutes = new Hono<AppContext>();
 
 // Get current user
 userRoutes.get(
@@ -58,7 +58,8 @@ userRoutes.get(
     const userId = c.get('user').id;
     console.log('[/me endpoint] User ID from session:', userId);
 
-    const user = await userService.findById(userId);
+    const db = getDb(c);
+    const user = await userService.findById(db, userId);
 
     console.log('[/me endpoint] User from database:', user);
 
@@ -103,7 +104,7 @@ userRoutes.get(
     const page = parseInt(c.req.query('page') || '1', 10);
     const pageSize = parseInt(c.req.query('pageSize') || '10', 10);
 
-    const db = getDatabase();
+    const db = getDb(c);
 
     const allUsers = await db
       .select({
@@ -151,7 +152,7 @@ userRoutes.get(
     const page = parseInt(c.req.query('page') || '1', 10);
     const pageSize = parseInt(c.req.query('pageSize') || '10', 10);
 
-    const db = getDatabase();
+    const db = getDb(c);
 
     const searchTerm = `%${term}%`;
     const foundUsers = await db
@@ -162,24 +163,14 @@ userRoutes.get(
         enabled: usersTable.enabled,
       })
       .from(usersTable)
-      .where(
-        or(
-          like(usersTable.username, searchTerm),
-          like(usersTable.name, searchTerm)
-        )
-      )
+      .where(or(like(usersTable.username, searchTerm), like(usersTable.name, searchTerm)))
       .limit(pageSize)
       .offset((page - 1) * pageSize);
 
     const totalResults = await db
       .select()
       .from(usersTable)
-      .where(
-        or(
-          like(usersTable.username, searchTerm),
-          like(usersTable.name, searchTerm)
-        )
-      );
+      .where(or(like(usersTable.username, searchTerm), like(usersTable.name, searchTerm)));
     const total = totalResults.length;
 
     return c.json({
@@ -250,13 +241,14 @@ userRoutes.post(
     }
 
     // Check if username already exists
-    const existingUser = await userService.findByUsername(username);
+    const db = getDb(c);
+    const existingUser = await userService.findByUsername(db, username);
     if (existingUser) {
       return c.json({ error: 'Username already exists' }, 400);
     }
 
     // Create user using userService
-    const user = await userService.create({
+    const user = await userService.create(db, {
       username,
       email: email || '',
       password,
@@ -265,7 +257,7 @@ userRoutes.post(
 
     // Update approval status if approval not required
     if (!config.userApprovalRequired) {
-      await userService.approveUser(user.id);
+      await userService.approveUser(db, user.id);
     }
 
     return c.json({
@@ -317,7 +309,8 @@ userRoutes.get(
       return c.json({ error: 'Username must be at least 3 characters' }, 400);
     }
 
-    const existingUser = await userService.findByUsername(username);
+    const db = getDb(c);
+    const existingUser = await userService.findByUsername(db, username);
 
     return c.json({
       available: !existingUser,
@@ -423,7 +416,8 @@ userRoutes.post(
   async (c) => {
     const userId = c.get('user').id;
 
-    const user = await userService.findById(userId);
+    const db = getDb(c);
+    const user = await userService.findById(db, userId);
     if (!user || !user.username) {
       return c.json({ error: 'User not found' }, 404);
     }
@@ -496,7 +490,8 @@ userRoutes.post(
   async (c) => {
     const userId = c.get('user').id;
 
-    const user = await userService.findById(userId);
+    const db = getDb(c);
+    const user = await userService.findById(db, userId);
     if (!user || !user.username) {
       return c.json({ error: 'User not found' }, 404);
     }

@@ -4,8 +4,9 @@ import { z } from 'zod';
 import { projectService } from '../services/project.service';
 import { requireAuth } from '../middleware/auth';
 import { fileStorageService } from '../services/file-storage.service';
+import { getDb, type AppContext } from '../middleware/database.middleware';
 
-const fileRoutes = new Hono();
+const fileRoutes = new Hono<AppContext>();
 
 // Schemas
 const fileSchema = z.object({
@@ -53,11 +54,12 @@ fileRoutes.get(
   }),
   requireAuth,
   async (c) => {
+    const db = getDb(c);
     const username = c.req.param('username');
     const slug = c.req.param('slug');
 
     // Verify project exists
-    const project = await projectService.findByUsernameAndSlug(username, slug);
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
     if (!project) {
       return c.json({ error: 'Project not found' }, 404);
@@ -70,7 +72,7 @@ fileRoutes.get(
           name,
         }))
       );
-    } catch (error) {
+    } catch {
       return c.json({ error: 'Failed to list files' }, 500);
     }
   }
@@ -114,12 +116,13 @@ fileRoutes.get(
   }),
   requireAuth,
   async (c) => {
+    const db = getDb(c);
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const storedName = c.req.param('storedName');
 
     // Verify project exists
-    const project = await projectService.findByUsernameAndSlug(username, slug);
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
     if (!project) {
       return c.json({ error: 'Project not found' }, 404);
@@ -139,7 +142,7 @@ fileRoutes.get(
         'Content-Disposition': `attachment; filename="${storedName}"`,
         'Content-Length': buffer.length.toString(),
       });
-    } catch (error) {
+    } catch {
       return c.json({ error: 'Failed to read file' }, 500);
     }
   }

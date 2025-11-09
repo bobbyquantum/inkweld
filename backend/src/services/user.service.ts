@@ -1,6 +1,6 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { eq, or } from 'drizzle-orm';
-import { getDatabase } from '../db';
+import type { DatabaseInstance } from '../middleware/database.middleware';
 import { users, User, InsertUser } from '../db/schema';
 
 const SALT_ROUNDS = 10;
@@ -9,8 +9,7 @@ class UserService {
   /**
    * Find user by ID
    */
-  async findById(id: string): Promise<User | undefined> {
-    const db = getDatabase();
+  async findById(db: DatabaseInstance, id: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return result[0];
   }
@@ -18,8 +17,7 @@ class UserService {
   /**
    * Find user by username
    */
-  async findByUsername(username: string): Promise<User | undefined> {
-    const db = getDatabase();
+  async findByUsername(db: DatabaseInstance, username: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
     return result[0];
   }
@@ -27,8 +25,7 @@ class UserService {
   /**
    * Find user by email
    */
-  async findByEmail(email: string): Promise<User | undefined> {
-    const db = getDatabase();
+  async findByEmail(db: DatabaseInstance, email: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
     return result[0];
   }
@@ -36,8 +33,7 @@ class UserService {
   /**
    * Find user by GitHub ID
    */
-  async findByGithubId(githubId: string): Promise<User | undefined> {
-    const db = getDatabase();
+  async findByGithubId(db: DatabaseInstance, githubId: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.githubId, githubId)).limit(1);
     return result[0];
   }
@@ -45,13 +41,15 @@ class UserService {
   /**
    * Create a new user with username/password
    */
-  async create(data: {
-    username: string;
-    email: string;
-    password: string;
-    name?: string;
-  }): Promise<User> {
-    const db = getDatabase();
+  async create(
+    db: DatabaseInstance,
+    data: {
+      username: string;
+      email: string;
+      password: string;
+      name?: string;
+    }
+  ): Promise<User> {
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
 
     const newUser: InsertUser = {
@@ -65,9 +63,9 @@ class UserService {
     };
 
     await db.insert(users).values(newUser);
-    
+
     // Return the created user
-    const created = await this.findById(newUser.id);
+    const created = await this.findById(db, newUser.id);
     if (!created) {
       throw new Error('Failed to create user');
     }
@@ -77,14 +75,16 @@ class UserService {
   /**
    * Create or update GitHub user
    */
-  async createOrUpdateGithubUser(data: {
-    githubId: string;
-    username: string;
-    email: string;
-    name: string;
-  }): Promise<User> {
-    const db = getDatabase();
-    let user = await this.findByGithubId(data.githubId);
+  async createOrUpdateGithubUser(
+    db: DatabaseInstance,
+    data: {
+      githubId: string;
+      username: string;
+      email: string;
+      name: string;
+    }
+  ): Promise<User> {
+    const user = await this.findByGithubId(db, data.githubId);
 
     if (user) {
       // Update existing user
@@ -96,8 +96,8 @@ class UserService {
           name: data.name,
         })
         .where(eq(users.id, user.id));
-      
-      const updated = await this.findById(user.id);
+
+      const updated = await this.findById(db, user.id);
       if (!updated) {
         throw new Error('Failed to update user');
       }
@@ -115,8 +115,8 @@ class UserService {
       };
 
       await db.insert(users).values(newUser);
-      
-      const created = await this.findById(newUser.id);
+
+      const created = await this.findById(db, newUser.id);
       if (!created) {
         throw new Error('Failed to create user');
       }
@@ -137,8 +137,7 @@ class UserService {
   /**
    * Update user password
    */
-  async updatePassword(userId: string, newPassword: string): Promise<void> {
-    const db = getDatabase();
+  async updatePassword(db: DatabaseInstance, userId: string, newPassword: string): Promise<void> {
     const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
     await db.update(users).set({ password: hashedPassword }).where(eq(users.id, userId));
   }
@@ -146,24 +145,21 @@ class UserService {
   /**
    * Approve user (admin only)
    */
-  async approveUser(userId: string): Promise<void> {
-    const db = getDatabase();
+  async approveUser(db: DatabaseInstance, userId: string): Promise<void> {
     await db.update(users).set({ approved: true }).where(eq(users.id, userId));
   }
 
   /**
    * Enable/disable user (admin only)
    */
-  async setUserEnabled(userId: string, enabled: boolean): Promise<void> {
-    const db = getDatabase();
+  async setUserEnabled(db: DatabaseInstance, userId: string, enabled: boolean): Promise<void> {
     await db.update(users).set({ enabled }).where(eq(users.id, userId));
   }
 
   /**
    * List all users (admin only)
    */
-  async listAll(): Promise<User[]> {
-    const db = getDatabase();
+  async listAll(db: DatabaseInstance): Promise<User[]> {
     return db.select().from(users).orderBy(users.username);
   }
 

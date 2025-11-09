@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { describeRoute, resolver, validator } from 'hono-openapi';
-import type { AppContext } from '../types/context.js';
 import { authService } from '../services/auth.service.js';
 import { userService } from '../services/user.service.js';
 import { config } from '../config/env.js';
+import { getDb, type AppContext } from '../middleware/database.middleware.js';
 import {
   LoginRequestSchema,
   LoginResponseSchema,
@@ -52,10 +52,11 @@ authRoutes.post(
   }),
   validator('json', LoginRequestSchema),
   async (c) => {
+    const db = getDb(c);
     const { username, password } = c.req.valid('json');
 
     // Authenticate user
-    const user = await authService.authenticate(username, password);
+    const user = await authService.authenticate(db, username, password);
 
     if (!user) {
       return c.json({ error: 'Invalid credentials' }, 401);
@@ -76,12 +77,14 @@ authRoutes.post(
 
     console.log('[Login] Session created for user:', user.username);
 
-    // Return flat structure to match old NestJS server
+    // Return user object with session info
     return c.json({
-      id: user.id,
-      username: user.username,
-      name: user.name,
-      enabled: user.enabled,
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        enabled: user.enabled,
+      },
       sessionId: 'cookie-based', // Session is in cookie, not returned
     });
   }

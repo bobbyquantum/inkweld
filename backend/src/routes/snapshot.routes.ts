@@ -5,6 +5,7 @@ import { projectService } from '../services/project.service';
 import { userService } from '../services/user.service';
 import { documentSnapshotService } from '../services/document-snapshot.service';
 import { HTTPException } from 'hono/http-exception';
+import { getDb, type AppContext } from '../middleware/database.middleware';
 import {
   DocumentSnapshotSchema,
   CreateSnapshotRequestSchema,
@@ -13,7 +14,7 @@ import {
 } from '../schemas/snapshot.schemas';
 import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
 
-const snapshotRoutes = new Hono();
+const snapshotRoutes = new Hono<AppContext>();
 
 // Get snapshots for a project
 snapshotRoutes.get(
@@ -58,12 +59,13 @@ snapshotRoutes.get(
   }),
   requireAuth,
   async (c) => {
+    const db = getDb(c);
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
 
     // Verify project ownership
-    const project = await projectService.findByUsernameAndSlug(username, slug);
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
@@ -74,7 +76,7 @@ snapshotRoutes.get(
     }
 
     // Get snapshots
-    const snapshots = await documentSnapshotService.findByProjectId(project.id);
+    const snapshots = await documentSnapshotService.findByProjectId(db, project.id);
 
     return c.json(snapshots);
   }
@@ -123,13 +125,14 @@ snapshotRoutes.get(
   }),
   requireAuth,
   async (c) => {
+    const db = getDb(c);
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const snapshotId = c.req.param('snapshotId');
     const userId = c.get('user').id;
 
     // Verify project ownership
-    const project = await projectService.findByUsernameAndSlug(username, slug);
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
@@ -140,7 +143,7 @@ snapshotRoutes.get(
     }
 
     // Get snapshot
-    const snapshot = await documentSnapshotService.findById(snapshotId);
+    const snapshot = await documentSnapshotService.findById(db, snapshotId);
 
     if (!snapshot || snapshot.projectId !== project.id) {
       throw new HTTPException(404, { message: 'Snapshot not found' });
@@ -209,13 +212,14 @@ snapshotRoutes.post(
   requireAuth,
   validator('json', CreateSnapshotRequestSchema),
   async (c) => {
+    const db = getDb(c);
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
     const data = c.req.valid('json');
 
     // Verify project ownership
-    const project = await projectService.findByUsernameAndSlug(username, slug);
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
@@ -226,13 +230,13 @@ snapshotRoutes.post(
     }
 
     // Get user
-    const user = await userService.findById(userId);
+    const user = await userService.findById(db, userId);
     if (!user) {
       throw new HTTPException(404, { message: 'User not found' });
     }
 
     // Create snapshot
-    const snapshot = await documentSnapshotService.create({
+    const snapshot = await documentSnapshotService.create(db, {
       documentId: data.documentId,
       projectId: project.id,
       userId: user.id,
@@ -302,13 +306,14 @@ snapshotRoutes.delete(
   }),
   requireAuth,
   async (c) => {
+    const db = getDb(c);
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const snapshotId = c.req.param('snapshotId');
     const userId = c.get('user').id;
 
     // Verify project ownership
-    const project = await projectService.findByUsernameAndSlug(username, slug);
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
@@ -319,13 +324,13 @@ snapshotRoutes.delete(
     }
 
     // Get and delete snapshot
-    const snapshot = await documentSnapshotService.findById(snapshotId);
+    const snapshot = await documentSnapshotService.findById(db, snapshotId);
 
     if (!snapshot || snapshot.projectId !== project.id) {
       throw new HTTPException(404, { message: 'Snapshot not found' });
     }
 
-    await documentSnapshotService.delete(snapshotId);
+    await documentSnapshotService.delete(db, snapshotId);
 
     return c.json({ message: 'Snapshot deleted successfully' });
   }

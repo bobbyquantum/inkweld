@@ -1,22 +1,28 @@
 import { eq, and, desc } from 'drizzle-orm';
-import { getDatabase } from '../db';
-import { documentSnapshots, DocumentSnapshot, InsertDocumentSnapshot } from '../db/schema/document-snapshots';
+import type { DatabaseInstance } from '../middleware/database.middleware';
+import {
+  documentSnapshots,
+  DocumentSnapshot,
+  InsertDocumentSnapshot,
+} from '../db/schema/document-snapshots';
 
 class DocumentSnapshotService {
   /**
    * Find snapshot by ID
    */
-  async findById(id: string): Promise<DocumentSnapshot | undefined> {
-    const db = getDatabase();
-    const result = await db.select().from(documentSnapshots).where(eq(documentSnapshots.id, id)).limit(1);
+  async findById(db: DatabaseInstance, id: string): Promise<DocumentSnapshot | undefined> {
+    const result = await db
+      .select()
+      .from(documentSnapshots)
+      .where(eq(documentSnapshots.id, id))
+      .limit(1);
     return result[0];
   }
 
   /**
    * Find all snapshots for a project
    */
-  async findByProjectId(projectId: string): Promise<DocumentSnapshot[]> {
-    const db = getDatabase();
+  async findByProjectId(db: DatabaseInstance, projectId: string): Promise<DocumentSnapshot[]> {
     return db
       .select()
       .from(documentSnapshots)
@@ -27,8 +33,11 @@ class DocumentSnapshotService {
   /**
    * Find all snapshots for a specific document in a project
    */
-  async findByDocumentId(projectId: string, documentId: string): Promise<DocumentSnapshot[]> {
-    const db = getDatabase();
+  async findByDocumentId(
+    db: DatabaseInstance,
+    projectId: string,
+    documentId: string
+  ): Promise<DocumentSnapshot[]> {
     return db
       .select()
       .from(documentSnapshots)
@@ -44,18 +53,20 @@ class DocumentSnapshotService {
   /**
    * Create a new document snapshot
    */
-  async create(data: {
-    documentId: string;
-    projectId: string;
-    userId: string;
-    name: string;
-    description?: string;
-    yDocState: Buffer;
-    stateVector?: Buffer;
-    wordCount?: number;
-    metadata?: Record<string, any>;
-  }): Promise<DocumentSnapshot> {
-    const db = getDatabase();
+  async create(
+    db: DatabaseInstance,
+    data: {
+      documentId: string;
+      projectId: string;
+      userId: string;
+      name: string;
+      description?: string;
+      yDocState: Buffer;
+      stateVector?: Buffer;
+      wordCount?: number;
+      metadata?: Record<string, any>;
+    }
+  ): Promise<DocumentSnapshot> {
     const newSnapshot: InsertDocumentSnapshot = {
       id: crypto.randomUUID(),
       documentId: data.documentId,
@@ -71,8 +82,8 @@ class DocumentSnapshotService {
     };
 
     await db.insert(documentSnapshots).values(newSnapshot);
-    
-    const created = await this.findById(newSnapshot.id);
+
+    const created = await this.findById(db, newSnapshot.id);
     if (!created) {
       throw new Error('Failed to create document snapshot');
     }
@@ -82,8 +93,7 @@ class DocumentSnapshotService {
   /**
    * Delete a snapshot
    */
-  async delete(id: string): Promise<void> {
-    const db = getDatabase();
+  async delete(db: DatabaseInstance, id: string): Promise<void> {
     await db.delete(documentSnapshots).where(eq(documentSnapshots.id, id));
   }
 }

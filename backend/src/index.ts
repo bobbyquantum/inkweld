@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { csrf } from 'hono/csrf';
@@ -26,8 +25,24 @@ import epubRoutes from './routes/epub.routes';
 import lintRoutes from './routes/lint.routes';
 import aiImageRoutes from './routes/ai-image.routes';
 import mcpRoutes from './routes/mcp.routes';
-import yjsRoutes from './routes/yjs.routes';
-import { websocket } from 'hono/bun';
+// Yjs routes imported conditionally below (requires Bun WebSocket support)
+
+// Import database middleware
+import { databaseMiddleware } from './middleware/database.middleware';
+
+// Conditionally import Bun-specific websocket only in Bun runtime
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let websocket: any = undefined;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let yjsRoutes: any = undefined;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const bunRuntime = (globalThis as any).Bun;
+if (bunRuntime) {
+  const bunModule = await import('hono/bun');
+  websocket = bunModule.websocket;
+  const yjsModule = await import('./routes/yjs.routes');
+  yjsRoutes = yjsModule.default;
+}
 
 const app = new Hono();
 
@@ -35,6 +50,9 @@ const app = new Hono();
 app.use('*', logger());
 app.use('*', prettyJSON());
 app.use('*', secureHeaders());
+
+// Database middleware - attaches DB instance to context
+app.use('*', databaseMiddleware);
 
 // CORS configuration
 const allowedOrigins = config.allowedOrigins;
@@ -80,7 +98,10 @@ app.route('/api/config', configRoutes);
 app.route('/lint', lintRoutes);
 app.route('/image', aiImageRoutes);
 app.route('/mcp', mcpRoutes);
-app.route('/ws', yjsRoutes);
+// Conditionally register Yjs WebSocket routes (only in Bun runtime)
+if (bunRuntime && yjsRoutes) {
+  app.route('/ws', yjsRoutes);
+}
 
 // Root route
 app.get('/', (c) => {
@@ -164,8 +185,10 @@ async function bootstrap() {
   }
 }
 
-// Only run bootstrap if not in test mode
-if (process.env.NODE_ENV !== 'test') {
+// Only run bootstrap if not in test mode AND not in Workers
+// In Workers, the app is exported and database is handled per-request
+const isWorkers = typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers';
+if (process.env.NODE_ENV !== 'test' && !isWorkers) {
   bootstrap();
 }
 

@@ -3,8 +3,9 @@ import { describeRoute, resolver } from 'hono-openapi';
 import { z } from 'zod';
 import { projectService } from '../services/project.service';
 import { requireAuth } from '../middleware/auth';
+import { getDb, type AppContext } from '../middleware/database.middleware';
 
-const elementRoutes = new Hono();
+const elementRoutes = new Hono<AppContext>();
 
 // Schemas
 const elementSchema = z.object({
@@ -56,11 +57,12 @@ elementRoutes.get(
   }),
   requireAuth,
   async (c) => {
+    const db = getDb(c);
     const username = c.req.param('username');
     const slug = c.req.param('slug');
 
     // Verify project exists
-    const project = await projectService.findByUsernameAndSlug(username, slug);
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
     if (!project) {
       return c.json({ error: 'Project not found' }, 404);

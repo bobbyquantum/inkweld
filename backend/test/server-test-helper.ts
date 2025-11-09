@@ -99,7 +99,7 @@ export class TestClient {
    * Login as a user and store session cookie
    */
   async login(username: string, password: string): Promise<boolean> {
-    const { response } = await this.request('/api/auth/login', {
+    const { response } = await this.request('/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),

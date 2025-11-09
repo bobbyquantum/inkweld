@@ -3,7 +3,9 @@ import { projects } from './projects';
 import { users } from './users';
 
 export const documentSnapshots = sqliteTable('document_snapshots', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   documentId: text('document_id', { length: 500 }).notNull(),
   projectId: text('project_id')
     .notNull()

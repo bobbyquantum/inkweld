@@ -1,7 +1,7 @@
 /**
  * Shared test setup - import this at the top of every test file
  */
-import { setupDatabase, closeDatabase } from '../src/config/database.js';
+import { setupDatabase } from '../src/db/index.js';
 import * as fs from 'fs/promises';
 
 // Ensure data directory exists
@@ -9,7 +9,7 @@ await fs.mkdir('./data', { recursive: true }).catch(() => {});
 
 // Initialize database once (shared across all tests)
 if (!globalThis.__TEST_DB_INITIALIZED__) {
-  await setupDatabase();
+  await setupDatabase(true); // Pass true for test mode
   console.log('✅ Test database initialized (shared)');
   globalThis.__TEST_DB_INITIALIZED__ = true;
 }

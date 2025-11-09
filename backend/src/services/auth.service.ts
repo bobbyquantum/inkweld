@@ -4,6 +4,7 @@ import { sign } from 'hono/jwt';
 import { config } from '../config/env.js';
 import { userService } from './user.service.js';
 import type { User } from '../db/schema/users.js';
+import type { DatabaseInstance } from '../middleware/database.middleware.js';
 
 const SESSION_COOKIE_NAME = 'inkweld_session';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
@@ -97,9 +98,13 @@ class AuthService {
   /**
    * Authenticate with username and password
    */
-  async authenticate(username: string, password: string): Promise<User | null> {
+  async authenticate(
+    db: DatabaseInstance,
+    username: string,
+    password: string
+  ): Promise<User | null> {
     try {
-      const user = await userService.findByUsername(username);
+      const user = await userService.findByUsername(db, username);
       if (!user) {
         return null;
       }
@@ -119,14 +124,14 @@ class AuthService {
   /**
    * Get user from session
    */
-  async getUserFromSession(c: Context): Promise<User | null> {
+  async getUserFromSession(db: DatabaseInstance, c: Context): Promise<User | null> {
     const session = await this.getSession(c);
     if (!session) {
       return null;
     }
 
     try {
-      return await userService.findById(session.userId);
+      return await userService.findById(db, session.userId);
     } catch (err) {
       console.error('Failed to get user from session:', err);
       return null;
@@ -138,7 +143,12 @@ class AuthService {
    */
   requireAuth() {
     return async (c: Context, next: () => Promise<void>) => {
-      const user = await this.getUserFromSession(c);
+      const db = c.get('db');
+      if (!db) {
+        throw new Error('Database not available in context');
+      }
+
+      const user = await this.getUserFromSession(db, c);
       if (!user) {
         return c.json({ error: 'Unauthorized' }, 401);
       }

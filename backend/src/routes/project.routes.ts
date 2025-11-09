@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { userService } from '../services/user.service';
 import { HTTPException } from 'hono/http-exception';
+import { getDb, type AppContext } from '../middleware/database.middleware';
 import {
   ProjectSchema,
   CreateProjectRequestSchema,
@@ -12,7 +13,7 @@ import {
 } from '../schemas/project.schemas';
 import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
 
-const projectRoutes = new Hono();
+const projectRoutes = new Hono<AppContext>();
 
 // Get all projects for current user
 projectRoutes.get(
@@ -41,9 +42,10 @@ projectRoutes.get(
   }),
   requireAuth,
   async (c) => {
+    const db = getDb(c);
     const userId = c.get('user').id;
 
-    const projects = await projectService.findByUserId(userId);
+    const projects = await projectService.findByUserId(db, userId);
 
     return c.json(projects);
   }
@@ -92,11 +94,12 @@ projectRoutes.get(
   }),
   requireAuth,
   async (c) => {
+    const db = getDb(c);
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
 
-    const project = await projectService.findByUsernameAndSlug(username, slug);
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
@@ -157,24 +160,25 @@ projectRoutes.post(
   requireAuth,
   validator('json', CreateProjectRequestSchema),
   async (c) => {
+    const db = getDb(c);
     const { slug, title, description } = c.req.valid('json');
     const userId = c.get('user').id;
 
     // Get user
-    const user = await userService.findById(userId);
+    const user = await userService.findById(db, userId);
     if (!user || !user.username) {
       throw new HTTPException(404, { message: 'User not found' });
     }
 
     // Check if project with same slug exists for this user
-    const existing = await projectService.findByUsernameAndSlug(user.username, slug);
+    const existing = await projectService.findByUsernameAndSlug(db, user.username, slug);
 
     if (existing) {
       throw new HTTPException(400, { message: 'Project with this slug already exists' });
     }
 
     // Create project
-    const project = await projectService.create({
+    const project = await projectService.create(db, {
       slug,
       title,
       description,
@@ -250,12 +254,13 @@ projectRoutes.put(
   requireAuth,
   validator('json', UpdateProjectRequestSchema),
   async (c) => {
+    const db = getDb(c);
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
     const updates = c.req.valid('json');
 
-    const project = await projectService.findByUsernameAndSlug(username, slug);
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
@@ -267,10 +272,10 @@ projectRoutes.put(
     }
 
     // Update project
-    await projectService.update(project.id, updates);
+    await projectService.update(db, project.id, updates);
 
     // Get updated project
-    const updated = await projectService.findById(project.id);
+    const updated = await projectService.findById(db, project.id);
     if (!updated) {
       throw new HTTPException(500, { message: 'Failed to update project' });
     }
@@ -332,11 +337,12 @@ projectRoutes.delete(
   }),
   requireAuth,
   async (c) => {
+    const db = getDb(c);
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
 
-    const project = await projectService.findByUsernameAndSlug(username, slug);
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
@@ -347,7 +353,7 @@ projectRoutes.delete(
       throw new HTTPException(403, { message: 'Access denied' });
     }
 
-    await projectService.delete(project.id);
+    await projectService.delete(db, project.id);
 
     return c.json({ message: 'Project deleted successfully' });
   }

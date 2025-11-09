@@ -1,5 +1,5 @@
 name = "inkweld-backend"
-main = "src/index.ts"
+main = "src/worker.ts"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 
@@ -18,17 +18,19 @@ command = ""
 [vars]
 NODE_ENV = "production"
 PORT = "8333"
+DB_TYPE = "d1"
 ALLOWED_ORIGINS = "http://localhost:4200,https://inkweld.app"
 USER_APPROVAL_REQUIRED = "false"
 GITHUB_ENABLED = "false"
 RECAPTCHA_ENABLED = "false"
 
 # Database binding (Cloudflare D1)
-# Uncomment and configure when ready to use D1
+# IMPORTANT: Copy this section to wrangler.toml.local and set your actual database_id
+# Create a D1 database with: npx wrangler d1 create inkweld_dev
 # [[d1_databases]]
 # binding = "DB"
-# database_name = "inkweld-db"
-# database_id = "your-d1-database-id"
+# database_name = "inkweld_dev"
+# database_id = "your-database-id-here"
 
 # R2 bucket for file storage (covers, avatars, etc.)
 # Uncomment and configure when ready to use R2
@@ -69,4 +71,4 @@ vars = { NODE_ENV = "development" }
 # Production configuration
 [env.production]
 name = "inkweld-backend-prod"
-vars = { NODE_ENV = "production", USER_APPROVAL_REQUIRED = "true" }
+vars = { NODE_ENV = "production", DB_TYPE = "d1", USER_APPROVAL_REQUIRED = "true" }
