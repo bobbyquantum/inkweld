@@ -62,30 +62,19 @@ snapshotRoutes.get(
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
 
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-    const snapshotRepo = dataSource.getRepository(DocumentSnapshot);
-
     // Verify project ownership
-    const project = await projectRepo.findOne({
-      where: { slug, user: { username } },
-      relations: ['user'],
-    });
+    const project = await projectService.findByUsernameAndSlug(username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
     }
 
-    if (project.user.id !== userId) {
+    if (project.userId !== userId) {
       throw new HTTPException(403, { message: 'Access denied' });
     }
 
     // Get snapshots
-    const snapshots = await snapshotRepo.find({
-      where: { project: { id: project.id } },
-      order: { createdAt: 'DESC' },
-      select: ['id', 'documentId', 'name', 'description', 'wordCount', 'metadata', 'createdAt'],
-    });
+    const snapshots = await documentSnapshotService.findByProjectId(project.id);
 
     return c.json(snapshots);
   }
@@ -139,30 +128,21 @@ snapshotRoutes.get(
     const snapshotId = c.req.param('snapshotId');
     const userId = c.get('user').id;
 
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-    const snapshotRepo = dataSource.getRepository(DocumentSnapshot);
-
     // Verify project ownership
-    const project = await projectRepo.findOne({
-      where: { slug, user: { username } },
-      relations: ['user'],
-    });
+    const project = await projectService.findByUsernameAndSlug(username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
     }
 
-    if (project.user.id !== userId) {
+    if (project.userId !== userId) {
       throw new HTTPException(403, { message: 'Access denied' });
     }
 
     // Get snapshot
-    const snapshot = await snapshotRepo.findOne({
-      where: { id: snapshotId, project: { id: project.id } },
-    });
+    const snapshot = await documentSnapshotService.findById(snapshotId);
 
-    if (!snapshot) {
+    if (!snapshot || snapshot.projectId !== project.id) {
       throw new HTTPException(404, { message: 'Snapshot not found' });
     }
 
@@ -234,45 +214,35 @@ snapshotRoutes.post(
     const userId = c.get('user').id;
     const data = c.req.valid('json');
 
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-    const userRepo = dataSource.getRepository(User);
-    const snapshotRepo = dataSource.getRepository(DocumentSnapshot);
-
     // Verify project ownership
-    const project = await projectRepo.findOne({
-      where: { slug, user: { username } },
-      relations: ['user'],
-    });
+    const project = await projectService.findByUsernameAndSlug(username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
     }
 
-    if (project.user.id !== userId) {
+    if (project.userId !== userId) {
       throw new HTTPException(403, { message: 'Access denied' });
     }
 
     // Get user
-    const user = await userRepo.findOne({ where: { id: userId } });
+    const user = await userService.findById(userId);
     if (!user) {
       throw new HTTPException(404, { message: 'User not found' });
     }
 
     // Create snapshot
-    const snapshot = snapshotRepo.create({
+    const snapshot = await documentSnapshotService.create({
       documentId: data.documentId,
+      projectId: project.id,
+      userId: user.id,
       name: data.name,
       description: data.description,
       yDocState: Buffer.from(data.yDocState, 'base64'),
       stateVector: data.stateVector ? Buffer.from(data.stateVector, 'base64') : undefined,
       wordCount: data.wordCount,
       metadata: data.metadata,
-      project,
-      user,
     });
-
-    await snapshotRepo.save(snapshot);
 
     return c.json(
       {
@@ -337,34 +307,25 @@ snapshotRoutes.delete(
     const snapshotId = c.req.param('snapshotId');
     const userId = c.get('user').id;
 
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-    const snapshotRepo = dataSource.getRepository(DocumentSnapshot);
-
     // Verify project ownership
-    const project = await projectRepo.findOne({
-      where: { slug, user: { username } },
-      relations: ['user'],
-    });
+    const project = await projectService.findByUsernameAndSlug(username, slug);
 
     if (!project) {
       throw new HTTPException(404, { message: 'Project not found' });
     }
 
-    if (project.user.id !== userId) {
+    if (project.userId !== userId) {
       throw new HTTPException(403, { message: 'Access denied' });
     }
 
     // Get and delete snapshot
-    const snapshot = await snapshotRepo.findOne({
-      where: { id: snapshotId, project: { id: project.id } },
-    });
+    const snapshot = await documentSnapshotService.findById(snapshotId);
 
-    if (!snapshot) {
+    if (!snapshot || snapshot.projectId !== project.id) {
       throw new HTTPException(404, { message: 'Snapshot not found' });
     }
 
-    await snapshotRepo.remove(snapshot);
+    await documentSnapshotService.delete(snapshotId);
 
     return c.json({ message: 'Snapshot deleted successfully' });
   }

@@ -1,8 +1,7 @@
 import { Hono } from 'hono';
 import { describeRoute, resolver } from 'hono-openapi';
 import { z } from 'zod';
-import { getDataSource } from '../config/database';
-import { Project } from '../entities/project.entity';
+import { projectService } from '../services/project.service';
 import { requireAuth } from '../middleware/auth';
 import { fileStorageService } from '../services/file-storage.service';
 
@@ -57,14 +56,8 @@ fileRoutes.get(
     const username = c.req.param('username');
     const slug = c.req.param('slug');
 
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-
     // Verify project exists
-    const project = await projectRepo.findOne({
-      where: { slug, user: { username } },
-      relations: ['user'],
-    });
+    const project = await projectService.findByUsernameAndSlug(username, slug);
 
     if (!project) {
       return c.json({ error: 'Project not found' }, 404);
@@ -125,14 +118,8 @@ fileRoutes.get(
     const slug = c.req.param('slug');
     const storedName = c.req.param('storedName');
 
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-
     // Verify project exists
-    const project = await projectRepo.findOne({
-      where: { slug, user: { username } },
-      relations: ['user'],
-    });
+    const project = await projectService.findByUsernameAndSlug(username, slug);
 
     if (!project) {
       return c.json({ error: 'Project not found' }, 404);

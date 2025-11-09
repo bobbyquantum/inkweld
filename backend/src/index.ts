@@ -18,12 +18,11 @@ import healthRoutes from './routes/health.routes';
 import configRoutes from './routes/config.routes';
 import imageRoutes from './routes/image.routes';
 import csrfRoutes from './routes/csrf.routes';
-// Temporarily disabled during Drizzle migration:
-// import snapshotRoutes from './routes/snapshot.routes';
-// import documentRoutes from './routes/document.routes';
-// import elementRoutes from './routes/element.routes';
-// import fileRoutes from './routes/file.routes';
-// import epubRoutes from './routes/epub.routes';
+import snapshotRoutes from './routes/snapshot.routes';
+import documentRoutes from './routes/document.routes';
+import elementRoutes from './routes/element.routes';
+import fileRoutes from './routes/file.routes';
+import epubRoutes from './routes/epub.routes';
 import lintRoutes from './routes/lint.routes';
 import aiImageRoutes from './routes/ai-image.routes';
 import mcpRoutes from './routes/mcp.routes';
@@ -70,13 +69,12 @@ app.route('/', authRoutes); // Root-level, matches old NestJS server (/login, /l
 app.route('/csrf', csrfRoutes); // Root-level, matches old NestJS server
 app.route('/api/v1/users', userRoutes);
 app.route('/api/v1/projects', projectRoutes);
-// Temporarily disabled during Drizzle migration:
-// app.route('/api/v1/projects', documentRoutes);
-// app.route('/api/v1/projects', elementRoutes);
-// app.route('/api/v1/projects', fileRoutes);
-// app.route('/api/v1/projects', epubRoutes);
+app.route('/api/v1/projects', documentRoutes);
+app.route('/api/v1/projects', elementRoutes);
+app.route('/api/v1/projects', fileRoutes);
+app.route('/api/v1/projects', epubRoutes);
 app.route('/api/images', imageRoutes);
-// app.route('/api/snapshots', snapshotRoutes);
+app.route('/api/snapshots', snapshotRoutes);
 app.route('/health', healthRoutes);
 app.route('/api/config', configRoutes);
 app.route('/lint', lintRoutes);

@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { describeRoute, resolver } from 'hono-openapi';
 import { z } from 'zod';
-import { getDataSource } from '../config/database';
-import { Project } from '../entities/project.entity';
+import { projectService } from '../services/project.service';
 import { requireAuth } from '../middleware/auth';
+import { HTTPException } from 'hono/http-exception';
 
 const documentRoutes = new Hono();
 
@@ -58,14 +58,8 @@ documentRoutes.get(
     const username = c.req.param('username');
     const slug = c.req.param('slug');
 
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-
     // Verify project exists
-    const project = await projectRepo.findOne({
-      where: { slug, user: { username } },
-      relations: ['user'],
-    });
+    const project = await projectService.findByUsernameAndSlug(username, slug);
 
     if (!project) {
       return c.json({ error: 'Project not found' }, 404);
@@ -116,14 +110,8 @@ documentRoutes.get(
     const slug = c.req.param('slug');
     const docId = c.req.param('docId');
 
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-
     // Verify project exists
-    const project = await projectRepo.findOne({
-      where: { slug, user: { username } },
-      relations: ['user'],
-    });
+    const project = await projectService.findByUsernameAndSlug(username, slug);
 
     if (!project) {
       return c.json({ error: 'Project not found' }, 404);
@@ -179,14 +167,8 @@ documentRoutes.get(
     const slug = c.req.param('slug');
     const docId = c.req.param('docId');
 
-    const dataSource = getDataSource();
-    const projectRepo = dataSource.getRepository(Project);
-
     // Verify project exists
-    const project = await projectRepo.findOne({
-      where: { slug, user: { username } },
-      relations: ['user'],
-    });
+    const project = await projectService.findByUsernameAndSlug(username, slug);
 
     if (!project) {
       return c.json({ error: 'Project not found' }, 404);
