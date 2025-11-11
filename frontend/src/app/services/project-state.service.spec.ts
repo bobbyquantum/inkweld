@@ -22,9 +22,9 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import {
-  ProjectsService,
-  Project,
   GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  Project,
+  ProjectsService,
 } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -42,12 +42,14 @@ import { StorageService } from './storage.service';
 import { UnifiedProjectService } from './unified-project.service';
 
 // Mock state - will be reset per test
-const mockYArrayState: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [];
+const mockYArrayState: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+  [];
 const mockArrayObservers: any[] = [];
 
 function createMockYArray() {
   // Create isolated state for THIS array instance
-  let localArrayState: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [];
+  let localArrayState: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+    [];
   const localObservers: any[] = [];
 
   function notifyLocalObservers(event: any) {
@@ -64,7 +66,10 @@ function createMockYArray() {
       // Notify observers once for this deletion.
       notifyLocalObservers({ changes: { added: [], deleted: length } });
     },
-    insert(index: number, elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]) {
+    insert(
+      index: number,
+      elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+    ) {
       // Replace entire array with new elements
       localArrayState = elements;
       notifyLocalObservers({
@@ -176,9 +181,7 @@ describe('ProjectStateService', () => {
     } as unknown as MockedObject<MatDialog>;
 
     mockProjectAPI = {
-      getApiProjectsUsernameSlug: vi
-        .fn()
-        .mockReturnValue(of(mockProject)),
+      getApiProjectsUsernameSlug: vi.fn().mockReturnValue(of(mockProject)),
     } as unknown as MockedObject<ProjectsService>;
 
     mockUnifiedProjectService = {
@@ -307,9 +310,10 @@ describe('ProjectStateService', () => {
     it('should load project metadata and initialize Yjs document', async () => {
       await service.loadProject('testuser', 'test-project');
 
-      expect(
-        mockProjectAPI.getApiProjectsUsernameSlug
-      ).toHaveBeenCalledWith('testuser', 'test-project');
+      expect(mockProjectAPI.getApiProjectsUsernameSlug).toHaveBeenCalledWith(
+        'testuser',
+        'test-project'
+      );
       expect(service.project()).toEqual(mockProject);
       // Error should be null or undefined (not set)
       expect(service.error()).toBeFalsy();
@@ -751,5 +755,3 @@ describe('ProjectStateService', () => {
     });
   });
 });
-
-

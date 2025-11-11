@@ -57,18 +57,19 @@ describe('OfflineProjectElementsService', () => {
 
   describe('loadElements', () => {
     it('should load elements from localStorage', () => {
-      const mockElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
-        {
-          id: 'element-1',
-          name: 'Test Element',
-          type: 'FOLDER',
-          level: 0,
-          expandable: true,
-          order: 0,
-          version: 0,
-          metadata: {},
-        },
-      ];
+      const mockElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+        [
+          {
+            id: 'element-1',
+            name: 'Test Element',
+            type: 'FOLDER',
+            level: 0,
+            expandable: true,
+            order: 0,
+            version: 0,
+            metadata: {},
+          },
+        ];
 
       const storedData = { [PROJECT_KEY]: mockElements };
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify(storedData));
@@ -137,7 +138,8 @@ describe('OfflineProjectElementsService', () => {
     });
 
     it('should handle localStorage write errors', () => {
-      const elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [];
+      const elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+        [];
       mockLocalStorage.getItem.mockReturnValue('{}');
       mockLocalStorage.setItem.mockImplementation(() => {
         throw new Error('Storage quota exceeded');
@@ -177,18 +179,19 @@ describe('OfflineProjectElementsService', () => {
 
   describe('addElement', () => {
     beforeEach(() => {
-      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
-        {
-          id: 'folder-1',
-          name: 'Folder 1',
-          type: 'FOLDER',
-          level: 0,
-          expandable: true,
-          order: 0,
-          version: 0,
-          metadata: {},
-        },
-      ];
+      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+        [
+          {
+            id: 'folder-1',
+            name: 'Folder 1',
+            type: 'FOLDER',
+            level: 0,
+            expandable: true,
+            order: 0,
+            version: 0,
+            metadata: {},
+          },
+        ];
       service.elements.set(initialElements);
       mockLocalStorage.getItem.mockReturnValue(
         JSON.stringify({ [PROJECT_KEY]: initialElements })
@@ -257,48 +260,49 @@ describe('OfflineProjectElementsService', () => {
 
   describe('deleteElement', () => {
     beforeEach(() => {
-      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
-        {
-          id: 'folder-1',
-          name: 'Folder 1',
-          type: 'FOLDER',
-          level: 0,
-          expandable: true,
-          order: 0,
-          version: 0,
-          metadata: {},
-        },
-        {
-          id: 'doc-1',
-          name: 'Document 1',
-          type: 'ITEM',
-          level: 1,
-          expandable: false,
-          order: 1,
-          version: 0,
-          metadata: {},
-        },
-        {
-          id: 'doc-2',
-          name: 'Document 2',
-          type: 'ITEM',
-          level: 1,
-          expandable: false,
-          order: 2,
-          version: 0,
-          metadata: {},
-        },
-        {
-          id: 'folder-2',
-          name: 'Folder 2',
-          type: 'FOLDER',
-          level: 0,
-          expandable: true,
-          order: 3,
-          version: 0,
-          metadata: {},
-        },
-      ];
+      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+        [
+          {
+            id: 'folder-1',
+            name: 'Folder 1',
+            type: 'FOLDER',
+            level: 0,
+            expandable: true,
+            order: 0,
+            version: 0,
+            metadata: {},
+          },
+          {
+            id: 'doc-1',
+            name: 'Document 1',
+            type: 'ITEM',
+            level: 1,
+            expandable: false,
+            order: 1,
+            version: 0,
+            metadata: {},
+          },
+          {
+            id: 'doc-2',
+            name: 'Document 2',
+            type: 'ITEM',
+            level: 1,
+            expandable: false,
+            order: 2,
+            version: 0,
+            metadata: {},
+          },
+          {
+            id: 'folder-2',
+            name: 'Folder 2',
+            type: 'FOLDER',
+            level: 0,
+            expandable: true,
+            order: 3,
+            version: 0,
+            metadata: {},
+          },
+        ];
       service.elements.set(initialElements);
       mockLocalStorage.getItem.mockReturnValue(
         JSON.stringify({ [PROJECT_KEY]: initialElements })
@@ -340,38 +344,39 @@ describe('OfflineProjectElementsService', () => {
 
   describe('moveElement', () => {
     beforeEach(() => {
-      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
-        {
-          id: 'folder-1',
-          name: 'Folder 1',
-          type: 'FOLDER',
-          level: 0,
-          expandable: true,
-          order: 0,
-          version: 0,
-          metadata: {},
-        },
-        {
-          id: 'doc-1',
-          name: 'Document 1',
-          type: 'ITEM',
-          level: 1,
-          expandable: false,
-          order: 1,
-          version: 0,
-          metadata: {},
-        },
-        {
-          id: 'doc-2',
-          name: 'Document 2',
-          type: 'ITEM',
-          level: 0,
-          expandable: false,
-          order: 2,
-          version: 0,
-          metadata: {},
-        },
-      ];
+      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+        [
+          {
+            id: 'folder-1',
+            name: 'Folder 1',
+            type: 'FOLDER',
+            level: 0,
+            expandable: true,
+            order: 0,
+            version: 0,
+            metadata: {},
+          },
+          {
+            id: 'doc-1',
+            name: 'Document 1',
+            type: 'ITEM',
+            level: 1,
+            expandable: false,
+            order: 1,
+            version: 0,
+            metadata: {},
+          },
+          {
+            id: 'doc-2',
+            name: 'Document 2',
+            type: 'ITEM',
+            level: 0,
+            expandable: false,
+            order: 2,
+            version: 0,
+            metadata: {},
+          },
+        ];
       service.elements.set(initialElements);
       mockLocalStorage.getItem.mockReturnValue(
         JSON.stringify({ [PROJECT_KEY]: initialElements })
@@ -420,18 +425,19 @@ describe('OfflineProjectElementsService', () => {
 
   describe('renameElement', () => {
     beforeEach(() => {
-      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
-        {
-          id: 'doc-1',
-          name: 'Old Name',
-          type: 'ITEM',
-          level: 0,
-          expandable: false,
-          order: 0,
-          version: 0,
-          metadata: {},
-        },
-      ];
+      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+        [
+          {
+            id: 'doc-1',
+            name: 'Old Name',
+            type: 'ITEM',
+            level: 0,
+            expandable: false,
+            order: 0,
+            version: 0,
+            metadata: {},
+          },
+        ];
       service.elements.set(initialElements);
       mockLocalStorage.getItem.mockReturnValue(
         JSON.stringify({ [PROJECT_KEY]: initialElements })
@@ -464,31 +470,33 @@ describe('OfflineProjectElementsService', () => {
 
   describe('project isolation', () => {
     it('should isolate elements by project key', () => {
-      const project1Elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
-        {
-          id: 'p1-doc',
-          name: 'Project 1 Doc',
-          type: 'ITEM',
-          level: 0,
-          expandable: false,
-          order: 0,
-          version: 0,
-          metadata: {},
-        },
-      ];
+      const project1Elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+        [
+          {
+            id: 'p1-doc',
+            name: 'Project 1 Doc',
+            type: 'ITEM',
+            level: 0,
+            expandable: false,
+            order: 0,
+            version: 0,
+            metadata: {},
+          },
+        ];
 
-      const project2Elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
-        {
-          id: 'p2-doc',
-          name: 'Project 2 Doc',
-          type: 'ITEM',
-          level: 0,
-          expandable: false,
-          order: 0,
-          version: 0,
-          metadata: {},
-        },
-      ];
+      const project2Elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+        [
+          {
+            id: 'p2-doc',
+            name: 'Project 2 Doc',
+            type: 'ITEM',
+            level: 0,
+            expandable: false,
+            order: 0,
+            version: 0,
+            metadata: {},
+          },
+        ];
 
       const storedData = {
         'user1:project1': project1Elements,

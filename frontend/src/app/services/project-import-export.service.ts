@@ -1,5 +1,8 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { Project, GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
+import {
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  Project,
+} from '@inkweld/index';
 import JSZip from '@progress/jszip-esm';
 import { firstValueFrom } from 'rxjs';
 
@@ -223,8 +226,11 @@ export class ProjectImportExportService {
     // Only export FOLDER and ITEM types, exclude worldbuilding elements
     const elements = allElements.filter(
       elem =>
-        elem.type === GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Folder ||
-        elem.type === GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item
+        elem.type ===
+          GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum
+            .Folder ||
+        elem.type ===
+          GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item
     );
 
     const archive: ProjectArchive = {
@@ -305,17 +311,18 @@ export class ProjectImportExportService {
       updatedDate: new Date().toISOString(),
     };
 
-    const elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = archive.elements.map(elem => ({
-      id: elem.id || crypto.randomUUID(), // Generate new ID if not provided
-      name: elem.name,
-      type: elem.type,
-      order: elem.order,
-      parentId: null,
-      level: elem.level,
-      version: elem.version!,
-      expandable: elem.expandable!,
-      metadata: elem.metadata,
-    }));
+    const elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+      archive.elements.map(elem => ({
+        id: elem.id || crypto.randomUUID(), // Generate new ID if not provided
+        name: elem.name,
+        type: elem.type,
+        order: elem.order,
+        parentId: null,
+        level: elem.level,
+        version: elem.version!,
+        expandable: elem.expandable!,
+        metadata: elem.metadata,
+      }));
 
     for (const elem of archive.elements) {
       if (elem.type === 'ITEM') {
@@ -494,7 +501,3 @@ export class ProjectImportExportService {
     }
   }
 }
-
-
-
-

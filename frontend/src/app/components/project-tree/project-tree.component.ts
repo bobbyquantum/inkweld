@@ -130,7 +130,8 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
   private recentTouchNodeId: string | null = null;
   private touchTimeout: number | null = null;
 
-  @Output() documentOpened = new EventEmitter<GetApiV1ProjectsUsernameSlugElements200ResponseInner>();
+  @Output() documentOpened =
+    new EventEmitter<GetApiV1ProjectsUsernameSlugElements200ResponseInner>();
 
   constructor() {
     this.dataSource = new ArrayDataSource<ProjectElement>([]);
@@ -516,7 +517,3 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     }
   }
 }
-
-
-
-

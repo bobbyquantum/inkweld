@@ -32,7 +32,10 @@
       <dd>{{ data.snapshot.createdBy.username }}</dd>
       -->
 
-      @if (data.snapshot.wordCount !== undefined && data.snapshot.wordCount !== null) {
+      @if (
+        data.snapshot.wordCount !== undefined &&
+        data.snapshot.wordCount !== null
+      ) {
         <dt>Word Count:</dt>
         <dd>{{ data.snapshot.wordCount.toLocaleString() }} words</dd>
       }

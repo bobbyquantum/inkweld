@@ -22,7 +22,7 @@ export class YjsService {
   private docs = new Map<string, WSSharedDoc>();
   // Map by project key (username:projectSlug) instead of documentId
   private persistences = new Map<string, LeveldbPersistence>();
-  
+
   /**
    * Get project key from documentId
    */
@@ -76,7 +76,7 @@ export class YjsService {
 
     // Get or create persistence instance for this PROJECT (not per document!)
     let persistence = this.persistences.get(projectKey);
-    
+
     // Create new persistence if none exists for this project
     if (!persistence) {
       console.log(`Creating new LevelDB persistence for project ${projectKey} at ${dbPath}`);
@@ -197,13 +197,13 @@ export class YjsService {
         if (doc.conns.size === 0) {
           this.docs.delete(doc.name);
           console.log(`Document ${doc.name} cleaned up after inactivity`);
-          
+
           // Check if there are any other documents from the same project still active
           const projectKey = this.getProjectKey(doc.name);
           const hasOtherDocsFromProject = Array.from(this.docs.keys()).some(
-            docId => this.getProjectKey(docId) === projectKey
+            (docId) => this.getProjectKey(docId) === projectKey
           );
-          
+
           // Only close persistence if NO documents from this project are active
           if (!hasOtherDocsFromProject) {
             const persistence = this.persistences.get(projectKey);

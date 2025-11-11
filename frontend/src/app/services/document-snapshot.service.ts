@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 
 import {
   CreateSnapshotRequest,
@@ -149,7 +149,10 @@ export class DocumentSnapshotService {
    * @param snapshotId The snapshot ID
    * @returns Observable of SnapshotWithContent (contains yDocState, not HTML)
    */
-  previewSnapshot(docId: string, snapshotId: string): Observable<SnapshotWithContent> {
+  previewSnapshot(
+    docId: string,
+    snapshotId: string
+  ): Observable<SnapshotWithContent> {
     const project = this.projectState.project();
     if (!project) {
       throw new Error('No active project');
@@ -162,10 +165,3 @@ export class DocumentSnapshotService {
     );
   }
 }
-
-
-
-
-
-
-

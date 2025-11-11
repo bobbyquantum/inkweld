@@ -198,9 +198,13 @@ export class SnapshotPanelComponent implements OnInit {
         next: snapshotContent => {
           // TODO: Render yDocState to HTML
           // For now, show a message that preview is not available
-          this.snackBar.open('Preview feature needs implementation (backend returns yDocState, not HTML)', 'OK', {
-            duration: 5000,
-          });
+          this.snackBar.open(
+            'Preview feature needs implementation (backend returns yDocState, not HTML)',
+            'OK',
+            {
+              duration: 5000,
+            }
+          );
           console.log('Snapshot content:', snapshotContent);
         },
         error: err => {
@@ -265,7 +269,3 @@ export class SnapshotPanelComponent implements OnInit {
     return undefined;
   }
 }
-
-
-
-

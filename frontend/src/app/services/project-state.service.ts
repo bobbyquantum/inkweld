@@ -1,9 +1,9 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import {
-  ProjectsService,
   ExportService,
-  Project,
   GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  Project,
+  ProjectsService,
 } from '@inkweld/index';
 import { ProjectElement } from 'app/models/project-element';
 import { nanoid } from 'nanoid';
@@ -68,8 +68,12 @@ export class ProjectStateService {
 
   // Core state signals
   readonly project = signal<Project | undefined>(undefined);
-  readonly elements = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>([]);
-  readonly openDocuments = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>([]);
+  readonly elements = signal<
+    GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+  >([]);
+  readonly openDocuments = signal<
+    GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+  >([]);
   readonly openTabs = signal<AppTab[]>([]);
   readonly selectedTabIndex = signal<number>(0);
   readonly isLoading = signal<boolean>(false);
@@ -253,10 +257,7 @@ export class ProjectStateService {
     slug: string
   ): Promise<void> {
     // Get project from unified service
-    const Project = await this.unifiedProjectService.getProject(
-      username,
-      slug
-    );
+    const Project = await this.unifiedProjectService.getProject(username, slug);
     if (!Project) {
       throw new Error('Project not found');
     }
@@ -275,10 +276,7 @@ export class ProjectStateService {
     slug: string
   ): Promise<void> {
     const Project = await firstValueFrom(
-      this.ProjectsService.getApiV1ProjectsUsernameSlug(
-        username,
-        slug
-      )
+      this.ProjectsService.getApiV1ProjectsUsernameSlug(username, slug)
     );
     this.project.set(Project);
 
@@ -426,7 +424,9 @@ export class ProjectStateService {
     this.observeDocChanges();
   }
 
-  updateElements(elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]): void {
+  updateElements(
+    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+  ): void {
     const mode = this.setupService.getMode();
 
     if (mode === 'offline') {
@@ -444,7 +444,10 @@ export class ProjectStateService {
       // Update server elements via Yjs
       if (!this.doc) return;
 
-      const elementsArray = this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>('elements');
+      const elementsArray =
+        this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>(
+          'elements'
+        );
       this.doc.transact(() => {
         elementsArray.delete(0, elementsArray.length);
         elementsArray.insert(0, elements);
@@ -452,7 +455,10 @@ export class ProjectStateService {
     }
   }
 
-  renameNode(node: GetApiV1ProjectsUsernameSlugElements200ResponseInner, newName: string): void {
+  renameNode(
+    node: GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+    newName: string
+  ): void {
     const mode = this.setupService.getMode();
     const project = this.project();
 
@@ -836,7 +842,9 @@ export class ProjectStateService {
   }
 
   // Tab Operations
-  openDocument(element: GetApiV1ProjectsUsernameSlugElements200ResponseInner): void {
+  openDocument(
+    element: GetApiV1ProjectsUsernameSlugElements200ResponseInner
+  ): void {
     const documents = this.openDocuments();
     const tabs = this.openTabs();
 
@@ -868,9 +876,15 @@ export class ProjectStateService {
 
     // Determine the tab type based on element type
     let tabType: 'document' | 'folder' | 'worldbuilding' = 'document';
-    if (element.type === GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Folder) {
+    if (
+      element.type ===
+      GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Folder
+    ) {
       tabType = 'folder';
-    } else if (element.type === GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item) {
+    } else if (
+      element.type ===
+      GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item
+    ) {
       // ITEM is always a document
       tabType = 'document';
     } else {
@@ -1181,7 +1195,10 @@ export class ProjectStateService {
                 tab.element &&
                 (tab.type === 'document' || tab.type === 'folder')
             )
-            .map(tab => tab.element as GetApiV1ProjectsUsernameSlugElements200ResponseInner);
+            .map(
+              tab =>
+                tab.element as GetApiV1ProjectsUsernameSlugElements200ResponseInner
+            );
 
           if (documents.length > 0) {
             this.openDocuments.set(documents);
@@ -1226,11 +1243,9 @@ export class ProjectStateService {
       }
 
       // Fallback to legacy document loading
-      const documents = await this.storageService.get<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>(
-        db,
-        'openedDocuments',
-        cacheKey
-      );
+      const documents = await this.storageService.get<
+        GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+      >(db, 'openedDocuments', cacheKey);
 
       if (documents && documents.length > 0) {
         this.openDocuments.set(documents);
@@ -1254,7 +1269,9 @@ export class ProjectStateService {
   }
 
   // Dialog Handlers
-  showNewElementDialog(parentElement?: GetApiV1ProjectsUsernameSlugElements200ResponseInner): void {
+  showNewElementDialog(
+    parentElement?: GetApiV1ProjectsUsernameSlugElements200ResponseInner
+  ): void {
     void this.dialogGateway.openNewElementDialog().then(result => {
       if (result) {
         const newElementId = this.addElement(
@@ -1315,14 +1332,20 @@ export class ProjectStateService {
   private initializeFromDoc(): void {
     if (!this.doc) return;
 
-    const elementsArray = this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>('elements');
+    const elementsArray =
+      this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>(
+        'elements'
+      );
     this.elements.set(elementsArray.toArray());
   }
 
   private observeDocChanges(): void {
     if (!this.doc) return;
 
-    const elementsArray = this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>('elements');
+    const elementsArray =
+      this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>(
+        'elements'
+      );
     elementsArray.observe(() => {
       const elements = elementsArray.toArray();
       this.elements.set(elements);
@@ -1368,9 +1391,3 @@ export class ProjectStateService {
     this.elements.set([...elements]);
   }
 }
-
-
-
-
-
-

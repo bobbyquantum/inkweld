@@ -3,7 +3,8 @@ import { PostLint200ResponseCorrectionsInner } from '../../../api-client/model/p
 /**
  * Extended correction interface for internal use in the lint system
  */
-export interface ExtendedCorrectionDto extends PostLint200ResponseCorrectionsInner {
+export interface ExtendedCorrectionDto
+  extends PostLint200ResponseCorrectionsInner {
   /**
    * The text content that this correction applies to
    */
@@ -24,7 +25,3 @@ export interface ExtendedCorrectionDto extends PostLint200ResponseCorrectionsInn
    */
   to?: number;
 }
-
-
-
-

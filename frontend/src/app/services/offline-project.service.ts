@@ -237,7 +237,3 @@ export class OfflineProjectService {
       .substring(0, 50);
   }
 }
-
-
-
-
