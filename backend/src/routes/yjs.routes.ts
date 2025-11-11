@@ -40,17 +40,17 @@ app.get(
         console.log(`WebSocket opened for ${documentId}`);
         // Store the doc for use in other handlers
         doc = await yjsService.handleConnection(ws.raw, documentId);
-        
+
         // Set up ping/pong heartbeat to keep connection alive and detect broken connections
         // This is especially important when browser tabs go out of focus
         const PING_TIMEOUT = 30000; // 30 seconds
         pongReceived = true;
-        
+
         // Set up pong event listener on the raw WebSocket
         ws.raw.on('pong', () => {
           pongReceived = true;
         });
-        
+
         pingInterval = setInterval(() => {
           if (!pongReceived) {
             // Connection is broken - close it
