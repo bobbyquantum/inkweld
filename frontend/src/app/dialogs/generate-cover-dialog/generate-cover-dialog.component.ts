@@ -11,7 +11,6 @@ import { Project } from '@inkweld/index';
 import { catchError, finalize, of } from 'rxjs';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
-import { ImageGenerateRequestDto } from '../../../api-client/model/image-generate-request-dto';
 import { ImageResponseDto } from '../../../api-client/model/image-response-dto';
 
 export interface GenerateCoverDialogData {
@@ -53,21 +52,22 @@ export class GenerateCoverDialogComponent implements OnInit {
     this.imageBase64 = null;
 
     // Create a prompt based on the project description
-    const projectDescription =
-      this.data.project.description || 'A creative project';
-    const prompt = `Create a beautiful cover image for a project described as: "${projectDescription}". The image should be in portrait format with vibrant colors and professional styling.`;
+    // const projectDescription = this.data.project.description || 'A creative project';
+    // const prompt = `Create a beautiful cover image for a project described as: "${projectDescription}". The image should be in portrait format with vibrant colors and professional styling.`;
 
-    const requestDto: ImageGenerateRequestDto = {
-      prompt,
-      model: 'gpt-image-1', // Using the latest GPT image generator model
-      size: '1024x1536', // Portrait format for gpt-image-1
-      quality: 'high', // High quality for best results
-      response_format: 'b64_json', // gpt-image-1 always returns b64_json
-      background: 'auto', // Let the model decide on appropriate background
-    };
+    // TODO: Fix backend OpenAPI spec - postImageGenerate should accept requestDto as body parameter
+    // const requestDto: ImageGenerateRequestDto = {
+    //   prompt,
+    //   model: 'gpt-image-1',
+    //   size: '1024x1536',
+    //   quality: 'high',
+    //   response_format: 'b64_json',
+    //   background: 'auto',
+    // };
 
+    // For now, the API doesn't accept a body parameter due to incorrect spec generation
     this.aiImageService
-      .postImageGenerate(requestDto)
+      .postImageGenerate()
       .pipe(
         catchError((error: unknown) => {
           console.error('Error generating image:', error);

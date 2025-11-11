@@ -399,7 +399,7 @@ describe('ProjectStateService', () => {
       expect(elements).toHaveLength(1);
       expect(elements[0].name).toBe('New Folder');
       expect(elements[0].level).toBe(0);
-      expect(elements[0].position).toBe(0);
+      expect(elements[0].order).toBe(0);
     });
 
     it('should add child element and auto-expand parent', async () => {

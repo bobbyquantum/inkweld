@@ -54,6 +54,7 @@ export class OfflineProjectService {
 
     const now = new Date().toISOString();
     const project: Project = {
+      id: projectData.id || `offline-${crypto.randomUUID()}`,
       title: projectData.title || 'Untitled Project',
       description: projectData.description || '',
       slug:

@@ -487,7 +487,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
       type: node.type,
       parentId: null, // TODO: Get actual parentId from node if available
       level: node.level,
-      order: node.position,
+      order: node.order,
       version: 0,
       expandable: node.expandable || false,
       metadata: {},

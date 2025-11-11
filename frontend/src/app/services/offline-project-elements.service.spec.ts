@@ -64,7 +64,7 @@ describe('OfflineProjectElementsService', () => {
           type: 'FOLDER',
           level: 0,
           expandable: true,
-          position: 0,
+          order: 0,
           version: 0,
           metadata: {},
         },
@@ -118,7 +118,7 @@ describe('OfflineProjectElementsService', () => {
           type: 'ITEM',
           level: 0,
           expandable: false,
-          position: 0,
+          order: 0,
           version: 0,
           metadata: {},
         },
@@ -163,7 +163,7 @@ describe('OfflineProjectElementsService', () => {
         type: 'FOLDER',
         level: 0,
         expandable: true,
-        position: 0,
+        order: 0,
       });
       expect(result[0].id).toBeTypeOf('string');
       expect(result[0].id.length).toBeGreaterThan(0);
@@ -184,7 +184,7 @@ describe('OfflineProjectElementsService', () => {
           type: 'FOLDER',
           level: 0,
           expandable: true,
-          position: 0,
+          order: 0,
           version: 0,
           metadata: {},
         },
@@ -209,14 +209,14 @@ describe('OfflineProjectElementsService', () => {
         type: 'ITEM',
         level: 0,
         expandable: false,
-        position: 0,
+        order: 0,
       });
       expect(result[0].id).toBeTypeOf('string');
       expect(result[1]).toMatchObject({
         id: 'folder-1',
         name: 'Folder 1',
         type: 'FOLDER',
-        position: 1,
+        order: 1,
       });
     });
 
@@ -235,7 +235,7 @@ describe('OfflineProjectElementsService', () => {
         type: 'ITEM',
         level: 1,
         expandable: false,
-        position: 1,
+        order: 1,
       });
       expect(result[1].id).toBeTypeOf('string');
     });
@@ -249,9 +249,9 @@ describe('OfflineProjectElementsService', () => {
         'Doc 2'
       );
 
-      expect(result[0].position).toBe(0);
-      expect(result[1].position).toBe(1);
-      expect(result[2].position).toBe(2);
+      expect(result[0].order).toBe(0);
+      expect(result[1].order).toBe(1);
+      expect(result[2].order).toBe(2);
     });
   });
 
@@ -264,7 +264,7 @@ describe('OfflineProjectElementsService', () => {
           type: 'FOLDER',
           level: 0,
           expandable: true,
-          position: 0,
+          order: 0,
           version: 0,
           metadata: {},
         },
@@ -274,7 +274,7 @@ describe('OfflineProjectElementsService', () => {
           type: 'ITEM',
           level: 1,
           expandable: false,
-          position: 1,
+          order: 1,
           version: 0,
           metadata: {},
         },
@@ -284,7 +284,7 @@ describe('OfflineProjectElementsService', () => {
           type: 'ITEM',
           level: 1,
           expandable: false,
-          position: 2,
+          order: 2,
           version: 0,
           metadata: {},
         },
@@ -294,7 +294,7 @@ describe('OfflineProjectElementsService', () => {
           type: 'FOLDER',
           level: 0,
           expandable: true,
-          position: 3,
+          order: 3,
           version: 0,
           metadata: {},
         },
@@ -310,7 +310,7 @@ describe('OfflineProjectElementsService', () => {
 
       expect(result).toHaveLength(3);
       expect(result.find(e => e.id === 'doc-2')).toBeUndefined();
-      expect(result[2].position).toBe(2); // Positions recomputed
+      expect(result[2].order).toBe(2); // Positions recomputed
     });
 
     it('should delete element with subtree', () => {
@@ -347,7 +347,7 @@ describe('OfflineProjectElementsService', () => {
           type: 'FOLDER',
           level: 0,
           expandable: true,
-          position: 0,
+          order: 0,
           version: 0,
           metadata: {},
         },
@@ -357,7 +357,7 @@ describe('OfflineProjectElementsService', () => {
           type: 'ITEM',
           level: 1,
           expandable: false,
-          position: 1,
+          order: 1,
           version: 0,
           metadata: {},
         },
@@ -367,7 +367,7 @@ describe('OfflineProjectElementsService', () => {
           type: 'ITEM',
           level: 0,
           expandable: false,
-          position: 2,
+          order: 2,
           version: 0,
           metadata: {},
         },
@@ -427,7 +427,7 @@ describe('OfflineProjectElementsService', () => {
           type: 'ITEM',
           level: 0,
           expandable: false,
-          position: 0,
+          order: 0,
           version: 0,
           metadata: {},
         },
@@ -471,7 +471,7 @@ describe('OfflineProjectElementsService', () => {
           type: 'ITEM',
           level: 0,
           expandable: false,
-          position: 0,
+          order: 0,
           version: 0,
           metadata: {},
         },
@@ -484,7 +484,7 @@ describe('OfflineProjectElementsService', () => {
           type: 'ITEM',
           level: 0,
           expandable: false,
-          position: 0,
+          order: 0,
           version: 0,
           metadata: {},
         },

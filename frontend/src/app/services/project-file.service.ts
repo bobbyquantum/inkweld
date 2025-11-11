@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { PostApiV1ProjectsUsernameSlugFiles200Response, MessageResponse } from '@inkweld/index';
+import { GetApiV1ProjectsUsernameSlugFiles200ResponseInner, MessageResponse } from '@inkweld/index';
 import { catchError, map, Observable, throwError } from 'rxjs';
 
 import { FilesService } from '../../api-client/api/files.service';
@@ -35,13 +35,13 @@ export class ProjectFileService {
       return this.filesApi
         .getApiV1ProjectsUsernameSlugFiles(username, projectSlug)
         .pipe(
-          map((files: PostApiV1ProjectsUsernameSlugFiles200Response[]) =>
+          map((files: GetApiV1ProjectsUsernameSlugFiles200ResponseInner[]) =>
             files.map(file => ({
               originalName: file.name,
               storedName: file.name, // API doesn't distinguish, use same name
               contentType: '', // Not provided by API
-              size: file.size,
-              uploadDate: new Date(file.uploadDate), // Convert string to Date
+              size: file.size ?? 0, // Default to 0 if not provided
+              uploadDate: file.uploadDate ? new Date(file.uploadDate) : new Date(), // Default to now if not provided
               fileUrl: this.getFileUrl(username, projectSlug, file.name), // Add fileUrl using name
             }))
           ),
@@ -80,18 +80,18 @@ export class ProjectFileService {
       formData.append('file', file);
       
       return this.http
-        .post<PostApiV1ProjectsUsernameSlugFiles200Response>(
+        .post<GetApiV1ProjectsUsernameSlugFiles200ResponseInner>(
           `/api/v1/projects/${username}/${projectSlug}/files`,
           formData,
           { withCredentials: true }
         )
         .pipe(
-          map((response: PostApiV1ProjectsUsernameSlugFiles200Response) => ({
+          map((response: GetApiV1ProjectsUsernameSlugFiles200ResponseInner) => ({
             originalName: response.name,
             storedName: response.name,
             contentType: '',
-            size: response.size,
-            uploadDate: new Date(response.uploadDate), // Convert string to Date
+            size: response.size ?? 0, // Default to 0 if not provided
+            uploadDate: response.uploadDate ? new Date(response.uploadDate) : new Date(), // Default to now
           })),
           catchError((error: unknown) => {
             console.error('Error uploading file:', error);

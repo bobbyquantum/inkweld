@@ -17,7 +17,7 @@ export interface ProjectArchive {
     id?: string;
     name: string;
     type: 'FOLDER' | 'ITEM';
-    position: number;
+    order: number;  // Use 'order' to match API
     level: number;
     version?: number;
     expandable?: boolean;

@@ -5,8 +5,8 @@
       "path": "."
     },
     {
-      "name": "⚙️ Server",
-      "path": "server"
+      "name": "⚙️ Backend",
+      "path": "backend"
     },
     {
       "name": "🎨 Frontend",
@@ -16,6 +16,7 @@
   "settings": {
     "files.exclude": {
       "frontend/": true,
+      "backend/": true,
       "server/": true
     },
     "typescript.tsdk": "🎨 Frontend/frontend/node_modules/typescript/lib",
@@ -27,7 +28,7 @@
       "editor.defaultFormatter": "esbenp.prettier-vscode",
       "editor.formatOnSave": true
     },
-    "jest.disabledWorkspaceFolders": ["✨ Root", "⚙️ Server", "🎨 Frontend"],
+    "jest.disabledWorkspaceFolders": ["✨ Root", "⚙️ Backend", "🎨 Frontend"],
     "github-actions.workflows.pinned.workflows": [
       ".github/workflows/ci.yml",
       "✨ Root/.github/workflows/ci.yml"

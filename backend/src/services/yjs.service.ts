@@ -20,7 +20,20 @@ interface WSSharedDoc {
 
 export class YjsService {
   private docs = new Map<string, WSSharedDoc>();
+  // Map by project key (username:projectSlug) instead of documentId
   private persistences = new Map<string, LeveldbPersistence>();
+  
+  /**
+   * Get project key from documentId
+   */
+  private getProjectKey(documentId: string): string {
+    const parts = documentId.split(':');
+    if (parts.length < 3) {
+      throw new Error(`Invalid documentId format: ${documentId}`);
+    }
+    // Return username:projectSlug
+    return `${parts[0]}:${parts[1]}`;
+  }
 
   /**
    * Get or create a document
@@ -58,15 +71,20 @@ export class YjsService {
     }
 
     const [username, projectSlug] = parts;
+    const projectKey = this.getProjectKey(documentId);
     const dbPath = path.join(fileStorageService.getProjectPath(username, projectSlug), '.yjs');
 
-    let persistence = this.persistences.get(documentId);
+    // Get or create persistence instance for this PROJECT (not per document!)
+    let persistence = this.persistences.get(projectKey);
+    
+    // Create new persistence if none exists for this project
     if (!persistence) {
+      console.log(`Creating new LevelDB persistence for project ${projectKey} at ${dbPath}`);
       persistence = new LeveldbPersistence(dbPath);
-      this.persistences.set(documentId, persistence);
+      this.persistences.set(projectKey, persistence);
     }
 
-    // Load existing state from persistence
+    // Load existing state from persistence for THIS specific document
     try {
       const persistedState = await persistence.getYDoc(documentId);
       if (persistedState && persistedState.store && persistedState.store.clients.size > 0) {
@@ -79,11 +97,15 @@ export class YjsService {
       // Listen for updates and persist them
       ydoc.on('update', async (update: Uint8Array) => {
         try {
-          if (persistence) {
-            await persistence.storeUpdate(documentId, update);
+          // Look up persistence by PROJECT KEY, not documentId
+          const currentPersistence = this.persistences.get(projectKey);
+          if (currentPersistence) {
+            await currentPersistence.storeUpdate(documentId, update);
+          } else {
+            console.warn(`No persistence available for project ${projectKey}, update not saved`);
           }
         } catch (error) {
-          console.error('Error persisting update:', error);
+          console.error(`Error persisting update for ${documentId}:`, error);
         }
       });
     } catch (error) {
@@ -171,10 +193,30 @@ export class YjsService {
     // Clean up document if no more connections
     if (doc.conns.size === 0) {
       // Keep document in memory for 1 minute after last disconnect
-      setTimeout(() => {
+      setTimeout(async () => {
         if (doc.conns.size === 0) {
           this.docs.delete(doc.name);
           console.log(`Document ${doc.name} cleaned up after inactivity`);
+          
+          // Check if there are any other documents from the same project still active
+          const projectKey = this.getProjectKey(doc.name);
+          const hasOtherDocsFromProject = Array.from(this.docs.keys()).some(
+            docId => this.getProjectKey(docId) === projectKey
+          );
+          
+          // Only close persistence if NO documents from this project are active
+          if (!hasOtherDocsFromProject) {
+            const persistence = this.persistences.get(projectKey);
+            if (persistence) {
+              try {
+                await persistence.destroy();
+                this.persistences.delete(projectKey);
+                console.log(`Closed LevelDB persistence for project ${projectKey}`);
+              } catch (error) {
+                console.error(`Error closing persistence for project ${projectKey}:`, error);
+              }
+            }
+          }
         }
       }, 60000);
     }
@@ -202,15 +244,28 @@ export class YjsService {
     // Close all WebSocket connections
     this.docs.forEach((doc) => {
       doc.conns.forEach((_, ws) => {
-        ws.close();
+        try {
+          ws.close();
+        } catch (error) {
+          console.error('Error closing WebSocket:', error);
+        }
       });
       doc.doc.destroy();
     });
 
-    // Close all persistence connections
-    for (const [, persistence] of this.persistences) {
-      await persistence.clearDocument();
-    }
+    // Close all persistence connections (one per project)
+    const persistenceCleanups = Array.from(this.persistences.entries()).map(
+      async ([projectKey, persistence]) => {
+        try {
+          await persistence.destroy();
+          console.log(`Closed persistence for project ${projectKey}`);
+        } catch (error) {
+          console.error(`Error closing persistence for project ${projectKey}:`, error);
+        }
+      }
+    );
+
+    await Promise.all(persistenceCleanups);
 
     this.docs.clear();
     this.persistences.clear();

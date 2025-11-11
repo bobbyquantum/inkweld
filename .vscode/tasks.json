@@ -19,7 +19,7 @@
     {
       "label": "🚀 Start Backend",
       "type": "shell",
-      "command": "cd server && bun run start:dev",
+      "command": "cd backend && bun run dev",
       "isBackground": true,
       "problemMatcher": {
         "owner": "typescript",
@@ -27,7 +27,7 @@
         "background": {
           "activeOnStart": true,
           "beginsPattern": ".",
-          "endsPattern": "Nest application successfully started"
+          "endsPattern": "Ready on"
         }
       }
     },
@@ -36,7 +36,7 @@
       "type": "shell",
       "command": "bun run test -- --coverage-reporter=lcov",
       "options": {
-        "cwd": "${workspaceFolder}/server"
+        "cwd": "${workspaceFolder}/backend"
       },
       "problemMatcher": {
         "owner": "bun",
@@ -73,7 +73,7 @@
       "type": "shell",
       "command": "bun run lint",
       "options": {
-        "cwd": "${workspaceFolder}/server"
+        "cwd": "${workspaceFolder}/backend"
       },
       "problemMatcher": "$eslint-stylish"
     },

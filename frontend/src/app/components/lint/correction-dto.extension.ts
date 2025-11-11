@@ -13,6 +13,16 @@ export interface ExtendedCorrectionDto extends PostLint200ResponseCorrectionsInn
    * Reason for the correction (sometimes used instead of 'error')
    */
   reason?: string;
+
+  /**
+   * Start position (ProseMirror coordinate, adjusted from start_pos)
+   */
+  from?: number;
+
+  /**
+   * End position (ProseMirror coordinate, adjusted from end_pos)
+   */
+  to?: number;
 }
 
 

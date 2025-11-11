@@ -85,7 +85,7 @@ export class SnapshotPanelComponent implements OnInit {
       })
       .subscribe({
         next: result => {
-          this.snapshots.set(result.snapshots || []);
+          this.snapshots.set(result);
           this.loading.set(false);
         },
         error: err => {
@@ -188,17 +188,20 @@ export class SnapshotPanelComponent implements OnInit {
 
   /**
    * Preview snapshot as HTML in new window/tab
+   * TODO: Backend API now returns SnapshotWithContent (yDocState), not HTML
+   * Need to render yDocState to HTML on frontend or add HTML rendering to backend
    */
   previewSnapshot(snapshot: DocumentSnapshot) {
     this.snapshotService
       .previewSnapshot(this.documentId(), snapshot.id)
       .subscribe({
-        next: html => {
-          const previewWindow = window.open('', '_blank');
-          if (previewWindow) {
-            previewWindow.document.write(html);
-            previewWindow.document.close();
-          }
+        next: snapshotContent => {
+          // TODO: Render yDocState to HTML
+          // For now, show a message that preview is not available
+          this.snackBar.open('Preview feature needs implementation (backend returns yDocState, not HTML)', 'OK', {
+            duration: 5000,
+          });
+          console.log('Snapshot content:', snapshotContent);
         },
         error: err => {
           console.error('Failed to preview snapshot:', err);
@@ -249,7 +252,7 @@ export class SnapshotPanelComponent implements OnInit {
   /**
    * Format word count with commas
    */
-  formatWordCount(count: number | undefined): string {
+  formatWordCount(count: number | null | undefined): string {
     return count?.toLocaleString() ?? '0';
   }
 

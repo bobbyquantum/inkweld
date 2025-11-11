@@ -1,12 +1,12 @@
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 
 import {
   CreateSnapshotRequest,
-  SnapshotsService,
   DocumentSnapshot,
-  SnapshotWithContent,
   MessageResponse,
+  SnapshotsService,
+  SnapshotWithContent,
 } from '../../api-client';
 import type { DocumentSnapshotControllerDeleteSnapshot200Response } from '../../api-client/model/document-snapshot-controller-delete-snapshot200-response';
 import { ProjectStateService } from './project-state.service';
@@ -69,14 +69,11 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
+    // TODO: Backend API doesn't support query parameters yet (limit, offset, orderBy, order, docId)
+    // The API returns all snapshots for a project, not filtered by docId
     return this.snapshotsApi.getApiSnapshotsUsernameSlug(
       project.username,
-      project.slug,
-      docId,
-      query?.limit,
-      query?.offset,
-      query?.orderBy,
-      query?.order
+      project.slug
     );
   }
 
@@ -147,13 +144,12 @@ export class DocumentSnapshotService {
 
   /**
    * Preview a snapshot as HTML
-   * Note: Generated API has incorrect parameter order (snapshotId, docId, slug, username)
-   * Returns plain HTML string, not an object
+   * Note: API now returns SnapshotWithContent, not HTML directly
    * @param docId The document ID (needed to construct the API path)
    * @param snapshotId The snapshot ID
-   * @returns Observable of HTML string
+   * @returns Observable of SnapshotWithContent (contains yDocState, not HTML)
    */
-  previewSnapshot(docId: string, snapshotId: string): Observable<string> {
+  previewSnapshot(docId: string, snapshotId: string): Observable<SnapshotWithContent> {
     const project = this.projectState.project();
     if (!project) {
       throw new Error('No active project');
@@ -163,7 +159,7 @@ export class DocumentSnapshotService {
       project.username,
       project.slug,
       snapshotId
-    ) as Observable<string>;
+    );
   }
 }
 

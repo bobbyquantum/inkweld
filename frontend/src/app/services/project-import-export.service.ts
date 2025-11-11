@@ -239,7 +239,7 @@ export class ProjectImportExportService {
         id: elem.id,
         name: elem.name,
         type: elem.type as 'FOLDER' | 'ITEM',
-        order: elem.position,
+        order: elem.order,
         parentId: null,
         level: elem.level,
         version: elem.version,
@@ -309,8 +309,8 @@ export class ProjectImportExportService {
       id: elem.id || crypto.randomUUID(), // Generate new ID if not provided
       name: elem.name,
       type: elem.type,
-      order: elem.position,
-        parentId: null,
+      order: elem.order,
+      parentId: null,
       level: elem.level,
       version: elem.version!,
       expandable: elem.expandable!,
@@ -480,7 +480,7 @@ export class ProjectImportExportService {
         typeof elem !== 'object' ||
         typeof elem.name !== 'string' ||
         !['FOLDER', 'ITEM'].includes(elem.type) ||
-        typeof elem.position !== 'number' ||
+        typeof elem.order !== 'number' ||
         typeof elem.level !== 'number' ||
         (elem.id !== undefined && typeof elem.id !== 'string') || // Optional id must be string if present
         (elem.version !== undefined && typeof elem.version !== 'number') || // Optional version must be number if present

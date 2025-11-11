@@ -452,7 +452,7 @@ export class ProjectStateService {
     }
   }
 
-  renameNode(node: ProjectElement, newName: string): void {
+  renameNode(node: GetApiV1ProjectsUsernameSlugElements200ResponseInner, newName: string): void {
     const mode = this.setupService.getMode();
     const project = this.project();
 
