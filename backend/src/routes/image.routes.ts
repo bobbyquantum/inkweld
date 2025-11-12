@@ -3,7 +3,7 @@ import { describeRoute, resolver } from 'hono-openapi';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
 import { imageService } from '../services/image.service';
-import { fileStorageService } from '../services/file-storage.service';
+import { getStorageService } from '../services/storage.service';
 import { projectService } from '../services/project.service';
 import { HTTPException } from 'hono/http-exception';
 import { type AppContext } from '../types/context';
@@ -71,9 +71,14 @@ imageRoutes.post(
   requireAuth,
   async (c) => {
     const db = c.get('db');
+    const storage = getStorageService(c.get('storage'));
     const username = c.req.param('username');
     const slug = c.req.param('slug');
-    const userId = c.get('user').id;
+    const userId = c.get('user')?.id;
+
+    if (!userId) {
+      throw new HTTPException(401, { message: 'Not authenticated' });
+    }
 
     // Get the uploaded file
     const body = await c.req.parseBody();
@@ -106,8 +111,8 @@ imageRoutes.post(
     // Process image
     const processedImage = await imageService.processCoverImage(buffer);
 
-    // Save image
-    await fileStorageService.saveProjectFile(username, slug, 'cover.jpg', processedImage);
+    // Save image to storage (R2 or filesystem)
+    await storage.saveProjectFile(username, slug, 'cover.jpg', processedImage, 'image/jpeg');
 
     return c.json({ message: 'Cover image uploaded successfully' });
   }
@@ -142,21 +147,26 @@ imageRoutes.get(
     },
   }),
   async (c) => {
+    const storage = getStorageService(c.get('storage'));
     const username = c.req.param('username');
     const slug = c.req.param('slug');
 
-    const exists = await fileStorageService.projectFileExists(username, slug, 'cover.jpg');
+    const exists = await storage.projectFileExists(username, slug, 'cover.jpg');
 
     if (!exists) {
       throw new HTTPException(404, { message: 'Cover image not found' });
     }
 
-    const buffer = await fileStorageService.readProjectFile(username, slug, 'cover.jpg');
-    const uint8Array = new Uint8Array(buffer);
+    const data = await storage.readProjectFile(username, slug, 'cover.jpg');
+    if (!data) {
+      throw new HTTPException(404, { message: 'Cover image not found' });
+    }
+
+    const uint8Array = data instanceof Buffer ? new Uint8Array(data) : new Uint8Array(data);
 
     return c.body(uint8Array, 200, {
       'Content-Type': 'image/jpeg',
-      'Content-Length': buffer.length.toString(),
+      'Content-Length': uint8Array.length.toString(),
     });
   }
 );
@@ -205,9 +215,14 @@ imageRoutes.delete(
   requireAuth,
   async (c) => {
     const db = c.get('db');
+    const storage = getStorageService(c.get('storage'));
     const username = c.req.param('username');
     const slug = c.req.param('slug');
-    const userId = c.get('user').id;
+    const userId = c.get('user')?.id;
+
+    if (!userId) {
+      throw new HTTPException(401, { message: 'Not authenticated' });
+    }
 
     // Verify project ownership
     const project = await projectService.findByUsernameAndSlug(db, username, slug);
@@ -220,13 +235,13 @@ imageRoutes.delete(
       throw new HTTPException(403, { message: 'Access denied' });
     }
 
-    const exists = await fileStorageService.projectFileExists(username, slug, 'cover.jpg');
+    const exists = await storage.projectFileExists(username, slug, 'cover.jpg');
 
     if (!exists) {
       throw new HTTPException(404, { message: 'Cover image not found' });
     }
 
-    await fileStorageService.deleteProjectFile(username, slug, 'cover.jpg');
+    await storage.deleteProjectFile(username, slug, 'cover.jpg');
 
     return c.json({ message: 'Cover image deleted successfully' });
   }
