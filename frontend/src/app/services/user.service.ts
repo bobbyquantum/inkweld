@@ -208,7 +208,7 @@ export class UserService {
   async clearCurrentUser(): Promise<void> {
     // Clear JWT token from localStorage
     localStorage.removeItem('inkweld_auth_token');
-    
+
     if (this.storage.isAvailable()) {
       try {
         const db = await this.db;

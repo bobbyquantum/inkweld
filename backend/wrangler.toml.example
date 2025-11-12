@@ -1,7 +1,7 @@
 # ========================================
 # Wrangler Configuration Example
 # ========================================
-# 
+#
 # SETUP INSTRUCTIONS:
 # 1. Copy this file to wrangler.toml:
 #    cp wrangler.toml.example wrangler.toml

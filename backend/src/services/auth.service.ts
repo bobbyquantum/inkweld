@@ -51,7 +51,7 @@ class AuthService {
   async getSession(c: Context): Promise<SessionData | null> {
     try {
       const authHeader = c.req.header('Authorization');
-      
+
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return null;
       }

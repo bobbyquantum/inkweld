@@ -753,7 +753,7 @@ EXAMPLES:
   bun run admin-cli.ts stats
   bun run admin-cli.ts --verbose debug
   bun run admin-cli.ts users approve alice
-  
+
   # D1 Database (set DB_TYPE=d1 in .env)
   DB_TYPE=d1 bun run admin-cli.ts stats                    # Local D1 dev
   DB_TYPE=d1 bun run admin-cli.ts --remote users list      # Remote D1 prod
@@ -761,7 +761,7 @@ EXAMPLES:
 
 NOTE: This tool connects directly to the database and bypasses the web application.
       Use with caution in production environments.
-      
+
       For D1 databases, this CLI wraps 'wrangler d1 execute' commands.
       Make sure wrangler is installed and configured.
 `);
