@@ -3,7 +3,7 @@ import { describeRoute, resolver } from 'hono-openapi';
 import { z } from 'zod';
 import { projectService } from '../services/project.service';
 import { requireAuth } from '../middleware/auth';
-import { fileStorageService } from '../services/file-storage.service';
+import { getStorageService } from '../services/storage.service';
 import { type AppContext } from '../types/context';
 
 const fileRoutes = new Hono<AppContext>();
@@ -65,6 +65,7 @@ fileRoutes.get(
   requireAuth,
   async (c) => {
     const db = c.get('db');
+    const storage = getStorageService(c.get('storage'));
     const username = c.req.param('username');
     const slug = c.req.param('slug');
 
@@ -76,7 +77,7 @@ fileRoutes.get(
     }
 
     try {
-      const files = await fileStorageService.listProjectFiles(username, slug);
+      const files = await storage.listProjectFiles(username, slug);
       return c.json(
         files.map((name) => ({
           name,
@@ -127,6 +128,7 @@ fileRoutes.get(
   requireAuth,
   async (c) => {
     const db = c.get('db');
+    const storage = getStorageService(c.get('storage'));
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const storedName = c.req.param('storedName');
@@ -139,18 +141,22 @@ fileRoutes.get(
     }
 
     try {
-      const fileExists = await fileStorageService.projectFileExists(username, slug, storedName);
+      const fileExists = await storage.projectFileExists(username, slug, storedName);
       if (!fileExists) {
         return c.json({ error: 'File not found' }, 404);
       }
 
-      const buffer = await fileStorageService.readProjectFile(username, slug, storedName);
-      const uint8Array = new Uint8Array(buffer);
+      const data = await storage.readProjectFile(username, slug, storedName);
+      if (!data) {
+        return c.json({ error: 'File not found' }, 404);
+      }
+
+      const uint8Array = data instanceof Buffer ? new Uint8Array(data) : new Uint8Array(data);
 
       return c.body(uint8Array, 200, {
         'Content-Type': 'application/octet-stream',
         'Content-Disposition': `attachment; filename="${storedName}"`,
-        'Content-Length': buffer.length.toString(),
+        'Content-Length': uint8Array.length.toString(),
       });
     } catch {
       return c.json({ error: 'Failed to read file' }, 500);
@@ -194,6 +200,7 @@ fileRoutes.post(
   requireAuth,
   async (c) => {
     const db = c.get('db');
+    const storage = getStorageService(c.get('storage'));
     const username = c.req.param('username');
     const slug = c.req.param('slug');
 
@@ -215,7 +222,7 @@ fileRoutes.post(
       const buffer = await file.arrayBuffer();
       const fileName = file.name;
 
-      await fileStorageService.writeProjectFile(username, slug, fileName, Buffer.from(buffer));
+      await storage.saveProjectFile(username, slug, fileName, buffer);
 
       return c.json({
         name: fileName,
@@ -265,6 +272,7 @@ fileRoutes.delete(
   requireAuth,
   async (c) => {
     const db = c.get('db');
+    const storage = getStorageService(c.get('storage'));
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const storedName = c.req.param('storedName');
@@ -277,12 +285,12 @@ fileRoutes.delete(
     }
 
     try {
-      const fileExists = await fileStorageService.projectFileExists(username, slug, storedName);
+      const fileExists = await storage.projectFileExists(username, slug, storedName);
       if (!fileExists) {
         return c.json({ error: 'File not found' }, 404);
       }
 
-      await fileStorageService.deleteProjectFile(username, slug, storedName);
+      await storage.deleteProjectFile(username, slug, storedName);
 
       return c.json({ message: 'File deleted successfully' });
     } catch (error) {

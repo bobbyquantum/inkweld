@@ -249,14 +249,16 @@ export class UserService {
   uploadAvatar(file: File): Observable<void> {
     const formData = new FormData();
     formData.append('avatar', file);
-    return this.http.post<void>('/api/v1/users/avatar', formData, {
+    const url = `${this.userAPI.configuration.basePath}/api/v1/users/avatar`;
+    return this.http.post<void>(url, formData, {
       withCredentials: true,
     });
   }
 
   deleteAvatar(): Observable<void> {
+    const url = `${this.userAPI.configuration.basePath}/api/v1/users/avatar/delete`;
     return this.http.post<void>(
-      '/api/v1/users/avatar/delete',
+      url,
       {},
       {
         withCredentials: true,

@@ -29,8 +29,10 @@ RECAPTCHA_ENABLED = "false"
 # database_name = "inkweld_dev"
 # database_id = "your-database-id-here"
 
-# R2 bucket for file storage (covers, avatars, etc.)
-# Uncomment and configure when ready to use R2
+# R2 bucket for file storage (covers, avatars, exports, etc.)
+# Create dev bucket: npx wrangler r2 bucket create inkweld-storage-dev
+# Create prod bucket: npx wrangler r2 bucket create inkweld-storage
+# Note: Actual bucket configurations are in wrangler.toml.local (gitignored)
 # [[r2_buckets]]
 # binding = "STORAGE"
 # bucket_name = "inkweld-storage"
@@ -77,6 +79,10 @@ binding = "DB"
 database_name = "inkweld_dev"
 database_id = "df33e068-25af-4d8c-b0d9-c6ad97b9ea1c"
 
+[[env.dev.r2_buckets]]
+binding = "STORAGE"
+bucket_name = "inkweld-storage-dev"
+
 # Production configuration
 [env.production]
 name = "inkweld-backend-prod"
@@ -93,3 +99,7 @@ RECAPTCHA_ENABLED = "false"
 # binding = "DB"
 # database_name = "inkweld_prod"
 # database_id = "your-prod-database-id-here"  # Uncomment and set for production
+
+# [[env.production.r2_buckets]]
+# binding = "STORAGE"
+# bucket_name = "inkweld-storage"  # Uncomment when ready for production

@@ -4,15 +4,18 @@
  */
 import type { MiddlewareHandler } from 'hono';
 import { makeD1Database, type D1DatabaseInstance } from '../db/d1';
+import type { R2Bucket } from '@cloudflare/workers-types';
 
 // Context type for D1
 export type D1AppContext = {
   Bindings: {
     DB: D1Database;
+    STORAGE?: R2Bucket;
   };
   Variables: {
     db: D1DatabaseInstance;
     user?: { id: string; username: string; email: string; role: string };
+    storage?: R2Bucket;
   };
 };
 
@@ -20,7 +23,7 @@ export type D1AppContext = {
 type D1Database = any; // Runtime-only type, avoid workers-types dependency
 
 /**
- * Middleware that attaches D1 database to Hono context
+ * Middleware that attaches D1 database and R2 storage to Hono context
  */
 export const d1DatabaseMiddleware: MiddlewareHandler<D1AppContext> = async (c, next) => {
   if (!c.env?.DB) {
@@ -28,5 +31,11 @@ export const d1DatabaseMiddleware: MiddlewareHandler<D1AppContext> = async (c, n
   }
   const db = makeD1Database(c.env.DB);
   c.set('db', db);
+
+  // Attach R2 storage if available
+  if (c.env?.STORAGE) {
+    c.set('storage', c.env.STORAGE);
+  }
+
   await next();
 };
