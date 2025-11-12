@@ -84,9 +84,10 @@ export class ProjectFileService {
       const formData = new FormData();
       formData.append('file', file);
 
+      const url = `${this.filesApi.configuration.basePath}/api/v1/projects/${username}/${projectSlug}/files`;
       return this.http
         .post<GetApiV1ProjectsUsernameSlugFiles200ResponseInner>(
-          `/api/v1/projects/${username}/${projectSlug}/files`,
+          url,
           formData,
           { withCredentials: true }
         )

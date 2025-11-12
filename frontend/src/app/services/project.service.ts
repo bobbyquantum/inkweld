@@ -481,9 +481,10 @@ export class ProjectService {
       const formData = new FormData();
       formData.append('cover', coverImage);
 
+      const url = `${this.imagesApi.configuration.basePath}/api/images/${username}/${slug}/cover`;
       await firstValueFrom(
         this.http
-          .post(`/api/images/${username}/${slug}/cover`, formData, {
+          .post(url, formData, {
             withCredentials: true,
           })
           .pipe(
