@@ -47,7 +47,7 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) return origin || '*';
       return allowedOrigins[0] || '*';
     },
-    credentials: false, // No cookies - using Bearer tokens
+    credentials: true, // Allow credentials (cookies/sessions)
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
   })
