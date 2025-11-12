@@ -170,7 +170,3 @@ export class ProjectFilesTabComponent implements OnInit, OnDestroy {
     }, 3000);
   }
 }
-
-
-
-

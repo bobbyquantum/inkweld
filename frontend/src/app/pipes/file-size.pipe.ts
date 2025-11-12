@@ -14,7 +14,3 @@ export class FileSizePipe implements PipeTransform {
     return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }
-
-
-
-

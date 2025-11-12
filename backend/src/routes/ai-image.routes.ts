@@ -109,12 +109,14 @@ aiImageRoutes.post(
       });
 
       return c.json(result);
-    } catch (error: any) {
-      console.error('Error in image generation endpoint:', error);
-      if (error.name === 'ZodError') {
+    } catch (error: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling needs name/message properties
+      const err = error as any;
+      console.error('Error in image generation endpoint:', err);
+      if (err.name === 'ZodError') {
         return c.json({ error: 'Invalid request body' }, 400);
       }
-      return c.json({ error: error.message || 'Failed to generate image' }, 500);
+      return c.json({ error: err.message || 'Failed to generate image' }, 500);
     }
   }
 );

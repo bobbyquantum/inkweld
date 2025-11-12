@@ -8,6 +8,19 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   prettierConfig,
   {
+    ignores: [
+      'node_modules/**',
+      'dist/**',
+      'dist-worker/**',
+      '.wrangler/**',
+      'coverage/**',
+      'data/**',
+      '*.js',
+      '*.mjs',
+      '*.d.ts',
+    ],
+  },
+  {
     plugins: {
       prettier: prettierPlugin,
     },

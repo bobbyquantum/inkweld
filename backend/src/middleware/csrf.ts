@@ -32,7 +32,7 @@ export function setupCSRF(): MiddlewareHandler {
       return;
     }
 
-    const req = c.req.raw as any;
+    const req = c.req.raw as Request & { session?: { csrfToken?: string } };
     const session = req.session;
 
     if (!session) {

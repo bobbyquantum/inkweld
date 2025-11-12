@@ -1,19 +1,18 @@
 import type { Context } from 'hono';
-import { deleteCookie, getSignedCookie, setSignedCookie } from 'hono/cookie';
-import { sign } from 'hono/jwt';
+import { sign, verify } from 'hono/jwt';
 import { config } from '../config/env.js';
 import { userService } from './user.service.js';
 import type { User } from '../db/schema/users.js';
 import type { DatabaseInstance } from '../middleware/database.middleware.js';
 
-const SESSION_COOKIE_NAME = 'inkweld_session';
-const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
+const TOKEN_EXPIRY = 30 * 24 * 60 * 60; // 30 days in seconds
 
 export interface SessionData {
   userId: string;
   username: string;
   email: string;
-  [key: string]: string; // Index signature for JWT compatibility
+  exp?: number; // JWT expiration timestamp
+  [key: string]: string | number | undefined; // Index signature for JWT compatibility
 }
 
 /**
@@ -30,51 +29,55 @@ class AuthService {
   }
 
   /**
-   * Create a session for a user
+   * Create a session for a user and return JWT token
    */
-  async createSession(c: Context, user: User): Promise<void> {
+  async createSession(c: Context, user: User): Promise<string> {
+    const now = Math.floor(Date.now() / 1000);
     const sessionData: SessionData = {
       userId: user.id,
       username: user.username || '',
       email: user.email || '',
+      exp: now + TOKEN_EXPIRY, // JWT expiration (30 days)
     };
 
-    // Create JWT token for the session
+    // Create JWT token
     const token = await sign(sessionData, this.secret);
-
-    // Store in signed, httpOnly cookie
-    await setSignedCookie(c, SESSION_COOKIE_NAME, token, this.secret, {
-      httpOnly: true,
-      secure: config.session.secure,
-      sameSite: 'Lax',
-      maxAge: COOKIE_MAX_AGE,
-      path: '/',
-    });
+    return token;
   }
 
   /**
-   * Get session data from signed cookie
+   * Get session data from Authorization header (Bearer token)
    */
   async getSession(c: Context): Promise<SessionData | null> {
     try {
-      const token = await getSignedCookie(c, this.secret, SESSION_COOKIE_NAME);
+      const authHeader = c.req.header('Authorization');
+      
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return null;
+      }
+
+      const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
       if (!token) {
         return null;
       }
 
       // Verify and decode JWT
-      const { decode } = await import('hono/jwt');
-      const payload = decode(token);
+      const payload = await verify(token, this.secret);
 
-      if (!payload || !payload.payload) {
+      if (!payload) {
         return null;
       }
 
-      const data = payload.payload as SessionData;
+      const data = payload as SessionData;
 
       // Validate required fields
       if (!data.userId || !data.username) {
+        return null;
+      }
+
+      // Check expiration
+      if (data.exp && data.exp < Math.floor(Date.now() / 1000)) {
         return null;
       }
 
@@ -86,13 +89,11 @@ class AuthService {
   }
 
   /**
-   * Destroy session
+   * Destroy session (no-op for JWT tokens - client removes token)
    */
-  destroySession(c: Context): void {
-    deleteCookie(c, SESSION_COOKIE_NAME, {
-      path: '/',
-      secure: config.session.secure,
-    });
+  destroySession(_c: Context): void {
+    // With JWT tokens, logout is handled client-side by removing the token
+    // No server-side state to clean up
   }
 
   /**

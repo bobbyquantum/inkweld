@@ -58,9 +58,7 @@ describe('LintApiService', () => {
     };
 
     // Setup mock to return the response
-    lintService.postLint.mockReturnValue(
-      apiOk(mockResponse)
-    );
+    lintService.postLint.mockReturnValue(apiOk(mockResponse));
 
     // Call the service
     const result = await service.run('test text');
@@ -95,9 +93,7 @@ describe('LintApiService', () => {
     };
 
     // Setup mock return value
-    lintService.postLint.mockReturnValue(
-      apiOk(mockResponse)
-    );
+    lintService.postLint.mockReturnValue(apiOk(mockResponse));
 
     // Call with custom parameters
     await service.run(
@@ -121,9 +117,7 @@ describe('LintApiService', () => {
 
   it('should set the ABORT_SIGNAL token in the context', async () => {
     // Mock response
-    lintService.postLint.mockReturnValue(
-      apiOk({} as PostLint200Response)
-    );
+    lintService.postLint.mockReturnValue(apiOk({} as PostLint200Response));
 
     // Spy on HttpContext.set
     const contextSpy = vi.spyOn(HttpContext.prototype, 'set');
@@ -141,9 +135,7 @@ describe('LintApiService', () => {
   it('should handle errors and return a default response', async () => {
     // Mock an error response
     const errorMessage = 'Network error';
-    lintService.postLint.mockReturnValue(
-      apiErr(new Error(errorMessage))
-    );
+    lintService.postLint.mockReturnValue(apiErr(new Error(errorMessage)));
 
     // Spy on console.error and mock implementation to avoid noise in test output
     const consoleErrorSpy = vi
@@ -170,9 +162,7 @@ describe('LintApiService', () => {
 
   it('should create AbortSignal with the correct timeout value', async () => {
     // Mock response
-    lintService.postLint.mockReturnValue(
-      apiOk({} as PostLint200Response)
-    );
+    lintService.postLint.mockReturnValue(apiOk({} as PostLint200Response));
 
     // Call the service
     await service.run('test text');
@@ -183,4 +173,3 @@ describe('LintApiService', () => {
     }
   });
 });
-

@@ -3,7 +3,7 @@ import { describeRoute, resolver } from 'hono-openapi';
 import { z } from 'zod';
 import { projectService } from '../services/project.service';
 import { requireAuth } from '../middleware/auth';
-import { getDb, type AppContext } from '../middleware/database.middleware';
+import { type AppContext } from '../types/context';
 
 const elementRoutes = new Hono<AppContext>();
 
@@ -11,7 +11,21 @@ const elementRoutes = new Hono<AppContext>();
 const elementSchema = z.object({
   id: z.string().describe('Element ID'),
   name: z.string().describe('Element name'),
-  type: z.enum(['FOLDER', 'ITEM', 'CHARACTER', 'LOCATION', 'WB_ITEM', 'MAP', 'RELATIONSHIP', 'PHILOSOPHY', 'CULTURE', 'SPECIES', 'SYSTEMS']).describe('Element type'),
+  type: z
+    .enum([
+      'FOLDER',
+      'ITEM',
+      'CHARACTER',
+      'LOCATION',
+      'WB_ITEM',
+      'MAP',
+      'RELATIONSHIP',
+      'PHILOSOPHY',
+      'CULTURE',
+      'SPECIES',
+      'SYSTEMS',
+    ])
+    .describe('Element type'),
   parentId: z.string().nullable().describe('Parent element ID'),
   order: z.number().describe('Order in parent'),
   level: z.number().describe('Nesting level in tree hierarchy'),
@@ -61,7 +75,7 @@ elementRoutes.get(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
 

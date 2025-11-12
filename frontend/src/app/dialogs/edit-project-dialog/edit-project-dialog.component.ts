@@ -239,8 +239,3 @@ export class EditProjectDialogComponent implements OnInit {
     });
   }
 }
-
-
-
-
-

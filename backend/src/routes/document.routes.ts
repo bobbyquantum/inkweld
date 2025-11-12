@@ -3,7 +3,7 @@ import { describeRoute, resolver } from 'hono-openapi';
 import { z } from 'zod';
 import { projectService } from '../services/project.service';
 import { requireAuth } from '../middleware/auth';
-import { getDb, type AppContext } from '../middleware/database.middleware';
+import { type AppContext } from '../types/context';
 
 const documentRoutes = new Hono<AppContext>();
 
@@ -55,7 +55,7 @@ documentRoutes.get(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
 
@@ -107,7 +107,7 @@ documentRoutes.get(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const docId = c.req.param('docId');
@@ -165,7 +165,7 @@ documentRoutes.get(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const docId = c.req.param('docId');

@@ -472,7 +472,3 @@ export class TemplatesTabComponent {
     }
   }
 }
-
-
-
-

@@ -55,6 +55,7 @@ export class TestClient {
   /**
    * Make a request with automatic cookie handling
    */
+
   async request(
     path: string,
     options: RequestInit = {}

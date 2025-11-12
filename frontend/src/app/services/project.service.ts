@@ -175,16 +175,14 @@ export class ProjectService {
 
       // No cache available, fetch from API with retry mechanism
       const project = await firstValueFrom(
-        this.projectApi
-          .getApiV1ProjectsUsernameSlug(username, slug)
-          .pipe(
-            retry(MAX_RETRIES),
-            catchError((error: unknown) => {
-              const projectError = this.formatError(error);
-              this.error.set(projectError);
-              return throwError(() => projectError);
-            })
-          )
+        this.projectApi.getApiV1ProjectsUsernameSlug(username, slug).pipe(
+          retry(MAX_RETRIES),
+          catchError((error: unknown) => {
+            const projectError = this.formatError(error);
+            this.error.set(projectError);
+            return throwError(() => projectError);
+          })
+        )
       );
 
       if (project) {
@@ -217,19 +215,17 @@ export class ProjectService {
 
     try {
       const project = await firstValueFrom(
-        this.projectApi
-          .getApiV1ProjectsUsernameSlug(username, slug)
-          .pipe(
-            retry(MAX_RETRIES),
-            catchError((error: unknown) => {
-              console.warn(
-                `Background refresh failed for project ${cacheKey}:`,
-                error
-              );
-              // Don't re-throw, just complete the observable chain
-              return throwError(() => error); // Or return EMPTY
-            })
-          )
+        this.projectApi.getApiV1ProjectsUsernameSlug(username, slug).pipe(
+          retry(MAX_RETRIES),
+          catchError((error: unknown) => {
+            console.warn(
+              `Background refresh failed for project ${cacheKey}:`,
+              error
+            );
+            // Don't re-throw, just complete the observable chain
+            return throwError(() => error); // Or return EMPTY
+          })
+        )
       );
 
       if (project) {
@@ -265,16 +261,14 @@ export class ProjectService {
         description: Project.description || undefined,
       };
       const project = await firstValueFrom(
-        this.projectApi
-          .postApiV1Projects(createRequest)
-          .pipe(
-            retry(MAX_RETRIES),
-            catchError((error: unknown) => {
-              const projectError = this.formatError(error);
-              this.error.set(projectError);
-              return throwError(() => projectError);
-            })
-          )
+        this.projectApi.postApiV1Projects(createRequest).pipe(
+          retry(MAX_RETRIES),
+          catchError((error: unknown) => {
+            const projectError = this.formatError(error);
+            this.error.set(projectError);
+            return throwError(() => projectError);
+          })
+        )
       );
 
       // Update cached projects list with the new project
@@ -310,11 +304,7 @@ export class ProjectService {
       };
       const project = await firstValueFrom(
         this.projectApi
-          .putApiV1ProjectsUsernameSlug(
-            username,
-            slug,
-            updateRequest
-          )
+          .putApiV1ProjectsUsernameSlug(username, slug, updateRequest)
           .pipe(
             retry(MAX_RETRIES),
             catchError((error: unknown) => {
@@ -354,19 +344,14 @@ export class ProjectService {
 
     try {
       await firstValueFrom(
-        this.projectApi
-          .deleteApiV1ProjectsUsernameSlug(
-            username,
-            slug
-          )
-          .pipe(
-            retry(MAX_RETRIES),
-            catchError((error: unknown) => {
-              const projectError = this.formatError(error);
-              this.error.set(projectError);
-              return throwError(() => projectError);
-            })
-          )
+        this.projectApi.deleteApiV1ProjectsUsernameSlug(username, slug).pipe(
+          retry(MAX_RETRIES),
+          catchError((error: unknown) => {
+            const projectError = this.formatError(error);
+            this.error.set(projectError);
+            return throwError(() => projectError);
+          })
+        )
       );
 
       // Remove the project from cache
@@ -495,7 +480,7 @@ export class ProjectService {
     try {
       const formData = new FormData();
       formData.append('cover', coverImage);
-      
+
       await firstValueFrom(
         this.http
           .post(`/api/images/${username}/${slug}/cover`, formData, {
@@ -579,10 +564,7 @@ export class ProjectService {
     this.projects.set(projects);
   }
 
-  private async setCachedProject(
-    key: string,
-    project: Project
-  ): Promise<void> {
+  private async setCachedProject(key: string, project: Project): Promise<void> {
     if (!this.storage.isAvailable()) return;
 
     try {
@@ -638,10 +620,3 @@ export class ProjectService {
     );
   }
 }
-
-
-
-
-
-
-

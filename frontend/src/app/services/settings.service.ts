@@ -37,7 +37,3 @@ export class SettingsService {
     return value !== undefined && value !== null;
   }
 }
-
-
-
-

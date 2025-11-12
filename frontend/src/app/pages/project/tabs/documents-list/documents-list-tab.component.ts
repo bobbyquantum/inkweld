@@ -41,7 +41,9 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
   protected readonly DocumentSyncState = DocumentSyncState;
 
   // Use signals for reactive updates
-  documents = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>([]);
+  documents = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>(
+    []
+  );
   isLoading = signal<boolean>(true);
   error = signal<string | null>(null);
 
@@ -130,12 +132,16 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
     }
   }
 
-  openDocumentAsHtml(document: GetApiV1ProjectsUsernameSlugElements200ResponseInner): void {
+  openDocumentAsHtml(
+    document: GetApiV1ProjectsUsernameSlugElements200ResponseInner
+  ): void {
     // Implement HTML preview functionality
     console.log('Opening document as HTML:', document);
   }
 
-  openDocument(document: GetApiV1ProjectsUsernameSlugElements200ResponseInner): void {
+  openDocument(
+    document: GetApiV1ProjectsUsernameSlugElements200ResponseInner
+  ): void {
     this.projectState.openDocument(document);
   }
 
@@ -155,7 +161,3 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
     this.openDocument(newDocument);
   }
 }
-
-
-
-

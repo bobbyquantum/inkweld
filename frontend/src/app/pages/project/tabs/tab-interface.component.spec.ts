@@ -15,7 +15,10 @@ import {
   Router,
   RouterModule,
 } from '@angular/router';
-import { Project, GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
+import {
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  Project,
+} from '@inkweld/index';
 import { of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
@@ -46,28 +49,29 @@ describe('TabInterfaceComponent', () => {
     title: 'Test Project',
   } as Project;
 
-  const mockDocuments: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
-    {
-      id: 'doc1',
-      name: 'Document 1',
-      type: 'ITEM',
-      level: 0,
-      position: 0,
-      version: 1,
-      expandable: false,
-      metadata: {},
-    },
-    {
-      id: 'doc2',
-      name: 'Document 2',
-      type: 'FOLDER',
-      level: 0,
-      position: 1,
-      version: 1,
-      expandable: true,
-      metadata: {},
-    },
-  ];
+  const mockDocuments: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+    [
+      {
+        id: 'doc1',
+        name: 'Document 1',
+        type: 'ITEM',
+        level: 0,
+        position: 0,
+        version: 1,
+        expandable: false,
+        metadata: {},
+      },
+      {
+        id: 'doc2',
+        name: 'Document 2',
+        type: 'FOLDER',
+        level: 0,
+        position: 1,
+        version: 1,
+        expandable: true,
+        metadata: {},
+      },
+    ];
 
   const mockTabs: AppTab[] = [
     {
@@ -93,7 +97,9 @@ describe('TabInterfaceComponent', () => {
   const setupMockServices = () => {
     // Initialize signals
     const projectSignal = signal(mockProject);
-    const openDocumentsSignal = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>([...mockDocuments]);
+    const openDocumentsSignal = signal<
+      GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+    >([...mockDocuments]);
     const openTabsSignal = signal<AppTab[]>([...mockTabs]);
     const selectedTabIndexSignal = signal<number>(0);
     const isLoadingSignal = signal<boolean>(false);

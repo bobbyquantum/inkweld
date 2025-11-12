@@ -34,7 +34,8 @@ export class TreeNodeIconComponent {
       ['CULTURE']: 'groups',
       ['SPECIES']: 'pets',
       ['SYSTEMS']: 'settings',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item]: 'description',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item]:
+        'description',
       IMAGE: 'image', // Legacy type not in enum
     };
 
@@ -51,7 +52,3 @@ export class TreeNodeIconComponent {
     return 'description';
   }
 }
-
-
-
-

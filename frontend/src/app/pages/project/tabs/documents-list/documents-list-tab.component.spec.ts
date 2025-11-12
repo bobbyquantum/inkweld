@@ -157,7 +157,9 @@ describe('DocumentsListTabComponent', () => {
     expect(projectStateService.openDocument).toHaveBeenCalled();
     const newDocArg = (projectStateService.openDocument as Mock).mock
       .calls[0][0];
-    expect(newDocArg.type).toBe(GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item);
+    expect(newDocArg.type).toBe(
+      GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item
+    );
     expect(newDocArg.name).toBe('New Document');
   });
 

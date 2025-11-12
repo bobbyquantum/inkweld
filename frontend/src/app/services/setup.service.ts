@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+
 import { User } from '../../api-client/model/user';
 
 export interface AppConfig {
@@ -175,7 +176,3 @@ export class SetupService {
     }
   }
 }
-
-
-
-

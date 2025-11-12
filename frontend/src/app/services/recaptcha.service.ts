@@ -197,7 +197,3 @@ export class RecaptchaService {
     window.grecaptcha.reset(widgetId);
   }
 }
-
-
-
-

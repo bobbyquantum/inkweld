@@ -38,7 +38,3 @@ export class ProjectSettingsComponent {
     }
   }
 }
-
-
-
-

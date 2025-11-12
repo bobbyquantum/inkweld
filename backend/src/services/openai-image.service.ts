@@ -58,6 +58,7 @@ export class OpenAIImageService {
     const modelType = request.model || 'dall-e-2';
 
     // Prepare parameters
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- OpenAI SDK accepts dynamic parameters based on model
     const params: any = {
       prompt: request.prompt,
       model: modelType,
@@ -103,8 +104,10 @@ export class OpenAIImageService {
       };
 
       return responseDto;
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+    } catch (error: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- OpenAI error structure is complex
+      const err = error as any;
+      if (err.name === 'AbortError') {
         console.warn(
           `OpenAI image generation timed out after 3 minutes for prompt: "${request.prompt}"`
         );
@@ -112,7 +115,7 @@ export class OpenAIImageService {
       }
 
       console.error(
-        `Error calling OpenAI image generation for prompt "${request.prompt}": ${error.message}`
+        `Error calling OpenAI image generation for prompt "${request.prompt}": ${err.message || 'Unknown error'}`
       );
       throw new Error('Failed to generate image with OpenAI');
     }

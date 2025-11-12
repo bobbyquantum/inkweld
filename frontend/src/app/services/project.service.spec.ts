@@ -58,9 +58,7 @@ describe('ProjectService', () => {
 
     // API baseline
     api.getApiProjects.mockReturnValue(apiOk(BASE));
-    api.getApiProjectsUsernameSlug.mockReturnValue(
-      apiOk(BASE[0])
-    );
+    api.getApiProjectsUsernameSlug.mockReturnValue(apiOk(BASE[0]));
     api.projectControllerCreateProject.mockImplementation(
       (_t, dto) =>
         apiOk(dto) as unknown as Observable<HttpResponse<Project>> &
@@ -131,9 +129,7 @@ describe('ProjectService', () => {
       );
 
       // API should not be called
-      expect(
-        api.getApiProjectsUsernameSlug
-      ).not.toHaveBeenCalled();
+      expect(api.getApiProjectsUsernameSlug).not.toHaveBeenCalled();
 
       // Result should match the cached project
       expect(result).toEqual(BASE[0]);
@@ -144,9 +140,7 @@ describe('ProjectService', () => {
       store.get.mockResolvedValue(undefined);
 
       // Mock API response
-      api.getApiProjectsUsernameSlug.mockReturnValue(
-        apiOk(BASE[0])
-      );
+      api.getApiProjectsUsernameSlug.mockReturnValue(apiOk(BASE[0]));
 
       const result = await service.getProjectByUsernameAndSlug(
         'alice',
@@ -161,9 +155,10 @@ describe('ProjectService', () => {
       );
 
       // API should be called with token
-      expect(
-        api.getApiProjectsUsernameSlug
-      ).toHaveBeenCalledWith('alice', 'project-1');
+      expect(api.getApiProjectsUsernameSlug).toHaveBeenCalledWith(
+        'alice',
+        'project-1'
+      );
 
       // Result should match API response
       expect(result).toEqual(BASE[0]);
@@ -206,9 +201,7 @@ describe('ProjectService', () => {
       store.get.mockResolvedValue(undefined);
 
       // Mock API response
-      api.getApiProjectsUsernameSlug.mockReturnValue(
-        apiOk(BASE[1])
-      );
+      api.getApiProjectsUsernameSlug.mockReturnValue(apiOk(BASE[1]));
 
       const result = await service.getProjectByUsernameAndSlug(
         'bob',
@@ -223,9 +216,10 @@ describe('ProjectService', () => {
       );
 
       // API should be called with token
-      expect(
-        api.getApiProjectsUsernameSlug
-      ).toHaveBeenCalledWith('bob', 'project-2');
+      expect(api.getApiProjectsUsernameSlug).toHaveBeenCalledWith(
+        'bob',
+        'project-2'
+      );
 
       // Result should match API response
       expect(result).toEqual(BASE[1]);
@@ -287,9 +281,7 @@ describe('ProjectService', () => {
         createdDate: date,
         updatedDate: date,
       };
-      api.getApiProjectsUsernameSlug.mockReturnValue(
-        apiOk(updatedProject)
-      );
+      api.getApiProjectsUsernameSlug.mockReturnValue(apiOk(updatedProject));
 
       // We can't call refreshProjectInBackground directly as it's private
       // But we can test its effect after a call to getProjectByUsernameAndSlug
@@ -1013,5 +1005,3 @@ describe('ProjectService', () => {
     expect(service.projects()).toEqual(fresh);
   });
 });
-
-

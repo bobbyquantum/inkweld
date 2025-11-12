@@ -37,7 +37,8 @@ describe('Projects', () => {
       .returning();
 
     testUserId = testUser.id;
-    testUsername = testUser.username!; // username is required
+    // Username is required in the schema, this assertion is safe
+    testUsername = testUser.username ?? 'projectuser';
 
     // Login to get session
     const loggedIn = await client.login('projectuser', 'testpassword123');

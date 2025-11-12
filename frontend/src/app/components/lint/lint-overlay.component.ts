@@ -63,11 +63,13 @@ export class LintOverlayComponent implements OnInit, OnChanges {
   constructor() {
     // Listen for custom events for accept/reject actions
     document.addEventListener('lint-accept', (event: Event) => {
-      const customEvent = event as CustomEvent<PostLint200ResponseCorrectionsInner>;
+      const customEvent =
+        event as CustomEvent<PostLint200ResponseCorrectionsInner>;
       this.handleAccept(customEvent);
     });
     document.addEventListener('lint-reject', (event: Event) => {
-      const customEvent = event as CustomEvent<PostLint200ResponseCorrectionsInner>;
+      const customEvent =
+        event as CustomEvent<PostLint200ResponseCorrectionsInner>;
       this.handleReject(customEvent);
     });
   }
@@ -80,7 +82,9 @@ export class LintOverlayComponent implements OnInit, OnChanges {
     this.updateTipContent();
   }
 
-  private handleAccept(event: CustomEvent<PostLint200ResponseCorrectionsInner>): void {
+  private handleAccept(
+    event: CustomEvent<PostLint200ResponseCorrectionsInner>
+  ): void {
     const correction = event.detail;
     if (correction) {
       // Dispatch a custom event that will be handled by the plugin
@@ -92,7 +96,9 @@ export class LintOverlayComponent implements OnInit, OnChanges {
     }
   }
 
-  private handleReject(event: CustomEvent<PostLint200ResponseCorrectionsInner>): void {
+  private handleReject(
+    event: CustomEvent<PostLint200ResponseCorrectionsInner>
+  ): void {
     const correction = event.detail;
     if (correction) {
       // Dispatch a custom event that will be handled by the plugin
@@ -134,7 +140,3 @@ export class LintOverlayComponent implements OnInit, OnChanges {
     );
   }
 }
-
-
-
-

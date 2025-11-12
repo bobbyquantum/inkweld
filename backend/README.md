@@ -175,26 +175,83 @@ bun run lint:fix
 
 ## Deployment
 
-### Cloudflare Workers
+### Multiple Runtime Support
+
+This backend supports three different runtime environments:
+
+1. **Bun** (recommended for local dev) - Uses native `bun:sqlite`
+2. **Node.js** (traditional hosting) - Uses `better-sqlite3`
+3. **Cloudflare Workers** (serverless) - Uses D1 database
+
+#### Local Development
 
 ```bash
-# Deploy to Cloudflare Workers
-wrangler deploy
+# Bun (with Yjs WebSocket support)
+bun run dev
+
+# Node.js (without Yjs)
+bun run dev:node
+
+# Cloudflare Workers (local)
+bun run dev:worker
 ```
 
-### Docker
+#### Cloudflare Workers Deployment
+
+1. **Setup Configuration**:
+   ```bash
+   # Copy example configuration
+   cp wrangler.toml.example wrangler.toml
+   ```
+
+2. **Create D1 Databases**:
+   ```bash
+   # Dev database
+   npx wrangler d1 create inkweld_dev
+   
+   # Production database
+   npx wrangler d1 create inkweld_prod
+   ```
+
+3. **Update wrangler.toml**:
+   - Add the database IDs from step 2 to the `[env.dev.d1_databases]` and `[env.production.d1_databases]` sections
+   - Uncomment the D1 binding configuration
+
+4. **Login to Cloudflare**:
+   ```bash
+   npx wrangler login
+   ```
+
+5. **Deploy**:
+   ```bash
+   # Deploy to dev environment
+   bun run deploy:dev
+   
+   # Deploy to production environment
+   bun run deploy:prod
+   ```
+
+6. **View Logs**:
+   ```bash
+   bun run logs:dev
+   bun run logs:prod
+   ```
+
+#### Docker Deployment
 
 ```bash
 docker build -t inkweld-backend .
 docker run -p 8333:8333 inkweld-backend
 ```
 
-### Traditional Servers
-
-The backend runs on Bun by default but can also run on Node.js:
+#### Traditional Servers (Node.js)
 
 ```bash
-node --import tsx src/index.ts
+# Build for Node.js
+bun run build:node
+
+# Run with Node.js
+bun run start:node
 ```
 
 ## License

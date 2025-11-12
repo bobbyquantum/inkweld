@@ -64,6 +64,7 @@ class DocumentSnapshotService {
       yDocState: Buffer;
       stateVector?: Buffer;
       wordCount?: number;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Metadata can contain arbitrary JSON
       metadata?: Record<string, any>;
     }
   ): Promise<DocumentSnapshot> {

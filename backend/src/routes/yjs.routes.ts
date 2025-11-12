@@ -31,8 +31,8 @@ app.get(
 
     console.log(`WebSocket connection for document: ${documentId}`);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Yjs WSSharedDoc type is complex
     let doc: any = null;
-    let pongReceived = true;
     let pingInterval: Timer | null = null;
 
     return {
@@ -41,31 +41,22 @@ app.get(
         // Store the doc for use in other handlers
         doc = await yjsService.handleConnection(ws.raw, documentId);
 
-        // Set up ping/pong heartbeat to keep connection alive and detect broken connections
+        // Set up ping heartbeat to keep connection alive and detect broken connections
         // This is especially important when browser tabs go out of focus
+        // In Bun, pong responses are handled automatically at the protocol level
+        // If ping() throws an error, the connection is broken
         const PING_TIMEOUT = 30000; // 30 seconds
-        pongReceived = true;
-
-        // Set up pong event listener on the raw WebSocket
-        ws.raw.on('pong', () => {
-          pongReceived = true;
-        });
 
         pingInterval = setInterval(() => {
-          if (!pongReceived) {
-            // Connection is broken - close it
-            console.log(`No pong received for ${documentId}, closing connection`);
+          try {
+            // Send ping - if connection is broken, this will throw an error
+            ws.raw.ping();
+          } catch (error) {
+            console.error(`Error sending ping for ${documentId}, closing connection:`, error);
             ws.close();
-            if (pingInterval) clearInterval(pingInterval);
-          } else {
-            // Send ping and wait for pong
-            pongReceived = false;
-            try {
-              ws.raw.ping();
-            } catch (error) {
-              console.error(`Error sending ping for ${documentId}:`, error);
-              ws.close();
-              if (pingInterval) clearInterval(pingInterval);
+            if (pingInterval) {
+              clearInterval(pingInterval);
+              pingInterval = null;
             }
           }
         }, PING_TIMEOUT);

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { projectService } from '../services/project.service';
 import { requireAuth } from '../middleware/auth';
 import { fileStorageService } from '../services/file-storage.service';
-import { getDb, type AppContext } from '../middleware/database.middleware';
+import { type AppContext } from '../types/context';
 
 const fileRoutes = new Hono<AppContext>();
 
@@ -64,7 +64,7 @@ fileRoutes.get(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
 
@@ -126,7 +126,7 @@ fileRoutes.get(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const storedName = c.req.param('storedName');
@@ -193,7 +193,7 @@ fileRoutes.post(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
 
@@ -264,7 +264,7 @@ fileRoutes.delete(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const storedName = c.req.param('storedName');

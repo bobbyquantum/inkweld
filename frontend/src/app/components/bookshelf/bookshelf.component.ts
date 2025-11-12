@@ -607,7 +607,3 @@ export class BookshelfComponent
     }
   }
 }
-
-
-
-

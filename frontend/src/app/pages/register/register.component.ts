@@ -41,7 +41,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
-import { UsersService, PostApiV1UsersRegisterRequest } from '@inkweld/index';
+import { PostApiV1UsersRegisterRequest, UsersService } from '@inkweld/index';
 import { RecaptchaService } from '@services/recaptcha.service';
 import { SystemConfigService } from '@services/system-config.service';
 import { UserService } from '@services/user.service';
@@ -461,9 +461,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       };
 
       const response = await firstValueFrom(
-        this.userService.postApiV1UsersRegister(
-          registerRequest
-        )
+        this.userService.postApiV1UsersRegister(registerRequest)
       );
 
       // Check if approval is required
@@ -640,9 +638,3 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       });
   }
 }
-
-
-
-
-
-

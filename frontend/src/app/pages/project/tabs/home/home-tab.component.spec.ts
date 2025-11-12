@@ -6,7 +6,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { ProjectsService } from '@inkweld/api/project-api.service';
-import { Project, GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
+import {
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  Project,
+} from '@inkweld/index';
 import { Mock, vi } from 'vitest';
 
 import { DialogGatewayService } from '../../../../services/dialog-gateway.service';
@@ -57,7 +60,9 @@ describe('HomeTabComponent', () => {
   const setupMockServices = () => {
     // Initialize signals for ProjectStateService
     const projectSignal = signal(mockProject);
-    const elementsSignal = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>([]);
+    const elementsSignal = signal<
+      GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+    >([]);
 
     // Mock Router
     mockRouter = {
@@ -321,7 +326,9 @@ describe('HomeTabComponent', () => {
     component.onGenerateCoverClick();
     await Promise.resolve();
 
-    expect(ProjectsService.postApiImagesUsernameSlugCover).not.toHaveBeenCalled();
+    expect(
+      ProjectsService.postApiImagesUsernameSlugCover
+    ).not.toHaveBeenCalled();
   });
 
   it('should open project files tab', () => {
@@ -454,5 +461,3 @@ describe('HomeTabComponent', () => {
     });
   });
 });
-
-

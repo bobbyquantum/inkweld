@@ -312,7 +312,9 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     this.projectState.closeTab(index - 1);
   }
 
-  openDocument(document: GetApiV1ProjectsUsernameSlugElements200ResponseInner): void {
+  openDocument(
+    document: GetApiV1ProjectsUsernameSlugElements200ResponseInner
+  ): void {
     const project = this.projectState.project();
     if (!project) return;
 
@@ -428,7 +430,3 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     }
   }
 }
-
-
-
-

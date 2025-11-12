@@ -157,11 +157,13 @@ The JSON must follow this format:
       } else {
         throw new Error('No choices returned from OpenAI');
       }
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+    } catch (error: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- OpenAI error structure is complex
+      const err = error as any;
+      if (err.name === 'AbortError') {
         throw new Error('Linting service timed out after 15 seconds');
       }
-      console.error(`Error calling OpenAI: ${error.message}`);
+      console.error(`Error calling OpenAI: ${err.message || 'Unknown error'}`);
       throw new Error('Failed to process text with OpenAI');
     }
   }

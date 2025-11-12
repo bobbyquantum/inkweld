@@ -208,7 +208,3 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 }
-
-
-
-

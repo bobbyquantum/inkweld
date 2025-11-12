@@ -26,7 +26,10 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   private paramSubscription: Subscription | null = null;
 
   protected elementId = signal<string>('');
-  protected elementType = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum | null>(null);
+  protected elementType =
+    signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum | null>(
+      null
+    );
   protected username = signal<string | undefined>(undefined);
   protected slug = signal<string | undefined>(undefined);
 
@@ -91,12 +94,10 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   /**
    * Find element in project tree (flat array)
    */
-  private findElement(elementId: string): GetApiV1ProjectsUsernameSlugElements200ResponseInner | null {
+  private findElement(
+    elementId: string
+  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner | null {
     const elements = this.projectState.elements();
     return elements.find(el => el.id === elementId) || null;
   }
 }
-
-
-
-

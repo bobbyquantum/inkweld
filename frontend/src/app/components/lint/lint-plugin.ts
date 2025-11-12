@@ -6,8 +6,8 @@ import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
 import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 import { debounceTime, Subject, Subscription } from 'rxjs';
 
-import { PostLint200ResponseCorrectionsInner } from '../../../api-client/model/post-lint200-response-corrections-inner';
 import { PostLint200Response } from '../../../api-client/model/post-lint200-response';
+import { PostLint200ResponseCorrectionsInner } from '../../../api-client/model/post-lint200-response-corrections-inner';
 import { ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintApiService } from './lint-api.service';
 import { LintStorageService } from './lint-storage.service';
@@ -95,7 +95,9 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
   ): void {
     if (!correction || !correction.corrected_text) return;
 
-    console.log(`[LintPlugin] Applying correction: ${correction.corrected_text}`);
+    console.log(
+      `[LintPlugin] Applying correction: ${correction.corrected_text}`
+    );
     console.log(`[LintPlugin] Original text: "${correction.text || ''}"`);
 
     let from = correction.start_pos;
@@ -223,8 +225,10 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
         // Ensure we have from and to properties - adjust for potential off-by-one issues
         // Note: The server might be sending positions that are off by one character
-        let from = typeof correction.start_pos === 'number' ? correction.start_pos : 0;
-        let to = typeof correction.end_pos === 'number' ? correction.end_pos : 0;
+        let from =
+          typeof correction.start_pos === 'number' ? correction.start_pos : 0;
+        let to =
+          typeof correction.end_pos === 'number' ? correction.end_pos : 0;
 
         // Adjust positions to fix off-by-one server issue
         // Skip the leading space by incrementing from by 1
@@ -417,7 +421,3 @@ export function findSuggestionAtPos(
   }
   return null;
 }
-
-
-
-

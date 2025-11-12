@@ -2,13 +2,13 @@ import { Context, Next } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { authService } from '../services/auth.service.js';
 import { userService } from '../services/user.service.js';
-import { getDb, type AppContext } from './database.middleware.js';
+import { type AppContext } from '../types/context.js';
 
 export const requireAuth = async (c: Context<AppContext>, next: Next) => {
   console.log('[requireAuth] Checking session...');
   console.log('[requireAuth] Cookie header:', c.req.header('cookie'));
 
-  const db = getDb(c);
+  const db = c.get('db');
   const user = await authService.getUserFromSession(db, c);
 
   console.log('[requireAuth] User from session:', user ? user.username : 'null');
@@ -28,7 +28,7 @@ export const requireAuth = async (c: Context<AppContext>, next: Next) => {
 };
 
 export const optionalAuth = async (c: Context<AppContext>, next: Next) => {
-  const db = getDb(c);
+  const db = c.get('db');
   const user = await authService.getUserFromSession(db, c);
   if (user && userService.canLogin(user)) {
     c.set('user', user);

@@ -147,9 +147,7 @@ describe('UserService', () => {
         status: 0,
         statusText: 'Network Error',
       });
-      userServiceMock.getApiUserMe.mockReturnValue(
-        throwError(() => error)
-      );
+      userServiceMock.getApiUserMe.mockReturnValue(throwError(() => error));
 
       await expect(service.loadCurrentUser()).rejects.toThrow(UserServiceError);
       expect(service.error()?.code).toBe('NETWORK_ERROR');
@@ -162,9 +160,7 @@ describe('UserService', () => {
         status: 401,
         statusText: 'Unauthorized',
       });
-      userServiceMock.getApiUserMe.mockReturnValue(
-        throwError(() => error)
-      );
+      userServiceMock.getApiUserMe.mockReturnValue(throwError(() => error));
 
       await expect(service.loadCurrentUser()).rejects.toThrow(UserServiceError);
       expect(service.error()?.code).toBe('SESSION_EXPIRED');
@@ -379,5 +375,3 @@ describe('UserService', () => {
     });
   });
 });
-
-

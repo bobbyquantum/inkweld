@@ -106,7 +106,3 @@ export class GeneralSettingsComponent implements OnInit, OnDestroy {
     }
   }
 }
-
-
-
-

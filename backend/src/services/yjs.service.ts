@@ -116,6 +116,7 @@ export class YjsService {
   /**
    * Handle WebSocket connection for a document - returns the doc for message handling
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
   async handleConnection(ws: any, documentId: string, userId?: string): Promise<WSSharedDoc> {
     const doc = await this.getDocument(documentId);
 
@@ -151,6 +152,7 @@ export class YjsService {
   /**
    * Handle incoming message - call this from WebSocket onMessage handler
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
   handleMessage(ws: any, doc: WSSharedDoc, message: Buffer) {
     try {
       const decoder = decoding.createDecoder(message);
@@ -187,6 +189,7 @@ export class YjsService {
   /**
    * Handle disconnection - call this from WebSocket onClose handler
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
   handleDisconnect(ws: any, doc: WSSharedDoc) {
     doc.conns.delete(ws);
 
@@ -225,6 +228,7 @@ export class YjsService {
   /**
    * Broadcast message to all connections except sender
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
   private broadcastMessage(doc: WSSharedDoc, message: Uint8Array, exclude?: any) {
     doc.conns.forEach((_, conn) => {
       if (conn !== exclude) {

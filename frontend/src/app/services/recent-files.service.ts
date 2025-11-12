@@ -29,7 +29,11 @@ export class RecentFilesService {
     this.loadRecentFiles();
   }
 
-  addRecentFile(file: GetApiV1ProjectsUsernameSlugElements200ResponseInner, username: string, slug: string): void {
+  addRecentFile(
+    file: GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+    username: string,
+    slug: string
+  ): void {
     const currentFiles = [...this.recentFiles()];
 
     // Remove the file if it already exists
@@ -91,7 +95,3 @@ export class RecentFilesService {
     this.settingsService.setSetting(this.STORAGE_KEY, this.recentFiles());
   }
 }
-
-
-
-

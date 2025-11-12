@@ -142,5 +142,3 @@ describe('ProjectFileService', () => {
     expect(service.formatFileSize(bytes)).toBe(expected);
   });
 });
-
-

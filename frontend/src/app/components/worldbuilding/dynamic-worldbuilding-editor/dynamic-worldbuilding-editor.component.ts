@@ -121,7 +121,8 @@ export class DynamicWorldbuildingEditorComponent implements OnDestroy {
           // Find the element from project state to get its type
           const elements = this.projectState.elements();
           const element = elements.find(
-            (el: GetApiV1ProjectsUsernameSlugElements200ResponseInner) => el.id === elementId
+            (el: GetApiV1ProjectsUsernameSlugElements200ResponseInner) =>
+              el.id === elementId
           );
 
           if (element) {
@@ -435,7 +436,3 @@ export class DynamicWorldbuildingEditorComponent implements OnDestroy {
     }
   }
 }
-
-
-
-

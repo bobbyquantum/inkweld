@@ -96,7 +96,3 @@ export class LoggerService {
     return level >= this.minLevel;
   }
 }
-
-
-
-

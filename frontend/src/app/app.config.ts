@@ -58,7 +58,3 @@ export const appConfig: ApplicationConfig = {
 };
 
 export { XsrfService };
-
-
-
-

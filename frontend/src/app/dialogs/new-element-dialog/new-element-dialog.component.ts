@@ -62,14 +62,18 @@ export class NewElementDialogComponent {
 
   // Step control
   currentStep = signal<1 | 2>(1);
-  selectedType = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum | null>(null);
+  selectedType =
+    signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum | null>(
+      null
+    );
   searchQuery = signal('');
 
   // Element type options (starts with document types, worldbuilding loaded dynamically)
   elementTypeOptions = signal<ElementTypeOption[]>([
     // Document types (always available)
     {
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Folder,
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum
+        .Folder,
       label: 'Folder',
       icon: 'folder',
       description: 'Organize your documents and worldbuilding elements',
@@ -234,7 +238,9 @@ export class NewElementDialogComponent {
   };
 
   // Step 1: Select type
-  selectType(type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum): void {
+  selectType(
+    type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum
+  ): void {
     this.selectedType.set(type);
     this.form.controls.type.setValue(type);
     this.nextStep();
@@ -269,7 +275,3 @@ export class NewElementDialogComponent {
     );
   }
 }
-
-
-
-

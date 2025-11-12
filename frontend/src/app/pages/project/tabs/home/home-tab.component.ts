@@ -17,7 +17,6 @@ import { DialogGatewayService } from '@services/dialog-gateway.service';
 import { ProjectService } from '@services/project.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
 import { ProjectStateService } from '@services/project-state.service';
-import { catchError, of } from 'rxjs';
 
 import { RecentFilesService } from '../../../../services/recent-files.service';
 
@@ -278,9 +277,3 @@ export class HomeTabComponent {
     }
   }
 }
-
-
-
-
-
-

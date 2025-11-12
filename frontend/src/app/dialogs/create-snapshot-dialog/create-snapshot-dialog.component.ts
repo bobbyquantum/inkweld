@@ -87,7 +87,3 @@ export class CreateSnapshotDialogComponent {
     this.dialogRef.close();
   }
 }
-
-
-
-

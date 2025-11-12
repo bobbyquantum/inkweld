@@ -1,3 +1,7 @@
+/**
+ * Node.js-specific app configuration using better-sqlite3
+ * This file imports Node-compatible modules and should only be used in Node.js runtime
+ */
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { csrf } from 'hono/csrf';
@@ -6,10 +10,14 @@ import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
 import { generateSpecs } from 'hono-openapi';
 import { config } from './config/env';
-import { setupDatabase } from './db';
 import { errorHandler } from './middleware/error-handler';
+import {
+  betterSqliteDatabaseMiddleware,
+  type BetterSqliteAppContext,
+} from './middleware/database.better-sqlite.middleware';
+import { setupBetterSqliteDatabase } from './db/better-sqlite';
 
-// Import routes
+// Import routes (no WebSocket/Yjs routes - Node doesn't support those easily)
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import projectRoutes from './routes/project.routes';
@@ -25,34 +33,16 @@ import epubRoutes from './routes/epub.routes';
 import lintRoutes from './routes/lint.routes';
 import aiImageRoutes from './routes/ai-image.routes';
 import mcpRoutes from './routes/mcp.routes';
-// Yjs routes imported conditionally below (requires Bun WebSocket support)
 
-// Import database middleware
-import { databaseMiddleware } from './middleware/database.middleware';
-
-// Conditionally import Bun-specific websocket only in Bun runtime
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let websocket: any = undefined;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let yjsRoutes: any = undefined;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const bunRuntime = (globalThis as any).Bun;
-if (bunRuntime) {
-  const bunModule = await import('hono/bun');
-  websocket = bunModule.websocket;
-  const yjsModule = await import('./routes/yjs.routes');
-  yjsRoutes = yjsModule.default;
-}
-
-const app = new Hono();
+const app = new Hono<BetterSqliteAppContext>();
 
 // Global middleware
 app.use('*', logger());
 app.use('*', prettyJSON());
 app.use('*', secureHeaders());
 
-// Database middleware - attaches DB instance to context
-app.use('*', databaseMiddleware);
+// Database middleware - attaches better-sqlite3 DB instance to context
+app.use('*', betterSqliteDatabaseMiddleware);
 
 // CORS configuration
 const allowedOrigins = config.allowedOrigins;
@@ -71,8 +61,7 @@ app.use(
   })
 );
 
-// CSRF protection - allows same-origin and multiple configured origins
-// Skip CSRF in test mode to allow test requests without proper headers
+// CSRF protection
 if (config.nodeEnv !== 'test') {
   app.use(
     '*',
@@ -82,9 +71,9 @@ if (config.nodeEnv !== 'test') {
   );
 }
 
-// Routes
-app.route('/', authRoutes); // Root-level, matches old NestJS server (/login, /logout, /me)
-app.route('/csrf', csrfRoutes); // Root-level, matches old NestJS server
+// Routes (no WebSocket routes)
+app.route('/', authRoutes);
+app.route('/csrf', csrfRoutes);
 app.route('/api/v1/users', userRoutes);
 app.route('/api/v1/projects', projectRoutes);
 app.route('/api/v1/projects', documentRoutes);
@@ -98,21 +87,17 @@ app.route('/api/config', configRoutes);
 app.route('/lint', lintRoutes);
 app.route('/image', aiImageRoutes);
 app.route('/mcp', mcpRoutes);
-// Conditionally register Yjs WebSocket routes (only in Bun runtime)
-if (bunRuntime && yjsRoutes) {
-  app.route('/ws', yjsRoutes);
-}
 
 // Root route
 app.get('/', (c) => {
   return c.json({
-    name: 'Inkweld API',
+    name: 'Inkweld API (Node.js)',
     version: config.version,
     status: 'running',
   });
 });
 
-// Legacy OAuth providers endpoint for backward compatibility
+// Legacy OAuth providers endpoint
 app.get('/providers', (c) => {
   return c.json({
     providers: {
@@ -121,10 +106,10 @@ app.get('/providers', (c) => {
   });
 });
 
-// API documentation placeholder
+// API documentation
 app.get('/api', (c) => {
   return c.json({
-    message: 'Inkweld API - Hono version',
+    message: 'Inkweld API - Hono version (Node.js)',
     version: config.version,
     endpoints: {
       auth: '/api/auth',
@@ -143,14 +128,14 @@ app.get('/api', (c) => {
   });
 });
 
-// OpenAPI documentation endpoint
+// OpenAPI documentation
 app.get('/api/openapi.json', async (c) => {
   const spec = await generateSpecs(app, {
     documentation: {
       info: {
         title: 'Inkweld API',
         version: '1.0.0',
-        description: 'Collaborative creative writing platform API',
+        description: 'Collaborative creative writing platform API (Node.js)',
       },
       servers: [
         {
@@ -174,28 +159,22 @@ app.notFound((c) => {
 // Initialize database and start server
 async function bootstrap() {
   try {
-    await setupDatabase();
-    console.log('Database initialized');
+    const dbPath = process.env.DB_PATH || './data/inkweld.db';
+    await setupBetterSqliteDatabase(dbPath);
+    console.log('Better-sqlite3 database initialized');
 
     const port = config.port;
-    console.log(`Inkweld backend ready on port ${port}`);
+    console.log(`Inkweld backend (Node.js) ready on port ${port}`);
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('Failed to start Node.js server:', error);
     process.exit(1);
   }
 }
 
-// Only run bootstrap if not in test mode AND not in Workers
-// In Workers, the app is exported and database is handled per-request
-const isWorkers = typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers';
-if (process.env.NODE_ENV !== 'test' && !isWorkers) {
+// Only run bootstrap if not in test mode
+if (process.env.NODE_ENV !== 'test') {
   bootstrap();
 }
 
-export default {
-  port: config.port,
-  fetch: app.fetch,
-  websocket, // Required for Bun WebSocket support
-};
-
+export default app;
 export { app };

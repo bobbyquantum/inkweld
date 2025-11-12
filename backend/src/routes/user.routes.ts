@@ -2,21 +2,16 @@ import { Hono } from 'hono';
 import { describeRoute, resolver, validator } from 'hono-openapi';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
-import { getDb, type AppContext } from '../middleware/database.middleware';
+import { type AppContext } from '../types/context';
 import { users as usersTable } from '../db/schema/users';
 import { userService } from '../services/user.service';
 import { fileStorageService } from '../services/file-storage.service';
 import { imageService } from '../services/image.service';
 import { recaptchaService } from '../services/recaptcha.service';
 import { config } from '../config/env';
-import { eq, like, or, asc, desc } from 'drizzle-orm';
-import {
-  UserSchema,
-  PaginatedUsersResponseSchema,
-  UsernameAvailabilityResponseSchema,
-} from '../schemas/user.schemas';
-import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
-import { RegisterRequestSchema, RegisterResponseSchema } from '../schemas/auth.schemas';
+import { like, or } from 'drizzle-orm';
+import { UserSchema, PaginatedUsersResponseSchema } from '../schemas/user.schemas';
+import { ErrorResponseSchema } from '../schemas/common.schemas';
 
 const userRoutes = new Hono<AppContext>();
 
@@ -58,7 +53,7 @@ userRoutes.get(
     const userId = c.get('user').id;
     console.log('[/me endpoint] User ID from session:', userId);
 
-    const db = getDb(c);
+    const db = c.get('db');
     const user = await userService.findById(db, userId);
 
     console.log('[/me endpoint] User from database:', user);
@@ -104,7 +99,7 @@ userRoutes.get(
     const page = parseInt(c.req.query('page') || '1', 10);
     const pageSize = parseInt(c.req.query('pageSize') || '10', 10);
 
-    const db = getDb(c);
+    const db = c.get('db');
 
     const allUsers = await db
       .select({
@@ -152,7 +147,7 @@ userRoutes.get(
     const page = parseInt(c.req.query('page') || '1', 10);
     const pageSize = parseInt(c.req.query('pageSize') || '10', 10);
 
-    const db = getDb(c);
+    const db = c.get('db');
 
     const searchTerm = `%${term}%`;
     const foundUsers = await db
@@ -241,7 +236,7 @@ userRoutes.post(
     }
 
     // Check if username already exists
-    const db = getDb(c);
+    const db = c.get('db');
     const existingUser = await userService.findByUsername(db, username);
     if (existingUser) {
       return c.json({ error: 'Username already exists' }, 400);
@@ -309,7 +304,7 @@ userRoutes.get(
       return c.json({ error: 'Username must be at least 3 characters' }, 400);
     }
 
-    const db = getDb(c);
+    const db = c.get('db');
     const existingUser = await userService.findByUsername(db, username);
 
     return c.json({
@@ -416,7 +411,7 @@ userRoutes.post(
   async (c) => {
     const userId = c.get('user').id;
 
-    const db = getDb(c);
+    const db = c.get('db');
     const user = await userService.findById(db, userId);
     if (!user || !user.username) {
       return c.json({ error: 'User not found' }, 404);
@@ -490,7 +485,7 @@ userRoutes.post(
   async (c) => {
     const userId = c.get('user').id;
 
-    const db = getDb(c);
+    const db = c.get('db');
     const user = await userService.findById(db, userId);
     if (!user || !user.username) {
       return c.json({ error: 'User not found' }, 404);

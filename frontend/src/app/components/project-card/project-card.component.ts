@@ -37,7 +37,3 @@ export class ProjectCardComponent {
     return `${baseUrl}/api/v1/projects/${this.project.username}/${this.project.slug}/cover`;
   }
 }
-
-
-
-

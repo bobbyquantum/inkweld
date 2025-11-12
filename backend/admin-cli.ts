@@ -1,14 +1,19 @@
 #!/usr/bin/env bun
-import 'reflect-metadata';
-import { DataSource } from 'typeorm';
-import { User } from './src/entities/user.entity.js';
-import { Project } from './src/entities/project.entity.js';
+import { drizzle } from 'drizzle-orm/bun-sqlite';
+import { Database as BunDatabase } from 'bun:sqlite';
+import { eq, asc, desc, sql } from 'drizzle-orm';
+import * as schema from './src/db/schema/index.js';
+import { users } from './src/db/schema/users.js';
+import { projects } from './src/db/schema/projects.js';
+import type { User } from './src/db/schema/users.js';
+import type { Project } from './src/db/schema/projects.js';
 import * as path from 'path';
 import * as fs from 'fs';
 import { config } from 'dotenv';
+import { spawn } from 'child_process';
 
 // Load environment variables
-config({ path: '../.env' });
+config({ path: '.env' });
 
 interface AdminStats {
   userCount: number;
@@ -31,81 +36,321 @@ interface UserDiskUsage {
   formattedDiskUsage: string;
 }
 
+type DatabaseInstance = ReturnType<typeof drizzle>;
+
+/**
+ * D1 Admin CLI - executes wrangler commands for Cloudflare D1 database
+ */
+class D1AdminCLI {
+  public readonly verbose: boolean;
+  public readonly dbName: string;
+  public readonly remote: boolean;
+
+  constructor(verbose: boolean = false, remote: boolean = false) {
+    this.verbose = verbose;
+    this.remote = remote;
+
+    // Try to read database name from wrangler.toml
+    this.dbName = this.getD1DatabaseName();
+
+    if (this.verbose) {
+      console.log('🔧 D1 Database Configuration:');
+      console.log(`   Database: ${this.dbName}`);
+      console.log(`   Remote: ${this.remote ? 'Yes (production)' : 'No (local dev)'}`);
+    }
+  }
+
+  private getD1DatabaseName(): string {
+    // Try to read from wrangler.toml
+    try {
+      const wranglerConfig = fs.readFileSync('wrangler.toml', 'utf-8');
+      const match = wranglerConfig.match(/database_name\s*=\s*"([^"]+)"/);
+      if (match) {
+        return match[1];
+      }
+    } catch {
+      // Ignore errors
+    }
+
+    // Fallback to environment variable or default
+    return process.env.D1_DATABASE_NAME || 'inkweld_dev';
+  }
+
+  private async executeWrangler(command: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const args = [
+        'd1',
+        'execute',
+        this.dbName,
+        '--command',
+        command,
+        '--json', // Get JSON output instead of table
+        ...(this.remote ? ['--remote'] : []),
+      ];
+
+      if (this.verbose) {
+        console.log(`🔧 Executing: wrangler ${args.join(' ')}`);
+      }
+
+      const proc = spawn('wrangler', args, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      proc.stdout?.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      proc.stderr?.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      proc.on('close', (code) => {
+        if (code !== 0) {
+          reject(new Error(`Wrangler command failed: ${stderr}`));
+        } else {
+          resolve(stdout);
+        }
+      });
+
+      proc.on('error', (error) => {
+        reject(error);
+      });
+    });
+  }
+
+  async connect() {
+    if (this.verbose) {
+      console.log('📡 Testing D1 connection...');
+    }
+
+    try {
+      // Test connection by counting users
+      await this.executeWrangler('SELECT COUNT(*) as count FROM users');
+      if (this.verbose) {
+        console.log('✅ Connected to D1 successfully');
+      }
+    } catch (error) {
+      console.error('❌ Failed to connect to D1:', error);
+      throw error;
+    }
+  }
+
+  async disconnect() {
+    // No-op for D1 (wrangler handles connections)
+  }
+
+  async getSystemStats(): Promise<AdminStats> {
+    const userCountResult = await this.executeWrangler('SELECT COUNT(*) as count FROM users');
+    const projectCountResult = await this.executeWrangler('SELECT COUNT(*) as count FROM projects');
+    const pendingUserCountResult = await this.executeWrangler(
+      'SELECT COUNT(*) as count FROM users WHERE approved = 0'
+    );
+
+    // Parse JSON results from wrangler output
+    const userCount = this.parseWranglerResult(userCountResult)[0]?.count ?? 0;
+    const projectCount = this.parseWranglerResult(projectCountResult)[0]?.count ?? 0;
+    const pendingUserCount = this.parseWranglerResult(pendingUserCountResult)[0]?.count ?? 0;
+
+    return {
+      userCount,
+      projectCount,
+      pendingUserCount,
+      totalDiskUsage: 0, // N/A for D1
+      formattedDiskUsage: 'N/A (D1 storage)',
+    };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Wrangler output format varies
+  private parseWranglerResult(output: string): any[] {
+    try {
+      // With --json flag, wrangler outputs in format: [{ "results": [...], "success": true, "meta": {...} }]
+      const parsed = JSON.parse(output);
+
+      // The output is an array with one object containing results
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].results) {
+        return parsed[0].results;
+      }
+
+      // Fallback: if it's already an array, return it
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+
+      return [];
+    } catch (error) {
+      if (this.verbose) {
+        console.error('Failed to parse wrangler output:', error);
+        console.error('Output was:', output);
+      }
+      return [];
+    }
+  }
+
+  async listAllUsers(): Promise<User[]> {
+    const result = await this.executeWrangler('SELECT * FROM users ORDER BY username ASC');
+    return this.parseWranglerResult(result) as User[];
+  }
+
+  async listPendingUsers(): Promise<User[]> {
+    const result = await this.executeWrangler(
+      'SELECT * FROM users WHERE approved = 0 ORDER BY username ASC'
+    );
+    return this.parseWranglerResult(result) as User[];
+  }
+
+  async findUser(identifier: string): Promise<User | null> {
+    // Try by ID first
+    let result = await this.executeWrangler(
+      `SELECT * FROM users WHERE id = '${identifier}' LIMIT 1`
+    );
+    let users = this.parseWranglerResult(result) as User[];
+
+    if (users.length === 0) {
+      // Try by username
+      result = await this.executeWrangler(
+        `SELECT * FROM users WHERE username = '${identifier}' LIMIT 1`
+      );
+      users = this.parseWranglerResult(result) as User[];
+    }
+
+    return users[0] ?? null;
+  }
+
+  async approveUser(identifier: string): Promise<User> {
+    const user = await this.findUser(identifier);
+    if (!user) {
+      throw new Error(`User not found: ${identifier}`);
+    }
+
+    await this.executeWrangler(`UPDATE users SET approved = 1 WHERE id = '${user.id}'`);
+
+    return { ...user, approved: true };
+  }
+
+  async enableUser(identifier: string): Promise<User> {
+    const user = await this.findUser(identifier);
+    if (!user) {
+      throw new Error(`User not found: ${identifier}`);
+    }
+
+    await this.executeWrangler(`UPDATE users SET enabled = 1 WHERE id = '${user.id}'`);
+
+    return { ...user, enabled: true };
+  }
+
+  async disableUser(identifier: string): Promise<User> {
+    const user = await this.findUser(identifier);
+    if (!user) {
+      throw new Error(`User not found: ${identifier}`);
+    }
+
+    await this.executeWrangler(`UPDATE users SET enabled = 0 WHERE id = '${user.id}'`);
+
+    return { ...user, enabled: false };
+  }
+
+  async deleteUser(identifier: string): Promise<void> {
+    const user = await this.findUser(identifier);
+    if (!user) {
+      throw new Error(`User not found: ${identifier}`);
+    }
+
+    // D1 should have cascade delete configured
+    await this.executeWrangler(`DELETE FROM users WHERE id = '${user.id}'`);
+  }
+
+  async rejectUser(identifier: string): Promise<void> {
+    // For D1, reject is the same as delete
+    await this.deleteUser(identifier);
+  }
+
+  async listAllProjects(): Promise<Project[]> {
+    const result = await this.executeWrangler('SELECT * FROM projects ORDER BY updatedDate DESC');
+    return this.parseWranglerResult(result) as Project[];
+  }
+
+  async deleteProject(identifier: string): Promise<void> {
+    const result = await this.executeWrangler(
+      `SELECT * FROM projects WHERE id = '${identifier}' OR slug = '${identifier}' LIMIT 1`
+    );
+    const projects = this.parseWranglerResult(result) as Project[];
+    const project = projects[0];
+
+    if (!project) {
+      throw new Error(`Project not found: ${identifier}`);
+    }
+
+    await this.executeWrangler(`DELETE FROM projects WHERE id = '${project.id}'`);
+  }
+
+  async formatProjectInfo(projectId: string): Promise<string> {
+    const projectResult = await this.executeWrangler(
+      `SELECT * FROM projects WHERE id = '${projectId}' LIMIT 1`
+    );
+    const projects = this.parseWranglerResult(projectResult) as Project[];
+    const project = projects[0];
+
+    if (!project) return 'Project not found';
+
+    const userResult = await this.executeWrangler(
+      `SELECT * FROM users WHERE id = '${project.userId}' LIMIT 1`
+    );
+    const users = this.parseWranglerResult(userResult) as User[];
+    const user = users[0];
+
+    if (!user) return `${project.slug} - "${project.title}" (User not found)`;
+
+    const createdDate = new Date(project.createdDate).toISOString().split('T')[0];
+    return `${user.username}/${project.slug} - "${project.title}" (Created: ${createdDate})`;
+  }
+
+  formatBytes(_bytes: number): string {
+    return 'N/A';
+  }
+
+  formatUserInfo(user: User): string {
+    const status = user.approved ? (user.enabled ? 'Active' : 'Disabled') : 'Pending';
+    const auth = user.githubId ? ' [GitHub]' : ' [Local]';
+    return `${user.username} (${user.id}) - ${status}${auth} - ${user.email || 'No email'}`;
+  }
+}
+
 class AdminCLI {
-  private dataSource: DataSource;
+  public readonly db: DatabaseInstance; // Make public for display functions
+  private sqlite: BunDatabase;
   public readonly dataDir: string;
   public readonly verbose: boolean;
+  public readonly dbType: string;
 
   constructor(verbose: boolean = false) {
     this.verbose = verbose;
     this.dataDir = path.resolve(process.env.DATA_PATH || './data');
+    this.dbType = process.env.DB_TYPE || 'sqlite';
 
-    // Configure database connection based on environment
-    const dbConfig = this.getDatabaseConfig();
-
-    this.dataSource = new DataSource({
-      ...dbConfig,
-      entities: [User, Project],
-      synchronize: false, // Don't auto-sync in production
-      logging: false,
-    });
-  }
-
-  private getDatabaseConfig() {
-    const dbType = process.env.DB_TYPE || 'postgres';
-    const databaseUrl = process.env.DATABASE_URL;
+    // Only support bun-sqlite for local database
+    const dbPath = process.env.DB_PATH || path.join(this.dataDir, 'inkweld.db');
+    const resolvedPath = path.resolve(process.cwd(), dbPath);
 
     if (this.verbose) {
       console.log('🔧 Database Configuration:');
-      console.log(`   DB_TYPE: ${dbType}`);
-      console.log(`   DATA_PATH: ${process.env.DATA_PATH || './data'}`);
-      console.log(`   DATABASE_URL: ${databaseUrl ? '[SET]' : '[NOT SET]'}`);
+      console.log(`   DB_TYPE: ${this.dbType}`);
+      console.log(`   DB_PATH: ${resolvedPath}`);
+      console.log(`   DATA_PATH: ${this.dataDir}`);
+      console.log(`   Database file exists: ${fs.existsSync(resolvedPath)}`);
+
+      if (fs.existsSync(resolvedPath)) {
+        const stats = fs.statSync(resolvedPath);
+        console.log(`   Database file size: ${this.formatBytes(stats.size)}`);
+        console.log(`   Last modified: ${stats.mtime.toISOString()}`);
+      }
     }
 
-    if (dbType === 'sqlite') {
-      // SQLite database configuration
-      const dbPath = process.env.DB_PATH || './data/inkweld.db';
-      const resolvedPath = path.resolve(process.cwd(), dbPath);
-
-      if (this.verbose) {
-        console.log(`   DB_PATH: ${dbPath}`);
-        console.log(`   Using SQLite database at: ${resolvedPath}`);
-        console.log(`   Database file exists: ${fs.existsSync(resolvedPath)}`);
-
-        if (fs.existsSync(resolvedPath)) {
-          const stats = fs.statSync(resolvedPath);
-          console.log(`   Database file size: ${this.formatBytes(stats.size)}`);
-          console.log(`   Last modified: ${stats.mtime.toISOString()}`);
-        }
-      }
-
-      return {
-        type: 'sqlite' as const,
-        database: resolvedPath,
-      };
-    } else if (databaseUrl) {
-      // Production database (PostgreSQL) from DATABASE_URL
-      if (this.verbose) {
-        console.log(`   Using PostgreSQL from DATABASE_URL`);
-      }
-      return {
-        type: 'postgres' as const,
-        url: databaseUrl,
-      };
-    } else {
-      // Default PostgreSQL configuration using individual environment variables
-      if (this.verbose) {
-        console.log(`   Using PostgreSQL with individual config variables`);
-      }
-      return {
-        type: 'postgres' as const,
-        host: process.env.DB_HOST || 'localhost',
-        port: parseInt(process.env.DB_PORT || '5432'),
-        username: process.env.DB_USERNAME || 'user',
-        password: process.env.DB_PASSWORD || 'secret',
-        database: process.env.DB_NAME || 'db',
-      };
-    }
+    // Initialize bun:sqlite
+    this.sqlite = new BunDatabase(resolvedPath);
+    this.db = drizzle(this.sqlite, { schema });
   }
 
   async connect() {
@@ -114,13 +359,11 @@ class AdminCLI {
     }
 
     try {
-      await this.dataSource.initialize();
+      // Test the connection by checking if tables exist
+      await this.checkDatabaseTables();
       if (this.verbose) {
         console.log('✅ Connected to database successfully');
       }
-
-      // Test the connection by checking if tables exist
-      await this.checkDatabaseTables();
     } catch (error) {
       console.error('❌ Failed to connect to database:', error);
       throw error;
@@ -129,43 +372,49 @@ class AdminCLI {
 
   async checkDatabaseTables() {
     try {
-      const userRepo = this.dataSource.getRepository(User);
-      const projectRepo = this.dataSource.getRepository(Project);
-
       // Try to count records to verify tables exist
-      const userCount = await userRepo.count();
-      const projectCount = await projectRepo.count();
+      const userCount = await this.db.select({ count: sql<number>`count(*)` }).from(users);
+      const projectCount = await this.db.select({ count: sql<number>`count(*)` }).from(projects);
 
       if (this.verbose) {
         console.log('📋 Database tables verified:');
-        console.log(`   Users table: ✅ (${userCount} records)`);
-        console.log(`   Projects table: ✅ (${projectCount} records)`);
+        console.log(`   Users table: ✅ (${userCount[0]?.count ?? 0} records)`);
+        console.log(`   Projects table: ✅ (${projectCount[0]?.count ?? 0} records)`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling needs message property
+      const err = error as any;
       console.log('⚠️  Database table check failed:');
-      if (error.message.includes('no such table')) {
+      if (err.message?.includes('no such table')) {
         console.log('   Tables do not exist - database may need to be initialized');
         console.log(
           '   Run the web application first to create tables, or run database migrations'
         );
       } else {
-        console.log(`   Error: ${error.message}`);
+        console.log(`   Error: ${err.message || 'Unknown error'}`);
       }
       throw error;
     }
   }
 
   async disconnect() {
-    await this.dataSource.destroy();
+    // Close the SQLite connection
+    this.sqlite.close();
   }
 
   async getSystemStats(): Promise<AdminStats> {
-    const userRepo = this.dataSource.getRepository(User);
-    const projectRepo = this.dataSource.getRepository(Project);
+    const userCountResult = await this.db.select({ count: sql<number>`count(*)` }).from(users);
+    const projectCountResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(projects);
+    const pendingUserCountResult = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(eq(users.approved, false));
 
-    const userCount = await userRepo.count();
-    const projectCount = await projectRepo.count();
-    const pendingUserCount = await userRepo.count({ where: { approved: false } });
+    const userCount = userCountResult[0]?.count ?? 0;
+    const projectCount = projectCountResult[0]?.count ?? 0;
+    const pendingUserCount = pendingUserCountResult[0]?.count ?? 0;
 
     const diskUsage = await this.calculateDiskUsage();
 
@@ -179,28 +428,27 @@ class AdminCLI {
   }
 
   async listAllUsers(): Promise<User[]> {
-    const userRepo = this.dataSource.getRepository(User);
-    return userRepo.find({ order: { username: 'ASC' } });
+    return await this.db.select().from(users).orderBy(asc(users.username));
   }
 
   async listPendingUsers(): Promise<User[]> {
-    const userRepo = this.dataSource.getRepository(User);
-    return userRepo.find({
-      where: { approved: false },
-      order: { username: 'ASC' },
-    });
+    return await this.db
+      .select()
+      .from(users)
+      .where(eq(users.approved, false))
+      .orderBy(asc(users.username));
   }
 
   async findUser(identifier: string): Promise<User | null> {
-    const userRepo = this.dataSource.getRepository(User);
-
     // Try by ID first
-    let user = await userRepo.findOne({ where: { id: identifier } });
-    if (user) return user;
+    let userResults = await this.db.select().from(users).where(eq(users.id, identifier));
 
-    // Try by username
-    user = await userRepo.findOne({ where: { username: identifier } });
-    return user;
+    if (userResults.length === 0) {
+      // Try by username
+      userResults = await this.db.select().from(users).where(eq(users.username, identifier));
+    }
+
+    return userResults[0] ?? null;
   }
 
   async approveUser(identifier: string): Promise<User> {
@@ -209,21 +457,28 @@ class AdminCLI {
       throw new Error(`User not found: ${identifier}`);
     }
 
-    user.approved = true;
-    user.enabled = true;
+    const updated = await this.db
+      .update(users)
+      .set({ approved: true })
+      .where(eq(users.id, user.id))
+      .returning();
 
-    const userRepo = this.dataSource.getRepository(User);
-    return userRepo.save(user);
+    return updated[0];
   }
 
-  async rejectUser(identifier: string): Promise<void> {
+  async rejectUser(identifier: string): Promise<User> {
     const user = await this.findUser(identifier);
     if (!user) {
       throw new Error(`User not found: ${identifier}`);
     }
 
-    const userRepo = this.dataSource.getRepository(User);
-    await userRepo.remove(user);
+    const updated = await this.db
+      .update(users)
+      .set({ approved: false })
+      .where(eq(users.id, user.id))
+      .returning();
+
+    return updated[0];
   }
 
   async enableUser(identifier: string): Promise<User> {
@@ -232,10 +487,13 @@ class AdminCLI {
       throw new Error(`User not found: ${identifier}`);
     }
 
-    user.enabled = true;
+    const updated = await this.db
+      .update(users)
+      .set({ enabled: true })
+      .where(eq(users.id, user.id))
+      .returning();
 
-    const userRepo = this.dataSource.getRepository(User);
-    return userRepo.save(user);
+    return updated[0];
   }
 
   async disableUser(identifier: string): Promise<User> {
@@ -244,10 +502,13 @@ class AdminCLI {
       throw new Error(`User not found: ${identifier}`);
     }
 
-    user.enabled = false;
+    const updated = await this.db
+      .update(users)
+      .set({ enabled: false })
+      .where(eq(users.id, user.id))
+      .returning();
 
-    const userRepo = this.dataSource.getRepository(User);
-    return userRepo.save(user);
+    return updated[0];
   }
 
   async deleteUser(identifier: string): Promise<void> {
@@ -256,16 +517,83 @@ class AdminCLI {
       throw new Error(`User not found: ${identifier}`);
     }
 
-    const userRepo = this.dataSource.getRepository(User);
-    await userRepo.remove(user);
+    if (!user.username) {
+      throw new Error(`User has no username: ${identifier}`);
+    }
+
+    // Delete user's data directory
+    const userDataDir = path.join(this.dataDir, user.username);
+    if (fs.existsSync(userDataDir)) {
+      fs.rmSync(userDataDir, { recursive: true });
+      if (this.verbose) {
+        console.log(`   Deleted data directory: ${userDataDir}`);
+      }
+    }
+
+    // Delete user from database (will cascade to projects)
+    await this.db.delete(users).where(eq(users.id, user.id));
   }
 
   async listAllProjects(): Promise<Project[]> {
-    const projectRepo = this.dataSource.getRepository(Project);
-    return projectRepo.find({
-      relations: ['user'],
-      order: { createdDate: 'DESC' },
-    });
+    return await this.db.select().from(projects).orderBy(desc(projects.updatedDate));
+  }
+
+  async listUserProjects(identifier: string): Promise<Project[]> {
+    const user = await this.findUser(identifier);
+    if (!user) {
+      throw new Error(`User not found: ${identifier}`);
+    }
+
+    return await this.db
+      .select()
+      .from(projects)
+      .where(eq(projects.userId, user.id))
+      .orderBy(desc(projects.updatedDate));
+  }
+
+  async findProject(identifier: string): Promise<Project | null> {
+    // Try by ID first
+    let projectResults = await this.db.select().from(projects).where(eq(projects.id, identifier));
+
+    if (projectResults.length === 0) {
+      // Try by slug
+      projectResults = await this.db.select().from(projects).where(eq(projects.slug, identifier));
+    }
+
+    return projectResults[0] ?? null;
+  }
+
+  async deleteProject(identifier: string): Promise<void> {
+    const project = await this.findProject(identifier);
+    if (!project) {
+      throw new Error(`Project not found: ${identifier}`);
+    }
+
+    // Get user to find data directory
+    const userResults = await this.db.select().from(users).where(eq(users.id, project.userId));
+    const user = userResults[0];
+
+    if (user) {
+      if (!user.username) {
+        console.warn(`User ${project.userId} has no username`);
+        return;
+      }
+
+      // TypeScript doesn't narrow after early return, so we know username is non-null here
+      const username = user.username as string;
+
+      // Delete project's data directory
+      const projectDataDir = path.join(this.dataDir, username, project.slug);
+      if (fs.existsSync(projectDataDir)) {
+        fs.rmSync(projectDataDir, { recursive: true });
+        if (this.verbose) {
+          console.log(`   Deleted data directory: ${projectDataDir}`);
+        }
+      }
+    }
+
+    // Delete project from database
+    await this.db.delete(projects).where(eq(projects.id, project.id));
   }
 
   async calculateDiskUsage(): Promise<number> {
@@ -322,17 +650,35 @@ class AdminCLI {
     return `${user.username} (${user.id}) - ${status}${auth} - ${user.email || 'No email'}`;
   }
 
-  formatProjectInfo(project: Project): string {
-    return `${project.user.username}/${project.slug} - "${project.title}" (Created: ${project.createdDate.toISOString().split('T')[0]})`;
+  async formatProjectInfo(projectId: string): Promise<string> {
+    const project = await this.findProject(projectId);
+    if (!project) return 'Project not found';
+
+    const userResults = await this.db.select().from(users).where(eq(users.id, project.userId));
+    const user = userResults[0];
+
+    if (!user) return `${project.slug} - "${project.title}" (User not found)`;
+
+    const createdDate = new Date(project.createdDate).toISOString().split('T')[0];
+    return `${user.username}/${project.slug} - "${project.title}" (Created: ${createdDate})`;
   }
 
   async getProjectDiskUsage(): Promise<ProjectDiskUsage[]> {
-    const projects = await this.listAllProjects();
+    const allProjects = await this.listAllProjects();
     const results: ProjectDiskUsage[] = [];
 
-    for (const project of projects) {
+    for (const project of allProjects) {
+      // Get user for this project
+      const userResults = await this.db.select().from(users).where(eq(users.id, project.userId));
+      const user = userResults[0];
+
+      if (!user || !user.username) continue;
+
+      // TypeScript doesn't narrow after continue, so we know username is non-null here
+      const username = user.username as string;
+
       // Calculate disk usage for this project's directory
-      const projectDir = path.join(this.dataDir, 'projects', project.user.username, project.slug);
+      const projectDir = path.join(this.dataDir, username, project.slug);
       const diskUsage = await this.getDirectorySize(projectDir);
 
       results.push({
@@ -347,20 +693,16 @@ class AdminCLI {
   }
 
   async getUserDiskUsage(): Promise<UserDiskUsage[]> {
-    const users = await this.listAllUsers();
+    const allUsers = await this.listAllUsers();
     const results: UserDiskUsage[] = [];
 
-    for (const user of users) {
+    for (const user of allUsers) {
       // Get all projects for this user
-      const projectRepo = this.dataSource.getRepository(Project);
-      const userProjects = await projectRepo.find({
-        where: { user: { id: user.id } },
-        relations: ['user'],
-      });
+      const userProjects = await this.listUserProjects(user.id);
 
       // Calculate total disk usage for this user's projects
       let totalDiskUsage = 0;
-      const userDir = path.join(this.dataDir, 'projects', user.username);
+      const userDir = path.join(this.dataDir, user.username || 'unknown');
 
       if (fs.existsSync(userDir)) {
         totalDiskUsage = await this.getDirectorySize(userDir);
@@ -384,10 +726,11 @@ async function showHelp() {
 Inkweld Admin CLI - Standalone Database Management Tool
 
 USAGE:
-  bun run admin-cli.ts [--verbose] <command> [options]
+  bun run admin-cli.ts [--verbose] [--remote] <command> [options]
 
 OPTIONS:
   --verbose, -v                   Show detailed debug information
+  --remote, -r                    Use remote D1 database (for D1 only, accesses production)
 
 COMMANDS:
   stats                           Show system statistics
@@ -400,35 +743,44 @@ COMMANDS:
   users disable <username|id>     Disable a user account
   users delete <username|id>      Delete a user account
   projects list                   List all projects with owners
-  disk usage                      Show disk usage report
-  disk by-project                 Show disk usage by project
-  disk by-user                    Show disk usage by user
+  disk usage                      Show disk usage report (SQLite only)
+  disk by-project                 Show disk usage by project (SQLite only)
+  disk by-user                    Show disk usage by user (SQLite only)
   help                           Show this help message
 
 EXAMPLES:
+  # Local SQLite (default)
   bun run admin-cli.ts stats
   bun run admin-cli.ts --verbose debug
-  bun run admin-cli.ts users pending
   bun run admin-cli.ts users approve alice
-  bun run admin-cli.ts users disable bob
-  bun run admin-cli.ts projects list
-  bun run admin-cli.ts disk usage
-  bun run admin-cli.ts disk by-project
-  bun run admin-cli.ts disk by-user
+  
+  # D1 Database (set DB_TYPE=d1 in .env)
+  DB_TYPE=d1 bun run admin-cli.ts stats                    # Local D1 dev
+  DB_TYPE=d1 bun run admin-cli.ts --remote users list      # Remote D1 prod
+  DB_TYPE=d1 bun run admin-cli.ts --remote users approve alice
 
 NOTE: This tool connects directly to the database and bypasses the web application.
       Use with caution in production environments.
+      
+      For D1 databases, this CLI wraps 'wrangler d1 execute' commands.
+      Make sure wrangler is installed and configured.
 `);
 }
 
 async function main() {
   const args = process.argv.slice(2);
 
-  // Parse verbose flag
+  // Parse flags
   const verboseIndex = args.findIndex((arg) => arg === '--verbose' || arg === '-v');
   const verbose = verboseIndex !== -1;
   if (verbose) {
     args.splice(verboseIndex, 1);
+  }
+
+  const remoteIndex = args.findIndex((arg) => arg === '--remote' || arg === '-r');
+  const remote = remoteIndex !== -1;
+  if (remote) {
+    args.splice(remoteIndex, 1);
   }
 
   if (args.length === 0 || args[0] === 'help') {
@@ -441,11 +793,14 @@ async function main() {
     console.log('🐛 Debug Information:');
     console.log(`   Current working directory: ${process.cwd()}`);
     console.log(`   Script location: ${import.meta.url}`);
-    console.log(`   Node.js version: ${process.version}`);
+    console.log(`   Bun version: ${process.version}`);
     console.log('');
   }
 
-  const cli = new AdminCLI(verbose);
+  // Determine which CLI to use based on DB_TYPE
+  const dbType = process.env.DB_TYPE || 'sqlite';
+  const cli: AdminCLI | D1AdminCLI =
+    dbType === 'd1' ? new D1AdminCLI(verbose, remote) : new AdminCLI(verbose);
 
   try {
     await cli.connect();
@@ -468,7 +823,12 @@ async function main() {
         break;
 
       case 'disk':
-        await handleDiskCommands(cli, args.slice(1));
+        if (cli instanceof AdminCLI) {
+          await handleDiskCommands(cli, args.slice(1));
+        } else {
+          console.log('💡 Disk usage is not available for D1 databases');
+          console.log('   D1 storage is managed by Cloudflare');
+        }
         break;
 
       default:
@@ -476,11 +836,13 @@ async function main() {
         console.log('Run "bun run admin-cli.ts help" for usage information.');
         process.exit(1);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- CLI error handling needs message access
+    const err = error as any;
     console.error('\n❌ Error occurred:');
-    console.error(`   ${error.message}`);
+    console.error(`   ${err.message || 'Unknown error'}`);
 
-    if (error.message.includes('no such table')) {
+    if (err.message?.includes('no such table')) {
       console.log('\n💡 Possible solutions:');
       console.log('   1. Run the web application first to initialize the database');
       console.log("   2. Check if you're in the correct directory (should be in /server)");
@@ -494,7 +856,7 @@ async function main() {
   }
 }
 
-async function handleStats(cli: AdminCLI) {
+async function handleStats(cli: AdminCLI | D1AdminCLI) {
   if (cli.verbose) {
     console.log('🔍 Gathering system statistics...\n');
   }
@@ -510,33 +872,40 @@ async function handleStats(cli: AdminCLI) {
   console.log('');
 }
 
-async function handleDebug(cli: AdminCLI) {
+async function handleDebug(cli: AdminCLI | D1AdminCLI) {
   console.log('🔍 Gathering detailed environment and database information...\n');
 
   console.log('🔧 Database Configuration:');
-  console.log(`   DATA_PATH: ${cli.dataDir}`);
-  console.log(`   DATABASE_URL: ${process.env.DATABASE_URL ? '[SET]' : '[NOT SET]'}`);
 
-  if (process.env.DATABASE_URL) {
-    // Production database (PostgreSQL)
-    console.log(`   Using PostgreSQL from DATABASE_URL`);
+  if (cli instanceof D1AdminCLI) {
+    console.log(`   Database Type: D1 (Cloudflare)`);
+    console.log(`   Database Name: ${cli.dbName}`);
+    console.log(`   Remote: ${cli.remote ? 'Yes (production)' : 'No (local dev)'}`);
   } else {
-    // Development database (SQLite)
-    const dbPath = path.resolve(cli.dataDir, 'database.sqlite');
-    console.log(`   Using SQLite database at: ${dbPath}`);
-    console.log(`   Database file exists: ${fs.existsSync(dbPath)}`);
+    console.log(`   DATA_PATH: ${cli.dataDir}`);
+    console.log(`   DATABASE_URL: ${process.env.DATABASE_URL ? '[SET]' : '[NOT SET]'}`);
 
-    if (fs.existsSync(dbPath)) {
-      const stats = fs.statSync(dbPath);
-      console.log(`   Database file size: ${cli.formatBytes(stats.size)}`);
-      console.log(`   Last modified: ${stats.mtime.toISOString()}`);
+    if (process.env.DATABASE_URL) {
+      // Production database (PostgreSQL)
+      console.log(`   Using PostgreSQL from DATABASE_URL`);
+    } else {
+      // Development database (SQLite)
+      const dbPath = path.resolve(cli.dataDir, 'database.sqlite');
+      console.log(`   Using SQLite database at: ${dbPath}`);
+      console.log(`   Database file exists: ${fs.existsSync(dbPath)}`);
+
+      if (fs.existsSync(dbPath)) {
+        const stats = fs.statSync(dbPath);
+        console.log(`   Database file size: ${cli.formatBytes(stats.size)}`);
+        console.log(`   Last modified: ${stats.mtime.toISOString()}`);
+      }
     }
   }
 
   console.log('');
 }
 
-async function handleUserCommands(cli: AdminCLI, args: string[]) {
+async function handleUserCommands(cli: AdminCLI | D1AdminCLI, args: string[]) {
   if (args.length === 0) {
     console.error(
       'User command requires a subcommand: list, pending, approve, reject, enable, disable, delete'
@@ -598,7 +967,7 @@ async function handleUserCommands(cli: AdminCLI, args: string[]) {
   }
 }
 
-async function handleProjectCommands(cli: AdminCLI, args: string[]) {
+async function handleProjectCommands(cli: AdminCLI | D1AdminCLI, args: string[]) {
   if (args.length === 0 || args[0] !== 'list') {
     console.error('Project command requires "list" subcommand');
     return;
@@ -632,7 +1001,7 @@ async function handleDiskCommands(cli: AdminCLI, args: string[]) {
   }
 }
 
-async function listAllUsers(cli: AdminCLI) {
+async function listAllUsers(cli: AdminCLI | D1AdminCLI) {
   console.log('👥 All Users');
   console.log('═'.repeat(80));
 
@@ -650,7 +1019,7 @@ async function listAllUsers(cli: AdminCLI) {
   console.log(`\nTotal: ${users.length} users`);
 }
 
-async function listPendingUsers(cli: AdminCLI) {
+async function listPendingUsers(cli: AdminCLI | D1AdminCLI) {
   console.log('⏳ Pending Users Awaiting Approval');
   console.log('═'.repeat(80));
 
@@ -668,35 +1037,35 @@ async function listPendingUsers(cli: AdminCLI) {
   console.log(`\nTotal: ${users.length} pending users`);
 }
 
-async function approveUser(cli: AdminCLI, identifier: string) {
+async function approveUser(cli: AdminCLI | D1AdminCLI, identifier: string) {
   console.log(`✅ Approving user: ${identifier}`);
 
   const user = await cli.approveUser(identifier);
   console.log(`User approved: ${cli.formatUserInfo(user)}`);
 }
 
-async function rejectUser(cli: AdminCLI, identifier: string) {
+async function rejectUser(cli: AdminCLI | D1AdminCLI, identifier: string) {
   console.log(`❌ Rejecting user: ${identifier}`);
 
   await cli.rejectUser(identifier);
   console.log(`User rejected and removed: ${identifier}`);
 }
 
-async function enableUser(cli: AdminCLI, identifier: string) {
+async function enableUser(cli: AdminCLI | D1AdminCLI, identifier: string) {
   console.log(`✅ Enabling user: ${identifier}`);
 
   const user = await cli.enableUser(identifier);
   console.log(`User enabled: ${cli.formatUserInfo(user)}`);
 }
 
-async function disableUser(cli: AdminCLI, identifier: string) {
+async function disableUser(cli: AdminCLI | D1AdminCLI, identifier: string) {
   console.log(`🚫 Disabling user: ${identifier}`);
 
   const user = await cli.disableUser(identifier);
   console.log(`User disabled: ${cli.formatUserInfo(user)}`);
 }
 
-async function deleteUser(cli: AdminCLI, identifier: string) {
+async function deleteUser(cli: AdminCLI | D1AdminCLI, identifier: string) {
   console.log(`🗑️  Deleting user: ${identifier}`);
 
   // Confirm deletion
@@ -712,7 +1081,7 @@ async function deleteUser(cli: AdminCLI, identifier: string) {
   console.log(`User deleted: ${identifier}`);
 }
 
-async function listAllProjects(cli: AdminCLI) {
+async function listAllProjects(cli: AdminCLI | D1AdminCLI) {
   console.log('📋 All Projects');
   console.log('═'.repeat(80));
 
@@ -723,9 +1092,9 @@ async function listAllProjects(cli: AdminCLI) {
     return;
   }
 
-  projects.forEach((project) => {
-    console.log(cli.formatProjectInfo(project));
-  });
+  for (const project of projects) {
+    console.log(await cli.formatProjectInfo(project.id));
+  }
 
   console.log(`\nTotal: ${projects.length} projects`);
 }
@@ -760,12 +1129,17 @@ async function showDiskUsageByProject(cli: AdminCLI) {
   }
 
   let totalUsage = 0;
-  projectUsage.forEach((item) => {
+  for (const item of projectUsage) {
     totalUsage += item.diskUsage;
+    // Get user for the project
+    const userResults = await cli.db.select().from(users).where(eq(users.id, item.project.userId));
+    const user = userResults[0];
+    const username = user?.username || 'unknown';
+
     console.log(
-      `${item.formattedDiskUsage.padStart(10)} | ${item.project.user.username}/${item.project.slug} - "${item.project.title}"`
+      `${item.formattedDiskUsage.padStart(10)} | ${username}/${item.project.slug} - "${item.project.title}"`
     );
-  });
+  }
 
   console.log('─'.repeat(80));
   console.log(

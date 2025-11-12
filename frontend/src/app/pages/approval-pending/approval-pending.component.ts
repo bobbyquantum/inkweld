@@ -42,7 +42,3 @@ export class ApprovalPendingComponent implements OnInit {
     }
   }
 }
-
-
-
-

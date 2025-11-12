@@ -12,7 +12,9 @@ interface StoredProjectElements {
   providedIn: 'root',
 })
 export class OfflineProjectElementsService {
-  readonly elements = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>([]);
+  readonly elements = signal<
+    GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+  >([]);
   readonly isLoading = signal(false);
 
   /**
@@ -48,53 +50,57 @@ export class OfflineProjectElementsService {
   /**
    * Create default project structure
    */
-  createDefaultStructure(username: string, slug: string): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
-    const defaultElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
-      {
-        id: nanoid(),
-        name: 'Chapters',
-        type: 'FOLDER',
-        level: 0,
-        expandable: true,
-        order: 0,
-        parentId: null,
-        version: 0,
-        metadata: {},
-      },
-      {
-        id: nanoid(),
-        name: 'Chapter 1',
-        type: 'ITEM',
-        level: 1,
-        expandable: false,
-        order: 1,
-        parentId: null,
-        version: 0,
-        metadata: {},
-      },
-      {
-        id: nanoid(),
-        name: 'Notes',
-        type: 'FOLDER',
-        level: 0,
-        expandable: true,
-        order: 2,
-        parentId: null,
-        version: 0,
-        metadata: {},
-      },
-      {
-        id: nanoid(),
-        name: 'Research',
-        type: 'ITEM',
-        level: 1,
-        expandable: false,
-        order: 3,
-        parentId: null,
-        version: 0,
-        metadata: {},
-      },
-    ];
+  createDefaultStructure(
+    username: string,
+    slug: string
+  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
+    const defaultElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+      [
+        {
+          id: nanoid(),
+          name: 'Chapters',
+          type: 'FOLDER',
+          level: 0,
+          expandable: true,
+          order: 0,
+          parentId: null,
+          version: 0,
+          metadata: {},
+        },
+        {
+          id: nanoid(),
+          name: 'Chapter 1',
+          type: 'ITEM',
+          level: 1,
+          expandable: false,
+          order: 1,
+          parentId: null,
+          version: 0,
+          metadata: {},
+        },
+        {
+          id: nanoid(),
+          name: 'Notes',
+          type: 'FOLDER',
+          level: 0,
+          expandable: true,
+          order: 2,
+          parentId: null,
+          version: 0,
+          metadata: {},
+        },
+        {
+          id: nanoid(),
+          name: 'Research',
+          type: 'ITEM',
+          level: 1,
+          expandable: false,
+          order: 3,
+          parentId: null,
+          version: 0,
+          metadata: {},
+        },
+      ];
 
     this.saveElements(username, slug, defaultElements);
     return defaultElements;
@@ -269,7 +275,3 @@ export class OfflineProjectElementsService {
     }));
   }
 }
-
-
-
-

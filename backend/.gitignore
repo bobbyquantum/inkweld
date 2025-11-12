@@ -6,7 +6,8 @@ dist
 coverage
 .DS_Store
 data
-
+dist-worker
+drizzle
 # Wrangler
 .wrangler/
-wrangler.toml.local
+wrangler.toml

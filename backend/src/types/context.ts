@@ -1,6 +1,9 @@
 /**
  * Type definitions for Hono context variables
  */
+import type { BunDatabaseInstance } from '../db/bun-sqlite';
+import type { BetterSqliteDatabaseInstance } from '../db/better-sqlite';
+import type { D1DatabaseInstance } from '../db/d1';
 
 export interface User {
   id: string;
@@ -10,8 +13,15 @@ export interface User {
   isAdmin?: boolean;
 }
 
+// Union type that accepts any of the three database types
+export type DatabaseInstance =
+  | BunDatabaseInstance
+  | BetterSqliteDatabaseInstance
+  | D1DatabaseInstance;
+
 export type AppContext = {
   Variables: {
-    user: User;
+    db: DatabaseInstance;
+    user?: User;
   };
 };

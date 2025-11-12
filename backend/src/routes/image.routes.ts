@@ -6,7 +6,7 @@ import { imageService } from '../services/image.service';
 import { fileStorageService } from '../services/file-storage.service';
 import { projectService } from '../services/project.service';
 import { HTTPException } from 'hono/http-exception';
-import { getDb, type AppContext } from '../middleware/database.middleware';
+import { type AppContext } from '../types/context';
 
 const imageRoutes = new Hono<AppContext>();
 
@@ -70,7 +70,7 @@ imageRoutes.post(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
@@ -204,7 +204,7 @@ imageRoutes.delete(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const userId = c.get('user').id;

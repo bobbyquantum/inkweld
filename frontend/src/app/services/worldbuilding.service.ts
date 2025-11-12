@@ -1002,17 +1002,19 @@ export class WorldbuildingService {
   ): Promise<string> {
     // Default icons for built-in types
     const builtInIcons: Record<string, string> = {
-      'CHARACTER': 'person',
-      'LOCATION': 'place',
-      'WB_ITEM': 'category',
-      'MAP': 'map',
-      'RELATIONSHIP': 'diversity_1',
-      'PHILOSOPHY': 'auto_stories',
-      'CULTURE': 'groups',
-      'SPECIES': 'pets',
-      'SYSTEMS': 'settings',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item]: 'description',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Folder]: 'folder',
+      CHARACTER: 'person',
+      LOCATION: 'place',
+      WB_ITEM: 'category',
+      MAP: 'map',
+      RELATIONSHIP: 'diversity_1',
+      PHILOSOPHY: 'auto_stories',
+      CULTURE: 'groups',
+      SPECIES: 'pets',
+      SYSTEMS: 'settings',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item]:
+        'description',
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Folder]:
+        'folder',
     };
 
     // Check if it's a built-in type
@@ -1045,7 +1047,3 @@ export class WorldbuildingService {
     return 'description';
   }
 }
-
-
-
-

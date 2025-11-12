@@ -79,7 +79,3 @@ export class RenameDialogComponent {
     }
   }
 }
-
-
-
-

@@ -3,17 +3,13 @@ import { describeRoute, resolver, validator } from 'hono-openapi';
 import { authService } from '../services/auth.service.js';
 import { userService } from '../services/user.service.js';
 import { config } from '../config/env.js';
-import { getDb, type AppContext } from '../middleware/database.middleware.js';
+import { type AppContext } from '../types/context.js';
 import {
   LoginRequestSchema,
   LoginResponseSchema,
   OAuthProvidersResponseSchema,
 } from '../schemas/auth.schemas.js';
-import {
-  ErrorResponseSchema,
-  MessageResponseSchema,
-  UserSchema,
-} from '../schemas/common.schemas.js';
+import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas.js';
 
 const authRoutes = new Hono<AppContext>();
 
@@ -52,7 +48,7 @@ authRoutes.post(
   }),
   validator('json', LoginRequestSchema),
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const { username, password } = c.req.valid('json');
 
     // Authenticate user
@@ -72,12 +68,12 @@ authRoutes.post(
       }
     }
 
-    // Create session
-    await authService.createSession(c, user);
+    // Create session and get JWT token
+    const token = await authService.createSession(c, user);
 
     console.log('[Login] Session created for user:', user.username);
 
-    // Return user object with session info
+    // Return user object with JWT token
     return c.json({
       user: {
         id: user.id,
@@ -85,7 +81,7 @@ authRoutes.post(
         name: user.name,
         enabled: user.enabled,
       },
-      sessionId: 'cookie-based', // Session is in cookie, not returned
+      token, // Return JWT token for client to store
     });
   }
 );

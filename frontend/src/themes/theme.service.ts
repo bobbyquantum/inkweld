@@ -115,7 +115,3 @@ export class ThemeService implements OnDestroy {
     );
   }
 }
-
-
-
-

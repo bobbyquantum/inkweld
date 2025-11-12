@@ -142,7 +142,3 @@ export class WelcomeComponent {
     }
   }
 }
-
-
-
-

@@ -182,5 +182,3 @@ describe('OAuthProviderListComponent', () => {
     });
   });
 });
-
-

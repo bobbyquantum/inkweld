@@ -18,7 +18,7 @@ export const documentSnapshots = sqliteTable('document_snapshots', {
   yDocState: blob('y_doc_state', { mode: 'buffer' }).notNull(),
   stateVector: blob('state_vector', { mode: 'buffer' }),
   wordCount: integer('word_count'),
-  metadata: text('metadata', { mode: 'json' }).$type<Record<string, any>>(),
+  metadata: text('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
   createdAt: integer('created_at', { mode: 'number' }).notNull(),
 });
 

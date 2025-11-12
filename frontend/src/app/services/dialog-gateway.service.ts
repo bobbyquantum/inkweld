@@ -105,7 +105,3 @@ export class DialogGatewayService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 }
-
-
-
-

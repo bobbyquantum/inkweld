@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { eq, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { DatabaseInstance } from '../middleware/database.middleware';
 import { users, User, InsertUser } from '../db/schema';
 

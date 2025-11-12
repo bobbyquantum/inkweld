@@ -47,10 +47,11 @@ export async function setupDatabase(testMode = false): Promise<DataSource> {
     console.log(`Database connected: ${testMode ? 'sqlite (test)' : dbConfig.type}`);
 
     return dataSource;
-  } catch (error: any) {
-    console.error('Database setup error:', error);
-    console.error('Stack:', error.stack);
-    throw error;
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Database setup error:', err.message);
+    console.error('Stack:', err.stack);
+    throw err;
   }
 }
 

@@ -62,7 +62,3 @@ export class SideNavComponent {
     }
   }
 }
-
-
-
-

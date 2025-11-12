@@ -6,7 +6,6 @@ import * as bcrypt from 'bcryptjs';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper.js';
 
 describe('Authentication', () => {
-  let testUserId: string;
   let client: TestClient;
   let testServer: { port: number; baseUrl: string };
 
@@ -39,7 +38,8 @@ describe('Authentication', () => {
       })
       .returning();
 
-    testUserId = testUser.id;
+    // Store test user ID for potential future use
+    const _testUserId = testUser.id;
   });
 
   afterAll(async () => {

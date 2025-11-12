@@ -145,7 +145,3 @@ export class UnifiedProjectService {
     return this.setupService.getMode();
   }
 }
-
-
-
-

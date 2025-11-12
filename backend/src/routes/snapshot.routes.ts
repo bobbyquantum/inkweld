@@ -5,7 +5,7 @@ import { projectService } from '../services/project.service';
 import { userService } from '../services/user.service';
 import { documentSnapshotService } from '../services/document-snapshot.service';
 import { HTTPException } from 'hono/http-exception';
-import { getDb, type AppContext } from '../middleware/database.middleware';
+import { type AppContext } from '../types/context';
 import {
   DocumentSnapshotSchema,
   CreateSnapshotRequestSchema,
@@ -59,7 +59,7 @@ snapshotRoutes.get(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
@@ -125,7 +125,7 @@ snapshotRoutes.get(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const snapshotId = c.req.param('snapshotId');
@@ -212,7 +212,7 @@ snapshotRoutes.post(
   requireAuth,
   validator('json', CreateSnapshotRequestSchema),
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
@@ -306,7 +306,7 @@ snapshotRoutes.delete(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const snapshotId = c.req.param('snapshotId');
@@ -379,7 +379,7 @@ snapshotRoutes.post(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const snapshotId = c.req.param('snapshotId');
@@ -452,7 +452,7 @@ snapshotRoutes.get(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const snapshotId = c.req.param('snapshotId');

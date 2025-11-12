@@ -28,7 +28,11 @@ export async function createTestUser(
 /**
  * Login and get session cookie
  */
-export async function loginUser(app: any, username: string, password: string): Promise<string> {
+export async function loginUser(
+  app: { request: (url: string, init: RequestInit) => Promise<Response> },
+  username: string,
+  password: string
+): Promise<string> {
   const res = await app.request('/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -47,7 +51,7 @@ export async function loginUser(app: any, username: string, password: string): P
  * Create an authenticated test user and return cookie
  */
 export async function createAuthenticatedUser(
-  app: any,
+  app: { request: (url: string, init: RequestInit) => Promise<Response> },
   username: string,
   email: string,
   password: string

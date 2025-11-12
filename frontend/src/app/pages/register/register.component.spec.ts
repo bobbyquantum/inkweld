@@ -6,9 +6,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import {
-  UsersService,
   UserControllerCheckUsernameAvailability200Response,
   UserDto,
+  UsersService,
 } from '@inkweld/index';
 import { RecaptchaService } from '@services/recaptcha.service';
 import { SystemConfigService } from '@services/system-config.service';
@@ -214,9 +214,9 @@ describe('RegisterComponent', () => {
       component.registerForm.get('username')?.setValue('testuser');
       await component.checkUsernameAvailability();
 
-      expect(
-        userService.getApiUserCheckUsername
-      ).toHaveBeenCalledWith('testuser');
+      expect(userService.getApiUserCheckUsername).toHaveBeenCalledWith(
+        'testuser'
+      );
       expect(component.usernameAvailability).toBe('available');
       expect(component.usernameSuggestions).toEqual([]);
       expect(component.registerForm.get('username')?.errors).toBeNull();
@@ -245,9 +245,7 @@ describe('RegisterComponent', () => {
       component.registerForm.get('username')?.setValue('te');
       await component.checkUsernameAvailability();
 
-      expect(
-        userService.getApiUserCheckUsername
-      ).not.toHaveBeenCalled();
+      expect(userService.getApiUserCheckUsername).not.toHaveBeenCalled();
       expect(component.usernameAvailability).toBe('unknown');
     });
 
@@ -279,9 +277,9 @@ describe('RegisterComponent', () => {
       expect(component.registerForm.get('username')?.value).toBe(
         'suggested_username'
       );
-      expect(
-        userService.getApiUserCheckUsername
-      ).toHaveBeenCalledWith('suggested_username');
+      expect(userService.getApiUserCheckUsername).toHaveBeenCalledWith(
+        'suggested_username'
+      );
     });
   });
 
@@ -490,5 +488,3 @@ describe('RegisterComponent', () => {
     });
   });
 });
-
-

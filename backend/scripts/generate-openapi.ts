@@ -13,10 +13,10 @@
 
 import { writeFile } from 'fs/promises';
 import * as path from 'path';
-import { spawn } from 'child_process';
+import { spawn, type ChildProcess } from 'child_process';
 
 async function generateOpenAPIJson() {
-  let serverProcess: any = null;
+  let serverProcess: ChildProcess | null = null;
 
   try {
     console.log('🚀 Starting server...');
@@ -30,7 +30,7 @@ async function generateOpenAPIJson() {
     let serverReady = false;
 
     // Listen for server output to know when it's ready
-    serverProcess.stdout.on('data', (data: Buffer) => {
+    serverProcess.stdout?.on('data', (data: Buffer) => {
       const output = data.toString();
       console.log('STDOUT:', output);
       if (
@@ -42,7 +42,7 @@ async function generateOpenAPIJson() {
       }
     });
 
-    serverProcess.stderr.on('data', (data: Buffer) => {
+    serverProcess.stderr?.on('data', (data: Buffer) => {
       const output = data.toString();
       console.log('STDERR:', output);
       if (

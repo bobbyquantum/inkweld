@@ -62,14 +62,22 @@ export class SetupComponent implements OnInit {
   protected displayName = '';
 
   ngOnInit(): void {
-    void this.loadSystemConfig();
+    // Check if there's already a configured server
+    const existingServerUrl = this.setupService.getServerUrl();
+    if (existingServerUrl) {
+      // If already configured, try to load system config from that server
+      void this.loadSystemConfig();
+    } else {
+      // No server configured yet, skip loading and use defaults
+      this.configLoading.set(false);
+      console.info('No server configured yet, using default setup options');
+    }
   }
 
   private async loadSystemConfig(): Promise<void> {
     try {
-      const systemFeatures = await this.ConfigurationService
-        .getApiConfig()
-        .toPromise();
+      const systemFeatures =
+        await this.ConfigurationService.getApiConfig().toPromise();
 
       if (systemFeatures) {
         // Use type assertion to a safe interface
@@ -196,9 +204,3 @@ export class SetupComponent implements OnInit {
     this.showOfflineSetup.set(false);
   }
 }
-
-
-
-
-
-

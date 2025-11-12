@@ -7,7 +7,6 @@ import { AuthenticationService } from '@inkweld/index';
 import {
   catchError,
   firstValueFrom,
-  map,
   Observable,
   retry,
   throwError,
@@ -190,6 +189,11 @@ export class UserService {
         })
       );
 
+      // Store JWT token in localStorage
+      if ('token' in response && typeof response.token === 'string') {
+        localStorage.setItem('inkweld_auth_token', response.token);
+      }
+
       await this.setCurrentUser(response.user);
       await this.router.navigate(['/']);
     } catch (err) {
@@ -202,6 +206,9 @@ export class UserService {
   }
 
   async clearCurrentUser(): Promise<void> {
+    // Clear JWT token from localStorage
+    localStorage.removeItem('inkweld_auth_token');
+    
     if (this.storage.isAvailable()) {
       try {
         const db = await this.db;
@@ -223,9 +230,7 @@ export class UserService {
     this.error.set(undefined);
 
     try {
-      await firstValueFrom(
-        this.AuthenticationService.postLogout()
-      );
+      await firstValueFrom(this.AuthenticationService.postLogout());
       await this.clearCurrentUser();
       await this.router.navigate(['/welcome']);
     } catch (err) {
@@ -238,9 +243,7 @@ export class UserService {
   }
 
   getUserAvatar(username: string): Observable<Blob> {
-    return this.userAPI.getApiV1UsersUsernameAvatar(
-      username
-    ) as Observable<Blob>;
+    return this.userAPI.getApiV1UsersUsernameAvatar(username);
   }
 
   uploadAvatar(file: File): Observable<void> {
@@ -252,9 +255,13 @@ export class UserService {
   }
 
   deleteAvatar(): Observable<void> {
-    return this.http.post<void>('/api/v1/users/avatar/delete', {}, {
-      withCredentials: true,
-    });
+    return this.http.post<void>(
+      '/api/v1/users/avatar/delete',
+      {},
+      {
+        withCredentials: true,
+      }
+    );
   }
 
   private formatError(error: unknown): UserServiceError {
@@ -317,9 +324,3 @@ export class UserService {
     }
   }
 }
-
-
-
-
-
-

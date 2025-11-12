@@ -431,7 +431,9 @@ export function getSchemaFromType(
 }
 
 // Helper to check if an element type is a worldbuilding type
-export function isWorldbuildingType(type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum): boolean {
+export function isWorldbuildingType(
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum
+): boolean {
   // Custom templates start with 'CUSTOM_'
   if (typeof type === 'string' && type.startsWith('CUSTOM_')) {
     return true;
@@ -439,7 +441,3 @@ export function isWorldbuildingType(type: GetApiV1ProjectsUsernameSlugElements20
   // Check built-in worldbuilding types
   return getSchemaFromType(type) !== null;
 }
-
-
-
-

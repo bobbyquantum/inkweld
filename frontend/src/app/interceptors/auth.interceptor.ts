@@ -21,11 +21,24 @@ export class AuthInterceptor implements HttpInterceptor {
     request: HttpRequest<unknown>,
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
+    // Add Authorization header if token exists
+    const token = localStorage.getItem('inkweld_auth_token');
+    if (token) {
+      request = request.clone({
+        setHeaders: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    }
+
     return next.handle(request).pipe(
       catchError((error: HttpErrorResponse) => {
         // Only handle 401 errors in server mode
         if (error.status === 401 && this.setupService.getMode() === 'server') {
           console.warn('Authentication error detected, redirecting to login');
+
+          // Clear invalid token
+          localStorage.removeItem('inkweld_auth_token');
 
           // Don't redirect if we're already on the welcome/login page
           const currentUrl = this.router.url;
@@ -47,7 +60,3 @@ export class AuthInterceptor implements HttpInterceptor {
     );
   }
 }
-
-
-
-

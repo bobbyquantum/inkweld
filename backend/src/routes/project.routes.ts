@@ -4,7 +4,7 @@ import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { userService } from '../services/user.service';
 import { HTTPException } from 'hono/http-exception';
-import { getDb, type AppContext } from '../middleware/database.middleware';
+import type { AppContext } from '../types/context';
 import {
   ProjectSchema,
   CreateProjectRequestSchema,
@@ -42,7 +42,7 @@ projectRoutes.get(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const userId = c.get('user').id;
 
     const projects = await projectService.findByUserId(db, userId);
@@ -94,7 +94,7 @@ projectRoutes.get(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
@@ -160,7 +160,7 @@ projectRoutes.post(
   requireAuth,
   validator('json', CreateProjectRequestSchema),
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const { slug, title, description } = c.req.valid('json');
     const userId = c.get('user').id;
 
@@ -254,7 +254,7 @@ projectRoutes.put(
   requireAuth,
   validator('json', UpdateProjectRequestSchema),
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const userId = c.get('user').id;
@@ -337,7 +337,7 @@ projectRoutes.delete(
   }),
   requireAuth,
   async (c) => {
-    const db = getDb(c);
+    const db = c.get('db');
     const username = c.req.param('username');
     const slug = c.req.param('slug');
     const userId = c.get('user').id;

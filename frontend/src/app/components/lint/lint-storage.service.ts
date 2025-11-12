@@ -21,7 +21,9 @@ export class LintStorageService {
   /**
    * Generate a unique identifier for a correction
    */
-  private getCorrectionId(correction: PostLint200ResponseCorrectionsInner): string {
+  private getCorrectionId(
+    correction: PostLint200ResponseCorrectionsInner
+  ): string {
     const suggestion = correction.corrected_text || '';
     // Since text might not be available in all cases, we'll use from/to as part of the ID
     const uniqueKey = `${correction.start_pos}-${correction.end_pos}-${suggestion}`;
@@ -72,7 +74,8 @@ export class LintStorageService {
    */
   private listenForEvents(): void {
     document.addEventListener('lint-correction-accept', (event: Event) => {
-      const customEvent = event as CustomEvent<PostLint200ResponseCorrectionsInner>;
+      const customEvent =
+        event as CustomEvent<PostLint200ResponseCorrectionsInner>;
       if (customEvent.detail) {
         console.log(
           '[LintStorage] Suggestion accepted:',
@@ -82,7 +85,8 @@ export class LintStorageService {
     });
 
     document.addEventListener('lint-correction-reject', (event: Event) => {
-      const customEvent = event as CustomEvent<PostLint200ResponseCorrectionsInner>;
+      const customEvent =
+        event as CustomEvent<PostLint200ResponseCorrectionsInner>;
       if (customEvent.detail) {
         this.rejectSuggestion(customEvent.detail);
       }
@@ -92,7 +96,9 @@ export class LintStorageService {
   /**
    * Add a suggestion to the rejected list
    */
-  public rejectSuggestion(correction: PostLint200ResponseCorrectionsInner): void {
+  public rejectSuggestion(
+    correction: PostLint200ResponseCorrectionsInner
+  ): void {
     const id = this.getCorrectionId(correction);
     this.rejectedSuggestions.add(id);
     this.saveRejectedSuggestions();
@@ -105,7 +111,9 @@ export class LintStorageService {
   /**
    * Check if a suggestion has been rejected
    */
-  public isSuggestionRejected(correction: PostLint200ResponseCorrectionsInner): boolean {
+  public isSuggestionRejected(
+    correction: PostLint200ResponseCorrectionsInner
+  ): boolean {
     const id = this.getCorrectionId(correction);
     return this.rejectedSuggestions.has(id);
   }
@@ -119,7 +127,3 @@ export class LintStorageService {
     console.log('[LintStorage] Cleared all rejected suggestions');
   }
 }
-
-
-
-
