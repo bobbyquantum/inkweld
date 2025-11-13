@@ -177,6 +177,49 @@ export class ProjectStateService {
       })),
     });
 
+    // Clean up in reverse order of creation to avoid awareness/editor issues:
+    // 1. Destroy Yjs doc first (removes all bindings)
+    // 2. Then destroy providers (no bindings to update anymore)
+
+    if (this.doc) {
+      try {
+        this.doc.destroy();
+      } catch (error) {
+        this.logger.warn('ProjectState', 'Error destroying Yjs doc', error);
+      }
+      this.doc = null;
+    }
+
+    if (this.indexeddbProvider) {
+      try {
+        void this.indexeddbProvider.destroy();
+      } catch (error) {
+        this.logger.warn(
+          'ProjectState',
+          'Error destroying IndexedDB provider',
+          error
+        );
+      }
+      this.indexeddbProvider = null;
+    }
+
+    if (this.provider) {
+      this.logger.info(
+        'ProjectState',
+        `Disconnecting elements WebSocket for ${this.docId}`
+      );
+      try {
+        this.provider.destroy();
+      } catch (error) {
+        this.logger.warn(
+          'ProjectState',
+          'Error destroying elements provider',
+          error
+        );
+      }
+      this.provider = null;
+    }
+
     // Close all tabs - THIS IS CRITICAL!
     // Must happen before loading new project to prevent tab restoration from wrong project
     this.openTabs.set([]);
@@ -281,23 +324,76 @@ export class ProjectStateService {
     this.project.set(Project);
 
     this.docId = `${username}:${slug}:elements`;
+
+    this.logger.info(
+      'ProjectState',
+      `🔗 Setting up elements document with ID: "${this.docId}"`
+    );
+
+    // If we already have a provider for this docId, don't create a new one
+    if (this.provider && this.docId === `${username}:${slug}:elements`) {
+      this.logger.info(
+        'ProjectState',
+        `Elements WebSocket already connected for ${this.docId}, skipping setup`
+      );
+      return;
+    }
+
+    // Disconnect any existing provider before creating a new one
+    if (this.provider) {
+      this.logger.info(
+        'ProjectState',
+        `Disconnecting existing elements WebSocket before creating new one`
+      );
+      this.provider.disconnect();
+      this.provider.destroy();
+      this.provider = null;
+    }
+
     this.doc = new Y.Doc();
 
-    // Initialize IndexedDB persistence
-    this.indexeddbProvider = new IndexeddbPersistence(this.docId, this.doc);
-    await this.indexeddbProvider.whenSynced;
-
-    // Initialize WebSocket provider
+    // Initialize WebSocket provider FIRST to get server state
     if (!this.setupService.getWebSocketUrl()) {
       throw new Error('WebSocket URL is not configured');
     }
 
+    // WebsocketProvider(url, roomName, doc, options)
+    // The roomName parameter is appended to the URL, but we want documentId as a query param
+    // So we include it in the URL and use an empty room name
+    const wsUrl = `${this.setupService.getWebSocketUrl()}/ws/yjs?documentId=${this.docId}`;
+
+    this.logger.info(
+      'ProjectState',
+      `🌐 Connecting to WebSocket URL: ${wsUrl}`
+    );
+
     this.provider = new WebsocketProvider(
-      this.setupService.getWebSocketUrl() + '/ws/yjs?documentId=',
-      this.docId,
+      wsUrl,
+      '', // Empty room name - documentId is already in URL
       this.doc,
       { connect: true, resyncInterval: 10000 }
     );
+
+    // Wait for WebSocket to sync server state BEFORE enabling IndexedDB
+    // This prevents empty IndexedDB from overwriting server data
+    await new Promise<void>(resolve => {
+      const checkSync = () => {
+        if (this.provider?.synced) {
+          this.logger.info(
+            'ProjectState',
+            '✅ WebSocket synced - now enabling IndexedDB'
+          );
+          resolve();
+        } else {
+          setTimeout(checkSync, 100);
+        }
+      };
+      checkSync();
+    });
+
+    // NOW initialize IndexedDB persistence (after server state is loaded)
+    this.indexeddbProvider = new IndexeddbPersistence(this.docId, this.doc);
+    await this.indexeddbProvider.whenSynced;
 
     // Track connection attempts for exponential backoff
     let reconnectAttempts = 0;
@@ -420,8 +516,43 @@ export class ProjectStateService {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Initialize elements from doc immediately (from IndexedDB)
     this.initializeFromDoc();
+    this.logger.debug(
+      'ProjectState',
+      `After IndexedDB init, elements count: ${this.elements().length}`
+    );
+
+    // Set up observer for changes (will fire when WebSocket receives data)
     this.observeDocChanges();
+
+    // Also re-check after WebSocket syncs (for initial data load)
+    this.provider.on('sync', (isSynced: boolean) => {
+      if (isSynced && this.doc) {
+        const elementsArray =
+          this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>(
+            'elements'
+          );
+        const elements = elementsArray.toArray();
+
+        this.logger.debug(
+          'ProjectState',
+          `WebSocket sync event - isSynced: ${isSynced}, doc elements: ${elements.length}, current state: ${this.elements().length}`
+        );
+
+        // Update if doc has data that differs from current state
+        if (
+          elements.length !== this.elements().length ||
+          JSON.stringify(elements) !== JSON.stringify(this.elements())
+        ) {
+          this.logger.info(
+            'ProjectState',
+            `Updating elements from WebSocket sync (${elements.length} elements)`
+          );
+          this.elements.set(elements);
+        }
+      }
+    });
   }
 
   updateElements(
@@ -442,16 +573,42 @@ export class ProjectStateService {
       }
     } else {
       // Update server elements via Yjs
-      if (!this.doc) return;
+      if (!this.doc) {
+        this.logger.warn(
+          'ProjectState',
+          'Cannot update elements - no Yjs doc available'
+        );
+        return;
+      }
+
+      this.logger.debug(
+        'ProjectState',
+        `Writing ${elements.length} elements to Yjs doc`
+      );
 
       const elementsArray =
         this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>(
           'elements'
         );
+
+      this.logger.debug(
+        'ProjectState',
+        `BEFORE transaction - Yjs array has ${elementsArray.length} elements`
+      );
+
       this.doc.transact(() => {
         elementsArray.delete(0, elementsArray.length);
         elementsArray.insert(0, elements);
+        this.logger.debug(
+          'ProjectState',
+          `INSIDE transaction - deleted old, inserted ${elements.length} new elements`
+        );
       });
+
+      this.logger.debug(
+        'ProjectState',
+        `AFTER transaction - Yjs doc now contains ${elementsArray.length} elements`
+      );
     }
   }
 
@@ -531,6 +688,11 @@ export class ProjectStateService {
     const project = this.project();
     let newElementId: string | undefined;
 
+    this.logger.debug(
+      'ProjectState',
+      `addElement called - mode: ${mode}, type: ${type}, name: ${name}`
+    );
+
     if (mode === 'offline' && project) {
       // Add element in offline mode
       const newElements = this.offlineElementsService.addElement(
@@ -583,6 +745,12 @@ export class ProjectStateService {
 
       const newElements = [...elements];
       newElements.splice(parentIndex + 1, 0, newElement);
+
+      this.logger.debug(
+        'ProjectState',
+        `Created new element in server mode, calling updateElements with ${newElements.length} elements`
+      );
+
       this.updateElements(this.recomputePositions(newElements));
 
       // Auto-expand parent when adding new element
@@ -1336,7 +1504,14 @@ export class ProjectStateService {
       this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>(
         'elements'
       );
-    this.elements.set(elementsArray.toArray());
+    const elements = elementsArray.toArray();
+
+    this.logger.debug(
+      'ProjectState',
+      `initializeFromDoc called - loading ${elements.length} elements from Yjs doc`
+    );
+
+    this.elements.set(elements);
   }
 
   private observeDocChanges(): void {
@@ -1348,6 +1523,10 @@ export class ProjectStateService {
       );
     elementsArray.observe(() => {
       const elements = elementsArray.toArray();
+      this.logger.debug(
+        'ProjectState',
+        `Observer fired - elements count: ${elements.length}`
+      );
       this.elements.set(elements);
 
       // Enrich custom type elements with icons from schema library

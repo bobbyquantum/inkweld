@@ -23,6 +23,7 @@ import { LoggerService } from './logger.service';
 import { ProjectStateService } from './project-state.service';
 import { SetupService } from './setup.service';
 import { SystemConfigService } from './system-config.service';
+import { UnifiedUserService } from './unified-user.service';
 
 /**
  * Represents an active Yjs document connection
@@ -56,6 +57,7 @@ export class DocumentService {
   private projectStateService = inject(ProjectStateService);
   private lintApiService = inject(LintApiService);
   private logger = inject(LoggerService);
+  private userService = inject(UnifiedUserService);
 
   private connections: Map<string, DocumentConnection> = new Map();
 
@@ -67,6 +69,25 @@ export class DocumentService {
   >();
   /** Reactive word count signals per document */
   private wordCountSignals = new Map<string, WritableSignal<number>>();
+  /** Track reconnect timeouts to cancel them on disconnect */
+  private reconnectTimeouts = new Map<string, number>();
+
+  constructor() {
+    // Ensure awareness is cleaned up when the browser tab/window closes
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', () => {
+        this.connections.forEach((connection, documentId) => {
+          if (connection.provider) {
+            this.logger.debug(
+              'DocumentService',
+              `Cleaning up awareness for ${documentId} on page unload`
+            );
+            connection.provider.awareness.setLocalState(null);
+          }
+        });
+      });
+    }
+  }
 
   /**
    * Gets reactive sync status signal for a document
@@ -248,6 +269,30 @@ export class DocumentService {
    * @returns Promise that resolves when collaboration is set up
    */
   async setupCollaboration(editor: Editor, documentId: string): Promise<void> {
+    console.log('[DocumentService] setupCollaboration called for:', documentId);
+    console.log(
+      '[DocumentService] editor doc size BEFORE:',
+      editor.view?.state.doc.content.size
+    );
+
+    // Validate documentId format (must be username:slug:docId)
+    if (!documentId || documentId === 'invalid' || !documentId.includes(':')) {
+      this.logger.error(
+        'DocumentService',
+        `Invalid documentId format: "${documentId}" - must be username:slug:docId`
+      );
+      throw new Error(`Invalid documentId format: ${documentId}`);
+    }
+
+    const parts = documentId.split(':');
+    if (parts.length !== 3 || parts.some(part => !part.trim())) {
+      this.logger.error(
+        'DocumentService',
+        `Invalid documentId parts: "${documentId}" - each part must be non-empty`
+      );
+      throw new Error(`Invalid documentId: ${documentId}`);
+    }
+
     // Check if editor is properly initialized
     if (!editor || !editor.view) {
       throw new Error('Editor Yjs not properly initialized');
@@ -255,6 +300,21 @@ export class DocumentService {
 
     // Check if we already have a connection for this document
     let connection = this.connections.get(documentId);
+
+    // If connection exists and editor already has y-sync plugin, don't re-add plugins
+    if (
+      connection &&
+      editor.view.state.plugins.some(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        p => (p.spec as any)?.key?.key === 'y-sync$'
+      )
+    ) {
+      this.logger.info(
+        'DocumentService',
+        `Collaboration already set up for ${documentId}, skipping plugin setup`
+      );
+      return;
+    }
 
     if (!connection) {
       // Ensure sync status signal exists before updates
@@ -273,6 +333,14 @@ export class DocumentService {
       // Wait for initial IndexedDB sync
       await indexeddbProvider.whenSynced;
       this.logger.debug('DocumentService', 'IndexedDB sync complete');
+      console.log(
+        '[DocumentService] IndexedDB synced, ydoc XML fragment:',
+        type.toJSON()
+      );
+      console.log(
+        '[DocumentService] Editor doc size AFTER sync:',
+        editor.view?.state.doc.content.size
+      );
 
       // Try to setup WebSocket provider if URL is available
       let provider: WebsocketProvider | null = null;
@@ -290,15 +358,32 @@ export class DocumentService {
           `Setting up WebSocket connection for document: ${formattedDocId}`
         );
 
+        // WebsocketProvider(url, roomName, doc, options)
+        // The roomName parameter is appended to the URL, but we want documentId as a query param
+        // So we include it in the URL and use a dummy room name
+        const wsUrl = `${websocketUrl}/ws/yjs?documentId=${formattedDocId}`;
         provider = new WebsocketProvider(
-          websocketUrl + '/ws/yjs?documentId=',
-          formattedDocId,
+          wsUrl,
+          '', // Empty room name - documentId is already in URL
           ydoc,
           {
             connect: true,
             resyncInterval: 10000, // Attempt to resync every 10 seconds when offline
           }
         );
+
+        // Set user information for awareness (collaborative cursors)
+        const currentUser = this.userService.currentUser();
+        if (currentUser?.username) {
+          provider.awareness.setLocalStateField('user', {
+            name: currentUser.username,
+            color: this.generateUserColor(currentUser.username),
+          });
+          this.logger.debug(
+            'DocumentService',
+            `Set awareness for ${currentUser.username}, clientID: ${provider.awareness.clientID}`
+          );
+        }
 
         // Track unsynced changes by listening to Yjs document updates
         this.unsyncedChanges.set(documentId, false);
@@ -342,36 +427,41 @@ export class DocumentService {
               'DocumentService',
               `Successfully connected to WebSocket server for ${documentId}`
             );
-            reconnectAttempts = 0; // Reset on successful connection
+            reconnectAttempts = 0;
             if (reconnectTimeout) {
               clearTimeout(reconnectTimeout);
               reconnectTimeout = null;
             }
+            this.reconnectTimeouts.delete(documentId);
           } else if (status === 'disconnected') {
+            // Check if document was intentionally disconnected
+            if (!this.connections.has(documentId)) {
+              return;
+            }
+
             this.logger.warn(
               'DocumentService',
               `Disconnected from WebSocket server for ${documentId}. Will attempt reconnect.`
             );
 
-            // Implement exponential backoff for reconnection
+            // Exponential backoff for reconnection
             if (reconnectAttempts < maxReconnectAttempts) {
               const delay = Math.min(
                 1000 * Math.pow(2, reconnectAttempts),
                 30000
               );
-              this.logger.debug(
-                'DocumentService',
-                `Will attempt reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`
-              );
 
               reconnectTimeout = window.setTimeout(() => {
-                this.logger.debug(
-                  'DocumentService',
-                  'Attempting to reconnect WebSocket...'
-                );
+                // Verify connection still exists before reconnecting
+                if (!this.connections.has(documentId)) {
+                  return;
+                }
+
                 provider!.connect();
                 reconnectAttempts++;
               }, delay);
+
+              this.reconnectTimeouts.set(documentId, reconnectTimeout);
             } else {
               this.logger.warn(
                 'DocumentService',
@@ -524,11 +614,23 @@ export class DocumentService {
     });
     plugins.push(wordCountPlugin);
 
-    // Add plugins to the editor's state
+    // CRITICAL FIX: Instead of reconfiguring existing state, create a completely
+    // new state from scratch with the Yjs plugins. This ensures ySyncPlugin's init()
+    // is called properly and the ProsemirrorBinding syncs content from Yjs.
     const newState = view.state.reconfigure({
       plugins: [...view.state.plugins, ...plugins],
     });
+
+    // Replace the entire editor state to trigger proper plugin initialization
     view.updateState(newState);
+    console.log(
+      '[DocumentService] Plugins added, editor doc size:',
+      view.state.doc.content.size
+    );
+
+    // CRITICAL: Force the view to re-render by dispatching an empty transaction
+    // This triggers the ySyncPlugin's binding to sync content from Yjs to ProseMirror
+    view.dispatch(view.state.tr);
 
     // Initial word count update with guard and error suppression
     try {
@@ -564,19 +666,118 @@ export class DocumentService {
       // Disconnect specific document
       const connection = this.connections.get(documentId);
       if (connection) {
-        connection.provider?.destroy();
-        void connection.indexeddbProvider.destroy();
-        connection.ydoc.destroy();
+        this.logger.info('DocumentService', `Disconnecting from ${documentId}`);
+
+        // Cancel any pending reconnect attempts
+        const reconnectTimeout = this.reconnectTimeouts.get(documentId);
+        if (reconnectTimeout) {
+          clearTimeout(reconnectTimeout);
+          this.reconnectTimeouts.delete(documentId);
+        }
+
+        // Remove from connections map FIRST to prevent reconnection
         this.connections.delete(documentId);
+
+        // Clean up providers and document
+        // Order: Clear awareness → WebSocket disconnect → destroy providers → destroy doc
+        if (connection.provider) {
+          try {
+            // Clear local awareness state to remove cursor from other users' views
+            const clientID = connection.provider.awareness.clientID;
+            this.logger.debug(
+              'DocumentService',
+              `Clearing awareness for clientID ${clientID} on disconnect`
+            );
+            connection.provider.awareness.setLocalState(null);
+            connection.provider.disconnect();
+            connection.provider.destroy();
+          } catch (error) {
+            this.logger.warn(
+              'DocumentService',
+              `Error cleaning up WebSocket provider for ${documentId}`,
+              error
+            );
+          }
+        }
+
+        try {
+          void connection.indexeddbProvider.destroy();
+        } catch (error) {
+          this.logger.warn(
+            'DocumentService',
+            `Error destroying IndexedDB provider for ${documentId}`,
+            error
+          );
+        }
+
+        try {
+          connection.ydoc.destroy();
+        } catch (error) {
+          this.logger.warn(
+            'DocumentService',
+            `Error destroying Yjs doc for ${documentId}`,
+            error
+          );
+        }
+
+        // Clean up sync state
+        this.syncStatusSignals.delete(documentId);
+        this.unsyncedChanges.delete(documentId);
+        this.wordCountSignals.delete(documentId);
       }
     } else {
       // Disconnect all documents
-      for (const connection of this.connections.values()) {
-        connection.provider?.destroy();
-        void connection.indexeddbProvider.destroy();
-        connection.ydoc.destroy();
+      this.logger.info('DocumentService', 'Disconnecting from all documents');
+
+      // Cancel all pending reconnects
+      for (const timeout of this.reconnectTimeouts.values()) {
+        clearTimeout(timeout);
       }
+      this.reconnectTimeouts.clear();
+
+      // Clear connections map first to prevent reconnections
+      const connectionsToClose = Array.from(this.connections.entries());
       this.connections.clear();
+
+      for (const [docId, connection] of connectionsToClose) {
+        // Clean up in reverse order: doc first, then providers
+        try {
+          connection.ydoc.destroy();
+        } catch (error) {
+          this.logger.warn(
+            'DocumentService',
+            `Error destroying Yjs doc for ${docId}`,
+            error
+          );
+        }
+
+        try {
+          void connection.indexeddbProvider.destroy();
+        } catch (error) {
+          this.logger.warn(
+            'DocumentService',
+            `Error destroying IndexedDB provider for ${docId}`,
+            error
+          );
+        }
+
+        if (connection.provider) {
+          try {
+            connection.provider.destroy();
+          } catch (error) {
+            this.logger.warn(
+              'DocumentService',
+              `Error destroying provider for ${docId}`,
+              error
+            );
+          }
+        }
+
+        this.syncStatusSignals.delete(docId);
+        this.unsyncedChanges.delete(docId);
+        this.wordCountSignals.delete(docId);
+      }
+      // Connections map already cleared above
     }
   }
 
@@ -614,5 +815,56 @@ export class DocumentService {
       const eff = effect(() => observer.next(sig()));
       return () => eff.destroy();
     });
+  }
+
+  /**
+   * Generates a consistent color for a user based on their username
+   * @param username - The username to generate a color for
+   * @returns A hex color string
+   */
+  private generateUserColor(username: string): string {
+    // Simple hash function to generate a consistent color from username
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+      hash = username.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    // Convert to a pleasant color (avoid too dark or too light)
+    const hue = Math.abs(hash % 360);
+    const saturation = 70; // Keep saturation consistent for vibrancy
+    const lightness = 60; // Keep lightness consistent for readability
+
+    // Convert HSL to RGB, then to hex
+    const h = hue / 360;
+    const s = saturation / 100;
+    const l = lightness / 100;
+
+    let r: number, g: number, b: number;
+
+    if (s === 0) {
+      r = g = b = l; // achromatic
+    } else {
+      const hue2rgb = (p: number, q: number, t: number) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+      };
+
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1 / 3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1 / 3);
+    }
+
+    const toHex = (x: number) => {
+      const hex = Math.round(x * 255).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
   }
 }

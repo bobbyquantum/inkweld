@@ -78,9 +78,13 @@ export class WorldbuildingService {
 
         console.log(`[Worldbuilding] Connecting WebSocket for ${formattedId}`);
 
+        // WebsocketProvider(url, roomName, doc, options)
+        // The roomName parameter is appended to the URL, but we want documentId as a query param
+        // So we include it in the URL and use an empty room name
+        const fullWsUrl = `${wsUrl}/ws/yjs?documentId=${formattedId}`;
         provider = new WebsocketProvider(
-          wsUrl + '/ws/yjs?documentId=',
-          formattedId,
+          fullWsUrl,
+          '', // Empty room name - documentId is already in URL
           ydoc,
           {
             connect: true,
@@ -657,9 +661,13 @@ export class WorldbuildingService {
 
         console.log(`[SchemaLibrary] Connecting to ${formattedId}`);
 
+        // WebsocketProvider(url, roomName, doc, options)
+        // The roomName parameter is appended to the URL, but we want documentId as a query param
+        // So we include it in the URL and use an empty room name
+        const fullWsUrl = `${wsUrl}/ws/yjs?documentId=${formattedId}`;
         provider = new WebsocketProvider(
-          wsUrl + '/ws/yjs?documentId=',
-          formattedId,
+          fullWsUrl,
+          '', // Empty room name - documentId is already in URL
           ydoc,
           {
             connect: true,

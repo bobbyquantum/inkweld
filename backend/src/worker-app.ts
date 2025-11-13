@@ -1,6 +1,7 @@
 /**
  * Cloudflare Workers app configuration using D1 database
  * This file must NOT import bun:sqlite or better-sqlite3
+ * Supports Durable Objects for WebSocket/Yjs collaboration
  */
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -27,6 +28,7 @@ import epubRoutes from './routes/epub.routes';
 import lintRoutes from './routes/lint.routes';
 import aiImageRoutes from './routes/ai-image.routes';
 import mcpRoutes from './routes/mcp.routes';
+import yjsWorkerRoutes from './routes/yjs-worker.routes';
 
 const app = new Hono<D1AppContext>();
 
@@ -53,7 +55,7 @@ app.use(
   })
 );
 
-// Routes (same paths as main backend, excluding Yjs ws)
+// Routes (same paths as main backend)
 app.route('/', authRoutes);
 app.route('/api/v1/users', userRoutes);
 app.route('/api/v1/projects', projectRoutes);
@@ -68,6 +70,9 @@ app.route('/api/config', configRoutes);
 app.route('/lint', lintRoutes);
 app.route('/image', aiImageRoutes);
 app.route('/mcp', mcpRoutes);
+
+// WebSocket routes - uses Durable Objects for Yjs collaboration
+app.route('/ws', yjsWorkerRoutes);
 
 // Root + metadata
 app.get('/', (c) =>

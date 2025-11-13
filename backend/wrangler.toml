@@ -43,16 +43,17 @@ RECAPTCHA_ENABLED = "false"
 # binding = "SESSIONS"
 # id = "your-kv-namespace-id"
 
-# Durable Objects for Yjs document collaboration
-# Uncomment and configure when implementing Yjs collaboration
-# [[durable_objects.bindings]]
-# name = "YJS_DOCUMENTS"
-# class_name = "YjsDocument"
-# script_name = "inkweld-backend"
+# Durable Objects for Yjs project collaboration
+# One DO per project (username:slug) manages all documents + elements
+[[durable_objects.bindings]]
+name = "YJS_PROJECTS"
+class_name = "YjsProject"
+script_name = "inkweld-backend"
 
-# [[migrations]]
-# tag = "v1"
-# new_classes = ["YjsDocument"]
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["YjsProject"]
+deleted_classes = ["YjsDocument"]
 
 # Secrets (set via: wrangler secret put SECRET_NAME)
 # - SESSION_SECRET
@@ -83,6 +84,11 @@ database_id = "df33e068-25af-4d8c-b0d9-c6ad97b9ea1c"
 binding = "STORAGE"
 bucket_name = "inkweld-storage-dev"
 
+[[env.dev.durable_objects.bindings]]
+name = "YJS_PROJECTS"
+class_name = "YjsProject"
+script_name = "inkweld-backend-dev"
+
 # Production configuration
 [env.production]
 name = "inkweld-backend-prod"
@@ -99,6 +105,15 @@ RECAPTCHA_ENABLED = "false"
 # binding = "DB"
 # database_name = "inkweld_prod"
 # database_id = "your-prod-database-id-here"  # Uncomment and set for production
+
+# [[env.production.r2_buckets]]
+# binding = "STORAGE"
+# bucket_name = "inkweld-storage"  # Uncomment and set for production
+
+[[env.production.durable_objects.bindings]]
+name = "YJS_DOCUMENTS"
+class_name = "YjsDocument"
+script_name = "inkweld-backend-prod"
 
 # [[env.production.r2_buckets]]
 # binding = "STORAGE"

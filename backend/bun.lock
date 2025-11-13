@@ -19,7 +19,7 @@
         "dotenv": "^17.2.3",
         "drizzle-kit": "^0.31.6",
         "drizzle-orm": "^0.44.7",
-        "hono": "^4.7.12",
+        "hono": "^4.10.5",
         "hono-openapi": "^1.1.1",
         "leveldown": "^6.1.1",
         "lodash.debounce": "^4.0.8",
@@ -27,6 +27,7 @@
         "sharp": "^0.34.4",
         "tiny-lru": "^11.4.5",
         "ws": "^8.18.3",
+        "y-durableobjects": "^1.0.5",
         "y-leveldb": "^0.2.0",
         "y-protocols": "^1.0.6",
         "y-websocket": "^3.0.0",
@@ -688,7 +689,7 @@
 
     "hasown": ["hasown@2.0.2", "", { "dependencies": { "function-bind": "^1.1.2" } }, "sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ=="],
 
-    "hono": ["hono@4.10.4", "", {}, "sha512-YG/fo7zlU3KwrBL5vDpWKisLYiM+nVstBQqfr7gCPbSYURnNEP9BDxEMz8KfsDR9JX0lJWDRNc6nXX31v7ZEyg=="],
+    "hono": ["hono@4.10.5", "", {}, "sha512-h/MXuTkoAK8NG1EfDp0jI1YLf6yGdDnfkebRO2pwEh5+hE3RAJFXkCsnD0vamSiARK4ZrB6MY+o3E/hCnOyHrQ=="],
 
     "hono-openapi": ["hono-openapi@1.1.1", "", { "peerDependencies": { "@hono/standard-validator": "^0.1.2", "@standard-community/standard-json": "^0.3.5", "@standard-community/standard-openapi": "^0.2.8", "@types/json-schema": "^7.0.15", "hono": "^4.8.3", "openapi-types": "^12.1.3" }, "optionalPeers": ["@hono/standard-validator", "hono"] }, "sha512-AC3HNhZYPHhnZdSy2Je7GDoTTNxPos6rKRQKVDBbSilY3cWJPqsxRnN6zA4pU7tfxmQEMTqkiLXbw6sAaemB8Q=="],
 
@@ -1187,6 +1188,8 @@
     "ws": ["ws@8.18.3", "", { "peerDependencies": { "bufferutil": "^4.0.1", "utf-8-validate": ">=5.0.2" }, "optionalPeers": ["bufferutil", "utf-8-validate"] }, "sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg=="],
 
     "xtend": ["xtend@4.0.2", "", {}, "sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ=="],
+
+    "y-durableobjects": ["y-durableobjects@1.0.5", "", { "dependencies": { "lib0": "^0.2.104", "y-protocols": "^1.0.6", "yjs": "^13.6.24" }, "peerDependencies": { "hono": ">=4.3" } }, "sha512-sFVe7W7894PXjVUrASum+6McKD6OjTvzU3zfPRznsRORiHIiIxDZW8/SZcvNe+gzSWUINl5Gp3V3kH9scdNo1w=="],
 
     "y-leveldb": ["y-leveldb@0.2.0", "", { "dependencies": { "level": "^8.0.1", "level-read-stream": "^2.0.0", "lib0": "^0.2.31" }, "peerDependencies": { "yjs": "^13.0.0" } }, "sha512-6aubkZQjJu70+mj/4XDQHJ45upbaONKROSCc7b/pcz7Qeb8ZQSxvmylqWZSzl4TrBGwVK+B8qRMcCIgxE2ESug=="],
 

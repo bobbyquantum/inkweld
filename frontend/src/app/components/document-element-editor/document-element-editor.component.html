@@ -1,70 +1,76 @@
-<!-- Only show toolbar when not in zen mode -->
-@if (!zenMode) {
-  <div class="editor-toolbar">
-    <ngx-editor-menu
-      [editor]="editor"
-      [toolbar]="toolbar"
-      [colorPresets]="colorPresets">
-    </ngx-editor-menu>
-
-    <!-- Snapshot Toggle Button -->
-    <button
-      mat-icon-button
-      (click)="showSnapshotPanel.set(!showSnapshotPanel())"
-      [class.active]="showSnapshotPanel()"
-      matTooltip="{{ showSnapshotPanel() ? 'Hide' : 'Show' }} Snapshots"
-      class="snapshot-toggle-btn"
-      data-testid="toggle-snapshot-panel">
-      <mat-icon>{{
-        showSnapshotPanel() ? 'history_toggle_off' : 'history'
-      }}</mat-icon>
-    </button>
-  </div>
-}
-<div
-  class="editor-container fit-width"
-  [class.zen-mode-container]="zenMode"
-  [class.no-tabs]="tabsDisabled"
-  [class.with-snapshot-panel]="showSnapshotPanel()">
-  <div class="scaled-content">
-    <div class="editor-wrapper">
-      <ngx-editor
+<!-- Only render when editor exists -->
+@if (editor) {
+  <!-- Only show toolbar when not in zen mode -->
+  @if (!zenMode) {
+    <div class="editor-toolbar">
+      <ngx-editor-menu
         [editor]="editor"
-        [placeholder]="'Type here...'"
-        class="editor-content">
-        <ngx-editor-floating-menu [editor]="editor">
-          @if (isCursorInLintSuggestion()) {
-            <app-lint-floating-menu [editor]="editor"></app-lint-floating-menu>
-          }
-          @if (!isCursorInLintSuggestion()) {
-            <ngx-editor-menu
-              [editor]="editor"
-              [toolbar]="floatToolbar"
-              [colorPresets]="colorPresets">
-            </ngx-editor-menu>
-          }
-        </ngx-editor-floating-menu>
-      </ngx-editor>
-    </div>
-  </div>
+        [toolbar]="toolbar"
+        [colorPresets]="colorPresets">
+      </ngx-editor-menu>
 
-  <!-- Snapshot Panel -->
-  @if (showSnapshotPanel()) {
-    <div class="snapshot-panel-container">
-      <app-snapshot-panel
-        [documentId]="documentId"
-        (closePanel)="showSnapshotPanel.set(false)">
-      </app-snapshot-panel>
+      <!-- Snapshot Toggle Button -->
+      <button
+        mat-icon-button
+        (click)="showSnapshotPanel.set(!showSnapshotPanel())"
+        [class.active]="showSnapshotPanel()"
+        matTooltip="{{ showSnapshotPanel() ? 'Hide' : 'Show' }} Snapshots"
+        class="snapshot-toggle-btn"
+        data-testid="toggle-snapshot-panel">
+        <mat-icon>{{
+          showSnapshotPanel() ? 'history_toggle_off' : 'history'
+        }}</mat-icon>
+      </button>
     </div>
   }
-</div>
-<!-- Status bar showing word count and sync status -->
-@if (!zenMode) {
-  <div class="editor-status-bar">
-    <span>Words: {{ wordCount() }}</span>
-    <span class="sync-status">
-      <span class="sync-dot {{ syncState() }}"></span>
-      {{ syncState() }}
-    </span>
+  <div
+    class="editor-container fit-width"
+    [class.zen-mode-container]="zenMode"
+    [class.no-tabs]="tabsDisabled"
+    [class.with-snapshot-panel]="showSnapshotPanel()">
+    <div class="scaled-content">
+      <div class="editor-wrapper">
+        @if (editorKey > 0) {
+          <ngx-editor
+            [editor]="editor"
+            [placeholder]="'Type here...'"
+            class="editor-content">
+            <ngx-editor-floating-menu [editor]="editor">
+              @if (isCursorInLintSuggestion()) {
+                <app-lint-floating-menu
+                  [editor]="editor"></app-lint-floating-menu>
+              }
+              @if (!isCursorInLintSuggestion()) {
+                <ngx-editor-menu
+                  [editor]="editor"
+                  [toolbar]="floatToolbar"
+                  [colorPresets]="colorPresets">
+                </ngx-editor-menu>
+              }
+            </ngx-editor-floating-menu>
+          </ngx-editor>
+        }
+      </div>
+    </div>
+
+    <!-- Snapshot Panel -->
+    @if (showSnapshotPanel()) {
+      <div class="snapshot-panel-container">
+        <app-snapshot-panel
+          [documentId]="documentId"
+          (closePanel)="showSnapshotPanel.set(false)">
+        </app-snapshot-panel>
+      </div>
+    }
   </div>
+  <!-- Status bar showing word count and sync status -->
+  @if (!zenMode) {
+    <div class="editor-status-bar">
+      <span>Words: {{ wordCount() }}</span>
+      <span class="sync-status">
+        <span class="sync-dot {{ syncState() }}"></span>
+        {{ syncState() }}
+      </span>
+    </div>
+  }
 }

@@ -56,13 +56,13 @@ export class DocumentSnapshotService {
 
   /**
    * List snapshots for a document
-   * @param docId The document ID (without username:slug prefix)
-   * @param query Optional query parameters for pagination and sorting
+   * @param _docId The document ID (without username:slug prefix)
+   * @param _query Optional query parameters for pagination and sorting
    * @returns Observable of paginated snapshots
    */
   listSnapshots(
-    docId: string,
-    query?: ListSnapshotsQuery
+    _docId: string,
+    _query?: ListSnapshotsQuery
   ): Observable<DocumentSnapshot[]> {
     const project = this.projectState.project();
     if (!project) {
