@@ -82,8 +82,8 @@ describe('Config', () => {
       expect(response.status).toBe(200);
       const data = await json();
 
-      // Check captcha configuration matches environment
-      expect(data.captcha.enabled).toBe(typeof data.captcha.enabled === 'boolean');
+      // Check captcha configuration
+      expect(typeof data.captcha.enabled).toBe('boolean');
       if (data.captcha.enabled) {
         expect(data.captcha.siteKey).toBeDefined();
         expect(typeof data.captcha.siteKey).toBe('string');

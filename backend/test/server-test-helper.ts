@@ -48,10 +48,10 @@ export async function stopTestServer(): Promise<void> {
 }
 
 /**
- * Helper to make authenticated requests with cookie persistence
+ * Helper to make authenticated requests with JWT token
  */
 export class TestClient {
-  private cookies: string[] = [];
+  private token: string | null = null;
   private baseUrl: string;
 
   constructor(baseUrl: string) {
@@ -59,7 +59,7 @@ export class TestClient {
   }
 
   /**
-   * Make a request with automatic cookie handling
+   * Make a request with automatic authentication header
    */
 
   async request(
@@ -68,28 +68,19 @@ export class TestClient {
   ): Promise<{ response: Response; json: () => Promise<any> }> {
     const url = `${this.baseUrl}${path}`;
 
-    // Add cookies to request
+    // Add Authorization header if we have a token
     const headers = new Headers(options.headers);
-    if (this.cookies.length > 0) {
-      headers.set('Cookie', this.cookies.join('; '));
+    if (this.token) {
+      headers.set('Authorization', `Bearer ${this.token}`);
+      console.log(`[TestClient] Sending token: ${this.token.substring(0, 20)}...`);
+    } else {
+      console.log('[TestClient] No token to send');
     }
 
     const response = await fetch(url, {
       ...options,
       headers,
     });
-
-    // Store cookies from response
-    const setCookie = response.headers.get('set-cookie');
-    if (setCookie) {
-      // Parse and store cookies
-      const cookieParts = setCookie.split(';')[0];
-      const cookieName = cookieParts.split('=')[0];
-
-      // Remove old cookie with same name and add new one
-      this.cookies = this.cookies.filter((c) => !c.startsWith(`${cookieName}=`));
-      this.cookies.push(cookieParts);
-    }
 
     return {
       response,
@@ -103,22 +94,31 @@ export class TestClient {
   }
 
   /**
-   * Login as a user and store session cookie
+   * Login as a user and store JWT token
    */
   async login(username: string, password: string): Promise<boolean> {
-    const { response } = await this.request('/api/v1/auth/login', {
+    const { response, json } = await this.request('/api/v1/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
 
-    return response.ok;
+    if (response.ok) {
+      const data = await json();
+      if (data && data.token) {
+        this.token = data.token;
+        console.log('[TestClient] Stored token:', this.token!.substring(0, 20) + '...');
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
-   * Logout (clear cookies)
+   * Logout (clear token)
    */
-  clearCookies(): void {
-    this.cookies = [];
+  clearToken(): void {
+    this.token = null;
   }
 }

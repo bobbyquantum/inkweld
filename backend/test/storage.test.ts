@@ -1,22 +1,26 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { FileStorageService } from '../src/services/file-storage.service';
+import { config } from '../src/config/env';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
 describe('FileStorageService', () => {
   let service: FileStorageService;
-  const testDataPath = path.join(process.cwd(), 'test-data', 'storage-test');
+  // Use the actual config data path since env var doesn't work after config is loaded
+  const actualDataPath = config.dataPath;
 
   beforeEach(async () => {
-    // Create test directory
-    await fs.mkdir(testDataPath, { recursive: true });
-    process.env.DATA_PATH = testDataPath;
+    // Clean up test user data from the actual data path
+    await fs.rm(path.join(actualDataPath, 'testuser'), { recursive: true, force: true });
+    await fs.rm(path.join(actualDataPath, 'avatars'), { recursive: true, force: true });
+
     service = new FileStorageService();
   });
 
   afterEach(async () => {
-    // Clean up test directory
-    await fs.rm(testDataPath, { recursive: true, force: true });
+    // Clean up after tests
+    await fs.rm(path.join(actualDataPath, 'testuser'), { recursive: true, force: true });
+    await fs.rm(path.join(actualDataPath, 'avatars'), { recursive: true, force: true });
   });
 
   describe('Project files', () => {

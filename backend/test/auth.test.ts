@@ -93,15 +93,8 @@ describe('Authentication', () => {
 
   describe('GET /api/v1/users/me', () => {
     it('should return current user when authenticated', async () => {
-      // First login - cookie persists automatically with TestClient
-      await client.request('/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: 'testuser',
-          password: 'testpassword123',
-        }),
-      });
+      // First login - token persists automatically with TestClient
+      await client.login('testuser', 'testpassword123');
 
       // Then get current user
       const { response, json } = await client.request('/api/v1/users/me');
