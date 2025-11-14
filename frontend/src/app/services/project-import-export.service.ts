@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import {
   GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
   Project,
 } from '@inkweld/index';
 import JSZip from '@progress/jszip-esm';
@@ -227,10 +228,10 @@ export class ProjectImportExportService {
     const elements = allElements.filter(
       elem =>
         elem.type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum
+          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType
             .Folder ||
         elem.type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item
+          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
     );
 
     const archive: ProjectArchive = {
@@ -244,7 +245,7 @@ export class ProjectImportExportService {
       elements: elements.map(elem => ({
         id: elem.id,
         name: elem.name,
-        type: elem.type as 'FOLDER' | 'ITEM',
+        type: elem.type,
         order: elem.order,
         parentId: null,
         level: elem.level,
@@ -257,7 +258,7 @@ export class ProjectImportExportService {
     archive.elements = await Promise.all(
       elements.map(async elem => {
         const elementArchive = archive.elements.find(e => e.id === elem.id)!;
-        if (elem.type === 'ITEM') {
+        if (elem.type === GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item) {
           const content = await firstValueFrom(
             this.documentService.exportDocument(elem.id)
           );
@@ -325,7 +326,7 @@ export class ProjectImportExportService {
       }));
 
     for (const elem of archive.elements) {
-      if (elem.type === 'ITEM') {
+      if (elem.type === GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item) {
         const content = elem.content;
         if (!content) {
           console.warn('Document content is missing for item:', elem.id);

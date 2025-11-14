@@ -10,7 +10,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MockedObject, vi } from 'vitest';
 
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../../api-client/model/project-element-dto';
+import {
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+} from '@inkweld/index';
 import { NewElementDialogComponent } from './new-element-dialog.component';
 
 describe('NewElementDialogComponent', () => {
@@ -53,7 +56,7 @@ describe('NewElementDialogComponent', () => {
   it('should initialize form with default values', () => {
     expect(component.form.get('name')?.value).toBe('');
     expect(component.form.get('type')?.value).toBe(
-      GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item
+      GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
     );
   });
 
@@ -62,7 +65,7 @@ describe('NewElementDialogComponent', () => {
 
     component.form.patchValue({
       name: 'Test Element',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item,
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
     });
 
     expect(component.form.valid).toBeTruthy();
@@ -76,7 +79,7 @@ describe('NewElementDialogComponent', () => {
   it('should close dialog with form value on create when valid', () => {
     const formValue = {
       name: 'Test Element',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item,
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
     };
 
     component.form.patchValue(formValue);

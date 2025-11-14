@@ -156,7 +156,9 @@ describe('SystemConfigService', () => {
           setTimeout(() => {
             expect(service.systemFeatures()).toEqual(newFeatures);
             expect(service.isConfigLoaded()).toBe(true);
-            expect(mockConfigService.getApiV1ConfigFeatures).toHaveBeenCalledTimes(1);
+            expect(
+              mockConfigService.getApiV1ConfigFeatures
+            ).toHaveBeenCalledTimes(1);
             resolve();
           }, 10);
         }, 10);
@@ -340,9 +342,9 @@ describe('SystemConfigService', () => {
           expect(testService.isAiImageGenerationEnabled()).toBe(false);
 
           // Update features
-          (mockConfigService.getApiV1ConfigFeatures as Mock).mockReturnValueOnce(
-            of(updatedFeatures)
-          );
+          (
+            mockConfigService.getApiV1ConfigFeatures as Mock
+          ).mockReturnValueOnce(of(updatedFeatures));
 
           testService.refreshSystemFeatures();
 

@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-import { UserDto } from '@inkweld/index';
+import { User } from '@inkweld/index';
 import { UnifiedUserService } from '@services/unified-user.service';
 import { of } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
@@ -88,7 +88,7 @@ describe('UserMenuComponent', () => {
 
   describe('user input', () => {
     it('should update when user input changes', () => {
-      const mockUser: UserDto = {
+      const mockUser: User = {
         username: 'testuser',
         name: 'Test User',
       };

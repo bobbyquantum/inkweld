@@ -1,9 +1,7 @@
 import { Hono } from 'hono';
 import { describeRoute, resolver, validator } from 'hono-openapi';
-import { eq } from 'drizzle-orm';
 import { authService } from '../services/auth.service.js';
 import { userService } from '../services/user.service.js';
-import { users as usersTable } from '../db/schema/users.js';
 import { config } from '../config/env.js';
 import { type AppContext } from '../types/context.js';
 import {

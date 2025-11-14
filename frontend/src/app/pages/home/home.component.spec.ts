@@ -10,7 +10,7 @@ import {
   provideRouter,
   Router,
 } from '@angular/router';
-import { Project, UserDto } from '@inkweld/index';
+import { Project, User } from '@inkweld/index';
 import { UnifiedProjectService } from '@services/unified-project.service';
 import { UnifiedUserService } from '@services/unified-user.service';
 import { ThemeService } from '@themes/theme.service';
@@ -55,7 +55,7 @@ describe('HomeComponent', () => {
     router = { navigate: vi.fn() } as unknown as MockedObject<Router>;
 
     userService = {
-      currentUser: signal<UserDto | undefined>(undefined),
+      currentUser: signal<User | undefined>(undefined),
       isAuthenticated: signal(true),
     } as unknown as MockedObject<UnifiedUserService>;
 

@@ -3,7 +3,10 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner, GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '../../api-client';
+import {
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+} from '../../api-client';
 import { ElementTypeSchema } from '../models/schema-types';
 import {
   isWorldbuildingType,

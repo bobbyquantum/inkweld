@@ -8,7 +8,6 @@ import {
   SnapshotsService,
   SnapshotWithContent,
 } from '../../api-client';
-import type { DocumentSnapshotControllerDeleteSnapshot200Response } from '../../api-client/model/document-snapshot-controller-delete-snapshot200-response';
 import { ProjectStateService } from './project-state.service';
 
 /**
@@ -47,7 +46,7 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    return this.snapshotsApi.postApiSnapshotsUsernameSlug(
+    return this.snapshotsApi.postApiV1ProjectsUsernameSlug(
       project.username,
       project.slug,
       data
@@ -71,7 +70,7 @@ export class DocumentSnapshotService {
 
     // TODO: Backend API doesn't support query parameters yet (limit, offset, orderBy, order, docId)
     // The API returns all snapshots for a project, not filtered by docId
-    return this.snapshotsApi.getApiSnapshotsUsernameSlug(
+    return this.snapshotsApi.getApiV1ProjectsUsernameSlug(
       project.username,
       project.slug
     );
@@ -90,7 +89,7 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    return this.snapshotsApi.getApiSnapshotsUsernameSlugSnapshotId(
+    return this.snapshotsApi.getApiV1ProjectsUsernameSlugSnapshotId(
       project.username,
       project.slug,
       snapshotId
@@ -112,7 +111,7 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    return this.snapshotsApi.postApiSnapshotsUsernameSlugSnapshotIdRestore(
+    return this.snapshotsApi.postApiV1ProjectsUsernameSlugSnapshotIdRestore(
       project.username,
       project.slug,
       snapshotId
@@ -129,17 +128,17 @@ export class DocumentSnapshotService {
   deleteSnapshot(
     docId: string,
     snapshotId: string
-  ): Observable<DocumentSnapshotControllerDeleteSnapshot200Response> {
+  ): Observable<MessageResponse> {
     const project = this.projectState.project();
     if (!project) {
       throw new Error('No active project');
     }
 
-    return this.snapshotsApi.deleteApiSnapshotsUsernameSlugSnapshotId(
+    return this.snapshotsApi.deleteApiV1ProjectsUsernameSlugSnapshotId(
       project.username,
       project.slug,
       snapshotId
-    ) as Observable<DocumentSnapshotControllerDeleteSnapshot200Response>;
+    );
   }
 
   /**
@@ -158,7 +157,7 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    return this.snapshotsApi.getApiSnapshotsUsernameSlugSnapshotIdPreview(
+    return this.snapshotsApi.getApiV1ProjectsUsernameSlugSnapshotIdPreview(
       project.username,
       project.slug,
       snapshotId

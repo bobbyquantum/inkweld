@@ -1,7 +1,5 @@
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { CommonModule } from '@angular/common';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,6 +15,8 @@ import {
   Router,
   RouterModule,
 } from '@angular/router';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import {
   GetApiV1ProjectsUsernameSlugElements200ResponseInner,
   Project,

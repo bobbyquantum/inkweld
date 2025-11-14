@@ -9,7 +9,10 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../../../../api-client';
+import {
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+} from '../../../../../api-client';
 import { WorldbuildingEditorComponent } from '../../../../components/worldbuilding/worldbuilding-editor/worldbuilding-editor.component';
 import { ProjectStateService } from '../../../../services/project-state.service';
 
@@ -27,7 +30,7 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
 
   protected elementId = signal<string>('');
   protected elementType =
-    signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum | null>(
+    signal<GetApiV1ProjectsUsernameSlugElements200ResponseInnerType | null>(
       null
     );
   protected username = signal<string | undefined>(undefined);

@@ -6,7 +6,7 @@ import { EditorState, Plugin } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { MockedObject, vi } from 'vitest';
 
-import { PostLint200Response } from '../../../api-client/model/post-lint200-response';
+import { PostApiV1AiLint200Response } from '../../../api-client/model/post-api-v1-ai-lint200-response';
 import { LintApiService } from './lint-api.service';
 import { createLintPlugin, pluginKey } from './lint-plugin';
 
@@ -58,9 +58,9 @@ describe('LintPlugin', () => {
   };
 
   // Mock correction response
-  const createMockLintResponse = (): PostLint200Response => {
+  const createMockLintResponse = (): PostApiV1AiLint200Response => {
     return {
-      original_paragraph: 'This is a test paragraph with some grammar errors.',
+      originalParagraph: 'This is a test paragraph with some grammar errors.',
       corrections: [
         {
           from: 10,
@@ -76,7 +76,7 @@ describe('LintPlugin', () => {
           recommendation: 'Consider using active voice for clarity',
         } as any,
       ],
-      source: 'openai',
+      source: 'openai' as any,
     };
   };
 

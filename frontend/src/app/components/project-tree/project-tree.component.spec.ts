@@ -1,7 +1,5 @@
 import { ArrayDataSource } from '@angular/cdk/collections';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import {
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
   CdkDrag,
   CdkDragDrop,
   CdkDragMove,
@@ -9,6 +7,7 @@ import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkwe
   CdkDropList,
 } from '@angular/cdk/drag-drop';
 import { provideHttpClient } from '@angular/common/http';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import {
   provideZonelessChangeDetection,
   signal,
@@ -253,7 +252,6 @@ describe('ProjectTreeComponent', () => {
       name: `Test Node ${id}`,
       type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
       level,
-      position,
       expandable: false,
       version: 0,
       metadata: {},
@@ -522,6 +520,7 @@ describe('ProjectTreeComponent', () => {
       version: 0,
       metadata: {},
       visible: true,
+      parentId: null,
     });
 
     beforeEach(() => {

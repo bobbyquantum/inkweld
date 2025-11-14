@@ -1,3 +1,5 @@
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '../../api-client';
+
 /**
  * Represents the structure of an exported project archive
  */
@@ -16,7 +18,7 @@ export interface ProjectArchive {
   elements: Array<{
     id?: string;
     name: string;
-    type: 'FOLDER' | 'ITEM';
+    type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType;
     order: number; // Use 'order' to match API
     level: number;
     version?: number;
