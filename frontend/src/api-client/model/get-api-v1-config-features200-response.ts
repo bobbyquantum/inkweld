@@ -23,7 +23,7 @@ export interface GetApiV1ConfigFeatures200Response {
     /**
      * Application mode configuration
      */
-    appMode: GetApiV1ConfigFeatures200Response.AppModeEnum;
+    appMode: GetApiV1ConfigFeatures200ResponseAppMode;
     /**
      * Default server name to pre-populate in setup form
      */
@@ -33,13 +33,11 @@ export interface GetApiV1ConfigFeatures200Response {
      */
     userApprovalRequired: boolean;
 }
-export namespace GetApiV1ConfigFeatures200Response {
-    export const AppModeEnum = {
-        Online: 'ONLINE',
-        Offline: 'OFFLINE',
-        Both: 'BOTH'
-    } as const;
-    export type AppModeEnum = typeof AppModeEnum[keyof typeof AppModeEnum];
-}
+export enum GetApiV1ConfigFeatures200ResponseAppMode {
+    Online = 'ONLINE',
+    Offline = 'OFFLINE',
+    Both = 'BOTH'
+};
+
 
 

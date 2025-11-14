@@ -21,15 +21,13 @@ export interface PostApiV1AiLintRequest {
     /**
      * The level of linting strictness
      */
-    level: PostApiV1AiLintRequest.LevelEnum;
+    level: PostApiV1AiLintRequestLevel;
 }
-export namespace PostApiV1AiLintRequest {
-    export const LevelEnum = {
-        Low: 'low',
-        Medium: 'medium',
-        High: 'high'
-    } as const;
-    export type LevelEnum = typeof LevelEnum[keyof typeof LevelEnum];
-}
+export enum PostApiV1AiLintRequestLevel {
+    Low = 'low',
+    Medium = 'medium',
+    High = 'high'
+};
+
 
 
