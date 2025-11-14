@@ -172,7 +172,7 @@ export async function createProjectViaUI(
   await page.goto('/create-project');
   await page.getByTestId('project-title-input').fill(title);
   await page.getByTestId('project-slug-input').fill(slug);
-  
+
   if (description) {
     await page.getByTestId('project-description-input').fill(description);
   }

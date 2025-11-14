@@ -87,7 +87,7 @@ export function setupUserHandlers(): void {
     const username = url.split('/').pop()?.split('?')[0] || '';
 
     const existingUser = mockUsers.findByUsername(username);
-    
+
     if (existingUser) {
       // Username is taken, provide suggestions
       const suggestions = [
@@ -95,7 +95,7 @@ export function setupUserHandlers(): void {
         `${username}2`,
         `${username}_user`,
       ];
-      
+
       await route.fulfill({
         status: 200,
         contentType: 'application/json',

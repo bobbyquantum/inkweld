@@ -49,7 +49,7 @@ export function setupAuthHandlers(): void {
 
     // Check if username exists
     const existingUser = mockUsers.findByUsername(username);
-    
+
     if (existingUser) {
       // Username is taken, generate suggestions
       const suggestions = [
@@ -57,7 +57,7 @@ export function setupAuthHandlers(): void {
         `${username}_${Math.floor(Math.random() * 1000)}`,
         `${username}_user`
       ];
-      
+
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
