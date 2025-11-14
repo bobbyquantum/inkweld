@@ -70,7 +70,7 @@ describe('ProjectService', () => {
     api.projectControllerUpdateProject.mockImplementation(mockImpl);
     api.projectControllerDeleteProject.mockReturnValue(apiOk(null));
     api.coverControllerGetProjectCover.mockReturnValue(apiOk(new Blob()));
-    api.coverControllerDeleteCover.mockReturnValue(apiOk(undefined));
+    api.deleteApiV1ProjectsUsernameSlugCover.mockReturnValue(apiOk(undefined));
     api.postApiV1ProjectsUsernameSlugCover.mockReturnValue(apiOk(undefined));
 
     TestBed.configureTestingModule({
@@ -743,7 +743,7 @@ describe('ProjectService', () => {
   describe('deleteProjectCover', () => {
     beforeEach(() => {
       // Reset mocks before each test
-      api.coverControllerDeleteCover.mockReset();
+      api.deleteApiV1ProjectsUsernameSlugCover.mockReset();
       api.getApiV1Projects.mockReset();
       xsrf.getXsrfToken.mockReset();
       xsrf.getXsrfToken.mockReturnValue('test-token');
@@ -753,13 +753,13 @@ describe('ProjectService', () => {
 
     it('deletes a project cover and refreshes project', async () => {
       // Set up API to succeed
-      api.coverControllerDeleteCover.mockReturnValue(apiOk(undefined));
+      api.deleteApiV1ProjectsUsernameSlugCover.mockReturnValue(apiOk(undefined));
       api.getApiV1Projects.mockReturnValue(apiOk(BASE));
 
       await service.deleteProjectCover('alice', 'project-1');
 
       // Should call API without token parameter (cover controller doesn't use token)
-      expect(api.coverControllerDeleteCover).toHaveBeenCalledWith(
+      expect(api.deleteApiV1ProjectsUsernameSlugCover).toHaveBeenCalledWith(
         'alice',
         'project-1'
       );
@@ -767,7 +767,7 @@ describe('ProjectService', () => {
 
     it('handles API errors correctly', async () => {
       // Set up API to fail with 404
-      api.coverControllerDeleteCover.mockReturnValue(
+      api.deleteApiV1ProjectsUsernameSlugCover.mockReturnValue(
         apiErr(new HttpErrorResponse({ status: 404 }))
       );
 
@@ -782,7 +782,7 @@ describe('ProjectService', () => {
 
     it('handles network errors correctly', async () => {
       // Set up API to fail with network error
-      api.coverControllerDeleteCover.mockReturnValue(
+      api.deleteApiV1ProjectsUsernameSlugCover.mockReturnValue(
         apiErr(new HttpErrorResponse({ status: 0 }))
       );
 
