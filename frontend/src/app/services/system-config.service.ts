@@ -3,7 +3,10 @@ import { of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 
 import { ConfigurationService } from '../../api-client/api/configuration.service';
-import { GetApiV1ConfigFeatures200Response, GetApiV1ConfigFeatures200ResponseAppMode } from '../../api-client/model/get-api-v1-config-features200-response';
+import {
+  GetApiV1ConfigFeatures200Response,
+  GetApiV1ConfigFeatures200ResponseAppMode,
+} from '../../api-client/model/get-api-v1-config-features200-response';
 
 // ExtendedSystemFeatures is the same as the API response now
 type ExtendedSystemFeatures = GetApiV1ConfigFeatures200Response;

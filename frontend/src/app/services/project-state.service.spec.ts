@@ -1,6 +1,6 @@
 // Mock Y.js and WebSocket providers BEFORE imports (hoisted by Vitest)
-import { MockedObject, vi } from 'vitest';
 import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
+import { MockedObject, vi } from 'vitest';
 
 // Create mock constructors that will be configured in beforeEach
 const WebsocketProviderMock = vi.fn();

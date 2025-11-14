@@ -1,7 +1,5 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,6 +8,8 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/model/project-element-dto';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';

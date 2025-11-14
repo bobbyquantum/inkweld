@@ -1,6 +1,6 @@
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -169,7 +169,7 @@ describe('RecentFilesService', () => {
         order: i,
         version: 1,
         metadata: {},
-      parentId: null,
+        parentId: null,
       };
       service.addRecentFile(file, 'user', 'slug');
     }

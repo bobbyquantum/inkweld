@@ -227,8 +227,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
         // Note: The server might be sending positions that are off by one character
         let from =
           typeof correction.startPos === 'number' ? correction.startPos : 0;
-        let to =
-          typeof correction.endPos === 'number' ? correction.endPos : 0;
+        let to = typeof correction.endPos === 'number' ? correction.endPos : 0;
 
         // Adjust positions to fix off-by-one server issue
         // Skip the leading space by incrementing from by 1
