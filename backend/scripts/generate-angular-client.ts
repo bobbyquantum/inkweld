@@ -47,10 +47,9 @@ function generateAngularClient() {
 
     // Generate Angular client using config from openapitools.json
     // Use the generator config named 'angular-client' from openapitools.json
-    execSync(
-      'npx @openapitools/openapi-generator-cli generate --generator-key angular-client',
-      { stdio: 'inherit' }
-    );
+    execSync('npx @openapitools/openapi-generator-cli generate --generator-key angular-client', {
+      stdio: 'inherit',
+    });
 
     console.log('');
     console.log('✅ Angular client generated successfully!');
