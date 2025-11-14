@@ -1,5 +1,7 @@
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { CommonModule } from '@angular/common';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
@@ -54,9 +56,9 @@ describe('TabInterfaceComponent', () => {
       {
         id: 'doc1',
         name: 'Document 1',
-        type: 'ITEM',
+        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
         level: 0,
-        position: 0,
+        order: 0,
         version: 1,
         expandable: false,
         metadata: {},
@@ -64,9 +66,9 @@ describe('TabInterfaceComponent', () => {
       {
         id: 'doc2',
         name: 'Document 2',
-        type: 'FOLDER',
+        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
         level: 0,
-        position: 1,
+        order: 1,
         version: 1,
         expandable: true,
         metadata: {},

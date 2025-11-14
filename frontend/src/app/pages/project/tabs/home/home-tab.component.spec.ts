@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -41,7 +43,7 @@ describe('HomeTabComponent', () => {
     {
       id: 'doc1',
       name: 'Recent Document 1',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
     },
     {
       id: 'doc2',
@@ -161,9 +163,9 @@ describe('HomeTabComponent', () => {
     const mockElement = {
       id: 'doc1',
       name: 'Recent Document 1',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 0,
-      position: 0,
+      order: 0,
       expandable: false,
       version: 1,
       metadata: {},
@@ -183,9 +185,9 @@ describe('HomeTabComponent', () => {
     const mockElement = {
       id: 'doc1',
       name: 'Recent Document 1',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 0,
-      position: 0,
+      order: 0,
       expandable: false,
       version: 1,
       metadata: {},
@@ -205,9 +207,9 @@ describe('HomeTabComponent', () => {
     const mockElement = {
       id: 'doc1',
       name: 'Recent Document 1',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 0,
-      position: 0,
+      order: 0,
       expandable: false,
       version: 1,
       metadata: {},

@@ -1,5 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { TestBed } from '@angular/core/testing';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 import { vi } from 'vitest';
 
@@ -62,7 +64,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'element-1',
             name: 'Test Element',
-            type: 'FOLDER',
+            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
             level: 0,
             expandable: true,
             order: 0,
@@ -116,7 +118,7 @@ describe('OfflineProjectElementsService', () => {
         {
           id: 'element-1',
           name: 'Test Element',
-          type: 'ITEM',
+          type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
           level: 0,
           expandable: false,
           order: 0,
@@ -162,7 +164,7 @@ describe('OfflineProjectElementsService', () => {
       expect(result).toHaveLength(4);
       expect(result[0]).toMatchObject({
         name: 'Chapters',
-        type: 'FOLDER',
+        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
         level: 0,
         expandable: true,
         order: 0,
@@ -184,7 +186,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'folder-1',
             name: 'Folder 1',
-            type: 'FOLDER',
+            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
             level: 0,
             expandable: true,
             order: 0,
@@ -209,7 +211,7 @@ describe('OfflineProjectElementsService', () => {
       expect(result).toHaveLength(2);
       expect(result[0]).toMatchObject({
         name: 'New Document',
-        type: 'ITEM',
+        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
         level: 0,
         expandable: false,
         order: 0,
@@ -218,7 +220,7 @@ describe('OfflineProjectElementsService', () => {
       expect(result[1]).toMatchObject({
         id: 'folder-1',
         name: 'Folder 1',
-        type: 'FOLDER',
+        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
         order: 1,
       });
     });
@@ -235,7 +237,7 @@ describe('OfflineProjectElementsService', () => {
       expect(result).toHaveLength(2);
       expect(result[1]).toMatchObject({
         name: 'Child Document',
-        type: 'ITEM',
+        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
         level: 1,
         expandable: false,
         order: 1,
@@ -265,7 +267,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'folder-1',
             name: 'Folder 1',
-            type: 'FOLDER',
+            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
             level: 0,
             expandable: true,
             order: 0,
@@ -275,7 +277,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'doc-1',
             name: 'Document 1',
-            type: 'ITEM',
+            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
             level: 1,
             expandable: false,
             order: 1,
@@ -285,7 +287,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'doc-2',
             name: 'Document 2',
-            type: 'ITEM',
+            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
             level: 1,
             expandable: false,
             order: 2,
@@ -295,7 +297,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'folder-2',
             name: 'Folder 2',
-            type: 'FOLDER',
+            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
             level: 0,
             expandable: true,
             order: 3,
@@ -349,7 +351,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'folder-1',
             name: 'Folder 1',
-            type: 'FOLDER',
+            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
             level: 0,
             expandable: true,
             order: 0,
@@ -359,7 +361,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'doc-1',
             name: 'Document 1',
-            type: 'ITEM',
+            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
             level: 1,
             expandable: false,
             order: 1,
@@ -369,7 +371,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'doc-2',
             name: 'Document 2',
-            type: 'ITEM',
+            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
             level: 0,
             expandable: false,
             order: 2,
@@ -430,7 +432,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'doc-1',
             name: 'Old Name',
-            type: 'ITEM',
+            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
             level: 0,
             expandable: false,
             order: 0,
@@ -475,7 +477,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'p1-doc',
             name: 'Project 1 Doc',
-            type: 'ITEM',
+            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
             level: 0,
             expandable: false,
             order: 0,
@@ -489,7 +491,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'p2-doc',
             name: 'Project 2 Doc',
-            type: 'ITEM',
+            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
             level: 0,
             expandable: false,
             order: 0,

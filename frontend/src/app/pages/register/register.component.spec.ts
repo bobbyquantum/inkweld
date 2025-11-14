@@ -6,7 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import {
-  UserControllerCheckUsernameAvailability200Response,
+  GetApiV1UsersCheckUsername200Response,
   UserDto,
   UsersService,
 } from '@inkweld/index';
@@ -205,7 +205,7 @@ describe('RegisterComponent', () => {
     it('should check username availability when username is valid', async () => {
       const checkUsernameAvailabilityMock =
         userService.getApiUserCheckUsername as any;
-      const mockResponse: UserControllerCheckUsernameAvailability200Response = {
+      const mockResponse: GetApiV1UsersCheckUsername200Response = {
         available: true,
         suggestions: [],
       };
@@ -225,7 +225,7 @@ describe('RegisterComponent', () => {
     it('should mark username as unavailable when taken', async () => {
       const checkUsernameAvailabilityMock =
         userService.getApiUserCheckUsername as any;
-      const mockResponse: UserControllerCheckUsernameAvailability200Response = {
+      const mockResponse: GetApiV1UsersCheckUsername200Response = {
         available: false,
         suggestions: ['testuser1', 'testuser2'],
       };
@@ -266,7 +266,7 @@ describe('RegisterComponent', () => {
     it('should select a suggested username', () => {
       const checkUsernameAvailabilityMock =
         userService.getApiUserCheckUsername as any;
-      const mockResponse: UserControllerCheckUsernameAvailability200Response = {
+      const mockResponse: GetApiV1UsersCheckUsername200Response = {
         available: true,
         suggestions: [],
       };

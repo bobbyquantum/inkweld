@@ -3,7 +3,7 @@ import { of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 
 import { ConfigurationService } from '../../api-client/api/configuration.service';
-import { ConfigControllerGetSystemFeatures200Response } from '../../api-client/model/config-controller-get-system-features200-response';
+import { GetApiV1ConfigFeatures200Response } from '../../api-client/model/config-controller-get-system-features200-response';
 
 interface CaptchaConfig {
   enabled?: boolean;
@@ -11,7 +11,7 @@ interface CaptchaConfig {
 }
 
 interface ExtendedSystemFeatures
-  extends ConfigControllerGetSystemFeatures200Response {
+  extends GetApiV1ConfigFeatures200Response {
   captcha?: CaptchaConfig;
   userApprovalRequired?: boolean;
 }
@@ -59,7 +59,7 @@ export class SystemConfigService {
    */
   private loadSystemFeatures(): void {
     this.configApiService
-      .getApiConfig()
+      .getApiV1Config()
       .pipe(
         tap(features => {
           console.log('[SystemConfig] Loaded system features:', features);

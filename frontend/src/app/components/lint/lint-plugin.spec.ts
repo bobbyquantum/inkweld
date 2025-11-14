@@ -6,7 +6,7 @@ import { EditorState, Plugin } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { MockedObject, vi } from 'vitest';
 
-import { PostApiV1AiLint200Response } from '../../../api-client/model/post-api-v1-ai-lint200-response';
+import { PostLint200Response } from '../../../api-client/model/post-lint200-response';
 import { LintApiService } from './lint-api.service';
 import { createLintPlugin, pluginKey } from './lint-plugin';
 
@@ -58,9 +58,9 @@ describe('LintPlugin', () => {
   };
 
   // Mock correction response
-  const createMockLintResponse = (): PostApiV1AiLint200Response => {
+  const createMockLintResponse = (): PostLint200Response => {
     return {
-      originalParagraph: 'This is a test paragraph with some grammar errors.',
+      original_paragraph: 'This is a test paragraph with some grammar errors.',
       corrections: [
         {
           from: 10,
@@ -70,7 +70,7 @@ describe('LintPlugin', () => {
           reason: 'Grammar improvement',
         } as any,
       ],
-      styleRecommendations: [
+      style_recommendations: [
         {
           // Note: The real DTO might have different fields, adjusting to pass tests
           recommendation: 'Consider using active voice for clarity',

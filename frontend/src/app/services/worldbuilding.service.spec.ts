@@ -1,3 +1,4 @@
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -509,7 +510,7 @@ describe('WorldbuildingService', () => {
     it('should initialize element with schema and default values', async () => {
       const element = {
         id: 'test-element-123',
-        type: 'CHARACTER' as GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum,
+        type: 'CHARACTER',
         name: 'Test Character',
       } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
       const username = 'testuser';
@@ -547,7 +548,7 @@ describe('WorldbuildingService', () => {
     it('should skip initialization for non-worldbuilding types', async () => {
       const element = {
         id: 'test-element-123',
-        type: 'ITEM' as GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum, // ITEM is not a worldbuilding type
+        type: 'ITEM', // ITEM is not a worldbuilding type
         name: 'Test Document',
       } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
 
@@ -561,7 +562,7 @@ describe('WorldbuildingService', () => {
     it('should skip initialization if already initialized', async () => {
       const element = {
         id: 'test-element-123',
-        type: 'CHARACTER' as GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum,
+        type: 'CHARACTER',
         name: 'Test Character',
       } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
 

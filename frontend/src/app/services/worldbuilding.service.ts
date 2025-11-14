@@ -3,7 +3,7 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../api-client';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInner, GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '../../api-client';
 import { ElementTypeSchema } from '../models/schema-types';
 import {
   isWorldbuildingType,
@@ -585,7 +585,7 @@ export class WorldbuildingService {
    */
   getElementsOfType(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum
+    _type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType
   ): Promise<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]> {
     // This would typically query from the project state service
     // For now, returning empty array as placeholder
@@ -599,7 +599,7 @@ export class WorldbuildingService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _query: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _types?: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum[]
+    _types?: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType[]
   ): Promise<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]> {
     // This would typically perform a search across elements
     // For now, returning empty array as placeholder
@@ -1019,9 +1019,9 @@ export class WorldbuildingService {
       CULTURE: 'groups',
       SPECIES: 'pets',
       SYSTEMS: 'settings',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item]:
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item]:
         'description',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Folder]:
+      [GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder]:
         'folder',
     };
 

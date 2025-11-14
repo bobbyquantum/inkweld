@@ -1,5 +1,7 @@
 import { ArrayDataSource } from '@angular/cdk/collections';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import {
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
   CdkDrag,
   CdkDragDrop,
   CdkDragMove,
@@ -29,7 +31,6 @@ import {
 
 import { projectServiceMock } from '../../../testing/project-api.mock';
 import { ProjectElement } from '../../models/project-element';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from "../../../api-client/model/get-api-v1-projects-username-slug-elements200-response-inner";
 import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { ProjectTreeComponent } from './project-tree.component';
 
@@ -49,7 +50,7 @@ describe('ProjectTreeComponent', () => {
     id: '1',
     name: 'Test Element',
     type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
-    position: 0,
+    order: 0,
     level: 1,
     expandable: false,
     version: 0,
@@ -169,7 +170,7 @@ describe('ProjectTreeComponent', () => {
       currentIndex: 1,
       item: {
         data: invalid
-          ? { ...mockDto, id: undefined, position: undefined }
+          ? { ...mockDto, id: undefined, order: undefined }
           : mockDto,
       } as CdkDrag<ProjectElement>,
       container: {
@@ -246,7 +247,7 @@ describe('ProjectTreeComponent', () => {
     const createTestNode = (
       id: string,
       level: number,
-      position: number = 0
+      order: number = 0
     ): ProjectElement => ({
       id,
       name: `Test Node ${id}`,
@@ -515,7 +516,7 @@ describe('ProjectTreeComponent', () => {
       id: '2',
       name: 'Test File',
       type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
-      position: 0,
+      order: 0,
       level: 1,
       expandable: false,
       version: 0,

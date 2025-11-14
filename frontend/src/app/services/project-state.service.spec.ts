@@ -1,5 +1,6 @@
 // Mock Y.js and WebSocket providers BEFORE imports (hoisted by Vitest)
 import { MockedObject, vi } from 'vitest';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 
 // Create mock constructors that will be configured in beforeEach
 const WebsocketProviderMock = vi.fn();
@@ -116,9 +117,9 @@ describe('ProjectStateService', () => {
   const mockElementDto: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
     id: '1',
     name: 'Test Element',
-    type: 'FOLDER',
+    type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
     level: 0,
-    position: 0,
+    order: 0,
     expandable: true,
     version: 0,
     metadata: {},
@@ -657,7 +658,7 @@ describe('ProjectStateService', () => {
   describe('Dialog Operations', () => {
     it('should open new element dialog', () => {
       const mockDialogResult = {
-        type: 'FOLDER',
+        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
         name: 'New Test Folder',
       };
 
