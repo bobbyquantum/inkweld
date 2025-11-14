@@ -4,6 +4,7 @@ import { of, throwError } from 'rxjs';
 import { Mock, MockedObject, vi } from 'vitest';
 
 import { ConfigurationService } from '../../api-client/api/configuration.service';
+import { GetApiV1ConfigFeatures200ResponseAppMode } from '../../api-client/model/get-api-v1-config-features200-response';
 import { GetApiV1ConfigFeatures200Response } from '../../api-client/model/get-api-v1-config-features200-response';
 import { SystemConfigService } from './system-config.service';
 
@@ -17,7 +18,7 @@ describe('SystemConfigService', () => {
     aiLinting: true,
     aiImageGeneration: true,
     captcha: { enabled: false, siteKey: undefined },
-    appMode: 'BOTH',
+    appMode: GetApiV1ConfigFeatures200ResponseAppMode.Both,
     userApprovalRequired: false,
   };
 
@@ -133,7 +134,7 @@ describe('SystemConfigService', () => {
       const newFeatures: GetApiV1ConfigFeatures200Response = {
         aiLinting: false,
         captcha: { enabled: false, siteKey: undefined },
-        appMode: 'BOTH',
+        appMode: GetApiV1ConfigFeatures200ResponseAppMode.Both,
         userApprovalRequired: false,
         aiImageGeneration: true,
       };
