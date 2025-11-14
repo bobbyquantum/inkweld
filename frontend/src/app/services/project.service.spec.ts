@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
-import { ProjectsService } from '../../api-client/api/project-api.service';
+import { ProjectsService } from '@inkweld/api/projects.service';
 import { Project } from '../../api-client/model/project';
 import { apiErr, apiOk } from '../../testing/utils';
 import { ProjectService, ProjectServiceError } from './project.service';
@@ -60,7 +60,7 @@ describe('ProjectService', () => {
     api.getApiProjects.mockReturnValue(apiOk(BASE));
     api.getApiProjectsUsernameSlug.mockReturnValue(apiOk(BASE[0]));
     api.projectControllerCreateProject.mockImplementation(
-      (_t, dto) =>
+      (_t: unknown, dto: unknown) =>
         apiOk(dto) as unknown as Observable<HttpResponse<Project>> &
           Observable<Project>
     );
@@ -431,6 +431,7 @@ describe('ProjectService', () => {
 
     it('creates a new project and updates cache', async () => {
       const newProject: Project = {
+        id: 'test-project-id',
         title: 'New Project',
         slug: 'new-project',
         username: 'alice',
@@ -461,6 +462,7 @@ describe('ProjectService', () => {
 
     it('handles API errors correctly', async () => {
       const newProject: Project = {
+        id: 'test-project-id',
         title: 'Error Project',
         slug: 'error-project',
         username: 'alice',
@@ -481,6 +483,7 @@ describe('ProjectService', () => {
 
     it('handles network errors correctly', async () => {
       const newProject: Project = {
+        id: 'test-project-id',
         title: 'Offline Project',
         slug: 'offline-project',
         username: 'alice',
