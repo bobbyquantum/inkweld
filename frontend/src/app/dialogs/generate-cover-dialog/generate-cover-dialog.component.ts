@@ -67,7 +67,7 @@ export class GenerateCoverDialogComponent implements OnInit {
 
     // For now, the API doesn't accept a body parameter due to incorrect spec generation
     this.aiImageService
-      .postImageGenerate()
+      .postApiV1AiImageGenerate()
       .pipe(
         catchError((error: unknown) => {
           console.error('Error generating image:', error);
