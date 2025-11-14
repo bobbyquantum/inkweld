@@ -2,22 +2,22 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
-import { CorrectionDto } from '../../../api-client/model/correction-dto';
-import { ExtendedCorrectionDto } from './correction-dto.extension';
+import { PostApiV1AiLint200ResponseCorrectionsInner } from '../../../api-client/model/post-api-v1-ai-lint200-response-corrections-inner';
+import { ExtendedPostApiV1AiLint200ResponseCorrectionsInner } from './correction-dto.extension';
 import { LintStorageService } from './lint-storage.service';
 
 describe('LintStorageService', () => {
   let service: LintStorageService;
   let localStorageSpy: Record<string, any>;
 
-  const mockCorrection: CorrectionDto = {
+  const mockCorrection: PostApiV1AiLint200ResponseCorrectionsInner = {
     from: 0,
     to: 5,
     suggestion: 'test suggestion',
     error: '',
   };
 
-  const mockExtendedCorrection: ExtendedCorrectionDto = {
+  const mockExtendedCorrection: ExtendedPostApiV1AiLint200ResponseCorrectionsInner = {
     ...mockCorrection,
     text: 'original text',
   };
