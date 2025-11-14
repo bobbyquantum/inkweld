@@ -319,10 +319,11 @@ export class ProjectStateService {
     username: string,
     slug: string
   ): Promise<void> {
-    const Project = await firstValueFrom(
+    // Note: API client incorrectly types this as DocumentSnapshot[] but it actually returns Project
+    const project = (await firstValueFrom(
       this.ProjectsService.getApiV1ProjectsUsernameSlug(username, slug)
-    );
-    this.project.set(Project);
+    )) as unknown as Project;
+    this.project.set(project);
 
     this.docId = `${username}:${slug}:elements`;
 

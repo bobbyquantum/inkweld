@@ -174,7 +174,8 @@ export class ProjectService {
       }
 
       // No cache available, fetch from API with retry mechanism
-      const project = await firstValueFrom(
+      // Note: API client incorrectly types this as DocumentSnapshot[] but it actually returns Project
+      const project = (await firstValueFrom(
         this.projectApi.getApiV1ProjectsUsernameSlug(username, slug).pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
@@ -183,7 +184,7 @@ export class ProjectService {
             return throwError(() => projectError);
           })
         )
-      );
+      )) as unknown as Project;
 
       if (project) {
         // Cache the individual project
@@ -214,7 +215,8 @@ export class ProjectService {
     const cacheKey = `${username}/${slug}`;
 
     try {
-      const project = await firstValueFrom(
+      // Note: API client incorrectly types this as DocumentSnapshot[] but it actually returns Project
+      const project = (await firstValueFrom(
         this.projectApi.getApiV1ProjectsUsernameSlug(username, slug).pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
@@ -226,7 +228,7 @@ export class ProjectService {
             return throwError(() => error); // Or return EMPTY
           })
         )
-      );
+      )) as unknown as Project;
 
       if (project) {
         // Update the cache with fresh data

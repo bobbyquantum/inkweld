@@ -167,9 +167,13 @@ export class OAuthProviderListComponent implements OnInit {
     this.isLoadingProviders.set(true);
 
     try {
-      const providers: string[] = await firstValueFrom(
+      const response = await firstValueFrom(
         this.AuthenticationService.getApiV1AuthProviders()
       );
+      // Extract enabled provider names from the response
+      const providers = Object.entries(response.providers)
+        .filter(([_, enabled]) => enabled)
+        .map(([name]) => name);
       this.enabledProviders.set(providers);
 
       // Update individual provider signals

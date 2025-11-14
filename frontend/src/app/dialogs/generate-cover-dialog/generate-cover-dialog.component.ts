@@ -11,7 +11,7 @@ import { Project } from '@inkweld/index';
 import { catchError, finalize, of } from 'rxjs';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
-import { ImageResponseDto } from '../../../api-client/model/image-response-dto';
+import { PostApiV1AiImageGenerate200Response } from '../../../api-client/model/post-api-v1-ai-image-generate200-response';
 
 export interface GenerateCoverDialogData {
   project: Project;
@@ -61,7 +61,7 @@ export class GenerateCoverDialogComponent implements OnInit {
     //   model: 'gpt-image-1',
     //   size: '1024x1536',
     //   quality: 'high',
-    //   response_format: 'b64_json',
+    //   response_format: 'b64Json',
     //   background: 'auto',
     // };
 
@@ -79,12 +79,12 @@ export class GenerateCoverDialogComponent implements OnInit {
           this.loading = false;
         })
       )
-      .subscribe((response: ImageResponseDto | null) => {
+      .subscribe((response: PostApiV1AiImageGenerate200Response | null) => {
         if (response && response.data && response.data.length > 0) {
           if (response.data[0].url) {
             this.imageUrl = response.data[0].url;
-          } else if (response.data[0].b64_json) {
-            this.imageBase64 = `data:image/png;base64,${response.data[0].b64_json}`;
+          } else if (response.data[0].b64Json) {
+            this.imageBase64 = `data:image/png;base64,${response.data[0].b64Json}`;
           }
         } else if (!this.error) {
           this.error = 'No image was generated. Please try again.';
