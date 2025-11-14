@@ -1,19 +1,11 @@
-# Getting Started with Inkweld
+# Getting Started (moved)
 
-> **TODO**: This guide is under development.
+This guide now lives inside the Docusaurus site at `docs/site/docs/getting-started.md` and on the hosted docs portal: <https://docs.inkweld.org/docs/getting-started>.
 
-This guide will help you get started with using Inkweld.
+Run the docs locally with:
 
-## Prerequisites
-
-- Node.js (version 20.0.0 or higher)
-- Bun (version 1.2.5 or higher)
-- Modern web browser
-
-## Quick Start
-
-TODO: Add quick start instructions
-
-## Next Steps
-
-TODO: Add next steps
+```bash
+cd docs/site
+npm install
+npm run start
+```

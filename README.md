@@ -13,7 +13,7 @@
 
 - [Getting Started](docs/GETTING_STARTED.md)  
 - [Changelog](CHANGELOG.md)  
-- [API Documentation](server/openapi.json)  
+- [API Documentation](backend/openapi.json)  
 - [CI/CD Pipeline](docs/CI_CD.md)  
 - [Contributing](#contributing)  
 - [Production Readiness Checklist](#production-readiness-checklist)
@@ -35,18 +35,18 @@ Inkweld is ideal for:
 
 ### Project Bookshelf (Dark Mode)
 
-![Bookshelf - Desktop Dark Mode](assets/screenshots/bookshelf-desktop-dark.png)
+![Bookshelf - Desktop Dark Mode](docs/site/static/img/bookshelf-desktop-dark.png)
 *Desktop View*
 
-![Bookshelf - Mobile Dark Mode](assets/screenshots/bookshelf-mobile-dark.png)
+![Bookshelf - Mobile Dark Mode](docs/site/static/img/bookshelf-mobile-dark.png)
 *Mobile View*
 
 ### Project Editor (Dark Mode)
 
-![Editor - Desktop Dark Mode](assets/screenshots/editor-desktop-dark.png)
+![Editor - Desktop Dark Mode](docs/site/static/img/editor-desktop-dark.png)
 *Desktop Editor with Real-time Collaboration*
 
-![Editor - Mobile Dark Mode](assets/screenshots/editor-mobile-dark.png)
+![Editor - Mobile Dark Mode](docs/site/static/img/editor-mobile-dark.png)
 *Mobile Editor with Formatting Menu*
 
 ---
@@ -70,8 +70,10 @@ Inkweld is ideal for:
 
 ```mermaid
 flowchart TD
-    Frontend[Angular 19 PWA] -->|REST/HTTP| Backend[NestJS 10 Bun]
-    Backend -->|OpenAPI spec| APIClient[Generated SDK]
+    Frontend[Angular 20 PWA] -->|REST + WebSocket| Backend[Hono API (Bun/Node/Workers)]
+    Backend -->|TypeORM/Drizzle| Database[(Postgres / SQLite / D1)]
+    Backend -->|Yjs persistence| Realtime[(LevelDB / Durable Objects)]
+    Backend -->|OpenAPI spec| APIClient[Generated SDK]
     Frontend -.->|imports at build| APIClient
 ```
 
@@ -117,6 +119,18 @@ npm start
 
 There is also a compound debug task available.
 
+### Backend Runtime Targets
+
+The new `/backend` implementation can run in three environments:
+
+| Target | Command | Notes |
+| --- | --- | --- |
+| Bun (default) | `cd backend && bun run dev` | Native `bun:sqlite`, WebSockets + Yjs |
+| Node.js | `cd backend && bun run dev:node` | Uses `better-sqlite3`, great for traditional servers |
+| Cloudflare Workers | `cd backend && bun run dev:worker` | Uses D1 + Durable Objects |
+
+Production builds follow the same pattern via `bun run build`, `bun run build:node`, or `bun run build:worker`.
+
 ---
 
 ## Build
@@ -128,7 +142,8 @@ npm run build
 ```
 
 - Frontend build artifacts: `frontend/dist/`
-- Backend build artifacts: `server/dist/`
+- Backend build artifacts: `backend/dist/`
+- Backend binaries are runtime-specific (`dist/bun-runner.js`, `dist/node-runner.js`)
 
 ---
 
@@ -139,6 +154,8 @@ To build and run with Docker Compose:
 ```bash
 npm run compose:up:prod
 ```
+
+This uses `backend/Dockerfile` to build the all-in-one image (Angular SPA + Hono backend running on Bun) and persists SQLite/Yjs data in the `inkweld_data` volume. On boot the container automatically runs Drizzle migrations from `/app/backend/drizzle` so the SQLite schema is ready before requests arrive. See `DEPLOY.md` for production-ready variants, including Cloudflare Worker deployments.
 
 ---
 
@@ -154,11 +171,32 @@ Pre-built Docker images are automatically published to GitHub Container Registry
 
 ```bash
 # Pull and run the latest image
-docker run -p 8333:8333 ghcr.io/bobbyquantum/inkweld:latest
+docker run -d --name inkweld \
+    -p 8333:8333 \
+    -v inkweld_data:/data \
+    -e SESSION_SECRET=supersecuresecretkey12345678901234567890 \
+    -e CLIENT_URL=http://localhost:4200 \
+    ghcr.io/bobbyquantum/inkweld:latest
 
 # Or use with docker-compose by updating your compose file:
 # image: ghcr.io/bobbyquantum/inkweld:latest
 ```
+
+- `SESSION_SECRET` must be 32+ chars (used for cookie signing).
+- `/data` stores the Bun SQLite file plus LevelDB/Yjs payloads—mount it to retain everything across upgrades.
+- The bundled Angular SPA ships in the same container, so browsing to `http://localhost:8333/` loads the UI while `/api/**` continues to serve JSON.
+
+### Admin CLI from inside the container
+
+The admin CLI (`admin-cli.ts`) is also baked into the runtime stage, so you can moderate users without copying extra files:
+
+```bash
+docker exec -it inkweld bun run admin-cli.ts users pending
+docker exec -it inkweld bun run admin-cli.ts users approve <username>
+docker exec -it inkweld bun run admin-cli.ts stats
+```
+
+Those commands share the same environment variables and `/data` volume as the running server, which means approvals, stats, and project maintenance act on the live database.
 
 ### Available Tags
 

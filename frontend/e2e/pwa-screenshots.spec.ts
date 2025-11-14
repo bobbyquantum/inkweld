@@ -44,8 +44,8 @@ describeScreenshots('PWA Screenshots', () => {
   ];
 
   test.beforeAll(async () => {
-    // Ensure screenshots directory exists at project root
-    const screenshotsDir = join(process.cwd(), '..', 'assets', 'screenshots');
+    // Ensure screenshots directory exists in docs/site/static/img
+    const screenshotsDir = join(process.cwd(), '..', 'docs', 'site', 'static', 'img');
     if (!existsSync(screenshotsDir)) {
       await mkdir(screenshotsDir, { recursive: true });
     }
@@ -80,7 +80,7 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: join(process.cwd(), '..', 'assets', 'screenshots', 'bookshelf-desktop.png'),
+      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'bookshelf-desktop.png'),
       fullPage: true,
     });
   });
@@ -108,7 +108,7 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: join(process.cwd(), '..', 'assets', 'screenshots', 'bookshelf-desktop-dark.png'),
+      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'bookshelf-desktop-dark.png'),
       fullPage: true,
     });
   });
@@ -133,7 +133,7 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: join(process.cwd(), '..', 'assets', 'screenshots', 'bookshelf-mobile.png'),
+      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'bookshelf-mobile.png'),
       fullPage: true,
     });
   });
@@ -161,7 +161,7 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: join(process.cwd(), '..', 'assets', 'screenshots', 'bookshelf-mobile-dark.png'),
+      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'bookshelf-mobile-dark.png'),
       fullPage: true,
     });
   });
@@ -233,7 +233,7 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: join(process.cwd(), '..', 'assets', 'screenshots', 'editor-desktop.png'),
+      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'editor-desktop.png'),
       fullPage: true,
     });
   });
@@ -322,7 +322,7 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Take screenshot with text selected and formatting menu visible
     await page.screenshot({
-      path: join(process.cwd(), '..', 'assets', 'screenshots', 'editor-mobile.png'),
+      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'editor-mobile.png'),
       fullPage: true,
     });
   });
@@ -397,7 +397,7 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: join(process.cwd(), '..', 'assets', 'screenshots', 'editor-desktop-dark.png'),
+      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'editor-desktop-dark.png'),
       fullPage: true,
     });
   });
@@ -489,7 +489,7 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Take screenshot with text selected and formatting menu visible
     await page.screenshot({
-      path: join(process.cwd(), '..', 'assets', 'screenshots', 'editor-mobile-dark.png'),
+      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'editor-mobile-dark.png'),
       fullPage: true,
     });
   });

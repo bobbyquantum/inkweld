@@ -359,7 +359,7 @@ cd server && bun run generate:angular-client
 
 ### Before Submitting Changes
 
-1. ✅ All tests pass (`npm test` in both frontend and server)
+1. ✅ All tests pass (`npm test` in both frontend and backend)
 2. ✅ Linting passes (`npm run lint`)
 3. ✅ Code is properly formatted
 4. ✅ New features have test coverage
@@ -381,9 +381,9 @@ cd server && bun run generate:angular-client
 - **Getting Started**: [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
 - **CI/CD Pipeline**: [docs/CI_CD.md](docs/CI_CD.md)
 - **E2E Testing**: [frontend/e2e/BEST_PRACTICES.md](frontend/e2e/BEST_PRACTICES.md)
-- **Admin CLI**: [server/ADMIN_CLI.md](server/ADMIN_CLI.md)
-- **API Documentation**: <http://localhost:8333/api> (when server is running)
-- **OpenAPI Spec**: [server/openapi.json](server/openapi.json)
+- **Admin CLI**: [backend/ADMIN_CLI.md](backend/ADMIN_CLI.md)
+- **API Documentation**: <http://localhost:8333/api> (served by the Hono backend)
+- **OpenAPI Spec**: [backend/openapi.json](backend/openapi.json)
 
 ---
 

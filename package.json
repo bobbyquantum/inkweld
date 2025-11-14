@@ -11,8 +11,8 @@
     "test:backend": "cd backend && bun test",
     "build:prod": "cd frontend && bun run clean && bun run build && bun run compress && cd ../backend && bun run build",
     "build:backend": "cd backend && bun run build",
-    "build:image:prod": "cd frontend && bun run clean && bun run build && bun run compress && cd .. && docker build -t inkweld:prod -f backend/Dockerfile .",
-    "compose:up:prod": "cd frontend && bun run clean && bun run build && bun run compress && cd .. && docker compose -f compose.yaml up -d --build ",
+    "build:image:prod": "docker build -t inkweld:prod -f backend/Dockerfile .",
+    "compose:up:prod": "docker compose -f compose.yaml up -d --build",
     "deploy:cloudflare": "npm run build:prod && cd frontend && wrangler pages deploy dist/browser --project-name inkweld-frontend && cd ../backend && wrangler deploy",
     "dev": "concurrently \"cd backend && bun run dev\" \"cd frontend && bun run start\"",
     "dev:backend": "cd backend && bun run dev"

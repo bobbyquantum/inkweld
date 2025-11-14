@@ -3,12 +3,15 @@
  * This file imports Bun-only modules and should only be used in Bun runtime
  */
 import { Hono } from 'hono';
+import type { MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
 import { generateSpecs } from 'hono-openapi';
 import { websocket } from 'hono/bun';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { config } from './config/env';
 import { errorHandler } from './middleware/error-handler';
 import {
@@ -35,6 +38,9 @@ import mcpRoutes from './routes/mcp.routes';
 import yjsRoutes from './routes/yjs.routes';
 
 const app = new Hono<BunSqliteAppContext>();
+const frontendDistPath = process.env.FRONTEND_DIST;
+const spaEnabled = Boolean(frontendDistPath && existsSync(join(frontendDistPath, 'index.html')));
+const SPA_BYPASS_PREFIXES = ['/api', '/health', '/lint', '/image', '/mcp', '/ws'];
 
 // Global middleware
 app.use('*', logger());
@@ -78,14 +84,16 @@ app.route('/image', aiImageRoutes);
 app.route('/mcp', mcpRoutes);
 app.route('/ws', yjsRoutes); // Bun supports WebSocket
 
-// Root route
-app.get('/', (c) => {
-  return c.json({
-    name: 'Inkweld API (Bun)',
-    version: config.version,
-    status: 'running',
+// Root route only when SPA assets are not bundled
+if (!spaEnabled) {
+  app.get('/', (c) => {
+    return c.json({
+      name: 'Inkweld API (Bun)',
+      version: config.version,
+      status: 'running',
+    });
   });
-});
+}
 
 // Legacy OAuth providers endpoint
 app.get('/providers', (c) => {
@@ -138,6 +146,11 @@ app.get('/api/openapi.json', async (c) => {
   return c.json(spec);
 });
 
+if (spaEnabled && frontendDistPath) {
+  const spaHandler = createSpaHandler(frontendDistPath, SPA_BYPASS_PREFIXES);
+  app.get('*', spaHandler);
+}
+
 // Error handler (must be last)
 app.onError(errorHandler);
 
@@ -173,3 +186,81 @@ export default {
 };
 
 export { app };
+
+function createSpaHandler(root: string, bypassPrefixes: string[]): MiddlewareHandler {
+  const indexFilePath = join(root, 'index.html');
+  return async (c, next) => {
+    if (c.req.method !== 'GET') {
+      return next();
+    }
+
+    const pathname = c.req.path;
+    if (shouldBypassSpa(pathname, bypassPrefixes)) {
+      return next();
+    }
+
+    const assetResponse = await serveSpaAsset(root, pathname);
+    if (assetResponse) {
+      return assetResponse;
+    }
+
+    const indexFile = Bun.file(indexFilePath);
+    if (await indexFile.exists()) {
+      return new Response(indexFile, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-cache',
+        },
+      });
+    }
+
+    return next();
+  };
+}
+
+async function serveSpaAsset(root: string, pathname: string): Promise<Response | null> {
+  const relativePath = sanitizeSpaPath(pathname);
+  const filePath = join(root, relativePath);
+  const file = Bun.file(filePath);
+
+  if (!(await file.exists())) {
+    return null;
+  }
+
+  const headers = new Headers();
+  headers.set('Content-Type', file.type || 'application/octet-stream');
+  headers.set(
+    'Cache-Control',
+    relativePath === 'index.html' ? 'no-cache' : 'public, max-age=31536000, immutable'
+  );
+
+  return new Response(file, { headers });
+}
+
+function sanitizeSpaPath(pathname: string): string {
+  if (!pathname || pathname === '/') {
+    return 'index.html';
+  }
+
+  const safeSegments = pathname
+    .split('/')
+    .map((segment) => segment.trim())
+    .filter((segment) => segment && segment !== '.' && segment !== '..')
+    .map((segment) => {
+      try {
+        return decodeURIComponent(segment);
+      } catch {
+        return segment;
+      }
+    });
+
+  if (safeSegments.length === 0) {
+    return 'index.html';
+  }
+
+  return safeSegments.join('/');
+}
+
+function shouldBypassSpa(pathname: string, prefixes: string[]): boolean {
+  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
