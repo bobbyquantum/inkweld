@@ -1,5 +1,8 @@
 import { Injectable, signal } from '@angular/core';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
+import {
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+} from '@inkweld/index';
 import { nanoid } from 'nanoid';
 
 const OFFLINE_ELEMENTS_STORAGE_KEY = 'inkweld-offline-elements';
@@ -59,7 +62,7 @@ export class OfflineProjectElementsService {
         {
           id: nanoid(),
           name: 'Chapters',
-          type: 'FOLDER',
+          type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
           level: 0,
           expandable: true,
           order: 0,
@@ -70,7 +73,7 @@ export class OfflineProjectElementsService {
         {
           id: nanoid(),
           name: 'Chapter 1',
-          type: 'ITEM',
+          type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
           level: 1,
           expandable: false,
           order: 1,
@@ -81,7 +84,7 @@ export class OfflineProjectElementsService {
         {
           id: nanoid(),
           name: 'Notes',
-          type: 'FOLDER',
+          type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
           level: 0,
           expandable: true,
           order: 2,
@@ -92,7 +95,7 @@ export class OfflineProjectElementsService {
         {
           id: nanoid(),
           name: 'Research',
-          type: 'ITEM',
+          type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
           level: 1,
           expandable: false,
           order: 3,
@@ -138,7 +141,7 @@ export class OfflineProjectElementsService {
       name,
       type,
       level: parentLevel + 1,
-      expandable: type === 'FOLDER',
+      expandable: type === GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
       order: elements.length,
       parentId: null,
       version: 0,

@@ -16,8 +16,8 @@ export interface WorldbuildingBase {
 }
 
 // Character schema
-export interface CharacterSchema extends WorldbuildingBase {
-  type: 'CHARACTER';
+export interface CharacterSchema extends Omit<WorldbuildingBase, 'type'> {
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Character;
 
   // Basic Information
   fullName?: string;
@@ -71,8 +71,8 @@ export interface CharacterSchema extends WorldbuildingBase {
 }
 
 // Location schema
-export interface LocationSchema extends WorldbuildingBase {
-  type: 'LOCATION';
+export interface LocationSchema extends Omit<WorldbuildingBase, 'type'> {
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Location;
 
   // Basic Information
   locationType?: string; // city, town, building, region, etc.
@@ -112,8 +112,8 @@ export interface LocationSchema extends WorldbuildingBase {
 }
 
 // Item schema (Worldbuilding Item)
-export interface WBItemSchema extends WorldbuildingBase {
-  type: 'WB_ITEM';
+export interface WBItemSchema extends Omit<WorldbuildingBase, 'type'> {
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.WbItem;
 
   // Basic Information
   itemType?: string; // weapon, artifact, tool, etc.
@@ -145,8 +145,8 @@ export interface WBItemSchema extends WorldbuildingBase {
 }
 
 // Map schema
-export interface MapSchema extends WorldbuildingBase {
-  type: 'MAP';
+export interface MapSchema extends Omit<WorldbuildingBase, 'type'> {
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Map;
 
   // Map Information
   mapType?: string; // world, region, city, building, etc.
@@ -179,8 +179,8 @@ export interface MapSchema extends WorldbuildingBase {
 }
 
 // Relationship schema
-export interface RelationshipSchema extends WorldbuildingBase {
-  type: 'RELATIONSHIP';
+export interface RelationshipSchema extends Omit<WorldbuildingBase, 'type'> {
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Relationship;
 
   // Relationship Details
   relationshipType?: string; // family, romantic, friendship, rivalry, etc.
@@ -210,8 +210,8 @@ export interface RelationshipSchema extends WorldbuildingBase {
 }
 
 // Philosophy schema
-export interface PhilosophySchema extends WorldbuildingBase {
-  type: 'PHILOSOPHY';
+export interface PhilosophySchema extends Omit<WorldbuildingBase, 'type'> {
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Philosophy;
 
   // Core Concepts
   coreBeliefs?: string[];
@@ -246,8 +246,8 @@ export interface PhilosophySchema extends WorldbuildingBase {
 }
 
 // Culture schema
-export interface CultureSchema extends WorldbuildingBase {
-  type: 'CULTURE';
+export interface CultureSchema extends Omit<WorldbuildingBase, 'type'> {
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Culture;
 
   // Identity
   ethnicity?: string;
@@ -292,8 +292,8 @@ export interface CultureSchema extends WorldbuildingBase {
 }
 
 // Species schema
-export interface SpeciesSchema extends WorldbuildingBase {
-  type: 'SPECIES';
+export interface SpeciesSchema extends Omit<WorldbuildingBase, 'type'> {
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Species;
 
   // Biology
   biology?: {
@@ -341,8 +341,8 @@ export interface SpeciesSchema extends WorldbuildingBase {
 }
 
 // Systems schema (Magic systems, Technology systems, etc.)
-export interface SystemsSchema extends WorldbuildingBase {
-  type: 'SYSTEMS';
+export interface SystemsSchema extends Omit<WorldbuildingBase, 'type'> {
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Systems;
 
   // System Type
   systemType?: string; // magic, technology, political, economic, etc.
