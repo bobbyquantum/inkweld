@@ -7,6 +7,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { vi } from 'vitest';
 
 import { ProjectElement } from '../../models/project-element';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from "../../../api-client/model/get-api-v1-projects-username-slug-elements200-response-inner";
 import { ProjectStateService } from '../../services/project-state.service';
 import { FolderElementEditorComponent } from './folder-element-editor.component';
 
@@ -30,7 +31,7 @@ describe('FolderElementEditorComponent', () => {
     {
       id: 'folder1',
       name: 'Test Folder',
-      type: 'FOLDER',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
       level: 0,
       position: 0,
       expandable: true,
@@ -42,7 +43,7 @@ describe('FolderElementEditorComponent', () => {
     {
       id: 'item1',
       name: 'Test Item 1',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 1,
       position: 1,
       expandable: false,
@@ -54,7 +55,7 @@ describe('FolderElementEditorComponent', () => {
     {
       id: 'item2',
       name: 'Test Item 2',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 1,
       position: 2,
       expandable: false,

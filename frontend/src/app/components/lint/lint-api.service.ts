@@ -3,8 +3,8 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { LintingService } from '../../../api-client/api/linting.service';
-import { PostLintRequest } from '../../../api-client/model/post-lint-request';
-import { PostLint200Response } from '../../../api-client/model/post-lint200-response';
+import { PostApiV1AiLintRequest, PostApiV1AiLintRequestLevel } from '../../../api-client/model/post-api-v1-ai-lint-request';
+import { PostApiV1AiLint200Response, PostApiV1AiLint200ResponseSource } from '../../../api-client/model/post-api-v1-ai-lint200-response';
 
 /**
  * Token to pass AbortSignal to the OpenAPI client
@@ -29,15 +29,15 @@ export class LintApiService {
    * @param text Paragraph text to lint
    * @param style Style guide to follow (default: 'default')
    * @param level Lint level (default: 'high')
-   * @returns PostLint200Response with corrections
+   * @returns PostApiV1AiLint200Response with corrections
    */
   async run(
     text: string,
     style = 'default',
-    level: PostLintRequest.LevelEnum = 'high'
-  ): Promise<PostLint200Response> {
+    level: PostApiV1AiLintRequestLevel = PostApiV1AiLintRequestLevel.High
+  ): Promise<PostApiV1AiLint200Response> {
     const signal = AbortSignal.timeout(this.timeout);
-    const request: PostLintRequest = {
+    const request: PostApiV1AiLintRequest = {
       paragraph: text,
       style,
       level,
@@ -45,17 +45,17 @@ export class LintApiService {
     try {
       const context = new HttpContext().set(ABORT_SIGNAL, signal);
       return await firstValueFrom(
-        this.lintService.postLint(request, 'body', false, {
+        this.lintService.postApiV1AiLint(request, 'body', false, {
           context,
         })
       );
     } catch (error) {
       console.error('Error calling lint service:', error);
       return {
-        original_paragraph: text,
+        originalParagraph: text,
         corrections: [],
-        style_recommendations: [],
-        source: 'openai',
+        styleRecommendations: [],
+        source: PostApiV1AiLint200ResponseSource.Openai,
       };
     }
   }

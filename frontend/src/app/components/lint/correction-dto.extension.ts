@@ -1,10 +1,10 @@
-import { PostLint200ResponseCorrectionsInner } from '../../../api-client/model/post-lint200-response-corrections-inner';
+import { PostApiV1AiLint200ResponseCorrectionsInner } from '../../../api-client/model/post-api-v1-ai-lint200-response-corrections-inner';
 
 /**
  * Extended correction interface for internal use in the lint system
  */
 export interface ExtendedCorrectionDto
-  extends PostLint200ResponseCorrectionsInner {
+  extends PostApiV1AiLint200ResponseCorrectionsInner {
   /**
    * The text content that this correction applies to
    */
@@ -16,12 +16,12 @@ export interface ExtendedCorrectionDto
   reason?: string;
 
   /**
-   * Start position (ProseMirror coordinate, adjusted from start_pos)
+   * Start position (ProseMirror coordinate, adjusted from startPos)
    */
   from?: number;
 
   /**
-   * End position (ProseMirror coordinate, adjusted from end_pos)
+   * End position (ProseMirror coordinate, adjusted from endPos)
    */
   to?: number;
 }

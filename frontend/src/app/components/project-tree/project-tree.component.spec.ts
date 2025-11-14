@@ -29,6 +29,7 @@ import {
 
 import { projectServiceMock } from '../../../testing/project-api.mock';
 import { ProjectElement } from '../../models/project-element';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from "../../../api-client/model/get-api-v1-projects-username-slug-elements200-response-inner";
 import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { ProjectTreeComponent } from './project-tree.component';
 
@@ -47,7 +48,7 @@ describe('ProjectTreeComponent', () => {
   const mockDto: ProjectElement = {
     id: '1',
     name: 'Test Element',
-    type: 'FOLDER',
+    type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
     position: 0,
     level: 1,
     expandable: false,
@@ -249,7 +250,7 @@ describe('ProjectTreeComponent', () => {
     ): ProjectElement => ({
       id,
       name: `Test Node ${id}`,
-      type: 'FOLDER',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
       level,
       position,
       expandable: false,
@@ -513,7 +514,7 @@ describe('ProjectTreeComponent', () => {
     const createFileNode = (): ProjectElement => ({
       id: '2',
       name: 'Test File',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       position: 0,
       level: 1,
       expandable: false,

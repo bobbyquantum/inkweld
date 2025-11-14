@@ -440,8 +440,8 @@ export class DocumentElementEditorComponent
     // Check if cursor is inside any suggestion
     for (const suggestion of pluginState.suggestions) {
       if (
-        suggestion.start_pos <= cursorPos &&
-        cursorPos <= suggestion.end_pos
+        suggestion.startPos <= cursorPos &&
+        cursorPos <= suggestion.endPos
       ) {
         return true;
       }

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-import { PostLint200ResponseCorrectionsInner } from '../../../api-client/model/post-lint200-response-corrections-inner';
+import { PostApiV1AiLint200ResponseCorrectionsInner } from '../../../api-client/model/post-api-v1-ai-lint200-response-corrections-inner';
 import { ExtendedCorrectionDto } from './correction-dto.extension';
 
 /**
@@ -22,11 +22,11 @@ export class LintStorageService {
    * Generate a unique identifier for a correction
    */
   private getCorrectionId(
-    correction: PostLint200ResponseCorrectionsInner
+    correction: PostApiV1AiLint200ResponseCorrectionsInner
   ): string {
-    const suggestion = correction.corrected_text || '';
+    const suggestion = correction.correctedText || '';
     // Since text might not be available in all cases, we'll use from/to as part of the ID
-    const uniqueKey = `${correction.start_pos}-${correction.end_pos}-${suggestion}`;
+    const uniqueKey = `${correction.startPos}-${correction.endPos}-${suggestion}`;
 
     // For ExtendedCorrectionDto with text property
     const extendedCorrection = correction as ExtendedCorrectionDto;
@@ -75,18 +75,18 @@ export class LintStorageService {
   private listenForEvents(): void {
     document.addEventListener('lint-correction-accept', (event: Event) => {
       const customEvent =
-        event as CustomEvent<PostLint200ResponseCorrectionsInner>;
+        event as CustomEvent<PostApiV1AiLint200ResponseCorrectionsInner>;
       if (customEvent.detail) {
         console.log(
           '[LintStorage] Suggestion accepted:',
-          customEvent.detail.corrected_text
+          customEvent.detail.correctedText
         );
       }
     });
 
     document.addEventListener('lint-correction-reject', (event: Event) => {
       const customEvent =
-        event as CustomEvent<PostLint200ResponseCorrectionsInner>;
+        event as CustomEvent<PostApiV1AiLint200ResponseCorrectionsInner>;
       if (customEvent.detail) {
         this.rejectSuggestion(customEvent.detail);
       }
@@ -97,14 +97,14 @@ export class LintStorageService {
    * Add a suggestion to the rejected list
    */
   public rejectSuggestion(
-    correction: PostLint200ResponseCorrectionsInner
+    correction: PostApiV1AiLint200ResponseCorrectionsInner
   ): void {
     const id = this.getCorrectionId(correction);
     this.rejectedSuggestions.add(id);
     this.saveRejectedSuggestions();
     console.log(
       '[LintStorage] Suggestion rejected and saved:',
-      correction.corrected_text
+      correction.correctedText
     );
   }
 
@@ -112,7 +112,7 @@ export class LintStorageService {
    * Check if a suggestion has been rejected
    */
   public isSuggestionRejected(
-    correction: PostLint200ResponseCorrectionsInner
+    correction: PostApiV1AiLint200ResponseCorrectionsInner
   ): boolean {
     const id = this.getCorrectionId(correction);
     return this.rejectedSuggestions.has(id);

@@ -16,7 +16,7 @@ import { pluginKey } from './lint-plugin';
     @if (activeSuggestion) {
       <div class="lint-floating-menu">
         <div class="lint-tooltip-title">
-          {{ activeSuggestion.corrected_text }}
+          {{ activeSuggestion.correctedText }}
         </div>
         <div class="lint-tooltip-reason">{{ activeSuggestion.reason }}</div>
         <div class="lint-action-buttons">
@@ -119,16 +119,16 @@ export class LintFloatingMenuComponent implements OnInit, OnDestroy {
 
       for (const suggestion of pluginState.suggestions) {
         if (
-          suggestion.start_pos <= cursorPos &&
-          cursorPos <= suggestion.end_pos
+          suggestion.startPos <= cursorPos &&
+          cursorPos <= suggestion.endPos
         ) {
           this.activeSuggestion = suggestion;
 
           // Force the floating menu to appear by creating a selection
           setTimeout(() => {
             this.forceFloatingMenuToAppear(
-              suggestion.start_pos,
-              suggestion.end_pos
+              suggestion.startPos,
+              suggestion.endPos
             );
           }, 10);
 
