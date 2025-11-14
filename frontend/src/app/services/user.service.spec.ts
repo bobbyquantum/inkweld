@@ -344,7 +344,7 @@ describe('UserService', () => {
       const service = TestBed.inject(UserService);
 
       vi.spyOn(authService, 'postApiV1AuthLogout').mockReturnValue(
-        of({ message: 'Logged out' })
+        of(new HttpResponse({ status: 200, body: { message: 'Logged out' } }))
       );
       const clearCurrentUserSpy = vi
         .spyOn(service, 'clearCurrentUser')
