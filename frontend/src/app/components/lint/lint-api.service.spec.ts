@@ -51,7 +51,7 @@ describe('LintApiService', () => {
   it('should call postApiV1AiLint with the correct parameters', async () => {
     // Mock response
     const mockResponse: PostApiV1AiLint200Response = {
-      original_paragraph: 'test text',
+      originalParagraph: 'test text',
       corrections: [],
       style_recommendations: [],
       source: 'openai' as any,
@@ -86,7 +86,7 @@ describe('LintApiService', () => {
   it('should pass custom style and level parameters correctly', async () => {
     // Mock response
     const mockResponse: PostApiV1AiLint200Response = {
-      original_paragraph: 'test text',
+      originalParagraph: 'test text',
       corrections: [],
       style_recommendations: [],
       source: 'openai' as any,
@@ -153,7 +153,7 @@ describe('LintApiService', () => {
 
     // Verify default response is returned
     expect(result).toEqual({
-      original_paragraph: 'test text',
+      originalParagraph: 'test text',
       corrections: [],
       style_recommendations: [],
       source: 'openai' as any,

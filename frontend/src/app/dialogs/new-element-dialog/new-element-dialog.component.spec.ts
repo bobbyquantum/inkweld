@@ -13,7 +13,7 @@ import { MockedObject, vi } from 'vitest';
 import {
   GetApiV1ProjectsUsernameSlugElements200ResponseInner,
   GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
-} from '../../../api-client/model/project-element-dto';
+} from '@inkweld/index';
 import { NewElementDialogComponent } from './new-element-dialog.component';
 
 describe('NewElementDialogComponent', () => {

@@ -103,6 +103,8 @@ describe('authGuard', () => {
     const user: User = {
       username: 'test',
       name: 'Test User',
+      id: 'test-id',
+      enabled: true,
     };
     mockCurrentUser.set(user);
     mockIsAuthenticated.set(true);

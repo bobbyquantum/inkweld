@@ -6,7 +6,7 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Project, UserDto } from '@inkweld/index';
+import { Project, User } from '@inkweld/index';
 import { of } from 'rxjs';
 import {
   afterEach,
@@ -19,7 +19,7 @@ import {
   vi,
 } from 'vitest';
 
-import { ProjectsService } from '../../../api-client/api/project-api.service';
+import { ProjectsService } from '@inkweld/api/projects.service';
 import { ProjectService } from '../../services/project.service';
 import { ProjectImportExportService } from '../../services/project-import-export.service';
 import { EditProjectDialogComponent } from './edit-project-dialog.component';
@@ -39,7 +39,7 @@ describe('EditProjectDialogComponent', () => {
   let ProjectsService: MockedObject<ProjectsService>;
   let projectService: MockedObject<ProjectService>;
 
-  const mockUser: UserDto = {
+  const mockUser: User = {
     username: 'testuser',
     name: 'Test User',
   };

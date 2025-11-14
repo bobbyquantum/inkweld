@@ -46,6 +46,7 @@ describe('DocumentsListTabComponent', () => {
       version: 1,
       expandable: false,
       metadata: {},
+      parentId: null,
     },
     {
       id: 'doc2',
@@ -56,6 +57,7 @@ describe('DocumentsListTabComponent', () => {
       version: 1,
       expandable: true,
       metadata: {},
+      parentId: 'folder1',
     },
     {
       id: 'doc3',

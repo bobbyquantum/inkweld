@@ -252,7 +252,6 @@ describe('ProjectTreeComponent', () => {
       name: `Test Node ${id}`,
       type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
       level,
-      position,
       expandable: false,
       version: 0,
       metadata: {},
@@ -521,6 +520,7 @@ describe('ProjectTreeComponent', () => {
       version: 0,
       metadata: {},
       visible: true,
+      parentId: null,
     });
 
     beforeEach(() => {

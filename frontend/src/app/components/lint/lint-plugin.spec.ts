@@ -60,7 +60,7 @@ describe('LintPlugin', () => {
   // Mock correction response
   const createMockLintResponse = (): PostApiV1AiLint200Response => {
     return {
-      original_paragraph: 'This is a test paragraph with some grammar errors.',
+      originalParagraph: 'This is a test paragraph with some grammar errors.',
       corrections: [
         {
           from: 10,
