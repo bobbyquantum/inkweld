@@ -7,11 +7,16 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { User } from './user';
 
 
-export interface RegisterResponse { 
-    message: string;
-    user: User;
+export interface GetApiV1AiLintStatus200Response { 
+    /**
+     * Whether AI linting is enabled
+     */
+    enabled: boolean;
+    /**
+     * The AI service being used
+     */
+    service: string;
 }
 

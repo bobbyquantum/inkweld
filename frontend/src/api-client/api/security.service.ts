@@ -17,9 +17,9 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
-import { GetCsrfToken200Response } from '../model/get-csrf-token200-response';
+import { GetApiV1CsrfToken200Response } from '../model/get-api-v1-csrf-token200-response';
 // @ts-ignore
-import { GetCsrfToken500Response } from '../model/get-csrf-token500-response';
+import { GetApiV1CsrfToken500Response } from '../model/get-api-v1-csrf-token500-response';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -39,14 +39,14 @@ export class SecurityService extends BaseService {
 
     /**
      * Get a CSRF token for form submissions
-     * @endpoint get /csrf/token
+     * @endpoint get /api/v1/csrf/token
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getCsrfToken(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetCsrfToken200Response>;
-    public getCsrfToken(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetCsrfToken200Response>>;
-    public getCsrfToken(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetCsrfToken200Response>>;
-    public getCsrfToken(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public getApiV1CsrfToken(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetApiV1CsrfToken200Response>;
+    public getApiV1CsrfToken(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetApiV1CsrfToken200Response>>;
+    public getApiV1CsrfToken(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetApiV1CsrfToken200Response>>;
+    public getApiV1CsrfToken(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -73,9 +73,9 @@ export class SecurityService extends BaseService {
             }
         }
 
-        let localVarPath = `/csrf/token`;
+        let localVarPath = `/api/v1/csrf/token`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<GetCsrfToken200Response>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<GetApiV1CsrfToken200Response>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

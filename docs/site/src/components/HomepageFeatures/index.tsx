@@ -95,9 +95,15 @@ function ShowcaseSection(): ReactNode {
             </div>
           </div>
           <div className={styles.showcaseItem}>
-            <div className={styles.showcaseImageWrapper}>
-              <img src="/img/editor-mobile.png" alt="Mobile Experience" className={clsx(styles.showcaseImage, styles.showcaseImageLight)} />
-              <img src="/img/editor-mobile-dark.png" alt="Mobile Experience" className={clsx(styles.showcaseImage, styles.showcaseImageDark)} />
+            <div className={styles.mobileShowcaseWrapper}>
+              <div className={styles.mobileImageContainer}>
+                <img src="/img/editor-mobile.png" alt="Mobile Editor" className={clsx(styles.mobileImage, styles.showcaseImageLight)} />
+                <img src="/img/editor-mobile-dark.png" alt="Mobile Editor" className={clsx(styles.mobileImage, styles.showcaseImageDark)} />
+              </div>
+              <div className={styles.mobileImageContainer}>
+                <img src="/img/bookshelf-mobile.png" alt="Mobile Bookshelf" className={clsx(styles.mobileImage, styles.showcaseImageLight)} />
+                <img src="/img/bookshelf-mobile-dark.png" alt="Mobile Bookshelf" className={clsx(styles.mobileImage, styles.showcaseImageDark)} />
+              </div>
             </div>
             <div className={styles.showcaseText}>
               <Heading as="h3">Write Anywhere</Heading>

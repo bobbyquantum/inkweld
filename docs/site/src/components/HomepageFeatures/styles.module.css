@@ -127,6 +127,33 @@
   border: 1px solid var(--ifm-color-emphasis-200);
 }
 
+.mobileShowcaseWrapper {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  align-items: center;
+}
+
+@media screen and (max-width: 996px) {
+  .mobileShowcaseWrapper {
+    gap: 1rem;
+  }
+}
+
+.mobileImageContainer {
+  position: relative;
+  flex: 1;
+  max-width: 300px;
+}
+
+.mobileImage {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
 /* Show light screenshots in light mode, hide in dark mode */
 .showcaseImageLight {
   display: block !important;

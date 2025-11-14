@@ -29,6 +29,7 @@ const sidebars: SidebarsConfig = {
       label: 'Hosting',
       items: [
         'hosting/docker',
+        'hosting/cloudflare',
         'hosting/ci-cd',
         'hosting/admin-cli',
       ],

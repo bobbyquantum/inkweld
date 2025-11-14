@@ -7,11 +7,10 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { User } from './user';
+import { OAuthProvidersResponseProviders } from './o-auth-providers-response-providers';
 
 
-export interface RegisterResponse { 
-    message: string;
-    user: User;
+export interface OAuthProvidersResponse { 
+    providers: OAuthProvidersResponseProviders;
 }
 

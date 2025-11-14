@@ -46,9 +46,9 @@ describe('Authentication', () => {
     await stopTestServer();
   });
 
-  describe('POST /login', () => {
+  describe('POST /api/v1/auth/login', () => {
     it('should login with valid credentials', async () => {
-      const { response, json } = await client.request('/login', {
+      const { response, json } = await client.request('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -65,7 +65,7 @@ describe('Authentication', () => {
     });
 
     it('should reject invalid password', async () => {
-      const { response } = await client.request('/login', {
+      const { response } = await client.request('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -78,7 +78,7 @@ describe('Authentication', () => {
     });
 
     it('should reject non-existent user', async () => {
-      const { response } = await client.request('/login', {
+      const { response } = await client.request('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -94,7 +94,7 @@ describe('Authentication', () => {
   describe('GET /api/v1/users/me', () => {
     it('should return current user when authenticated', async () => {
       // First login - cookie persists automatically with TestClient
-      await client.request('/login', {
+      await client.request('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -119,10 +119,10 @@ describe('Authentication', () => {
     });
   });
 
-  describe('POST /logout', () => {
+  describe('POST /api/v1/auth/logout', () => {
     it('should logout successfully', async () => {
       // First login - cookie persists automatically
-      await client.request('/login', {
+      await client.request('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -132,7 +132,7 @@ describe('Authentication', () => {
       });
 
       // Then logout
-      const { response } = await client.request('/logout', {
+      const { response } = await client.request('/api/v1/auth/logout', {
         method: 'POST',
       });
 

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Inkweld API",
-    "description": "Collaborative creative writing platform API",
+    "description": "Collaborative creative writing platform API (Bun)",
     "version": "1.0.0"
   },
   "servers": [
@@ -12,9 +12,59 @@
     }
   ],
   "paths": {
-    "/login": {
+    "/api/v1/auth/register": {
       "post": {
-        "operationId": "postLogin",
+        "operationId": "postApiV1AuthRegister",
+        "description": "Register a new user account",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "Registration successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or username already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "reCAPTCHA validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "postApiV1AuthLogin",
         "description": "Log in with username and password",
         "tags": [
           "Authentication"
@@ -62,9 +112,9 @@
         }
       }
     },
-    "/logout": {
+    "/api/v1/auth/logout": {
       "post": {
-        "operationId": "postLogout",
+        "operationId": "postApiV1AuthLogout",
         "description": "Log out and end session",
         "tags": [
           "Authentication"
@@ -83,9 +133,9 @@
         }
       }
     },
-    "/providers": {
+    "/api/v1/auth/providers": {
       "get": {
-        "operationId": "getProviders",
+        "operationId": "getApiV1AuthProviders",
         "description": "List available OAuth providers",
         "tags": [
           "Authentication"
@@ -97,59 +147,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OAuthProvidersResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/csrf/token": {
-      "get": {
-        "operationId": "getCsrfToken",
-        "description": "Get a CSRF token for form submissions",
-        "tags": [
-          "Security"
-        ],
-        "responses": {
-          "200": {
-            "description": "CSRF token generated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "token": {
-                      "type": "string",
-                      "description": "CSRF token for form submissions"
-                    }
-                  },
-                  "required": [
-                    "token"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Failed to generate CSRF token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    },
-                    "error": {
-                      "type": "string",
-                      "description": "Error details"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
                 }
               }
             }
@@ -378,18 +375,7 @@
               }
             }
           }
-        },
-        "parameters": [
-          {
-            "name": "username",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Username to check"
-          }
-        ]
+        }
       }
     },
     "/api/v1/users/{username}/avatar": {
@@ -626,17 +612,18 @@
     "/api/v1/projects/{username}/{slug}": {
       "get": {
         "operationId": "getApiV1Projects:username:slug",
-        "description": "Get a specific project by username and slug",
+        "description": "Get all snapshots for a project",
         "tags": [
-          "Projects"
+          "Projects",
+          "Snapshots"
         ],
         "responses": {
           "200": {
-            "description": "Project details",
+            "description": "List of snapshots",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Project"
+                  "$ref": "#/components/schemas/SnapshotsListResponse"
                 }
               }
             }
@@ -821,6 +808,92 @@
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          }
+        ]
+      },
+      "post": {
+        "operationId": "postApiV1Projects:username:slug",
+        "description": "Create a new snapshot for a document in the project",
+        "tags": [
+          "Snapshots"
+        ],
+        "responses": {
+          "201": {
+            "description": "Snapshot created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentSnapshot"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied - not project owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSnapshotRequest"
               }
             }
           }
@@ -1799,9 +1872,315 @@
         ]
       }
     },
-    "/api/images/{username}/{slug}/cover": {
+    "/api/v1/projects/{username}/{slug}/{snapshotId}": {
+      "get": {
+        "operationId": "getApiV1Projects:username:slug:snapshotId",
+        "description": "Get a specific snapshot with full document state",
+        "tags": [
+          "Snapshots"
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshot details with document state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotWithContent"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project or snapshot not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "snapshotId",
+            "required": true
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "deleteApiV1Projects:username:slug:snapshotId",
+        "description": "Delete a snapshot from the project",
+        "tags": [
+          "Snapshots"
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshot deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied - not project owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project or snapshot not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "snapshotId",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/{snapshotId}/restore": {
       "post": {
-        "operationId": "postApiImages:username:slugCover",
+        "operationId": "postApiV1Projects:username:slug:snapshotIdRestore",
+        "description": "Restore a document from a snapshot",
+        "tags": [
+          "Snapshots"
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshot restored successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied - not project owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project or snapshot not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "snapshotId",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/{snapshotId}/preview": {
+      "get": {
+        "operationId": "getApiV1Projects:username:slug:snapshotIdPreview",
+        "description": "Get a preview of the snapshot content",
+        "tags": [
+          "Snapshots"
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshot preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotWithContent"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project or snapshot not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "username",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "slug",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "snapshotId",
+            "required": true
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/cover": {
+      "post": {
+        "operationId": "postApiV1Projects:username:slugCover",
         "description": "Upload a cover image for a project",
         "tags": [
           "Images"
@@ -1923,7 +2302,7 @@
         ]
       },
       "get": {
-        "operationId": "getApiImages:username:slugCover",
+        "operationId": "getApiV1Projects:username:slugCover",
         "description": "Get the cover image for a project",
         "tags": [
           "Images"
@@ -1980,7 +2359,7 @@
         ]
       },
       "delete": {
-        "operationId": "deleteApiImages:username:slugCover",
+        "operationId": "deleteApiV1Projects:username:slugCover",
         "description": "Delete the cover image for a project",
         "tags": [
           "Images"
@@ -2083,470 +2462,9 @@
         ]
       }
     },
-    "/api/snapshots/{username}/{slug}": {
+    "/api/v1/health": {
       "get": {
-        "operationId": "getApiSnapshots:username:slug",
-        "description": "Get all snapshots for a project",
-        "tags": [
-          "Snapshots"
-        ],
-        "responses": {
-          "200": {
-            "description": "List of snapshots",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SnapshotsListResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "username",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "slug",
-            "required": true
-          }
-        ]
-      },
-      "post": {
-        "operationId": "postApiSnapshots:username:slug",
-        "description": "Create a new snapshot for a document in the project",
-        "tags": [
-          "Snapshots"
-        ],
-        "responses": {
-          "201": {
-            "description": "Snapshot created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocumentSnapshot"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied - not project owner",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateSnapshotRequest"
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "username",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "slug",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/api/snapshots/{username}/{slug}/{snapshotId}": {
-      "get": {
-        "operationId": "getApiSnapshots:username:slug:snapshotId",
-        "description": "Get a specific snapshot with full document state",
-        "tags": [
-          "Snapshots"
-        ],
-        "responses": {
-          "200": {
-            "description": "Snapshot details with document state",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SnapshotWithContent"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project or snapshot not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "username",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "slug",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "snapshotId",
-            "required": true
-          }
-        ]
-      },
-      "delete": {
-        "operationId": "deleteApiSnapshots:username:slug:snapshotId",
-        "description": "Delete a snapshot from the project",
-        "tags": [
-          "Snapshots"
-        ],
-        "responses": {
-          "200": {
-            "description": "Snapshot deleted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied - not project owner",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project or snapshot not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "username",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "slug",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "snapshotId",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/api/snapshots/{username}/{slug}/{snapshotId}/restore": {
-      "post": {
-        "operationId": "postApiSnapshots:username:slug:snapshotIdRestore",
-        "description": "Restore a document from a snapshot",
-        "tags": [
-          "Snapshots"
-        ],
-        "responses": {
-          "200": {
-            "description": "Snapshot restored successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied - not project owner",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project or snapshot not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "username",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "slug",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "snapshotId",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/api/snapshots/{username}/{slug}/{snapshotId}/preview": {
-      "get": {
-        "operationId": "getApiSnapshots:username:slug:snapshotIdPreview",
-        "description": "Get a preview of the snapshot content",
-        "tags": [
-          "Snapshots"
-        ],
-        "responses": {
-          "200": {
-            "description": "Snapshot preview",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SnapshotWithContent"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project or snapshot not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "username",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "slug",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "snapshotId",
-            "required": true
-          }
-        ]
-      }
-    },
-    "/health": {
-      "get": {
-        "operationId": "getHealth",
+        "operationId": "getApiV1Health",
         "description": "Returns the health status of the API server",
         "tags": [
           "Health"
@@ -2584,9 +2502,9 @@
         }
       }
     },
-    "/health/ready": {
+    "/api/v1/health/ready": {
       "get": {
-        "operationId": "getHealthReady",
+        "operationId": "getApiV1HealthReady",
         "description": "Returns the readiness status of the API server",
         "tags": [
           "Health"
@@ -2619,9 +2537,9 @@
         }
       }
     },
-    "/api/config": {
+    "/api/v1/config": {
       "get": {
-        "operationId": "getApiConfig",
+        "operationId": "getApiV1Config",
         "description": "Get public application configuration",
         "tags": [
           "Configuration"
@@ -2659,9 +2577,9 @@
         }
       }
     },
-    "/api/config/features": {
+    "/api/v1/config/features": {
       "get": {
-        "operationId": "getApiConfigFeatures",
+        "operationId": "getApiV1ConfigFeatures",
         "description": "Get system features configuration",
         "tags": [
           "Configuration"
@@ -2731,9 +2649,62 @@
         }
       }
     },
-    "/lint/status": {
+    "/api/v1/csrf/token": {
       "get": {
-        "operationId": "getLintStatus",
+        "operationId": "getApiV1CsrfToken",
+        "description": "Get a CSRF token for form submissions",
+        "tags": [
+          "Security"
+        ],
+        "responses": {
+          "200": {
+            "description": "CSRF token generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "description": "CSRF token for form submissions"
+                    }
+                  },
+                  "required": [
+                    "token"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to generate CSRF token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    },
+                    "error": {
+                      "type": "string",
+                      "description": "Error details"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/lint/status": {
+      "get": {
+        "operationId": "getApiV1AiLintStatus",
         "description": "Check if AI linting features are available",
         "tags": [
           "Linting"
@@ -2766,9 +2737,9 @@
         }
       }
     },
-    "/lint": {
+    "/api/v1/ai/lint": {
       "post": {
-        "operationId": "postLint",
+        "operationId": "postApiV1AiLint",
         "description": "Lint a paragraph for grammar, spelling, and style issues",
         "tags": [
           "Linting"
@@ -2960,9 +2931,9 @@
         }
       }
     },
-    "/image/generate": {
+    "/api/v1/ai/image/generate": {
       "post": {
-        "operationId": "postImageGenerate",
+        "operationId": "postApiV1AiImageGenerate",
         "description": "Generate an image using AI",
         "tags": [
           "AI Image Generation"
@@ -3074,9 +3045,9 @@
         }
       }
     },
-    "/image/status": {
+    "/api/v1/ai/image/status": {
       "get": {
-        "operationId": "getImageStatus",
+        "operationId": "getApiV1AiImageStatus",
         "description": "Check if AI image generation is available",
         "tags": [
           "AI Image Generation"
@@ -3109,9 +3080,9 @@
         }
       }
     },
-    "/mcp/sse": {
+    "/api/v1/ai/mcp/sse": {
       "get": {
-        "operationId": "getMcpSse",
+        "operationId": "getApiV1AiMcpSse",
         "description": "Model Context Protocol Server-Sent Events stream",
         "tags": [
           "MCP"
@@ -3171,25 +3142,20 @@
   },
   "components": {
     "schemas": {
-      "LoginResponse": {
+      "RegisterResponse": {
         "type": "object",
         "properties": {
           "message": {
             "type": "string",
-            "example": "Login successful"
+            "example": "Registration successful. You can now log in."
           },
           "user": {
             "$ref": "#/components/schemas/User"
-          },
-          "sessionId": {
-            "type": "string",
-            "example": "sess_abc123"
           }
         },
         "required": [
           "message",
-          "user",
-          "sessionId"
+          "user"
         ]
       },
       "User": {
@@ -3241,6 +3207,64 @@
           "error"
         ]
       },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "example": "johndoe",
+            "description": "Username (minimum 3 characters)"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "example": "secret123",
+            "description": "Password (minimum 6 characters)"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john@example.com",
+            "description": "Email address (optional)"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe",
+            "description": "User display name"
+          },
+          "captchaToken": {
+            "type": "string",
+            "example": "03AGdBq...",
+            "description": "reCAPTCHA token (required if reCAPTCHA is enabled)"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Login successful"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "sessionId": {
+            "type": "string",
+            "example": "sess_abc123"
+          }
+        },
+        "required": [
+          "message",
+          "user",
+          "sessionId"
+        ]
+      },
       "LoginRequest": {
         "type": "object",
         "properties": {
@@ -3275,12 +3299,24 @@
         ]
       },
       "OAuthProvidersResponse": {
-        "type": "array",
-        "items": {
-          "type": "string"
+        "type": "object",
+        "properties": {
+          "providers": {
+            "type": "object",
+            "properties": {
+              "github": {
+                "type": "boolean",
+                "example": false,
+                "description": "Whether GitHub OAuth is enabled"
+              }
+            },
+            "required": [
+              "github"
+            ]
+          }
         },
-        "example": [
-          "github"
+        "required": [
+          "providers"
         ]
       },
       "PaginatedUsersResponse": {

@@ -17,9 +17,9 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
-import { GetApiConfig200Response } from '../model/get-api-config200-response';
+import { GetApiV1Config200Response } from '../model/get-api-v1-config200-response';
 // @ts-ignore
-import { GetApiConfigFeatures200Response } from '../model/get-api-config-features200-response';
+import { GetApiV1ConfigFeatures200Response } from '../model/get-api-v1-config-features200-response';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -39,14 +39,14 @@ export class ConfigurationService extends BaseService {
 
     /**
      * Get public application configuration
-     * @endpoint get /api/config
+     * @endpoint get /api/v1/config
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getApiConfig(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetApiConfig200Response>;
-    public getApiConfig(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetApiConfig200Response>>;
-    public getApiConfig(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetApiConfig200Response>>;
-    public getApiConfig(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public getApiV1Config(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetApiV1Config200Response>;
+    public getApiV1Config(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetApiV1Config200Response>>;
+    public getApiV1Config(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetApiV1Config200Response>>;
+    public getApiV1Config(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -73,9 +73,9 @@ export class ConfigurationService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/config`;
+        let localVarPath = `/api/v1/config`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<GetApiConfig200Response>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<GetApiV1Config200Response>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -90,14 +90,14 @@ export class ConfigurationService extends BaseService {
 
     /**
      * Get system features configuration
-     * @endpoint get /api/config/features
+     * @endpoint get /api/v1/config/features
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getApiConfigFeatures(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetApiConfigFeatures200Response>;
-    public getApiConfigFeatures(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetApiConfigFeatures200Response>>;
-    public getApiConfigFeatures(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetApiConfigFeatures200Response>>;
-    public getApiConfigFeatures(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public getApiV1ConfigFeatures(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetApiV1ConfigFeatures200Response>;
+    public getApiV1ConfigFeatures(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetApiV1ConfigFeatures200Response>>;
+    public getApiV1ConfigFeatures(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetApiV1ConfigFeatures200Response>>;
+    public getApiV1ConfigFeatures(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -124,9 +124,9 @@ export class ConfigurationService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/config/features`;
+        let localVarPath = `/api/v1/config/features`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<GetApiConfigFeatures200Response>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<GetApiV1ConfigFeatures200Response>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

@@ -2,16 +2,17 @@
  * Script to generate OpenAPI specification from Hono routes
  *
  * This script:
- * 1. Starts the server
- * 2. Waits for it to be ready
- * 3. Fetches the OpenAPI spec
- * 4. Stops the server
- * 5. Saves the spec to openapi.json
+ * 1. Deletes old openapi.json if it exists
+ * 2. Starts the server
+ * 3. Waits for it to be ready
+ * 4. Fetches the OpenAPI spec
+ * 5. Stops the server
+ * 6. Saves the spec to openapi.json
  *
  * Run with: bun run generate:openapi
  */
 
-import { writeFile } from 'fs/promises';
+import { writeFile, unlink } from 'fs/promises';
 import * as path from 'path';
 import { spawn, type ChildProcess } from 'child_process';
 
@@ -19,10 +20,19 @@ async function generateOpenAPIJson() {
   let serverProcess: ChildProcess | null = null;
 
   try {
+    // Delete old openapi.json if it exists
+    const outputPath = path.resolve(process.cwd(), 'openapi.json');
+    try {
+      await unlink(outputPath);
+      console.log('🗑️  Deleted old openapi.json');
+    } catch {
+      // File doesn't exist, that's fine
+    }
+
     console.log('🚀 Starting server...');
 
     // Start the server process
-    serverProcess = spawn('bun', ['src/index.ts'], {
+    serverProcess = spawn('bun', ['src/bun-runner.ts'], {
       cwd: process.cwd(),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -90,7 +100,7 @@ async function generateOpenAPIJson() {
 
     const spec = await response.json();
 
-    const outputPath = path.resolve(process.cwd(), 'openapi.json');
+    // Write to the same path we cleaned up earlier
     await writeFile(outputPath, JSON.stringify(spec, null, 2));
 
     console.log(`✅ OpenAPI JSON generated at: ${outputPath}`);

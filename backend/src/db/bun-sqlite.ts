@@ -38,8 +38,7 @@ async function runMigrations(database: ReturnType<typeof drizzle>): Promise<void
     return;
   }
 
-  const migrationsFolder =
-    process.env.DRIZZLE_MIGRATIONS_DIR || join(process.cwd(), 'drizzle');
+  const migrationsFolder = process.env.DRIZZLE_MIGRATIONS_DIR || join(process.cwd(), 'drizzle');
 
   if (!existsSync(migrationsFolder)) {
     console.warn(
@@ -49,10 +48,40 @@ async function runMigrations(database: ReturnType<typeof drizzle>): Promise<void
     return;
   }
 
+  // Check if tables already exist by querying sqlite_master
   try {
+    const result = sqlite
+      ?.query<
+        { name: string },
+        []
+      >("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+      .get();
+
+    if (result) {
+      console.log('[drizzle] Database tables already exist, skipping migrations');
+      migrationsApplied = true;
+      return;
+    }
+  } catch (error) {
+    // If we can't check, proceed with migrations
+    console.log('[drizzle] Could not check existing tables, attempting migrations');
+  }
+
+  try {
+    // Drizzle's migrate function handles tracking which migrations have been applied
+    // It will only run migrations that haven't been applied yet
     await migrate(database, { migrationsFolder });
     migrationsApplied = true;
+    console.log('[drizzle] Migrations completed successfully');
   } catch (error) {
+    // If the error is about tables already existing, it's safe to continue
+    // This happens when the database is already initialized
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('already exists')) {
+      console.log('[drizzle] Database tables already exist, skipping migrations');
+      migrationsApplied = true;
+      return;
+    }
     console.error('[drizzle] Failed to run migrations:', error);
     throw error;
   }

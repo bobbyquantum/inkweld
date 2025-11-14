@@ -29,24 +29,26 @@ function generateAngularClient() {
     process.exit(1);
   }
 
-  // Ensure output directory exists
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+  // Clean old client directory to avoid leftover files
+  if (fs.existsSync(outputDir)) {
+    console.log('🗑️  Cleaning old API client...');
+    fs.rmSync(outputDir, { recursive: true, force: true });
   }
+
+  // Ensure output directory exists
+  fs.mkdirSync(outputDir, { recursive: true });
 
   try {
     console.log('🚀 Generating Angular client from OpenAPI spec...');
     console.log(`   Input: ${openapiJsonPath}`);
     console.log(`   Output: ${outputDir}`);
+    console.log(`   Config: openapitools.json`);
     console.log('');
 
-    // Convert Windows paths to forward slashes for the generator
-    const inputPath = openapiJsonPath.replace(/\\/g, '/');
-    const outputPath = outputDir.replace(/\\/g, '/');
-
-    // Generate Angular client using the same settings as /server
+    // Generate Angular client using config from openapitools.json
+    // Use the generator config named 'angular-client' from openapitools.json
     execSync(
-      `npx @openapitools/openapi-generator-cli generate -i ${inputPath} -g typescript-angular --enable-post-process-file -o ${outputPath} --additional-properties=fileNaming=kebab-case,sortParamsByRequiredFlag=true,legacyDiscriminatorBehavior=false,ensureUniqueParams=true,sortOperations=true,sortTags=true,ngVersion=20.0.0,zonejsVersion=0.15.0,ngPackagrVersion=20.0.0,serviceSuffix=Service,serviceFileSuffix=.service`,
+      'npx @openapitools/openapi-generator-cli generate --generator-key angular-client',
       { stdio: 'inherit' }
     );
 

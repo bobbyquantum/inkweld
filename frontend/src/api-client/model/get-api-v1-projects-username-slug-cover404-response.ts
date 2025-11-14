@@ -7,11 +7,12 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { User } from './user';
 
 
-export interface RegisterResponse { 
+export interface GetApiV1ProjectsUsernameSlugCover404Response { 
+    /**
+     * Error message
+     */
     message: string;
-    user: User;
 }
 

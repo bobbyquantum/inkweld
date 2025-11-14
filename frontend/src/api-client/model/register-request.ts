@@ -15,13 +15,20 @@ export interface RegisterRequest {
      */
     username: string;
     /**
-     * Email address
-     */
-    email: string;
-    /**
      * Password (minimum 6 characters)
      */
     password: string;
+    /**
+     * Email address (optional)
+     */
+    email?: string;
+    /**
+     * User display name
+     */
+    name?: string;
+    /**
+     * reCAPTCHA token (required if reCAPTCHA is enabled)
+     */
+    captchaToken?: string;
 }
-
 

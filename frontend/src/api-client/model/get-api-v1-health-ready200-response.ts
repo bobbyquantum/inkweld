@@ -7,11 +7,16 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { User } from './user';
 
 
-export interface RegisterResponse { 
-    message: string;
-    user: User;
+export interface GetApiV1HealthReady200Response { 
+    /**
+     * Readiness status
+     */
+    status: string;
+    /**
+     * Current server timestamp
+     */
+    timestamp: string;
 }
 

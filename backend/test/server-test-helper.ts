@@ -4,10 +4,11 @@
  * Hono's app.request() doesn't maintain cookies/sessions.
  */
 import { serve, type Server } from 'bun';
-import { app } from './setup.shared.js';
+import { createBunApp } from '../src/bun-app.js';
 
 let testServer: Server | null = null;
 let testPort: number = 0;
+let app: ReturnType<typeof createBunApp> | null = null;
 
 /**
  * Start a test server on a random available port
@@ -19,6 +20,11 @@ export async function startTestServer(): Promise<{ port: number; baseUrl: string
 
   // Try to find an available port
   testPort = 18333 + Math.floor(Math.random() * 1000);
+
+  // Create app instance if not exists
+  if (!app) {
+    app = await createBunApp();
+  }
 
   testServer = serve({
     port: testPort,
@@ -100,7 +106,7 @@ export class TestClient {
    * Login as a user and store session cookie
    */
   async login(username: string, password: string): Promise<boolean> {
-    const { response } = await this.request('/login', {
+    const { response } = await this.request('/api/v1/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),

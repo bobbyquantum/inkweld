@@ -1,6 +1,6 @@
 # @
 
-Collaborative creative writing platform API
+Collaborative creative writing platform API (Bun)
 
 The version of the OpenAPI document: 1.0.0
 

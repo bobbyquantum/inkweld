@@ -10,7 +10,8 @@ import type { Project } from './src/db/schema/projects.js';
 import * as path from 'path';
 import * as fs from 'fs';
 import { config } from 'dotenv';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
+import { randomBytes } from 'crypto';
 
 // Load environment variables
 config({ path: '.env' });
@@ -746,7 +747,8 @@ COMMANDS:
   disk usage                      Show disk usage report (SQLite only)
   disk by-project                 Show disk usage by project (SQLite only)
   disk by-user                    Show disk usage by user (SQLite only)
-  help                           Show this help message
+  deploy                          Interactive deployment wizard
+  help                            Show this help message
 
 EXAMPLES:
   # Local SQLite (default)
@@ -765,6 +767,514 @@ NOTE: This tool connects directly to the database and bypasses the web applicati
       For D1 databases, this CLI wraps 'wrangler d1 execute' commands.
       Make sure wrangler is installed and configured.
 `);
+}
+
+async function handleDeployWizard() {
+  console.log('🚀 Inkweld Deployment Wizard');
+  console.log('═'.repeat(80));
+  console.log('');
+  console.log('This wizard will help you deploy Inkweld using your preferred method.');
+  console.log('');
+
+  // Deployment method selection
+  console.log('📦 Choose your deployment method:');
+  console.log('');
+  console.log('1. Docker (Recommended for self-hosting)');
+  console.log('   ✓ Easy to set up and maintain');
+  console.log('   ✓ Runs on any server with Docker');
+  console.log('   ✓ Full control over your data');
+  console.log('');
+  console.log('2. Cloudflare Workers');
+  console.log('   ✓ Serverless, globally distributed');
+  console.log('   ✓ Low latency worldwide');
+  console.log('   ✓ Pay-per-use pricing');
+  console.log('');
+  console.log('3. Docker Compose (Multi-container setup)');
+  console.log('   ✓ Includes PostgreSQL database');
+  console.log('   ✓ Production-ready configuration');
+  console.log('   ✓ Easy to scale');
+  console.log('');
+
+  const method = await promptSelection('Select deployment method (1-3):', ['1', '2', '3']);
+
+  switch (method) {
+    case '1':
+      await showDockerDeployment();
+      break;
+    case '2':
+      await showCloudflareDeployment();
+      break;
+    case '3':
+      await showDockerComposeDeployment();
+      break;
+  }
+
+  // Close stdin to allow process to exit
+  process.stdin.pause();
+  process.stdin.destroy();
+}
+
+async function promptSelection(question: string, validOptions: string[]): Promise<string> {
+  console.log('');
+  process.stdout.write(`${question} `);
+
+  return new Promise((resolve) => {
+    process.stdin.setEncoding('utf8');
+    process.stdin.once('data', (data: string) => {
+      const input = data.trim();
+      if (validOptions.includes(input)) {
+        resolve(input);
+      } else {
+        console.log(`Invalid option. Please enter one of: ${validOptions.join(', ')}`);
+        resolve(promptSelection(question, validOptions));
+      }
+    });
+  });
+}
+
+async function showDockerDeployment() {
+  console.log('');
+  console.log('🐳 Interactive Docker Deployment');
+  console.log('═'.repeat(80));
+  console.log('');
+  console.log('This wizard will help you configure and deploy Inkweld with Docker.');
+  console.log('');
+
+  // Check if Docker is installed
+  try {
+    execSync('docker --version', { stdio: 'ignore' });
+  } catch {
+    console.error('❌ Docker is not installed or not in PATH');
+    console.log('');
+    console.log('Please install Docker first:');
+    console.log('  • Windows/Mac: https://www.docker.com/products/docker-desktop');
+    console.log('  • Linux: https://docs.docker.com/engine/install/');
+    console.log('');
+    return;
+  }
+
+  console.log('✅ Docker is installed');
+  console.log('');
+
+  // Check for existing .env file
+  const envPath = path.join(process.cwd(), '.env');
+  let config: Record<string, string> = {};
+
+  if (fs.existsSync(envPath)) {
+    console.log('📄 Found existing .env file');
+    const useExisting = await promptYesNo('Use existing configuration?', true);
+
+    if (useExisting) {
+      console.log('✅ Using existing .env configuration');
+      console.log('');
+
+      // Parse existing .env to get PORT for display
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      const portMatch = envContent.match(/^PORT=(.+)$/m);
+      config.PORT = portMatch ? portMatch[1] : '8333';
+      const clientUrlMatch = envContent.match(/^CLIENT_URL=(.+)$/m);
+      config.CLIENT_URL = clientUrlMatch ? clientUrlMatch[1] : 'http://localhost:8333';
+
+      await buildAndRunDocker(config);
+      return;
+    } else {
+      console.log('');
+      console.log('Creating new configuration...');
+      console.log('');
+    }
+  }
+
+  // Get configuration from user
+  config = await gatherDockerConfig();
+
+  // Generate .env file
+  await generateEnvFile(config);
+
+  // Ask if they want to build and run now
+  const shouldDeploy = await promptYesNo('Build and start Docker container now?', true);
+
+  if (shouldDeploy) {
+    await buildAndRunDocker(config);
+  } else {
+    console.log('');
+    console.log('📝 Configuration saved to .env file');
+    console.log('');
+    console.log('To build and run manually:');
+    console.log('  $ docker build -t inkweld/backend:local -f backend/Dockerfile .');
+    console.log(
+      '  $ docker run -d -p 8333:8333 -v inkweld_data:/data --env-file backend/.env --name inkweld-backend inkweld/backend:local'
+    );
+    console.log('');
+  }
+}
+
+async function gatherDockerConfig(): Promise<Record<string, string>> {
+  console.log('📋 Configuration Questions');
+  console.log('─'.repeat(80));
+  console.log('');
+
+  const config: Record<string, string> = {};
+
+  // Port
+  config.PORT = await promptWithDefault('Port to run on', '8333');
+
+  // Session secret
+  const generateSecret = await promptYesNo('Generate a secure session secret automatically?', true);
+  if (generateSecret) {
+    config.SESSION_SECRET = randomBytes(32).toString('hex');
+    console.log(`  Generated: ${config.SESSION_SECRET.substring(0, 16)}...`);
+  } else {
+    config.SESSION_SECRET = await promptRequired('Enter session secret (32+ characters)');
+  }
+
+  // Database type
+  console.log('');
+  console.log('Database options:');
+  console.log('  1. SQLite (simpler, single file)');
+  console.log('  2. PostgreSQL (production-ready, requires separate DB)');
+  const dbChoice = await promptSelection('Select database type (1-2):', ['1', '2']);
+  config.DB_TYPE = dbChoice === '1' ? 'sqlite' : 'postgres';
+
+  if (config.DB_TYPE === 'postgres') {
+    config.DATABASE_URL = await promptRequired('Enter PostgreSQL connection URL');
+  }
+
+  // Client URL / Domain
+  config.CLIENT_URL = await promptWithDefault(
+    'Domain/URL where Inkweld will be accessed',
+    'http://localhost:8333'
+  );
+  config.ALLOWED_ORIGINS = config.CLIENT_URL;
+
+  // User approval
+  config.USER_APPROVAL_REQUIRED = (await promptYesNo(
+    'Require admin approval for new user signups?',
+    true
+  ))
+    ? 'true'
+    : 'false';
+
+  // GitHub OAuth
+  const enableGitHub = await promptYesNo('Enable GitHub OAuth login?', false);
+  config.GITHUB_ENABLED = enableGitHub ? 'true' : 'false';
+
+  if (enableGitHub) {
+    config.GITHUB_CLIENT_ID = await promptRequired('GitHub OAuth Client ID');
+    config.GITHUB_CLIENT_SECRET = await promptRequired('GitHub OAuth Client Secret');
+    config.GITHUB_CALLBACK_URL = `${config.CLIENT_URL}/api/auth/github/callback`;
+  }
+
+  // reCAPTCHA
+  const enableRecaptcha = await promptYesNo('Enable reCAPTCHA for registration?', false);
+  config.RECAPTCHA_ENABLED = enableRecaptcha ? 'true' : 'false';
+
+  if (enableRecaptcha) {
+    config.RECAPTCHA_SITE_KEY = await promptRequired('reCAPTCHA Site Key');
+    config.RECAPTCHA_SECRET_KEY = await promptRequired('reCAPTCHA Secret Key');
+  }
+
+  console.log('');
+  return config;
+}
+
+async function generateEnvFile(config: Record<string, string>): Promise<void> {
+  console.log('📝 Generating .env file...');
+
+  const envContent = [
+    '# Inkweld Configuration',
+    '# Generated by deployment wizard',
+    `# Generated at: ${new Date().toISOString()}`,
+    '',
+    '# Server Configuration',
+    `PORT=${config.PORT}`,
+    `SESSION_SECRET=${config.SESSION_SECRET}`,
+    '',
+    '# Database Configuration',
+    `DB_TYPE=${config.DB_TYPE}`,
+  ];
+
+  if (config.DATABASE_URL) {
+    envContent.push(`DATABASE_URL=${config.DATABASE_URL}`);
+  }
+
+  envContent.push(
+    '',
+    '# CORS and Security',
+    `CLIENT_URL=${config.CLIENT_URL}`,
+    `ALLOWED_ORIGINS=${config.ALLOWED_ORIGINS}`,
+    '',
+    '# User Management',
+    `USER_APPROVAL_REQUIRED=${config.USER_APPROVAL_REQUIRED}`,
+    '',
+    '# GitHub OAuth',
+    `GITHUB_ENABLED=${config.GITHUB_ENABLED}`
+  );
+
+  if (config.GITHUB_CLIENT_ID) {
+    envContent.push(
+      `GITHUB_CLIENT_ID=${config.GITHUB_CLIENT_ID}`,
+      `GITHUB_CLIENT_SECRET=${config.GITHUB_CLIENT_SECRET}`,
+      `GITHUB_CALLBACK_URL=${config.GITHUB_CALLBACK_URL}`
+    );
+  }
+
+  envContent.push('', '# reCAPTCHA', `RECAPTCHA_ENABLED=${config.RECAPTCHA_ENABLED}`);
+
+  if (config.RECAPTCHA_SITE_KEY) {
+    envContent.push(
+      `RECAPTCHA_SITE_KEY=${config.RECAPTCHA_SITE_KEY}`,
+      `RECAPTCHA_SECRET_KEY=${config.RECAPTCHA_SECRET_KEY}`
+    );
+  }
+
+  const envPath = path.join(process.cwd(), '.env');
+  fs.writeFileSync(envPath, envContent.join('\n'));
+
+  console.log(`✅ Configuration saved to ${envPath}`);
+  console.log('');
+}
+
+async function buildAndRunDocker(config: Record<string, string>): Promise<void> {
+  console.log('🔨 Building Docker image...');
+  console.log('');
+
+  // Check if we're in the backend directory
+  const isInBackend = process.cwd().endsWith('backend');
+  const projectRoot = isInBackend ? path.join(process.cwd(), '..') : process.cwd();
+  const dockerfilePath = path.join(projectRoot, 'backend', 'Dockerfile');
+
+  if (!fs.existsSync(dockerfilePath)) {
+    console.error('❌ Could not find backend/Dockerfile');
+    console.log('   Make sure you run this from the project root or backend directory');
+    return;
+  }
+
+  try {
+    // Build the image
+    console.log('Building image (this may take a few minutes)...');
+    execSync(`docker build -t inkweld/backend:local -f ${dockerfilePath} ${projectRoot}`, {
+      stdio: 'inherit',
+      cwd: projectRoot,
+    });
+
+    console.log('');
+    console.log('✅ Docker image built successfully');
+    console.log('');
+
+    // Check if container already exists
+    try {
+      execSync('docker ps -a --filter name=inkweld-backend --format "{{.Names}}"', {
+        stdio: 'pipe',
+      });
+      const containerExists = execSync(
+        'docker ps -a --filter name=inkweld-backend --format "{{.Names}}"',
+        { encoding: 'utf8' }
+      ).trim();
+
+      if (containerExists) {
+        console.log('⚠️  Container "inkweld-backend" already exists');
+        const shouldRemove = await promptYesNo(
+          'Remove existing container and create new one?',
+          true
+        );
+
+        if (shouldRemove) {
+          console.log('Stopping and removing existing container...');
+          execSync('docker stop inkweld-backend', { stdio: 'ignore' });
+          execSync('docker rm inkweld-backend', { stdio: 'ignore' });
+        } else {
+          console.log('Keeping existing container. Exiting.');
+          return;
+        }
+      }
+    } catch {
+      // Container doesn't exist, continue
+    }
+
+    // Create volume if it doesn't exist
+    console.log('Creating data volume...');
+    try {
+      execSync('docker volume create inkweld_data', { stdio: 'pipe' });
+      console.log('✅ Volume created');
+    } catch {
+      console.log('✅ Volume already exists');
+    }
+    console.log('');
+
+    // Run the container
+    console.log('🚀 Starting Inkweld container...');
+    const envPath = path.join(process.cwd(), '.env');
+
+    execSync(
+      `docker run -d -p ${config.PORT}:${config.PORT} -v inkweld_data:/data --env-file ${envPath} --name inkweld-backend inkweld/backend:local`,
+      { stdio: 'inherit' }
+    );
+
+    console.log('');
+    console.log('✅ Inkweld is now running!');
+    console.log('');
+    console.log('═'.repeat(80));
+    console.log('');
+    console.log(`🌐 Access Inkweld at: ${config.CLIENT_URL}`);
+    console.log('');
+    console.log('Useful commands:');
+    console.log('  View logs:       docker logs -f inkweld-backend');
+    console.log('  Stop container:  docker stop inkweld-backend');
+    console.log('  Start container: docker start inkweld-backend');
+    console.log('  Remove container: docker rm -f inkweld-backend');
+    console.log('');
+    console.log('📖 Documentation: https://inkweld.org/docs');
+    console.log('');
+  } catch (error) {
+    console.error('');
+    console.error('❌ Deployment failed');
+    if (error instanceof Error) {
+      console.error(`   ${error.message}`);
+    }
+    console.log('');
+    console.log('💡 Try running the commands manually to see detailed error messages');
+  }
+}
+
+async function promptWithDefault(question: string, defaultValue: string): Promise<string> {
+  process.stdout.write(`${question} [${defaultValue}]: `);
+
+  return new Promise((resolve) => {
+    process.stdin.setEncoding('utf8');
+    process.stdin.once('data', (data: string) => {
+      const input = data.trim();
+      resolve(input || defaultValue);
+    });
+  });
+}
+
+async function promptRequired(question: string): Promise<string> {
+  process.stdout.write(`${question}: `);
+
+  return new Promise((resolve) => {
+    process.stdin.setEncoding('utf8');
+    process.stdin.once('data', (data: string) => {
+      const input = data.trim();
+      if (input) {
+        resolve(input);
+      } else {
+        console.log('This field is required.');
+        resolve(promptRequired(question));
+      }
+    });
+  });
+}
+
+async function promptYesNo(question: string, defaultValue: boolean): Promise<boolean> {
+  const defaultStr = defaultValue ? 'Y/n' : 'y/N';
+  process.stdout.write(`${question} [${defaultStr}]: `);
+
+  return new Promise((resolve) => {
+    process.stdin.setEncoding('utf8');
+    process.stdin.once('data', (data: string) => {
+      const input = data.trim().toLowerCase();
+      if (input === '') {
+        resolve(defaultValue);
+      } else if (input === 'y' || input === 'yes') {
+        resolve(true);
+      } else if (input === 'n' || input === 'no') {
+        resolve(false);
+      } else {
+        console.log('Please answer yes or no.');
+        resolve(promptYesNo(question, defaultValue));
+      }
+    });
+  });
+}
+
+async function showCloudflareDeployment() {
+  console.log('');
+  console.log('☁️  Cloudflare Workers Deployment Guide');
+  console.log('═'.repeat(80));
+  console.log('');
+  console.log('Prerequisites:');
+  console.log('  • Cloudflare account with Workers Paid plan');
+  console.log('  • Wrangler CLI installed (npm install -g wrangler)');
+  console.log('');
+  console.log('Step 1: Login to Cloudflare');
+  console.log('  $ npx wrangler login');
+  console.log('');
+  console.log('Step 2: Create D1 databases');
+  console.log('  $ npx wrangler d1 create inkweld_dev');
+  console.log('  $ npx wrangler d1 create inkweld_prod');
+  console.log('  ');
+  console.log('  Save the database IDs from the output');
+  console.log('');
+  console.log('Step 3: Configure wrangler.toml');
+  console.log('  $ cd backend');
+  console.log('  $ cp wrangler.toml.example wrangler.toml');
+  console.log('  ');
+  console.log('  Edit wrangler.toml and add your database IDs');
+  console.log('');
+  console.log('Step 4: Run database migrations');
+  console.log('  $ npx wrangler d1 execute inkweld_dev --file=./drizzle/0000_safe_mysterio.sql');
+  console.log('  $ npx wrangler d1 execute inkweld_prod --file=./drizzle/0000_safe_mysterio.sql');
+  console.log('');
+  console.log('Step 5: Set secrets');
+  console.log('  $ echo "your-secret-key" | npx wrangler secret put SESSION_SECRET');
+  console.log(
+    '  $ echo "your-secret-key" | npx wrangler secret put SESSION_SECRET --env production'
+  );
+  console.log('');
+  console.log('Step 6: Deploy');
+  console.log('  $ bun run deploy:dev      # Deploy to dev');
+  console.log('  $ bun run deploy:prod     # Deploy to production');
+  console.log('');
+  console.log('Step 7: Configure custom domain (optional)');
+  console.log('  Go to Workers & Pages → Your worker → Settings → Triggers');
+  console.log('  Add your custom domain');
+  console.log('');
+  console.log('📖 For detailed documentation, see:');
+  console.log('   https://inkweld.org/docs/hosting/cloudflare');
+  console.log('');
+}
+
+async function showDockerComposeDeployment() {
+  console.log('');
+  console.log('🐳 Docker Compose Deployment Guide');
+  console.log('═'.repeat(80));
+  console.log('');
+  console.log('Prerequisites:');
+  console.log('  • Docker and Docker Compose installed');
+  console.log('  • Ports 8333 and 5432 available');
+  console.log('');
+  console.log('Step 1: Review compose.yaml');
+  console.log('  The repository includes a compose.yaml with:');
+  console.log('  • Inkweld backend service');
+  console.log('  • PostgreSQL database');
+  console.log('  • Named volumes for data persistence');
+  console.log('');
+  console.log('Step 2: Create .env file (if not exists)');
+  console.log('  $ cp backend/.env.example backend/.env');
+  console.log('');
+  console.log('Step 3: Generate secrets');
+  console.log('  Edit backend/.env and set:');
+  console.log('  • SESSION_SECRET (32+ characters)');
+  console.log('  • POSTGRES_PASSWORD');
+  console.log('  • DATABASE_URL');
+  console.log('');
+  console.log('Step 4: Start services');
+  console.log('  $ docker compose up -d');
+  console.log('');
+  console.log('Step 5: Check logs');
+  console.log('  $ docker compose logs -f inkweld');
+  console.log('');
+  console.log('Step 6: Access Inkweld');
+  console.log('  Open http://localhost:8333 in your browser');
+  console.log('');
+  console.log('Management commands:');
+  console.log('  $ docker compose stop     # Stop services');
+  console.log('  $ docker compose start    # Start services');
+  console.log('  $ docker compose down     # Stop and remove containers');
+  console.log('');
+  console.log('📖 For detailed documentation, see:');
+  console.log('   https://inkweld.org/docs/hosting/docker');
+  console.log('');
 }
 
 async function main() {
@@ -829,6 +1339,10 @@ async function main() {
           console.log('💡 Disk usage is not available for D1 databases');
           console.log('   D1 storage is managed by Cloudflare');
         }
+        break;
+
+      case 'deploy':
+        await handleDeployWizard();
         break;
 
       default:

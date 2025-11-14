@@ -37,14 +37,14 @@ export class MCPService extends BaseService {
 
     /**
      * Model Context Protocol Server-Sent Events stream
-     * @endpoint get /mcp/sse
+     * @endpoint get /api/v1/ai/mcp/sse
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getMcpSse(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<string>;
-    public getMcpSse(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<string>>;
-    public getMcpSse(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<string>>;
-    public getMcpSse(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/event-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public getApiV1AiMcpSse(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<string>;
+    public getApiV1AiMcpSse(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<string>>;
+    public getApiV1AiMcpSse(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/event-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<string>>;
+    public getApiV1AiMcpSse(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/event-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -72,7 +72,7 @@ export class MCPService extends BaseService {
             }
         }
 
-        let localVarPath = `/mcp/sse`;
+        let localVarPath = `/api/v1/ai/mcp/sse`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<string>('get', `${basePath}${localVarPath}`,
             {

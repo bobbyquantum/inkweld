@@ -13,21 +13,8 @@ import { config } from './config/env';
 import { errorHandler } from './middleware/error-handler';
 import { d1DatabaseMiddleware, type D1AppContext } from './middleware/database.d1.middleware';
 
-// Routes (must be Worker-safe: no bun:sqlite, no LevelDB, no ws-only deps)
-import authRoutes from './routes/auth.routes';
-import userRoutes from './routes/user.routes';
-import projectRoutes from './routes/project.routes';
-import healthRoutes from './routes/health.routes';
-import configRoutes from './routes/config.routes';
-import imageRoutes from './routes/image.routes';
-import snapshotRoutes from './routes/snapshot.routes';
-import documentRoutes from './routes/document.routes';
-import elementRoutes from './routes/element.routes';
-import fileRoutes from './routes/file.routes';
-import epubRoutes from './routes/epub.routes';
-import lintRoutes from './routes/lint.routes';
-import aiImageRoutes from './routes/ai-image.routes';
-import mcpRoutes from './routes/mcp.routes';
+// Import common route registration + Worker-specific routes
+import { registerCommonRoutes } from './config/routes';
 import yjsWorkerRoutes from './routes/yjs-worker.routes';
 
 const app = new Hono<D1AppContext>();
@@ -55,24 +42,11 @@ app.use(
   })
 );
 
-// Routes (same paths as main backend)
-app.route('/', authRoutes);
-app.route('/api/v1/users', userRoutes);
-app.route('/api/v1/projects', projectRoutes);
-app.route('/api/v1/projects', documentRoutes);
-app.route('/api/v1/projects', elementRoutes);
-app.route('/api/v1/projects', fileRoutes);
-app.route('/api/v1/projects', epubRoutes);
-app.route('/api/images', imageRoutes);
-app.route('/api/snapshots', snapshotRoutes);
-app.route('/health', healthRoutes);
-app.route('/api/config', configRoutes);
-app.route('/lint', lintRoutes);
-app.route('/image', aiImageRoutes);
-app.route('/mcp', mcpRoutes);
+// Register common routes
+registerCommonRoutes(app);
 
-// WebSocket routes - uses Durable Objects for Yjs collaboration
-app.route('/ws', yjsWorkerRoutes);
+// Worker-specific: WebSocket routes using Durable Objects for Yjs collaboration
+app.route('/api/v1/ws', yjsWorkerRoutes);
 
 // Root + metadata
 app.get('/', (c) =>

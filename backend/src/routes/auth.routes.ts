@@ -1,17 +1,103 @@
 import { Hono } from 'hono';
 import { describeRoute, resolver, validator } from 'hono-openapi';
+import { eq } from 'drizzle-orm';
 import { authService } from '../services/auth.service.js';
 import { userService } from '../services/user.service.js';
+import { users as usersTable } from '../db/schema/users.js';
 import { config } from '../config/env.js';
 import { type AppContext } from '../types/context.js';
 import {
   LoginRequestSchema,
   LoginResponseSchema,
   OAuthProvidersResponseSchema,
+  RegisterRequestSchema,
+  RegisterResponseSchema,
 } from '../schemas/auth.schemas.js';
 import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas.js';
 
 const authRoutes = new Hono<AppContext>();
+
+// Registration endpoint
+authRoutes.post(
+  '/register',
+  describeRoute({
+    description: 'Register a new user account',
+    tags: ['Authentication'],
+    responses: {
+      200: {
+        description: 'Registration successful',
+        content: {
+          'application/json': {
+            schema: resolver(RegisterResponseSchema),
+          },
+        },
+      },
+      400: {
+        description: 'Invalid input or username already exists',
+        content: {
+          'application/json': {
+            schema: resolver(ErrorResponseSchema),
+          },
+        },
+      },
+      403: {
+        description: 'reCAPTCHA validation failed',
+        content: {
+          'application/json': {
+            schema: resolver(ErrorResponseSchema),
+          },
+        },
+      },
+    },
+  }),
+  validator('json', RegisterRequestSchema),
+  async (c) => {
+    const db = c.get('db');
+    const { username, password, email, name } = c.req.valid('json');
+
+    // Create user
+    try {
+      const newUser = await userService.create(db, {
+        username,
+        password,
+        email: email || username + '@local',
+        name: name || username,
+      });
+
+      // Auto-login if approval not required
+      if (!config.userApprovalRequired) {
+        const token = await authService.createSession(c, newUser);
+        return c.json({
+          message: 'Registration successful',
+          user: {
+            id: newUser.id,
+            username: newUser.username,
+            name: newUser.name,
+            enabled: newUser.enabled,
+          },
+          token,
+        });
+      }
+
+      return c.json({
+        message: config.userApprovalRequired
+          ? 'Registration successful. Please wait for admin approval.'
+          : 'Registration successful. You can now log in.',
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          name: newUser.name,
+          enabled: newUser.enabled,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
+        return c.json({ error: 'Username already exists' }, 400);
+      }
+      throw error;
+    }
+  }
+);
 
 // Login endpoint
 authRoutes.post(

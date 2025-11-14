@@ -3,6 +3,41 @@ title: Docker Deployment
 description: Build and run the bundled backend+SPA container, configure volumes, and customize runtime options.
 ---
 
+## Quick Start with Deployment Wizard
+
+The easiest way to deploy Inkweld with Docker is using the interactive deployment wizard:
+
+```bash
+cd backend
+bun run admin-cli.ts deploy
+```
+
+Select option **1. Docker** and follow the prompts. The wizard will:
+
+- ✅ Check if Docker is installed
+- ✅ Detect existing configuration or gather settings interactively
+- ✅ Generate `.env` file with secure defaults
+- ✅ Build the Docker image
+- ✅ Create data volume
+- ✅ Start the container
+- ✅ Show you how to access Inkweld
+
+**Configuration options include:**
+
+- Port number (default: 8333)
+- Database type (SQLite or PostgreSQL)
+- Session secret (auto-generated)
+- Domain/URL
+- User approval requirements
+- GitHub OAuth (optional)
+- reCAPTCHA (optional)
+
+---
+
+## Manual Deployment
+
+If you prefer manual control, follow these steps:
+
 ## Overview
 
 The backend Dockerfile produces a single image that serves the Angular production bundle and the Bun API from the same container. Every `docker run` exposes port `8333`, hosts the SPA at `/`, and continues to answer API requests under `/api/**`.

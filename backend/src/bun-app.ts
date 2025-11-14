@@ -20,21 +20,8 @@ import {
 } from './middleware/database.bun-sqlite.middleware';
 import { setupBunDatabase } from './db/bun-sqlite';
 
-// Import routes
-import authRoutes from './routes/auth.routes';
-import userRoutes from './routes/user.routes';
-import projectRoutes from './routes/project.routes';
-import healthRoutes from './routes/health.routes';
-import configRoutes from './routes/config.routes';
-import imageRoutes from './routes/image.routes';
-import snapshotRoutes from './routes/snapshot.routes';
-import documentRoutes from './routes/document.routes';
-import elementRoutes from './routes/element.routes';
-import fileRoutes from './routes/file.routes';
-import epubRoutes from './routes/epub.routes';
-import lintRoutes from './routes/lint.routes';
-import aiImageRoutes from './routes/ai-image.routes';
-import mcpRoutes from './routes/mcp.routes';
+// Import common route registration + specialized routes
+import { registerCommonRoutes } from './config/routes';
 import yjsRoutes from './routes/yjs.routes';
 
 const app = new Hono<BunSqliteAppContext>();
@@ -67,22 +54,11 @@ app.use(
   })
 );
 
-// Routes
-app.route('/', authRoutes);
-app.route('/api/v1/users', userRoutes);
-app.route('/api/v1/projects', projectRoutes);
-app.route('/api/v1/projects', documentRoutes);
-app.route('/api/v1/projects', elementRoutes);
-app.route('/api/v1/projects', fileRoutes);
-app.route('/api/v1/projects', epubRoutes);
-app.route('/api/images', imageRoutes);
-app.route('/api/snapshots', snapshotRoutes);
-app.route('/health', healthRoutes);
-app.route('/api/config', configRoutes);
-app.route('/lint', lintRoutes);
-app.route('/image', aiImageRoutes);
-app.route('/mcp', mcpRoutes);
-app.route('/ws', yjsRoutes); // Bun supports WebSocket
+// Register common routes
+registerCommonRoutes(app);
+
+// Bun-specific: WebSocket routes for Yjs collaboration
+app.route('/api/v1/ws', yjsRoutes);
 
 // Root route only when SPA assets are not bundled
 if (!spaEnabled) {
@@ -95,33 +71,28 @@ if (!spaEnabled) {
   });
 }
 
-// Legacy OAuth providers endpoint
-app.get('/providers', (c) => {
-  return c.json({
-    providers: {
-      github: config.github.enabled,
-    },
-  });
-});
-
 // API documentation
 app.get('/api', (c) => {
   return c.json({
     message: 'Inkweld API - Hono version (Bun)',
     version: config.version,
     endpoints: {
-      auth: '/api/auth',
+      auth: '/api/v1/auth',
       users: '/api/v1/users',
       projects: '/api/v1/projects',
       documents: '/api/v1/projects/:username/:slug/docs',
       elements: '/api/v1/projects/:username/:slug/elements',
       files: '/api/v1/projects/:username/:slug/files',
       epub: '/api/v1/projects/:username/:slug/epub',
-      images: '/api/images',
-      snapshots: '/api/snapshots',
-      health: '/health',
-      config: '/api/config',
-      websocket: '/ws',
+      images: '/api/v1/images',
+      snapshots: '/api/v1/snapshots',
+      health: '/api/v1/health',
+      config: '/api/v1/config',
+      csrf: '/api/v1/csrf',
+      lint: '/api/v1/lint',
+      aiImage: '/api/v1/image',
+      mcp: '/api/v1/mcp',
+      websocket: '/api/v1/ws',
     },
   });
 });
@@ -263,4 +234,10 @@ function sanitizeSpaPath(pathname: string): string {
 
 function shouldBypassSpa(pathname: string, prefixes: string[]): boolean {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+// Function to create and initialize the app for testing
+export async function createBunApp() {
+  await setupBunDatabase();
+  return app;
 }

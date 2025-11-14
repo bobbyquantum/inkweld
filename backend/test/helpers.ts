@@ -33,7 +33,7 @@ export async function loginUser(
   username: string,
   password: string
 ): Promise<string> {
-  const res = await app.request('/login', {
+  const res = await app.request('/api/v1/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),

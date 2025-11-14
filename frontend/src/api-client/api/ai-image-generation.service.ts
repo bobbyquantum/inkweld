@@ -17,11 +17,11 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
+import { GetApiV1AiImageStatus200Response } from '../model/get-api-v1-ai-image-status200-response';
+// @ts-ignore
 import { GetApiV1ProjectsUsernameSlugDocs401Response } from '../model/get-api-v1-projects-username-slug-docs401-response';
 // @ts-ignore
-import { GetImageStatus200Response } from '../model/get-image-status200-response';
-// @ts-ignore
-import { PostImageGenerate200Response } from '../model/post-image-generate200-response';
+import { PostApiV1AiImageGenerate200Response } from '../model/post-api-v1-ai-image-generate200-response';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -41,14 +41,14 @@ export class AIImageGenerationService extends BaseService {
 
     /**
      * Check if AI image generation is available
-     * @endpoint get /image/status
+     * @endpoint get /api/v1/ai/image/status
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getImageStatus(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetImageStatus200Response>;
-    public getImageStatus(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetImageStatus200Response>>;
-    public getImageStatus(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetImageStatus200Response>>;
-    public getImageStatus(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public getApiV1AiImageStatus(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetApiV1AiImageStatus200Response>;
+    public getApiV1AiImageStatus(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetApiV1AiImageStatus200Response>>;
+    public getApiV1AiImageStatus(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetApiV1AiImageStatus200Response>>;
+    public getApiV1AiImageStatus(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -75,9 +75,9 @@ export class AIImageGenerationService extends BaseService {
             }
         }
 
-        let localVarPath = `/image/status`;
+        let localVarPath = `/api/v1/ai/image/status`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<GetImageStatus200Response>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<GetApiV1AiImageStatus200Response>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -92,14 +92,14 @@ export class AIImageGenerationService extends BaseService {
 
     /**
      * Generate an image using AI
-     * @endpoint post /image/generate
+     * @endpoint post /api/v1/ai/image/generate
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public postImageGenerate(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PostImageGenerate200Response>;
-    public postImageGenerate(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PostImageGenerate200Response>>;
-    public postImageGenerate(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PostImageGenerate200Response>>;
-    public postImageGenerate(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public postApiV1AiImageGenerate(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PostApiV1AiImageGenerate200Response>;
+    public postApiV1AiImageGenerate(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PostApiV1AiImageGenerate200Response>>;
+    public postApiV1AiImageGenerate(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PostApiV1AiImageGenerate200Response>>;
+    public postApiV1AiImageGenerate(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -126,9 +126,9 @@ export class AIImageGenerationService extends BaseService {
             }
         }
 
-        let localVarPath = `/image/generate`;
+        let localVarPath = `/api/v1/ai/image/generate`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<PostImageGenerate200Response>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<PostApiV1AiImageGenerate200Response>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

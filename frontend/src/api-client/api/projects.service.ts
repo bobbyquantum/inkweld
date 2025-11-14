@@ -19,6 +19,8 @@ import { Observable }                                        from 'rxjs';
 // @ts-ignore
 import { CreateProjectRequest } from '../model/create-project-request';
 // @ts-ignore
+import { DocumentSnapshot } from '../model/document-snapshot';
+// @ts-ignore
 import { ErrorResponse } from '../model/error-response';
 // @ts-ignore
 import { MessageResponse } from '../model/message-response';
@@ -154,16 +156,16 @@ export class ProjectsService extends BaseService {
     }
 
     /**
-     * Get a specific project by username and slug
+     * Get all snapshots for a project
      * @endpoint get /api/v1/projects/{username}/{slug}
      * @param username 
      * @param slug 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getApiV1ProjectsUsernameSlug(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Project>;
-    public getApiV1ProjectsUsernameSlug(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Project>>;
-    public getApiV1ProjectsUsernameSlug(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Project>>;
+    public getApiV1ProjectsUsernameSlug(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<DocumentSnapshot>>;
+    public getApiV1ProjectsUsernameSlug(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<DocumentSnapshot>>>;
+    public getApiV1ProjectsUsernameSlug(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<DocumentSnapshot>>>;
     public getApiV1ProjectsUsernameSlug(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
             throw new Error('Required parameter username was null or undefined when calling getApiV1ProjectsUsernameSlug.');
@@ -199,7 +201,7 @@ export class ProjectsService extends BaseService {
 
         let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<Project>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<Array<DocumentSnapshot>>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

@@ -72,5 +72,11 @@ export const LoginResponseSchema = z
  * @component OAuthProvidersResponse
  */
 export const OAuthProvidersResponseSchema = z
-  .array(z.string())
-  .openapi({ ref: 'OAuthProvidersResponse', example: ['github'] });
+  .object({
+    providers: z.object({
+      github: z
+        .boolean()
+        .openapi({ example: false, description: 'Whether GitHub OAuth is enabled' }),
+    }),
+  })
+  .openapi({ ref: 'OAuthProvidersResponse' });

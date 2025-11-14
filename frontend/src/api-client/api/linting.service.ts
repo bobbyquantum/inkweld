@@ -17,13 +17,13 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
+import { GetApiV1AiLintStatus200Response } from '../model/get-api-v1-ai-lint-status200-response';
+// @ts-ignore
 import { GetApiV1ProjectsUsernameSlugDocs401Response } from '../model/get-api-v1-projects-username-slug-docs401-response';
 // @ts-ignore
-import { GetLintStatus200Response } from '../model/get-lint-status200-response';
+import { PostApiV1AiLint200Response } from '../model/post-api-v1-ai-lint200-response';
 // @ts-ignore
-import { PostLint200Response } from '../model/post-lint200-response';
-// @ts-ignore
-import { PostLintRequest } from '../model/post-lint-request';
+import { PostApiV1AiLintRequest } from '../model/post-api-v1-ai-lint-request';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -43,14 +43,14 @@ export class LintingService extends BaseService {
 
     /**
      * Check if AI linting features are available
-     * @endpoint get /lint/status
+     * @endpoint get /api/v1/ai/lint/status
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getLintStatus(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetLintStatus200Response>;
-    public getLintStatus(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetLintStatus200Response>>;
-    public getLintStatus(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetLintStatus200Response>>;
-    public getLintStatus(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public getApiV1AiLintStatus(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetApiV1AiLintStatus200Response>;
+    public getApiV1AiLintStatus(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetApiV1AiLintStatus200Response>>;
+    public getApiV1AiLintStatus(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetApiV1AiLintStatus200Response>>;
+    public getApiV1AiLintStatus(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -77,9 +77,9 @@ export class LintingService extends BaseService {
             }
         }
 
-        let localVarPath = `/lint/status`;
+        let localVarPath = `/api/v1/ai/lint/status`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<GetLintStatus200Response>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<GetApiV1AiLintStatus200Response>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -94,15 +94,15 @@ export class LintingService extends BaseService {
 
     /**
      * Lint a paragraph for grammar, spelling, and style issues
-     * @endpoint post /lint
-     * @param postLintRequest 
+     * @endpoint post /api/v1/ai/lint
+     * @param postApiV1AiLintRequest 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public postLint(postLintRequest?: PostLintRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PostLint200Response>;
-    public postLint(postLintRequest?: PostLintRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PostLint200Response>>;
-    public postLint(postLintRequest?: PostLintRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PostLint200Response>>;
-    public postLint(postLintRequest?: PostLintRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public postApiV1AiLint(postApiV1AiLintRequest?: PostApiV1AiLintRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PostApiV1AiLint200Response>;
+    public postApiV1AiLint(postApiV1AiLintRequest?: PostApiV1AiLintRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PostApiV1AiLint200Response>>;
+    public postApiV1AiLint(postApiV1AiLintRequest?: PostApiV1AiLintRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PostApiV1AiLint200Response>>;
+    public postApiV1AiLint(postApiV1AiLintRequest?: PostApiV1AiLintRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -138,12 +138,12 @@ export class LintingService extends BaseService {
             }
         }
 
-        let localVarPath = `/lint`;
+        let localVarPath = `/api/v1/ai/lint`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<PostLint200Response>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<PostApiV1AiLint200Response>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
-                body: postLintRequest,
+                body: postApiV1AiLintRequest,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,
