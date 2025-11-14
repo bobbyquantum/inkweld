@@ -8,9 +8,10 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/model/project-element-dto';
+import {
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+} from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { Mock, vi } from 'vitest';
@@ -160,7 +161,7 @@ describe('DocumentsListTabComponent', () => {
     const newDocArg = (projectStateService.openDocument as Mock).mock
       .calls[0][0];
     expect(newDocArg.type).toBe(
-      GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item
+      GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
     );
     expect(newDocArg.name).toBe('New Document');
   });

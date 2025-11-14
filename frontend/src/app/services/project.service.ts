@@ -388,7 +388,7 @@ export class ProjectService {
 
     try {
       return await firstValueFrom(
-        this.imagesApi.getApiImagesUsernameSlugCover(username, slug).pipe(
+        this.imagesApi.getApiV1ProjectsUsernameSlugCover(username, slug).pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
             const projectError = this.formatError(error);
@@ -438,7 +438,7 @@ export class ProjectService {
     try {
       // Assume delete returns void or similar
       await firstValueFrom(
-        this.imagesApi.deleteApiImagesUsernameSlugCover(username, slug).pipe(
+        this.imagesApi.deleteApiV1ProjectsUsernameSlugCover(username, slug).pipe(
           retry(MAX_RETRIES),
           catchError(err => throwError(() => this.formatError(err)))
         )

@@ -15,20 +15,23 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../../api-client';
+import {
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+} from '../../../api-client';
 import { ProjectStateService } from '../../services/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding.service';
 
 interface NewElementForm {
   name: FormControl<string>;
-  type: FormControl<GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum>;
+  type: FormControl<GetApiV1ProjectsUsernameSlugElements200ResponseInnerType>;
 }
 export interface NewElementDialogResult {
   name: string;
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum;
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType;
 }
 interface ElementTypeOption {
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum;
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType;
   label: string;
   icon: string;
   description: string;
@@ -63,7 +66,7 @@ export class NewElementDialogComponent {
   // Step control
   currentStep = signal<1 | 2>(1);
   selectedType =
-    signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum | null>(
+    signal<GetApiV1ProjectsUsernameSlugElements200ResponseInnerType | null>(
       null
     );
   searchQuery = signal('');
@@ -72,7 +75,7 @@ export class NewElementDialogComponent {
   elementTypeOptions = signal<ElementTypeOption[]>([
     // Document types (always available)
     {
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType
         .Folder,
       label: 'Folder',
       icon: 'folder',
@@ -80,7 +83,7 @@ export class NewElementDialogComponent {
       category: 'document',
     },
     {
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item,
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       label: 'Document',
       icon: 'description',
       description: 'Create a narrative document or chapter',
@@ -123,8 +126,8 @@ export class NewElementDialogComponent {
         nonNullable: true,
         validators: [Validators.required],
       }),
-      type: new FormControl<GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum>(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item,
+      type: new FormControl<GetApiV1ProjectsUsernameSlugElements200ResponseInnerType>(
+        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
         {
           nonNullable: true,
           validators: [Validators.required],
@@ -191,7 +194,7 @@ export class NewElementDialogComponent {
         console.log('[NewElementDialog] Found schema:', schemaInfo);
 
         worldbuildingOptions.push({
-          type: type as GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum,
+          type: type as GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           label: name,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -239,7 +242,7 @@ export class NewElementDialogComponent {
 
   // Step 1: Select type
   selectType(
-    type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum
+    type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType
   ): void {
     this.selectedType.set(type);
     this.form.controls.type.setValue(type);

@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import {
   GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
   Project,
 } from '@inkweld/index';
 import JSZip from '@progress/jszip-esm';
@@ -227,10 +228,10 @@ export class ProjectImportExportService {
     const elements = allElements.filter(
       elem =>
         elem.type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum
+          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType
             .Folder ||
         elem.type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item
+          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
     );
 
     const archive: ProjectArchive = {

@@ -13,7 +13,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
+import {
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+} from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { format } from 'date-fns';
@@ -149,7 +152,7 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
     const newDocument: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: 'new',
       name: 'New Document',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item,
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       parentId: null,
       level: 0,
       order: 0,

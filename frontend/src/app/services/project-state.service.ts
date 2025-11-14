@@ -2,6 +2,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import {
   ExportService,
   GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
   Project,
   ProjectsService,
 } from '@inkweld/index';
@@ -43,7 +44,7 @@ export interface AppTab {
   type: 'document' | 'folder' | 'system' | 'worldbuilding';
   systemType?: 'documents-list' | 'project-files' | 'templates-list' | 'home';
   element?: GetApiV1ProjectsUsernameSlugElements200ResponseInner;
-  elementType?: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum;
+  elementType?: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType;
 }
 
 @Injectable({
@@ -1046,12 +1047,12 @@ export class ProjectStateService {
     let tabType: 'document' | 'folder' | 'worldbuilding' = 'document';
     if (
       element.type ===
-      GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Folder
+      GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder
     ) {
       tabType = 'folder';
     } else if (
       element.type ===
-      GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum.Item
+      GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
     ) {
       // ITEM is always a document
       tabType = 'document';

@@ -1,10 +1,13 @@
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../api-client';
+import {
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+} from '../../api-client';
 
 // Base interface for all worldbuilding elements
 export interface WorldbuildingBase {
   id: string;
   name: string;
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum;
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType;
   summary?: string;
   notes?: string;
   tags?: string[];
@@ -404,7 +407,7 @@ export type WorldbuildingSchema =
 
 // Helper to get the schema type from element type
 export function getSchemaFromType(
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType
 ): string | null {
   switch (type) {
     case 'CHARACTER':
@@ -432,7 +435,7 @@ export function getSchemaFromType(
 
 // Helper to check if an element type is a worldbuilding type
 export function isWorldbuildingType(
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum
+  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType
 ): boolean {
   // Custom templates start with 'CUSTOM_'
   if (typeof type === 'string' && type.startsWith('CUSTOM_')) {
