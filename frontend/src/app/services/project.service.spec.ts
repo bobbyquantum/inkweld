@@ -57,8 +57,8 @@ describe('ProjectService', () => {
     xsrf.getXsrfToken.mockReturnValue('token');
 
     // API baseline
-    api.getApiProjects.mockReturnValue(apiOk(BASE));
-    api.getApiProjectsUsernameSlug.mockReturnValue(apiOk(BASE[0]));
+    api.getApiV1Projects.mockReturnValue(apiOk(BASE));
+    api.getApiV1ProjectsUsernameSlug.mockReturnValue(apiOk(BASE[0]));
     api.projectControllerCreateProject.mockImplementation(
       (_t: unknown, dto: unknown) =>
         apiOk(dto) as unknown as Observable<HttpResponse<Project>> &
@@ -71,7 +71,7 @@ describe('ProjectService', () => {
     api.projectControllerDeleteProject.mockReturnValue(apiOk(null));
     api.coverControllerGetProjectCover.mockReturnValue(apiOk(new Blob()));
     api.coverControllerDeleteCover.mockReturnValue(apiOk(undefined));
-    api.postApiImagesUsernameSlugCover.mockReturnValue(apiOk(undefined));
+    api.postApiV1ProjectsUsernameSlugCover.mockReturnValue(apiOk(undefined));
 
     TestBed.configureTestingModule({
       providers: [
@@ -91,7 +91,7 @@ describe('ProjectService', () => {
 
     await service.loadAllProjects();
 
-    expect(api.getApiProjects).toHaveBeenCalled();
+    expect(api.getApiV1Projects).toHaveBeenCalled();
     expect(store.put).toHaveBeenCalledWith(
       DB,
       'projectsList',
@@ -105,7 +105,7 @@ describe('ProjectService', () => {
   describe('getProjectByUsernameAndSlug', () => {
     beforeEach(() => {
       // Reset mocks before each test
-      api.getApiProjectsUsernameSlug.mockReset();
+      api.getApiV1ProjectsUsernameSlug.mockReset();
       store.get.mockReset();
       xsrf.getXsrfToken.mockReset();
       xsrf.getXsrfToken.mockReturnValue('test-token');
@@ -129,7 +129,7 @@ describe('ProjectService', () => {
       );
 
       // API should not be called
-      expect(api.getApiProjectsUsernameSlug).not.toHaveBeenCalled();
+      expect(api.getApiV1ProjectsUsernameSlug).not.toHaveBeenCalled();
 
       // Result should match the cached project
       expect(result).toEqual(BASE[0]);
@@ -140,7 +140,7 @@ describe('ProjectService', () => {
       store.get.mockResolvedValue(undefined);
 
       // Mock API response
-      api.getApiProjectsUsernameSlug.mockReturnValue(apiOk(BASE[0]));
+      api.getApiV1ProjectsUsernameSlug.mockReturnValue(apiOk(BASE[0]));
 
       const result = await service.getProjectByUsernameAndSlug(
         'alice',
@@ -155,7 +155,7 @@ describe('ProjectService', () => {
       );
 
       // API should be called with token
-      expect(api.getApiProjectsUsernameSlug).toHaveBeenCalledWith(
+      expect(api.getApiV1ProjectsUsernameSlug).toHaveBeenCalledWith(
         'alice',
         'project-1'
       );
@@ -182,7 +182,7 @@ describe('ProjectService', () => {
       });
 
       // Mock the API to fail
-      api.getApiProjectsUsernameSlug.mockReturnValue(
+      api.getApiV1ProjectsUsernameSlug.mockReturnValue(
         apiErr(new Error('Test error'))
       );
 
@@ -201,7 +201,7 @@ describe('ProjectService', () => {
       store.get.mockResolvedValue(undefined);
 
       // Mock API response
-      api.getApiProjectsUsernameSlug.mockReturnValue(apiOk(BASE[1]));
+      api.getApiV1ProjectsUsernameSlug.mockReturnValue(apiOk(BASE[1]));
 
       const result = await service.getProjectByUsernameAndSlug(
         'bob',
@@ -216,7 +216,7 @@ describe('ProjectService', () => {
       );
 
       // API should be called with token
-      expect(api.getApiProjectsUsernameSlug).toHaveBeenCalledWith(
+      expect(api.getApiV1ProjectsUsernameSlug).toHaveBeenCalledWith(
         'bob',
         'project-2'
       );
@@ -238,7 +238,7 @@ describe('ProjectService', () => {
       store.get.mockResolvedValue(undefined);
 
       // Mock network error
-      api.getApiProjectsUsernameSlug.mockReturnValue(
+      api.getApiV1ProjectsUsernameSlug.mockReturnValue(
         apiErr(new HttpErrorResponse({ status: 0 }))
       );
 
@@ -256,7 +256,7 @@ describe('ProjectService', () => {
       store.get.mockResolvedValue(undefined);
 
       // Mock 404 error
-      api.getApiProjectsUsernameSlug.mockReturnValue(
+      api.getApiV1ProjectsUsernameSlug.mockReturnValue(
         apiErr(new HttpErrorResponse({ status: 404 }))
       );
 
@@ -281,7 +281,7 @@ describe('ProjectService', () => {
         createdDate: date,
         updatedDate: date,
       };
-      api.getApiProjectsUsernameSlug.mockReturnValue(apiOk(updatedProject));
+      api.getApiV1ProjectsUsernameSlug.mockReturnValue(apiOk(updatedProject));
 
       // We can't call refreshProjectInBackground directly as it's private
       // But we can test its effect after a call to getProjectByUsernameAndSlug
@@ -308,7 +308,7 @@ describe('ProjectService', () => {
       });
 
       // Mock the API to fail
-      api.getApiProjectsUsernameSlug.mockReturnValue(
+      api.getApiV1ProjectsUsernameSlug.mockReturnValue(
         apiErr(new Error('Test error'))
       );
 
@@ -326,7 +326,7 @@ describe('ProjectService', () => {
   describe('loadAllProjects', () => {
     beforeEach(() => {
       // Reset mocks before each test
-      api.getApiProjects.mockReset();
+      api.getApiV1Projects.mockReset();
       xsrf.getXsrfToken.mockReset();
       xsrf.getXsrfToken.mockReturnValue('test-token');
       store.get.mockReset();
@@ -339,7 +339,7 @@ describe('ProjectService', () => {
 
     it('loads projects from API and caches them', async () => {
       // Mock API response
-      api.getApiProjects.mockReturnValue(apiOk(BASE));
+      api.getApiV1Projects.mockReturnValue(apiOk(BASE));
 
       // Mock cache miss for projects list
       store.get.mockImplementation(() => {
@@ -349,7 +349,7 @@ describe('ProjectService', () => {
       await service.loadAllProjects();
 
       // Should have called the API with token
-      expect(api.getApiProjects).toHaveBeenCalledWith();
+      expect(api.getApiV1Projects).toHaveBeenCalledWith();
 
       // Should have set the projects signal
       expect(service.projects()).toEqual(BASE);
@@ -365,7 +365,7 @@ describe('ProjectService', () => {
       });
 
       // Clear previous calls
-      api.getApiProjects.mockClear();
+      api.getApiV1Projects.mockClear();
 
       await service.loadAllProjects();
 
@@ -373,7 +373,7 @@ describe('ProjectService', () => {
       expect(service.projects()).toEqual(BASE);
 
       // API should still be called to refresh in background
-      expect(api.getApiProjects).toHaveBeenCalledWith();
+      expect(api.getApiV1Projects).toHaveBeenCalledWith();
     });
 
     it('handles API errors gracefully when cache is available', async () => {
@@ -386,7 +386,7 @@ describe('ProjectService', () => {
       });
 
       // Mock API error
-      api.getApiProjects.mockReturnValue(
+      api.getApiV1Projects.mockReturnValue(
         apiErr(new HttpErrorResponse({ status: 500 }))
       );
 
@@ -401,7 +401,7 @@ describe('ProjectService', () => {
       store.get.mockResolvedValue(undefined);
 
       // Mock API error
-      api.getApiProjects.mockReturnValue(
+      api.getApiV1Projects.mockReturnValue(
         apiErr(new HttpErrorResponse({ status: 0 }))
       );
 
@@ -423,7 +423,7 @@ describe('ProjectService', () => {
     beforeEach(() => {
       // Reset mocks before each test
       api.projectControllerCreateProject.mockReset();
-      api.getApiProjects.mockReset();
+      api.getApiV1Projects.mockReset();
       xsrf.getXsrfToken.mockReset();
       xsrf.getXsrfToken.mockReturnValue('test-token');
       service.error.set(undefined);
@@ -441,7 +441,7 @@ describe('ProjectService', () => {
       };
 
       // Clear previous calls
-      api.getApiProjects.mockClear();
+      api.getApiV1Projects.mockClear();
 
       // Mock API response
       api.projectControllerCreateProject.mockReturnValue(apiOk(newProject));
@@ -510,7 +510,7 @@ describe('ProjectService', () => {
     beforeEach(() => {
       // Reset mocks before each test
       api.projectControllerUpdateProject.mockReset();
-      api.getApiProjects.mockReset();
+      api.getApiV1Projects.mockReset();
       xsrf.getXsrfToken.mockReset();
       xsrf.getXsrfToken.mockReturnValue('test-token');
       service.error.set(undefined);
@@ -527,7 +527,7 @@ describe('ProjectService', () => {
 
       // Setup successful API responses
       api.projectControllerUpdateProject.mockReturnValue(apiOk(updatedProject));
-      api.getApiProjects.mockReturnValue(apiOk(BASE));
+      api.getApiV1Projects.mockReturnValue(apiOk(BASE));
 
       const result = await service.updateProject(
         'alice',
@@ -615,7 +615,7 @@ describe('ProjectService', () => {
     beforeEach(() => {
       // Reset mocks before each test
       api.projectControllerDeleteProject.mockReset();
-      api.getApiProjects.mockReset();
+      api.getApiV1Projects.mockReset();
       store.delete.mockReset();
       xsrf.getXsrfToken.mockReset();
       xsrf.getXsrfToken.mockReturnValue('test-token');
@@ -624,7 +624,7 @@ describe('ProjectService', () => {
 
     it('deletes a project and refreshes the project list', async () => {
       // Clear previous calls
-      api.getApiProjects.mockClear();
+      api.getApiV1Projects.mockClear();
 
       // Mock API response
       api.projectControllerDeleteProject.mockReturnValue(apiOk(null));
@@ -744,7 +744,7 @@ describe('ProjectService', () => {
     beforeEach(() => {
       // Reset mocks before each test
       api.coverControllerDeleteCover.mockReset();
-      api.getApiProjects.mockReset();
+      api.getApiV1Projects.mockReset();
       xsrf.getXsrfToken.mockReset();
       xsrf.getXsrfToken.mockReturnValue('test-token');
       store.delete.mockReset();
@@ -754,7 +754,7 @@ describe('ProjectService', () => {
     it('deletes a project cover and refreshes project', async () => {
       // Set up API to succeed
       api.coverControllerDeleteCover.mockReturnValue(apiOk(undefined));
-      api.getApiProjects.mockReturnValue(apiOk(BASE));
+      api.getApiV1Projects.mockReturnValue(apiOk(BASE));
 
       await service.deleteProjectCover('alice', 'project-1');
 
@@ -799,8 +799,8 @@ describe('ProjectService', () => {
   describe('uploadProjectCover', () => {
     beforeEach(() => {
       // Reset mocks before each test
-      api.postApiImagesUsernameSlugCover.mockReset();
-      api.getApiProjects.mockReset();
+      api.postApiV1ProjectsUsernameSlugCover.mockReset();
+      api.getApiV1Projects.mockReset();
       xsrf.getXsrfToken.mockReset();
       xsrf.getXsrfToken.mockReturnValue('test-token');
       service.error.set(undefined);
@@ -810,27 +810,27 @@ describe('ProjectService', () => {
       const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
 
       // Set up API to succeed
-      api.postApiImagesUsernameSlugCover.mockReturnValue(apiOk(undefined));
-      api.getApiProjects.mockReturnValue(apiOk(BASE));
+      api.postApiV1ProjectsUsernameSlugCover.mockReturnValue(apiOk(undefined));
+      api.getApiV1Projects.mockReturnValue(apiOk(BASE));
 
       await service.uploadProjectCover('alice', 'project-1', coverBlob);
 
       // Should call API without token parameter (cover controller doesn't use token)
-      expect(api.postApiImagesUsernameSlugCover).toHaveBeenCalledWith(
+      expect(api.postApiV1ProjectsUsernameSlugCover).toHaveBeenCalledWith(
         'alice',
         'project-1',
         coverBlob
       );
 
       // Verify loadAllProjects is called with token
-      expect(api.getApiProjects).toHaveBeenCalledWith();
+      expect(api.getApiV1Projects).toHaveBeenCalledWith();
     });
 
     it('handles API errors correctly', async () => {
       const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
 
       // Set up API to fail with 413
-      api.postApiImagesUsernameSlugCover.mockReturnValue(
+      api.postApiV1ProjectsUsernameSlugCover.mockReturnValue(
         apiErr(new HttpErrorResponse({ status: 413 }))
       );
 
@@ -849,7 +849,7 @@ describe('ProjectService', () => {
       const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
 
       // Set up API to fail with network error
-      api.postApiImagesUsernameSlugCover.mockReturnValue(
+      api.postApiV1ProjectsUsernameSlugCover.mockReturnValue(
         apiErr(new HttpErrorResponse({ status: 0 }))
       );
 
@@ -865,7 +865,7 @@ describe('ProjectService', () => {
       const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
 
       // Set up API to fail with 401
-      api.postApiImagesUsernameSlugCover.mockReturnValue(
+      api.postApiV1ProjectsUsernameSlugCover.mockReturnValue(
         apiErr(new HttpErrorResponse({ status: 401 }))
       );
 
@@ -977,7 +977,7 @@ describe('ProjectService', () => {
 
   it('throws SERVER_ERROR when API & cache both fail', async () => {
     store.get.mockResolvedValue(undefined);
-    api.getApiProjects.mockReturnValue(
+    api.getApiV1Projects.mockReturnValue(
       apiErr(new HttpErrorResponse({ status: 500 }))
     );
 
@@ -1001,7 +1001,7 @@ describe('ProjectService', () => {
     ];
 
     store.get.mockResolvedValue(BASE);
-    api.getApiProjects.mockReturnValue(apiOk(fresh));
+    api.getApiV1Projects.mockReturnValue(apiOk(fresh));
 
     await service.loadAllProjects(); // wait until the method resolves
 
