@@ -7,7 +7,7 @@ import {
 } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { KeyValuePipe } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import {
   AfterViewInit,
   ChangeDetectorRef,
@@ -41,7 +41,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
-import { PostApiV1UsersRegisterRequest, UsersService } from '@inkweld/index';
+import {
+  GetApiV1UsersCheckUsername200Response,
+  PostApiV1UsersRegisterRequest,
+  UsersService,
+} from '@inkweld/index';
 import { RecaptchaService } from '@services/recaptcha.service';
 import { SystemConfigService } from '@services/system-config.service';
 import { UserService } from '@services/user.service';
@@ -69,6 +73,7 @@ import { firstValueFrom, Subject, takeUntil } from 'rxjs';
   styleUrl: './register.component.scss',
 })
 export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
+  private httpClient = inject(HttpClient);
   private userService = inject(UsersService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
@@ -327,8 +332,11 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     try {
+      // Note: API client doesn't support username query parameter, so we call HttpClient directly
       const response = await firstValueFrom(
-        this.userService.getApiV1UsersCheckUsername(username)
+        this.httpClient.get<GetApiV1UsersCheckUsername200Response>(
+          `/api/v1/users/check-username?username=${encodeURIComponent(username)}`
+        )
       );
 
       if (response.available) {
