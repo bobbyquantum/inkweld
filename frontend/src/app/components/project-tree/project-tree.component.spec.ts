@@ -1,7 +1,5 @@
 import { ArrayDataSource } from '@angular/cdk/collections';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import {
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
   CdkDrag,
   CdkDragDrop,
   CdkDragMove,
@@ -9,6 +7,7 @@ import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkwe
   CdkDropList,
 } from '@angular/cdk/drag-drop';
 import { provideHttpClient } from '@angular/common/http';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import {
   provideZonelessChangeDetection,
   signal,
