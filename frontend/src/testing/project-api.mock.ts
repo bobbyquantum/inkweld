@@ -4,7 +4,7 @@ import { Project } from "@inkweld/index";
 import { Observable } from "rxjs";
 
 export const projectServiceMock = {
-  projectControllerGetProjectByUsernameAndSlug: vi.fn<(username: string, slug: string) => Observable<Project>>(),
+  getProjectByUsernameAndSlug: vi.fn<(username: string, slug: string) => Observable<Project>>(),
   projectControllerUpdateProject: vi.fn<(username: string, slug: string, projectId: string, dto: Project) => Observable<Project>>()
 }
 

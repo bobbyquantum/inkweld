@@ -106,12 +106,6 @@ describe('StorageService', () => {
   });
 
   describe('error handling', () => {
-    it.skip('should handle database initialization failure', async () => {
-      // This test is skipped due to race conditions with promise rejection handling in Vitest
-      // The error handling itself is tested via the "should handle unavailable IndexedDB" test
-      // and is also covered by integration tests
-    });
-
     it('should handle unavailable IndexedDB', () => {
       // Mock isAvailable signal
       service.isAvailable.set(false);

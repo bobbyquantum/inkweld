@@ -1,7 +1,4 @@
-import {
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
-  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
-} from '../../api-client';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '../../api-client';
 
 // Base interface for all worldbuilding elements
 export interface WorldbuildingBase {

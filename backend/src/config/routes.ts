@@ -35,14 +35,16 @@ export function registerCommonRoutes(app: Hono<any>): void {
   // User management
   app.route('/api/v1/users', userRoutes);
 
-  // Project routes (projects, documents, elements, files, epub, snapshots, images)
+  // Project routes (projects, documents, elements, files, epub, images)
   app.route('/api/v1/projects', projectRoutes);
   app.route('/api/v1/projects', documentRoutes);
   app.route('/api/v1/projects', elementRoutes);
   app.route('/api/v1/projects', fileRoutes);
   app.route('/api/v1/projects', epubRoutes);
-  app.route('/api/v1/projects', snapshotRoutes);
   app.route('/api/v1/projects', imageRoutes);
+
+  // Snapshots have their own base path to avoid conflicts
+  app.route('/api/v1/snapshots', snapshotRoutes);
 
   // System endpoints
   app.route('/api/v1/health', healthRoutes);

@@ -42,8 +42,8 @@ describe('CreateProjectComponent', () => {
     email: 'test@example.com',
     firstName: 'Test',
     lastName: 'User',
-      id: 'test-id',
-      enabled: true,
+    id: 'test-id',
+    enabled: true,
   };
 
   const mockProject: Project = {

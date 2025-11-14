@@ -1,11 +1,11 @@
 import { HttpContext } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { PostApiV1AiLintRequestLevel } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { LintingService } from '../../../api-client/api/linting.service';
-import { PostApiV1AiLintRequest } from '../../../api-client/model/post-api-v1-ai-lint-request';
 import { PostApiV1AiLint200Response } from '../../../api-client/model/post-api-v1-ai-lint200-response';
 import { apiErr, apiOk } from '../../../testing/utils';
 import { ABORT_SIGNAL, LintApiService } from './lint-api.service';
@@ -53,7 +53,7 @@ describe('LintApiService', () => {
     const mockResponse: PostApiV1AiLint200Response = {
       originalParagraph: 'test text',
       corrections: [],
-      style_recommendations: [],
+      styleRecommendations: [],
       source: 'openai' as any,
     };
 
@@ -88,7 +88,7 @@ describe('LintApiService', () => {
     const mockResponse: PostApiV1AiLint200Response = {
       originalParagraph: 'test text',
       corrections: [],
-      style_recommendations: [],
+      styleRecommendations: [],
       source: 'openai' as any,
     };
 
@@ -99,7 +99,7 @@ describe('LintApiService', () => {
     await service.run(
       'test text',
       'academic',
-      'medium' as any
+      PostApiV1AiLintRequestLevel.Medium
     );
 
     // Verify custom parameters were passed
@@ -117,7 +117,9 @@ describe('LintApiService', () => {
 
   it('should set the ABORT_SIGNAL token in the context', async () => {
     // Mock response
-    lintService.postApiV1AiLint.mockReturnValue(apiOk({} as PostApiV1AiLint200Response));
+    lintService.postApiV1AiLint.mockReturnValue(
+      apiOk({} as PostApiV1AiLint200Response)
+    );
 
     // Spy on HttpContext.set
     const contextSpy = vi.spyOn(HttpContext.prototype, 'set');
@@ -135,7 +137,9 @@ describe('LintApiService', () => {
   it('should handle errors and return a default response', async () => {
     // Mock an error response
     const errorMessage = 'Network error';
-    lintService.postApiV1AiLint.mockReturnValue(apiErr(new Error(errorMessage)));
+    lintService.postApiV1AiLint.mockReturnValue(
+      apiErr(new Error(errorMessage))
+    );
 
     // Spy on console.error and mock implementation to avoid noise in test output
     const consoleErrorSpy = vi
@@ -155,14 +159,16 @@ describe('LintApiService', () => {
     expect(result).toEqual({
       originalParagraph: 'test text',
       corrections: [],
-      style_recommendations: [],
+      styleRecommendations: [],
       source: 'openai' as any,
     });
   });
 
   it('should create AbortSignal with the correct timeout value', async () => {
     // Mock response
-    lintService.postApiV1AiLint.mockReturnValue(apiOk({} as PostApiV1AiLint200Response));
+    lintService.postApiV1AiLint.mockReturnValue(
+      apiOk({} as PostApiV1AiLint200Response)
+    );
 
     // Call the service
     await service.run('test text');

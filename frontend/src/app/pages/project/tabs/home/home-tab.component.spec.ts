@@ -5,14 +5,15 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { ProjectsService } from '@inkweld/api/project-api.service';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
+import { ImagesService } from '@inkweld/api/images.service';
+import { ProjectsService } from '@inkweld/api/projects.service';
 import {
   GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
   Project,
 } from '@inkweld/index';
-import { Mock, vi } from 'vitest';
+import { vi } from 'vitest';
+import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { DialogGatewayService } from '../../../../services/dialog-gateway.service';
 import { ProjectService } from '../../../../services/project.service';
@@ -20,12 +21,15 @@ import { ProjectImportExportService } from '../../../../services/project-import-
 import { ProjectStateService } from '../../../../services/project-state.service';
 import { RecentFilesService } from '../../../../services/recent-files.service';
 import { HomeTabComponent } from './home-tab.component';
+
+/* Convenience aliases for mocks */
+type ProjectsApiMock = DeepMockProxy<ProjectsService>;
+type ImagesApiMock = DeepMockProxy<ImagesService>;
 describe('HomeTabComponent', () => {
   let component: HomeTabComponent;
   let fixture: ComponentFixture<HomeTabComponent>;
   let projectStateService: Partial<ProjectStateService>;
   let projectService: Partial<ProjectService>;
-  let ProjectsService: Partial<ProjectsService>;
   let recentFilesService: Partial<RecentFilesService>;
   let importExportService: Partial<ProjectImportExportService>;
   let dialogGateway: Partial<DialogGatewayService>;
@@ -58,6 +62,9 @@ describe('HomeTabComponent', () => {
   });
 
   let mockRouter: Partial<Router>;
+
+  let projectsApi: ProjectsApiMock;
+  let imagesApi: ImagesApiMock;
 
   const setupMockServices = () => {
     // Initialize signals for ProjectStateService
@@ -96,16 +103,13 @@ describe('HomeTabComponent', () => {
         // Tests will override this with specific behavior
         return new Promise(() => {});
       }),
+      uploadProjectCover: vi.fn().mockResolvedValue(undefined),
     };
 
-    const mockObservable = {
-      pipe: vi.fn().mockReturnThis(),
-      subscribe: vi.fn(),
-    };
-
-    ProjectsService = {
-      postApiImagesUsernameSlugCover: vi.fn().mockReturnValue(mockObservable),
-    } as any;
+    // Use mockDeep for API services
+    projectsApi = mockDeep<ProjectsService>();
+    imagesApi = mockDeep<ImagesService>();
+    // No need to set default return value - mockDeep handles it
 
     dialogGateway = {
       openGenerateCoverDialog: vi
@@ -129,7 +133,8 @@ describe('HomeTabComponent', () => {
         { provide: Router, useValue: mockRouter },
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: ProjectService, useValue: projectService },
-        { provide: ProjectsService, useValue: ProjectsService },
+        { provide: ProjectsService, useValue: projectsApi },
+        { provide: ImagesService, useValue: imagesApi },
         { provide: RecentFilesService, useValue: recentFilesService },
         { provide: ProjectImportExportService, useValue: importExportService },
         { provide: DialogGatewayService, useValue: dialogGateway },
@@ -284,7 +289,7 @@ describe('HomeTabComponent', () => {
       approved: true,
       imageData: 'data:image/png;base64,test123',
     };
-    (dialogGateway.openGenerateCoverDialog as Mock).mockResolvedValue(
+    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
       mockResult
     );
 
@@ -301,36 +306,27 @@ describe('HomeTabComponent', () => {
       approved: true,
       imageData: 'data:image/png;base64,test123',
     };
-    (dialogGateway.openGenerateCoverDialog as Mock).mockResolvedValue(
+    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
       mockResult
-    );
-    const mockObservable = {
-      pipe: vi.fn().mockReturnThis(),
-      subscribe: vi.fn(),
-    };
-    (ProjectsService.postApiImagesUsernameSlugCover as Mock).mockReturnValue(
-      mockObservable
     );
 
     component.onGenerateCoverClick();
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(ProjectsService.postApiImagesUsernameSlugCover).toHaveBeenCalled();
+    expect(projectService.uploadProjectCover).toHaveBeenCalled();
   });
 
   it('should not save cover image when dialog is cancelled', async () => {
     const mockResult = { approved: false, imageData: null };
-    (dialogGateway.openGenerateCoverDialog as Mock).mockResolvedValue(
+    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
       mockResult
     );
 
     component.onGenerateCoverClick();
     await Promise.resolve();
 
-    expect(
-      ProjectsService.postApiImagesUsernameSlugCover
-    ).not.toHaveBeenCalled();
+    expect(imagesApi.postApiV1ProjectsUsernameSlugCover).not.toHaveBeenCalled();
   });
 
   it('should open project files tab', () => {
@@ -350,13 +346,13 @@ describe('HomeTabComponent', () => {
   describe('cover image', () => {
     it('should load cover image when project is set', async () => {
       const mockBlob = new Blob(['test'], { type: 'image/png' });
-      (projectService.getProjectCover as Mock).mockResolvedValue(mockBlob);
+      (projectService.getProjectCover as any).mockResolvedValue(mockBlob);
 
       // Wait for initial effect to complete
       await fixture.whenStable();
 
       // Clear previous calls
-      (projectService.getProjectCover as Mock).mockClear();
+      (projectService.getProjectCover as any).mockClear();
 
       // Trigger the effect by setting a new project
       (projectStateService.project as any).set({
@@ -378,7 +374,7 @@ describe('HomeTabComponent', () => {
     });
 
     it('should handle cover image not found error', async () => {
-      (projectService.getProjectCover as Mock).mockRejectedValue(
+      (projectService.getProjectCover as any).mockRejectedValue(
         new Error('Cover image not found')
       );
 
@@ -386,7 +382,7 @@ describe('HomeTabComponent', () => {
       await fixture.whenStable();
 
       // Clear previous calls
-      (projectService.getProjectCover as Mock).mockClear();
+      (projectService.getProjectCover as any).mockClear();
 
       // Trigger the effect by setting a new project
       (projectStateService.project as any).set({
@@ -408,7 +404,7 @@ describe('HomeTabComponent', () => {
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      (projectService.getProjectCover as Mock).mockRejectedValue(
+      (projectService.getProjectCover as any).mockRejectedValue(
         new Error('Network error')
       );
 
@@ -416,7 +412,7 @@ describe('HomeTabComponent', () => {
       await fixture.whenStable();
 
       // Clear previous calls
-      (projectService.getProjectCover as Mock).mockClear();
+      (projectService.getProjectCover as any).mockClear();
 
       // Trigger the effect by setting a new project
       (projectStateService.project as any).set({

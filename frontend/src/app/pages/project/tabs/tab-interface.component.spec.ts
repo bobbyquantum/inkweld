@@ -16,7 +16,6 @@ import {
   RouterModule,
 } from '@angular/router';
 import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import {
   GetApiV1ProjectsUsernameSlugElements200ResponseInner,
   Project,
@@ -62,6 +61,7 @@ describe('TabInterfaceComponent', () => {
         version: 1,
         expandable: false,
         metadata: {},
+        parentId: null,
       },
       {
         id: 'doc2',
@@ -72,6 +72,7 @@ describe('TabInterfaceComponent', () => {
         version: 1,
         expandable: true,
         metadata: {},
+        parentId: null,
       },
     ];
 

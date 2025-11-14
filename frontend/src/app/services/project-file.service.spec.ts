@@ -1,12 +1,14 @@
-import { HttpEvent } from '@angular/common/http';
+import { HttpClient, HttpEvent, provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { FileDeleteResponseDto, FileUploadResponseDto } from '@inkweld/index';
 import { Observable, of } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
-import { ProjectsService } from '../../api-client/api/project-api.service';
+import { FilesService } from '../../api-client/api/files.service';
+import { GetApiV1ProjectsUsernameSlugFiles200ResponseInner } from '../../api-client/model/get-api-v1-projects-username-slug-files200-response-inner';
+import { PostApiV1ProjectsUsernameSlugFiles200Response } from '../../api-client/model/post-api-v1-projects-username-slug-files200-response';
+import { PostApiV1UsersAvatar200Response } from '../../api-client/model/post-api-v1-users-avatar200-response';
 import {
   FileDeleteResponse,
   ProjectFile,
@@ -17,54 +19,76 @@ import { XsrfService } from './xsrf.service';
 describe('ProjectFileService', () => {
   const TEST_DATE = '2025-03-16T10:00:00.000Z';
 
-  const uploadResp: FileUploadResponseDto = {
-    originalName: 'test.jpg',
-    storedName: 'stored-test.jpg',
-    contentType: 'image/jpeg',
+  const uploadResp: GetApiV1ProjectsUsernameSlugFiles200ResponseInner = {
+    name: 'stored-test.jpg',
     size: 1024,
     uploadDate: TEST_DATE,
-    fileUrl: 'http://example.com/test.jpg',
   };
 
-  const deleteResp: FileDeleteResponseDto = {
+  const deleteResp: PostApiV1UsersAvatar200Response = {
     message: 'File deleted successfully',
   };
 
-  type ApiMock = DeepMockProxy<ProjectsService>;
+  type ApiMock = DeepMockProxy<FilesService>;
   type XsrfMock = DeepMockProxy<XsrfService>;
+  type HttpMock = DeepMockProxy<HttpClient>;
 
   let service: ProjectFileService;
   let api!: ApiMock;
   let xsrf!: XsrfMock;
+  let http!: HttpMock;
 
   beforeEach(() => {
     // Create mock instances
-    api = mockDeep<ProjectsService>();
+    api = mockDeep<FilesService>();
     xsrf = mockDeep<XsrfService>();
+    http = mockDeep<HttpClient>();
 
     // Configure TestBed
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        provideHttpClient(),
         ProjectFileService,
-        { provide: ProjectsService, useValue: api },
+        { provide: FilesService, useValue: api },
         { provide: XsrfService, useValue: xsrf },
+        { provide: HttpClient, useValue: http },
       ],
     });
 
     service = TestBed.inject(ProjectFileService);
 
     /* default stubbing for every test */
-    api.getApiProjectsUsernameSlugFiles.mockReturnValue(
+    api.getApiV1ProjectsUsernameSlugFiles.mockReturnValue(
       of([uploadResp]) as unknown as Observable<
-        HttpEvent<FileUploadResponseDto[]>
+        HttpEvent<GetApiV1ProjectsUsernameSlugFiles200ResponseInner[]>
       >
     );
-    api.postApiProjectsUsernameSlugFiles.mockReturnValue(
-      of(uploadResp) as unknown as Observable<HttpEvent<FileUploadResponseDto>>
+
+    // Mock HttpClient.post for uploadFile
+    http.post.mockReturnValue(
+      of({
+        name: 'stored-test.jpg',
+        size: 1024,
+        uploadDate: TEST_DATE,
+      })
     );
-    api.deleteApiProjectsUsernameSlugFiles.mockReturnValue(
-      of(deleteResp) as unknown as Observable<HttpEvent<FileDeleteResponseDto>>
+
+    api.postApiV1ProjectsUsernameSlugFiles.mockReturnValue(
+      of({
+        storedName: 'stored-test.jpg',
+        uploadDate: TEST_DATE,
+        originalName: 'test.jpg',
+        size: 1,
+        mimeType: 'image/jpeg',
+      }) as unknown as Observable<
+        HttpEvent<PostApiV1ProjectsUsernameSlugFiles200Response>
+      >
+    );
+    api.deleteApiV1ProjectsUsernameSlugFilesStoredName.mockReturnValue(
+      of(deleteResp) as unknown as Observable<
+        HttpEvent<PostApiV1UsersAvatar200Response>
+      >
     );
 
     xsrf.getXsrfToken.mockReturnValue('test-token');
@@ -84,11 +108,11 @@ describe('ProjectFileService', () => {
       .getProjectFiles('alice', 'proj')
       .subscribe((f: ProjectFile[]) => (files = f));
 
-    expect(api.getApiProjectsUsernameSlugFiles).toHaveBeenCalledWith(
+    expect(api.getApiV1ProjectsUsernameSlugFiles).toHaveBeenCalledWith(
       'alice',
       'proj'
     );
-    expect(files[0]).toMatchObject({ originalName: 'test.jpg' });
+    expect(files[0]).toMatchObject({ originalName: 'stored-test.jpg' });
     expect(files[0].uploadDate.toISOString()).toBe(TEST_DATE);
   });
 
@@ -100,35 +124,38 @@ describe('ProjectFileService', () => {
     );
   });
 
-  it('uploads then deletes a file', () => {
+  it('uploads then deletes a file', async () => {
     const testFile = new File(['x'], 'test.jpg', { type: 'image/jpeg' });
 
     /* upload */
     let uploaded!: ProjectFile;
-    service
-      .uploadFile('alice', 'proj', testFile)
-      .subscribe((f: ProjectFile) => (uploaded = f));
+    await new Promise<void>((resolve, reject) => {
+      service.uploadFile('alice', 'proj', testFile).subscribe({
+        next: (f: ProjectFile) => {
+          uploaded = f;
+          resolve();
+        },
+        error: err => reject(new Error(String(err))),
+      });
+    });
 
-    expect(api.postApiProjectsUsernameSlugFiles).toHaveBeenCalledWith(
-      'alice',
-      'proj',
-      'test-token',
-      testFile
-    );
+    expect(http.post).toHaveBeenCalled();
     expect(uploaded.uploadDate.toISOString()).toBe(TEST_DATE);
 
     /* delete */
     let delResp!: FileDeleteResponse;
-    service
-      .deleteFile('alice', 'proj', 'stored-test.jpg')
-      .subscribe((r: FileDeleteResponse) => (delResp = r));
+    await new Promise<void>(resolve => {
+      service
+        .deleteFile('alice', 'proj', 'stored-test.jpg')
+        .subscribe((r: FileDeleteResponse) => {
+          delResp = r;
+          resolve();
+        });
+    });
 
-    expect(api.deleteApiProjectsUsernameSlugFiles).toHaveBeenCalledWith(
-      'alice',
-      'proj',
-      'stored-test.jpg',
-      'test-token'
-    );
+    expect(
+      api.deleteApiV1ProjectsUsernameSlugFilesStoredName
+    ).toHaveBeenCalledWith('alice', 'proj', 'stored-test.jpg');
     expect(delResp.message).toBe('File deleted successfully');
   });
 

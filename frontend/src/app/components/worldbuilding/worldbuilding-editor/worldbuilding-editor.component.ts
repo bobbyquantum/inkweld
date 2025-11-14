@@ -2,10 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 
-import {
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
-  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
-} from '../../../../api-client';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '../../../../api-client';
 import { DynamicWorldbuildingEditorComponent } from '../dynamic-worldbuilding-editor/dynamic-worldbuilding-editor.component';
 
 /**

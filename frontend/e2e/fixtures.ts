@@ -71,31 +71,20 @@ export const test = base.extend<TestFixtures>({
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
 
-    // Set up app configuration in localStorage
+    // Set up app configuration and auth token in localStorage
     await page.addInitScript(() => {
       localStorage.setItem('inkweld-app-config', JSON.stringify({
         mode: 'server',
         serverUrl: 'http://localhost:8333'
       }));
+      // Set mock auth token for authenticated user
+      localStorage.setItem('inkweld_auth_token', 'mock-token-testuser');
     });
 
     console.log('Setting up page for authenticated user');
+    console.log('Mock auth token set for authenticated user');
 
-    // Set up auth state by adding a mock session cookie
-    const sessionId = `mock-session-testuser-${Date.now()}`;
-    await page.context().addCookies([
-      {
-        name: 'mockSessionId',
-        value: sessionId,
-        domain: 'localhost', // Ensure this matches the domain used by the app
-        path: '/',
-        httpOnly: true,
-        sameSite: 'Lax'
-      }
-    ]);
-    console.log('Mock session cookie set for authenticated user');
-
-    // Navigate to the base URL *after* setting the cookie
+    // Navigate to the base URL *after* setting the auth token
     await page.goto('/');
 
     await use(page);
@@ -106,31 +95,20 @@ export const test = base.extend<TestFixtures>({
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
 
-    // Set up app configuration in localStorage
+    // Set up app configuration and auth token in localStorage
     await page.addInitScript(() => {
       localStorage.setItem('inkweld-app-config', JSON.stringify({
         mode: 'server',
         serverUrl: 'http://localhost:8333'
       }));
+      // Set mock auth token for admin user
+      localStorage.setItem('inkweld_auth_token', 'mock-token-adminuser');
     });
 
     console.log('Setting up page for admin user');
+    console.log('Mock auth token set for admin user');
 
-    // Set up admin auth state by adding a mock session cookie
-    const sessionId = `mock-session-adminuser-${Date.now()}`;
-    await page.context().addCookies([
-      {
-        name: 'mockSessionId',
-        value: sessionId,
-        domain: 'localhost', // Ensure this matches the domain used by the app
-        path: '/',
-        httpOnly: true,
-        sameSite: 'Lax'
-      }
-    ]);
-    console.log('Mock session cookie set for admin user');
-
-    // Navigate to the base URL *after* setting the cookie
+    // Navigate to the base URL *after* setting the auth token
     await page.goto('/');
 
     await use(page);

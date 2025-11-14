@@ -162,19 +162,17 @@ export function setupAuthHandlers(): void {
       mockUsers.addUser(newUser);
       console.log(`Created new user: ${newUser.username}`);
 
-      // Generate session cookie for auto-login after registration
-      const sessionId = `mock-session-${newUser.username}-${Date.now()}`;
+      // Generate auth token for auto-login after registration
+      const token = `mock-token-${newUser.username}`;
 
       await route.fulfill({
         status: 201,
         contentType: 'application/json',
-        headers: {
-          'Set-Cookie': `mockSessionId=${sessionId}; Path=/; HttpOnly; SameSite=Lax`
-        },
         body: JSON.stringify({
           userId: newUser.id,
           username: newUser.username,
           name: newUser.name,
+          token: token,
           requiresApproval: false
         })
       });
@@ -228,20 +226,15 @@ export function setupAuthHandlers(): void {
       });
       return;
     }
-    // Generate mock session ID
-    const sessionId = `mock-session-${user.username}-${Date.now()}`;
-    const cookieValue = `${sessionId}`; // Simple value for testing
+    // Generate mock token
+    const token = `mock-token-${user.username}`;
 
-    console.log(`Login successful for user: ${user.username}, setting mock cookie`);
+    console.log(`Login successful for user: ${user.username}, returning token`);
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      headers: {
-        // Set a mock session cookie
-        'Set-Cookie': `mockSessionId=${cookieValue}; Path=/; HttpOnly; SameSite=Lax`
-      },
       body: JSON.stringify({
-        // The actual login response might not include a token if cookie-based
+        token: token,
         name: user.name,
         username: user.username,
         ...(user.roles && { roles: user.roles })

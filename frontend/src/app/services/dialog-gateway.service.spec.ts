@@ -1,9 +1,10 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
-import { Project } from '@inkweld/model/project-dto';
+import {
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+  Project,
+} from '@inkweld/index';
 import { of } from 'rxjs';
 import { Mock, MockedObject, vi } from 'vitest';
 

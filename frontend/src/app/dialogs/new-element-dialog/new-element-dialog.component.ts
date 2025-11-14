@@ -15,10 +15,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import {
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
-  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
-} from '../../../api-client';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '../../../api-client';
 import { ProjectStateService } from '../../services/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding.service';
 
@@ -75,8 +72,7 @@ export class NewElementDialogComponent {
   elementTypeOptions = signal<ElementTypeOption[]>([
     // Document types (always available)
     {
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType
-        .Folder,
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
       label: 'Folder',
       icon: 'folder',
       description: 'Organize your documents and worldbuilding elements',

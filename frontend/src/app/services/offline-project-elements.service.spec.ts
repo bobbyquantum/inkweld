@@ -1,7 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
 import { vi } from 'vitest';
 
@@ -65,6 +64,7 @@ describe('OfflineProjectElementsService', () => {
             id: 'element-1',
             name: 'Test Element',
             type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            parentId: null,
             level: 0,
             expandable: true,
             order: 0,
@@ -119,6 +119,7 @@ describe('OfflineProjectElementsService', () => {
           id: 'element-1',
           name: 'Test Element',
           type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+          parentId: null,
           level: 0,
           expandable: false,
           order: 0,
@@ -187,6 +188,7 @@ describe('OfflineProjectElementsService', () => {
             id: 'folder-1',
             name: 'Folder 1',
             type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            parentId: null,
             level: 0,
             expandable: true,
             order: 0,
@@ -204,7 +206,7 @@ describe('OfflineProjectElementsService', () => {
       const result = service.addElement(
         TEST_USERNAME,
         TEST_SLUG,
-        'ITEM',
+        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
         'New Document'
       );
 
@@ -229,7 +231,7 @@ describe('OfflineProjectElementsService', () => {
       const result = service.addElement(
         TEST_USERNAME,
         TEST_SLUG,
-        'ITEM',
+        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
         'Child Document',
         'folder-1'
       );
@@ -246,11 +248,16 @@ describe('OfflineProjectElementsService', () => {
     });
 
     it('should recompute positions correctly', () => {
-      service.addElement(TEST_USERNAME, TEST_SLUG, 'ITEM', 'Doc 1');
+      service.addElement(
+        TEST_USERNAME,
+        TEST_SLUG,
+        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        'Doc 1'
+      );
       const result = service.addElement(
         TEST_USERNAME,
         TEST_SLUG,
-        'ITEM',
+        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
         'Doc 2'
       );
 
@@ -268,6 +275,7 @@ describe('OfflineProjectElementsService', () => {
             id: 'folder-1',
             name: 'Folder 1',
             type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            parentId: null,
             level: 0,
             expandable: true,
             order: 0,
@@ -278,6 +286,7 @@ describe('OfflineProjectElementsService', () => {
             id: 'doc-1',
             name: 'Document 1',
             type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            parentId: null,
             level: 1,
             expandable: false,
             order: 1,
@@ -288,6 +297,7 @@ describe('OfflineProjectElementsService', () => {
             id: 'doc-2',
             name: 'Document 2',
             type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            parentId: null,
             level: 1,
             expandable: false,
             order: 2,
@@ -298,6 +308,7 @@ describe('OfflineProjectElementsService', () => {
             id: 'folder-2',
             name: 'Folder 2',
             type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            parentId: null,
             level: 0,
             expandable: true,
             order: 3,
@@ -352,6 +363,7 @@ describe('OfflineProjectElementsService', () => {
             id: 'folder-1',
             name: 'Folder 1',
             type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            parentId: null,
             level: 0,
             expandable: true,
             order: 0,
@@ -362,6 +374,7 @@ describe('OfflineProjectElementsService', () => {
             id: 'doc-1',
             name: 'Document 1',
             type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            parentId: null,
             level: 1,
             expandable: false,
             order: 1,
@@ -372,6 +385,7 @@ describe('OfflineProjectElementsService', () => {
             id: 'doc-2',
             name: 'Document 2',
             type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            parentId: null,
             level: 0,
             expandable: false,
             order: 2,
@@ -433,6 +447,7 @@ describe('OfflineProjectElementsService', () => {
             id: 'doc-1',
             name: 'Old Name',
             type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            parentId: null,
             level: 0,
             expandable: false,
             order: 0,
@@ -478,6 +493,7 @@ describe('OfflineProjectElementsService', () => {
             id: 'p1-doc',
             name: 'Project 1 Doc',
             type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            parentId: null,
             level: 0,
             expandable: false,
             order: 0,
@@ -492,6 +508,7 @@ describe('OfflineProjectElementsService', () => {
             id: 'p2-doc',
             name: 'Project 2 Doc',
             type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            parentId: null,
             level: 0,
             expandable: false,
             order: 0,

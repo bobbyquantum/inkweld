@@ -1,11 +1,9 @@
-import { expect, test } from '@playwright/test';
-
-import { authenticatedPage } from '../fixtures';
+import { expect, test } from './fixtures';
 
 test.describe('Worldbuilding Templates', () => {
-  test('should create, edit, and delete custom templates', async () => {
-    const { page, projectKey } = await authenticatedPage();
-
+  test('should create, edit, and delete custom templates', async ({
+    authenticatedPage: page,
+  }) => {
     // Navigate to project
     await page.getByTestId('project-card').first().click();
     await expect(page).toHaveURL(/\/projects\/.+/);
@@ -64,9 +62,9 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page.getByText('Hero Template')).not.toBeVisible();
   });
 
-  test('should initialize worldbuilding elements with correct schemas', async () => {
-    const { page } = await authenticatedPage();
-
+  test('should initialize worldbuilding elements with correct schemas', async ({
+    authenticatedPage: page,
+  }) => {
     // Navigate to project
     await page.getByTestId('project-card').first().click();
 
@@ -94,9 +92,9 @@ test.describe('Worldbuilding Templates', () => {
     }
   });
 
-  test('should handle embedded template editing workflow', async () => {
-    const { page } = await authenticatedPage();
-
+  test('should handle embedded template editing workflow', async ({
+    authenticatedPage: page,
+  }) => {
     // Navigate to project and create a character
     await page.getByTestId('project-card').first().click();
     await page.getByTestId('add-element-button').click();
@@ -133,9 +131,13 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page.getByTestId('field-backstory')).toBeVisible();
   });
 
-  test('should sync template changes across multiple clients', async () => {
-    const { page: page1 } = await authenticatedPage();
-    const { page: page2 } = await authenticatedPage();
+  test('should sync template changes across multiple clients', async ({
+    authenticatedPage: page1,
+    context,
+  }) => {
+    // Create second authenticated page
+    const page2 = await context.newPage();
+    await page2.goto('/');
 
     // Open same project in both clients
     await page1.getByTestId('project-card').first().click();
@@ -163,9 +165,9 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page2.getByTestId('field-syncField')).toBeVisible();
   });
 
-  test('should validate template editor form inputs', async () => {
-    const { page } = await authenticatedPage();
-
+  test('should validate template editor form inputs', async ({
+    authenticatedPage: page,
+  }) => {
     // Navigate to project and create a character
     await page.getByTestId('project-card').first().click();
     await page.getByTestId('add-element-button').click();
@@ -198,9 +200,9 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page.getByTestId('template-editor-dialog')).not.toBeVisible();
   });
 
-  test('should handle icon display for custom templates', async () => {
-    const { page } = await authenticatedPage();
-
+  test('should handle icon display for custom templates', async ({
+    authenticatedPage: page,
+  }) => {
     // Navigate to project
     await page.getByTestId('project-card').first().click();
 

@@ -141,7 +141,9 @@ export class OfflineProjectElementsService {
       name,
       type,
       level: parentLevel + 1,
-      expandable: type === GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+      expandable:
+        type ===
+        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
       order: elements.length,
       parentId: null,
       version: 0,

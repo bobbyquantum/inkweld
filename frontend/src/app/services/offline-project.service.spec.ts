@@ -21,8 +21,10 @@ describe('OfflineProjectService', () => {
   };
 
   const mockUserProfile = {
+    id: 'test-user-id',
     username: 'testuser',
     name: 'Test User',
+    enabled: true,
   };
 
   beforeEach(() => {
@@ -141,6 +143,7 @@ describe('OfflineProjectService', () => {
 
     it('should prevent duplicate slugs', () => {
       const existingProject: Project = {
+        id: 'existing-project-id',
         title: 'Existing Project',
         slug: 'test-project',
         username: 'testuser',
@@ -192,6 +195,7 @@ describe('OfflineProjectService', () => {
     beforeEach(() => {
       const projects: Project[] = [
         {
+          id: 'project-1-id',
           title: 'Project 1',
           slug: 'project-1',
           username: 'testuser',
@@ -200,6 +204,7 @@ describe('OfflineProjectService', () => {
           updatedDate: new Date().toISOString(),
         },
         {
+          id: 'project-2-id',
           title: 'Project 2',
           slug: 'project-2',
           username: 'otheruser',
@@ -238,6 +243,7 @@ describe('OfflineProjectService', () => {
     beforeEach(() => {
       const projects: Project[] = [
         {
+          id: 'test-project-id',
           title: 'Original Title',
           slug: 'test-project',
           username: 'testuser',
@@ -281,6 +287,7 @@ describe('OfflineProjectService', () => {
     beforeEach(() => {
       const projects: Project[] = [
         {
+          id: 'project-1-id',
           title: 'Project 1',
           slug: 'project-1',
           username: 'testuser',
@@ -289,6 +296,7 @@ describe('OfflineProjectService', () => {
           updatedDate: new Date().toISOString(),
         },
         {
+          id: 'project-2-id',
           title: 'Project 2',
           slug: 'project-2',
           username: 'testuser',
@@ -322,6 +330,7 @@ describe('OfflineProjectService', () => {
     beforeEach(() => {
       const projects: Project[] = [
         {
+          id: 'user1-project-1-id',
           title: 'User1 Project 1',
           slug: 'user1-project-1',
           username: 'user1',
@@ -330,6 +339,7 @@ describe('OfflineProjectService', () => {
           updatedDate: new Date().toISOString(),
         },
         {
+          id: 'user1-project-2-id',
           title: 'User1 Project 2',
           slug: 'user1-project-2',
           username: 'user1',
@@ -338,6 +348,7 @@ describe('OfflineProjectService', () => {
           updatedDate: new Date().toISOString(),
         },
         {
+          id: 'user2-project-1-id',
           title: 'User2 Project 1',
           slug: 'user2-project-1',
           username: 'user2',
@@ -372,6 +383,7 @@ describe('OfflineProjectService', () => {
     it('should import projects for current user', () => {
       const importedProjects: Project[] = [
         {
+          id: 'imported-project-id',
           title: 'Imported Project',
           slug: 'imported-project',
           username: 'originaluser',
@@ -394,6 +406,7 @@ describe('OfflineProjectService', () => {
 
     it('should handle duplicate imports by updating', () => {
       const existingProject: Project = {
+        id: 'existing-project-id',
         title: 'Existing Project',
         slug: 'test-project',
         username: 'testuser',
@@ -406,6 +419,7 @@ describe('OfflineProjectService', () => {
 
       const importedProjects: Project[] = [
         {
+          id: 'updated-project-id',
           title: 'Updated Project',
           slug: 'test-project',
           username: 'originaluser',
@@ -429,8 +443,9 @@ describe('OfflineProjectService', () => {
 
   describe('localStorage persistence', () => {
     it('should load projects from localStorage on initialization', () => {
-      const storedProjects = [
+      const storedProjects: Project[] = [
         {
+          id: 'stored-project-id',
           title: 'Stored Project',
           slug: 'stored-project',
           username: 'testuser',

@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { DocumentElementEditorComponent } from './document-element-editor.component';
 
-// TODO: Convert from Spectator to TestBed - currently skipped
-describe.skip('DocumentElementEditorComponent', () => {
-  it('placeholder', () => {
+// TODO: Convert from Spectator to TestBed - basic placeholder test for now
+describe('DocumentElementEditorComponent', () => {
+  it('should be defined', () => {
     expect(DocumentElementEditorComponent).toBeDefined();
   });
 });

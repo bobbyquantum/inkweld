@@ -102,7 +102,8 @@ describe('SystemConfigService', () => {
           expect(errorService.systemFeatures()).toEqual({
             aiLinting: false,
             aiImageGeneration: false,
-            captcha: { enabled: false },
+            appMode: 'BOTH',
+            captcha: { enabled: false, siteKey: undefined },
             userApprovalRequired: true,
           });
           expect(errorService.isConfigLoaded()).toBe(true);
@@ -390,7 +391,8 @@ describe('SystemConfigService', () => {
           expect(testService.systemFeatures()).toEqual({
             aiLinting: false,
             aiImageGeneration: false,
-            captcha: { enabled: false },
+            appMode: 'BOTH',
+            captcha: { enabled: false, siteKey: undefined },
             userApprovalRequired: true,
           });
           expect(testService.isConfigLoaded()).toBe(true);
@@ -421,7 +423,8 @@ describe('SystemConfigService', () => {
             expect(service.systemFeatures()).toEqual({
               aiLinting: false,
               aiImageGeneration: false,
-              captcha: { enabled: false },
+              appMode: 'BOTH',
+              captcha: { enabled: false, siteKey: undefined },
               userApprovalRequired: true,
             });
             expect(service.isConfigLoaded()).toBe(true);

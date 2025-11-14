@@ -104,25 +104,20 @@ export function setupProjectHandlers(): void {
     // Handle GET requests
     if (method === 'GET') {
       const request = route.request();
-      const cookieHeader = request.headers()['cookie'];
+      const authHeader = request.headers()['authorization'];
       let username = '';
 
-      // Extract username from session cookie
-      if (cookieHeader) {
-        console.log('Cookie header:', cookieHeader);
-        const cookies = cookieHeader.split('; ');
-        const sessionCookie = cookies.find(c => c.startsWith('mockSessionId='));
-        if (sessionCookie) {
-          const sessionId = sessionCookie.split('=')[1];
-          console.log('Session ID:', sessionId);
-          const parts = sessionId.split('-');
-          if (parts.length >= 3 && parts[0] === 'mock' && parts[1] === 'session') {
-            username = parts[2];
-            console.log('Extracted username:', username);
-          }
+      // Extract username from auth token
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        console.log('Auth token:', token);
+        const parts = token.split('-');
+        if (parts.length >= 3 && parts[0] === 'mock' && parts[1] === 'token') {
+          username = parts[2];
+          console.log('Extracted username:', username);
         }
       } else {
-        console.log('No cookie header found');
+        console.log('No auth header found');
       }
 
       if (!username) {
@@ -152,19 +147,15 @@ export function setupProjectHandlers(): void {
     // Handle POST requests
     if (method === 'POST') {
       const request = route.request();
-      const cookieHeader = request.headers()['cookie'];
+      const authHeader = request.headers()['authorization'];
       let username = '';
 
-      // Extract username from session cookie
-      if (cookieHeader) {
-        const cookies = cookieHeader.split('; ');
-        const sessionCookie = cookies.find(c => c.startsWith('mockSessionId='));
-        if (sessionCookie) {
-          const sessionId = sessionCookie.split('=')[1];
-          const parts = sessionId.split('-');
-          if (parts.length >= 3 && parts[0] === 'mock' && parts[1] === 'session') {
-            username = parts[2];
-          }
+      // Extract username from auth token
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const parts = token.split('-');
+        if (parts.length >= 3 && parts[0] === 'mock' && parts[1] === 'token') {
+          username = parts[2];
         }
       }
 

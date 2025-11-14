@@ -68,6 +68,7 @@ describe('DocumentsListTabComponent', () => {
       version: 1,
       expandable: false,
       metadata: {},
+      parentId: null,
     },
   ];
 
@@ -122,7 +123,13 @@ describe('DocumentsListTabComponent', () => {
 
   it('should filter and display only ITEM type elements as documents', () => {
     // Manually set documents for test
-    component.documents.set(mockElements.filter(el => el.type === 'ITEM'));
+    component.documents.set(
+      mockElements.filter(
+        el =>
+          el.type ===
+          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
+      )
+    );
 
     const docs = component.documents();
     expect(docs.length).toBe(2);

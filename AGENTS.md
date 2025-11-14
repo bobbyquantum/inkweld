@@ -23,9 +23,10 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 - **Test Coverage Required**: Before completing any code change, ensure test coverage exists
 - **All Tests Must Pass**: Run tests before submitting changes
 - **Test Frameworks**:
-  - Frontend: Jest (unit), Playwright (e2e)
-  - Backend: Jest
+  - Frontend: Jest (unit), Playwright (e2e) - **USE `npm test` NOT `bun test`**
+  - Backend: Jest - uses Bun runtime
   - **Never use Jasmine** - this project uses Jest exclusively
+- **CRITICAL**: Always run frontend tests with `npm test` - Bun's test runner is incompatible with Angular tests
 
 ### 2. Linting & Formatting
 

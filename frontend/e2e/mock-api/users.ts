@@ -117,24 +117,20 @@ export function setupUserHandlers(): void {
     }
   });
 
-  // GET /api/v1/users/me - Current user endpoint (Cookie based)
+  // GET /api/v1/users/me - Current user endpoint (Token based)
   mockApi.addHandler('**/api/v1/users/me', async (route: Route) => {
     const request = route.request();
-    const cookieHeader = request.headers()['cookie'];
-    let sessionId = '';
+    const authHeader = request.headers()['authorization'];
+    let token = '';
 
-    // Extract mockSessionId from cookie header
-    if (cookieHeader) {
-      const cookies = cookieHeader.split('; ');
-      const sessionCookie = cookies.find(c => c.startsWith('mockSessionId='));
-      if (sessionCookie) {
-        sessionId = sessionCookie.split('=')[1];
-      }
+    // Extract token from Authorization header
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7); // Remove 'Bearer ' prefix
     }
 
-    // If no session cookie found, return 401 Unauthorized
-    if (!sessionId) {
-      console.log('Unauthorized request to /api/v1/users/me (no session cookie)');
+    // If no auth token found, return 401 Unauthorized
+    if (!token) {
+      console.log('Unauthorized request to /api/v1/users/me (no auth token)');
       await route.fulfill({
         status: 401,
         contentType: 'application/json',
@@ -147,18 +143,18 @@ export function setupUserHandlers(): void {
       return;
     }
 
-    // If session cookie found, try to extract username and find the user
-    // Mock format: mock-session-{username}-{timestamp}
+    // If auth token found, try to extract username and find the user
+    // Mock format: mock-token-{username}
     let user;
-    const parts = sessionId.split('-');
-    if (parts.length >= 3 && parts[0] === 'mock' && parts[1] === 'session') {
+    const parts = token.split('-');
+    if (parts.length >= 3 && parts[0] === 'mock' && parts[1] === 'token') {
       const username = parts[2];
       user = mockUsers.findByUsername(username);
     }
 
-    // If a user was found for the session, return 200 OK
+    // If a user was found for the token, return 200 OK
     if (user) {
-      console.log(`Returning mock user for session: ${user.name}`);
+      console.log(`Returning mock user for token: ${user.name}`);
       await route.fulfill({
         status: 200,
         contentType: 'application/json',

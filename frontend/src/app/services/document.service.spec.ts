@@ -1,3 +1,4 @@
+import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Editor } from 'ngx-editor';
@@ -55,7 +56,7 @@ describe('DocumentService', () => {
   let mockSetupService: DeepMockProxy<SetupService>;
   let mockSystemConfigService: DeepMockProxy<SystemConfigService>;
 
-  const testDocumentId = 'test-doc';
+  const testDocumentId = 'testuser:test-project:test-doc';
 
   beforeEach(() => {
     // Reset mocks before each test
@@ -89,6 +90,7 @@ describe('DocumentService', () => {
           reconfigure: vi.fn().mockReturnValue({}),
         },
         updateState: vi.fn(),
+        dispatch: vi.fn(),
       },
       state: {
         reconfigure: vi.fn().mockReturnValue({}),
@@ -122,6 +124,7 @@ describe('DocumentService', () => {
     // Mock SetupService
     mockSetupService = {
       getWebSocketUrl: vi.fn().mockReturnValue('ws://localhost:8333'),
+      getMode: vi.fn().mockReturnValue('server'),
     } as unknown as DeepMockProxy<SetupService>;
 
     // Mock SystemConfigService
@@ -135,6 +138,7 @@ describe('DocumentService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        provideHttpClient(),
         DocumentService,
         { provide: ProjectStateService, useValue: mockProjectStateService },
         { provide: DocumentsService, useValue: mockDocumentsService },

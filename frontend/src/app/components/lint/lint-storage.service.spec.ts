@@ -3,7 +3,6 @@ import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
 import { PostApiV1AiLint200ResponseCorrectionsInner } from '../../../api-client/model/post-api-v1-ai-lint200-response-corrections-inner';
-import { any } from './correction-dto.extension';
 import { LintStorageService } from './lint-storage.service';
 
 describe('LintStorageService', () => {

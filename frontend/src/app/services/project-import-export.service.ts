@@ -228,8 +228,7 @@ export class ProjectImportExportService {
     const elements = allElements.filter(
       elem =>
         elem.type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType
-            .Folder ||
+          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder ||
         elem.type ===
           GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
     );
@@ -258,7 +257,10 @@ export class ProjectImportExportService {
     archive.elements = await Promise.all(
       elements.map(async elem => {
         const elementArchive = archive.elements.find(e => e.id === elem.id)!;
-        if (elem.type === GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item) {
+        if (
+          elem.type ===
+          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
+        ) {
           const content = await firstValueFrom(
             this.documentService.exportDocument(elem.id)
           );
@@ -326,7 +328,10 @@ export class ProjectImportExportService {
       }));
 
     for (const elem of archive.elements) {
-      if (elem.type === GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item) {
+      if (
+        elem.type ===
+        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
+      ) {
         const content = elem.content;
         if (!content) {
           console.warn('Document content is missing for item:', elem.id);

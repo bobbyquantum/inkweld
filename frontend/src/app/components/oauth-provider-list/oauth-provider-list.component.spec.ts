@@ -1,47 +1,62 @@
+import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { AuthenticationService } from '@inkweld/index';
-import { of, throwError } from 'rxjs';
-import { MockedObject, vi } from 'vitest';
+import { AuthenticationService, OAuthProvidersResponse } from '@inkweld/index';
+import { Observable, of, throwError } from 'rxjs';
+import { vi } from 'vitest';
 
 import { OAuthProviderListComponent } from './oauth-provider-list.component';
 
 describe('OAuthProviderListComponent', () => {
   let component: OAuthProviderListComponent;
   let fixture: ComponentFixture<OAuthProviderListComponent>;
-  let AuthenticationService: MockedObject<AuthenticationService>;
-  let snackBar: MockedObject<MatSnackBar>;
+  let authService: {
+    getApiV1AuthProviders: ReturnType<
+      typeof vi.fn<() => Observable<OAuthProvidersResponse>>
+    >;
+  };
+  let snackBar: Partial<MatSnackBar>;
 
   beforeEach(async () => {
-    AuthenticationService = {
-      getProviders: vi.fn(),
-    } as unknown as MockedObject<AuthenticationService>;
+    authService = {
+      getApiV1AuthProviders: vi.fn<() => Observable<OAuthProvidersResponse>>(),
+    };
 
     snackBar = {
       open: vi.fn(),
-    } as unknown as MockedObject<MatSnackBar>;
+    };
 
     await TestBed.configureTestingModule({
       imports: [OAuthProviderListComponent, NoopAnimationsModule],
       providers: [
         provideZonelessChangeDetection(),
-        { provide: AuthenticationService, useValue: AuthenticationService },
+        provideHttpClient(),
+        { provide: AuthenticationService, useValue: authService },
         { provide: MatSnackBar, useValue: snackBar },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(OAuthProviderListComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    // Don't call fixture.detectChanges() here - let individual tests control when ngOnInit runs
   });
 
   it('should create', () => {
+    fixture.detectChanges();
     expect(component).toBeTruthy();
   });
 
   describe('UI and text behavior', () => {
+    beforeEach(() => {
+      // Set up default mock behavior for UI tests
+      authService.getApiV1AuthProviders.mockReturnValue(
+        of({ providers: { github: false } })
+      );
+      fixture.detectChanges();
+    });
+
     it('should have isRegisterContext set to false by default', () => {
       expect(component.isRegisterContext).toBe(false);
     });
@@ -81,9 +96,9 @@ describe('OAuthProviderListComponent', () => {
 
   describe('initialization', () => {
     it('should load OAuth2 providers on init', async () => {
-      const getEnabledOAuth2ProvidersMock =
-        AuthenticationService.getApiV1AuthProviders as any;
-      getEnabledOAuth2ProvidersMock.mockReturnValue(of(['github', 'google']));
+      authService.getApiV1AuthProviders.mockReturnValue(
+        of({ providers: { github: true, google: true } })
+      );
 
       // Initial state should be empty
       expect(component.enabledProviders()).toEqual([]);
@@ -91,15 +106,15 @@ describe('OAuthProviderListComponent', () => {
       expect(component.githubEnabled()).toBeFalsy();
       expect(component.googleEnabled()).toBeFalsy();
 
-      // Start loading
-      void component.ngOnInit();
-      expect(component.isLoadingProviders()).toBeTruthy();
+      // Trigger ngOnInit via detectChanges
+      fixture.detectChanges();
 
-      // Wait for next tick to let async operations complete
+      // Wait for async operation
+      await Promise.resolve();
       await Promise.resolve();
 
       // After loading completes
-      expect(AuthenticationService.getApiV1AuthProviders).toHaveBeenCalled();
+      expect(authService.getApiV1AuthProviders).toHaveBeenCalled();
       expect(component.enabledProviders()).toEqual(['github', 'google']);
       expect(component.isLoadingProviders()).toBeFalsy();
       expect(component.githubEnabled()).toBeTruthy();
@@ -108,9 +123,7 @@ describe('OAuthProviderListComponent', () => {
     });
 
     it('should handle OAuth2 providers loading error', async () => {
-      const getEnabledOAuth2ProvidersMock =
-        AuthenticationService.getApiV1AuthProviders as any;
-      getEnabledOAuth2ProvidersMock.mockReturnValue(
+      authService.getApiV1AuthProviders.mockReturnValue(
         throwError(() => new Error('Failed to load providers'))
       );
 
@@ -118,11 +131,11 @@ describe('OAuthProviderListComponent', () => {
       expect(component.enabledProviders()).toEqual([]);
       expect(component.isLoadingProviders()).toBeFalsy();
 
-      // Start loading
-      void component.ngOnInit();
-      expect(component.isLoadingProviders()).toBeTruthy();
+      // Trigger ngOnInit via detectChanges
+      fixture.detectChanges();
 
-      // Wait for next tick to let async operations complete
+      // Wait for async operation
+      await Promise.resolve();
       await Promise.resolve();
 
       // After error

@@ -41,8 +41,8 @@ describe('UserService', () => {
   let storageService: StorageService;
   let httpTestingController: HttpTestingController;
   let authServiceMock: {
-    postApiAuthLogin: Mock;
-    postApiAuthLogout: Mock;
+    postApiV1AuthLogin: Mock;
+    postApiV1AuthLogout: Mock;
   };
   let dialogMock: { open: Mock };
   let routerMock: { navigate: Mock };
@@ -50,8 +50,8 @@ describe('UserService', () => {
   beforeEach(() => {
     userServiceMock.getApiV1UsersMe.mockReturnValue(of(TEST_USER));
     authServiceMock = {
-      postApiAuthLogin: vi.fn(),
-      postApiAuthLogout: vi.fn(),
+      postApiV1AuthLogin: vi.fn(),
+      postApiV1AuthLogout: vi.fn(),
     };
     dialogMock = { open: vi.fn() };
     routerMock = { navigate: vi.fn() };
@@ -103,8 +103,10 @@ describe('UserService', () => {
   describe('initialization', () => {
     it('should initialize with undefined user', () => {
       expect(service.currentUser()).toStrictEqual({
+        id: '',
         name: 'anonymous',
         username: 'anonymous',
+        enabled: false,
       });
       expect(service.isLoading()).toBe(false);
       expect(service.error()).toBeUndefined();
@@ -177,8 +179,10 @@ describe('UserService', () => {
 
       await service.clearCurrentUser();
       expect(service.currentUser()).toStrictEqual({
+        id: '',
         name: 'anonymous',
         username: 'anonymous',
+        enabled: false,
       });
       expect(service.isAuthenticated()).toBe(false);
     });
@@ -203,12 +207,14 @@ describe('UserService', () => {
       const username = 'testuser';
       const password = 'password123';
 
-      authServiceMock.postApiAuthLogin.mockReturnValue(of(TEST_USER));
+      authServiceMock.postApiV1AuthLogin.mockReturnValue(
+        of({ user: TEST_USER, token: 'test-token' })
+      );
 
       await service.login(username, password);
 
       // Verify the auth service was called
-      expect(authServiceMock.postApiAuthLogin).toHaveBeenCalledWith('', {
+      expect(authServiceMock.postApiV1AuthLogin).toHaveBeenCalledWith({
         username,
         password,
       });
@@ -232,7 +238,7 @@ describe('UserService', () => {
         statusText: 'Unauthorized',
       });
 
-      authServiceMock.postApiAuthLogin.mockReturnValue(
+      authServiceMock.postApiV1AuthLogin.mockReturnValue(
         throwError(() => errorResponse)
       );
 

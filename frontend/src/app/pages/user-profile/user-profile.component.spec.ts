@@ -3,7 +3,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
-import { Project, UserDto } from '@inkweld/index';
+import { Project, User } from '@inkweld/index';
 import { ProjectService } from '@services/project.service';
 import { UserService } from '@services/user.service';
 import { of, Subject } from 'rxjs';
@@ -39,7 +39,12 @@ describe('UserProfileComponent', () => {
 
     // Mock UserService similar to HomeComponent
     userService = {
-      currentUser: signal<UserDto>({ name: 'Test User', username: 'testuser' }),
+      currentUser: signal<User>({
+        name: 'Test User',
+        username: 'testuser',
+        id: '1',
+        enabled: true,
+      }),
     } as unknown as MockedObject<UserService>;
 
     // Mock BreakpointObserver

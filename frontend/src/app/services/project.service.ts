@@ -440,10 +440,12 @@ export class ProjectService {
     try {
       // Assume delete returns void or similar
       await firstValueFrom(
-        this.imagesApi.deleteApiV1ProjectsUsernameSlugCover(username, slug).pipe(
-          retry(MAX_RETRIES),
-          catchError(err => throwError(() => this.formatError(err)))
-        )
+        this.imagesApi
+          .deleteApiV1ProjectsUsernameSlugCover(username, slug)
+          .pipe(
+            retry(MAX_RETRIES),
+            catchError(err => throwError(() => this.formatError(err)))
+          )
       );
 
       // Update the project in the projects list if it exists to reflect no cover

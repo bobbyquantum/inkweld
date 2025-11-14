@@ -91,6 +91,8 @@ describe('UserMenuComponent', () => {
       const mockUser: User = {
         username: 'testuser',
         name: 'Test User',
+        id: '1',
+        enabled: true,
       };
 
       component.user = mockUser;

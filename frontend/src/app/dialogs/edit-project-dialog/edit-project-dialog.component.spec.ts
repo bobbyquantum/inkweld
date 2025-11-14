@@ -6,6 +6,7 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { ProjectsService } from '@inkweld/api/projects.service';
 import { Project, User } from '@inkweld/index';
 import { of } from 'rxjs';
 import {
@@ -19,7 +20,6 @@ import {
   vi,
 } from 'vitest';
 
-import { ProjectsService } from '@inkweld/api/projects.service';
 import { ProjectService } from '../../services/project.service';
 import { ProjectImportExportService } from '../../services/project-import-export.service';
 import { EditProjectDialogComponent } from './edit-project-dialog.component';
@@ -42,6 +42,8 @@ describe('EditProjectDialogComponent', () => {
   const mockUser: User = {
     username: 'testuser',
     name: 'Test User',
+    id: '1',
+    enabled: true,
   };
 
   const mockProject: Project = {

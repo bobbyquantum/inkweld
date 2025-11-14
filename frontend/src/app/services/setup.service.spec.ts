@@ -326,7 +326,12 @@ describe('SetupService', () => {
     });
 
     it('should return user profile when in offline mode', () => {
-      const userProfile = { name: 'Test User', username: 'testuser' };
+      const userProfile = {
+        id: '',
+        name: 'Test User',
+        username: 'testuser',
+        enabled: true,
+      };
       service.configureOfflineMode(userProfile);
 
       expect(service.getOfflineUserProfile()).toEqual(userProfile);

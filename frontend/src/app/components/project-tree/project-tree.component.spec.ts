@@ -7,7 +7,6 @@ import {
   CdkDropList,
 } from '@angular/cdk/drag-drop';
 import { provideHttpClient } from '@angular/common/http';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import {
   provideZonelessChangeDetection,
   signal,
@@ -15,6 +14,7 @@ import {
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { ProjectsService } from '@inkweld/index';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
@@ -55,6 +55,7 @@ describe('ProjectTreeComponent', () => {
     version: 0,
     metadata: {},
     visible: true,
+    parentId: null,
   };
 
   const setupTestBed = async () => {
@@ -255,7 +256,9 @@ describe('ProjectTreeComponent', () => {
       expandable: false,
       version: 0,
       metadata: {},
+      parentId: null,
       visible: true,
+      order,
     });
 
     beforeEach(() => {
