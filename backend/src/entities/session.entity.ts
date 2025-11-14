@@ -6,7 +6,7 @@ export class UserSession {
   id: string;
 
   @Column('json', { nullable: true })
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 
   @Column('bigint')
   expiredAt: number;

@@ -65,7 +65,7 @@ export class TestClient {
   async request(
     path: string,
     options: RequestInit = {}
-  ): Promise<{ response: Response; json: () => Promise<any> }> {
+  ): Promise<{ response: Response; json: () => Promise<unknown> }> {
     const url = `${this.baseUrl}${path}`;
 
     // Add Authorization header if we have a token
@@ -105,9 +105,9 @@ export class TestClient {
 
     if (response.ok) {
       const data = await json();
-      if (data && data.token) {
-        this.token = data.token;
-        console.log('[TestClient] Stored token:', this.token!.substring(0, 20) + '...');
+      if (data && typeof data === 'object' && 'token' in data) {
+        this.token = (data as { token: string }).token;
+        console.log('[TestClient] Stored token:', this.token.substring(0, 20) + '...');
         return true;
       }
     }
