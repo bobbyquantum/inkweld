@@ -1,5 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { TestBed } from '@angular/core/testing';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { Project } from '@inkweld/model/project-dto';
 import { of } from 'rxjs';
@@ -91,7 +93,7 @@ describe('DialogGatewayService', () => {
   it('should open new element dialog', async () => {
     const dialogResult: NewElementDialogResult = {
       name: 'New Element',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
     };
     (dialogRefMock.afterClosed as Mock).mockReturnValue(of(dialogResult));
 

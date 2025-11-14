@@ -1,5 +1,7 @@
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { Component, provideZonelessChangeDetection } from '@angular/core';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
@@ -30,9 +32,9 @@ describe('FolderElementEditorComponent', () => {
     {
       id: 'folder1',
       name: 'Test Folder',
-      type: 'FOLDER',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
       level: 0,
-      position: 0,
+      order: 0,
       expandable: true,
       expanded: true,
       visible: true,
@@ -42,9 +44,9 @@ describe('FolderElementEditorComponent', () => {
     {
       id: 'item1',
       name: 'Test Item 1',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 1,
-      position: 1,
+      order: 1,
       expandable: false,
       expanded: false,
       visible: true,
@@ -54,9 +56,9 @@ describe('FolderElementEditorComponent', () => {
     {
       id: 'item2',
       name: 'Test Item 2',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 1,
-      position: 2,
+      order: 2,
       expandable: false,
       expanded: false,
       visible: true,

@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { MatTooltipModule, TooltipPosition } from '@angular/material/tooltip';
 
-import { PostLint200ResponseCorrectionsInner } from '../../../api-client/model/post-lint200-response-corrections-inner';
+import { PostApiV1AiLint200ResponseCorrectionsInner } from '../../../api-client/model/post-api-v1-ai-lint200-response-corrections-inner';
 
 @Component({
   selector: 'app-lint-overlay',
@@ -55,7 +55,7 @@ import { PostLint200ResponseCorrectionsInner } from '../../../api-client/model/p
 export class LintOverlayComponent implements OnInit, OnChanges {
   private elementRef = inject(ElementRef);
 
-  @Input() recommendations: PostLint200ResponseCorrectionsInner[] = [];
+  @Input() recommendations: PostApiV1AiLint200ResponseCorrectionsInner[] = [];
   @Input() position: TooltipPosition = 'below';
 
   tipContent = '';
@@ -64,12 +64,12 @@ export class LintOverlayComponent implements OnInit, OnChanges {
     // Listen for custom events for accept/reject actions
     document.addEventListener('lint-accept', (event: Event) => {
       const customEvent =
-        event as CustomEvent<PostLint200ResponseCorrectionsInner>;
+        event as CustomEvent<PostApiV1AiLint200ResponseCorrectionsInner>;
       this.handleAccept(customEvent);
     });
     document.addEventListener('lint-reject', (event: Event) => {
       const customEvent =
-        event as CustomEvent<PostLint200ResponseCorrectionsInner>;
+        event as CustomEvent<PostApiV1AiLint200ResponseCorrectionsInner>;
       this.handleReject(customEvent);
     });
   }
@@ -83,7 +83,7 @@ export class LintOverlayComponent implements OnInit, OnChanges {
   }
 
   private handleAccept(
-    event: CustomEvent<PostLint200ResponseCorrectionsInner>
+    event: CustomEvent<PostApiV1AiLint200ResponseCorrectionsInner>
   ): void {
     const correction = event.detail;
     if (correction) {
@@ -97,7 +97,7 @@ export class LintOverlayComponent implements OnInit, OnChanges {
   }
 
   private handleReject(
-    event: CustomEvent<PostLint200ResponseCorrectionsInner>
+    event: CustomEvent<PostApiV1AiLint200ResponseCorrectionsInner>
   ): void {
     const correction = event.detail;
     if (correction) {
@@ -118,8 +118,8 @@ export class LintOverlayComponent implements OnInit, OnChanges {
 
     // Format the recommendations as a nicely formatted list
     const formattedTips = this.recommendations.map(rec => {
-      const suggestion = rec.corrected_text || '';
-      const errorText = rec.original_text || '';
+      const suggestion = rec.correctedText || '';
+      const errorText = rec.originalText || '';
 
       return (
         `<div class="lint-tip-title">${suggestion}</div>` +

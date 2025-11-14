@@ -21,7 +21,7 @@ export interface GetApiV1ProjectsUsernameSlugElements200ResponseInner {
     /**
      * Element type
      */
-    type: GetApiV1ProjectsUsernameSlugElements200ResponseInner.TypeEnum;
+    type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType;
     /**
      * Parent element ID
      */
@@ -55,21 +55,19 @@ export interface GetApiV1ProjectsUsernameSlugElements200ResponseInner {
      */
     updatedAt?: string;
 }
-export namespace GetApiV1ProjectsUsernameSlugElements200ResponseInner {
-    export const TypeEnum = {
-        Folder: 'FOLDER',
-        Item: 'ITEM',
-        Character: 'CHARACTER',
-        Location: 'LOCATION',
-        WbItem: 'WB_ITEM',
-        Map: 'MAP',
-        Relationship: 'RELATIONSHIP',
-        Philosophy: 'PHILOSOPHY',
-        Culture: 'CULTURE',
-        Species: 'SPECIES',
-        Systems: 'SYSTEMS'
-    } as const;
-    export type TypeEnum = typeof TypeEnum[keyof typeof TypeEnum];
-}
+export enum GetApiV1ProjectsUsernameSlugElements200ResponseInnerType {
+    Folder = 'FOLDER',
+    Item = 'ITEM',
+    Character = 'CHARACTER',
+    Location = 'LOCATION',
+    WbItem = 'WB_ITEM',
+    Map = 'MAP',
+    Relationship = 'RELATIONSHIP',
+    Philosophy = 'PHILOSOPHY',
+    Culture = 'CULTURE',
+    Species = 'SPECIES',
+    Systems = 'SYSTEMS'
+};
+
 
 

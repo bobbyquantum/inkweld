@@ -1,5 +1,7 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -37,9 +39,9 @@ describe('DocumentsListTabComponent', () => {
     {
       id: 'doc1',
       name: 'Document 1',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 0,
-      position: 0,
+      order: 0,
       version: 1,
       expandable: false,
       metadata: {},
@@ -47,9 +49,9 @@ describe('DocumentsListTabComponent', () => {
     {
       id: 'doc2',
       name: 'Document 2',
-      type: 'FOLDER',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
       level: 0,
-      position: 1,
+      order: 1,
       version: 1,
       expandable: true,
       metadata: {},
@@ -57,9 +59,9 @@ describe('DocumentsListTabComponent', () => {
     {
       id: 'doc3',
       name: 'Document 3',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 0,
-      position: 2,
+      order: 2,
       version: 1,
       expandable: false,
       metadata: {},

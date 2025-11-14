@@ -3,18 +3,10 @@ import { of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 
 import { ConfigurationService } from '../../api-client/api/configuration.service';
-import { ConfigControllerGetSystemFeatures200Response } from '../../api-client/model/config-controller-get-system-features200-response';
+import { GetApiV1ConfigFeatures200Response, GetApiV1ConfigFeatures200ResponseAppMode } from '../../api-client/model/get-api-v1-config-features200-response';
 
-interface CaptchaConfig {
-  enabled?: boolean;
-  siteKey?: string;
-}
-
-interface ExtendedSystemFeatures
-  extends ConfigControllerGetSystemFeatures200Response {
-  captcha?: CaptchaConfig;
-  userApprovalRequired?: boolean;
-}
+// ExtendedSystemFeatures is the same as the API response now
+type ExtendedSystemFeatures = GetApiV1ConfigFeatures200Response;
 
 @Injectable({
   providedIn: 'root',
@@ -25,8 +17,9 @@ export class SystemConfigService {
   private readonly systemFeaturesSignal = signal<ExtendedSystemFeatures>({
     aiLinting: false,
     aiImageGeneration: false,
-    captcha: { enabled: false },
+    captcha: { enabled: false, siteKey: undefined },
     userApprovalRequired: true,
+    appMode: GetApiV1ConfigFeatures200ResponseAppMode.Both,
   });
 
   private isLoaded = signal(false);
@@ -59,11 +52,11 @@ export class SystemConfigService {
    */
   private loadSystemFeatures(): void {
     this.configApiService
-      .getApiConfig()
+      .getApiV1ConfigFeatures()
       .pipe(
         tap(features => {
           console.log('[SystemConfig] Loaded system features:', features);
-          this.systemFeaturesSignal.set(features as ExtendedSystemFeatures);
+          this.systemFeaturesSignal.set(features);
           this.isLoaded.set(true);
         }),
         catchError(error => {
@@ -74,8 +67,9 @@ export class SystemConfigService {
           this.systemFeaturesSignal.set({
             aiLinting: false,
             aiImageGeneration: false,
-            captcha: { enabled: false },
+            captcha: { enabled: false, siteKey: undefined },
             userApprovalRequired: true,
+            appMode: GetApiV1ConfigFeatures200ResponseAppMode.Both,
           });
           this.isLoaded.set(true);
           return of(null);

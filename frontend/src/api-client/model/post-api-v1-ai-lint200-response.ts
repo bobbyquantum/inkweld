@@ -27,14 +27,12 @@ export interface PostApiV1AiLint200Response {
     /**
      * The linting service source
      */
-    source: PostApiV1AiLint200Response.SourceEnum;
+    source: PostApiV1AiLint200ResponseSource;
 }
-export namespace PostApiV1AiLint200Response {
-    export const SourceEnum = {
-        Openai: 'openai',
-        Languagetool: 'languagetool'
-    } as const;
-    export type SourceEnum = typeof SourceEnum[keyof typeof SourceEnum];
-}
+export enum PostApiV1AiLint200ResponseSource {
+    Openai = 'openai',
+    Languagetool = 'languagetool'
+};
+
 
 

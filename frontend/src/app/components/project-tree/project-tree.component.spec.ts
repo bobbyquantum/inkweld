@@ -1,5 +1,7 @@
 import { ArrayDataSource } from '@angular/cdk/collections';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import {
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
   CdkDrag,
   CdkDragDrop,
   CdkDragMove,
@@ -47,8 +49,8 @@ describe('ProjectTreeComponent', () => {
   const mockDto: ProjectElement = {
     id: '1',
     name: 'Test Element',
-    type: 'FOLDER',
-    position: 0,
+    type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+    order: 0,
     level: 1,
     expandable: false,
     version: 0,
@@ -168,7 +170,7 @@ describe('ProjectTreeComponent', () => {
       currentIndex: 1,
       item: {
         data: invalid
-          ? { ...mockDto, id: undefined, position: undefined }
+          ? { ...mockDto, id: undefined, order: undefined }
           : mockDto,
       } as CdkDrag<ProjectElement>,
       container: {
@@ -245,11 +247,11 @@ describe('ProjectTreeComponent', () => {
     const createTestNode = (
       id: string,
       level: number,
-      position: number = 0
+      order: number = 0
     ): ProjectElement => ({
       id,
       name: `Test Node ${id}`,
-      type: 'FOLDER',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
       level,
       position,
       expandable: false,
@@ -513,8 +515,8 @@ describe('ProjectTreeComponent', () => {
     const createFileNode = (): ProjectElement => ({
       id: '2',
       name: 'Test File',
-      type: 'ITEM',
-      position: 0,
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      order: 0,
       level: 1,
       expandable: false,
       version: 0,

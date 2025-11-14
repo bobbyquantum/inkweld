@@ -183,7 +183,7 @@ export class UserService {
 
     try {
       const response = await firstValueFrom(
-        this.AuthenticationService.postLogin({
+        this.AuthenticationService.postApiV1AuthLogin({
           username,
           password,
         })
@@ -230,7 +230,7 @@ export class UserService {
     this.error.set(undefined);
 
     try {
-      await firstValueFrom(this.AuthenticationService.postLogout());
+      await firstValueFrom(this.AuthenticationService.postApiV1AuthLogout());
       await this.clearCurrentUser();
       await this.router.navigate(['/welcome']);
     } catch (err) {

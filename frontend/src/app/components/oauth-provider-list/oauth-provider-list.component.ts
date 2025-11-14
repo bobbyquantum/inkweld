@@ -168,7 +168,7 @@ export class OAuthProviderListComponent implements OnInit {
 
     try {
       const providers: string[] = await firstValueFrom(
-        this.AuthenticationService.getProviders()
+        this.AuthenticationService.getApiV1AuthProviders()
       );
       this.enabledProviders.set(providers);
 

@@ -30,8 +30,10 @@ if (!globalThis.structuredClone) {
   globalThis.structuredClone = createStructuredClone;
 }
 const TEST_USER: User = {
+  id: 'test-id',
   username: 'testuser',
   name: 'Test User',
+  enabled: true,
 };
 
 describe('UserService', () => {
@@ -46,7 +48,7 @@ describe('UserService', () => {
   let routerMock: { navigate: Mock };
 
   beforeEach(() => {
-    userServiceMock.getApiUserMe.mockReturnValue(of(TEST_USER));
+    userServiceMock.getApiV1UsersMe.mockReturnValue(of(TEST_USER));
     authServiceMock = {
       postApiAuthLogin: vi.fn(),
       postApiAuthLogout: vi.fn(),
@@ -119,9 +121,9 @@ describe('UserService', () => {
 
   describe('loadCurrentUser', () => {
     it('should load user from API when cache is empty', async () => {
-      userServiceMock.getApiUserMe.mockClear();
+      userServiceMock.getApiV1UsersMe.mockClear();
       await service.loadCurrentUser();
-      expect(userServiceMock.getApiUserMe).toHaveBeenCalledTimes(1);
+      expect(userServiceMock.getApiV1UsersMe).toHaveBeenCalledTimes(1);
       expect(service.currentUser()).toEqual(TEST_USER);
       expect(service.isLoading()).toBe(false);
       expect(service.error()).toBeUndefined();
@@ -129,15 +131,15 @@ describe('UserService', () => {
 
     it('should use cached user when available', async () => {
       // First load to cache the user
-      userServiceMock.getApiUserMe.mockReturnValue(of(TEST_USER));
+      userServiceMock.getApiV1UsersMe.mockReturnValue(of(TEST_USER));
       await service.loadCurrentUser();
 
-      userServiceMock.getApiUserMe.mockClear();
+      userServiceMock.getApiV1UsersMe.mockClear();
 
-      expect(userServiceMock.getApiUserMe).not.toHaveBeenCalled();
+      expect(userServiceMock.getApiV1UsersMe).not.toHaveBeenCalled();
       // Second load should use cache
       await service.loadCurrentUser();
-      expect(userServiceMock.getApiUserMe).not.toHaveBeenCalled();
+      expect(userServiceMock.getApiV1UsersMe).not.toHaveBeenCalled();
       expect(service.currentUser()).toEqual(TEST_USER);
     });
 
@@ -147,7 +149,7 @@ describe('UserService', () => {
         status: 0,
         statusText: 'Network Error',
       });
-      userServiceMock.getApiUserMe.mockReturnValue(throwError(() => error));
+      userServiceMock.getApiV1UsersMe.mockReturnValue(throwError(() => error));
 
       await expect(service.loadCurrentUser()).rejects.toThrow(UserServiceError);
       expect(service.error()?.code).toBe('NETWORK_ERROR');
@@ -160,7 +162,7 @@ describe('UserService', () => {
         status: 401,
         statusText: 'Unauthorized',
       });
-      userServiceMock.getApiUserMe.mockReturnValue(throwError(() => error));
+      userServiceMock.getApiV1UsersMe.mockReturnValue(throwError(() => error));
 
       await expect(service.loadCurrentUser()).rejects.toThrow(UserServiceError);
       expect(service.error()?.code).toBe('SESSION_EXPIRED');
@@ -337,12 +339,12 @@ describe('UserService', () => {
 
   describe('logout', () => {
     it('should logout successfully and clear user', async () => {
-      const AuthenticationService = TestBed.inject(AuthenticationService);
+      const authService = TestBed.inject(AuthenticationService);
       const router = TestBed.inject(Router);
       const service = TestBed.inject(UserService);
 
-      vi.spyOn(AuthenticationService, 'postApiAuthLogout').mockReturnValue(
-        of(new HttpResponse({ status: 200 }))
+      vi.spyOn(authService, 'postApiV1AuthLogout').mockReturnValue(
+        of(new HttpResponse({ status: 200, body: { message: 'Logged out' } }))
       );
       const clearCurrentUserSpy = vi
         .spyOn(service, 'clearCurrentUser')
@@ -350,20 +352,20 @@ describe('UserService', () => {
 
       await service.logout();
 
-      expect(AuthenticationService.postApiAuthLogout).toHaveBeenCalled();
+      expect(authService.postApiV1AuthLogout).toHaveBeenCalled();
       expect(clearCurrentUserSpy).toHaveBeenCalled();
       expect(router.navigate).toHaveBeenCalledWith(['/welcome']);
     });
 
     it('should handle logout failure', async () => {
-      const AuthenticationService = TestBed.inject(AuthenticationService);
+      const authService = TestBed.inject(AuthenticationService);
       const service = TestBed.inject(UserService);
 
       const error = new UserServiceError(
         'SERVER_ERROR',
         'Failed to load user data'
       );
-      vi.spyOn(AuthenticationService, 'postApiAuthLogout').mockReturnValue(
+      vi.spyOn(authService, 'postApiV1AuthLogout').mockReturnValue(
         throwError(() => new Error('Logout failed'))
       );
       const clearCurrentUserSpy = vi

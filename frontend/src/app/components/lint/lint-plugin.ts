@@ -6,8 +6,8 @@ import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
 import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 import { debounceTime, Subject, Subscription } from 'rxjs';
 
-import { PostLint200Response } from '../../../api-client/model/post-lint200-response';
-import { PostLint200ResponseCorrectionsInner } from '../../../api-client/model/post-lint200-response-corrections-inner';
+import { PostApiV1AiLint200Response } from '../../../api-client/model/post-api-v1-ai-lint200-response';
+import { PostApiV1AiLint200ResponseCorrectionsInner } from '../../../api-client/model/post-api-v1-ai-lint200-response-corrections-inner';
 import { ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintApiService } from './lint-api.service';
 import { LintStorageService } from './lint-storage.service';
@@ -93,15 +93,15 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
     view: EditorView,
     correction: ExtendedCorrectionDto
   ): void {
-    if (!correction || !correction.corrected_text) return;
+    if (!correction || !correction.correctedText) return;
 
     console.log(
-      `[LintPlugin] Applying correction: ${correction.corrected_text}`
+      `[LintPlugin] Applying correction: ${correction.correctedText}`
     );
     console.log(`[LintPlugin] Original text: "${correction.text || ''}"`);
 
-    let from = correction.start_pos;
-    let to = correction.end_pos;
+    let from = correction.startPos;
+    let to = correction.endPos;
 
     // Need to add back the +1 adjustment that was made during decoration creation
     // but removed when storing in the ExtendedCorrectionDto
@@ -132,7 +132,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
     // Check if we need to preserve leading or trailing whitespace
     const originalText = correction.text || '';
-    let suggestion = correction.corrected_text;
+    let suggestion = correction.correctedText;
 
     // Count leading whitespace in original text
     let leadingWhitespace = '';
@@ -182,7 +182,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
   // Create decorations from lint results
   function createDecorations(
     doc: Node,
-    lintResult: PostLint200Response
+    lintResult: PostApiV1AiLint200Response
   ): { decos: DecorationSet; suggestions: ExtendedCorrectionDto[] } {
     if (
       !lintResult ||
@@ -200,7 +200,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
     // Filter out rejected suggestions
     const filteredCorrections = lintResult.corrections.filter(
-      (correction: PostLint200ResponseCorrectionsInner) =>
+      (correction: PostApiV1AiLint200ResponseCorrectionsInner) =>
         !lintStorage.isSuggestionRejected(correction)
     );
 
@@ -210,7 +210,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
     const extendedSuggestions: ExtendedCorrectionDto[] = [];
     const decos = filteredCorrections
-      .map((correction: PostLint200ResponseCorrectionsInner) => {
+      .map((correction: PostApiV1AiLint200ResponseCorrectionsInner) => {
         let reasonText = '';
 
         // Handle both formats of corrections (server might send 'error' or 'reason')
@@ -218,17 +218,17 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
           reasonText = correction.reason;
         } else if (
           'error' in correction &&
-          typeof correction.original_text === 'string'
+          typeof correction.originalText === 'string'
         ) {
-          reasonText = `Error: ${correction.original_text}`;
+          reasonText = `Error: ${correction.originalText}`;
         }
 
         // Ensure we have from and to properties - adjust for potential off-by-one issues
         // Note: The server might be sending positions that are off by one character
         let from =
-          typeof correction.start_pos === 'number' ? correction.start_pos : 0;
+          typeof correction.startPos === 'number' ? correction.startPos : 0;
         let to =
-          typeof correction.end_pos === 'number' ? correction.end_pos : 0;
+          typeof correction.endPos === 'number' ? correction.endPos : 0;
 
         // Adjust positions to fix off-by-one server issue
         // Skip the leading space by incrementing from by 1
@@ -269,7 +269,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
           extendedSuggestions.push(extendedCorrection);
 
           console.log(
-            `[LintPlugin] Creating decoration from ${from} to ${to} with suggestion: ${correction.corrected_text}`
+            `[LintPlugin] Creating decoration from ${from} to ${to} with suggestion: ${correction.correctedText}`
           );
 
           // Create decoration with validated positions
@@ -309,7 +309,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
           // Check for proper metadata structure with type safety
           interface DecorationMeta {
             type: string;
-            res?: PostLint200Response;
+            res?: PostApiV1AiLint200Response;
             reqId: number;
           }
 
@@ -413,8 +413,8 @@ export function findSuggestionAtPos(
   suggestions: ExtendedCorrectionDto[]
 ): ExtendedCorrectionDto | null {
   for (const suggestion of suggestions) {
-    const from = suggestion.start_pos;
-    const to = suggestion.end_pos;
+    const from = suggestion.startPos;
+    const to = suggestion.endPos;
     if (from <= pos && pos <= to) {
       return suggestion;
     }

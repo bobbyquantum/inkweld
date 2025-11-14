@@ -1,3 +1,4 @@
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
@@ -54,12 +55,13 @@ describe('RecentFilesService', () => {
     const mockFile: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: 'file1',
       name: 'Test File',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 0,
       expandable: false,
-      position: 0,
+      order: 0,
       version: 1,
       metadata: {},
+      parentId: null,
     };
 
     service.addRecentFile(mockFile, 'user', 'slug');
@@ -77,24 +79,26 @@ describe('RecentFilesService', () => {
     const file1: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: 'file1',
       name: 'File 1',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 0,
       expandable: false,
-      position: 0,
+      order: 0,
       version: 1,
       metadata: {},
+      parentId: null,
     };
 
     // Add second file
     const file2: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: 'file2',
       name: 'File 2',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 0,
       expandable: false,
-      position: 1,
+      order: 1,
       version: 1,
       metadata: {},
+      parentId: null,
     };
 
     service.addRecentFile(file1, 'user', 'slug1');
@@ -120,23 +124,25 @@ describe('RecentFilesService', () => {
     const file1: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: 'file1',
       name: 'File 1',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 0,
       expandable: false,
-      position: 0,
+      order: 0,
       version: 1,
       metadata: {},
+      parentId: null,
     };
 
     const file2: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: 'file2',
       name: 'File 2',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 0,
       expandable: false,
-      position: 1,
+      order: 1,
       version: 1,
       metadata: {},
+      parentId: null,
     };
 
     service.addRecentFile(file1, 'user', 'slug1');
@@ -157,12 +163,13 @@ describe('RecentFilesService', () => {
       const file: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
         id: `file${i}`,
         name: `File ${i}`,
-        type: 'ITEM',
+        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
         level: 0,
         expandable: false,
-        position: i,
+        order: i,
         version: 1,
         metadata: {},
+      parentId: null,
       };
       service.addRecentFile(file, 'user', 'slug');
     }
@@ -178,12 +185,13 @@ describe('RecentFilesService', () => {
     const file: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
       id: 'file1',
       name: 'Test File',
-      type: 'ITEM',
+      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
       level: 0,
       expandable: false,
-      position: 0,
+      order: 0,
       version: 1,
       metadata: {},
+      parentId: null,
     };
 
     // Reset the mock before this specific test

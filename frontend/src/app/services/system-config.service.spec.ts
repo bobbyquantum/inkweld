@@ -3,8 +3,9 @@ import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { Mock, MockedObject, vi } from 'vitest';
 
-import { ConfigurationService } from '../../api-client/api/config.service';
-import { ConfigControllerGetSystemFeatures200Response } from '../../api-client/model/config-controller-get-system-features200-response';
+import { ConfigurationService } from '../../api-client/api/configuration.service';
+import { GetApiV1ConfigFeatures200ResponseAppMode } from '../../api-client/model/get-api-v1-config-features200-response';
+import { GetApiV1ConfigFeatures200Response } from '../../api-client/model/get-api-v1-config-features200-response';
 import { SystemConfigService } from './system-config.service';
 
 describe('SystemConfigService', () => {
@@ -13,9 +14,12 @@ describe('SystemConfigService', () => {
   let consoleSpy: any;
   let consoleWarnSpy: any;
 
-  const mockSystemFeatures: ConfigControllerGetSystemFeatures200Response = {
+  const mockSystemFeatures: GetApiV1ConfigFeatures200Response = {
     aiLinting: true,
     aiImageGeneration: true,
+    captcha: { enabled: false, siteKey: undefined },
+    appMode: GetApiV1ConfigFeatures200ResponseAppMode.Both,
+    userApprovalRequired: false,
   };
 
   beforeEach(() => {
@@ -23,7 +27,7 @@ describe('SystemConfigService', () => {
 
     // Mock ConfigurationService
     mockConfigService = {
-      getApiConfig: vi.fn(),
+      getApiV1ConfigFeatures: vi.fn(),
     } as MockedObject<ConfigurationService>;
 
     // Mock console methods to avoid test output noise, but keep spies for testing
@@ -31,7 +35,7 @@ describe('SystemConfigService', () => {
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     // Set up default successful response
-    (mockConfigService.getApiConfig as Mock).mockReturnValue(
+    (mockConfigService.getApiV1ConfigFeatures as Mock).mockReturnValue(
       of(mockSystemFeatures)
     );
 
@@ -57,12 +61,12 @@ describe('SystemConfigService', () => {
 
     it('should initialize with default features when constructor is called', () => {
       expect(service).toBeTruthy();
-      expect(mockConfigService.getApiConfig).toHaveBeenCalled();
+      expect(mockConfigService.getApiV1ConfigFeatures).toHaveBeenCalled();
     });
 
     it('should have correct initial values', () => {
       // Reset the service with no API call to test initial state
-      (mockConfigService.getApiConfig as Mock).mockClear();
+      (mockConfigService.getApiV1ConfigFeatures as Mock).mockClear();
 
       // Check the signals are functions
       expect(typeof service.systemFeatures).toBe('function');
@@ -78,7 +82,7 @@ describe('SystemConfigService', () => {
 
       // Reset TestBed with error mock
       TestBed.resetTestingModule();
-      (mockConfigService.getApiConfig as Mock).mockReturnValue(
+      (mockConfigService.getApiV1ConfigFeatures as Mock).mockReturnValue(
         throwError(() => error)
       );
 
@@ -127,8 +131,11 @@ describe('SystemConfigService', () => {
 
   describe('refreshSystemFeatures', () => {
     it('should refresh system features and reload configuration', () => {
-      const newFeatures: ConfigControllerGetSystemFeatures200Response = {
+      const newFeatures: GetApiV1ConfigFeatures200Response = {
         aiLinting: false,
+        captcha: { enabled: false, siteKey: undefined },
+        appMode: GetApiV1ConfigFeatures200ResponseAppMode.Both,
+        userApprovalRequired: false,
         aiImageGeneration: true,
       };
 
@@ -139,8 +146,8 @@ describe('SystemConfigService', () => {
           expect(service.systemFeatures()).toEqual(mockSystemFeatures);
 
           // Clear previous calls and set up new return value
-          (mockConfigService.getApiConfig as Mock).mockClear();
-          (mockConfigService.getApiConfig as Mock).mockReturnValue(
+          (mockConfigService.getApiV1ConfigFeatures as Mock).mockClear();
+          (mockConfigService.getApiV1ConfigFeatures as Mock).mockReturnValue(
             of(newFeatures)
           );
 
@@ -149,7 +156,7 @@ describe('SystemConfigService', () => {
           setTimeout(() => {
             expect(service.systemFeatures()).toEqual(newFeatures);
             expect(service.isConfigLoaded()).toBe(true);
-            expect(mockConfigService.getApiConfig).toHaveBeenCalledTimes(1);
+            expect(mockConfigService.getApiV1ConfigFeatures).toHaveBeenCalledTimes(1);
             resolve();
           }, 10);
         }, 10);
@@ -163,7 +170,7 @@ describe('SystemConfigService', () => {
           expect(service.isConfigLoaded()).toBe(true);
 
           // Setup a fresh observable for refresh
-          (mockConfigService.getApiConfig as Mock).mockReturnValue(
+          (mockConfigService.getApiV1ConfigFeatures as Mock).mockReturnValue(
             of(mockSystemFeatures)
           );
 
@@ -174,7 +181,7 @@ describe('SystemConfigService', () => {
           // we just verify that the method was called and the service still works
           setTimeout(() => {
             expect(service.isConfigLoaded()).toBe(true);
-            expect(mockConfigService.getApiConfig).toHaveBeenCalled();
+            expect(mockConfigService.getApiV1ConfigFeatures).toHaveBeenCalled();
             resolve();
           }, 10);
         }, 10);
@@ -185,7 +192,7 @@ describe('SystemConfigService', () => {
   describe('Computed Properties', () => {
     it('should compute isAiLintingEnabled correctly', () => {
       TestBed.resetTestingModule();
-      (mockConfigService.getApiConfig as Mock).mockReturnValue(
+      (mockConfigService.getApiV1ConfigFeatures as Mock).mockReturnValue(
         of({ aiLinting: true, aiImageGeneration: false })
       );
 
@@ -209,10 +216,10 @@ describe('SystemConfigService', () => {
 
     it('should compute isAiLintingEnabled as false when undefined', () => {
       TestBed.resetTestingModule();
-      (mockConfigService.getApiConfig as Mock).mockReturnValue(
+      (mockConfigService.getApiV1ConfigFeatures as Mock).mockReturnValue(
         of({
           aiImageGeneration: false,
-        } as ConfigControllerGetSystemFeatures200Response)
+        } as GetApiV1ConfigFeatures200Response)
       );
 
       TestBed.configureTestingModule({
@@ -235,7 +242,7 @@ describe('SystemConfigService', () => {
 
     it('should compute isAiImageGenerationEnabled correctly', () => {
       TestBed.resetTestingModule();
-      (mockConfigService.getApiConfig as Mock).mockReturnValue(
+      (mockConfigService.getApiV1ConfigFeatures as Mock).mockReturnValue(
         of({ aiLinting: false, aiImageGeneration: true })
       );
 
@@ -259,8 +266,8 @@ describe('SystemConfigService', () => {
 
     it('should compute isAiImageGenerationEnabled as false when undefined', () => {
       TestBed.resetTestingModule();
-      (mockConfigService.getApiConfig as Mock).mockReturnValue(
-        of({ aiLinting: false } as ConfigControllerGetSystemFeatures200Response)
+      (mockConfigService.getApiV1ConfigFeatures as Mock).mockReturnValue(
+        of({ aiLinting: false } as GetApiV1ConfigFeatures200Response)
       );
 
       TestBed.configureTestingModule({
@@ -283,8 +290,8 @@ describe('SystemConfigService', () => {
 
     it('should handle null/undefined system features gracefully', () => {
       TestBed.resetTestingModule();
-      (mockConfigService.getApiConfig as Mock).mockReturnValue(
-        of({} as ConfigControllerGetSystemFeatures200Response)
+      (mockConfigService.getApiV1ConfigFeatures as Mock).mockReturnValue(
+        of({} as GetApiV1ConfigFeatures200Response)
       );
 
       TestBed.configureTestingModule({
@@ -313,7 +320,7 @@ describe('SystemConfigService', () => {
       const updatedFeatures = { aiLinting: true, aiImageGeneration: true };
 
       TestBed.resetTestingModule();
-      (mockConfigService.getApiConfig as Mock).mockReturnValueOnce(
+      (mockConfigService.getApiV1ConfigFeatures as Mock).mockReturnValueOnce(
         of(initialFeatures)
       );
 
@@ -333,7 +340,7 @@ describe('SystemConfigService', () => {
           expect(testService.isAiImageGenerationEnabled()).toBe(false);
 
           // Update features
-          (mockConfigService.getApiConfig as Mock).mockReturnValueOnce(
+          (mockConfigService.getApiV1ConfigFeatures as Mock).mockReturnValueOnce(
             of(updatedFeatures)
           );
 
@@ -362,7 +369,7 @@ describe('SystemConfigService', () => {
       const networkError = new Error('Network unavailable');
 
       TestBed.resetTestingModule();
-      (mockConfigService.getApiConfig as Mock).mockReturnValue(
+      (mockConfigService.getApiV1ConfigFeatures as Mock).mockReturnValue(
         throwError(() => networkError)
       );
 
@@ -402,7 +409,7 @@ describe('SystemConfigService', () => {
 
           // Now simulate error on refresh
           const refreshError = new Error('Refresh failed');
-          (mockConfigService.getApiConfig as Mock).mockReturnValue(
+          (mockConfigService.getApiV1ConfigFeatures as Mock).mockReturnValue(
             throwError(() => refreshError)
           );
 
