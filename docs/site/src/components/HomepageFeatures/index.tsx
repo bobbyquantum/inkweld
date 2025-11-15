@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import type { ReactNode } from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import Heading from '@theme/Heading';
@@ -54,7 +54,7 @@ const FeatureList: FeatureItem[] = [
   },
 ];
 
-function Feature({title, icon, description, linkLabel, href}: FeatureItem) {
+function Feature({ title, icon, description, linkLabel, href }: FeatureItem) {
   return (
     <div className={clsx('col col--4', styles.featureCard)}>
       <div className={styles.featureIcon}>{icon}</div>
@@ -76,38 +76,93 @@ function ShowcaseSection(): ReactNode {
         <div className={styles.showcaseGrid}>
           <div className={styles.showcaseItem}>
             <div className={styles.showcaseImageWrapper}>
-              <img src="/img/bookshelf-desktop.png" alt="Project Dashboard" className={clsx(styles.showcaseImage, styles.showcaseImageLight)} />
-              <img src="/img/bookshelf-desktop-dark.png" alt="Project Dashboard" className={clsx(styles.showcaseImage, styles.showcaseImageDark)} />
+              <img
+                src="/img/bookshelf-desktop.png"
+                alt="Project Dashboard"
+                className={clsx(
+                  styles.showcaseImage,
+                  styles.showcaseImageLight
+                )}
+              />
+              <img
+                src="/img/bookshelf-desktop-dark.png"
+                alt="Project Dashboard"
+                className={clsx(styles.showcaseImage, styles.showcaseImageDark)}
+              />
             </div>
             <div className={styles.showcaseText}>
               <Heading as="h3">Beautiful Project Dashboard</Heading>
-              <p>Organize all your writing projects in one place. See what you've been working on at a glance.</p>
+              <p>
+                Organize all your writing projects in one place. See what you've
+                been working on at a glance.
+              </p>
             </div>
           </div>
-          <div className={clsx(styles.showcaseItem, styles.showcaseItemReverse)}>
+          <div
+            className={clsx(styles.showcaseItem, styles.showcaseItemReverse)}
+          >
             <div className={styles.showcaseText}>
               <Heading as="h3">Distraction-Free Editor</Heading>
-              <p>Focus on your words with a clean, modern editor. Rich text formatting, real-time collaboration, and offline support.</p>
+              <p>
+                Focus on your words with a clean, modern editor. Rich text
+                formatting, real-time collaboration, and offline support.
+              </p>
             </div>
             <div className={styles.showcaseImageWrapper}>
-              <img src="/img/editor-desktop.png" alt="Editor Interface" className={clsx(styles.showcaseImage, styles.showcaseImageLight)} />
-              <img src="/img/editor-desktop-dark.png" alt="Editor Interface" className={clsx(styles.showcaseImage, styles.showcaseImageDark)} />
+              <img
+                src="/img/editor-desktop.png"
+                alt="Editor Interface"
+                className={clsx(
+                  styles.showcaseImage,
+                  styles.showcaseImageLight
+                )}
+              />
+              <img
+                src="/img/editor-desktop-dark.png"
+                alt="Editor Interface"
+                className={clsx(styles.showcaseImage, styles.showcaseImageDark)}
+              />
             </div>
           </div>
           <div className={styles.showcaseItem}>
             <div className={styles.mobileShowcaseWrapper}>
               <div className={styles.mobileImageContainer}>
-                <img src="/img/editor-mobile.png" alt="Mobile Editor" className={clsx(styles.mobileImage, styles.showcaseImageLight)} />
-                <img src="/img/editor-mobile-dark.png" alt="Mobile Editor" className={clsx(styles.mobileImage, styles.showcaseImageDark)} />
+                <img
+                  src="/img/editor-mobile.png"
+                  alt="Mobile Editor"
+                  className={clsx(
+                    styles.mobileImage,
+                    styles.showcaseImageLight
+                  )}
+                />
+                <img
+                  src="/img/editor-mobile-dark.png"
+                  alt="Mobile Editor"
+                  className={clsx(styles.mobileImage, styles.showcaseImageDark)}
+                />
               </div>
               <div className={styles.mobileImageContainer}>
-                <img src="/img/bookshelf-mobile.png" alt="Mobile Bookshelf" className={clsx(styles.mobileImage, styles.showcaseImageLight)} />
-                <img src="/img/bookshelf-mobile-dark.png" alt="Mobile Bookshelf" className={clsx(styles.mobileImage, styles.showcaseImageDark)} />
+                <img
+                  src="/img/bookshelf-mobile.png"
+                  alt="Mobile Bookshelf"
+                  className={clsx(
+                    styles.mobileImage,
+                    styles.showcaseImageLight
+                  )}
+                />
+                <img
+                  src="/img/bookshelf-mobile-dark.png"
+                  alt="Mobile Bookshelf"
+                  className={clsx(styles.mobileImage, styles.showcaseImageDark)}
+                />
               </div>
             </div>
             <div className={styles.showcaseText}>
               <Heading as="h3">Write Anywhere</Heading>
-              <p>Fully responsive design means you can write on desktop, tablet, or phone. Your stories go where you go.</p>
+              <p>
+                Fully responsive design means you can write on desktop, tablet,
+                or phone. Your stories go where you go.
+              </p>
             </div>
           </div>
         </div>

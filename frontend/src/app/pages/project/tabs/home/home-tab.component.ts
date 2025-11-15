@@ -13,6 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { ProjectsService } from '@inkweld/api/projects.service';
+import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
 import { DialogGatewayService } from '@services/dialog-gateway.service';
 import { ProjectService } from '@services/project.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
@@ -94,7 +95,11 @@ export class HomeTabComponent {
       this.projectState.openDocument(element);
       const project = this.projectState.project();
       if (project) {
-        const typeRoute = element.type === 'FOLDER' ? 'folder' : 'document';
+        const typeRoute =
+          element.type ===
+          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder
+            ? 'folder'
+            : 'document';
         void this.router.navigate([
           '/',
           project.username,

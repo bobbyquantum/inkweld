@@ -1359,7 +1359,7 @@ async function main() {
     if (err.message?.includes('no such table')) {
       console.log('\n💡 Possible solutions:');
       console.log('   1. Run the web application first to initialize the database');
-      console.log("   2. Check if you're in the correct directory (should be in /server)");
+      console.log("   2. Check if you're in the correct directory (should be in /backend)");
       console.log('   3. Verify your .env file contains the correct DATA_PATH');
       console.log('   4. If using PostgreSQL, ensure DATABASE_URL is correct');
     }

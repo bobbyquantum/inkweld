@@ -587,7 +587,6 @@ export class WorldbuildingService {
    * Get a list of all elements of a specific worldbuilding type
    */
   getElementsOfType(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType
   ): Promise<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]> {
     // This would typically query from the project state service
@@ -599,9 +598,7 @@ export class WorldbuildingService {
    * Search for related elements (for linking)
    */
   searchRelatedElements(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _query: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _types?: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType[]
   ): Promise<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]> {
     // This would typically perform a search across elements

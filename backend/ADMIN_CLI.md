@@ -101,8 +101,8 @@ Perfect for remote server administration:
 # SSH into your server
 ssh user@your-server.com
 
-# Navigate to Inkweld
-cd /path/to/inkweld/server
+# Navigate to Inkweld backend
+cd /path/to/inkweld/backend
 
 # Use the admin CLI
 bun run admin users pending

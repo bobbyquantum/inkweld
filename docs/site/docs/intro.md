@@ -63,7 +63,7 @@ Export your data anytime in standard formats. Migrate to another platform or sel
 ✅ **Flexible organization** - Folders, chapters, scenes, notes  
 ✅ **Modern editor** - Rich text with distraction-free mode  
 ✅ **Self-hosted** - Docker deployment on any server  
-✅ **Open source** - MIT licensed, free forever  
+✅ **Open source** - MIT licensed, free forever
 
 ![Project Dashboard](/img/bookshelf-desktop.png)
 

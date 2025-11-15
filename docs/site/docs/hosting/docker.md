@@ -76,16 +76,16 @@ Key flags:
 
 ## Environment variables
 
-| Variable | Purpose |
-| --- | --- |
-| `PORT` | HTTP port (default 8333) |
-| `SESSION_SECRET` | Session encryption key (required) |
-| `CLIENT_URL` | Frontend origin allowed for CORS |
-| `ALLOWED_ORIGINS` | Comma-separated list for CORS + CSRF |
-| `DB_TYPE` | `sqlite` or `postgres` (container defaults to SQLite) |
-| `DB_PATH` | SQLite path, defaults to `/data/sqlite.db` |
-| `DATA_PATH` | LevelDB + Yjs storage location (`/data/yjs`) |
-| `FRONTEND_DIST` | Path to static assets; override if you mount a different bundle |
+| Variable                 | Purpose                                                          |
+| ------------------------ | ---------------------------------------------------------------- |
+| `PORT`                   | HTTP port (default 8333)                                         |
+| `SESSION_SECRET`         | Session encryption key (required)                                |
+| `CLIENT_URL`             | Frontend origin allowed for CORS                                 |
+| `ALLOWED_ORIGINS`        | Comma-separated list for CORS + CSRF                             |
+| `DB_TYPE`                | `sqlite` or `postgres` (container defaults to SQLite)            |
+| `DB_PATH`                | SQLite path, defaults to `/data/sqlite.db`                       |
+| `DATA_PATH`              | LevelDB + Yjs storage location (`/data/yjs`)                     |
+| `FRONTEND_DIST`          | Path to static assets; override if you mount a different bundle  |
 | `DRIZZLE_MIGRATIONS_DIR` | Custom migrations directory (defaults to `/app/backend/drizzle`) |
 
 ## Automatic migrations
@@ -114,7 +114,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     ports:
-      - "8333:8333"
+      - '8333:8333'
     environment:
       - NODE_ENV=production
       - SESSION_SECRET=${SESSION_SECRET}
@@ -133,7 +133,7 @@ For production, consider the hardened compose file at `compose.deploy.yaml`, whi
 Every container exposes `GET /health`, which returns JSON similar to:
 
 ```json
-{"status":"ok","uptime":1.23,"backend":"bun"}
+{ "status": "ok", "uptime": 1.23, "backend": "bun" }
 ```
 
 Use it in load balancers or Compose `healthcheck` blocks to ensure the instance is ready before accepting traffic.

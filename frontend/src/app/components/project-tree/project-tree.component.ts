@@ -29,7 +29,10 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { Router } from '@angular/router';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
+import {
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+} from '@inkweld/index';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
 
@@ -500,7 +503,10 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     const project = this.projectStateService.project();
     if (project?.username && project?.slug) {
       let typeRoute: string;
-      if (dto.type === 'FOLDER') {
+      if (
+        dto.type ===
+        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder
+      ) {
         typeRoute = 'folder';
       } else if (isWorldbuildingType(dto.type)) {
         typeRoute = 'worldbuilding';

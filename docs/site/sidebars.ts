@@ -1,4 +1,4 @@
-import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
+import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -20,9 +20,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'User Guide',
-      items: [
-        'user-guide/projects',
-      ],
+      items: ['user-guide/projects'],
     },
     {
       type: 'category',
@@ -37,10 +35,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Developer Guide',
-      items: [
-        'developer/architecture',
-        'getting-started',
-      ],
+      items: ['developer/architecture', 'getting-started'],
     },
     {
       type: 'category',

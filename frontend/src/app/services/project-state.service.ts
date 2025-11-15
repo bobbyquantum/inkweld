@@ -737,7 +737,9 @@ export class ProjectStateService {
         type,
         parentId: parentId || null,
         level: parentLevel + 1,
-        expandable: type === 'FOLDER',
+        expandable:
+          type ===
+          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
         order: elements.length,
         version: 0,
         metadata: {},
@@ -783,12 +785,20 @@ export class ProjectStateService {
     }
 
     // Items can't have children
-    if (nodeAbove.type === 'ITEM' && targetLevel > nodeAbove.level) {
+    if (
+      nodeAbove.type ===
+        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item &&
+      targetLevel > nodeAbove.level
+    ) {
       return false;
     }
 
     // Folders can only have children one level deeper
-    if (nodeAbove.type === 'FOLDER' && targetLevel > nodeAbove.level + 1) {
+    if (
+      nodeAbove.type ===
+        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder &&
+      targetLevel > nodeAbove.level + 1
+    ) {
       return false;
     }
 
@@ -818,7 +828,10 @@ export class ProjectStateService {
 
     if (nodeAbove && nodeBelow) {
       if (nodeAbove.level < nodeBelow.level) {
-        if (nodeAbove.type === 'FOLDER') {
+        if (
+          nodeAbove.type ===
+          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder
+        ) {
           if (nodeBelow.level === nodeAbove.level + 1) {
             validLevels.add(nodeBelow.level);
           } else {
@@ -831,7 +844,10 @@ export class ProjectStateService {
       } else if (nodeAbove.level === nodeBelow.level) {
         validLevels.add(nodeAbove.level);
         // Also allow dropping inside if above node is a folder
-        if (nodeAbove.type === 'FOLDER') {
+        if (
+          nodeAbove.type ===
+          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder
+        ) {
           validLevels.add(nodeAbove.level + 1);
         }
       } else {
@@ -846,7 +862,10 @@ export class ProjectStateService {
         validLevels.add(level);
       }
       // If above node is a folder, allow one level deeper
-      if (nodeAbove.type === 'FOLDER') {
+      if (
+        nodeAbove.type ===
+        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder
+      ) {
         validLevels.add(nodeAbove.level + 1);
       }
     } else if (!nodeAbove && nodeBelow) {

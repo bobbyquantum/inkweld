@@ -30,6 +30,7 @@ import { ProjectTreeComponent } from '@components/project-tree/project-tree.comp
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import {
   GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
   Project,
 } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
@@ -292,7 +293,11 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     // Navigate to document/folder route on mobile
     const project = this.projectState.project();
     if (project) {
-      const typeRoute = element.type === 'FOLDER' ? 'folder' : 'document';
+      const typeRoute =
+        element.type ===
+        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder
+          ? 'folder'
+          : 'document';
       void this.router.navigate([
         '/',
         project.username,

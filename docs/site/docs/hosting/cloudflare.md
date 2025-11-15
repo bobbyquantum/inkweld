@@ -221,15 +221,15 @@ Redeploy for the changes to take effect.
 
 Configure these in the `[vars]` section of `wrangler.toml`:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `NODE_ENV` | `production` | Environment mode |
-| `PORT` | `8333` | HTTP port (informational in Workers) |
-| `DB_TYPE` | `d1` | Database type (use `d1` for Cloudflare) |
-| `ALLOWED_ORIGINS` | Required | Comma-separated list of allowed origins |
-| `USER_APPROVAL_REQUIRED` | `false` | Require admin approval for new users |
-| `GITHUB_ENABLED` | `false` | Enable GitHub OAuth login |
-| `RECAPTCHA_ENABLED` | `false` | Enable reCAPTCHA for registration |
+| Variable                 | Default      | Description                             |
+| ------------------------ | ------------ | --------------------------------------- |
+| `NODE_ENV`               | `production` | Environment mode                        |
+| `PORT`                   | `8333`       | HTTP port (informational in Workers)    |
+| `DB_TYPE`                | `d1`         | Database type (use `d1` for Cloudflare) |
+| `ALLOWED_ORIGINS`        | Required     | Comma-separated list of allowed origins |
+| `USER_APPROVAL_REQUIRED` | `false`      | Require admin approval for new users    |
+| `GITHUB_ENABLED`         | `false`      | Enable GitHub OAuth login               |
+| `RECAPTCHA_ENABLED`      | `false`      | Enable reCAPTCHA for registration       |
 
 ### R2 Storage (Optional)
 

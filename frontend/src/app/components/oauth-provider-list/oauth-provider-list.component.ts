@@ -172,7 +172,7 @@ export class OAuthProviderListComponent implements OnInit {
       );
       // Extract enabled provider names from the response
       const providers = Object.entries(response.providers)
-        .filter(([_, enabled]) => enabled)
+        .filter(([, enabled]) => enabled)
         .map(([name]) => name);
       this.enabledProviders.set(providers);
 

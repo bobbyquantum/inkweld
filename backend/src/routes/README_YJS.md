@@ -166,11 +166,11 @@ To support additional platforms (e.g., Deno, AWS Lambda):
 
 ## Migration from Old Backend
 
-The new Hono backend replaces the NestJS-based `/server` directory:
+The new Hono backend replaces the previous NestJS-based backend:
 
 ### Old (NestJS + Bun)
 ```
-server/src/
+(removed - old backend)
 ├── yjs/
 │   ├── yjs.gateway.ts      # WebSocket gateway
 │   └── yjs.service.ts      # LevelDB persistence

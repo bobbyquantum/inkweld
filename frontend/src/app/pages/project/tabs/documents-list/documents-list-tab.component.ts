@@ -61,7 +61,13 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
   private readonly elementsEffect = effect(() => {
     // This will run whenever elements signal changes
     const elements = this.projectState.elements();
-    this.documents.set(elements.filter(element => element.type === 'ITEM'));
+    this.documents.set(
+      elements.filter(
+        element =>
+          element.type ===
+          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
+      )
+    );
     this.isLoading.set(false);
   });
 
@@ -80,7 +86,13 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
 
     // Initial loading of documents
     const elements = this.projectState.elements();
-    this.documents.set(elements.filter(element => element.type === 'ITEM'));
+    this.documents.set(
+      elements.filter(
+        element =>
+          element.type ===
+          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
+      )
+    );
     this.isLoading.set(false);
   }
 

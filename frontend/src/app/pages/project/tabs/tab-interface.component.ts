@@ -22,7 +22,10 @@ import {
   Router,
   RouterModule,
 } from '@angular/router';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
+import {
+  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+} from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { AppTab, ProjectStateService } from '@services/project-state.service';
 import { filter, Subject, Subscription, takeUntil } from 'rxjs';
@@ -421,7 +424,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
 
     const newName = await this.dialogGateway.openRenameDialog({
       currentName: tab.element.name,
-      title: `Rename ${tab.element.type === 'FOLDER' ? 'Folder' : 'Document'}`,
+      title: `Rename ${tab.element.type === GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder ? 'Folder' : 'Document'}`,
     });
 
     if (newName) {

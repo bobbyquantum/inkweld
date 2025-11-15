@@ -407,23 +407,23 @@ export function getSchemaFromType(
   type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType
 ): string | null {
   switch (type) {
-    case 'CHARACTER':
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Character:
       return 'character';
-    case 'LOCATION':
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Location:
       return 'location';
-    case 'WB_ITEM':
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.WbItem:
       return 'wbItem';
-    case 'MAP':
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Map:
       return 'map';
-    case 'RELATIONSHIP':
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Relationship:
       return 'relationship';
-    case 'PHILOSOPHY':
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Philosophy:
       return 'philosophy';
-    case 'CULTURE':
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Culture:
       return 'culture';
-    case 'SPECIES':
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Species:
       return 'species';
-    case 'SYSTEMS':
+    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Systems:
       return 'systems';
     default:
       return null;

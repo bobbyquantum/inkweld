@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import type { ReactNode } from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
@@ -15,17 +15,26 @@ function HomepageHeader(): ReactNode {
         <div className={styles.heroContent}>
           <div className={styles.heroText}>
             <Heading as="h1" className="hero__title">
-              Write Together,<br />Own Your Words
+              Write Together,
+              <br />
+              Own Your Words
             </Heading>
             <p className={clsx('hero__subtitle', styles.heroSubtitle)}>
-              The self-hosted collaborative writing platform for novelists, screenwriters,
-              and creative teams. Real-time collaboration meets complete data ownership.
+              The self-hosted collaborative writing platform for novelists,
+              screenwriters, and creative teams. Real-time collaboration meets
+              complete data ownership.
             </p>
             <div className={styles.buttons}>
-              <Link className="button button--secondary button--lg" to="/docs/installation">
+              <Link
+                className="button button--secondary button--lg"
+                to="/docs/installation"
+              >
                 Get Started
               </Link>
-              <Link className="button button--outline button--lg" to="/docs/features">
+              <Link
+                className="button button--outline button--lg"
+                to="/docs/features"
+              >
                 Explore Features
               </Link>
             </div>
@@ -54,11 +63,12 @@ function HomepageHeader(): ReactNode {
 }
 
 export default function Home(): ReactNode {
-  const {siteConfig} = useDocusaurusContext();
+  const { siteConfig } = useDocusaurusContext();
   return (
     <Layout
       title="Self-Hosted Collaborative Writing"
-      description="Inkweld is a self-hosted collaborative writing platform for novelists, screenwriters, and creative teams. Real-time editing, worldbuilding tools, and complete data ownership.">
+      description="Inkweld is a self-hosted collaborative writing platform for novelists, screenwriters, and creative teams. Real-time editing, worldbuilding tools, and complete data ownership."
+    >
       <HomepageHeader />
       <main>
         <HomepageFeatures />
