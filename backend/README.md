@@ -141,24 +141,51 @@ backend/
 
 ### ✅ Fully Implemented
 - Complete project structure
-- Database configuration (TypeORM with PostgreSQL/SQLite)
+- Database configuration (TypeORM with PostgreSQL/SQLite + Drizzle for Workers)
 - Session management with TypeORM store
-- Authentication (login, logout, session-based)
+- Authentication (login, logout, session-based, GitHub OAuth)
 - User management (register, search, profile, avatars)
 - Project CRUD operations (create, read, update, delete)
+- Document CRUD operations (create, read, update, delete)
+- Element hierarchy management (folders, files, worldbuilding items)
 - Document snapshots (create, list, get, delete)
 - Image upload and processing (project covers, user avatars)
 - File storage service (per-project and user files)
+- EPUB export functionality
 - CSRF protection
-- WebSocket support for Yjs collaboration
+- WebSocket support for Yjs collaboration (Bun runtime)
 - LevelDB persistence for documents
 - Health check and config endpoints
 - Request validation with Zod
 - Error handling middleware
 - CORS and security headers
+- AI Linting (OpenAI integration)
+- AI Image generation (OpenAI DALL-E)
+- MCP (Model Context Protocol) integration
 
-### Features Complete
-All core functionality from the NestJS backend has been ported and is production-ready.
+### ❌ Not Yet Implemented (Critical Features)
+
+The following features from the old NestJS backend have **NOT** been ported yet:
+
+#### **Worldbuilding Schema System** (HIGH PRIORITY)
+- **Missing**: Schema Service for managing worldbuilding templates
+- **Missing**: Schema Controller/Routes for template management API
+- **Impact**: Users cannot initialize or manage worldbuilding templates (character, location, etc.)
+- **API Endpoints Needed**:
+  - `POST /api/v1/projects/:username/:slug/schemas/initialize-defaults`
+  - Schema library CRUD operations
+  - Custom template creation/editing
+
+#### **Worldbuilding Service** (HIGH PRIORITY)
+- **Missing**: Service to initialize worldbuilding elements with schema snapshots
+- **Missing**: Schema embedding into Yjs documents
+- **Impact**: Worldbuilding elements lack structured templates and default data
+
+**Note**: The frontend expects these APIs and the feature is advertised as a core capability. This is the most critical missing feature for production readiness.
+
+### 🔶 Partially Implemented
+- Archive import/export (basic structure exists, needs completion)
+- Project renaming/slug changes (not yet supported)
 
 ## Testing
 

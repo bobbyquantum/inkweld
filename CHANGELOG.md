@@ -19,7 +19,7 @@ Inkweld v0.1.0 is the first public release of this collaborative creative writin
 - **Document Management**: Hierarchical organization of projects, documents, and elements (folders, files)
 - **Rich Text Editor**: ProseMirror-based editor with advanced formatting options
 - **Offline Support**: IndexedDB storage for offline editing with automatic sync when reconnected
-- **Worldbuilding Templates**: Character and location templates with real-time collaboration
+- **Worldbuilding Templates**: Character and location templates with real-time collaboration *(Note: Not yet ported to new Hono backend on feature/new-backend branch)*
 - **Version History**: Track changes and revert to previous versions (via Yjs history)
 
 #### Content Export

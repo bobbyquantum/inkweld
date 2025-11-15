@@ -12,7 +12,8 @@
 /* Remove default padding to allow full height image */
 .dialog-content {
   padding: 0 !important;
-  overflow: hidden !important;
+  overflow-y: auto !important;
+  max-height: calc(90vh - 73px); /* 73px is the height of mat-dialog-actions */
 }
 
 /* Left column: Cover image */
@@ -79,8 +80,7 @@
 .form-column {
   flex: 1;
   padding: 24px;
-  min-height: 100%;
-  overflow-y: auto;
+  min-height: 400px;
   display: flex;
   flex-direction: column;
 }
