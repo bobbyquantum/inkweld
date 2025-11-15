@@ -36,3 +36,23 @@
   --ifm-footer-background-color: #000000;
   --ifm-card-background-color: #1a1a1a;
 }
+
+/* Fix Mermaid diagram visibility in dark mode with light background */
+[data-theme='dark'] .mermaid,
+[data-theme='dark'] .mermaid svg {
+  background-color: #ffffff !important;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+[data-theme='dark'] pre.mermaid {
+  background-color: #ffffff !important;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+/* Keep light mode diagrams as-is */
+[data-theme='light'] .mermaid {
+  margin: 1rem 0;
+}

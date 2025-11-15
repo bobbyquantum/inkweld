@@ -1,0 +1,63 @@
+---
+id: get-api-v-1-ai-mcp-sse
+title: "getApiV1AiMcpSse"
+description: "Model Context Protocol Server-Sent Events stream"
+sidebar_label: "getApiV1AiMcpSse"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNU02L2zAQ/StiTi1o10nTQvEtDaEEmhJI20vIQZEnsXZlSSuNvV2M/nsZO+ySJqeeerKwNPM+Zl4PPmBUZLxbVVDCCWkezK/p3Kx12CYECRUmHU3gJ1DC2ldoxcI7wt8kNtGT196KLcYO490WHYllh46SSBRRNSCB1ClBuYP1YgN7CRFT8C5hgrKHD5MJfy4xttvluVr4o1gvNgKHliBBM7AjrmECxXBxd4Yqe0i6xkYN1y8BoYRE0bgT5JyzhI+T6TXad09CtVSjI6MVYXUJo0Kw/N94VzwkrriB4g8PqAkkhMh+khnVYYw+XpP529MlPxMNpqROCEw04lNrIlZs29hkPyr4dEsBO+Q8CdMEiw26/1pDltAg1f68bYynqIYSChVM0U0LZYpGhyINy5eGveL16aGNFkqoiUJZFNZrZWufqPw8m82u6Hzja1Fhh9YHtkSMnSDvJRh39IMiQ5YlrdzjM9pKzDerq0YLb606eI5Ih0JHHA/P0ZBxJxGsoqOPDdeKd19a9x4kMOOxeno/uZ9AlhB8okYNxjvV4KhdzIMRnDWx1kHcSFv/NsR/Ct44sSEowSrjmMngYn82fQcqGGY8BQmKT40ObHtCjir7y4/6/qAS/ow2Z/791GJ8gXK3l9CpaNSBXdzts4QaVYVxmNYjvkAJc60x8JA7ZdtXMhep5Ym8bsTX5Q/I+Q+9oZIU
+sidebar_class_name: "get api-method"
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"getApiV1AiMcpSse"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/ai/mcp/sse"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Model Context Protocol Server-Sent Events stream
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"SSE stream of MCP events","content":{"text/event-stream":{"schema":{"type":"string"}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","description":"Error message"}},"required":["error"]}}}},"501":{"description":"MCP not implemented","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","description":"Error message"}},"required":["error"]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

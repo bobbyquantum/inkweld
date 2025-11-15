@@ -1,0 +1,63 @@
+---
+id: get-api-v-1-users-me
+title: "getApiV1UsersMe"
+description: "Get current authenticated user information"
+sidebar_label: "getApiV1UsersMe"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVMFu2zAM/RWBpw3w4qTpYfBp2VYUGbZhGNZeghwUm42VyqIq0W4Dw/8+0A6atMa6Ddhlp8jKexQfH8kWyGPQbMgtC8hgi7zw5np2FTHELwgJFBjzYLwgIINLZJXXIaBjpWsu0bHJNWOh6ohBGXdDoerDQQKstxGyFfTBYJ1AwOjJRYyQtXA2ncrP0/hX4yg5OUbHgtXeW3nOkEt3UQgtxLzESsuJ9x4hA9rsMGdIwAfRxmZ4zhQnmMjBuC0kgA+68lauJP83s7M5dEl/drrClxk7Kl1BKISn4NUR7WprRfmR9YlKpz4ONKy0sb9/5N3hc5JTJTTtfaAGTwVtiCxqd0rlUKO84fTG/hG2E4PuahMEvZKCnVTiGGidABvukxO3oOuEeT6djd38Ss+65N/ZiSFQeLl0C6d6lKK8b9kCnkscgpwIupCL74cufVR2/os+dcTqhmr3H8rqEqiQSzrMvOShuYQMUu1N2sxSMT6mvfERQyMDnK1aqIOFDEpmn6WppVzbkiJnb+fz+WhXfJa/VYENWvKVbIwhEnTrBGTGe52HFJfu9h5toRbflqNAH8havSFZUw2qPOBwuA+GjdsqbzXLwhCuevW+dq8hAcl4YM8m08lUxsZT5Er3dgzzKsrVwht12HdqvPDao7F/ufsG/xgfOPVWG9fvldBP+1DqFWhvJNPZYc4iiCnim9RUAG270RGvgu06ub6rMewhW60TaHQwMo7y1SVQoi4w9A7d4l6aJM/Ri62NtrUkMmpKMeGxBS4vfkDX/QS/EhPp
+sidebar_class_name: "get api-method"
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"getApiV1UsersMe"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/users/me"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get current authenticated user information
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"User information","content":{"application/json":{"schema":{"type":"object","properties":{"id":{"type":"string","example":"user-123"},"username":{"type":"string","example":"johndoe"},"name":{"type":["string","null"],"example":"John Doe"},"email":{"type":"string","example":"john@example.com"},"approved":{"type":"boolean","example":true},"enabled":{"type":"boolean","example":true}},"required":["id","username","enabled"],"title":"User"}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}},"404":{"description":"User not found","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,4 +1,5 @@
 import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
+import apiSidebar from './docs/api/sidebar';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -35,7 +36,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Developer Guide',
-      items: ['developer/architecture', 'getting-started'],
+      items: ['developer/architecture', 'developer/api', 'getting-started'],
     },
     {
       type: 'category',
@@ -43,6 +44,8 @@ const sidebars: SidebarsConfig = {
       items: ['troubleshooting/cookies'],
     },
   ],
+  // Auto-generated API documentation sidebar
+  apiSidebar: apiSidebar,
 };
 
 export default sidebars;

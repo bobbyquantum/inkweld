@@ -1,0 +1,71 @@
+---
+id: post-api-v-1-auth-register
+title: "postApiV1AuthRegister"
+description: "Register a new user account"
+sidebar_label: "postApiV1AuthRegister"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVktv4zYQ/ivEnBJA68e6WBQ61UmDNsUCDdKkQGH4MKbGFhOKZEjKjmHovxejx1qxHWcPe1lfLFHzffP6OOQOrCOPUVlzm0EKzoY4derf8bSM+T2tVIjkIYGMgvTKsR2k0H0QKAxtRBn4UUpbmggJRFwFSGfAFGSikjU9zBPwFJw1gQKkO/g8GvHfKeYmIBFKKSmEZakhAWlNJBMZgs7plnX4FBi3gyBzKpCf4tYRpGAXTyQ5HOc5xagarwWFgCvqGYbolVlBAvSKhdP0fhQD8Z8thUQjjN0IbVdCmQFUCXABPnatsvNemeXT+POkYzRYfBDnk81NZokBb41ne2tTas2136P+srkRvzcwKlDpj5381r4OpC0Yhs55u6Z+QgtrNaHpQ6MviX0YXOjvsq1YIi+l8mw944L1KrEnmicQVayDe+TKH+K6HreN6Zl3wr1vhQhVxeBfTknx1qxRq0wo48oorBddJAK1J8y2gl5ViOHHaZO8t/58M6ZG1FbCSll6zvcw+Yakl/MNLxwlPDlO2NP19O7h+s+pqBNv1L9ExSX/6XJsERTilc227PAHJXBuZxbKfCWzijmkk1P79HCOPnaKuiiUUUVZiImQOXqUkXy45J3mMISN9SdHR8/dl767QNJT5Ely6PCuZds7/HLo8N2JsLS+wAhpa3F2RBz6vWGIwCzzFIK4sPU66svjyXVKEN8G1qn6iUwFp3Erap4qAYkuyhwf7DOZ87yjyfSP7OplMBgcMe/3QmQecdHJT6il2H9UQbRD6fJIpL3B9a2JJ0dRrdJ2YxYUc9sdxDWSuwtDdGq4Hg+xjPnQ74/lQH5Nnk/bHZReQwp5jC4dDrWVqHMbYvrrZHKsg6/8WWS0Jm1dQSaKhgmqeQK8I+73e+emq1df+z1J7xX6Rnitjk5po6XotfVtz/qNqRJQZmnrRraVuzXPG9KZmN7dHiV2bbXGheWje01CemoeNl5FZVbCaYysY8aKi6vSXEICXMEGPR6MBqN619kQC6zl0wbLK2LqlGiuRuK9u1Fvznx0TWp0Gek1Dp1GZepz39d7r2n7DNApDnAMCXDrgRXW+p0nwP1lq91ugYEeva4qXn4pyW8hnc0TWKNXLE9+qxLICTO+qcx28Ezbulx1rJ8eOBY21yXHdDQfq6RDTKUkF8/aznsyvvv7nwdIYNHO4MJmjPG44VRwAylAAs04qKdrvbYDjWZV1tc0aDj59z/VMKoQ
+sidebar_class_name: "post api-method"
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"postApiV1AuthRegister"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/auth/register"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Register a new user account
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"username":{"type":"string","minLength":3,"example":"johndoe","description":"Username (minimum 3 characters)"},"password":{"type":"string","minLength":6,"example":"secret123","description":"Password (minimum 6 characters)"},"email":{"type":"string","format":"email","example":"john@example.com","description":"Email address (optional)"},"name":{"type":"string","example":"John Doe","description":"User display name"},"captchaToken":{"type":"string","example":"03AGdBq...","description":"reCAPTCHA token (required if reCAPTCHA is enabled)"}},"required":["username","password"],"title":"RegisterRequest"}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Registration successful","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","example":"Registration successful. You can now log in."},"user":{"type":"object","properties":{"id":{"type":"string","example":"user-123"},"username":{"type":"string","example":"johndoe"},"name":{"type":["string","null"],"example":"John Doe"},"email":{"type":"string","example":"john@example.com"},"approved":{"type":"boolean","example":true},"enabled":{"type":"boolean","example":true}},"required":["id","username","enabled"],"title":"User"}},"required":["message","user"],"title":"RegisterResponse"}}}},"400":{"description":"Invalid input or username already exists","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}},"403":{"description":"reCAPTCHA validation failed","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

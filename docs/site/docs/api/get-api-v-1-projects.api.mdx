@@ -1,0 +1,63 @@
+---
+id: get-api-v-1-projects
+title: "getApiV1Projects"
+description: "Get all projects for the authenticated user"
+sidebar_label: "getApiV1Projects"
+hide_title: true
+hide_table_of_contents: true
+api: eJy1VN9r3DAM/leMnjbINcndHkbeblspha6U0e1hxz34Et3FrWO7tpI2hPzvQ7mfadeODQaBGFmSpe/7pA6sQy9JWXNZQAYbpLlTP9Ibb+8wpwARFBhyrxy7QAYXSEJqLdzOQaytF1SikDWVaEjlkrAQdUAPEZDcBMgWcEi3jMBjcNYEDJB1ME0S/o3fuFKBhF0f3oAIcmsIDbGvdE7zK8qa+C5wQAchL7GSfKLWIWQgvZctRKAIq3BityvOCBE4z42T2pahihOfQF6ZDUSAT7Jymk1cySSdzqCPIOh687Z31U6MbVCzNyli21vuX1txvXcfAbEPWhyjTK01g3iMngsqvdJamY2QRYOGao8ikPUtJ2QijKz+UMKdLU1hkQNyj8zgF0m/jVlbX0mCDApJOCFV4SjRNJnOJkk6SdLbJMmG7yxJkp9DKa74L5l71tRDrTwWjJUqYEfSHv0TFMb9jWtaHtja6/WEwIOEWZzfdhKGvufXPyTpSxFfWxrPxD+o+BW1ovfWv03o3IjBS9g8rz0j8xymbZKTns/ZMOqsj6BCKu1uMXAdkkrIIJZOxU0anwxoQN+g52HvoPYaMiiJXBbH2uZSlzZQ9nE2m73YJ1d8LQpsUFtXoSGxzQT9MgJl1nboc1fipbl/RF2I+c3li0SfrdZyZXmXNSgGlvnw6BXxaDgtiRXGseLdp9q8hwi44m10epacJUy3s4EqOdCxHRvuXMydEq8vxe5I7N/uxy2BhE8UOy2VGeaE4et2WC9AOsWlplsZHNYoQ8rXXbeSAb973fdsfqjRt5AtlhE00iu5YuAWyz6CEmWBfiDoHlvWSJ6jY1YbqethaT7XJHNwUMDF+S30/S9BFxgw
+sidebar_class_name: "get api-method"
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"getApiV1Projects"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/projects"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get all projects for the authenticated user
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"List of projects","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string","example":"proj-123"},"slug":{"type":"string","example":"my-novel"},"title":{"type":"string","example":"My Novel"},"description":{"type":["string","null"],"example":"A thrilling adventure story"},"username":{"type":"string","example":"johndoe"},"createdDate":{"type":"string","format":"date-time","example":"2023-01-01T00:00:00.000Z"},"updatedDate":{"type":"string","format":"date-time","example":"2023-01-01T00:00:00.000Z"}},"required":["id","slug","title","username","createdDate","updatedDate"],"title":"Project"},"title":"ProjectsListResponse"}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,71 @@
+---
+id: put-api-v-1-projects-username-slug
+title: "putApiV1Projects:username:slug"
+description: "Update a project"
+sidebar_label: "putApiV1Projects:username:slug"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVktv2zgQ/ivEnFpAjuW4h0I3t9tDgG4RBEkPG/hAS2OLKUWy5NCpIei/L0aPWI5jtwsEC8QwYJma+Wa+ebIG69BLUtZcFZCBi7Rw6vvs2tsHzClkMaA3ssIs6LiBBAoMuVeOFSCDO1dIQiGF6+QhAZKbANk9DAiwTMBjcNYEDJDVcJmm/HMI1EuL2AIWIsQ8xxDWUesdJJBbQ2iI9aRzWuWtx9OHwMo1hLzESvIT7RxCBnbVe+M88yPVmVbFSCaQV4Yp4S9ZOc1HzGIyu5xDk0DL96x0tZsYu0XN0qSIz86J/70T3wbxA/KD0v1ey0StOXB77YWg0iutldkIWWzRUPQoAlm/Y8AhTeddeLClKSyyQu6RA/2XpBd11tZXkiADTseEVIUHQJfp5XySzibp7DZNs/Z7kabpP60rXQpfHbnhOvoZlceCY6UK6JM0RH8UhUN+hz4tn7I1VB00DaN/eKkwr8xWalUIZVyk16tE9N7688laGNFKCZvn0TPr5yHoQEZ8vvDBTd9sT6xmx6y+WRIyUomGmAEWb5PZ/JjZop0bokCj3iqrD6fHo7Ek1jaaN8is18BAn2yxY4OvRODk6K2U+YpmQyVks2eD+K5fM91Afr7Vhmh3yKfG9YlIDRvs9Lg+ZW582ux3Sr9ke6mbLoZ9sTjpZYWEnlfuCyHrXWwSUGzJSSp5u7SLYjwt97kkH7FJ/itUP4efwSwTqJBK218sOHOslcFUOjXdzqb9rSFM68GXZlozVsOzHf12IBa9hgxKIpdNp9rmUpc2UPZxPp8fhfMrvxYFblFbV6Eh0SEB+8PFdbMvwy9D5p7K6PfV8Uc5bsO0tmPgK/PjEXUhFtdXR5ifrdZyZfkitkXR7i5+ePSKGN1pSbw3WVe8+xTNe0iAg9Npzy7Si5RNOhuokm2N9olxkcTCKfGnN7pRV754uetqgfAXTZ2WyrQLn5NT97m9B+kUezfrGrW7AyaQjaqts7xMgJPIKnW9kgHvvG4aPv4Z0e8gu18msJVeyRXH776GQgV+LiBbSx3wjOvvbvpKfC9Oed0fSsMNuZU68j9I4Afuxr3BvfA/2m0j0yybBEqUBfqWd/fqc2dlcssAe9Wj0ckedxq8Cx2dlR236PXdLSSw6qdzZQtW8fKRG1s+dl7alnQ7d9uzGrQ0myg37fWyheTPv9hkO4Y=
+sidebar_class_name: "put api-method"
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"putApiV1Projects:username:slug"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/api/v1/projects/{username}/{slug}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Update a project
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"username","required":true},{"schema":{"type":"string"},"in":"path","name":"slug","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"title":{"type":"string","minLength":1,"example":"My Updated Novel","description":"Project title"},"description":{"type":"string","example":"An updated thrilling adventure story","description":"Project description"}},"title":"UpdateProjectRequest"}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Project updated successfully","content":{"application/json":{"schema":{"type":"object","properties":{"id":{"type":"string","example":"proj-123"},"slug":{"type":"string","example":"my-novel"},"title":{"type":"string","example":"My Novel"},"description":{"type":["string","null"],"example":"A thrilling adventure story"},"username":{"type":"string","example":"johndoe"},"createdDate":{"type":"string","format":"date-time","example":"2023-01-01T00:00:00.000Z"},"updatedDate":{"type":"string","format":"date-time","example":"2023-01-01T00:00:00.000Z"}},"required":["id","slug","title","username","createdDate","updatedDate"],"title":"Project"}}}},"400":{"description":"Invalid input","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}},"403":{"description":"Access denied","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}},"404":{"description":"Project not found","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

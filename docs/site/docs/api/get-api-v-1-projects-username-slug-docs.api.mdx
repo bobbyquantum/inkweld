@@ -1,0 +1,71 @@
+---
+id: get-api-v-1-projects-username-slug-docs
+title: "getApiV1Projects:username:slugDocs"
+description: "List all documents in a project"
+sidebar_label: "getApiV1Projects:username:slugDocs"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNVE1rGzEQ/StiTg2IrN3kUHRzm1AMoYTS9hJ8kHfHthKtpEizTs2i/15mP4jLJk3SQ6kv1u7OPL03H68FHzBqMt4tK1CwRVoE82N+Hf0tlpRUkzA6XaNKttle+DKBhApTGU3gJFBwZRIJba2ofNnU6CgJ44QWoYcACaS3CdQNXIwBsJIQMQXvEiZQLbyfzfjvCWC/ecQFCaV3hI44WIdgTdlRL24TZ7SQyh3Wmk90CAgKdIz6ABIMYZ2O3vv1wC1ELgCZnoepjmISReO2E72jCrG8gCyBi/OGpC48yyH81WldWJZQRtSE1YJezv3EocY7QabGRLoODNCE6rUAVzqR6OOPMTL37r4xEStuqqlgKMIgapX5J+F8Np/29IsnoRvaoSPuHVZ/0dNneocx+viyqksOEzWmpLc4UdODrEYF51MFw2YI50lsfOP+YwVZQtBR10gYeQGfYDJckSUYhg6admM7FYy7D8c3UGwwy7dCsXtMYVYSaqSdH5yHC8JZCgodTLGfF4OHpKIdueSiZaxcVL0XJYz7UV0TLSjYEQVVFNaX2u58IvXh7OxsOtz8WVS4R+tDt2I9EjAp4za+U2bIMvulu3tAW4nF9XK6Zt5avfbsoXsU3X7y4SEaMm4rgtW08bHmXPHuY+NOQAIz7rPnp7PTGdcs+ES17sZlKNkWSSyCEc+ZsXjKjdvHWXyNMfedI/xJRbDauM4huIrt0Ikb0MEw43k/rR0PkKCOZkMNze06spLARefMtl3rhN+jzZlf3zcYD6BuVhL2Ohq95tLetFCZxOcK1EbbhH8Q9O7rMD4n4jnyo+07Nv29tg0/gYQ7PBwPNA/wP7y3K1BeZQk71BXGTnf/aVGWGOgoaWIgv23J58tvkPMvx1qnNw==
+sidebar_class_name: "get api-method"
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"getApiV1Projects:username:slugDocs"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/projects/{username}/{slug}/docs"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+List all documents in a project
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"username","required":true},{"schema":{"type":"string"},"in":"path","name":"slug","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"List of documents","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string","description":"Document ID"},"name":{"type":"string","description":"Document name"},"type":{"type":"string","description":"Document type"},"createdAt":{"type":"string","description":"Creation timestamp"},"updatedAt":{"type":"string","description":"Last update timestamp"}},"required":["id","name","type"]}}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","description":"Error message"}},"required":["error"]}}}},"404":{"description":"Project not found","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","description":"Error message"}},"required":["error"]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

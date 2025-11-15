@@ -1,6 +1,7 @@
 import { themes as prismThemes } from 'prism-react-renderer';
 import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import type * as OpenApiPlugin from 'docusaurus-plugin-openapi-docs';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -45,6 +46,7 @@ const config: Config = {
           // Remove this to remove the "edit this page" links.
           editUrl:
             'https://github.com/bobbyquantum/inkweld/edit/main/docs/site/',
+          docItemComponent: '@theme/ApiItem', // Derived from docusaurus-theme-openapi-docs
         },
         blog: false,
         theme: {
@@ -54,7 +56,38 @@ const config: Config = {
     ],
   ],
 
+  plugins: [
+    [
+      'docusaurus-plugin-openapi-docs',
+      {
+        id: 'api',
+        docsPluginId: 'classic',
+        config: {
+          inkweld: {
+            specPath: 'static/openapi.json',
+            outputDir: 'docs/api',
+            sidebarOptions: {
+              groupPathsBy: 'tag',
+              categoryLinkSource: 'tag',
+            },
+          } satisfies OpenApiPlugin.Options,
+        },
+      },
+    ],
+  ],
+
+  themes: ['docusaurus-theme-openapi-docs', '@docusaurus/theme-mermaid'],
+
+  // Enable Mermaid diagrams
+  markdown: {
+    mermaid: true,
+  },
+
   themeConfig: {
+    // Mermaid theme configuration
+    mermaid: {
+      theme: { light: 'default', dark: 'forest' },
+    },
     // Inkweld social card
     image: 'img/editor-desktop.png',
     colorMode: {
@@ -76,9 +109,10 @@ const config: Config = {
           label: 'Docs',
         },
         {
-          href: '/api',
-          label: 'API',
+          type: 'docSidebar',
+          sidebarId: 'apiSidebar',
           position: 'left',
+          label: 'API',
         },
         {
           href: 'https://github.com/bobbyquantum/inkweld',

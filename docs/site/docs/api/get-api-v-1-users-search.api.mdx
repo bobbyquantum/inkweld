@@ -1,0 +1,63 @@
+---
+id: get-api-v-1-users-search
+title: "getApiV1UsersSearch"
+description: "Search users by username or name"
+sidebar_label: "getApiV1UsersSearch"
+hide_title: true
+hide_table_of_contents: true
+api: eJyNVEtvnDAQ/itoTq3kht3speLU7UNVqh6ipulltYcBJuCNsR3bkGwR/70aw3bJQ9lwwZjvm/c3PRhLDoM0+qKEDCoKayv/LK89OX9F6IoaBJTkCyctoyCD8TppGZLk+3jQ2FBiXMJvEBCw8pBtIJqBrQBH3hrtyUPWw/liwa8XrTryrQoeBBRGB9KBkWitkkWMMt15hvfgi5oa5FPYW4IMTL6jIoAA6zinIEdnMcwZDJ3DPQiQgRp/mi7LGcYHJ3UFAugBG6v4is1/WJ6vYBBwKMTrjJ2pdWmICY/BmyNat0px2Y6sH6bWydeRRg1KddrJp+nzrDAN09BaZzqaJ5Qbowj1nBpcS+xDY67ehB24u3etdIzecMFmlTga2goIMsTgeCqAecEEnCei2yYnN/ewXCwGARYreh02ga7k3xPAxcHtJVbkT2Gf5DbO0iHuKa6Z50emZwlfYiU1BiqjHn5NWoCBHwENhdpM4ovWQg0ZpGhl2i3T6DP1Byl6cl0c6E0PrVOQQR2CzdJUmQJVbXzIPq5Wq2ei/cm/k5I6UsY2pEMyWoJhK0DqGxNLMcV7oW/vSZXJ+vLimaEvRinMDe+MjpLC0Xi4dzJIXSVWYbgxrmFu8u5zq9+DAI54ZC/PFmcLHkZrfGgwKnlUAWefrK1MpuWTvLx9+uNeeNMiGpsb6CGkVqHUUacuDt1Y6A2glRzjcppbH6scfW8FcEUZ1Pc5erp2ahj4+q4lt4dssxXQoZM84vw1CKgJS3KxP7e0hwzWRUGWG9uhauMGerrNuAX/h+D7t98wDP8AnYLl5g==
+sidebar_class_name: "get api-method"
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"getApiV1UsersSearch"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/users/search"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Search users by username or name
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Search results","content":{"application/json":{"schema":{"type":"object","properties":{"users":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string","example":"user-123"},"username":{"type":"string","example":"johndoe"},"name":{"type":["string","null"],"example":"John Doe"},"email":{"type":"string","example":"john@example.com"},"approved":{"type":"boolean","example":true},"enabled":{"type":"boolean","example":true}},"required":["id","username","enabled"],"title":"User"}},"total":{"type":"number","example":100},"page":{"type":"number","example":1},"pageSize":{"type":"number","example":10},"totalPages":{"type":"number","example":10}},"required":["users","total","page","pageSize","totalPages"],"title":"PaginatedUsersResponse"}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

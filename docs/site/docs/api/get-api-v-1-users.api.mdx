@@ -1,0 +1,63 @@
+---
+id: get-api-v-1-users
+title: "getApiV1Users"
+description: "Get paginated list of users"
+sidebar_label: "getApiV1Users"
+hide_title: true
+hide_table_of_contents: true
+api: eJyNVE1vnDAQ/StoTq1Ew272UnHq9kNRqh6itulltYdZmIATYzv2QLJF/PdqDMmSRMmWCwa/9+Z7erCOPLKy5ryEHCritVN/lpeBfIAUSgqFV07uIYcz4sRhpQwylYlWgRN7lbQTlrEKkG9g5G5T8BScNYEC5D2cLhbyeip48apYYQ2TYaGgc1oV0cfsOgivh1DU1KCceO8IcrC7ayoYUnBeImI1Wh3lDjD0HveQgmJqwnG6KmeYwF6ZClKge2ycll8i/2F5uoIhjWeDDb3NuLa1KS0J4Sl4c0CbVmvJ34H13dYm+TrSqEGljxv5NH2eFLYRGjrnbUfzgHbWakIzp7JvSWwY3On/wg5S5ttWeUFvJGGzTByEtimw4uictAcIjy3jPBDTNjvycwvLxWJIwWFFb8Mm0C/19whw8WD2AisKx7DPYnvs8+j35NfM8hPpWcCPTR4H4+c0FDDIk0JDXNtp9KIa15BDhk5l3TJ7sBnId7GTNz20XkMONbPLs0zbAnVtA+cfV6vVi4n9IddJSR1p6xoynIxKMGxTUObKxhxMjp6bmzvSZbK+OH8h9MVqjTsrq6KjpPA0Hu68YmWqxGnkK+sb4SbvPrfmPaQgHo/s5cniZCFd6GzgBuMIj+0vYSdrp5JXdk5/2ATH1s9YSaZ7zpxGZeJQ+thhY1Y3gE6JX8upSWOZJHly1/c7DHTp9TDI79uW/B7yzTaFDr2SNpavIYWasCQfS3FDe8hhXRTkpHgd6jZumecbS7L9WOizb79hGP4BvFXbDQ==
+sidebar_class_name: "get api-method"
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"getApiV1Users"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/users"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Get paginated list of users
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Paginated list of users","content":{"application/json":{"schema":{"type":"object","properties":{"users":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string","example":"user-123"},"username":{"type":"string","example":"johndoe"},"name":{"type":["string","null"],"example":"John Doe"},"email":{"type":"string","example":"john@example.com"},"approved":{"type":"boolean","example":true},"enabled":{"type":"boolean","example":true}},"required":["id","username","enabled"],"title":"User"}},"total":{"type":"number","example":100},"page":{"type":"number","example":1},"pageSize":{"type":"number","example":10},"totalPages":{"type":"number","example":10}},"required":["users","total","page","pageSize","totalPages"],"title":"PaginatedUsersResponse"}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
