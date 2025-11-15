@@ -1,71 +1,138 @@
 ---
 id: post-api-v-1-auth-login
-title: "postApiV1AuthLogin"
-description: "Log in with username and password"
-sidebar_label: "postApiV1AuthLogin"
+title: 'postApiV1AuthLogin'
+description: 'Log in with username and password'
+sidebar_label: 'postApiV1AuthLogin'
 hide_title: true
 hide_table_of_contents: true
 api: eJy9VsFu2zAM/RWBpw1Qm6TZYfBp6dZDhgArunaXIBgUmbXVypIqyUmLwP8+UHYaLynSDiiWQ2Ir5CPfI2l6A9ahF1FZM80hA2dDnDj1azSpYzmzhTLAIccgvXJkBBnMbMGUYWsVS1YH9EZUyITJmRMhrK3PgUMURYBsDoSCJiqZIsCCg8fgrAkYINvA2XBIPwf4yrBQS4kh3NYaOEhrIppItsI53cEN7gI5bCDIEitBV/HJIWRgl3coI3BwnuhF1YarMARRYM8wRK9MARzwUVRO40vhGw5E83V4lR9HJpST0dl4i0jCHfe4s6XJLZLD38bznbWptSZhd17fbWnYt9YNK6H060G+dLen0lbkJpzzdoV9QktrNQrTd42+RophxFK/ybah+j/UypP1nATrKbEDWnCIKqbkbkj5hkPAELoePcaFzH6LpUwq70XbVr8rZx+zFzCV/6prUmgaQvk0HB226dSshFY5kx5zanGhw/t1Knpv/XGqE8OSFbNS1p447hNuQXrcLujggNv4kNtESlubyHIVUkWY9cyhyZUpWNsa4h3H8n+R7TwwxHObP1HAdyJwbJgrZWZoilhCNnpptPefrjdbrIbD8wP1H3ADSo+R+n8f+XKLti9dbwKfIx5ORBKua5oKY2m36yK5UR4wEE4NVqOBqGM50N3yCOhX6GkbbKD2GjIoY3TZYKCtFLq0IWafx+PDdGf0N8txhdq6Ck1kLRI0Cw5UoatdLS+29Pu16Em8E7KnT8NBmVubxO2oTs39GnXOJpfTg3y+Wq3F0tKuXCFNfXux9irSWDgt4q31FfmyD+e1+QgciHjrPTodng5TTW2IlUjt1aVJJ2ziFGuXLntx6/Z69W0LuG2XiI9x4LRQJi0dn1ZBW605CKcoxxFwoIoBh7ZmCw5UFjLZbJYi4I3XTUPHDzX6J8jmCw4r4RU9G+iu4VCiyGlHzjdwj09JrpTuyTUlQua6poQOxqzhW4+JlOjiUdtFr/Uuf/y8Bg7LbpQrm5OPF2vg6TsD4GCTfGlI09kGtDBFnV4CoMWkzx8CWBuD
-sidebar_class_name: "post api-method"
+sidebar_class_name: 'post api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"postApiV1AuthLogin"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'postApiV1AuthLogin'}
+></Heading>
 
 <MethodEndpoint
-  method={"post"}
-  path={"/api/v1/auth/login"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'post'}
+  path={'/api/v1/auth/login'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 Log in with username and password
 
 <Heading
-  id={"request"}
-  as={"h2"}
-  className={"openapi-tabs__heading"}
-  children={"Request"}
->
-</Heading>
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
 
-<ParamsDetails
-  parameters={undefined}
->
-  
-</ParamsDetails>
+<ParamsDetails parameters={undefined}></ParamsDetails>
 
 <RequestSchema
-  title={"Body"}
-  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"username":{"type":"string","minLength":1,"example":"johndoe","description":"Username"},"password":{"type":"string","minLength":1,"example":"secret123","description":"Password"}},"required":["username","password"],"title":"LoginRequest"}}}}}
->
-  
-</RequestSchema>
+  title={'Body'}
+  body={{
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            username: {
+              type: 'string',
+              minLength: 1,
+              example: 'johndoe',
+              description: 'Username',
+            },
+            password: {
+              type: 'string',
+              minLength: 1,
+              example: 'secret123',
+              description: 'Password',
+            },
+          },
+          required: ['username', 'password'],
+          title: 'LoginRequest',
+        },
+      },
+    },
+  }}
+></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"Login successful","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","example":"Login successful"},"user":{"type":"object","properties":{"id":{"type":"string","example":"user-123"},"username":{"type":"string","example":"johndoe"},"name":{"type":["string","null"],"example":"John Doe"},"email":{"type":"string","example":"john@example.com"},"approved":{"type":"boolean","example":true},"enabled":{"type":"boolean","example":true}},"required":["id","username","enabled"],"title":"User"},"sessionId":{"type":"string","example":"sess_abc123"}},"required":["message","user","sessionId"],"title":"LoginResponse"}}}},"401":{"description":"Invalid credentials","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}},"403":{"description":"Account disabled or pending approval","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'Login successful',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              message: { type: 'string', example: 'Login successful' },
+              user: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', example: 'user-123' },
+                  username: { type: 'string', example: 'johndoe' },
+                  name: { type: ['string', 'null'], example: 'John Doe' },
+                  email: { type: 'string', example: 'john@example.com' },
+                  approved: { type: 'boolean', example: true },
+                  enabled: { type: 'boolean', example: true },
+                },
+                required: ['id', 'username', 'enabled'],
+                title: 'User',
+              },
+              sessionId: { type: 'string', example: 'sess_abc123' },
+            },
+            required: ['message', 'user', 'sessionId'],
+            title: 'LoginResponse',
+          },
+        },
+      },
+    },
+    '401': {
+      description: 'Invalid credentials',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: { type: 'string', example: 'An error occurred' },
+            },
+            required: ['error'],
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+    '403': {
+      description: 'Account disabled or pending approval',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: { type: 'string', example: 'An error occurred' },
+            },
+            required: ['error'],
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

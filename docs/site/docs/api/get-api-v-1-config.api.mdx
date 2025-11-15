@@ -1,63 +1,67 @@
 ---
 id: get-api-v-1-config
-title: "getApiV1Config"
-description: "Get public application configuration"
-sidebar_label: "getApiV1Config"
+title: 'getApiV1Config'
+description: 'Get public application configuration'
+sidebar_label: 'getApiV1Config'
 hide_title: true
 hide_table_of_contents: true
 api: eJyVU01v2zAM/SsCTxtg1MlyGXzLgiILMGDDsI9DkIMsMzFbWVIl2llg+L8PtNM2XdBh88X64nvk42MPPmDUTN5tKijggLwM9GO+8m5PB8igwmQiBXkABayRVWhLS0bpECyZMVKZ8XU74UAGrA8Jii2sXpzvMoiYgncJExQ9vJvN5PeSYfkXWOMdo2MJumDP75JE9pBMjY2WFZ8CQgG+vEPDkEGIUiXTxNthTDSFnB8mjuSuq73M5TFoyKBNGJchRN9p+xUfWopYXYCV3lvU7grtZ41cY1S6asiJfCOAoqTiGUTtfVQOj0oYklAdiOu2vHW6tP/FsSb+2Jbq87LlWhjwjDAM0oPHlLdPUrxS1J8J7Ab5MmiQa3+2i8iruYYCch0o7+a5efROwigEUGx7aKOFAmrmUOS59Ubb2icu3i8Wi6sqPsm1qrBD60ODjtWEBMMuA3J7PypBbEWKjbs/oq3U8svmCmjlrdWlFwN1qEzEaXGMxOQOKljNex8biVVvPrTuLWTP7oD5zexmJl0IPnGjR8M43eBUt1oGUq8NSv/s1X+emamzjL84D1bTZDVRrT8LvAUdSDKcT7MgvLsMREe57PtSJ/we7TDI8UOL8QTFdpdBpyNJA2U3ZFCjrjCOXbnHk/jcGAzSyE7bVpK4mi4R/qnp69tvMAy/AaDVeU0=
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"getApiV1Config"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'getApiV1Config'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/config"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/config'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 Get public application configuration
 
-<ParamsDetails
-  parameters={undefined}
->
-  
-</ParamsDetails>
+<ParamsDetails parameters={undefined}></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"Application configuration","content":{"application/json":{"schema":{"type":"object","properties":{"version":{"type":"string","description":"Application version"},"userApprovalRequired":{"type":"boolean","description":"Whether admin approval is required for new users"},"githubEnabled":{"type":"boolean","description":"Whether GitHub OAuth is enabled"}},"required":["version","userApprovalRequired","githubEnabled"]}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'Application configuration',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              version: { type: 'string', description: 'Application version' },
+              userApprovalRequired: {
+                type: 'boolean',
+                description: 'Whether admin approval is required for new users',
+              },
+              githubEnabled: {
+                type: 'boolean',
+                description: 'Whether GitHub OAuth is enabled',
+              },
+            },
+            required: ['version', 'userApprovalRequired', 'githubEnabled'],
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

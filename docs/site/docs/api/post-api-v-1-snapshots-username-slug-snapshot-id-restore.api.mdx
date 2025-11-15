@@ -1,71 +1,128 @@
 ---
 id: post-api-v-1-snapshots-username-slug-snapshot-id-restore
-title: "postApiV1Snapshots:username:slug:snapshotIdRestore"
-description: "Restore a document from a snapshot"
-sidebar_label: "postApiV1Snapshots:username:slug:snapshotIdRestore"
+title: 'postApiV1Snapshots:username:slug:snapshotIdRestore'
+description: 'Restore a document from a snapshot'
+sidebar_label: 'postApiV1Snapshots:username:slug:snapshotIdRestore'
 hide_title: true
 hide_table_of_contents: true
 api: eJzVVU1v2zAM/SsCTy2g1cnSw6BbNuwQYFuLdtulyEGxmFitLKmSnDYw/N8H+iNN67XbgKFAT1YY8ZHvkSJrcB6DTNrZhQIB3sU09/rn9NJKHwuXoqgiBitLFNFUGxF7+0JdYEwuIHBQGPOgPYGAgN7OJFMur0q0ia2DK5lkgy9wSHITQVzBPgwsOQSM3tmIEUQN7ycT+jzGHq6z0AVRLFZ5jjGuK2N2wCF3NqFN5Cm9NzpvqWXXkdxriHmBpaRT2nkEAW51jTkl5AMJkXQXvMQY5QYPLsYUtN0AB7yXpTdkOhuUO0gCmoZ43FY6oCKCA9KSQ9Kp9fvamS56ttA05HQ6mY75fnOJySoVaBNRQfX/KGIILrxMcG5Ze4u5PK8CEXrKrgM54PaZDCNmszGzeasYU2g1KvaOWZeYD45SZe7OYnibTE/HTM8HVmH/AFq2a1fZN1jPhoOXQZaYMNAT/k2GfeiGgyYBvEwFcKAZAgKGcQKHkVOosOH/CkUD6X/A7EfaGGzJocRUuGE2kuzkLCCTXmfbaTZ4x6weqDVZTanRZw/dZGE/LyOG7SBeFQwIKFLyIsuMy6UpXEziw2w2G03WL/Q3U7hF43w7WDskoDS1XbuWcV+5hb25Q6PY/HwxAvrkjJErR9NriywP2B3ugk7abpg3Mq1dKMmXHX2s7DFwoIw77+nJ5GRCWpIgpWy7tJeSLGzuNfvzAmELxZ5ZIfXDm/jLbdJVOeF9yryR2lJ2rbJ1X64rkF4Tiynpv186HMRBP4q+ocSTjuiSXHKg0hBWXa9kxB/BNA2ZbysMOxBXSw5bGbRcUQGualA60lmBWEsT8QWWRxd92x2z5+j0RmlpzW2lqegXcLjB3eGrovZ/xbitYq8d86E6zbLhUKBUGFrFuwu0W3w6cB3N1Ufv+vzs8js0zS/njyKZ
-sidebar_class_name: "post api-method"
+sidebar_class_name: 'post api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"postApiV1Snapshots:username:slug:snapshotIdRestore"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'postApiV1Snapshots:username:slug:snapshotIdRestore'}
+></Heading>
 
 <MethodEndpoint
-  method={"post"}
-  path={"/api/v1/snapshots/{username}/{slug}/{snapshotId}/restore"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'post'}
+  path={'/api/v1/snapshots/{username}/{slug}/{snapshotId}/restore'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 Restore a document from a snapshot
 
 <Heading
-  id={"request"}
-  as={"h2"}
-  className={"openapi-tabs__heading"}
-  children={"Request"}
->
-</Heading>
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
 
 <ParamsDetails
-  parameters={[{"schema":{"type":"string"},"in":"path","name":"username","required":true},{"schema":{"type":"string"},"in":"path","name":"slug","required":true},{"schema":{"type":"string"},"in":"path","name":"snapshotId","required":true}]}
->
-  
-</ParamsDetails>
+  parameters={[
+    {
+      schema: { type: 'string' },
+      in: 'path',
+      name: 'username',
+      required: true,
+    },
+    { schema: { type: 'string' }, in: 'path', name: 'slug', required: true },
+    {
+      schema: { type: 'string' },
+      in: 'path',
+      name: 'snapshotId',
+      required: true,
+    },
+  ]}
+></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"Snapshot restored successfully","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","example":"Operation successful"}},"required":["message"],"title":"MessageResponse"}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}},"403":{"description":"Access denied - not project owner","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}},"404":{"description":"Project or snapshot not found","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'Snapshot restored successfully',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              message: { type: 'string', example: 'Operation successful' },
+            },
+            required: ['message'],
+            title: 'MessageResponse',
+          },
+        },
+      },
+    },
+    '401': {
+      description: 'Not authenticated',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: { type: 'string', example: 'An error occurred' },
+            },
+            required: ['error'],
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+    '403': {
+      description: 'Access denied - not project owner',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: { type: 'string', example: 'An error occurred' },
+            },
+            required: ['error'],
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+    '404': {
+      description: 'Project or snapshot not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: { type: 'string', example: 'An error occurred' },
+            },
+            required: ['error'],
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

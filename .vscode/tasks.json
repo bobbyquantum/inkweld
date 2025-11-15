@@ -88,17 +88,13 @@
       "problemMatcher": {
         "owner": "bun",
         "fileLocation": ["relative", "${workspaceFolder}/backend"],
-        "pattern": [
-          {
-            "regexp": "^(.+\\.test\\.(?:js|ts|jsx|tsx)):",
-            "file": 1
-          },
-          {
-            "regexp": "^✕ (.+) \\[(\\d+\\.\\d+ms)\\]$",
-            "message": 1,
-            "severity": 1
-          }
-        ]
+        "pattern": {
+          "regexp": "^(.+\\.test\\.(?:js|ts|jsx|tsx)):(\\d+):(\\d+): (.+)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "message": 4
+        }
       },
       "group": {
         "kind": "test",

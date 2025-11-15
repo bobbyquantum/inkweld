@@ -1,63 +1,82 @@
 ---
 id: get-api-v-1-users-check-username
-title: "getApiV1UsersCheck-username"
-description: "Check if a username is available"
-sidebar_label: "getApiV1UsersCheck-username"
+title: 'getApiV1UsersCheck-username'
+description: 'Check if a username is available'
+sidebar_label: 'getApiV1UsersCheck-username'
 hide_title: true
 hide_table_of_contents: true
 api: eJytU01v1DAQ/SvWnEAyzS7lgHJbUIVW4oAQhcMqh9lkunHr2K49SbuK8t/ROFt22wXEgVMie+Z53seM4ANFZOPduoESdsSrYL4vrxPF9LGl+u5Nnyg67Ag0NJTqaIJUQwn5WpkbheqpRpmkcEBjcWulgXGXoNxAhoNKQ6QUvEuUoBzh7WIhn+eo109QBxxjDe9VpNRbBg21d0yOpQ9DsKbOsxe3SZpHSHVLHcof7wNBCX57S7U0hihM2cxPH4c8lm69t4TujOePlril+AeSk4bU73aUpDqdwGGMuAcNhqk7PU8cjdtJ3/NnVpYFn81Ax6dOoadJ9LvvTaRGRD0V+rSumiYpffc7ddduQGsadWLqf1KUYvTxnKYGesQuiNCwcipXKV/XfRQWLynNIJUGNpxbruTg6yE0MM3MOuLWH9IqcyC3UEKBwRTDshBqqahfZjdRHCSE5WaEPloooWUOZVFYX6NtfeLy/eXl5Zn7n+VaNTSQ9aEjx2pGgqnSYNyNz5wP467d3QPZRq2+rM/XxVuLWx9nh+tI889DNGzcTgWLfONjJ73q1YfevQYNMvHcvbxYXCwkNMEn7jBbk5llFdQqGHXYWvX3tR2Phv/TBs9uMj1yESwaJzNk/caD8BvAYGTWJWjI4kuons9QaRCFpXgct5joOtppkuP7nuIeyk2lYcBo5pXcVJOGlrChmP26o73Ep64piOED2j5v2Mu4iiW/wvHp6htM0095yrHF
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"getApiV1UsersCheck-username"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'getApiV1UsersCheck-username'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/users/check-username"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/users/check-username'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 Check if a username is available
 
-<ParamsDetails
-  parameters={undefined}
->
-  
-</ParamsDetails>
+<ParamsDetails parameters={undefined}></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"Username availability result","content":{"application/json":{"schema":{"type":"object","properties":{"available":{"type":"boolean","description":"Whether username is available"},"suggestions":{"type":"array","items":{"type":"string"},"description":"Alternative username suggestions"}},"required":["available","suggestions"]}}}},"400":{"description":"Invalid username","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'Username availability result',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              available: {
+                type: 'boolean',
+                description: 'Whether username is available',
+              },
+              suggestions: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Alternative username suggestions',
+              },
+            },
+            required: ['available', 'suggestions'],
+          },
+        },
+      },
+    },
+    '400': {
+      description: 'Invalid username',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: { type: 'string', example: 'An error occurred' },
+            },
+            required: ['error'],
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

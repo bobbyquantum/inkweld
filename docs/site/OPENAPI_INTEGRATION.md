@@ -74,7 +74,7 @@ Consider adding this to your CI/CD pipeline:
   run: |
     cd docs/site
     npm run gen-api-docs
-    
+
 - name: Check for uncommitted changes
   run: |
     git diff --exit-code docs/site/docs/api/
@@ -147,14 +147,14 @@ bun run generate:openapi
 Add descriptions, examples, and metadata to your NestJS controllers:
 
 ```typescript
-@ApiOperation({ 
+@ApiOperation({
   summary: 'Get user profile',
   description: 'Returns the authenticated user\'s profile information'
 })
-@ApiResponse({ 
-  status: 200, 
+@ApiResponse({
+  status: 200,
   description: 'User profile retrieved successfully',
-  type: UserDto 
+  type: UserDto
 })
 @Get('me')
 async getMe(@Req() req: Request) {
@@ -177,11 +177,13 @@ export class AuthController {
 ### 4. Version Control Generated Docs
 
 **Recommended**: Commit generated docs to version control for these reasons:
+
 - Documentation history tracking
 - Easy review in pull requests
 - No need to regenerate during deployment
 
 Add this to `.gitignore` if you prefer to regenerate on-demand:
+
 ```
 docs/site/docs/api/**/*.mdx
 docs/site/docs/api/sidebar.ts
@@ -210,6 +212,7 @@ npm run build
 ### OpenAPI Spec Issues
 
 If endpoints are missing:
+
 1. Check NestJS controller decorators (`@ApiOperation`, `@ApiResponse`)
 2. Verify controllers are properly registered in modules
 3. Regenerate OpenAPI spec: `cd backend && bun run generate:openapi`

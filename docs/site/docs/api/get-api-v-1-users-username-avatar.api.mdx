@@ -1,71 +1,82 @@
 ---
 id: get-api-v-1-users-username-avatar
-title: "getApiV1Users:usernameAvatar"
-description: "Get user avatar image"
-sidebar_label: "getApiV1Users:usernameAvatar"
+title: 'getApiV1Users:usernameAvatar'
+description: 'Get user avatar image'
+sidebar_label: 'getApiV1Users:usernameAvatar'
 hide_title: true
 hide_table_of_contents: true
 api: eJx9U01v2zAM/SsCTysg1Mnaw6BbNhRFgR2GYt0lyIGxGUetLKkSnTYw9N8HOg6arulOkih+PD4+DhAiJWQb/F0DBlriRbR/5g+ZUjZ9puSxo8UOGRNoaCjXyUZxBwO3xEpcFI7/ynbYEmhgbDOYJYxJYKUhUY7BZ8pgBvg6m8nxPtXDmTR18EyexXk0VdG38sj1ljqUG+8jgYHMyfoWNGxC6pDBwNp6THsopRQN17PrjwUPLSkfWG1C75v39TBGZ+uRluoxS8CZsmH9SDWDhpiERLaH/iilkM6ho1fsohPTwqvRS4W67lOiBgRnoufeysMspyQrDWx5DLkRw/3E49hY0RAxYUcsLJvl58QUDVZ6jshb0CATBQPH4cJpZU49lZWGjngbJkFIhxJpoMJoq928ktBcDccMpcKjQDKl3RFOnxwY2DJHU1Uu1Oi2IbP5dnV19UFKP+VbNbQjF2JHntUhEwgY6zdh7Gri4s4/vZBr1OLX3YdEP4JzuA4i6R2pOtHh8pIsW9+q6JBFJRKrvnzv/QVoEMSH6Pnl7HImfMWQucNx7hNdLbFaRKv+3Q11fjmGNzl9vieHKTG9chUdWi+VR9aGifElYLSCcA56HFgGDeZkchPxKw3CrQQMwxozPSRXipife0p7MMuVhh0mi2thcDlAY7PcGzAbdJn+g/7L/aSOC/UZ5smIfi9Y0fXyAg1PtD8VWlkVDVvChtKI4fC9qGuKfBL4tuzvlHh78xtK+Qty6Zo0
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"getApiV1Users:usernameAvatar"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'getApiV1Users:usernameAvatar'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/users/{username}/avatar"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/users/{username}/avatar'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 Get user avatar image
 
 <Heading
-  id={"request"}
-  as={"h2"}
-  className={"openapi-tabs__heading"}
-  children={"Request"}
->
-</Heading>
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
 
 <ParamsDetails
-  parameters={[{"schema":{"type":"string"},"in":"path","name":"username","required":true}]}
->
-  
-</ParamsDetails>
+  parameters={[
+    {
+      schema: { type: 'string' },
+      in: 'path',
+      name: 'username',
+      required: true,
+    },
+  ]}
+></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"User avatar image","content":{"image/png":{"schema":{"type":"string","format":"binary"}}}},"404":{"description":"Avatar not found","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred"}},"required":["error"],"title":"ErrorResponse"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'User avatar image',
+      content: {
+        'image/png': { schema: { type: 'string', format: 'binary' } },
+      },
+    },
+    '404': {
+      description: 'Avatar not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: { type: 'string', example: 'An error occurred' },
+            },
+            required: ['error'],
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

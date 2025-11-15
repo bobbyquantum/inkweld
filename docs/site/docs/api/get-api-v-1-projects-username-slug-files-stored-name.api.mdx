@@ -1,71 +1,104 @@
 ---
 id: get-api-v-1-projects-username-slug-files-stored-name
-title: "getApiV1Projects:username:slugFiles:storedName"
-description: "Download a file from the project"
-sidebar_label: "getApiV1Projects:username:slugFiles:storedName"
+title: 'getApiV1Projects:username:slugFiles:storedName'
+description: 'Download a file from the project'
+sidebar_label: 'getApiV1Projects:username:slugFiles:storedName'
 hide_title: true
 hide_table_of_contents: true
 api: eJzNVU1v2zAM/SsCTy2g1cnaw6BbtnVDgaEohm2XIAfFZmK1sqRKdLrA0H8faDtI+pFhA4Zip8i2+Pj4+Mh04ANGTca7qwoUrJFmwfyY3kR/iyUl1SaMTjeokm3Xn4zFpBL5iNW1bhAkVJjKaAIDgIKP/sFZryuhxcpYFKvoG0E1ijDggQTS6wRqDj0WLCRETMG7hAlUB28nE/55jMpXRekdoWOE3Ul1oEOwpuzpF74kpDeJIuqGv6WyxkbzibYBQUGiaNwaJKx8bDSBgqVxOm4h55wlXEymz1NfexK6pRodcR6sjue/TRzxQl6/HEsPkcUmM5SKMfr4Er3HDC75mmgwJb1GYKIR71sTsWIVB5DFroKLI+I5T2LlW/cf088Sgo66QcLIBjnewCzBMHTQVIMEdico2BkVDjNQbDHLv4Viq/8LmMM5eQK2kNAg1X6cOVaXYxUUOphiMy3GgUlFtyssFx0TywVPViq6PXwGCQnjZidcGy0oqImCKgrrS21rn0i9Oz8/f9afL/xZVLhB60ODjsSABEzRuJXvqzVkuaIrd/eAthKzm6tnQB+8tXrpeZdsUJQRh8NDNGTcWgSrieeOY8XJ+9adggRmPERPzyZnE9Yx+ESN7p04yrhGErNgxLGlJA63knhpLXV7z//Rhhp6S/iTimC1ccyr17QbuzQHHQzznw5j0bMCCerAhGp0Ud+t/nlvh4UE7ggDdd1SJ/webc78+r7FuAU1X0jY6Gj0knWfd1CZxOcK1ErbhL8p8OTr6LRTcayW8aV2W65B25afQMIdbg8HiR3/inl7vV47574neZEl1KgrjL3iw4VZWWKgg9Cj/ziPRvrz5TfI+RezCYeg
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"getApiV1Projects:username:slugFiles:storedName"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'getApiV1Projects:username:slugFiles:storedName'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/projects/{username}/{slug}/files/{storedName}"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/projects/{username}/{slug}/files/{storedName}'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 Download a file from the project
 
 <Heading
-  id={"request"}
-  as={"h2"}
-  className={"openapi-tabs__heading"}
-  children={"Request"}
->
-</Heading>
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
 
 <ParamsDetails
-  parameters={[{"schema":{"type":"string"},"in":"path","name":"username","required":true},{"schema":{"type":"string"},"in":"path","name":"slug","required":true},{"schema":{"type":"string"},"in":"path","name":"storedName","required":true}]}
->
-  
-</ParamsDetails>
+  parameters={[
+    {
+      schema: { type: 'string' },
+      in: 'path',
+      name: 'username',
+      required: true,
+    },
+    { schema: { type: 'string' }, in: 'path', name: 'slug', required: true },
+    {
+      schema: { type: 'string' },
+      in: 'path',
+      name: 'storedName',
+      required: true,
+    },
+  ]}
+></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"File content","content":{"application/octet-stream":{"schema":{"type":"string","format":"binary"}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","description":"Error message"}},"required":["error"]}}}},"404":{"description":"File not found","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","description":"Error message"}},"required":["error"]}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'File content',
+      content: {
+        'application/octet-stream': {
+          schema: { type: 'string', format: 'binary' },
+        },
+      },
+    },
+    '401': {
+      description: 'Not authenticated',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: { type: 'string', description: 'Error message' },
+            },
+            required: ['error'],
+          },
+        },
+      },
+    },
+    '404': {
+      description: 'File not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: { type: 'string', description: 'Error message' },
+            },
+            required: ['error'],
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

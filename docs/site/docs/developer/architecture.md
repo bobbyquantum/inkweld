@@ -17,21 +17,21 @@ graph TB
         IndexedDB["IndexedDB<br/>(Offline Storage)"]
         Angular --> IndexedDB
     end
-    
+
     subgraph Backend["⚡ Backend Server (Bun)"]
         Hono["Hono API +<br/>WebSocket Handler"]
-        
+
         subgraph Storage["Storage Layer"]
             TypeORM["TypeORM/DB<br/>(Users/Meta)"]
             YjsLevel["Yjs + LevelDB<br/>(Document CRDTs)"]
         end
-        
+
         Hono --> TypeORM
         Hono --> YjsLevel
     end
-    
+
     Browser <-->|HTTP + WebSocket| Hono
-    
+
     style Browser fill:#e1f5ff,stroke:#01579b,stroke-width:2px
     style Backend fill:#fff3e0,stroke:#e65100,stroke-width:2px
     style Storage fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
@@ -133,13 +133,13 @@ graph TD
     User["👤 User Types"] --> PM["ProseMirror Editor"]
     PM --> YPM["y-prosemirror<br/>binding"]
     YPM --> YDoc["Yjs Document<br/>(CRDT)"]
-    
+
     YDoc --> YWS["y-websocket<br/>(to server)"]
     YDoc --> YIdb["y-indexeddb<br/>(local cache)"]
-    
+
     YWS --> WSServer["WebSocket Server"]
     WSServer --> YLevel["y-leveldb<br/>(persistence)"]
-    
+
     style User fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
     style PM fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     style YDoc fill:#e1f5fe,stroke:#0277bd,stroke-width:3px
@@ -155,16 +155,16 @@ Each project gets its own LevelDB instance:
 %%{init: {'theme':'neutral'}}%%
 graph TD
     Data["📁 data/"]
-    
+
     Data --> U1["👤 username1/"]
     Data --> U2["👤 username2/"]
-    
+
     U1 --> P1["📂 project-slug/"]
     P1 --> L1["💾 leveldb/<br/>(Yjs documents)"]
-    
+
     U2 --> P2["📂 another-project/"]
     P2 --> L2["💾 leveldb/<br/>(Yjs documents)"]
-    
+
     style Data fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style U1 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     style U2 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
@@ -192,7 +192,7 @@ erDiagram
     User ||--o{ Session : has
     Project ||--o{ ProjectElement : contains
     Project ||--o{ WorldbuildingSchema : defines
-    
+
     User {
         int id PK
         string username
@@ -202,7 +202,7 @@ erDiagram
         boolean approved
         boolean isAdmin
     }
-    
+
     Project {
         int id PK
         string name
@@ -211,7 +211,7 @@ erDiagram
         int userId FK
         string coverImage
     }
-    
+
     ProjectElement {
         int id PK
         int projectId FK
@@ -219,7 +219,7 @@ erDiagram
         string type
         int parentId FK
     }
-    
+
     WorldbuildingSchema {
         int id PK
         int projectId FK
@@ -237,18 +237,18 @@ graph LR
         App["Angular App"]
         IDB[("IndexedDB<br/>Offline Cache")]
     end
-    
+
     subgraph Server["Server Side"]
         API["Hono API"]
         PG[("PostgreSQL/SQLite<br/>Metadata")]
         LDB[("LevelDB<br/>Document Content")]
     end
-    
+
     App -->|Offline| IDB
     App <-->|HTTP/WS| API
     API --> PG
     API --> LDB
-    
+
     style Client fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
     style Server fill:#fff3e0,stroke:#e65100,stroke-width:2px
     style IDB fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
@@ -266,7 +266,7 @@ sequenceDiagram
     participant Backend
     participant SessionStore
     participant Database
-    
+
     User->>Browser: Enter credentials
     Browser->>Backend: POST /api/v1/auth/login
     Backend->>Database: Verify credentials
@@ -275,9 +275,9 @@ sequenceDiagram
     SessionStore-->>Backend: Session ID
     Backend-->>Browser: Set httpOnly cookie
     Browser-->>User: Login successful
-    
+
     Note over Browser,Backend: Subsequent requests include session cookie
-    
+
     Browser->>Backend: GET /api/v1/users/me
     Backend->>SessionStore: Validate session
     SessionStore-->>Backend: Session valid
@@ -310,21 +310,21 @@ graph TB
         DevBun[\"Bun Runtime<br/>Port 8333\"]
         DevNG[\"Angular CLI<br/>Port 4200\"]
     end
-    
+
     subgraph Prod[\"Production Options\"]
         BunProd[\"🚀 Bun Server<br/>(Primary)\"]
         NodeProd[\"Node.js Server<br/>(Compatible)\"]
         Docker[\"🐳 Docker Container<br/>(Recommended)\"]
         CF[\"☁️ Cloudflare Workers<br/>(Experimental)\"]
     end
-    
+
     subgraph Storage[\"Storage Backends\"]
         PG[(\"PostgreSQL\")]
         SQLite[(\"SQLite\")]
         D1[(\"D1 Database\")]
         R2[(\"R2 Storage\")]
     end
-    
+
     BunProd --> PG
     BunProd --> SQLite
     NodeProd --> PG
@@ -333,7 +333,7 @@ graph TB
     Docker --> SQLite
     CF --> D1
     CF --> R2
-    
+
     style Dev fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
     style Prod fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style Storage fill:#fff3e0,stroke:#f57c00,stroke-width:2px
@@ -393,36 +393,36 @@ graph LR
         Concurrent[\"Concurrently\"]
         AngularDev[\"Angular CLI<br/>:4200\"]
         BunDev[\"Bun<br/>:8333\"]
-        
+
         DevStart --> Concurrent
         Concurrent --> AngularDev
         Concurrent --> BunDev
     end
-    
+
     subgraph Prod[\"Production Build\"]
         ProdBuild[\"Build Process\"]
-        
+
         FEBuild[\"Frontend Build<br/>(Angular + Vite)\"]
         BEBuild[\"Backend Build<br/>(Bun optimize)\"]
-        
+
         FEDist[\"frontend/dist/\"]
         BEDist[\"backend/dist/\"]
-        
+
         ProdBuild --> FEBuild
         ProdBuild --> BEBuild
         FEBuild --> FEDist
         BEBuild --> BEDist
     end
-    
+
     subgraph Docker[\"Docker Multi-Stage\"]
         Stage1[\"Stage 1:<br/>Frontend Build\"]
         Stage2[\"Stage 2:<br/>Backend Build\"]
         Stage3[\"Stage 3:<br/>Runtime Image\"]
-        
+
         Stage1 --> Stage2
         Stage2 --> Stage3
     end
-    
+
     style Dev fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
     style Prod fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     style Docker fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
@@ -576,23 +576,23 @@ GitHub Actions workflow:
 %%{init: {'theme':'neutral'}}%%
 graph TD
     Root["📦 inkweld/"]
-    
+
     Root --> FE["🎨 frontend/<br/>(Angular App)"]
     Root --> BE["⚡ backend/<br/>(Bun/Hono API)"]
     Root --> Docs["📚 docs/"]
     Root --> Assets["🖼️ assets/<br/>(Demo covers)"]
     Root --> PKG["📄 package.json<br/>(Root scripts)"]
-    
+
     Docs --> Site["📖 site/<br/>(Docusaurus)"]
-    
+
     FE --> FESrc["src/"]
     FE --> FEE2E["e2e/"]
     FE --> FETest["tests/"]
-    
+
     BE --> BESrc["src/"]
     BE --> BETest["test/"]
     BE --> BEData["data/"]
-    
+
     style Root fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
     style FE fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     style BE fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px

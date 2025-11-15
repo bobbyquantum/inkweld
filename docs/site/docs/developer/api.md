@@ -79,6 +79,7 @@ Future versions will be released as `/api/v2/`, etc., with backward compatibilit
 ## OpenAPI Specification
 
 The complete API specification is available at:
+
 - **File**: `backend/openapi.json`
 - **Generation**: Auto-generated from NestJS decorators
 - **Format**: OpenAPI 3.1 (JSON)
