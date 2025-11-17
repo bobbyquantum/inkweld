@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import type { DatabaseInstance } from '../middleware/database.middleware';
 import { users, User, InsertUser } from '../db/schema';
+import { config } from '../config/env.js';
 
 const SALT_ROUNDS = 10;
 
@@ -59,7 +60,7 @@ class UserService {
       password: hashedPassword,
       name: data.name || null,
       enabled: true,
-      approved: false, // Requires admin approval
+      approved: !config.userApprovalRequired, // Auto-approve if approval not required
     };
 
     await db.insert(users).values(newUser);

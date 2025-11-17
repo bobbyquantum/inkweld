@@ -78,7 +78,7 @@ export const test = base.extend<TestFixtures>({
         serverUrl: 'http://localhost:8333'
       }));
       // Set mock auth token for authenticated user
-      localStorage.setItem('inkweld_auth_token', 'mock-token-testuser');
+      localStorage.setItem('auth_token', 'mock-token-testuser');
     });
 
     console.log('Setting up page for authenticated user');
@@ -102,7 +102,7 @@ export const test = base.extend<TestFixtures>({
         serverUrl: 'http://localhost:8333'
       }));
       // Set mock auth token for admin user
-      localStorage.setItem('inkweld_auth_token', 'mock-token-adminuser');
+      localStorage.setItem('auth_token', 'mock-token-adminuser');
     });
 
     console.log('Setting up page for admin user');

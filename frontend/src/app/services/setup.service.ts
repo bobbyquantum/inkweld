@@ -45,7 +45,7 @@ export class SetupService {
     this.isLoading.set(true);
     try {
       // Validate server connection
-      const response = await fetch(`${serverUrl}/health`);
+      const response = await fetch(`${serverUrl}/api/v1/health`);
       if (!response.ok) {
         throw new Error('Server is not reachable');
       }

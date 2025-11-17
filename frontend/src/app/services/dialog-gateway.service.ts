@@ -26,6 +26,7 @@ import {
   RenameDialogComponent,
   RenameDialogData,
 } from '../dialogs/rename-dialog/rename-dialog.component';
+import { UserSettingsDialogComponent } from '../dialogs/user-settings-dialog/user-settings-dialog.component';
 
 @Injectable({
   providedIn: 'root',
@@ -101,6 +102,24 @@ export class DialogGatewayService {
       width: '600px',
       maxWidth: '95vw',
       maxHeight: '90vh',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openUserSettingsDialog(
+    selectedCategory?:
+      | 'general'
+      | 'account'
+      | 'project-tree'
+      | 'project'
+      | 'connection'
+  ): Promise<void> {
+    const dialogRef = this.dialog.open(UserSettingsDialogComponent, {
+      width: '800px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      panelClass: 'user-settings-dialog-panel',
+      data: { selectedCategory: selectedCategory || 'general' },
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

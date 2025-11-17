@@ -42,8 +42,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
 import {
+  AuthenticationService,
   GetApiV1UsersCheckUsername200Response,
-  PostApiV1UsersRegisterRequest,
   UsersService,
 } from '@inkweld/index';
 import { RecaptchaService } from '@services/recaptcha.service';
@@ -74,11 +74,12 @@ import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 })
 export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
   private httpClient = inject(HttpClient);
-  private userService = inject(UsersService);
+  private usersApiService = inject(UsersService);
+  private authService = inject(AuthenticationService);
+  private userService = inject(UserService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private xsrfService = inject(XsrfService);
-  private AuthenticationService = inject(UserService);
   private fb = inject(FormBuilder);
   private systemConfigService = inject(SystemConfigService);
   private recaptchaService = inject(RecaptchaService);
@@ -462,32 +463,31 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
         confirmPassword: string;
       };
 
-      const registerRequest: PostApiV1UsersRegisterRequest = {
+      const registerRequest = {
         username: formValues.username,
         password: formValues.password,
         captchaToken: this.captchaToken,
       };
 
       const response = await firstValueFrom(
-        this.userService.postApiV1UsersRegister(registerRequest)
+        this.authService.postApiV1AuthRegister(registerRequest)
       );
 
       // Check if approval is required
       if (response.requiresApproval) {
-        // Clear any cached user to prevent automatic authentication attempts
-        await this.AuthenticationService.clearCurrentUser();
-
         // Redirect to dedicated pending approval page
         void this.router.navigate(['/approval-pending'], {
           queryParams: {
-            username: response.username,
-            name: response.name,
-            userId: response.userId,
+            username: response.user.username,
+            name: response.user.name || response.user.username,
+            userId: response.user.id,
           },
         });
       } else {
-        // Automatically log in after successful registration
-        await this.AuthenticationService.loadCurrentUser();
+        // Store authentication token for subsequent requests
+        if (response.token) {
+          localStorage.setItem('auth_token', response.token);
+        }
 
         this.snackBar.open('Registration successful!', 'Close', {
           duration: 3000,

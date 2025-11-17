@@ -18,7 +18,8 @@ h2 {
 
 .settings-container {
   display: flex;
-  height: 400px;
+  height: 600px;
+  max-height: 80vh;
 
   &.mobile {
     flex-direction: column;
@@ -57,7 +58,8 @@ h2 {
   flex-grow: 1;
   padding: 16px;
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 
   &.mobile {
     padding: 16px 0;

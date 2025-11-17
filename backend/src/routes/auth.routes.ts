@@ -74,6 +74,7 @@ authRoutes.post(
             enabled: newUser.enabled,
           },
           token,
+          requiresApproval: false,
         });
       }
 
@@ -87,6 +88,7 @@ authRoutes.post(
           name: newUser.name,
           enabled: newUser.enabled,
         },
+        requiresApproval: true,
       });
     } catch (error) {
       if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {

@@ -17,6 +17,9 @@
     "fix-angular-control-flow": "ng generate @angular/core:control-flow",
     "e2e": "ng e2e",
     "e2e:ci": "playwright test --reporter=list",
+    "e2e:fullstack": "playwright test --config=playwright.fullstack.config.ts",
+    "e2e:fullstack:ci": "playwright test --config=playwright.fullstack.config.ts --reporter=list",
+    "e2e:fullstack:debug": "playwright test --config=playwright.fullstack.config.ts --headed --debug",
     "screenshots": "cross-env GENERATE_SCREENSHOTS=true playwright test pwa-screenshots.spec.ts"
   },
   "private": true,

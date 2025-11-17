@@ -191,7 +191,7 @@ export class UserService {
 
       // Store JWT token in localStorage
       if ('token' in response && typeof response.token === 'string') {
-        localStorage.setItem('inkweld_auth_token', response.token);
+        localStorage.setItem('auth_token', response.token);
       }
 
       await this.setCurrentUser(response.user);
@@ -207,7 +207,8 @@ export class UserService {
 
   async clearCurrentUser(): Promise<void> {
     // Clear JWT token from localStorage
-    localStorage.removeItem('inkweld_auth_token');
+    localStorage.removeItem('inkweld-app-config');
+    localStorage.removeItem('auth_token');
 
     if (this.storage.isAvailable()) {
       try {

@@ -3,6 +3,8 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { User } from '@inkweld/index';
+import { DialogGatewayService } from '@services/dialog-gateway.service';
+import { SetupService } from '@services/setup.service';
 import { UnifiedUserService } from '@services/unified-user.service';
 import { of } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
@@ -15,6 +17,8 @@ describe('UserMenuComponent', () => {
   let httpClientMock: MockedObject<HttpClient>;
   let routerMock: MockedObject<Router>;
   let userServiceMock: MockedObject<UnifiedUserService>;
+  let dialogGatewayMock: MockedObject<DialogGatewayService>;
+  let setupServiceMock: MockedObject<SetupService>;
   const activatedRouteMock = {
     params: of({ username: 'testuser' }),
   };
@@ -42,6 +46,15 @@ describe('UserMenuComponent', () => {
       currentUser: signal(mockUser),
     } as unknown as MockedObject<UnifiedUserService>;
 
+    dialogGatewayMock = {
+      openUserSettingsDialog: vi.fn().mockResolvedValue(undefined),
+    } as unknown as MockedObject<DialogGatewayService>;
+
+    setupServiceMock = {
+      getMode: vi.fn().mockReturnValue('server'),
+      getServerUrl: vi.fn().mockReturnValue('http://localhost:8333'),
+    } as unknown as MockedObject<SetupService>;
+
     await TestBed.configureTestingModule({
       imports: [UserMenuComponent],
       providers: [
@@ -49,6 +62,8 @@ describe('UserMenuComponent', () => {
         { provide: HttpClient, useValue: httpClientMock },
         { provide: Router, useValue: routerMock },
         { provide: UnifiedUserService, useValue: userServiceMock },
+        { provide: DialogGatewayService, useValue: dialogGatewayMock },
+        { provide: SetupService, useValue: setupServiceMock },
         { provide: ActivatedRoute, useValue: activatedRouteMock },
       ],
     }).compileComponents();
@@ -77,12 +92,9 @@ describe('UserMenuComponent', () => {
   });
 
   describe('onSettings()', () => {
-    it('should log settings not implemented message', () => {
-      const consoleSpy = vi.spyOn(console, 'log');
-      component.onSettings();
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Settings not yet implemented for unified service'
-      );
+    it('should open user settings dialog', async () => {
+      await component.onSettings();
+      expect(dialogGatewayMock.openUserSettingsDialog).toHaveBeenCalled();
     });
   });
 
@@ -99,6 +111,24 @@ describe('UserMenuComponent', () => {
       fixture.detectChanges();
 
       expect(component.user).toEqual(mockUser);
+    });
+  });
+
+  describe('getConnectionStatus()', () => {
+    it('should return online status when in server mode', () => {
+      setupServiceMock.getMode.mockReturnValue('server');
+      const status = component.getConnectionStatus();
+      expect(status.text).toBe('Online');
+      expect(status.cssClass).toBe('online');
+      expect(status.icon).toBe('cloud_done');
+    });
+
+    it('should return offline status when in offline mode', () => {
+      setupServiceMock.getMode.mockReturnValue('offline');
+      const status = component.getConnectionStatus();
+      expect(status.text).toBe('Offline');
+      expect(status.cssClass).toBe('offline');
+      expect(status.icon).toBe('cloud_off');
     });
   });
 });

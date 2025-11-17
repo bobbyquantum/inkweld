@@ -5,6 +5,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { RouterModule } from '@angular/router';
 import { User } from '@inkweld/index';
+import { DialogGatewayService } from '@services/dialog-gateway.service';
+import { SetupService } from '@services/setup.service';
 import { UnifiedUserService } from '@services/unified-user.service';
 
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
@@ -25,6 +27,8 @@ import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 })
 export class UserMenuComponent {
   protected userService = inject(UnifiedUserService);
+  protected setupService = inject(SetupService);
+  private dialogGateway = inject(DialogGatewayService);
 
   @Input() user: User | undefined = undefined;
   @Input() miniMode = false;
@@ -37,8 +41,23 @@ export class UserMenuComponent {
     }
   }
 
-  onSettings() {
-    // TODO: Implement settings dialog for unified user service
-    console.log('Settings not yet implemented for unified service');
+  async onSettings() {
+    await this.dialogGateway.openUserSettingsDialog();
+  }
+
+  getConnectionStatus(): { icon: string; text: string; cssClass: string } {
+    const mode = this.setupService.getMode();
+    if (mode === 'server') {
+      return {
+        icon: 'cloud_done',
+        text: 'Online',
+        cssClass: 'online',
+      };
+    }
+    return {
+      icon: 'cloud_off',
+      text: 'Offline',
+      cssClass: 'offline',
+    };
   }
 }

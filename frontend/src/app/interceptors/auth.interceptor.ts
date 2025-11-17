@@ -22,7 +22,7 @@ export class AuthInterceptor implements HttpInterceptor {
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
     // Add Authorization header if token exists
-    const token = localStorage.getItem('inkweld_auth_token');
+    const token = localStorage.getItem('auth_token');
     if (token) {
       request = request.clone({
         setHeaders: {
@@ -38,7 +38,7 @@ export class AuthInterceptor implements HttpInterceptor {
           console.warn('Authentication error detected, redirecting to login');
 
           // Clear invalid token
-          localStorage.removeItem('inkweld_auth_token');
+          localStorage.removeItem('auth_token');
 
           // Don't redirect if we're already on the welcome/login page
           const currentUrl = this.router.url;

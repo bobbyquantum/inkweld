@@ -41,6 +41,14 @@ export const RegisterResponseSchema = z
   .object({
     message: z.string().openapi({ example: 'Registration successful. You can now log in.' }),
     user: UserSchema,
+    token: z.string().optional().openapi({
+      example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      description: 'Authentication token (only present if auto-login is enabled)',
+    }),
+    requiresApproval: z.boolean().optional().openapi({
+      example: false,
+      description: 'Whether the user account requires admin approval before being enabled',
+    }),
   })
   .openapi({ ref: 'RegisterResponse' });
 
@@ -61,9 +69,12 @@ export const LoginRequestSchema = z
  */
 export const LoginResponseSchema = z
   .object({
-    message: z.string().openapi({ example: 'Login successful' }),
+    message: z.string().optional().openapi({ example: 'Login successful' }),
     user: UserSchema,
-    sessionId: z.string().openapi({ example: 'sess_abc123' }),
+    token: z.string().openapi({
+      example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      description: 'JWT authentication token',
+    }),
   })
   .openapi({ ref: 'LoginResponse' });
 

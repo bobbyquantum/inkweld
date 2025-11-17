@@ -32,6 +32,14 @@ export class OfflineProjectService {
   }
 
   /**
+   * Force reload of offline projects from localStorage
+   * Useful when projects have been added externally (e.g., in tests)
+   */
+  reloadProjects(): void {
+    this.loadOfflineProjects();
+  }
+
+  /**
    * Get a specific project
    */
   getProject(username: string, slug: string): Project | null {

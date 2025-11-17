@@ -42,15 +42,12 @@ const allowedOrigins = config.allowedOrigins;
 app.use(
   '*',
   cors({
-    origin: (origin) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        return origin || '*';
-      }
-      return allowedOrigins[0] || '*';
-    },
-    credentials: false, // No cookies - using Bearer tokens
+    origin: allowedOrigins,
+    credentials: true, // Enable credentials for session-based auth
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-CSRF-TOKEN'],
+    exposeHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 600, // Cache preflight for 10 minutes
   })
 );
 
@@ -238,6 +235,10 @@ function shouldBypassSpa(pathname: string, prefixes: string[]): boolean {
 
 // Function to create and initialize the app for testing
 export async function createBunApp() {
-  await setupBunDatabase();
+  const dbPath =
+    process.env.DB_DATABASE === ':memory:'
+      ? ':memory:'
+      : process.env.DB_PATH || './data/inkweld.db';
+  await setupBunDatabase(dbPath);
   return app;
 }

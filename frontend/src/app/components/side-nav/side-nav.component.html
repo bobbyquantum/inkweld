@@ -9,7 +9,8 @@
           [class.active]="item.route && router.url.includes(item.route)"
           class="nav-item"
           tabindex="0"
-          role="button">
+          role="button"
+          [attr.data-testid]="'side-nav-' + item.label.toLowerCase()">
           <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
           @if (isOpen()) {
             <span matListItemTitle>{{ item.label }}</span>

@@ -11,8 +11,11 @@ import { User } from './user';
 
 
 export interface LoginResponse { 
-    message: string;
+    message?: string;
     user: User;
-    sessionId: string;
+    /**
+     * JWT authentication token
+     */
+    token: string;
 }
 

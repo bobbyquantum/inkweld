@@ -3219,6 +3219,16 @@
           },
           "user": {
             "$ref": "#/components/schemas/User"
+          },
+          "token": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "description": "Authentication token (only present if auto-login is enabled)"
+          },
+          "requiresApproval": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether the user account requires admin approval before being enabled"
           }
         },
         "required": [
@@ -3322,15 +3332,15 @@
           "user": {
             "$ref": "#/components/schemas/User"
           },
-          "sessionId": {
+          "token": {
             "type": "string",
-            "example": "sess_abc123"
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "description": "JWT authentication token"
           }
         },
         "required": [
-          "message",
           "user",
-          "sessionId"
+          "token"
         ]
       },
       "LoginRequest": {
