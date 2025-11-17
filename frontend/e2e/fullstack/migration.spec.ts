@@ -42,7 +42,7 @@ test.describe('Offline to Server Migration', () => {
     // Wait a moment for tab content to load
     await offlinePage.waitForTimeout(500);
 
-    // Step 6: (Skipping visual check for offline projects count - the projects 
+    // Step 6: (Skipping visual check for offline projects count - the projects
     // are in localStorage and will be migrated when we authenticate)
 
     // Step 7: Enter server URL
@@ -123,7 +123,7 @@ test.describe('Offline to Server Migration', () => {
 
     // Step 16: Navigate to home page to see migrated projects
     await offlinePage.goto('/');
-    
+
     // Wait for the page to fully stabilize
     await offlinePage.waitForLoadState('networkidle', { timeout: 10000 });
 
