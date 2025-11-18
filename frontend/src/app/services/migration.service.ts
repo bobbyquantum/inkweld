@@ -46,10 +46,16 @@ export interface MigrationState {
 /**
  * Service to handle migration of offline data to a server
  *
- * Migrates:
- * 1. Project metadata (via API)
- * 2. Elements (via Yjs sync - automatic when WebSocket connects)
- * 3. Documents (via Yjs sync - automatic when WebSocket connects)
+ * Migration process:
+ * 1. Project metadata - Sent to server via API
+ * 2. Elements - Automatically synced via Yjs when WebSocket connects
+ *    (Both offline and online modes use Yjs + IndexedDB, so sync is seamless)
+ * 3. Documents - Automatically synced via Yjs when WebSocket connects
+ *    (Both offline and online modes use Yjs + IndexedDB, so sync is seamless)
+ *
+ * The Yjs CRDT architecture ensures that offline data in IndexedDB automatically
+ * syncs to the server's LevelDB when a WebSocket connection is established.
+ * No explicit migration code is needed for elements or documents.
  */
 @Injectable({
   providedIn: 'root',
@@ -167,13 +173,17 @@ export class MigrationService {
       // Step 1: Create project metadata on server
       await this.createProjectOnServer(project);
 
-      // Step 2: Elements will sync automatically via Yjs when DocumentService connects
-      // to the elements document (username:slug:elements)
-      // The WebSocket connection will trigger sync from IndexedDB to server LevelDB
+      // Step 2: Elements sync automatically via Yjs WebSocket
+      // The offline elements are already stored in IndexedDB using Yjs.
+      // When DocumentService connects to the server, the Yjs provider will
+      // automatically sync the IndexedDB state to the server's LevelDB.
+      // Document ID: username:slug:elements
 
-      // Step 3: Documents will sync automatically via Yjs when DocumentService connects
-      // to each document (username:slug:docId)
-      // The WebSocket connection will trigger sync from IndexedDB to server LevelDB
+      // Step 3: Documents sync automatically via Yjs WebSocket
+      // All documents are stored in IndexedDB using Yjs (both online and offline).
+      // When DocumentService opens each document, the Yjs provider will
+      // automatically sync the IndexedDB state to the server's LevelDB.
+      // Document ID format: username:slug:docId
 
       // Note: We don't explicitly trigger element/document sync here.
       // The sync happens automatically when the user opens the project in the editor

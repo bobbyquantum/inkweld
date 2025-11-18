@@ -86,6 +86,16 @@ export const test = base.extend<TestFixtures>({
 
     // Navigate to the base URL *after* setting the auth token
     await page.goto('/');
+    
+    // Wait for projects to be loaded (the loading state should appear and disappear)
+    // Or wait for at least one project card to appear or the empty state
+    await page.waitForFunction(() => {
+      const loadingElement = document.querySelector('[data-testid="loading-projects"]');
+      const projectCards = document.querySelectorAll('[data-testid="project-card"]');
+      const emptyState = document.querySelector('.empty-state');
+      // Either we have projects, we have empty state, or we're done loading
+      return projectCards.length > 0 || emptyState !== null || loadingElement === null;
+    }, { timeout: 10000 });
 
     await use(page);
   },

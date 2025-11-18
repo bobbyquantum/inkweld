@@ -95,7 +95,7 @@ describe('OfflineProjectService', () => {
         description: 'Test Description',
       };
 
-      const result = service.createProject(projectData);
+      const result = await service.createProject(projectData);
 
       expect(result).toMatchObject({
         title: 'Test Project',
@@ -120,23 +120,23 @@ describe('OfflineProjectService', () => {
       );
     });
 
-    it('should generate slug from title', () => {
+    it('should generate slug from title', async () => {
       const projectData = {
         title: 'My Amazing Project!!!',
       };
 
-      const result = service.createProject(projectData);
+      const result = await service.createProject(projectData);
 
       expect(result.slug).toBe('my-amazing-project');
     });
 
-    it('should use provided slug', () => {
+    it('should use provided slug', async () => {
       const projectData = {
         title: 'Test Project',
         slug: 'custom-slug',
       };
 
-      const result = service.createProject(projectData);
+      const result = await service.createProject(projectData);
 
       expect(result.slug).toBe('custom-slug');
     });

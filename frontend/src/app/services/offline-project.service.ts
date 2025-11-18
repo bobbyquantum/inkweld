@@ -52,7 +52,7 @@ export class OfflineProjectService {
   /**
    * Create a new project
    */
-  createProject(projectData: Partial<Project>): Project {
+  async createProject(projectData: Partial<Project>): Promise<Project> {
     this.isLoading.set(true);
 
     const userProfile = this.setupService.getOfflineUserProfile();
@@ -90,8 +90,8 @@ export class OfflineProjectService {
       this.projects.set(updatedProjects);
       this.saveProjects(updatedProjects);
 
-      // Create default project structure
-      this.offlineElementsService.createDefaultStructure(
+      // Create default project structure (now async)
+      await this.offlineElementsService.createDefaultStructure(
         project.username,
         project.slug
       );

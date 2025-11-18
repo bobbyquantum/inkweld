@@ -79,8 +79,8 @@ export function setupAuthHandlers(): void {
     }
   });
 
-  // POST /api/v1/users/register - User registration
-  mockApi.addHandler('**/api/v1/users/register', async (route: Route) => {
+  // POST /api/v1/auth/register - User registration
+  mockApi.addHandler('**/api/v1/auth/register', async (route: Route) => {
     const request = route.request();
     const body = await request.postDataJSON() as any;
 
@@ -169,9 +169,11 @@ export function setupAuthHandlers(): void {
         status: 201,
         contentType: 'application/json',
         body: JSON.stringify({
-          userId: newUser.id,
-          username: newUser.username,
-          name: newUser.name,
+          user: {
+            id: newUser.id,
+            username: newUser.username,
+            name: newUser.name,
+          },
           token: token,
           requiresApproval: false
         })

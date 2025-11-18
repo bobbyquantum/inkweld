@@ -2,12 +2,12 @@
 
 ## Overview
 
-The InkWeld frontend is a modern, modular Angular 19 application designed to provide a rich, real-time collaborative writing experience. It serves as the client interface for the InkWeld platform, enabling users to create, edit, and manage writing projects with seamless integration of AI assistance and real-time collaboration.
+The InkWeld frontend is a modern, modular Angular 20 application designed to provide a rich, real-time collaborative writing experience. It serves as the client interface for the InkWeld platform, enabling users to create, edit, and manage writing projects with seamless integration of AI assistance and real-time collaboration.
 
 ## Key Features
 
 - Real-time collaborative editing using Yjs and ProseMirror
-- Modular architecture with standalone Angular 19 components
+- Modular architecture with standalone Angular 20 components
 - Modern dependency injection using `inject()` syntax
 - Comprehensive testing with Jest and Playwright
 - Theming and customization support
@@ -18,7 +18,7 @@ The InkWeld frontend is a modern, modular Angular 19 application designed to pro
 
 ```mermaid
 graph TD
-    User["User (Browser)"] -->|HTTP/WebSocket| App["Angular 19 App"]
+    User["User (Browser)"] -->|HTTP/WebSocket| App["Angular 20 App"]
     App -->|API| ApiClient["API Client Services"]
     App -->|State Mgmt| Services["App Services"]
     App -->|Routing| Pages["Pages & Components"]
@@ -53,7 +53,7 @@ graph TD
 
 ## Technology Stack
 
-- **Framework:** Angular 19 (standalone components, `inject()` DI, control flow directives)
+- **Framework:** Angular 20 (standalone components, `inject()` DI, control flow directives)
 - **State Management:** Service-based with RxJS
 - **Real-time Collaboration:** Yjs, y-websocket, y-prosemirror
 - **Testing:** Jest (unit tests), Playwright (end-to-end tests)
@@ -145,7 +145,7 @@ bun run lint:fix
 
 ## Unique Technical Features
 
-- Full adoption of Angular 19 standalone APIs and `inject()` for dependency injection
+- Full adoption of Angular 20 standalone APIs and `inject()` for dependency injection
 - Modern Angular control flow directives (`@if`, `@for`, `@switch`)
 - Real-time collaborative editing with Yjs and ProseMirror
 - Strict linting and formatting rules to maintain code quality

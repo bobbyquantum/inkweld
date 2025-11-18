@@ -429,7 +429,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
 
     if (newName) {
       // Use the project state service to rename the element
-      this.projectState.renameNode(tab.element, newName);
+      void this.projectState.renameNode(tab.element, newName);
     }
   }
 }

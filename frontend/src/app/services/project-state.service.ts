@@ -307,8 +307,8 @@ export class ProjectStateService {
     }
     this.project.set(Project);
 
-    // Load elements from offline service
-    this.offlineElementsService.loadElements(username, slug);
+    // Load elements from offline service (now async with Yjs + IndexedDB)
+    await this.offlineElementsService.loadElements(username, slug);
     this.elements.set(this.offlineElementsService.elements());
 
     // Set offline sync state
@@ -566,7 +566,7 @@ export class ProjectStateService {
       // Update offline elements
       const project = this.project();
       if (project) {
-        this.offlineElementsService.saveElements(
+        void this.offlineElementsService.saveElements(
           project.username,
           project.slug,
           elements
@@ -614,16 +614,16 @@ export class ProjectStateService {
     }
   }
 
-  renameNode(
+  async renameNode(
     node: GetApiV1ProjectsUsernameSlugElements200ResponseInner,
     newName: string
-  ): void {
+  ): Promise<void> {
     const mode = this.setupService.getMode();
     const project = this.project();
 
     if (mode === 'offline' && project) {
       // Rename element in offline mode
-      const newElements = this.offlineElementsService.renameElement(
+      const newElements = await this.offlineElementsService.renameElement(
         project.username,
         project.slug,
         node.id,
@@ -681,11 +681,11 @@ export class ProjectStateService {
   }
 
   // Tree Operations
-  addElement(
+  async addElement(
     type: GetApiV1ProjectsUsernameSlugElements200ResponseInner['type'],
     name: string,
     parentId?: string
-  ): string | undefined {
+  ): Promise<string | undefined> {
     const mode = this.setupService.getMode();
     const project = this.project();
     let newElementId: string | undefined;
@@ -697,7 +697,7 @@ export class ProjectStateService {
 
     if (mode === 'offline' && project) {
       // Add element in offline mode
-      const newElements = this.offlineElementsService.addElement(
+      const newElements = await this.offlineElementsService.addElement(
         project.username,
         project.slug,
         type,
@@ -907,13 +907,17 @@ export class ProjectStateService {
     return nodeAboveIndex + subtree.length;
   }
 
-  moveElement(elementId: string, targetIndex: number, newLevel: number): void {
+  async moveElement(
+    elementId: string,
+    targetIndex: number,
+    newLevel: number
+  ): Promise<void> {
     const mode = this.setupService.getMode();
     const project = this.project();
 
     if (mode === 'offline' && project) {
       // Move element in offline mode
-      const newElements = this.offlineElementsService.moveElement(
+      const newElements = await this.offlineElementsService.moveElement(
         project.username,
         project.slug,
         elementId,
@@ -993,13 +997,13 @@ export class ProjectStateService {
     }
   }
 
-  deleteElement(elementId: string): void {
+  async deleteElement(elementId: string): Promise<void> {
     const mode = this.setupService.getMode();
     const project = this.project();
 
     if (mode === 'offline' && project) {
       // Delete element in offline mode
-      const newElements = this.offlineElementsService.deleteElement(
+      const newElements = await this.offlineElementsService.deleteElement(
         project.username,
         project.slug,
         elementId
@@ -1461,9 +1465,9 @@ export class ProjectStateService {
   showNewElementDialog(
     parentElement?: GetApiV1ProjectsUsernameSlugElements200ResponseInner
   ): void {
-    void this.dialogGateway.openNewElementDialog().then(result => {
+    void this.dialogGateway.openNewElementDialog().then(async result => {
       if (result) {
-        const newElementId = this.addElement(
+        const newElementId = await this.addElement(
           result.type,
           result.name,
           parentElement?.id

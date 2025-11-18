@@ -415,7 +415,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
       this.currentDropLevel
     );
 
-    this.projectStateService.moveElement(
+    void this.projectStateService.moveElement(
       node.id,
       insertIndex,
       this.currentDropLevel
@@ -436,7 +436,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     });
 
     if (newName) {
-      this.projectStateService.renameNode(node, newName);
+      void this.projectStateService.renameNode(node, newName);
     }
   }
 
@@ -456,7 +456,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     if (result) {
       // Close any open editor tab for this file before deleting
       this.projectStateService.closeTabByElementId(node.id);
-      this.projectStateService.deleteElement(node.id);
+      void this.projectStateService.deleteElement(node.id);
     }
   }
 

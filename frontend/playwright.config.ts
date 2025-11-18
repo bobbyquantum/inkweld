@@ -11,18 +11,19 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: '**/fullstack/**', // Exclude fullstack tests (use playwright.fullstack.config.ts)
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false, // Sequential for database state management
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env['CI'],
   /* Retry on CI only */
   retries: process.env['CI'] ? 2 : 0,
-  /* Limit parallel workers to avoid resource contention */
-  workers: process.env['CI'] ? 1 : 4,
+  /* Limit parallel workers for database state management */
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Test timeout */
-  timeout: 30000,
+  timeout: 15000,
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -33,11 +34,12 @@ export default defineConfig({
     trace: 'on'
   },
 
-  /* Run dev server before starting tests */
+  /* Configure web server for frontend only (mock API) */
   webServer: {
+    // Frontend dev server
     command: 'npm start',
     url: 'http://localhost:4200',
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env['CI'],
     timeout: 120000,
   },
 

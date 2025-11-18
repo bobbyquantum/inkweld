@@ -4,7 +4,7 @@ test.describe('Worldbuilding Templates', () => {
   test('should create, edit, and delete custom templates', async ({
     authenticatedPage: page,
   }) => {
-    // Navigate to project
+    // Navigate to project (fixture has already waited for projects to load)
     await page.getByTestId('project-card').first().click();
     await expect(page).toHaveURL(/\/projects\/.+/);
 
@@ -65,7 +65,7 @@ test.describe('Worldbuilding Templates', () => {
   test('should initialize worldbuilding elements with correct schemas', async ({
     authenticatedPage: page,
   }) => {
-    // Navigate to project
+    // Navigate to project (fixture has already waited for projects to load)
     await page.getByTestId('project-card').first().click();
 
     // Create different types of worldbuilding elements
@@ -95,7 +95,7 @@ test.describe('Worldbuilding Templates', () => {
   test('should handle embedded template editing workflow', async ({
     authenticatedPage: page,
   }) => {
-    // Navigate to project and create a character
+    // Navigate to project and create a character (fixture has already waited for projects to load)
     await page.getByTestId('project-card').first().click();
     await page.getByTestId('add-element-button').click();
     await page.getByTestId('element-type-character').click();
@@ -139,7 +139,7 @@ test.describe('Worldbuilding Templates', () => {
     const page2 = await context.newPage();
     await page2.goto('/');
 
-    // Open same project in both clients
+    // Open same project in both clients (fixtures have already waited for projects to load)
     await page1.getByTestId('project-card').first().click();
     await page2.getByTestId('project-card').first().click();
 
@@ -168,7 +168,7 @@ test.describe('Worldbuilding Templates', () => {
   test('should validate template editor form inputs', async ({
     authenticatedPage: page,
   }) => {
-    // Navigate to project and create a character
+    // Navigate to project and create a character (fixture has already waited for projects to load)
     await page.getByTestId('project-card').first().click();
     await page.getByTestId('add-element-button').click();
     await page.getByTestId('element-type-character').click();
@@ -203,7 +203,7 @@ test.describe('Worldbuilding Templates', () => {
   test('should handle icon display for custom templates', async ({
     authenticatedPage: page,
   }) => {
-    // Navigate to project
+    // Navigate to project (fixture has already waited for projects to load)
     await page.getByTestId('project-card').first().click();
 
     // Create a custom template

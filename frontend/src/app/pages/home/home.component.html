@@ -247,7 +247,7 @@
       } @else {
         <!-- Content for authenticated users (existing project management) -->
         @if (isLoading()) {
-          <div class="loading-state">
+          <div class="loading-state" data-testid="loading-projects">
             <mat-spinner diameter="40" />
             <p>Loading projects...</p>
           </div>
@@ -266,7 +266,10 @@
             <mat-icon class="empty-icon">add_circle_outline</mat-icon>
             <h2>Create Your First Project</h2>
             <p>Get started by creating a new project</p>
-            <button mat-button (click)="openNewProjectDialog()">
+            <button
+              mat-button
+              data-testid="create-first-project-button"
+              (click)="openNewProjectDialog()">
               Create Project
             </button>
           </div>
@@ -292,6 +295,7 @@
                 @for (project of filteredProjects(); track project.id) {
                   <div
                     class="project-tile"
+                    data-testid="project-card"
                     (click)="selectProject(project)"
                     (keyup.enter)="selectProject(project)"
                     tabindex="0"
@@ -329,6 +333,7 @@
                 @for (project of filteredProjects(); track project.id) {
                   <div
                     class="project-list-item"
+                    data-testid="project-card"
                     (click)="selectProject(project)"
                     (keyup.enter)="selectProject(project)"
                     tabindex="0"

@@ -8,7 +8,7 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 
 **Inkweld** is a collaborative creative writing platform built with:
 
-- **Frontend**: Angular 19 (standalone components, modern control flow)
+- **Frontend**: Angular 20 (standalone components, modern control flow)
 - **Backend**: NestJS 10 running on Bun
 - **Database**: PostgreSQL or SQLite (TypeORM) + LevelDB (per-project document storage)
 - **Real-time**: Yjs + WebSocket for collaborative editing
@@ -25,7 +25,7 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 - **Test Frameworks**:
   - Frontend: Jest (unit), Playwright (e2e) - **USE `npm test` NOT `bun test`**
   - Backend: Jest - uses Bun runtime
-  - **Never use Jasmine** - this project uses Jest exclusively
+  - **Never use Jasmine** - this project uses Vitest exclusively
 - **CRITICAL**: Always run frontend tests with `npm test` - Bun's test runner is incompatible with Angular tests
 
 ### 2. Linting & Formatting
@@ -45,11 +45,11 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 
 ---
 
-## Frontend Architecture (Angular 19)
+## Frontend Architecture (Angular 20)
 
 ### Technology Stack
 
-- **Framework**: Angular 19 with standalone components
+- **Framework**: Angular 20 with standalone components
 - **Dependency Injection**: Use `inject()` syntax, **NOT constructor injection**
 - **Control Flow**: Use `@if`, `@for`, `@switch` directives (not `*ngIf`, `*ngFor`, `*ngSwitch`)
 - **Modules**: Everything is standalone - no NgModules
