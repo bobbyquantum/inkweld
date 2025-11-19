@@ -1,5 +1,5 @@
 import { eq, and, desc } from 'drizzle-orm';
-import type { DatabaseInstance } from '../middleware/database.middleware';
+import type { DatabaseInstance } from '../types/context';
 import { projects, Project, InsertProject } from '../db/schema/projects';
 import { users } from '../db/schema/users';
 
@@ -20,7 +20,8 @@ class ProjectService {
     username: string,
     slug: string
   ): Promise<(Project & { username: string }) | undefined> {
-    const result = await db
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (db as any)
       .select({
         id: projects.id,
         version: projects.version,
@@ -48,7 +49,8 @@ class ProjectService {
     db: DatabaseInstance,
     userId: string
   ): Promise<Array<Project & { username: string }>> {
-    const results = await db
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const results = await (db as any)
       .select({
         id: projects.id,
         version: projects.version,
@@ -94,7 +96,7 @@ class ProjectService {
 
     await db.insert(projects).values(newProject);
 
-    const created = await this.findById(db, newProject.id);
+    const created = await this.findById(db, newProject.id!);
     if (!created) {
       throw new Error('Failed to create project');
     }
@@ -111,6 +113,7 @@ class ProjectService {
       title?: string;
       description?: string;
       slug?: string;
+      coverImage?: string | null;
     }
   ): Promise<void> {
     await db

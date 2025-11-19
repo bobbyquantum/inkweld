@@ -12,6 +12,7 @@ export const projects = sqliteTable('projects', {
   userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  coverImage: text('cover_image'), // nullable - null when no cover, filename when cover exists
   createdDate: integer('created_date', { mode: 'number' }).notNull(),
   updatedDate: integer('updated_date', { mode: 'number' }).notNull(),
 });

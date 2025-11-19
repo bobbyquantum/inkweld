@@ -3,7 +3,7 @@
   Edit Template
 </h2>
 
-<mat-dialog-content class="dialog-content">
+<mat-dialog-content class="dialog-content" data-testid="template-editor-dialog">
   <!-- Basic Information Section -->
   <section class="section">
     <h3>Basic Information</h3>
@@ -43,7 +43,7 @@
   <section class="section">
     <div class="section-header">
       <h3>Tabs</h3>
-      <button mat-raised-button color="primary" (click)="addTab()">
+      <button mat-raised-button color="primary" data-testid="add-tab-button" (click)="addTab()">
         <mat-icon>add</mat-icon>
         Add Tab
       </button>
@@ -101,6 +101,7 @@
                 <mat-label>Tab Label</mat-label>
                 <input
                   matInput
+                  data-testid="tab-label-input"
                   [value]="currentTab.label"
                   (input)="
                     updateTab(selectedTabIndex(), {
@@ -133,6 +134,7 @@
                   <button
                     mat-raised-button
                     color="accent"
+                    data-testid="add-field-button"
                     (click)="addField(selectedTabIndex())">
                     <mat-icon>add</mat-icon>
                     Add Field
@@ -180,6 +182,7 @@
                             <mat-label>Field Key</mat-label>
                             <input
                               matInput
+                              data-testid="field-key-input"
                               [value]="field.key"
                               (input)="
                                 updateField(selectedTabIndex(), j, {
@@ -195,6 +198,7 @@
                             <mat-label>Field Label</mat-label>
                             <input
                               matInput
+                              data-testid="field-label-input"
                               [value]="field.label"
                               (input)="
                                 updateField(selectedTabIndex(), j, {

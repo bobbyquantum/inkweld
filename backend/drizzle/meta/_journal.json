@@ -8,6 +8,13 @@
       "when": 1762642714502,
       "tag": "0000_safe_mysterio",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1763510907355,
+      "tag": "0001_strong_leader",
+      "breakpoints": true
     }
   ]
 }

@@ -163,7 +163,12 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.viewMode.set(mode);
   }
 
-  getCoverUrl(project: Project): string {
+  getCoverUrl(project: Project): string | null {
+    // Check if project has a cover image set
+    if (!project.coverImage) {
+      return null;
+    }
+
     const baseUrl =
       window.location.hostname === 'localhost'
         ? 'http://localhost:8333'

@@ -1,5 +1,5 @@
 import { eq, and, desc } from 'drizzle-orm';
-import type { DatabaseInstance } from '../middleware/database.middleware';
+import type { DatabaseInstance } from '../types/context';
 import {
   documentSnapshots,
   DocumentSnapshot,
@@ -84,7 +84,7 @@ class DocumentSnapshotService {
 
     await db.insert(documentSnapshots).values(newSnapshot);
 
-    const created = await this.findById(db, newSnapshot.id);
+    const created = await this.findById(db, newSnapshot.id!);
     if (!created) {
       throw new Error('Failed to create document snapshot');
     }

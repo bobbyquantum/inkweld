@@ -12,6 +12,7 @@ import {
   isWorldbuildingType,
   WorldbuildingSchema,
 } from '../models/worldbuilding-schemas';
+import { DefaultTemplatesService } from './default-templates.service';
 import { SetupService } from './setup.service';
 
 interface WorldbuildingConnection {
@@ -33,6 +34,7 @@ interface SchemaLibraryConnection {
 })
 export class WorldbuildingService {
   private setupService = inject(SetupService);
+  private defaultTemplatesService = inject(DefaultTemplatesService);
   private connections = new Map<string, WorldbuildingConnection>();
   private schemaLibraryConnections = new Map<string, SchemaLibraryConnection>();
 
@@ -275,12 +277,39 @@ export class WorldbuildingService {
     console.log(
       `[WorldbuildingService] Looking for schema: projectKey="${projectKey}", elementType="${element.type}"`
     );
-    const schema = await this.getSchemaFromLibrary(
+    
+    // Check if schema library is empty and auto-load defaults if needed
+    let schema = await this.getSchemaFromLibrary(
       projectKey,
       element.type,
       username,
       slug
     );
+    
+    // If schema not found, check if library is empty and auto-initialize
+    if (!schema && username && slug) {
+      const libraryIsEmpty = await this.isSchemaLibraryEmpty(
+        projectKey,
+        username,
+        slug
+      );
+      
+      if (libraryIsEmpty) {
+        console.log(
+          `[WorldbuildingService] Schema library is empty, auto-loading default templates`
+        );
+        await this.autoLoadDefaultTemplates(projectKey, username, slug);
+        
+        // Try to get schema again after loading defaults
+        schema = await this.getSchemaFromLibrary(
+          projectKey,
+          element.type,
+          username,
+          slug
+        );
+      }
+    }
+    
     console.log(
       `[WorldbuildingService] Schema lookup result:`,
       schema ? `Found ${schema.name} (v${schema.version})` : 'NOT FOUND'
@@ -747,6 +776,82 @@ export class WorldbuildingService {
           >)
         : undefined,
     };
+  }
+
+  /**
+   * Check if the schema library is empty
+   */
+  async isSchemaLibraryEmpty(
+    projectKey: string,
+    username?: string,
+    slug?: string
+  ): Promise<boolean> {
+    const library = await this.loadSchemaLibrary(projectKey, username, slug);
+    const schemasMap = library.get('schemas') as Y.Map<unknown>;
+    
+    if (!schemasMap) {
+      return true;
+    }
+    
+    return schemasMap.size === 0;
+  }
+
+  /**
+   * Auto-load default templates from client-side assets into the project's schema library
+   * This is called automatically when the schema library is empty
+   */
+  async autoLoadDefaultTemplates(
+    projectKey: string,
+    username?: string,
+    slug?: string
+  ): Promise<void> {
+    try {
+      console.log(
+        `[WorldbuildingService] Auto-loading default templates for ${projectKey}`
+      );
+
+      // Load default templates from assets
+      const defaultTemplates: Record<string, ElementTypeSchema> =
+        await this.defaultTemplatesService.loadDefaultTemplates();
+
+      const library = await this.loadSchemaLibrary(projectKey, username, slug);
+
+      // Get or create schemas map in the library
+      let schemasMap = library.get('schemas') as Y.Map<unknown>;
+      if (!schemasMap) {
+        schemasMap = new Y.Map();
+        library.set('schemas', schemasMap);
+      }
+
+      // Save each template to the schema library
+      const templateArray = Object.values(defaultTemplates);
+      for (const schema of templateArray) {
+        const schemaYMap = new Y.Map<unknown>();
+        schemaYMap.set('id', schema.id);
+        schemaYMap.set('type', schema.type);
+        schemaYMap.set('name', schema.name);
+        schemaYMap.set('icon', schema.icon);
+        schemaYMap.set('description', schema.description);
+        schemaYMap.set('version', schema.version);
+        schemaYMap.set('isBuiltIn', schema.isBuiltIn);
+        schemaYMap.set('tabs', JSON.stringify(schema.tabs));
+        if (schema.defaultValues) {
+          schemaYMap.set('defaultValues', JSON.stringify(schema.defaultValues));
+        }
+
+        schemasMap.set(schema.type, schemaYMap);
+      }
+
+      console.log(
+        `[WorldbuildingService] Auto-loaded ${templateArray.length} default templates`
+      );
+    } catch (error) {
+      console.error(
+        '[WorldbuildingService] Failed to auto-load default templates:',
+        error
+      );
+      // Don't throw - fallback to hard-coded defaults will be used
+    }
   }
 
   /**

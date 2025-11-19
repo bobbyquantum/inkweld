@@ -69,6 +69,7 @@ export class OfflineProjectService {
         projectData.slug ||
         this.generateSlug(projectData.title || 'untitled-project'),
       username: userProfile.username,
+      coverImage: null, // No cover by default
       createdDate: now,
       updatedDate: now,
       ...projectData,

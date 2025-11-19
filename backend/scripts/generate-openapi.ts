@@ -71,7 +71,7 @@ async function generateOpenAPIJson() {
 
       // Also try to connect to check if server is ready
       try {
-        const testResponse = await fetch('http://localhost:8333/api/health');
+        const testResponse = await fetch('http://localhost:8333/api/v1/health');
         if (testResponse.ok) {
           serverReady = true;
           break;

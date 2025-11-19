@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
-import type { DatabaseInstance } from '../middleware/database.middleware';
+import type { DatabaseInstance } from '../types/context';
 import { users, User, InsertUser } from '../db/schema';
 import { config } from '../config/env.js';
 
@@ -66,7 +66,7 @@ class UserService {
     await db.insert(users).values(newUser);
 
     // Return the created user
-    const created = await this.findById(db, newUser.id);
+    const created = await this.findById(db, newUser.id!);
     if (!created) {
       throw new Error('Failed to create user');
     }
@@ -117,7 +117,7 @@ class UserService {
 
       await db.insert(users).values(newUser);
 
-      const created = await this.findById(db, newUser.id);
+      const created = await this.findById(db, newUser.id!);
       if (!created) {
         throw new Error('Failed to create user');
       }

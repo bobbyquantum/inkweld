@@ -36,8 +36,11 @@ export type TestFixtures = {
   // Anonymous state (default)
   anonymousPage: Page;
 
-  // Authenticated user state
+  // Authenticated user state (server mode)
   authenticatedPage: Page;
+
+  // Authenticated user state (offline mode)
+  offlineAuthenticatedPage: Page;
 
   // Admin user state
   adminPage: Page;
@@ -66,7 +69,7 @@ export const test = base.extend<TestFixtures>({
     await use(page);
   },
 
-  // Authenticated user
+  // Authenticated user (server mode)
   authenticatedPage: async ({ page }, use) => {
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
@@ -81,7 +84,7 @@ export const test = base.extend<TestFixtures>({
       localStorage.setItem('auth_token', 'mock-token-testuser');
     });
 
-    console.log('Setting up page for authenticated user');
+    console.log('Setting up page for authenticated user (server mode)');
     console.log('Mock auth token set for authenticated user');
 
     // Navigate to the base URL *after* setting the auth token
@@ -96,6 +99,65 @@ export const test = base.extend<TestFixtures>({
       // Either we have projects, we have empty state, or we're done loading
       return projectCards.length > 0 || emptyState !== null || loadingElement === null;
     }, { timeout: 10000 });
+
+    await use(page);
+  },
+
+  // Authenticated user (offline mode - for tests that use Yjs without WebSocket)
+  offlineAuthenticatedPage: async ({ page }, use) => {
+    // Set up mock API interception
+    await mockApi.setupPageInterception(page);
+
+    // Set up app configuration and offline user in localStorage (OFFLINE MODE)
+    await page.addInitScript(() => {
+      // Offline mode configuration with user profile
+      localStorage.setItem('inkweld-app-config', JSON.stringify({
+        mode: 'offline',
+        userProfile: {
+          username: 'testuser',
+          name: 'Test User'
+        }
+      }));
+      
+      // Set offline user data
+      localStorage.setItem('inkweld-offline-user', JSON.stringify({
+        id: '',
+        username: 'testuser',
+        name: 'Test User',
+        enabled: true
+      }));
+    });
+
+    console.log('Setting up page for authenticated user (offline mode)');
+    console.log('Offline user profile configured');
+
+    // Navigate to the base URL *after* setting the offline config
+    await page.goto('/');
+    
+    // In offline mode, we need to create a project via UI since there's no API
+    // Wait for the "Create Project" button to appear
+    const createButton = page.getByText('Create Project');
+    await createButton.waitFor({ state: 'visible', timeout: 10000 });
+    
+    // Click create project button
+    await createButton.click();
+    
+    // Fill in project details using testids
+    await page.getByTestId('project-title-input').fill('Test Project');
+    await page.getByTestId('project-slug-input').fill('test-project');
+    await page.getByTestId('project-description-input').fill('A test project for e2e tests');
+    
+    // Submit the form
+    await page.getByTestId('create-project-button').click();
+    
+    // Wait for navigation to the project page
+    await page.waitForURL(/.*\/testuser\/test-project/, { timeout: 10000 });
+    
+    // Navigate back to home page so project card is available for tests
+    await page.goto('/');
+    
+    // Wait for project card to appear
+    await page.waitForSelector('[data-testid="project-card"]', { timeout: 10000 });
 
     await use(page);
   },

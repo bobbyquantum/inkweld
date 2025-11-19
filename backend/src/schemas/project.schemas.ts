@@ -19,6 +19,11 @@ export const ProjectSchema = z
       .optional()
       .openapi({ example: 'A thrilling adventure story' }),
     username: z.string().openapi({ example: 'johndoe' }),
+    coverImage: z
+      .string()
+      .nullable()
+      .optional()
+      .openapi({ example: 'cover.jpg', description: 'Cover image filename, null if no cover' }),
     createdDate: z.string().datetime().openapi({ example: '2023-01-01T00:00:00.000Z' }),
     updatedDate: z.string().datetime().openapi({ example: '2023-01-01T00:00:00.000Z' }),
   })

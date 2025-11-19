@@ -21,15 +21,18 @@ export class ProjectCardComponent {
    * Check if the project has a cover image
    */
   hasCover(): boolean {
-    // Attempt to load the cover - the API will return 404 if none exists
-    // We'll handle that gracefully with the fallback UI
-    return true; // Always try to load the cover - if it fails, the image won't display
+    return this.project.coverImage != null;
   }
 
   /**
    * Get the URL for the project's cover image
    */
-  getCoverUrl(): string {
+  getCoverUrl(): string | null {
+    // Check if project has a cover image set
+    if (!this.project.coverImage) {
+      return null;
+    }
+
     const baseUrl = environment.production
       ? window.location.origin
       : environment.apiUrl;

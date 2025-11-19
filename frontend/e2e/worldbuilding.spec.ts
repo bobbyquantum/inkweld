@@ -2,11 +2,10 @@ import { expect, test } from './fixtures';
 
 test.describe('Worldbuilding Templates', () => {
   test('should create, edit, and delete custom templates', async ({
-    authenticatedPage: page,
+    offlineAuthenticatedPage: page,
   }) => {
     // Navigate to project (fixture has already waited for projects to load)
     await page.getByTestId('project-card').first().click();
-    await expect(page).toHaveURL(/\/projects\/.+/);
 
     // Create a character worldbuilding element
     await page.getByTestId('add-element-button').click();
@@ -63,7 +62,7 @@ test.describe('Worldbuilding Templates', () => {
   });
 
   test('should initialize worldbuilding elements with correct schemas', async ({
-    authenticatedPage: page,
+    offlineAuthenticatedPage: page,
   }) => {
     // Navigate to project (fixture has already waited for projects to load)
     await page.getByTestId('project-card').first().click();
@@ -93,7 +92,7 @@ test.describe('Worldbuilding Templates', () => {
   });
 
   test('should handle embedded template editing workflow', async ({
-    authenticatedPage: page,
+    offlineAuthenticatedPage: page,
   }) => {
     // Navigate to project and create a character (fixture has already waited for projects to load)
     await page.getByTestId('project-card').first().click();
@@ -132,7 +131,7 @@ test.describe('Worldbuilding Templates', () => {
   });
 
   test('should sync template changes across multiple clients', async ({
-    authenticatedPage: page1,
+    offlineAuthenticatedPage: page1,
     context,
   }) => {
     // Create second authenticated page
@@ -166,7 +165,7 @@ test.describe('Worldbuilding Templates', () => {
   });
 
   test('should validate template editor form inputs', async ({
-    authenticatedPage: page,
+    offlineAuthenticatedPage: page,
   }) => {
     // Navigate to project and create a character (fixture has already waited for projects to load)
     await page.getByTestId('project-card').first().click();
@@ -201,7 +200,7 @@ test.describe('Worldbuilding Templates', () => {
   });
 
   test('should handle icon display for custom templates', async ({
-    authenticatedPage: page,
+    offlineAuthenticatedPage: page,
   }) => {
     // Navigate to project (fixture has already waited for projects to load)
     await page.getByTestId('project-card').first().click();

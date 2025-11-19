@@ -15,6 +15,10 @@ export interface Project {
     title: string;
     description?: string | null;
     username: string;
+    /**
+     * Cover image filename, null if no cover
+     */
+    coverImage?: string | null;
     createdDate: string;
     updatedDate: string;
 }

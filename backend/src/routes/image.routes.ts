@@ -114,6 +114,9 @@ imageRoutes.post(
     // Save image to storage (R2 or filesystem)
     await storage.saveProjectFile(username, slug, 'cover.jpg', processedImage, 'image/jpeg');
 
+    // Update project to set coverImage field
+    await projectService.update(db, project.id, { coverImage: 'cover.jpg' });
+
     return c.json({ message: 'Cover image uploaded successfully' });
   }
 );
@@ -242,6 +245,9 @@ imageRoutes.delete(
     }
 
     await storage.deleteProjectFile(username, slug, 'cover.jpg');
+
+    // Update project to clear coverImage field
+    await projectService.update(db, project.id, { coverImage: null });
 
     return c.json({ message: 'Cover image deleted successfully' });
   }

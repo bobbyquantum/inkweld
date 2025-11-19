@@ -3463,6 +3463,14 @@
             "type": "string",
             "example": "johndoe"
           },
+          "coverImage": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "cover.jpg",
+            "description": "Cover image filename, null if no cover"
+          },
           "createdDate": {
             "type": "string",
             "format": "date-time",
