@@ -272,7 +272,8 @@ export class OfflineProjectElementsService {
     slug: string,
     type: GetApiV1ProjectsUsernameSlugElements200ResponseInner['type'],
     name: string,
-    parentId?: string
+    parentId?: string,
+    metadata: Record<string, string> = {}
   ): Promise<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]> {
     const elements = this.elements();
     const parentIndex = parentId
@@ -291,7 +292,7 @@ export class OfflineProjectElementsService {
       order: elements.length,
       parentId: null,
       version: 0,
-      metadata: {},
+      metadata,
     };
 
     const newElements = [...elements];

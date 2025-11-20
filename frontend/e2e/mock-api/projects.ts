@@ -249,20 +249,9 @@ export function setupProjectHandlers(): void {
 
         const project = mockProjects.findBySlugAndUsername(username, slug);
 
-        if (!project) {
-          await route.fulfill({
-            status: 404,
-            contentType: 'application/json',
-            body: JSON.stringify({
-              message: 'Cover image not found',
-              error: 'Not Found',
-              statusCode: 404,
-            }),
-          });
-          return;
-        }
-
-        if (!project.coverImageUrl) {
+        // Return 404 immediately if project not found or no cover image
+        // This prevents spamming FS checks
+        if (!project || !project.coverImageUrl) {
           await route.fulfill({
             status: 404,
             contentType: 'application/json',

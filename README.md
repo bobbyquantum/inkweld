@@ -230,11 +230,11 @@ This will execute the unit tests for both the frontend and backend projects.
 - [x] Basic document editing with ProseMirror over Yjs
 - [x] In-browser IndexedDB storage
 - [x] Backend LevelDB storage
-- [ ] **Templated worldbuilding features (character/location templates with real-time collaboration)** - **Not ported to new Hono backend yet**
+- [x] Templated worldbuilding features (character/location templates with real-time collaboration)
 - [x] Real-time collaborative editing with WebSocket sync
 - [ ] Complete import/export to archive functionality (partially done)
 - [ ] Project renaming and slug changing capabilities
-- [ ] Offline-first capabilities with automatic sync
+- [x] Offline-first capabilities with automatic sync
 
 ### Content Export
 
@@ -248,7 +248,7 @@ This will execute the unit tests for both the frontend and backend projects.
 - [ ] Improved onboarding for first-time users
 - [ ] Username changes and profile customization
 - [ ] Enhanced user dashboard/homepage
-- [ ] Optimized responsive design for mobile devices
+- [x] Optimized responsive design for mobile devices
 - [ ] MCP support for optional AI collaboration (in progress)
 
 ### Authentication & Security

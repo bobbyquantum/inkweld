@@ -19,6 +19,8 @@
     "e2e:ui": "playwright test --ui",
     "e2e:debug": "playwright test --debug",
     "e2e:ci": "playwright test --reporter=list",
+    "e2e:prod": "ng build && cross-env E2E_MODE=prod playwright test",
+    "e2e:prod:ci": "ng build && cross-env E2E_MODE=prod playwright test --reporter=list",
     "e2e:fullstack": "playwright test --config=playwright.fullstack.config.ts",
     "e2e:fullstack:ci": "playwright test --config=playwright.fullstack.config.ts --reporter=list",
     "e2e:fullstack:debug": "playwright test --config=playwright.fullstack.config.ts --debug",

@@ -696,15 +696,26 @@ export class ProjectStateService {
     );
 
     if (mode === 'offline' && project) {
+      // Fetch icon for the element type (especially for custom templates)
+      let icon: string | undefined;
+      if (project) {
+        icon = await this.worldbuildingService.getIconForType(
+          type,
+          project.username,
+          project.slug
+        );
+      }
+
       // Add element in offline mode
-      const newElements = await this.offlineElementsService.addElement(
+      const updatedElements = await this.offlineElementsService.addElement(
         project.username,
         project.slug,
         type,
         name,
-        parentId
+        parentId,
+        icon ? { icon } : {}
       );
-      this.elements.set(newElements);
+      this.elements.set(updatedElements);
 
       // Auto-expand parent when adding new element
       if (parentId) {
@@ -712,7 +723,7 @@ export class ProjectStateService {
       }
 
       // Initialize worldbuilding elements with default Yjs data
-      const newElement = newElements.find(
+      const newElement = updatedElements.find(
         e => e.name === name && e.type === type
       );
       if (newElement?.id && project) {
@@ -725,13 +736,24 @@ export class ProjectStateService {
       }
     } else {
       // Add element in server mode
+      
+      // Fetch icon for the element type (especially for custom templates)
+      let icon: string | undefined;
+      if (project) {
+        icon = await this.worldbuildingService.getIconForType(
+          type,
+          project.username,
+          project.slug
+        );
+      }
+
       const elements = this.elements();
       const parentIndex = parentId
         ? elements.findIndex(e => e.id === parentId)
         : -1;
       const parentLevel = parentIndex >= 0 ? elements[parentIndex].level : -1;
 
-      const newElement: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
+      const elementToAdd: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
         id: nanoid(),
         name,
         type,
@@ -742,20 +764,20 @@ export class ProjectStateService {
           GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
         order: elements.length,
         version: 0,
-        metadata: {},
+        metadata: icon ? { icon } : {},
       };
 
-      newElementId = newElement.id;
+      newElementId = elementToAdd.id;
 
-      const newElements = [...elements];
-      newElements.splice(parentIndex + 1, 0, newElement);
+      const updatedElements = [...elements];
+      updatedElements.splice(parentIndex + 1, 0, elementToAdd);
 
       this.logger.debug(
         'ProjectState',
-        `Created new element in server mode, calling updateElements with ${newElements.length} elements`
+        `Created new element in server mode, calling updateElements with ${updatedElements.length} elements`
       );
 
-      this.updateElements(this.recomputePositions(newElements));
+      this.updateElements(this.recomputePositions(updatedElements));
 
       // Auto-expand parent when adding new element
       if (parentId) {
@@ -763,9 +785,9 @@ export class ProjectStateService {
       }
 
       // Initialize worldbuilding elements with default Yjs data
-      if (newElement.id && project) {
+      if (elementToAdd.id && project) {
         void this.worldbuildingService.initializeWorldbuildingElement(
-          newElement,
+          elementToAdd,
           project.username,
           project.slug
         );

@@ -2,18 +2,9 @@
   <div class="full-width-column">
     <div class="full-width-header">
       <div class="header-content">
-        @if (coverImageUrl()) {
-          <div class="cover-image-container">
-            <img
-              [src]="coverImageUrl()"
-              alt="Project cover"
-              class="cover-image" />
-          </div>
-        } @else if (showCoverPlaceholder()) {
-          <div class="cover-image-container cover-placeholder">
-            <mat-icon>image</mat-icon>
-          </div>
-        }
+        <div class="cover-image-wrapper">
+          <app-project-cover [project]="projectState.project()!" variant="list"></app-project-cover>
+        </div>
         <div class="project-info">
           <h2>{{ projectState.project()?.title }}</h2>
           <p>{{ projectState.project()?.description }}</p>
@@ -60,7 +51,7 @@
           <mat-icon>list</mat-icon>
           Project Documents
         </button>
-        <button mat-button color="primary" (click)="openTemplatesTab()">
+        <button mat-button color="primary" (click)="openTemplatesTab()" data-testid="template-library-button">
           <mat-icon>description</mat-icon>
           Templates
         </button>

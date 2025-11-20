@@ -8,7 +8,7 @@ import { mockUsers, MockUserDto } from './users';
  */
 export function setupAuthHandlers(): void {
   // GET /csrf/token - CSRF Token endpoint
-  mockApi.addHandler('**/csrf/token', async (route: Route) => {
+  mockApi.addHandler('**/csrf/token**', async (route: Route) => {
     // Return a mock CSRF token
     const csrfToken = `mock-csrf-${Date.now()}`;
     console.log(`Providing CSRF token: ${csrfToken}`);
@@ -20,13 +20,21 @@ export function setupAuthHandlers(): void {
     });
   });
 
-  // GET /api/providers - OAuth Providers List
-  mockApi.addHandler('**/providers', async (route: Route) => {
-    // Return a list of available OAuth providers
+  // GET /api/v1/auth/providers - OAuth Providers List
+  mockApi.addHandler('**/api/v1/auth/providers', async (route: Route) => {
+    // Return a list of available OAuth providers matching OAuthProvidersResponse interface
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(['github', 'google']) // Add whatever providers you want to test with
+      body: JSON.stringify({
+        providers: {
+          github: true,
+          google: true,
+          facebook: false,
+          discord: false,
+          apple: false
+        }
+      })
     });
   });
   // GET /api/v1/users/check-username - Check username availability

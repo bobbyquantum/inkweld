@@ -38,6 +38,7 @@ export class WelcomeComponent {
   isLoggingIn = false;
   lastAttemptedUsername = '';
   lastAttemptedPassword = '';
+  providersLoaded = false;
 
   // Clear error when username is changed
   onUsernameChange(): void {
@@ -79,7 +80,7 @@ export class WelcomeComponent {
 
   // Check if login button should be disabled
   isLoginButtonDisabled(): boolean {
-    return !this.isFormValid() || this.isLoggingIn;
+    return !this.isFormValid() || this.isLoggingIn || !this.providersLoaded;
   }
 
   async onLogin(): Promise<void> {
@@ -137,8 +138,15 @@ export class WelcomeComponent {
         );
       }
     } finally {
-      // Always reset loading state when done
       this.isLoggingIn = false;
     }
+  }
+
+  // Handle providers loaded event
+  onProvidersLoaded(): void {
+    // Wrap in setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.providersLoaded = true;
+    });
   }
 }

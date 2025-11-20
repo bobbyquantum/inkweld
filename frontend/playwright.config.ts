@@ -31,17 +31,28 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     //trace: 'on-first-retry',
-    trace: 'on'
+    trace: 'on',
+
+    /* Block Service Workers to ensure API mocking works */
+    serviceWorkers: 'block',
   },
 
   /* Configure web server for frontend only (mock API) */
-  webServer: {
-    // Frontend dev server
-    command: 'npm start',
-    url: 'http://localhost:4200',
-    reuseExistingServer: !process.env['CI'],
-    timeout: 120000,
-  },
+  webServer: process.env['E2E_MODE'] === 'prod'
+    ? {
+        // Serve production build
+      command: 'npx http-server dist/browser -p 4200 -c-1 --proxy http://localhost:4200?',
+      url: 'http://localhost:4200',
+        reuseExistingServer: !process.env['CI'],
+        timeout: 120000,
+      }
+    : {
+        // Frontend dev server
+        command: 'npm start',
+        url: 'http://localhost:4200',
+        reuseExistingServer: !process.env['CI'],
+        timeout: 120000,
+      },
 
   /* Configure projects for major browsers */
   projects: [

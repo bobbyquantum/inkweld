@@ -30,6 +30,8 @@ export class MockApi {
   public async setupPageInterception(page: Page): Promise<void> {
     console.log('Setting up API mocking for page');
 
+
+
     // Register default handlers
     await this.registerDefaultHandlers(page);
 

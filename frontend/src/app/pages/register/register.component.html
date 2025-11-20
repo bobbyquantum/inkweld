@@ -124,14 +124,14 @@
             mat-raised-button
             color="primary"
             type="submit"
-            [disabled]="registerForm.invalid || isRegistering"
+            [disabled]="registerForm.invalid || isRegistering || !providersLoaded"
             class="register-button"
             data-testid="register-button">
             @if (!isRegistering) {
               <span>Register</span>
             }
             @if (isRegistering) {
-              <span>Registering...</span>
+              <span>Creating account...</span>
             }
           </button>
         </form>
@@ -140,7 +140,8 @@
 
         <div class="oauth-container">
           <app-oauth-provider-list
-            [isRegisterContext]="true"></app-oauth-provider-list>
+            [isRegisterContext]="true"
+            (loaded)="onProvidersLoaded()"></app-oauth-provider-list>
         </div>
 
         <button

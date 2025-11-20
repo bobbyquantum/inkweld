@@ -23,6 +23,7 @@
                   <div
                     [formGroupName]="field.key.split('.')[0]"
                     class="field-container"
+                    [attr.data-testid]="'field-' + field.key"
                     [ngClass]="'span-' + (field.layout?.span || 12)">
                     @switch (field.type) {
                       @case ('text') {
@@ -88,6 +89,7 @@
                   <!-- Top-level field -->
                   <div
                     class="field-container"
+                    [attr.data-testid]="'field-' + field.key"
                     [ngClass]="'span-' + (field.layout?.span || 12)">
                     @switch (field.type) {
                       @case ('text') {

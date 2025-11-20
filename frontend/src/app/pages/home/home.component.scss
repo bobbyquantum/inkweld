@@ -237,8 +237,7 @@ app-bookshelf {
   }
 }
 
-.list-cover, .list-cover-placeholder { width: 80px; height: 128px; border-radius: 4px; flex-shrink: 0; }
-.list-cover-placeholder mat-icon { font-size: 32px; height: 32px; width: 32px; }
+.list-cover-wrapper { width: 80px; height: 128px; border-radius: 4px; flex-shrink: 0; overflow: hidden; position: absolute; left: 16px; top: 16px; }
 .project-list-item {
   display: flex;
   align-items: center;
@@ -254,7 +253,6 @@ app-bookshelf {
   min-height: 128px;
   &:hover { background-color: var(--s2); }
   &:focus { outline: 2px solid #3f51b5; outline-offset: 2px; }
-  .list-cover, .list-cover-placeholder { position: absolute; left: 16px; top: 16px; }
 }
 
 .list-info {
@@ -274,7 +272,7 @@ app-bookshelf {
   .project-list-item {
     padding: 12px 12px 12px 88px;
     min-height: 96px;
-    .list-cover, .list-cover-placeholder { width: 60px; height: 96px; left: 12px; top: 12px; }
+    .list-cover-wrapper { width: 60px; height: 96px; left: 12px; top: 12px; }
     .list-cover-placeholder mat-icon { font-size: 24px; height: 24px; width: 24px; }
   }
   .search-container {

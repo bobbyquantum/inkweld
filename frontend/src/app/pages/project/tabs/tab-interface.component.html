@@ -11,7 +11,8 @@
       (click)="onTabChange(0)"
       (keydown.enter)="onTabChange(0)"
       (keydown.space)="onTabChange(0)"
-      tabindex="0">
+      tabindex="0"
+      data-testid="home-tab-button">
       <div class="tab-label home-tab">
         <mat-icon>home</mat-icon>
       </div>
@@ -27,6 +28,7 @@
         (keydown.space)="onTabChange(i + 1)"
         [cdkContextMenuTriggerFor]="tabContextMenu"
         (contextmenu)="onTabContextMenu(i + 1, tab)"
+        [attr.data-testid]="'tab-' + tab.name"
         tabindex="0">
         <div class="tab-label">
           <mat-icon class="tab-icon">{{ getTabIcon(tab) }}</mat-icon>

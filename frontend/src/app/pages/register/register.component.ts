@@ -104,6 +104,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
   usernameSuggestions: string[] | undefined = [];
   usernameAvailability: 'available' | 'unavailable' | 'unknown' = 'unknown';
   serverValidationErrors: { [key: string]: string[] } = {};
+  providersLoaded = false;
 
   // Captcha-related properties
   captchaWidgetId?: number;
@@ -322,13 +323,23 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  // Handle providers loaded event
+  onProvidersLoaded(): void {
+    // Wrap in setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.providersLoaded = true;
+    });
+  }
+
   // Check if username is available
   async checkUsernameAvailability(): Promise<void> {
     const username = this.registerForm.get('username')?.value as string;
 
     if (!username || username.length < 3) {
-      this.usernameAvailability = 'unknown';
-      this.usernameSuggestions = [];
+      setTimeout(() => {
+        this.usernameAvailability = 'unknown';
+        this.usernameSuggestions = [];
+      });
       return;
     }
 
@@ -340,30 +351,34 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
         )
       );
 
-      if (response.available) {
-        this.usernameAvailability = 'available';
-        this.usernameSuggestions = [];
-        this.registerForm.get('username')?.setErrors(null);
-      } else {
-        this.usernameAvailability = 'unavailable';
-        this.usernameSuggestions = response.suggestions || [];
-        // Set error on the form control to trigger Material's error state
-        this.registerForm.get('username')?.setErrors({ usernameTaken: true });
-      }
+      setTimeout(() => {
+        if (response.available) {
+          this.usernameAvailability = 'available';
+          this.usernameSuggestions = [];
+          this.registerForm.get('username')?.setErrors(null);
+        } else {
+          this.usernameAvailability = 'unavailable';
+          this.usernameSuggestions = response.suggestions || [];
+          // Set error on the form control to trigger Material's error state
+          this.registerForm.get('username')?.setErrors({ usernameTaken: true });
+        }
+      });
     } catch (error: unknown) {
-      this.usernameAvailability = 'unknown';
-      this.usernameSuggestions = [];
-      if (error instanceof HttpErrorResponse) {
-        this.snackBar.open(
-          `Error checking username: ${error.message}`,
-          'Close',
-          { duration: 3000 }
-        );
-      } else {
-        this.snackBar.open('Error checking username availability', 'Close', {
-          duration: 3000,
-        });
-      }
+      setTimeout(() => {
+        this.usernameAvailability = 'unknown';
+        this.usernameSuggestions = [];
+        if (error instanceof HttpErrorResponse) {
+          this.snackBar.open(
+            `Error checking username: ${error.message}`,
+            'Close',
+            { duration: 3000 }
+          );
+        } else {
+          this.snackBar.open('Error checking username availability', 'Close', {
+            duration: 3000,
+          });
+        }
+      });
     }
   }
 
@@ -432,6 +447,11 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
           duration: 3000,
         });
       }
+      return;
+    }
+
+    // Ensure providers are loaded before allowing registration
+    if (!this.providersLoaded) {
       return;
     }
 

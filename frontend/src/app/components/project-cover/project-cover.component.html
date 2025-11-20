@@ -1,0 +1,14 @@
+<div class="cover-container" [class]="variant">
+  @if (hasCover) {
+    <img
+      [src]="coverUrl"
+      [alt]="project.title + ' cover'"
+      class="cover-image"
+      (error)="$any($event.target).style.display = 'none'" />
+  } @else {
+    <div class="no-cover-container">
+      <div class="centered-title">{{ project.title }}</div>
+      <div class="author">{{ project.username }}</div>
+    </div>
+  }
+</div>

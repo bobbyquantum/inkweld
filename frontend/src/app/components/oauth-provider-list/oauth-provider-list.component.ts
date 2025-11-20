@@ -1,9 +1,11 @@
 import {
   Component,
+  EventEmitter,
   inject,
   Input,
   NgZone,
   OnInit,
+  Output,
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -117,6 +119,7 @@ export class OAuthProviderListComponent implements OnInit {
    * If false, it's assumed to be in the sign-in context.
    */
   @Input() isRegisterContext = false;
+  @Output() loaded = new EventEmitter<void>();
 
   isLoadingProviders = signal(false);
   enabledProviders = signal<string[]>([]);
@@ -188,6 +191,7 @@ export class OAuthProviderListComponent implements OnInit {
       });
     } finally {
       this.isLoadingProviders.set(false);
+      this.loaded.emit();
     }
   }
 }

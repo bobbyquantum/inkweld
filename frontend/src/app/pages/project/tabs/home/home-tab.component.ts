@@ -1,12 +1,9 @@
 import { CommonModule } from '@angular/common';
 import {
   Component,
-  computed,
-  effect,
   EventEmitter,
   inject,
   Output,
-  signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -21,12 +18,22 @@ import { ProjectStateService } from '@services/project-state.service';
 
 import { RecentFilesService } from '../../../../services/recent-files.service';
 
+import { ProjectCoverComponent } from '../../../../components/project-cover/project-cover.component';
+import { MatMenuModule } from '@angular/material/menu';
+
 @Component({
   selector: 'app-home-tab',
   templateUrl: './home-tab.component.html',
-  styleUrls: ['./home-tab.component.scss'],
+  styleUrl: './home-tab.component.scss',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, RouterModule],
+  imports: [
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    RouterModule,
+    MatMenuModule,
+    ProjectCoverComponent,
+  ],
 })
 export class HomeTabComponent {
   @Output() importRequested = new EventEmitter<void>();
@@ -41,52 +48,7 @@ export class HomeTabComponent {
   // Router for navigation
   protected readonly router = inject(Router);
 
-  // Cover image state
-  protected readonly coverImageUrl = signal<string | null>(null);
-  protected readonly coverImageLoading = signal<boolean>(false);
-  protected readonly showCoverPlaceholder = computed(
-    () => !this.coverImageUrl() && !this.coverImageLoading()
-  );
-
-  constructor() {
-    // Load cover image when project changes
-    effect(() => {
-      const project = this.projectState.project();
-      if (project) {
-        void this.loadCoverImage(project.username, project.slug);
-      }
-    });
-  }
-
-  /**
-   * Loads the cover image for the current project
-   */
-  private async loadCoverImage(username: string, slug: string): Promise<void> {
-    this.coverImageLoading.set(true);
-    this.coverImageUrl.set(null);
-
-    console.log('[HomeTab] Loading cover image for:', username, slug);
-
-    try {
-      const coverBlob = await this.projectService.getProjectCover(
-        username,
-        slug
-      );
-      const coverUrl = URL.createObjectURL(coverBlob);
-      console.log('[HomeTab] Cover image loaded successfully');
-      this.coverImageUrl.set(coverUrl);
-      this.coverImageLoading.set(false);
-    } catch (error) {
-      // Image doesn't exist or failed to load (404 is expected for projects without covers)
-      if (error instanceof Error && error.message === 'Cover image not found') {
-        console.log('[HomeTab] No cover image set for this project');
-      } else {
-        console.error('[HomeTab] Failed to load cover image:', error);
-      }
-      this.coverImageUrl.set(null);
-      this.coverImageLoading.set(false);
-    }
-  }
+  constructor() {}
 
   onRecentDocumentClick(documentId: string): void {
     const elements = this.projectState.elements();
@@ -200,15 +162,18 @@ export class HomeTabComponent {
     // Upload the cover image
     this.projectService
       .uploadProjectCover(username, slug, imageBlob)
-      .then(() => {
+      .then(async () => {
         console.log('Cover image uploaded successfully');
         this.snackBar.open('Cover image saved successfully', 'Close', {
           duration: 3000,
         });
-        // Reload the cover image
-        const project = this.projectState.project();
-        if (project) {
-          void this.loadCoverImage(project.username, project.slug);
+        
+        // Refresh the project to get the updated cover image
+        try {
+          const updatedProject = await this.projectService.getProjectByUsernameAndSlug(username, slug);
+          this.projectState.updateProject(updatedProject);
+        } catch (error) {
+          console.error('Failed to refresh project after cover upload:', error);
         }
       })
       .catch((error: unknown) => {

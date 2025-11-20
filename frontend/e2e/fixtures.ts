@@ -52,11 +52,22 @@ export type TestFixtures = {
 export const test = base.extend<TestFixtures>({
   // Base page setup (for anonymous user)
   anonymousPage: async ({ page }, use) => {
+    // Block Service Worker to ensure API mocking works reliably
+    await page.route('**/ngsw-worker.js', route => route.abort());
+
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
 
     // Set up app configuration in localStorage
-    await page.addInitScript(() => {
+    await page.addInitScript(async () => {
+      // Unregister any existing Service Workers
+      if (window.navigator.serviceWorker) {
+        const registrations = await window.navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+
       localStorage.setItem('inkweld-app-config', JSON.stringify({
         mode: 'server',
         serverUrl: 'http://localhost:8333'
@@ -71,11 +82,22 @@ export const test = base.extend<TestFixtures>({
 
   // Authenticated user (server mode)
   authenticatedPage: async ({ page }, use) => {
+    // Block Service Worker to ensure API mocking works reliably
+    await page.route('**/ngsw-worker.js', route => route.abort());
+
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
 
     // Set up app configuration and auth token in localStorage
-    await page.addInitScript(() => {
+    await page.addInitScript(async () => {
+      // Unregister any existing Service Workers
+      if (window.navigator.serviceWorker) {
+        const registrations = await window.navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+
       localStorage.setItem('inkweld-app-config', JSON.stringify({
         mode: 'server',
         serverUrl: 'http://localhost:8333'
@@ -105,6 +127,7 @@ export const test = base.extend<TestFixtures>({
 
   // Authenticated user (offline mode - for tests that use Yjs without WebSocket)
   offlineAuthenticatedPage: async ({ page }, use) => {
+    // We DO NOT block Service Worker here as offline mode might depend on it
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
 
@@ -164,11 +187,22 @@ export const test = base.extend<TestFixtures>({
 
   // Admin user
   adminPage: async ({ page }, use) => {
+    // Block Service Worker to ensure API mocking works reliably
+    await page.route('**/ngsw-worker.js', route => route.abort());
+
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
 
     // Set up app configuration and auth token in localStorage
-    await page.addInitScript(() => {
+    await page.addInitScript(async () => {
+      // Unregister any existing Service Workers
+      if (window.navigator.serviceWorker) {
+        const registrations = await window.navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+
       localStorage.setItem('inkweld-app-config', JSON.stringify({
         mode: 'server',
         serverUrl: 'http://localhost:8333'

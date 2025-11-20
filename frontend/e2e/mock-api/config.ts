@@ -29,5 +29,5 @@ export function setupConfigHandlers(): void {
   console.log('Config handlers initialized');
   
   // Register the features endpoint handler
-  mockApi.addHandler('**/api/config/features', handleSystemFeatures);
+  mockApi.addHandler('**/api/v1/config/features', handleSystemFeatures);
 }

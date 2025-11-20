@@ -33,6 +33,7 @@ interface TabSchema {
 }
 
 interface FieldSchema {
+  id?: string;
   key: string;
   label: string;
   type: string;
@@ -128,9 +129,18 @@ export class TemplateEditorDialogComponent {
     });
 
     // Deep clone tabs to avoid mutating original
-    this.tabs.set(
-      JSON.parse(JSON.stringify(this.data.schema.tabs)) as TabSchema[]
-    );
+    const tabs = JSON.parse(JSON.stringify(this.data.schema.tabs)) as TabSchema[];
+    
+    // Ensure all fields have IDs for tracking
+    tabs.forEach(tab => {
+      tab.fields.forEach(field => {
+        if (!field.id) {
+          field.id = `field_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+      });
+    });
+    
+    this.tabs.set(tabs);
   }
 
   /**
@@ -186,6 +196,7 @@ export class TemplateEditorDialogComponent {
    */
   addField(tabIndex: number): void {
     const newField: FieldSchema = {
+      id: `field_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       key: `field_${Date.now()}`,
       label: 'New Field',
       type: 'text',
