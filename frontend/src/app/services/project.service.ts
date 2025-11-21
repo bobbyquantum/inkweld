@@ -85,7 +85,7 @@ export class ProjectService {
       // Always fetch from API to get fresh data
       try {
         const projects = await firstValueFrom(
-          this.projectApi.getApiV1Projects().pipe(
+          this.projectApi.listUserProjects().pipe(
             retry(MAX_RETRIES),
             catchError((error: unknown) => {
               // If we have cached data, log the error but don't propagate it
@@ -172,9 +172,8 @@ export class ProjectService {
       }
 
       // No cache available, fetch from API with retry mechanism
-      // Note: API client incorrectly types this as DocumentSnapshot[] but it actually returns Project
       const project = await firstValueFrom(
-        this.projectApi.getApiV1ProjectsUsernameSlug(username, slug).pipe(
+        this.projectApi.getProject(username, slug).pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
             const projectError = this.formatError(error);
@@ -213,9 +212,8 @@ export class ProjectService {
     const cacheKey = `${username}/${slug}`;
 
     try {
-      // Note: API client incorrectly types this as DocumentSnapshot[] but it actually returns Project
       const project = await firstValueFrom(
-        this.projectApi.getApiV1ProjectsUsernameSlug(username, slug).pipe(
+        this.projectApi.getProject(username, slug).pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
             console.warn(
@@ -261,7 +259,7 @@ export class ProjectService {
         description: Project.description || undefined,
       };
       const project = await firstValueFrom(
-        this.projectApi.postApiV1Projects(createRequest).pipe(
+        this.projectApi.createProject(createRequest).pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
             const projectError = this.formatError(error);
@@ -304,7 +302,7 @@ export class ProjectService {
       };
       const project = await firstValueFrom(
         this.projectApi
-          .putApiV1ProjectsUsernameSlug(username, slug, updateRequest)
+          .updateProject(username, slug, updateRequest)
           .pipe(
             retry(MAX_RETRIES),
             catchError((error: unknown) => {
@@ -344,7 +342,7 @@ export class ProjectService {
 
     try {
       await firstValueFrom(
-        this.projectApi.deleteApiV1ProjectsUsernameSlug(username, slug).pipe(
+        this.projectApi.deleteProject(username, slug).pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
             const projectError = this.formatError(error);
@@ -388,7 +386,7 @@ export class ProjectService {
 
     try {
       return await firstValueFrom(
-        this.imagesApi.getApiV1ProjectsUsernameSlugCover(username, slug).pipe(
+        this.imagesApi.getProjectCover(username, slug).pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
             const projectError = this.formatError(error);
@@ -439,7 +437,7 @@ export class ProjectService {
       // Assume delete returns void or similar
       await firstValueFrom(
         this.imagesApi
-          .deleteApiV1ProjectsUsernameSlugCover(username, slug)
+          .deleteProjectCover(username, slug)
           .pipe(
             retry(MAX_RETRIES),
             catchError(err => throwError(() => this.formatError(err)))

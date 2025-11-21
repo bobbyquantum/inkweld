@@ -1,7 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import {
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
-  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+  Element,
+  ElementType,
 } from '@inkweld/index';
 import { nanoid } from 'nanoid';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -12,7 +12,7 @@ import { LoggerService } from './logger.service';
 const OFFLINE_ELEMENTS_STORAGE_KEY = 'inkweld-offline-elements';
 
 interface StoredProjectElements {
-  [projectKey: string]: GetApiV1ProjectsUsernameSlugElements200ResponseInner[];
+  [projectKey: string]: Element[];
 }
 
 /**
@@ -29,7 +29,7 @@ export class OfflineProjectElementsService {
   private logger = inject(LoggerService);
 
   readonly elements = signal<
-    GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+    Element[]
   >([]);
   readonly isLoading = signal(false);
 
@@ -39,7 +39,7 @@ export class OfflineProjectElementsService {
     {
       doc: Y.Doc;
       provider: IndexeddbPersistence;
-      elementsArray: Y.Array<GetApiV1ProjectsUsernameSlugElements200ResponseInner>;
+      elementsArray: Y.Array<Element>;
     }
   >();
 
@@ -75,7 +75,7 @@ export class OfflineProjectElementsService {
   async saveElements(
     username: string,
     slug: string,
-    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+    elements: Element[]
   ): Promise<void> {
     try {
       const connection = await this.getOrCreateConnection(username, slug);
@@ -110,7 +110,7 @@ export class OfflineProjectElementsService {
   ): Promise<{
     doc: Y.Doc;
     provider: IndexeddbPersistence;
-    elementsArray: Y.Array<GetApiV1ProjectsUsernameSlugElements200ResponseInner>;
+    elementsArray: Y.Array<Element>;
   }> {
     const projectKey = `${username}:${slug}`;
     const docId = `${username}:${slug}:elements`;
@@ -129,7 +129,7 @@ export class OfflineProjectElementsService {
     await provider.whenSynced;
 
     const elementsArray =
-      doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>(
+      doc.getArray<Element>(
         'elements'
       );
 
@@ -157,7 +157,7 @@ export class OfflineProjectElementsService {
    */
   private migrateFromLocalStorage(
     projectKey: string,
-    elementsArray: Y.Array<GetApiV1ProjectsUsernameSlugElements200ResponseInner>,
+    elementsArray: Y.Array<Element>,
     doc: Y.Doc
   ): void {
     try {
@@ -200,13 +200,13 @@ export class OfflineProjectElementsService {
   async createDefaultStructure(
     username: string,
     slug: string
-  ): Promise<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]> {
-    const defaultElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+  ): Promise<Element[]> {
+    const defaultElements: Element[] =
       [
         {
           id: nanoid(),
           name: 'Chapters',
-          type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+          type: ElementType.Folder,
           level: 0,
           expandable: true,
           order: 0,
@@ -217,7 +217,7 @@ export class OfflineProjectElementsService {
         {
           id: nanoid(),
           name: 'Chapter 1',
-          type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+          type: ElementType.Item,
           level: 1,
           expandable: false,
           order: 1,
@@ -228,7 +228,7 @@ export class OfflineProjectElementsService {
         {
           id: nanoid(),
           name: 'Notes',
-          type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+          type: ElementType.Folder,
           level: 0,
           expandable: true,
           order: 2,
@@ -239,7 +239,7 @@ export class OfflineProjectElementsService {
         {
           id: nanoid(),
           name: 'Research',
-          type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+          type: ElementType.Item,
           level: 1,
           expandable: false,
           order: 3,
@@ -259,7 +259,7 @@ export class OfflineProjectElementsService {
   async updateElements(
     username: string,
     slug: string,
-    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+    elements: Element[]
   ): Promise<void> {
     await this.saveElements(username, slug, elements);
   }
@@ -270,25 +270,25 @@ export class OfflineProjectElementsService {
   async addElement(
     username: string,
     slug: string,
-    type: GetApiV1ProjectsUsernameSlugElements200ResponseInner['type'],
+    type: Element['type'],
     name: string,
     parentId?: string,
     metadata: Record<string, string> = {}
-  ): Promise<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]> {
+  ): Promise<Element[]> {
     const elements = this.elements();
     const parentIndex = parentId
       ? elements.findIndex(e => e.id === parentId)
       : -1;
     const parentLevel = parentIndex >= 0 ? elements[parentIndex].level : -1;
 
-    const newElement: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
+    const newElement: Element = {
       id: nanoid(),
       name,
       type,
       level: parentLevel + 1,
       expandable:
         type ===
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
       order: elements.length,
       parentId: null,
       version: 0,
@@ -310,7 +310,7 @@ export class OfflineProjectElementsService {
     username: string,
     slug: string,
     elementId: string
-  ): Promise<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]> {
+  ): Promise<Element[]> {
     const elements = this.elements();
     const index = elements.findIndex(e => e.id === elementId);
     if (index === -1) return elements;
@@ -332,7 +332,7 @@ export class OfflineProjectElementsService {
     elementId: string,
     targetIndex: number,
     newLevel: number
-  ): Promise<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]> {
+  ): Promise<Element[]> {
     const elements = this.elements();
     const elementIndex = elements.findIndex(e => e.id === elementId);
     if (elementIndex === -1) return elements;
@@ -363,7 +363,7 @@ export class OfflineProjectElementsService {
     slug: string,
     elementId: string,
     newName: string
-  ): Promise<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]> {
+  ): Promise<Element[]> {
     const elements = this.elements();
     const index = elements.findIndex(e => e.id === elementId);
     if (index === -1) return elements;
@@ -443,9 +443,9 @@ export class OfflineProjectElementsService {
   }
 
   private getSubtree(
-    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[],
+    elements: Element[],
     startIndex: number
-  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
+  ): Element[] {
     const startLevel = elements[startIndex].level;
     const subtree = [elements[startIndex]];
 
@@ -461,8 +461,8 @@ export class OfflineProjectElementsService {
   }
 
   private recomputePositions(
-    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
-  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
+    elements: Element[]
+  ): Element[] {
     return elements.map((element, index) => ({
       ...element,
       order: index,

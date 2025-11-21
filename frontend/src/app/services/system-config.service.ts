@@ -4,12 +4,12 @@ import { catchError, tap } from 'rxjs/operators';
 
 import { ConfigurationService } from '../../api-client/api/configuration.service';
 import {
-  GetApiV1ConfigFeatures200Response,
-  GetApiV1ConfigFeatures200ResponseAppMode,
-} from '../../api-client/model/get-api-v1-config-features200-response';
+  SystemFeatures,
+  SystemFeaturesAppMode,
+} from '../../api-client/model/system-features';
 
 // ExtendedSystemFeatures is the same as the API response now
-type ExtendedSystemFeatures = GetApiV1ConfigFeatures200Response;
+type ExtendedSystemFeatures = SystemFeatures;
 
 @Injectable({
   providedIn: 'root',
@@ -22,7 +22,7 @@ export class SystemConfigService {
     aiImageGeneration: false,
     captcha: { enabled: false, siteKey: undefined },
     userApprovalRequired: true,
-    appMode: GetApiV1ConfigFeatures200ResponseAppMode.Both,
+    appMode: SystemFeaturesAppMode.Both,
   });
 
   private isLoaded = signal(false);
@@ -55,7 +55,7 @@ export class SystemConfigService {
    */
   private loadSystemFeatures(): void {
     this.configApiService
-      .getApiV1ConfigFeatures()
+      .getSystemFeatures()
       .pipe(
         tap(features => {
           console.log('[SystemConfig] Loaded system features:', features);
@@ -72,7 +72,7 @@ export class SystemConfigService {
             aiImageGeneration: false,
             captcha: { enabled: false, siteKey: undefined },
             userApprovalRequired: true,
-            appMode: GetApiV1ConfigFeatures200ResponseAppMode.Both,
+            appMode: SystemFeaturesAppMode.Both,
           });
           this.isLoaded.set(true);
           return of(null);

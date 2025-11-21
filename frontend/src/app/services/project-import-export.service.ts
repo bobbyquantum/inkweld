@@ -1,7 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import {
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
-  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+  Element,
+  ElementType,
   Project,
 } from '@inkweld/index';
 import JSZip from '@progress/jszip-esm';
@@ -228,9 +228,9 @@ export class ProjectImportExportService {
     const elements = allElements.filter(
       elem =>
         elem.type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder ||
+          ElementType.Folder ||
         elem.type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
+          ElementType.Item
     );
 
     const archive: ProjectArchive = {
@@ -259,7 +259,7 @@ export class ProjectImportExportService {
         const elementArchive = archive.elements.find(e => e.id === elem.id)!;
         if (
           elem.type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
+          ElementType.Item
         ) {
           const content = await firstValueFrom(
             this.documentService.exportDocument(elem.id)
@@ -314,7 +314,7 @@ export class ProjectImportExportService {
       updatedDate: new Date().toISOString(),
     };
 
-    const elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+    const elements: Element[] =
       archive.elements.map(elem => ({
         id: elem.id || crypto.randomUUID(), // Generate new ID if not provided
         name: elem.name,
@@ -330,7 +330,7 @@ export class ProjectImportExportService {
     for (const elem of archive.elements) {
       if (
         elem.type ===
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
+        ElementType.Item
       ) {
         const content = elem.content;
         if (!content) {

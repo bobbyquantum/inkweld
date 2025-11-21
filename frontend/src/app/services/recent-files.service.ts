@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
+import { Element } from '@inkweld/index';
 
 import { LoggerService } from './logger.service';
 import { SettingsService } from './settings.service';
@@ -30,7 +30,7 @@ export class RecentFilesService {
   }
 
   addRecentFile(
-    file: GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+    file: Element,
     username: string,
     slug: string
   ): void {

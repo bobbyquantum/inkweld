@@ -1,8 +1,8 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import {
   ExportService,
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
-  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+  Element,
+  ElementType,
   Project,
   ProjectsService,
 } from '@inkweld/index';
@@ -43,8 +43,8 @@ export interface AppTab {
   name: string;
   type: 'document' | 'folder' | 'system' | 'worldbuilding';
   systemType?: 'documents-list' | 'project-files' | 'templates-list' | 'home';
-  element?: GetApiV1ProjectsUsernameSlugElements200ResponseInner;
-  elementType?: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType;
+  element?: Element;
+  elementType?: ElementType;
 }
 
 @Injectable({
@@ -70,10 +70,10 @@ export class ProjectStateService {
   // Core state signals
   readonly project = signal<Project | undefined>(undefined);
   readonly elements = signal<
-    GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+    Element[]
   >([]);
   readonly openDocuments = signal<
-    GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+    Element[]
   >([]);
   readonly openTabs = signal<AppTab[]>([]);
   readonly selectedTabIndex = signal<number>(0);
@@ -319,9 +319,8 @@ export class ProjectStateService {
     username: string,
     slug: string
   ): Promise<void> {
-    // Note: API client incorrectly types this as DocumentSnapshot[] but it actually returns Project
     const project = await firstValueFrom(
-      this.ProjectsService.getApiV1ProjectsUsernameSlug(username, slug)
+      this.ProjectsService.getProject(username, slug)
     );
     this.project.set(project);
 
@@ -532,7 +531,7 @@ export class ProjectStateService {
     this.provider.on('sync', (isSynced: boolean) => {
       if (isSynced && this.doc) {
         const elementsArray =
-          this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>(
+          this.doc.getArray<Element>(
             'elements'
           );
         const elements = elementsArray.toArray();
@@ -558,7 +557,7 @@ export class ProjectStateService {
   }
 
   updateElements(
-    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+    elements: Element[]
   ): void {
     const mode = this.setupService.getMode();
 
@@ -589,7 +588,7 @@ export class ProjectStateService {
       );
 
       const elementsArray =
-        this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>(
+        this.doc.getArray<Element>(
           'elements'
         );
 
@@ -615,7 +614,7 @@ export class ProjectStateService {
   }
 
   async renameNode(
-    node: GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+    node: Element,
     newName: string
   ): Promise<void> {
     const mode = this.setupService.getMode();
@@ -682,7 +681,7 @@ export class ProjectStateService {
 
   // Tree Operations
   async addElement(
-    type: GetApiV1ProjectsUsernameSlugElements200ResponseInner['type'],
+    type: Element['type'],
     name: string,
     parentId?: string
   ): Promise<string | undefined> {
@@ -753,7 +752,7 @@ export class ProjectStateService {
         : -1;
       const parentLevel = parentIndex >= 0 ? elements[parentIndex].level : -1;
 
-      const elementToAdd: GetApiV1ProjectsUsernameSlugElements200ResponseInner =
+      const elementToAdd: Element =
         {
           id: nanoid(),
           name,
@@ -762,7 +761,7 @@ export class ProjectStateService {
           level: parentLevel + 1,
           expandable:
             type ===
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            ElementType.Folder,
           order: elements.length,
           version: 0,
           metadata: icon ? { icon } : {},
@@ -799,7 +798,7 @@ export class ProjectStateService {
   }
 
   isValidDrop(
-    nodeAbove: GetApiV1ProjectsUsernameSlugElements200ResponseInner | null,
+    nodeAbove: Element | null,
     targetLevel: number
   ): boolean {
     if (!nodeAbove) {
@@ -810,7 +809,7 @@ export class ProjectStateService {
     // Items can't have children
     if (
       nodeAbove.type ===
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item &&
+        ElementType.Item &&
       targetLevel > nodeAbove.level
     ) {
       return false;
@@ -819,7 +818,7 @@ export class ProjectStateService {
     // Folders can only have children one level deeper
     if (
       nodeAbove.type ===
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder &&
+        ElementType.Folder &&
       targetLevel > nodeAbove.level + 1
     ) {
       return false;
@@ -834,8 +833,8 @@ export class ProjectStateService {
   }
 
   getValidDropLevels(
-    nodeAbove: GetApiV1ProjectsUsernameSlugElements200ResponseInner | null,
-    nodeBelow: GetApiV1ProjectsUsernameSlugElements200ResponseInner | null
+    nodeAbove: Element | null,
+    nodeBelow: Element | null
   ): ValidDropLevels {
     const validLevels = new Set<number>();
 
@@ -853,7 +852,7 @@ export class ProjectStateService {
       if (nodeAbove.level < nodeBelow.level) {
         if (
           nodeAbove.type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder
+          ElementType.Folder
         ) {
           if (nodeBelow.level === nodeAbove.level + 1) {
             validLevels.add(nodeBelow.level);
@@ -869,7 +868,7 @@ export class ProjectStateService {
         // Also allow dropping inside if above node is a folder
         if (
           nodeAbove.type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder
+          ElementType.Folder
         ) {
           validLevels.add(nodeAbove.level + 1);
         }
@@ -887,7 +886,7 @@ export class ProjectStateService {
       // If above node is a folder, allow one level deeper
       if (
         nodeAbove.type ===
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder
+        ElementType.Folder
       ) {
         validLevels.add(nodeAbove.level + 1);
       }
@@ -907,7 +906,7 @@ export class ProjectStateService {
   }
 
   getDropInsertIndex(
-    nodeAbove: GetApiV1ProjectsUsernameSlugElements200ResponseInner | null,
+    nodeAbove: Element | null,
     targetLevel: number
   ): number {
     if (!nodeAbove) {
@@ -1003,7 +1002,7 @@ export class ProjectStateService {
   async publishProject(project: Project): Promise<void> {
     try {
       const response = await firstValueFrom(
-        this.ExportService.postApiV1ProjectsUsernameSlugEpub(
+        this.ExportService.exportProjectAsEpub(
           project.username,
           project.slug
         )
@@ -1059,7 +1058,7 @@ export class ProjectStateService {
 
   // Tab Operations
   openDocument(
-    element: GetApiV1ProjectsUsernameSlugElements200ResponseInner
+    element: Element
   ): void {
     const documents = this.openDocuments();
     const tabs = this.openTabs();
@@ -1094,12 +1093,12 @@ export class ProjectStateService {
     let tabType: 'document' | 'folder' | 'worldbuilding' = 'document';
     if (
       element.type ===
-      GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder
+      ElementType.Folder
     ) {
       tabType = 'folder';
     } else if (
       element.type ===
-      GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
+      ElementType.Item
     ) {
       // ITEM is always a document
       tabType = 'document';
@@ -1413,7 +1412,7 @@ export class ProjectStateService {
             )
             .map(
               tab =>
-                tab.element as GetApiV1ProjectsUsernameSlugElements200ResponseInner
+                tab.element as Element
             );
 
           if (documents.length > 0) {
@@ -1460,7 +1459,7 @@ export class ProjectStateService {
 
       // Fallback to legacy document loading
       const documents = await this.storageService.get<
-        GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+        Element[]
       >(db, 'openedDocuments', cacheKey);
 
       if (documents && documents.length > 0) {
@@ -1477,7 +1476,7 @@ export class ProjectStateService {
 
   // Worldbuilding initialization
   private async initializeWorldbuildingForElement(
-    element: GetApiV1ProjectsUsernameSlugElements200ResponseInner
+    element: Element
   ): Promise<void> {
     if (element.id) {
       await this.worldbuildingService.initializeWorldbuildingElement(element);
@@ -1486,7 +1485,7 @@ export class ProjectStateService {
 
   // Dialog Handlers
   showNewElementDialog(
-    parentElement?: GetApiV1ProjectsUsernameSlugElements200ResponseInner
+    parentElement?: Element
   ): void {
     void this.dialogGateway.openNewElementDialog().then(async result => {
       if (result) {
@@ -1519,9 +1518,9 @@ export class ProjectStateService {
   }
 
   private getSubtree(
-    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[],
+    elements: Element[],
     startIndex: number
-  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
+  ): Element[] {
     const startLevel = elements[startIndex].level;
     const subtree = [elements[startIndex]];
 
@@ -1537,8 +1536,8 @@ export class ProjectStateService {
   }
 
   private recomputePositions(
-    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
-  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner[] {
+    elements: Element[]
+  ): Element[] {
     return elements.map((element, index) => ({
       ...element,
       position: index,
@@ -1549,7 +1548,7 @@ export class ProjectStateService {
     if (!this.doc) return;
 
     const elementsArray =
-      this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>(
+      this.doc.getArray<Element>(
         'elements'
       );
     const elements = elementsArray.toArray();
@@ -1566,7 +1565,7 @@ export class ProjectStateService {
     if (!this.doc) return;
 
     const elementsArray =
-      this.doc.getArray<GetApiV1ProjectsUsernameSlugElements200ResponseInner>(
+      this.doc.getArray<Element>(
         'elements'
       );
     elementsArray.observe(() => {
@@ -1586,7 +1585,7 @@ export class ProjectStateService {
    * Enrich elements with custom type icons from the schema library
    */
   private async enrichElementsWithIcons(
-    elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+    elements: Element[]
   ): Promise<void> {
     const project = this.project();
     if (!project) return;
