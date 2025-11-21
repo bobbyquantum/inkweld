@@ -1,10 +1,10 @@
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '../../api-client';
+import { ElementType } from '../../api-client';
 
 // Base interface for all worldbuilding elements
 export interface WorldbuildingBase {
   id: string;
   name: string;
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType;
+  type: ElementType;
   summary?: string;
   notes?: string;
   tags?: string[];
@@ -14,7 +14,7 @@ export interface WorldbuildingBase {
 
 // Character schema
 export interface CharacterSchema extends Omit<WorldbuildingBase, 'type'> {
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Character;
+  type: ElementType.Character;
 
   // Basic Information
   fullName?: string;
@@ -69,7 +69,7 @@ export interface CharacterSchema extends Omit<WorldbuildingBase, 'type'> {
 
 // Location schema
 export interface LocationSchema extends Omit<WorldbuildingBase, 'type'> {
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Location;
+  type: ElementType.Location;
 
   // Basic Information
   locationType?: string; // city, town, building, region, etc.
@@ -110,7 +110,7 @@ export interface LocationSchema extends Omit<WorldbuildingBase, 'type'> {
 
 // Item schema (Worldbuilding Item)
 export interface WBItemSchema extends Omit<WorldbuildingBase, 'type'> {
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.WbItem;
+  type: ElementType.WbItem;
 
   // Basic Information
   itemType?: string; // weapon, artifact, tool, etc.
@@ -143,7 +143,7 @@ export interface WBItemSchema extends Omit<WorldbuildingBase, 'type'> {
 
 // Map schema
 export interface MapSchema extends Omit<WorldbuildingBase, 'type'> {
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Map;
+  type: ElementType.Map;
 
   // Map Information
   mapType?: string; // world, region, city, building, etc.
@@ -177,7 +177,7 @@ export interface MapSchema extends Omit<WorldbuildingBase, 'type'> {
 
 // Relationship schema
 export interface RelationshipSchema extends Omit<WorldbuildingBase, 'type'> {
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Relationship;
+  type: ElementType.Relationship;
 
   // Relationship Details
   relationshipType?: string; // family, romantic, friendship, rivalry, etc.
@@ -208,7 +208,7 @@ export interface RelationshipSchema extends Omit<WorldbuildingBase, 'type'> {
 
 // Philosophy schema
 export interface PhilosophySchema extends Omit<WorldbuildingBase, 'type'> {
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Philosophy;
+  type: ElementType.Philosophy;
 
   // Core Concepts
   coreBeliefs?: string[];
@@ -244,7 +244,7 @@ export interface PhilosophySchema extends Omit<WorldbuildingBase, 'type'> {
 
 // Culture schema
 export interface CultureSchema extends Omit<WorldbuildingBase, 'type'> {
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Culture;
+  type: ElementType.Culture;
 
   // Identity
   ethnicity?: string;
@@ -290,7 +290,7 @@ export interface CultureSchema extends Omit<WorldbuildingBase, 'type'> {
 
 // Species schema
 export interface SpeciesSchema extends Omit<WorldbuildingBase, 'type'> {
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Species;
+  type: ElementType.Species;
 
   // Biology
   biology?: {
@@ -339,7 +339,7 @@ export interface SpeciesSchema extends Omit<WorldbuildingBase, 'type'> {
 
 // Systems schema (Magic systems, Technology systems, etc.)
 export interface SystemsSchema extends Omit<WorldbuildingBase, 'type'> {
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Systems;
+  type: ElementType.Systems;
 
   // System Type
   systemType?: string; // magic, technology, political, economic, etc.
@@ -404,26 +404,26 @@ export type WorldbuildingSchema =
 
 // Helper to get the schema type from element type
 export function getSchemaFromType(
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType
+  type: ElementType
 ): string | null {
   switch (type) {
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Character:
+    case ElementType.Character:
       return 'character';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Location:
+    case ElementType.Location:
       return 'location';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.WbItem:
+    case ElementType.WbItem:
       return 'wbItem';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Map:
+    case ElementType.Map:
       return 'map';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Relationship:
+    case ElementType.Relationship:
       return 'relationship';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Philosophy:
+    case ElementType.Philosophy:
       return 'philosophy';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Culture:
+    case ElementType.Culture:
       return 'culture';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Species:
+    case ElementType.Species:
       return 'species';
-    case GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Systems:
+    case ElementType.Systems:
       return 'systems';
     default:
       return null;
@@ -432,7 +432,7 @@ export function getSchemaFromType(
 
 // Helper to check if an element type is a worldbuilding type
 export function isWorldbuildingType(
-  type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType
+  type: ElementType
 ): boolean {
   // Custom templates start with 'CUSTOM_'
   if (typeof type === 'string' && type.startsWith('CUSTOM_')) {

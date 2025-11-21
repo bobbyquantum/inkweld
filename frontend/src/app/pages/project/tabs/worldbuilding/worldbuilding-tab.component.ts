@@ -10,8 +10,8 @@ import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import {
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
-  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+  Element,
+  ElementType,
 } from '../../../../../api-client';
 import { WorldbuildingEditorComponent } from '../../../../components/worldbuilding/worldbuilding-editor/worldbuilding-editor.component';
 import { ProjectStateService } from '../../../../services/project-state.service';
@@ -30,7 +30,7 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
 
   protected elementId = signal<string>('');
   protected elementType =
-    signal<GetApiV1ProjectsUsernameSlugElements200ResponseInnerType | null>(
+    signal<ElementType | null>(
       null
     );
   protected username = signal<string | undefined>(undefined);
@@ -99,7 +99,7 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
    */
   private findElement(
     elementId: string
-  ): GetApiV1ProjectsUsernameSlugElements200ResponseInner | null {
+  ): Element | null {
     const elements = this.projectState.elements();
     return elements.find(el => el.id === elementId) || null;
   }

@@ -1,16 +1,9 @@
 import { DOCUMENT, inject, Injectable } from '@angular/core';
-import { SecurityService } from '@inkweld/index';
+import { CSRFTokenResponse, SecurityService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 import { LoggerService } from './logger.service';
-
-/**
- * Response type for CSRF token endpoint
- */
-interface CsrfTokenResponse {
-  token: string;
-}
 
 /**
  * Service responsible for CSRF token management.
@@ -44,7 +37,7 @@ export class XsrfService {
 
       // Use the generated SecurityService to get the token
       const response = await firstValueFrom(
-        this.SecurityService.getApiV1CsrfToken()
+        this.SecurityService.getCSRFToken()
       );
 
       if (!response || !response.token || typeof response.token !== 'string') {

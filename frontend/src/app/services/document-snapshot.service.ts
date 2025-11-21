@@ -46,7 +46,7 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    return this.snapshotsApi.postApiV1SnapshotsUsernameSlug(
+    return this.snapshotsApi.createProjectSnapshot(
       project.username,
       project.slug,
       data
@@ -70,7 +70,7 @@ export class DocumentSnapshotService {
 
     // TODO: Backend API doesn't support query parameters yet (limit, offset, orderBy, order, docId)
     // The API returns all snapshots for a project, not filtered by docId
-    return this.snapshotsApi.getApiV1SnapshotsUsernameSlug(
+    return this.snapshotsApi.listProjectSnapshots(
       project.username,
       project.slug
     );
@@ -89,7 +89,7 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    return this.snapshotsApi.getApiV1SnapshotsUsernameSlugSnapshotId(
+    return this.snapshotsApi.getProjectSnapshot(
       project.username,
       project.slug,
       snapshotId
@@ -111,7 +111,7 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    return this.snapshotsApi.postApiV1SnapshotsUsernameSlugSnapshotIdRestore(
+    return this.snapshotsApi.restoreProjectSnapshot(
       project.username,
       project.slug,
       snapshotId
@@ -134,7 +134,7 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    return this.snapshotsApi.deleteApiV1SnapshotsUsernameSlugSnapshotId(
+    return this.snapshotsApi.deleteProjectSnapshot(
       project.username,
       project.slug,
       snapshotId
@@ -157,7 +157,7 @@ export class DocumentSnapshotService {
       throw new Error('No active project');
     }
 
-    return this.snapshotsApi.getApiV1SnapshotsUsernameSlugSnapshotIdPreview(
+    return this.snapshotsApi.previewProjectSnapshot(
       project.username,
       project.slug,
       snapshotId

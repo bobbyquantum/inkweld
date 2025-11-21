@@ -6,9 +6,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { FilesService } from '../../api-client/api/files.service';
-import { GetApiV1ProjectsUsernameSlugFiles200ResponseInner } from '../../api-client/model/get-api-v1-projects-username-slug-files200-response-inner';
-import { PostApiV1ProjectsUsernameSlugFiles200Response } from '../../api-client/model/post-api-v1-projects-username-slug-files200-response';
-import { PostApiV1UsersAvatar200Response } from '../../api-client/model/post-api-v1-users-avatar200-response';
+import { ProjectFile as ApiProjectFile } from '../../api-client/model/project-file';
+import { UploadResponse } from '../../api-client/model/upload-response';
+import { MessageResponse } from '../../api-client/model/message-response';
 import {
   FileDeleteResponse,
   ProjectFile,
@@ -19,13 +19,13 @@ import { XsrfService } from './xsrf.service';
 describe('ProjectFileService', () => {
   const TEST_DATE = '2025-03-16T10:00:00.000Z';
 
-  const uploadResp: GetApiV1ProjectsUsernameSlugFiles200ResponseInner = {
+  const uploadResp: ApiProjectFile = {
     name: 'stored-test.jpg',
     size: 1024,
     uploadDate: TEST_DATE,
   };
 
-  const deleteResp: PostApiV1UsersAvatar200Response = {
+  const deleteResp: MessageResponse = {
     message: 'File deleted successfully',
   };
 
@@ -59,9 +59,9 @@ describe('ProjectFileService', () => {
     service = TestBed.inject(ProjectFileService);
 
     /* default stubbing for every test */
-    api.getApiV1ProjectsUsernameSlugFiles.mockReturnValue(
+    api.listProjectFiles.mockReturnValue(
       of([uploadResp]) as unknown as Observable<
-        HttpEvent<GetApiV1ProjectsUsernameSlugFiles200ResponseInner[]>
+        HttpEvent<ProjectFile[]>
       >
     );
 
@@ -74,7 +74,7 @@ describe('ProjectFileService', () => {
       })
     );
 
-    api.postApiV1ProjectsUsernameSlugFiles.mockReturnValue(
+    api.uploadProjectFile.mockReturnValue(
       of({
         storedName: 'stored-test.jpg',
         uploadDate: TEST_DATE,
@@ -82,12 +82,12 @@ describe('ProjectFileService', () => {
         size: 1,
         mimeType: 'image/jpeg',
       }) as unknown as Observable<
-        HttpEvent<PostApiV1ProjectsUsernameSlugFiles200Response>
+        HttpEvent<UploadResponse>
       >
     );
-    api.deleteApiV1ProjectsUsernameSlugFilesStoredName.mockReturnValue(
+    api.deleteProjectFile.mockReturnValue(
       of(deleteResp) as unknown as Observable<
-        HttpEvent<PostApiV1UsersAvatar200Response>
+        HttpEvent<MessageResponse>
       >
     );
 
@@ -108,7 +108,7 @@ describe('ProjectFileService', () => {
       .getProjectFiles('alice', 'proj')
       .subscribe((f: ProjectFile[]) => (files = f));
 
-    expect(api.getApiV1ProjectsUsernameSlugFiles).toHaveBeenCalledWith(
+    expect(api.listProjectFiles).toHaveBeenCalledWith(
       'alice',
       'proj'
     );
@@ -154,7 +154,7 @@ describe('ProjectFileService', () => {
     });
 
     expect(
-      api.deleteApiV1ProjectsUsernameSlugFilesStoredName
+      api.deleteProjectFile
     ).toHaveBeenCalledWith('alice', 'proj', 'stored-test.jpg');
     expect(delResp.message).toBe('File deleted successfully');
   });

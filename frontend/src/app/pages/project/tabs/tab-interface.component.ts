@@ -23,8 +23,8 @@ import {
   RouterModule,
 } from '@angular/router';
 import {
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
-  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+  Element,
+  ElementType,
 } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { AppTab, ProjectStateService } from '@services/project-state.service';
@@ -316,7 +316,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
   }
 
   openDocument(
-    document: GetApiV1ProjectsUsernameSlugElements200ResponseInner
+    document: Element
   ): void {
     const project = this.projectState.project();
     if (!project) return;
@@ -424,7 +424,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
 
     const newName = await this.dialogGateway.openRenameDialog({
       currentName: tab.element.name,
-      title: `Rename ${tab.element.type === GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder ? 'Folder' : 'Document'}`,
+      title: `Rename ${tab.element.type === ElementType.Folder ? 'Folder' : 'Document'}`,
     });
 
     if (newName) {

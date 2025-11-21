@@ -43,7 +43,7 @@ import { Router, RouterModule } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
 import {
   AuthenticationService,
-  GetApiV1UsersCheckUsername200Response,
+  UsernameAvailability,
   UsersService,
 } from '@inkweld/index';
 import { RecaptchaService } from '@services/recaptcha.service';
@@ -346,7 +346,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
     try {
       // Note: API client doesn't support username query parameter, so we call HttpClient directly
       const response = await firstValueFrom(
-        this.httpClient.get<GetApiV1UsersCheckUsername200Response>(
+        this.httpClient.get<UsernameAvailability>(
           `/api/v1/users/check-username?username=${encodeURIComponent(username)}`
         )
       );
@@ -490,7 +490,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       };
 
       const response = await firstValueFrom(
-        this.authService.postApiV1AuthRegister(registerRequest)
+        this.authService.registerUser(registerRequest)
       );
 
       // Check if approval is required

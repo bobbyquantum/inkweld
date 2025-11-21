@@ -77,7 +77,7 @@ export class SetupComponent implements OnInit {
   private async loadSystemConfig(): Promise<void> {
     try {
       const systemFeatures =
-        await this.ConfigurationService.getApiV1Config().toPromise();
+        await this.ConfigurationService.getAppConfiguration().toPromise();
 
       if (systemFeatures) {
         // Use type assertion to a safe interface

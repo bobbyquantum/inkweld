@@ -1,12 +1,12 @@
 import { HttpContext } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { PostApiV1AiLintRequestLevel } from '@inkweld/index';
+import { LintRequestLevel } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { LintingService } from '../../../api-client/api/linting.service';
-import { PostApiV1AiLint200Response } from '../../../api-client/model/post-api-v1-ai-lint200-response';
+import { LintResponse } from '../../../api-client/model/lint-response';
 import { apiErr, apiOk } from '../../../testing/utils';
 import { ABORT_SIGNAL, LintApiService } from './lint-api.service';
 
@@ -50,7 +50,7 @@ describe('LintApiService', () => {
 
   it('should call postApiV1AiLint with the correct parameters', async () => {
     // Mock response
-    const mockResponse: PostApiV1AiLint200Response = {
+    const mockResponse: LintResponse = {
       originalParagraph: 'test text',
       corrections: [],
       styleRecommendations: [],
@@ -85,7 +85,7 @@ describe('LintApiService', () => {
 
   it('should pass custom style and level parameters correctly', async () => {
     // Mock response
-    const mockResponse: PostApiV1AiLint200Response = {
+    const mockResponse: LintResponse = {
       originalParagraph: 'test text',
       corrections: [],
       styleRecommendations: [],
@@ -99,7 +99,7 @@ describe('LintApiService', () => {
     await service.run(
       'test text',
       'academic',
-      PostApiV1AiLintRequestLevel.Medium
+      LintRequestLevel.Medium
     );
 
     // Verify custom parameters were passed
@@ -118,7 +118,7 @@ describe('LintApiService', () => {
   it('should set the ABORT_SIGNAL token in the context', async () => {
     // Mock response
     lintService.postApiV1AiLint.mockReturnValue(
-      apiOk({} as PostApiV1AiLint200Response)
+      apiOk({} as LintResponse)
     );
 
     // Spy on HttpContext.set
@@ -167,7 +167,7 @@ describe('LintApiService', () => {
   it('should create AbortSignal with the correct timeout value', async () => {
     // Mock response
     lintService.postApiV1AiLint.mockReturnValue(
-      apiOk({} as PostApiV1AiLint200Response)
+      apiOk({} as LintResponse)
     );
 
     // Call the service

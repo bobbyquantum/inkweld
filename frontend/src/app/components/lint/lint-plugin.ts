@@ -6,8 +6,8 @@ import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
 import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 import { debounceTime, Subject, Subscription } from 'rxjs';
 
-import { PostApiV1AiLint200Response } from '../../../api-client/model/post-api-v1-ai-lint200-response';
-import { PostApiV1AiLint200ResponseCorrectionsInner } from '../../../api-client/model/post-api-v1-ai-lint200-response-corrections-inner';
+import { LintResponse } from '../../../api-client/model/lint-response';
+import { Correction } from '../../../api-client/model/correction';
 import { ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintApiService } from './lint-api.service';
 import { LintStorageService } from './lint-storage.service';
@@ -182,7 +182,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
   // Create decorations from lint results
   function createDecorations(
     doc: Node,
-    lintResult: PostApiV1AiLint200Response
+    lintResult: LintResponse
   ): { decos: DecorationSet; suggestions: ExtendedCorrectionDto[] } {
     if (
       !lintResult ||
@@ -200,7 +200,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
     // Filter out rejected suggestions
     const filteredCorrections = lintResult.corrections.filter(
-      (correction: PostApiV1AiLint200ResponseCorrectionsInner) =>
+      (correction: Correction) =>
         !lintStorage.isSuggestionRejected(correction)
     );
 
@@ -210,7 +210,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
     const extendedSuggestions: ExtendedCorrectionDto[] = [];
     const decos = filteredCorrections
-      .map((correction: PostApiV1AiLint200ResponseCorrectionsInner) => {
+      .map((correction: Correction) => {
         let reasonText = '';
 
         // Handle both formats of corrections (server might send 'error' or 'reason')
@@ -308,7 +308,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
           // Check for proper metadata structure with type safety
           interface DecorationMeta {
             type: string;
-            res?: PostApiV1AiLint200Response;
+            res?: LintResponse;
             reqId: number;
           }
 

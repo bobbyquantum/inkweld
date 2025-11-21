@@ -8,7 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
+import { ElementType } from '@inkweld/index';
 import { MockedObject, vi } from 'vitest';
 
 import { NewElementDialogComponent } from './new-element-dialog.component';
@@ -53,7 +53,7 @@ describe('NewElementDialogComponent', () => {
   it('should initialize form with default values', () => {
     expect(component.form.get('name')?.value).toBe('');
     expect(component.form.get('type')?.value).toBe(
-      GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
+      ElementType.Item
     );
   });
 
@@ -62,7 +62,7 @@ describe('NewElementDialogComponent', () => {
 
     component.form.patchValue({
       name: 'Test Element',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
     });
 
     expect(component.form.valid).toBeTruthy();
@@ -76,7 +76,7 @@ describe('NewElementDialogComponent', () => {
   it('should close dialog with form value on create when valid', () => {
     const formValue = {
       name: 'Test Element',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
     };
 
     component.form.patchValue(formValue);

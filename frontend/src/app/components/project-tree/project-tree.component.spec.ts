@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
+import { ElementType } from '@inkweld/index';
 import { ProjectsService } from '@inkweld/index';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
@@ -48,7 +48,7 @@ describe('ProjectTreeComponent', () => {
   const mockDto: ProjectElement = {
     id: '1',
     name: 'Test Element',
-    type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+    type: ElementType.Folder,
     order: 0,
     level: 1,
     expandable: false,
@@ -251,7 +251,7 @@ describe('ProjectTreeComponent', () => {
     ): ProjectElement => ({
       id,
       name: `Test Node ${id}`,
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+      type: ElementType.Folder,
       level,
       expandable: false,
       version: 0,
@@ -516,7 +516,7 @@ describe('ProjectTreeComponent', () => {
     const createFileNode = (): ProjectElement => ({
       id: '2',
       name: 'Test File',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
       order: 0,
       level: 1,
       expandable: false,

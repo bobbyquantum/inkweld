@@ -6,7 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import {
-  GetApiV1UsersCheckUsername200Response,
+  UsernameAvailability,
   User,
   UsersService,
 } from '@inkweld/index';
@@ -203,7 +203,7 @@ describe('RegisterComponent', () => {
 
   describe('username availability', () => {
     it('should check username availability when username is valid', async () => {
-      const mockResponse: GetApiV1UsersCheckUsername200Response = {
+      const mockResponse: UsernameAvailability = {
         available: true,
         suggestions: [],
       };
@@ -221,7 +221,7 @@ describe('RegisterComponent', () => {
     });
 
     it('should mark username as unavailable when taken', async () => {
-      const mockResponse: GetApiV1UsersCheckUsername200Response = {
+      const mockResponse: UsernameAvailability = {
         available: false,
         suggestions: ['testuser1', 'testuser2'],
       };
@@ -260,7 +260,7 @@ describe('RegisterComponent', () => {
     });
 
     it('should select a suggested username', () => {
-      const mockResponse: GetApiV1UsersCheckUsername200Response = {
+      const mockResponse: UsernameAvailability = {
         available: true,
         suggestions: [],
       };

@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import {
-  GetApiV1ProjectsUsernameSlugFiles200ResponseInner,
+  ProjectFile as ApiProjectFile,
   MessageResponse,
 } from '@inkweld/index';
 import { catchError, map, Observable, throwError } from 'rxjs';
@@ -36,9 +36,9 @@ export class ProjectFileService {
   ): Observable<ProjectFile[]> {
     try {
       return this.filesApi
-        .getApiV1ProjectsUsernameSlugFiles(username, projectSlug)
+        .listProjectFiles(username, projectSlug)
         .pipe(
-          map((files: GetApiV1ProjectsUsernameSlugFiles200ResponseInner[]) =>
+          map((files: ApiProjectFile[]) =>
             files.map(file => ({
               originalName: file.name,
               storedName: file.name, // API doesn't distinguish, use same name
@@ -86,14 +86,14 @@ export class ProjectFileService {
 
       const url = `${this.filesApi.configuration.basePath}/api/v1/projects/${username}/${projectSlug}/files`;
       return this.http
-        .post<GetApiV1ProjectsUsernameSlugFiles200ResponseInner>(
+        .post<ApiProjectFile>(
           url,
           formData,
           { withCredentials: true }
         )
         .pipe(
           map(
-            (response: GetApiV1ProjectsUsernameSlugFiles200ResponseInner) => ({
+            (response: ApiProjectFile) => ({
               originalName: response.name,
               storedName: response.name,
               contentType: '',
@@ -135,7 +135,7 @@ export class ProjectFileService {
   ): Observable<FileDeleteResponse> {
     try {
       return this.filesApi
-        .deleteApiV1ProjectsUsernameSlugFilesStoredName(
+        .deleteProjectFile(
           username,
           projectSlug,
           storedName

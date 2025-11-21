@@ -230,7 +230,7 @@ export class MigrationService {
     try {
       // Create project via API
       await firstValueFrom(
-        this.projectsService.postApiV1Projects({
+        this.projectsService.createProject({
           title: project.title,
           slug: project.slug,
           description: project.description || undefined,
@@ -298,7 +298,7 @@ export class MigrationService {
 
     try {
       const response = await firstValueFrom(
-        this.authenticationService.postApiV1AuthRegister({
+        this.authenticationService.registerUser({
           username,
           password,
         })
@@ -355,7 +355,7 @@ export class MigrationService {
 
     try {
       const response = await firstValueFrom(
-        this.authenticationService.postApiV1AuthLogin({
+        this.authenticationService.login({
           username,
           password,
         })

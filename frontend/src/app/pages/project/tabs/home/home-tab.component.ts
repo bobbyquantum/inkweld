@@ -6,7 +6,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { ProjectsService } from '@inkweld/api/projects.service';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
+import { ElementType } from '@inkweld/index';
 import { DialogGatewayService } from '@services/dialog-gateway.service';
 import { ProjectService } from '@services/project.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
@@ -53,7 +53,7 @@ export class HomeTabComponent {
       if (project) {
         const typeRoute =
           element.type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder
+          ElementType.Folder
             ? 'folder'
             : 'document';
         void this.router.navigate([

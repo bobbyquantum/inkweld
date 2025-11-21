@@ -248,7 +248,7 @@ export class DocumentService {
       }
     }
     this.documentsService
-      .getApiV1ProjectsUsernameSlugDocsDocIdHtml(username, projectSlug, docName)
+      .renderDocumentAsHtml(username, projectSlug, docName)
       .subscribe({
         next: (response: string) => {
           const blob = new Blob([response], { type: 'text/html' });

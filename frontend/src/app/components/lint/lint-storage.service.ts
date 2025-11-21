@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-import { PostApiV1AiLint200ResponseCorrectionsInner } from '../../../api-client/model/post-api-v1-ai-lint200-response-corrections-inner';
+import { Correction } from '../../../api-client/model/correction';
 import { ExtendedCorrectionDto } from './correction-dto.extension';
 
 /**
@@ -22,7 +22,7 @@ export class LintStorageService {
    * Generate a unique identifier for a correction
    */
   private getCorrectionId(
-    correction: PostApiV1AiLint200ResponseCorrectionsInner
+    correction: Correction
   ): string {
     const suggestion = correction.correctedText || '';
     // Since text might not be available in all cases, we'll use from/to as part of the ID
@@ -75,7 +75,7 @@ export class LintStorageService {
   private listenForEvents(): void {
     document.addEventListener('lint-correction-accept', (event: Event) => {
       const customEvent =
-        event as CustomEvent<PostApiV1AiLint200ResponseCorrectionsInner>;
+        event as CustomEvent<Correction>;
       if (customEvent.detail) {
         console.log(
           '[LintStorage] Suggestion accepted:',
@@ -86,7 +86,7 @@ export class LintStorageService {
 
     document.addEventListener('lint-correction-reject', (event: Event) => {
       const customEvent =
-        event as CustomEvent<PostApiV1AiLint200ResponseCorrectionsInner>;
+        event as CustomEvent<Correction>;
       if (customEvent.detail) {
         this.rejectSuggestion(customEvent.detail);
       }
@@ -97,7 +97,7 @@ export class LintStorageService {
    * Add a suggestion to the rejected list
    */
   public rejectSuggestion(
-    correction: PostApiV1AiLint200ResponseCorrectionsInner
+    correction: Correction
   ): void {
     const id = this.getCorrectionId(correction);
     this.rejectedSuggestions.add(id);
@@ -112,7 +112,7 @@ export class LintStorageService {
    * Check if a suggestion has been rejected
    */
   public isSuggestionRejected(
-    correction: PostApiV1AiLint200ResponseCorrectionsInner
+    correction: Correction
   ): boolean {
     const id = this.getCorrectionId(correction);
     return this.rejectedSuggestions.has(id);

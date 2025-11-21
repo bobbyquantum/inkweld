@@ -1,7 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
+import { ElementType } from '@inkweld/index';
+import { Element } from '@inkweld/index';
 import { vi } from 'vitest';
 
 import { OfflineProjectElementsService } from './offline-project-elements.service';
@@ -58,12 +58,12 @@ describe('OfflineProjectElementsService', () => {
 
   describe('loadElements', () => {
     it('should load elements from localStorage', async () => {
-      const mockElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+      const mockElements: Element[] =
         [
           {
             id: 'element-1',
             name: 'Test Element',
-            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            type: ElementType.Folder,
             parentId: null,
             level: 0,
             expandable: true,
@@ -107,11 +107,11 @@ describe('OfflineProjectElementsService', () => {
 
   describe('saveElements', () => {
     it('should save elements using Yjs', async () => {
-      const elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
+      const elements: Element[] = [
         {
           id: 'element-1',
           name: 'Test Element',
-          type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+          type: ElementType.Item,
           parentId: null,
           level: 0,
           expandable: false,
@@ -129,7 +129,7 @@ describe('OfflineProjectElementsService', () => {
     });
 
     it('should handle save errors', async () => {
-      const elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+      const elements: Element[] =
         [];
       mockLocalStorage.getItem.mockReturnValue('{}');
 
@@ -154,7 +154,7 @@ describe('OfflineProjectElementsService', () => {
       expect(result).toHaveLength(4);
       expect(result[0]).toMatchObject({
         name: 'Chapters',
-        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        type: ElementType.Folder,
         level: 0,
         expandable: true,
         order: 0,
@@ -171,12 +171,12 @@ describe('OfflineProjectElementsService', () => {
 
   describe('addElement', () => {
     beforeEach(() => {
-      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+      const initialElements: Element[] =
         [
           {
             id: 'folder-1',
             name: 'Folder 1',
-            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            type: ElementType.Folder,
             parentId: null,
             level: 0,
             expandable: true,
@@ -195,14 +195,14 @@ describe('OfflineProjectElementsService', () => {
       const result = service.addElement(
         TEST_USERNAME,
         TEST_SLUG,
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        ElementType.Item,
         'New Document'
       );
 
       expect(result).toHaveLength(2);
       expect(result[0]).toMatchObject({
         name: 'New Document',
-        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        type: ElementType.Item,
         level: 0,
         expandable: false,
         order: 0,
@@ -211,7 +211,7 @@ describe('OfflineProjectElementsService', () => {
       expect(result[1]).toMatchObject({
         id: 'folder-1',
         name: 'Folder 1',
-        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        type: ElementType.Folder,
         order: 1,
       });
     });
@@ -220,7 +220,7 @@ describe('OfflineProjectElementsService', () => {
       const result = service.addElement(
         TEST_USERNAME,
         TEST_SLUG,
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        ElementType.Item,
         'Child Document',
         'folder-1'
       );
@@ -228,7 +228,7 @@ describe('OfflineProjectElementsService', () => {
       expect(result).toHaveLength(2);
       expect(result[1]).toMatchObject({
         name: 'Child Document',
-        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        type: ElementType.Item,
         level: 1,
         expandable: false,
         order: 1,
@@ -240,13 +240,13 @@ describe('OfflineProjectElementsService', () => {
       await service.addElement(
         TEST_USERNAME,
         TEST_SLUG,
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        ElementType.Item,
         'Doc 1'
       );
       const result = await service.addElement(
         TEST_USERNAME,
         TEST_SLUG,
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        ElementType.Item,
         'Doc 2'
       );
 
@@ -258,12 +258,12 @@ describe('OfflineProjectElementsService', () => {
 
   describe('deleteElement', () => {
     beforeEach(() => {
-      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+      const initialElements: Element[] =
         [
           {
             id: 'folder-1',
             name: 'Folder 1',
-            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            type: ElementType.Folder,
             parentId: null,
             level: 0,
             expandable: true,
@@ -274,7 +274,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'doc-1',
             name: 'Document 1',
-            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            type: ElementType.Item,
             parentId: null,
             level: 1,
             expandable: false,
@@ -285,7 +285,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'doc-2',
             name: 'Document 2',
-            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            type: ElementType.Item,
             parentId: null,
             level: 1,
             expandable: false,
@@ -296,7 +296,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'folder-2',
             name: 'Folder 2',
-            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            type: ElementType.Folder,
             parentId: null,
             level: 0,
             expandable: true,
@@ -346,12 +346,12 @@ describe('OfflineProjectElementsService', () => {
 
   describe('moveElement', () => {
     beforeEach(() => {
-      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+      const initialElements: Element[] =
         [
           {
             id: 'folder-1',
             name: 'Folder 1',
-            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            type: ElementType.Folder,
             parentId: null,
             level: 0,
             expandable: true,
@@ -362,7 +362,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'doc-1',
             name: 'Document 1',
-            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            type: ElementType.Item,
             parentId: null,
             level: 1,
             expandable: false,
@@ -373,7 +373,7 @@ describe('OfflineProjectElementsService', () => {
           {
             id: 'doc-2',
             name: 'Document 2',
-            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            type: ElementType.Item,
             parentId: null,
             level: 0,
             expandable: false,
@@ -430,12 +430,12 @@ describe('OfflineProjectElementsService', () => {
 
   describe('renameElement', () => {
     beforeEach(() => {
-      const initialElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+      const initialElements: Element[] =
         [
           {
             id: 'doc-1',
             name: 'Old Name',
-            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            type: ElementType.Item,
             parentId: null,
             level: 0,
             expandable: false,
@@ -477,12 +477,12 @@ describe('OfflineProjectElementsService', () => {
 
   describe('project isolation', () => {
     it('should isolate elements by project key', async () => {
-      const project1Elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+      const project1Elements: Element[] =
         [
           {
             id: 'p1-doc',
             name: 'Project 1 Doc',
-            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            type: ElementType.Item,
             parentId: null,
             level: 0,
             expandable: false,
@@ -492,12 +492,12 @@ describe('OfflineProjectElementsService', () => {
           },
         ];
 
-      const project2Elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+      const project2Elements: Element[] =
         [
           {
             id: 'p2-doc',
             name: 'Project 2 Doc',
-            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            type: ElementType.Item,
             parentId: null,
             level: 0,
             expandable: false,

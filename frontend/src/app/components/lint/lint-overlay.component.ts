@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { MatTooltipModule, TooltipPosition } from '@angular/material/tooltip';
 
-import { PostApiV1AiLint200ResponseCorrectionsInner } from '../../../api-client/model/post-api-v1-ai-lint200-response-corrections-inner';
+import { Correction } from '../../../api-client/model/correction';
 
 @Component({
   selector: 'app-lint-overlay',
@@ -55,7 +55,7 @@ import { PostApiV1AiLint200ResponseCorrectionsInner } from '../../../api-client/
 export class LintOverlayComponent implements OnInit, OnChanges {
   private elementRef = inject(ElementRef);
 
-  @Input() recommendations: PostApiV1AiLint200ResponseCorrectionsInner[] = [];
+  @Input() recommendations: Correction[] = [];
   @Input() position: TooltipPosition = 'below';
 
   tipContent = '';
@@ -64,12 +64,12 @@ export class LintOverlayComponent implements OnInit, OnChanges {
     // Listen for custom events for accept/reject actions
     document.addEventListener('lint-accept', (event: Event) => {
       const customEvent =
-        event as CustomEvent<PostApiV1AiLint200ResponseCorrectionsInner>;
+        event as CustomEvent<Correction>;
       this.handleAccept(customEvent);
     });
     document.addEventListener('lint-reject', (event: Event) => {
       const customEvent =
-        event as CustomEvent<PostApiV1AiLint200ResponseCorrectionsInner>;
+        event as CustomEvent<Correction>;
       this.handleReject(customEvent);
     });
   }
@@ -83,7 +83,7 @@ export class LintOverlayComponent implements OnInit, OnChanges {
   }
 
   private handleAccept(
-    event: CustomEvent<PostApiV1AiLint200ResponseCorrectionsInner>
+    event: CustomEvent<Correction>
   ): void {
     const correction = event.detail;
     if (correction) {
@@ -97,7 +97,7 @@ export class LintOverlayComponent implements OnInit, OnChanges {
   }
 
   private handleReject(
-    event: CustomEvent<PostApiV1AiLint200ResponseCorrectionsInner>
+    event: CustomEvent<Correction>
   ): void {
     const correction = event.detail;
     if (correction) {
