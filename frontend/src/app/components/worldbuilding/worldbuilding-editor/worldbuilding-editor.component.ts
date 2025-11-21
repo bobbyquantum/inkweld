@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '../../../../api-client';
+import { ElementType } from '../../../../api-client';
 import { DynamicWorldbuildingEditorComponent } from '../dynamic-worldbuilding-editor/dynamic-worldbuilding-editor.component';
 
 /**
@@ -20,7 +20,7 @@ export class WorldbuildingEditorComponent {
   // Input properties
   elementId = input.required<string>();
   elementType =
-    input.required<GetApiV1ProjectsUsernameSlugElements200ResponseInnerType>();
+    input.required<ElementType>();
   username = input<string>();
   slug = input<string>();
 }

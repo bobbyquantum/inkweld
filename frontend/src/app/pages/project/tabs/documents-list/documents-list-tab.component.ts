@@ -14,8 +14,8 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import {
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
-  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+  Element,
+  ElementType,
 } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
@@ -44,7 +44,7 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
   protected readonly DocumentSyncState = DocumentSyncState;
 
   // Use signals for reactive updates
-  documents = signal<GetApiV1ProjectsUsernameSlugElements200ResponseInner[]>(
+  documents = signal<Element[]>(
     []
   );
   isLoading = signal<boolean>(true);
@@ -65,7 +65,7 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
       elements.filter(
         element =>
           element.type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
+          ElementType.Item
       )
     );
     this.isLoading.set(false);
@@ -90,7 +90,7 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
       elements.filter(
         element =>
           element.type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
+          ElementType.Item
       )
     );
     this.isLoading.set(false);
@@ -148,23 +148,23 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
   }
 
   openDocumentAsHtml(
-    document: GetApiV1ProjectsUsernameSlugElements200ResponseInner
+    document: Element
   ): void {
     // Implement HTML preview functionality
     console.log('Opening document as HTML:', document);
   }
 
   openDocument(
-    document: GetApiV1ProjectsUsernameSlugElements200ResponseInner
+    document: Element
   ): void {
     this.projectState.openDocument(document);
   }
 
   createNewDocument(): void {
-    const newDocument: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
+    const newDocument: Element = {
       id: 'new',
       name: 'New Document',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
       parentId: null,
       level: 0,
       order: 0,

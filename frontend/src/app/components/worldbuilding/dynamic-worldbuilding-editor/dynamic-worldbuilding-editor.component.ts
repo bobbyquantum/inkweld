@@ -23,7 +23,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
 import { debounceTime } from 'rxjs';
 
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../../../api-client';
+import { Element } from '../../../../api-client';
 import { TemplateEditorDialogComponent } from '../../../dialogs/template-editor-dialog/template-editor-dialog.component';
 import {
   ElementTypeSchema,
@@ -121,7 +121,7 @@ export class DynamicWorldbuildingEditorComponent implements OnDestroy {
           // Find the element from project state to get its type
           const elements = this.projectState.elements();
           const element = elements.find(
-            (el: GetApiV1ProjectsUsernameSlugElements200ResponseInner) =>
+            (el: Element) =>
               el.id === elementId
           );
 

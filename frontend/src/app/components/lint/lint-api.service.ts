@@ -4,13 +4,13 @@ import { firstValueFrom } from 'rxjs';
 
 import { LintingService } from '../../../api-client/api/linting.service';
 import {
-  PostApiV1AiLintRequest,
-  PostApiV1AiLintRequestLevel,
-} from '../../../api-client/model/post-api-v1-ai-lint-request';
+  LintRequest,
+  LintRequestLevel,
+} from '../../../api-client/model/lint-request';
 import {
-  PostApiV1AiLint200Response,
-  PostApiV1AiLint200ResponseSource,
-} from '../../../api-client/model/post-api-v1-ai-lint200-response';
+  LintResponse,
+  LintResponseSource,
+} from '../../../api-client/model/lint-response';
 
 /**
  * Token to pass AbortSignal to the OpenAPI client
@@ -35,15 +35,15 @@ export class LintApiService {
    * @param text Paragraph text to lint
    * @param style Style guide to follow (default: 'default')
    * @param level Lint level (default: 'high')
-   * @returns PostApiV1AiLint200Response with corrections
+   * @returns LintResponse with corrections
    */
   async run(
     text: string,
     style = 'default',
-    level: PostApiV1AiLintRequestLevel = PostApiV1AiLintRequestLevel.High
-  ): Promise<PostApiV1AiLint200Response> {
+    level: LintRequestLevel = LintRequestLevel.High
+  ): Promise<LintResponse> {
     const signal = AbortSignal.timeout(this.timeout);
-    const request: PostApiV1AiLintRequest = {
+    const request: LintRequest = {
       paragraph: text,
       style,
       level,
@@ -51,7 +51,7 @@ export class LintApiService {
     try {
       const context = new HttpContext().set(ABORT_SIGNAL, signal);
       return await firstValueFrom(
-        this.lintService.postApiV1AiLint(request, 'body', false, {
+        this.lintService.lintParagraph(request, 'body', false, {
           context,
         })
       );
@@ -61,7 +61,7 @@ export class LintApiService {
         originalParagraph: text,
         corrections: [],
         styleRecommendations: [],
-        source: PostApiV1AiLint200ResponseSource.Openai,
+        source: LintResponseSource.Openai,
       };
     }
   }

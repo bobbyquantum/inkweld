@@ -29,8 +29,8 @@ import {
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import {
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
-  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+  Element,
+  ElementType,
   Project,
 } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
@@ -284,7 +284,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onDocumentOpened = (
-    element: GetApiV1ProjectsUsernameSlugElements200ResponseInner
+    element: Element
   ) => {
     this.projectState.openDocument(element);
     if (this.isMobile()) {
@@ -295,7 +295,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     if (project) {
       const typeRoute =
         element.type ===
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder
+        ElementType.Folder
           ? 'folder'
           : 'document';
       void this.router.navigate([

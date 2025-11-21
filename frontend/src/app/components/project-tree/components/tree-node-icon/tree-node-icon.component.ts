@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
+import { ElementType } from '@inkweld/index';
 
 @Component({
   selector: 'app-tree-node-icon',
@@ -34,7 +34,7 @@ export class TreeNodeIconComponent {
       ['CULTURE']: 'groups',
       ['SPECIES']: 'pets',
       ['SYSTEMS']: 'settings',
-      [GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item]:
+      [ElementType.Item]:
         'description',
       IMAGE: 'image', // Legacy type not in enum
     };

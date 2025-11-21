@@ -1,10 +1,10 @@
-import { PostApiV1AiLint200ResponseCorrectionsInner } from '../../../api-client/model/post-api-v1-ai-lint200-response-corrections-inner';
+import { Correction } from '../../../api-client/model/correction';
 
 /**
  * Extended correction interface for internal use in the lint system
  */
 export interface ExtendedCorrectionDto
-  extends PostApiV1AiLint200ResponseCorrectionsInner {
+  extends Correction {
   /**
    * The text content that this correction applies to
    */

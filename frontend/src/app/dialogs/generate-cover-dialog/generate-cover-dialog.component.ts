@@ -11,7 +11,7 @@ import { Project } from '@inkweld/index';
 import { catchError, finalize, of } from 'rxjs';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
-import { PostApiV1AiImageGenerate200Response } from '../../../api-client/model/post-api-v1-ai-image-generate200-response';
+import { ImageResponse } from '../../../api-client/model/image-response';
 
 export interface GenerateCoverDialogData {
   project: Project;
@@ -67,7 +67,7 @@ export class GenerateCoverDialogComponent implements OnInit {
 
     // For now, the API doesn't accept a body parameter due to incorrect spec generation
     this.aiImageService
-      .postApiV1AiImageGenerate()
+      .generateAIImage()
       .pipe(
         catchError((error: unknown) => {
           console.error('Error generating image:', error);
@@ -79,7 +79,7 @@ export class GenerateCoverDialogComponent implements OnInit {
           this.loading = false;
         })
       )
-      .subscribe((response: PostApiV1AiImageGenerate200Response | null) => {
+      .subscribe((response: ImageResponse | null) => {
         if (response && response.data && response.data.length > 0) {
           if (response.data[0].url) {
             this.imageUrl = response.data[0].url;

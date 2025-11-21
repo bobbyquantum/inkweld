@@ -30,8 +30,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { Router } from '@angular/router';
 import {
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
-  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+  Element,
+  ElementType,
 } from '@inkweld/index';
 import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
@@ -134,7 +134,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
   private touchTimeout: number | null = null;
 
   @Output() documentOpened =
-    new EventEmitter<GetApiV1ProjectsUsernameSlugElements200ResponseInner>();
+    new EventEmitter<Element>();
 
   constructor() {
     this.dataSource = new ArrayDataSource<ProjectElement>([]);
@@ -484,8 +484,8 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
    * @param node The node to open.
    */
   public onOpenDocument(node: ProjectElement) {
-    // Convert ProjectElement back to GetApiV1ProjectsUsernameSlugElements200ResponseInner
-    const dto: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
+    // Convert ProjectElement back to Element
+    const dto: Element = {
       id: node.id ?? '',
       name: node.name,
       type: node.type,
@@ -505,7 +505,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
       let typeRoute: string;
       if (
         dto.type ===
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder
+        ElementType.Folder
       ) {
         typeRoute = 'folder';
       } else if (isWorldbuildingType(dto.type)) {
