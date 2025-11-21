@@ -1,10 +1,8 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
+import { ImagesService, Project, ProjectsService } from '@inkweld/index';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
-import { ImagesService } from '../../api-client/api/images.service';
-import { ProjectsService } from '../../api-client/api/projects.service';
-import { Project } from '../../api-client/model/project';
 import { StorageService } from './storage.service';
 import { XsrfService } from './xsrf.service';
 
@@ -175,7 +173,7 @@ export class ProjectService {
 
       // No cache available, fetch from API with retry mechanism
       // Note: API client incorrectly types this as DocumentSnapshot[] but it actually returns Project
-      const project = (await firstValueFrom(
+      const project = await firstValueFrom(
         this.projectApi.getApiV1ProjectsUsernameSlug(username, slug).pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
@@ -184,7 +182,7 @@ export class ProjectService {
             return throwError(() => projectError);
           })
         )
-      )) as unknown as Project;
+      );
 
       if (project) {
         // Cache the individual project
@@ -216,7 +214,7 @@ export class ProjectService {
 
     try {
       // Note: API client incorrectly types this as DocumentSnapshot[] but it actually returns Project
-      const project = (await firstValueFrom(
+      const project = await firstValueFrom(
         this.projectApi.getApiV1ProjectsUsernameSlug(username, slug).pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
@@ -228,7 +226,7 @@ export class ProjectService {
             return throwError(() => error); // Or return EMPTY
           })
         )
-      )) as unknown as Project;
+      );
 
       if (project) {
         // Update the cache with fresh data

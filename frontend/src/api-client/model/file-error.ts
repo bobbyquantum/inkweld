@@ -9,14 +9,10 @@
  */
 
 
-export interface GetApiV1AiLintStatus200Response { 
+export interface FileError { 
     /**
-     * Whether AI linting is enabled
+     * Error message
      */
-    enabled: boolean;
-    /**
-     * The AI service being used
-     */
-    service: string;
+    error: string;
 }
 

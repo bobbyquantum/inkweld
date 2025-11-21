@@ -277,7 +277,7 @@ export class WorldbuildingService {
     console.log(
       `[WorldbuildingService] Looking for schema: projectKey="${projectKey}", elementType="${element.type}"`
     );
-    
+
     // Check if schema library is empty and auto-load defaults if needed
     let schema = await this.getSchemaFromLibrary(
       projectKey,
@@ -285,7 +285,7 @@ export class WorldbuildingService {
       username,
       slug
     );
-    
+
     // If schema not found, check if library is empty and auto-initialize
     if (!schema && username && slug) {
       const libraryIsEmpty = await this.isSchemaLibraryEmpty(
@@ -293,13 +293,13 @@ export class WorldbuildingService {
         username,
         slug
       );
-      
+
       if (libraryIsEmpty) {
         console.log(
           `[WorldbuildingService] Schema library is empty, auto-loading default templates`
         );
         await this.autoLoadDefaultTemplates(projectKey, username, slug);
-        
+
         // Try to get schema again after loading defaults
         schema = await this.getSchemaFromLibrary(
           projectKey,
@@ -309,7 +309,7 @@ export class WorldbuildingService {
         );
       }
     }
-    
+
     console.log(
       `[WorldbuildingService] Schema lookup result:`,
       schema ? `Found ${schema.name} (v${schema.version})` : 'NOT FOUND'
@@ -788,11 +788,11 @@ export class WorldbuildingService {
   ): Promise<boolean> {
     const library = await this.loadSchemaLibrary(projectKey, username, slug);
     const schemasMap = library.get('schemas') as Y.Map<unknown>;
-    
+
     if (!schemasMap) {
       return true;
     }
-    
+
     return schemasMap.size === 0;
   }
 

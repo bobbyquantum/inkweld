@@ -17,9 +17,9 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
-import { GetApiV1ProjectsUsernameSlugDocs200ResponseInner } from '../model/get-api-v1-projects-username-slug-docs200-response-inner';
+import { Document } from '../model/document';
 // @ts-ignore
-import { GetApiV1ProjectsUsernameSlugDocs401Response } from '../model/get-api-v1-projects-username-slug-docs401-response';
+import { DocumentError } from '../model/document-error';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -38,22 +38,25 @@ export class DocumentsService extends BaseService {
     }
 
     /**
-     * List all documents in a project
-     * @endpoint get /api/v1/projects/{username}/{slug}/docs
-     * @param username 
-     * @param slug 
+     * @endpoint get /api/v1/projects/:username/:slug/docs/:docId
+     * @param username Username
+     * @param slug Project slug
+     * @param docId Document ID
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getApiV1ProjectsUsernameSlugDocs(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<GetApiV1ProjectsUsernameSlugDocs200ResponseInner>>;
-    public getApiV1ProjectsUsernameSlugDocs(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<GetApiV1ProjectsUsernameSlugDocs200ResponseInner>>>;
-    public getApiV1ProjectsUsernameSlugDocs(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<GetApiV1ProjectsUsernameSlugDocs200ResponseInner>>>;
-    public getApiV1ProjectsUsernameSlugDocs(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public getProjectDocument(username: string, slug: string, docId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Document>;
+    public getProjectDocument(username: string, slug: string, docId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Document>>;
+    public getProjectDocument(username: string, slug: string, docId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Document>>;
+    public getProjectDocument(username: string, slug: string, docId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling getApiV1ProjectsUsernameSlugDocs.');
+            throw new Error('Required parameter username was null or undefined when calling getProjectDocument.');
         }
         if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling getApiV1ProjectsUsernameSlugDocs.');
+            throw new Error('Required parameter slug was null or undefined when calling getProjectDocument.');
+        }
+        if (docId === null || docId === undefined) {
+            throw new Error('Required parameter docId was null or undefined when calling getProjectDocument.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -81,9 +84,9 @@ export class DocumentsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/docs`;
+        let localVarPath = `/api/v1/projects/:username/:slug/docs/:docId`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<Array<GetApiV1ProjectsUsernameSlugDocs200ResponseInner>>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<Document>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -97,26 +100,21 @@ export class DocumentsService extends BaseService {
     }
 
     /**
-     * Get document metadata
-     * @endpoint get /api/v1/projects/{username}/{slug}/docs/{docId}
-     * @param username 
-     * @param slug 
-     * @param docId 
+     * @endpoint get /api/v1/projects/:username/:slug/docs
+     * @param username Username
+     * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getApiV1ProjectsUsernameSlugDocsDocId(username: string, slug: string, docId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetApiV1ProjectsUsernameSlugDocs200ResponseInner>;
-    public getApiV1ProjectsUsernameSlugDocsDocId(username: string, slug: string, docId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetApiV1ProjectsUsernameSlugDocs200ResponseInner>>;
-    public getApiV1ProjectsUsernameSlugDocsDocId(username: string, slug: string, docId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetApiV1ProjectsUsernameSlugDocs200ResponseInner>>;
-    public getApiV1ProjectsUsernameSlugDocsDocId(username: string, slug: string, docId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public listProjectDocuments(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<Document>>;
+    public listProjectDocuments(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<Document>>>;
+    public listProjectDocuments(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<Document>>>;
+    public listProjectDocuments(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling getApiV1ProjectsUsernameSlugDocsDocId.');
+            throw new Error('Required parameter username was null or undefined when calling listProjectDocuments.');
         }
         if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling getApiV1ProjectsUsernameSlugDocsDocId.');
-        }
-        if (docId === null || docId === undefined) {
-            throw new Error('Required parameter docId was null or undefined when calling getApiV1ProjectsUsernameSlugDocsDocId.');
+            throw new Error('Required parameter slug was null or undefined when calling listProjectDocuments.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -144,9 +142,9 @@ export class DocumentsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/docs/${this.configuration.encodeParam({name: "docId", value: docId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/projects/:username/:slug/docs`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<GetApiV1ProjectsUsernameSlugDocs200ResponseInner>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<Array<Document>>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -160,26 +158,25 @@ export class DocumentsService extends BaseService {
     }
 
     /**
-     * Render document as HTML
-     * @endpoint get /api/v1/projects/{username}/{slug}/docs/{docId}/html
-     * @param username 
-     * @param slug 
-     * @param docId 
+     * @endpoint get /api/v1/projects/:username/:slug/docs/:docId/html
+     * @param username Username
+     * @param slug Project slug
+     * @param docId Document ID
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getApiV1ProjectsUsernameSlugDocsDocIdHtml(username: string, slug: string, docId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/html' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<string>;
-    public getApiV1ProjectsUsernameSlugDocsDocIdHtml(username: string, slug: string, docId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/html' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<string>>;
-    public getApiV1ProjectsUsernameSlugDocsDocIdHtml(username: string, slug: string, docId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/html' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<string>>;
-    public getApiV1ProjectsUsernameSlugDocsDocIdHtml(username: string, slug: string, docId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/html' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public renderDocumentAsHtml(username: string, slug: string, docId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/html' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<string>;
+    public renderDocumentAsHtml(username: string, slug: string, docId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/html' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<string>>;
+    public renderDocumentAsHtml(username: string, slug: string, docId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/html' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<string>>;
+    public renderDocumentAsHtml(username: string, slug: string, docId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/html' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling getApiV1ProjectsUsernameSlugDocsDocIdHtml.');
+            throw new Error('Required parameter username was null or undefined when calling renderDocumentAsHtml.');
         }
         if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling getApiV1ProjectsUsernameSlugDocsDocIdHtml.');
+            throw new Error('Required parameter slug was null or undefined when calling renderDocumentAsHtml.');
         }
         if (docId === null || docId === undefined) {
-            throw new Error('Required parameter docId was null or undefined when calling getApiV1ProjectsUsernameSlugDocsDocIdHtml.');
+            throw new Error('Required parameter docId was null or undefined when calling renderDocumentAsHtml.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -208,7 +205,7 @@ export class DocumentsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/docs/${this.configuration.encodeParam({name: "docId", value: docId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/html`;
+        let localVarPath = `/api/v1/projects/:username/:slug/docs/:docId/html`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<string>('get', `${basePath}${localVarPath}`,
             {

@@ -17,9 +17,9 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
-import { GetApiV1Health200Response } from '../model/get-api-v1-health200-response';
+import { HealthResponse } from '../model/health-response';
 // @ts-ignore
-import { GetApiV1HealthReady200Response } from '../model/get-api-v1-health-ready200-response';
+import { ReadyResponse } from '../model/ready-response';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -38,15 +38,14 @@ export class HealthService extends BaseService {
     }
 
     /**
-     * Returns the health status of the API server
      * @endpoint get /api/v1/health
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getApiV1Health(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetApiV1Health200Response>;
-    public getApiV1Health(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetApiV1Health200Response>>;
-    public getApiV1Health(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetApiV1Health200Response>>;
-    public getApiV1Health(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public checkHealth(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HealthResponse>;
+    public checkHealth(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<HealthResponse>>;
+    public checkHealth(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<HealthResponse>>;
+    public checkHealth(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -75,7 +74,7 @@ export class HealthService extends BaseService {
 
         let localVarPath = `/api/v1/health`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<GetApiV1Health200Response>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<HealthResponse>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -89,15 +88,14 @@ export class HealthService extends BaseService {
     }
 
     /**
-     * Returns the readiness status of the API server
      * @endpoint get /api/v1/health/ready
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getApiV1HealthReady(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<GetApiV1HealthReady200Response>;
-    public getApiV1HealthReady(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<GetApiV1HealthReady200Response>>;
-    public getApiV1HealthReady(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<GetApiV1HealthReady200Response>>;
-    public getApiV1HealthReady(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public checkReadiness(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ReadyResponse>;
+    public checkReadiness(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ReadyResponse>>;
+    public checkReadiness(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ReadyResponse>>;
+    public checkReadiness(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -126,7 +124,7 @@ export class HealthService extends BaseService {
 
         let localVarPath = `/api/v1/health/ready`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<GetApiV1HealthReady200Response>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<ReadyResponse>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

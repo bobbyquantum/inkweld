@@ -17,13 +17,13 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
-import { GetApiV1ProjectsUsernameSlugDocs401Response } from '../model/get-api-v1-projects-username-slug-docs401-response';
+import { DeleteResponse } from '../model/delete-response';
 // @ts-ignore
-import { GetApiV1ProjectsUsernameSlugFiles200ResponseInner } from '../model/get-api-v1-projects-username-slug-files200-response-inner';
+import { FileError } from '../model/file-error';
 // @ts-ignore
-import { PostApiV1ProjectsUsernameSlugFiles200Response } from '../model/post-api-v1-projects-username-slug-files200-response';
+import { ProjectFile } from '../model/project-file';
 // @ts-ignore
-import { PostApiV1UsersAvatar200Response } from '../model/post-api-v1-users-avatar200-response';
+import { UploadResponse } from '../model/upload-response';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -42,26 +42,25 @@ export class FilesService extends BaseService {
     }
 
     /**
-     * Delete a file from the project
-     * @endpoint delete /api/v1/projects/{username}/{slug}/files/{storedName}
-     * @param username 
-     * @param slug 
-     * @param storedName 
+     * @endpoint delete /api/v1/projects/:username/:slug/files/:storedName
+     * @param username Username
+     * @param slug Project slug
+     * @param storedName File name
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public deleteApiV1ProjectsUsernameSlugFilesStoredName(username: string, slug: string, storedName: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PostApiV1UsersAvatar200Response>;
-    public deleteApiV1ProjectsUsernameSlugFilesStoredName(username: string, slug: string, storedName: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PostApiV1UsersAvatar200Response>>;
-    public deleteApiV1ProjectsUsernameSlugFilesStoredName(username: string, slug: string, storedName: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PostApiV1UsersAvatar200Response>>;
-    public deleteApiV1ProjectsUsernameSlugFilesStoredName(username: string, slug: string, storedName: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public deleteProjectFile(username: string, slug: string, storedName: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<DeleteResponse>;
+    public deleteProjectFile(username: string, slug: string, storedName: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<DeleteResponse>>;
+    public deleteProjectFile(username: string, slug: string, storedName: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<DeleteResponse>>;
+    public deleteProjectFile(username: string, slug: string, storedName: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling deleteApiV1ProjectsUsernameSlugFilesStoredName.');
+            throw new Error('Required parameter username was null or undefined when calling deleteProjectFile.');
         }
         if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling deleteApiV1ProjectsUsernameSlugFilesStoredName.');
+            throw new Error('Required parameter slug was null or undefined when calling deleteProjectFile.');
         }
         if (storedName === null || storedName === undefined) {
-            throw new Error('Required parameter storedName was null or undefined when calling deleteApiV1ProjectsUsernameSlugFilesStoredName.');
+            throw new Error('Required parameter storedName was null or undefined when calling deleteProjectFile.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -89,9 +88,9 @@ export class FilesService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/files/${this.configuration.encodeParam({name: "storedName", value: storedName, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/projects/:username/:slug/files/:storedName`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<PostApiV1UsersAvatar200Response>('delete', `${basePath}${localVarPath}`,
+        return this.httpClient.request<DeleteResponse>('delete', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -105,85 +104,25 @@ export class FilesService extends BaseService {
     }
 
     /**
-     * List all files in a project
-     * @endpoint get /api/v1/projects/{username}/{slug}/files
-     * @param username 
-     * @param slug 
+     * @endpoint get /api/v1/projects/:username/:slug/files/:storedName
+     * @param username Username
+     * @param slug Project slug
+     * @param storedName File name
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getApiV1ProjectsUsernameSlugFiles(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<GetApiV1ProjectsUsernameSlugFiles200ResponseInner>>;
-    public getApiV1ProjectsUsernameSlugFiles(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<GetApiV1ProjectsUsernameSlugFiles200ResponseInner>>>;
-    public getApiV1ProjectsUsernameSlugFiles(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<GetApiV1ProjectsUsernameSlugFiles200ResponseInner>>>;
-    public getApiV1ProjectsUsernameSlugFiles(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public downloadProjectFile(username: string, slug: string, storedName: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Blob>;
+    public downloadProjectFile(username: string, slug: string, storedName: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Blob>>;
+    public downloadProjectFile(username: string, slug: string, storedName: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Blob>>;
+    public downloadProjectFile(username: string, slug: string, storedName: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling getApiV1ProjectsUsernameSlugFiles.');
+            throw new Error('Required parameter username was null or undefined when calling downloadProjectFile.');
         }
         if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling getApiV1ProjectsUsernameSlugFiles.');
-        }
-
-        let localVarHeaders = this.defaultHeaders;
-
-        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
-            'application/json'
-        ]);
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
-
-        const localVarTransferCache: boolean = options?.transferCache ?? true;
-
-
-        let responseType_: 'text' | 'json' | 'blob' = 'json';
-        if (localVarHttpHeaderAcceptSelected) {
-            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
-                responseType_ = 'text';
-            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
-                responseType_ = 'json';
-            } else {
-                responseType_ = 'blob';
-            }
-        }
-
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/files`;
-        const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<Array<GetApiV1ProjectsUsernameSlugFiles200ResponseInner>>('get', `${basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                responseType: <any>responseType_,
-                ...(withCredentials ? { withCredentials } : {}),
-                headers: localVarHeaders,
-                observe: observe,
-                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
-                reportProgress: reportProgress
-            }
-        );
-    }
-
-    /**
-     * Download a file from the project
-     * @endpoint get /api/v1/projects/{username}/{slug}/files/{storedName}
-     * @param username 
-     * @param slug 
-     * @param storedName 
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     */
-    public getApiV1ProjectsUsernameSlugFilesStoredName(username: string, slug: string, storedName: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Blob>;
-    public getApiV1ProjectsUsernameSlugFilesStoredName(username: string, slug: string, storedName: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Blob>>;
-    public getApiV1ProjectsUsernameSlugFilesStoredName(username: string, slug: string, storedName: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Blob>>;
-    public getApiV1ProjectsUsernameSlugFilesStoredName(username: string, slug: string, storedName: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/octet-stream' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling getApiV1ProjectsUsernameSlugFilesStoredName.');
-        }
-        if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling getApiV1ProjectsUsernameSlugFilesStoredName.');
+            throw new Error('Required parameter slug was null or undefined when calling downloadProjectFile.');
         }
         if (storedName === null || storedName === undefined) {
-            throw new Error('Required parameter storedName was null or undefined when calling getApiV1ProjectsUsernameSlugFilesStoredName.');
+            throw new Error('Required parameter storedName was null or undefined when calling downloadProjectFile.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -201,7 +140,7 @@ export class FilesService extends BaseService {
         const localVarTransferCache: boolean = options?.transferCache ?? true;
 
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/files/${this.configuration.encodeParam({name: "storedName", value: storedName, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/projects/:username/:slug/files/:storedName`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request('get', `${basePath}${localVarPath}`,
             {
@@ -217,22 +156,21 @@ export class FilesService extends BaseService {
     }
 
     /**
-     * Upload a file to the project
-     * @endpoint post /api/v1/projects/{username}/{slug}/files
-     * @param username 
-     * @param slug 
+     * @endpoint get /api/v1/projects/:username/:slug/files
+     * @param username Username
+     * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public postApiV1ProjectsUsernameSlugFiles(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PostApiV1ProjectsUsernameSlugFiles200Response>;
-    public postApiV1ProjectsUsernameSlugFiles(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PostApiV1ProjectsUsernameSlugFiles200Response>>;
-    public postApiV1ProjectsUsernameSlugFiles(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PostApiV1ProjectsUsernameSlugFiles200Response>>;
-    public postApiV1ProjectsUsernameSlugFiles(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public listProjectFiles(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<ProjectFile>>;
+    public listProjectFiles(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<ProjectFile>>>;
+    public listProjectFiles(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<ProjectFile>>>;
+    public listProjectFiles(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling postApiV1ProjectsUsernameSlugFiles.');
+            throw new Error('Required parameter username was null or undefined when calling listProjectFiles.');
         }
         if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling postApiV1ProjectsUsernameSlugFiles.');
+            throw new Error('Required parameter slug was null or undefined when calling listProjectFiles.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -260,9 +198,67 @@ export class FilesService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/files`;
+        let localVarPath = `/api/v1/projects/:username/:slug/files`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<PostApiV1ProjectsUsernameSlugFiles200Response>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<Array<ProjectFile>>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * @endpoint post /api/v1/projects/:username/:slug/files
+     * @param username Username
+     * @param slug Project slug
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public uploadProjectFile(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<UploadResponse>;
+    public uploadProjectFile(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<UploadResponse>>;
+    public uploadProjectFile(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<UploadResponse>>;
+    public uploadProjectFile(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (username === null || username === undefined) {
+            throw new Error('Required parameter username was null or undefined when calling uploadProjectFile.');
+        }
+        if (slug === null || slug === undefined) {
+            throw new Error('Required parameter slug was null or undefined when calling uploadProjectFile.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/projects/:username/:slug/files`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<UploadResponse>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

@@ -9,10 +9,14 @@
  */
 
 
-export interface PostApiV1UsersAvatar200Response { 
+export interface AIImageStatus { 
     /**
-     * Success message
+     * Whether AI image generation is enabled
      */
-    message: string;
+    enabled: boolean;
+    /**
+     * The AI service being used
+     */
+    service: string;
 }
 

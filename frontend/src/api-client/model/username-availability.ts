@@ -7,18 +7,16 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { User } from './user';
 
 
-export interface LoginResponse { 
+export interface UsernameAvailability { 
     /**
-     * Login status message
+     * Whether username is available
      */
-    message?: string;
-    user: User;
+    available: boolean;
     /**
-     * JWT authentication token
+     * Alternative suggestions
      */
-    token: string;
+    suggestions: Array<string>;
 }
 

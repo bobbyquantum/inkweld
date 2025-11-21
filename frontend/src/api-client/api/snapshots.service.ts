@@ -25,6 +25,8 @@ import { ErrorResponse } from '../model/error-response';
 // @ts-ignore
 import { MessageResponse } from '../model/message-response';
 // @ts-ignore
+import { RestoreResponse } from '../model/restore-response';
+// @ts-ignore
 import { SnapshotWithContent } from '../model/snapshot-with-content';
 
 // @ts-ignore
@@ -44,271 +46,22 @@ export class SnapshotsService extends BaseService {
     }
 
     /**
-     * Delete a snapshot from the project
-     * @endpoint delete /api/v1/snapshots/{username}/{slug}/{snapshotId}
-     * @param username 
-     * @param slug 
-     * @param snapshotId 
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     */
-    public deleteApiV1SnapshotsUsernameSlugSnapshotId(username: string, slug: string, snapshotId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<MessageResponse>;
-    public deleteApiV1SnapshotsUsernameSlugSnapshotId(username: string, slug: string, snapshotId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<MessageResponse>>;
-    public deleteApiV1SnapshotsUsernameSlugSnapshotId(username: string, slug: string, snapshotId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<MessageResponse>>;
-    public deleteApiV1SnapshotsUsernameSlugSnapshotId(username: string, slug: string, snapshotId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling deleteApiV1SnapshotsUsernameSlugSnapshotId.');
-        }
-        if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling deleteApiV1SnapshotsUsernameSlugSnapshotId.');
-        }
-        if (snapshotId === null || snapshotId === undefined) {
-            throw new Error('Required parameter snapshotId was null or undefined when calling deleteApiV1SnapshotsUsernameSlugSnapshotId.');
-        }
-
-        let localVarHeaders = this.defaultHeaders;
-
-        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
-            'application/json'
-        ]);
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
-
-        const localVarTransferCache: boolean = options?.transferCache ?? true;
-
-
-        let responseType_: 'text' | 'json' | 'blob' = 'json';
-        if (localVarHttpHeaderAcceptSelected) {
-            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
-                responseType_ = 'text';
-            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
-                responseType_ = 'json';
-            } else {
-                responseType_ = 'blob';
-            }
-        }
-
-        let localVarPath = `/api/v1/snapshots/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "snapshotId", value: snapshotId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
-        const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<MessageResponse>('delete', `${basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                responseType: <any>responseType_,
-                ...(withCredentials ? { withCredentials } : {}),
-                headers: localVarHeaders,
-                observe: observe,
-                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
-                reportProgress: reportProgress
-            }
-        );
-    }
-
-    /**
-     * Get all snapshots for a project
-     * @endpoint get /api/v1/snapshots/{username}/{slug}
-     * @param username 
-     * @param slug 
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     */
-    public getApiV1SnapshotsUsernameSlug(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<DocumentSnapshot>>;
-    public getApiV1SnapshotsUsernameSlug(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<DocumentSnapshot>>>;
-    public getApiV1SnapshotsUsernameSlug(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<DocumentSnapshot>>>;
-    public getApiV1SnapshotsUsernameSlug(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling getApiV1SnapshotsUsernameSlug.');
-        }
-        if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling getApiV1SnapshotsUsernameSlug.');
-        }
-
-        let localVarHeaders = this.defaultHeaders;
-
-        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
-            'application/json'
-        ]);
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
-
-        const localVarTransferCache: boolean = options?.transferCache ?? true;
-
-
-        let responseType_: 'text' | 'json' | 'blob' = 'json';
-        if (localVarHttpHeaderAcceptSelected) {
-            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
-                responseType_ = 'text';
-            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
-                responseType_ = 'json';
-            } else {
-                responseType_ = 'blob';
-            }
-        }
-
-        let localVarPath = `/api/v1/snapshots/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
-        const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<Array<DocumentSnapshot>>('get', `${basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                responseType: <any>responseType_,
-                ...(withCredentials ? { withCredentials } : {}),
-                headers: localVarHeaders,
-                observe: observe,
-                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
-                reportProgress: reportProgress
-            }
-        );
-    }
-
-    /**
-     * Get a specific snapshot with full document state
-     * @endpoint get /api/v1/snapshots/{username}/{slug}/{snapshotId}
-     * @param username 
-     * @param slug 
-     * @param snapshotId 
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     */
-    public getApiV1SnapshotsUsernameSlugSnapshotId(username: string, slug: string, snapshotId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<SnapshotWithContent>;
-    public getApiV1SnapshotsUsernameSlugSnapshotId(username: string, slug: string, snapshotId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<SnapshotWithContent>>;
-    public getApiV1SnapshotsUsernameSlugSnapshotId(username: string, slug: string, snapshotId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<SnapshotWithContent>>;
-    public getApiV1SnapshotsUsernameSlugSnapshotId(username: string, slug: string, snapshotId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling getApiV1SnapshotsUsernameSlugSnapshotId.');
-        }
-        if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling getApiV1SnapshotsUsernameSlugSnapshotId.');
-        }
-        if (snapshotId === null || snapshotId === undefined) {
-            throw new Error('Required parameter snapshotId was null or undefined when calling getApiV1SnapshotsUsernameSlugSnapshotId.');
-        }
-
-        let localVarHeaders = this.defaultHeaders;
-
-        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
-            'application/json'
-        ]);
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
-
-        const localVarTransferCache: boolean = options?.transferCache ?? true;
-
-
-        let responseType_: 'text' | 'json' | 'blob' = 'json';
-        if (localVarHttpHeaderAcceptSelected) {
-            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
-                responseType_ = 'text';
-            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
-                responseType_ = 'json';
-            } else {
-                responseType_ = 'blob';
-            }
-        }
-
-        let localVarPath = `/api/v1/snapshots/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "snapshotId", value: snapshotId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
-        const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<SnapshotWithContent>('get', `${basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                responseType: <any>responseType_,
-                ...(withCredentials ? { withCredentials } : {}),
-                headers: localVarHeaders,
-                observe: observe,
-                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
-                reportProgress: reportProgress
-            }
-        );
-    }
-
-    /**
-     * Get a preview of the snapshot content
-     * @endpoint get /api/v1/snapshots/{username}/{slug}/{snapshotId}/preview
-     * @param username 
-     * @param slug 
-     * @param snapshotId 
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     */
-    public getApiV1SnapshotsUsernameSlugSnapshotIdPreview(username: string, slug: string, snapshotId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<SnapshotWithContent>;
-    public getApiV1SnapshotsUsernameSlugSnapshotIdPreview(username: string, slug: string, snapshotId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<SnapshotWithContent>>;
-    public getApiV1SnapshotsUsernameSlugSnapshotIdPreview(username: string, slug: string, snapshotId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<SnapshotWithContent>>;
-    public getApiV1SnapshotsUsernameSlugSnapshotIdPreview(username: string, slug: string, snapshotId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling getApiV1SnapshotsUsernameSlugSnapshotIdPreview.');
-        }
-        if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling getApiV1SnapshotsUsernameSlugSnapshotIdPreview.');
-        }
-        if (snapshotId === null || snapshotId === undefined) {
-            throw new Error('Required parameter snapshotId was null or undefined when calling getApiV1SnapshotsUsernameSlugSnapshotIdPreview.');
-        }
-
-        let localVarHeaders = this.defaultHeaders;
-
-        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
-            'application/json'
-        ]);
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
-
-        const localVarTransferCache: boolean = options?.transferCache ?? true;
-
-
-        let responseType_: 'text' | 'json' | 'blob' = 'json';
-        if (localVarHttpHeaderAcceptSelected) {
-            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
-                responseType_ = 'text';
-            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
-                responseType_ = 'json';
-            } else {
-                responseType_ = 'blob';
-            }
-        }
-
-        let localVarPath = `/api/v1/snapshots/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "snapshotId", value: snapshotId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/preview`;
-        const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<SnapshotWithContent>('get', `${basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                responseType: <any>responseType_,
-                ...(withCredentials ? { withCredentials } : {}),
-                headers: localVarHeaders,
-                observe: observe,
-                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
-                reportProgress: reportProgress
-            }
-        );
-    }
-
-    /**
-     * Create a new snapshot for a document in the project
-     * @endpoint post /api/v1/snapshots/{username}/{slug}
-     * @param username 
-     * @param slug 
+     * @endpoint post /api/v1/snapshots/:username/:slug
+     * @param username Username
+     * @param slug Project slug
      * @param createSnapshotRequest 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public postApiV1SnapshotsUsernameSlug(username: string, slug: string, createSnapshotRequest?: CreateSnapshotRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<DocumentSnapshot>;
-    public postApiV1SnapshotsUsernameSlug(username: string, slug: string, createSnapshotRequest?: CreateSnapshotRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<DocumentSnapshot>>;
-    public postApiV1SnapshotsUsernameSlug(username: string, slug: string, createSnapshotRequest?: CreateSnapshotRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<DocumentSnapshot>>;
-    public postApiV1SnapshotsUsernameSlug(username: string, slug: string, createSnapshotRequest?: CreateSnapshotRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public createProjectSnapshot(username: string, slug: string, createSnapshotRequest?: CreateSnapshotRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<DocumentSnapshot>;
+    public createProjectSnapshot(username: string, slug: string, createSnapshotRequest?: CreateSnapshotRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<DocumentSnapshot>>;
+    public createProjectSnapshot(username: string, slug: string, createSnapshotRequest?: CreateSnapshotRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<DocumentSnapshot>>;
+    public createProjectSnapshot(username: string, slug: string, createSnapshotRequest?: CreateSnapshotRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling postApiV1SnapshotsUsernameSlug.');
+            throw new Error('Required parameter username was null or undefined when calling createProjectSnapshot.');
         }
         if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling postApiV1SnapshotsUsernameSlug.');
+            throw new Error('Required parameter slug was null or undefined when calling createProjectSnapshot.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -345,7 +98,7 @@ export class SnapshotsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/snapshots/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        let localVarPath = `/api/v1/snapshots/:username/:slug`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<DocumentSnapshot>('post', `${basePath}${localVarPath}`,
             {
@@ -362,26 +115,25 @@ export class SnapshotsService extends BaseService {
     }
 
     /**
-     * Restore a document from a snapshot
-     * @endpoint post /api/v1/snapshots/{username}/{slug}/{snapshotId}/restore
-     * @param username 
-     * @param slug 
-     * @param snapshotId 
+     * @endpoint delete /api/v1/snapshots/:username/:slug/:snapshotId
+     * @param username Username
+     * @param slug Project slug
+     * @param snapshotId Snapshot ID
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public postApiV1SnapshotsUsernameSlugSnapshotIdRestore(username: string, slug: string, snapshotId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<MessageResponse>;
-    public postApiV1SnapshotsUsernameSlugSnapshotIdRestore(username: string, slug: string, snapshotId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<MessageResponse>>;
-    public postApiV1SnapshotsUsernameSlugSnapshotIdRestore(username: string, slug: string, snapshotId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<MessageResponse>>;
-    public postApiV1SnapshotsUsernameSlugSnapshotIdRestore(username: string, slug: string, snapshotId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public deleteProjectSnapshot(username: string, slug: string, snapshotId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<MessageResponse>;
+    public deleteProjectSnapshot(username: string, slug: string, snapshotId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<MessageResponse>>;
+    public deleteProjectSnapshot(username: string, slug: string, snapshotId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<MessageResponse>>;
+    public deleteProjectSnapshot(username: string, slug: string, snapshotId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling postApiV1SnapshotsUsernameSlugSnapshotIdRestore.');
+            throw new Error('Required parameter username was null or undefined when calling deleteProjectSnapshot.');
         }
         if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling postApiV1SnapshotsUsernameSlugSnapshotIdRestore.');
+            throw new Error('Required parameter slug was null or undefined when calling deleteProjectSnapshot.');
         }
         if (snapshotId === null || snapshotId === undefined) {
-            throw new Error('Required parameter snapshotId was null or undefined when calling postApiV1SnapshotsUsernameSlugSnapshotIdRestore.');
+            throw new Error('Required parameter snapshotId was null or undefined when calling deleteProjectSnapshot.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -409,9 +161,253 @@ export class SnapshotsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/snapshots/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "snapshotId", value: snapshotId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/restore`;
+        let localVarPath = `/api/v1/snapshots/:username/:slug/:snapshotId`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<MessageResponse>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<MessageResponse>('delete', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * @endpoint get /api/v1/snapshots/:username/:slug/:snapshotId
+     * @param username Username
+     * @param slug Project slug
+     * @param snapshotId Snapshot ID
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public getProjectSnapshot(username: string, slug: string, snapshotId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<SnapshotWithContent>;
+    public getProjectSnapshot(username: string, slug: string, snapshotId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<SnapshotWithContent>>;
+    public getProjectSnapshot(username: string, slug: string, snapshotId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<SnapshotWithContent>>;
+    public getProjectSnapshot(username: string, slug: string, snapshotId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (username === null || username === undefined) {
+            throw new Error('Required parameter username was null or undefined when calling getProjectSnapshot.');
+        }
+        if (slug === null || slug === undefined) {
+            throw new Error('Required parameter slug was null or undefined when calling getProjectSnapshot.');
+        }
+        if (snapshotId === null || snapshotId === undefined) {
+            throw new Error('Required parameter snapshotId was null or undefined when calling getProjectSnapshot.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/snapshots/:username/:slug/:snapshotId`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<SnapshotWithContent>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * @endpoint get /api/v1/snapshots/:username/:slug
+     * @param username Username
+     * @param slug Project slug
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public listProjectSnapshots(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<DocumentSnapshot>>;
+    public listProjectSnapshots(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<DocumentSnapshot>>>;
+    public listProjectSnapshots(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<DocumentSnapshot>>>;
+    public listProjectSnapshots(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (username === null || username === undefined) {
+            throw new Error('Required parameter username was null or undefined when calling listProjectSnapshots.');
+        }
+        if (slug === null || slug === undefined) {
+            throw new Error('Required parameter slug was null or undefined when calling listProjectSnapshots.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/snapshots/:username/:slug`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<Array<DocumentSnapshot>>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * @endpoint get /api/v1/snapshots/:username/:slug/:snapshotId/preview
+     * @param username Username
+     * @param slug Project slug
+     * @param snapshotId Snapshot ID
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public previewProjectSnapshot(username: string, slug: string, snapshotId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<SnapshotWithContent>;
+    public previewProjectSnapshot(username: string, slug: string, snapshotId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<SnapshotWithContent>>;
+    public previewProjectSnapshot(username: string, slug: string, snapshotId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<SnapshotWithContent>>;
+    public previewProjectSnapshot(username: string, slug: string, snapshotId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (username === null || username === undefined) {
+            throw new Error('Required parameter username was null or undefined when calling previewProjectSnapshot.');
+        }
+        if (slug === null || slug === undefined) {
+            throw new Error('Required parameter slug was null or undefined when calling previewProjectSnapshot.');
+        }
+        if (snapshotId === null || snapshotId === undefined) {
+            throw new Error('Required parameter snapshotId was null or undefined when calling previewProjectSnapshot.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/snapshots/:username/:slug/:snapshotId/preview`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<SnapshotWithContent>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * @endpoint post /api/v1/snapshots/:username/:slug/:snapshotId/restore
+     * @param username Username
+     * @param slug Project slug
+     * @param snapshotId Snapshot ID
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public restoreProjectSnapshot(username: string, slug: string, snapshotId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<RestoreResponse>;
+    public restoreProjectSnapshot(username: string, slug: string, snapshotId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<RestoreResponse>>;
+    public restoreProjectSnapshot(username: string, slug: string, snapshotId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<RestoreResponse>>;
+    public restoreProjectSnapshot(username: string, slug: string, snapshotId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (username === null || username === undefined) {
+            throw new Error('Required parameter username was null or undefined when calling restoreProjectSnapshot.');
+        }
+        if (slug === null || slug === undefined) {
+            throw new Error('Required parameter slug was null or undefined when calling restoreProjectSnapshot.');
+        }
+        if (snapshotId === null || snapshotId === undefined) {
+            throw new Error('Required parameter snapshotId was null or undefined when calling restoreProjectSnapshot.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/snapshots/:username/:slug/:snapshotId/restore`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<RestoreResponse>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

@@ -129,8 +129,10 @@ export class TemplateEditorDialogComponent {
     });
 
     // Deep clone tabs to avoid mutating original
-    const tabs = JSON.parse(JSON.stringify(this.data.schema.tabs)) as TabSchema[];
-    
+    const tabs = JSON.parse(
+      JSON.stringify(this.data.schema.tabs)
+    ) as TabSchema[];
+
     // Ensure all fields have IDs for tracking
     tabs.forEach(tab => {
       tab.fields.forEach(field => {
@@ -139,7 +141,7 @@ export class TemplateEditorDialogComponent {
         }
       });
     });
-    
+
     this.tabs.set(tabs);
   }
 

@@ -1,9 +1,9 @@
 {
-  "openapi": "3.1.0",
+  "openapi": "3.0.0",
   "info": {
     "title": "Inkweld API",
-    "description": "Collaborative creative writing platform API (Bun)",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "description": "Collaborative creative writing platform API (Bun)"
   },
   "servers": [
     {
@@ -11,14 +11,1299 @@
       "description": "Local development server"
     }
   ],
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string"
+          },
+          "approved": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "enabled"
+        ],
+        "example": {
+          "id": "user-123",
+          "username": "johndoe",
+          "name": "John Doe",
+          "email": "john@example.com",
+          "approved": true,
+          "enabled": true
+        }
+      },
+      "RegisterResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Registration status message",
+            "example": "Registration successful"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "token": {
+            "type": "string",
+            "description": "JWT authentication token (if auto-login enabled)",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "requiresApproval": {
+            "type": "boolean",
+            "description": "Whether account requires admin approval",
+            "example": false
+          }
+        },
+        "required": [
+          "message",
+          "user"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "example": {
+          "error": "An error occurred"
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "description": "Username (minimum 3 characters)",
+            "example": "johndoe"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "description": "Password (minimum 6 characters)",
+            "example": "password123"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email address (optional)",
+            "example": "john@example.com"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name (optional)",
+            "example": "John Doe"
+          },
+          "captchaToken": {
+            "type": "string",
+            "description": "reCAPTCHA token for verification"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Login status message",
+            "example": "Login successful"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "token": {
+            "type": "string",
+            "description": "JWT authentication token",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        "required": [
+          "user",
+          "token"
+        ]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Username",
+            "example": "johndoe"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Password",
+            "example": "password123"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "example": {
+          "message": "Operation successful"
+        }
+      },
+      "OAuthProvidersResponse": {
+        "type": "object",
+        "properties": {
+          "providers": {
+            "type": "object",
+            "properties": {
+              "github": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "github"
+            ]
+          }
+        },
+        "required": [
+          "providers"
+        ]
+      },
+      "PaginatedUsersResponse": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "users",
+          "total",
+          "page",
+          "pageSize",
+          "totalPages"
+        ]
+      },
+      "UsernameAvailability": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether username is available"
+          },
+          "suggestions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "johndoe123",
+              "johndoe_new"
+            ],
+            "description": "Alternative suggestions"
+          }
+        },
+        "required": [
+          "available",
+          "suggestions"
+        ]
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Avatar uploaded successfully",
+            "description": "Success message"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "Project": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique project identifier"
+          },
+          "slug": {
+            "type": "string",
+            "description": "URL-friendly project identifier"
+          },
+          "title": {
+            "type": "string",
+            "description": "Project title"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Project description"
+          },
+          "username": {
+            "type": "string",
+            "description": "Project owner username"
+          },
+          "coverImage": {
+            "type": "string",
+            "nullable": true,
+            "description": "Cover image URL"
+          },
+          "createdDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Project creation date"
+          },
+          "updatedDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update date"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "username",
+          "createdDate",
+          "updatedDate"
+        ]
+      },
+      "CreateProjectRequest": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 3,
+            "pattern": "^[a-z0-9-]+$",
+            "description": "URL-friendly project identifier (lowercase, numbers, hyphens only)",
+            "example": "my-novel"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Project title",
+            "example": "My Novel"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional project description"
+          }
+        },
+        "required": [
+          "slug",
+          "title"
+        ]
+      },
+      "UpdateProjectRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Updated project title",
+            "example": "My Updated Novel"
+          },
+          "description": {
+            "type": "string",
+            "description": "Updated project description"
+          }
+        }
+      },
+      "Document": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "doc-123",
+            "description": "Document ID"
+          },
+          "name": {
+            "type": "string",
+            "example": "Chapter 1",
+            "description": "Document name"
+          },
+          "type": {
+            "type": "string",
+            "example": "ITEM",
+            "description": "Document type"
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2023-01-01T00:00:00.000Z",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2023-01-01T00:00:00.000Z",
+            "description": "Last update timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type"
+        ]
+      },
+      "DocumentError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "An error occurred",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "Element": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "elem-123",
+            "description": "Element ID"
+          },
+          "name": {
+            "type": "string",
+            "example": "Chapter 1",
+            "description": "Element name"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "FOLDER",
+              "ITEM",
+              "CHARACTER",
+              "LOCATION",
+              "WB_ITEM",
+              "MAP",
+              "RELATIONSHIP",
+              "PHILOSOPHY",
+              "CULTURE",
+              "SPECIES",
+              "SYSTEMS"
+            ],
+            "example": "ITEM",
+            "description": "Element type"
+          },
+          "parentId": {
+            "type": "string",
+            "nullable": true,
+            "example": null,
+            "description": "Parent element ID"
+          },
+          "order": {
+            "type": "number",
+            "example": 0,
+            "description": "Order in parent"
+          },
+          "level": {
+            "type": "number",
+            "example": 0,
+            "description": "Nesting level in tree hierarchy"
+          },
+          "expandable": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether element can be expanded (folders)"
+          },
+          "version": {
+            "type": "number",
+            "example": 1,
+            "description": "Version number for optimistic locking"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Element metadata key-value pairs"
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2023-01-01T00:00:00.000Z",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2023-01-01T00:00:00.000Z",
+            "description": "Last update timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "parentId",
+          "order",
+          "level",
+          "expandable",
+          "version",
+          "metadata"
+        ]
+      },
+      "ElementError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "An error occurred",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ProjectFile": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "document.pdf",
+            "description": "File name"
+          },
+          "size": {
+            "type": "number",
+            "example": 1024,
+            "description": "File size in bytes"
+          },
+          "uploadDate": {
+            "type": "string",
+            "example": "2023-01-01T00:00:00.000Z",
+            "description": "Upload timestamp"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "FileError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "An error occurred",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "UploadResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "document.pdf",
+            "description": "Uploaded file name"
+          },
+          "size": {
+            "type": "number",
+            "example": 1024,
+            "description": "File size in bytes"
+          },
+          "uploadDate": {
+            "type": "string",
+            "example": "2023-01-01T00:00:00.000Z",
+            "description": "Upload timestamp"
+          }
+        },
+        "required": [
+          "name",
+          "size",
+          "uploadDate"
+        ]
+      },
+      "DeleteResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "File deleted successfully",
+            "description": "Success message"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "EpubResponse": {
+        "type": "object",
+        "properties": {
+          "originalName": {
+            "type": "string",
+            "example": "project.epub",
+            "description": "Original filename"
+          },
+          "storedName": {
+            "type": "string",
+            "example": "project-123.epub",
+            "description": "Stored filename"
+          },
+          "contentType": {
+            "type": "string",
+            "example": "application/epub+zip",
+            "description": "MIME type"
+          },
+          "size": {
+            "type": "number",
+            "example": 102400,
+            "description": "File size in bytes"
+          },
+          "uploadDate": {
+            "type": "string",
+            "example": "2023-01-01T00:00:00.000Z",
+            "description": "Creation timestamp"
+          }
+        },
+        "required": [
+          "originalName",
+          "storedName",
+          "contentType",
+          "size",
+          "uploadDate"
+        ]
+      },
+      "EpubError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "An error occurred",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ImageMessage": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success",
+            "description": "Success message"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "ImageError": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Error occurred",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "DocumentSnapshot": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "wordCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "documentId",
+          "name",
+          "createdAt"
+        ]
+      },
+      "SnapshotWithContent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "wordCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "nullable": true
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "yDocState": {
+            "type": "string"
+          },
+          "stateVector": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "documentId",
+          "name",
+          "createdAt",
+          "yDocState"
+        ]
+      },
+      "CreateSnapshotRequest": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "yDocState": {
+            "type": "string"
+          },
+          "stateVector": {
+            "type": "string"
+          },
+          "wordCount": {
+            "type": "number"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            }
+          }
+        },
+        "required": [
+          "documentId",
+          "name",
+          "yDocState"
+        ]
+      },
+      "RestoreResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Snapshot can be restored",
+            "description": "Status message"
+          },
+          "snapshotId": {
+            "type": "string",
+            "example": "snap-123",
+            "description": "Snapshot ID"
+          }
+        },
+        "required": [
+          "message",
+          "snapshotId"
+        ]
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok",
+            "description": "Health status"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2023-01-01T00:00:00.000Z",
+            "description": "Current server timestamp"
+          },
+          "uptime": {
+            "type": "number",
+            "example": 123.45,
+            "description": "Server uptime in seconds"
+          }
+        },
+        "required": [
+          "status",
+          "timestamp",
+          "uptime"
+        ]
+      },
+      "ReadyResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ready",
+            "description": "Readiness status"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2023-01-01T00:00:00.000Z",
+            "description": "Current server timestamp"
+          }
+        },
+        "required": [
+          "status",
+          "timestamp"
+        ]
+      },
+      "ConfigResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "example": "1.0.0",
+            "description": "Application version"
+          },
+          "userApprovalRequired": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether admin approval is required for new users"
+          },
+          "githubEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether GitHub OAuth is enabled"
+          }
+        },
+        "required": [
+          "version",
+          "userApprovalRequired",
+          "githubEnabled"
+        ]
+      },
+      "CaptchaSettings": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether reCAPTCHA is enabled"
+          },
+          "siteKey": {
+            "type": "string",
+            "example": "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI",
+            "description": "reCAPTCHA site key for client-side validation"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "description": "ReCaptcha configuration for registration"
+      },
+      "SystemFeatures": {
+        "type": "object",
+        "properties": {
+          "aiLinting": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether AI-powered linting is available"
+          },
+          "aiImageGeneration": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether AI-powered image generation is available"
+          },
+          "captcha": {
+            "$ref": "#/components/schemas/CaptchaSettings"
+          },
+          "appMode": {
+            "type": "string",
+            "enum": [
+              "ONLINE",
+              "OFFLINE",
+              "BOTH"
+            ],
+            "example": "BOTH",
+            "description": "Application mode configuration"
+          },
+          "defaultServerName": {
+            "type": "string",
+            "example": "http://localhost:3000",
+            "description": "Default server name to pre-populate in setup form"
+          },
+          "userApprovalRequired": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether admin approval is required for new users"
+          }
+        },
+        "required": [
+          "aiLinting",
+          "aiImageGeneration",
+          "captcha",
+          "appMode",
+          "userApprovalRequired"
+        ]
+      },
+      "CSRFTokenResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "abc123...",
+            "description": "CSRF token for form submissions"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "CSRFErrorResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Failed to generate token",
+            "description": "Error message"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error details"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "LintStatus": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether AI linting is enabled"
+          },
+          "service": {
+            "type": "string",
+            "example": "openai",
+            "description": "The AI service being used"
+          }
+        },
+        "required": [
+          "enabled",
+          "service"
+        ]
+      },
+      "Correction": {
+        "type": "object",
+        "properties": {
+          "start_pos": {
+            "type": "number",
+            "example": 0,
+            "description": "Start position of the error"
+          },
+          "end_pos": {
+            "type": "number",
+            "example": 4,
+            "description": "End position of the error"
+          },
+          "original_text": {
+            "type": "string",
+            "example": "This",
+            "description": "The original text with the error"
+          },
+          "corrected_text": {
+            "type": "string",
+            "example": "This",
+            "description": "The suggested correction"
+          },
+          "error_type": {
+            "type": "string",
+            "example": "grammar",
+            "description": "Type of error"
+          },
+          "recommendation": {
+            "type": "string",
+            "example": "Consider...",
+            "description": "Explanation of the correction"
+          }
+        },
+        "required": [
+          "start_pos",
+          "end_pos",
+          "original_text",
+          "corrected_text",
+          "error_type",
+          "recommendation"
+        ]
+      },
+      "StyleRecommendation": {
+        "type": "object",
+        "properties": {
+          "suggestion": {
+            "type": "string",
+            "example": "Use active voice",
+            "description": "Style suggestion"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Active voice is more engaging",
+            "description": "Reason for the suggestion"
+          }
+        },
+        "required": [
+          "suggestion",
+          "reason"
+        ]
+      },
+      "LintResponse": {
+        "type": "object",
+        "properties": {
+          "original_paragraph": {
+            "type": "string",
+            "description": "The original paragraph"
+          },
+          "corrections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Correction"
+            },
+            "description": "List of corrections"
+          },
+          "style_recommendations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StyleRecommendation"
+            },
+            "description": "List of style recommendations"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "languagetool"
+            ],
+            "example": "openai",
+            "description": "The linting service source"
+          }
+        },
+        "required": [
+          "original_paragraph",
+          "corrections",
+          "style_recommendations",
+          "source"
+        ]
+      },
+      "LintError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "An error occurred",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "LintRequest": {
+        "type": "object",
+        "properties": {
+          "paragraph": {
+            "type": "string",
+            "maxLength": 4096,
+            "example": "This is a sample text.",
+            "description": "The paragraph text to be checked"
+          },
+          "style": {
+            "type": "string",
+            "example": "academic",
+            "description": "The writing style to check against"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "example": "medium",
+            "description": "The level of linting strictness"
+          }
+        },
+        "required": [
+          "paragraph",
+          "style",
+          "level"
+        ]
+      },
+      "ImageData": {
+        "type": "object",
+        "properties": {
+          "b64_json": {
+            "type": "string",
+            "description": "Base64-encoded JSON image data"
+          },
+          "url": {
+            "type": "string",
+            "example": "https://example.com/image.png",
+            "description": "URL to the image"
+          },
+          "revised_prompt": {
+            "type": "string",
+            "description": "The revised prompt used"
+          }
+        }
+      },
+      "ImageResponse": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "number",
+            "example": 1234567890,
+            "description": "Unix timestamp of creation"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageData"
+            },
+            "description": "Generated images"
+          },
+          "source": {
+            "type": "string",
+            "example": "openai",
+            "description": "Source service"
+          }
+        },
+        "required": [
+          "created",
+          "data",
+          "source"
+        ]
+      },
+      "AIImageError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "An error occurred",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ImageGenerateRequest": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "example": "A beautiful landscape",
+            "description": "The image generation prompt"
+          },
+          "model": {
+            "type": "string",
+            "enum": [
+              "dall-e-2",
+              "dall-e-3"
+            ],
+            "example": "dall-e-3",
+            "description": "AI model to use"
+          },
+          "n": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10,
+            "example": 1,
+            "description": "Number of images to generate"
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "hd"
+            ],
+            "example": "standard",
+            "description": "Image quality"
+          },
+          "response_format": {
+            "type": "string",
+            "enum": [
+              "url",
+              "b64_json"
+            ],
+            "example": "url",
+            "description": "Response format"
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "256x256",
+              "512x512",
+              "1024x1024",
+              "1792x1024",
+              "1024x1792"
+            ],
+            "example": "1024x1024",
+            "description": "Image size"
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "vivid",
+              "natural"
+            ],
+            "example": "vivid",
+            "description": "Image style"
+          }
+        },
+        "required": [
+          "prompt"
+        ]
+      },
+      "AIImageStatus": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether AI image generation is enabled"
+          },
+          "service": {
+            "type": "string",
+            "example": "openai",
+            "description": "The AI service being used"
+          }
+        },
+        "required": [
+          "enabled",
+          "service"
+        ]
+      },
+      "MCPError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "An error occurred",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      }
+    },
+    "parameters": {}
+  },
   "paths": {
     "/api/v1/auth/register": {
       "post": {
-        "operationId": "postApiV1AuthRegister",
-        "description": "Register a new user account",
         "tags": [
           "Authentication"
         ],
+        "operationId": "registerUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Registration successful",
@@ -50,25 +1335,24 @@
               }
             }
           }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
-              }
-            }
-          }
         }
       }
     },
     "/api/v1/auth/login": {
       "post": {
-        "operationId": "postApiV1AuthLogin",
-        "description": "Log in with username and password",
         "tags": [
           "Authentication"
         ],
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Login successful",
@@ -100,25 +1384,15 @@
               }
             }
           }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
-              }
-            }
-          }
         }
       }
     },
     "/api/v1/auth/logout": {
       "post": {
-        "operationId": "postApiV1AuthLogout",
-        "description": "Log out and end session",
         "tags": [
           "Authentication"
         ],
+        "operationId": "logout",
         "responses": {
           "200": {
             "description": "Logout successful",
@@ -135,11 +1409,10 @@
     },
     "/api/v1/auth/providers": {
       "get": {
-        "operationId": "getApiV1AuthProviders",
-        "description": "List available OAuth providers",
         "tags": [
           "Authentication"
         ],
+        "operationId": "listOAuthProviders",
         "responses": {
           "200": {
             "description": "Available OAuth providers",
@@ -156,14 +1429,13 @@
     },
     "/api/v1/users/me": {
       "get": {
-        "operationId": "getApiV1UsersMe",
-        "description": "Get current authenticated user information",
         "tags": [
           "Users"
         ],
+        "operationId": "getCurrentUser",
         "responses": {
           "200": {
-            "description": "User information",
+            "description": "Current user",
             "content": {
               "application/json": {
                 "schema": {
@@ -197,11 +1469,10 @@
     },
     "/api/v1/users": {
       "get": {
-        "operationId": "getApiV1Users",
-        "description": "Get paginated list of users",
         "tags": [
           "Users"
         ],
+        "operationId": "listUsers",
         "responses": {
           "200": {
             "description": "Paginated list of users",
@@ -218,11 +1489,10 @@
     },
     "/api/v1/users/search": {
       "get": {
-        "operationId": "getApiV1UsersSearch",
-        "description": "Search users by username or name",
         "tags": [
           "Users"
         ],
+        "operationId": "searchUsers",
         "responses": {
           "200": {
             "description": "Search results",
@@ -237,130 +1507,19 @@
         }
       }
     },
-    "/api/v1/users/register": {
-      "post": {
-        "operationId": "postApiV1UsersRegister",
-        "description": "Register a new user account (alternative endpoint)",
-        "tags": [
-          "Users"
-        ],
-        "responses": {
-          "200": {
-            "description": "User registered successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Success message"
-                    },
-                    "userId": {
-                      "type": "number",
-                      "description": "New user ID"
-                    },
-                    "username": {
-                      "type": "string",
-                      "description": "Username"
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "Display name"
-                    },
-                    "requiresApproval": {
-                      "type": "boolean",
-                      "description": "Whether user requires admin approval"
-                    }
-                  },
-                  "required": [
-                    "message",
-                    "userId",
-                    "username",
-                    "name",
-                    "requiresApproval"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Username already exists or validation error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "username": {
-                    "type": "string",
-                    "minLength": 3
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 6
-                  },
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "captchaToken": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "username",
-                  "password"
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/users/check-username": {
       "get": {
-        "operationId": "getApiV1UsersCheck-username",
-        "description": "Check if a username is available",
         "tags": [
           "Users"
         ],
+        "operationId": "checkUsernameAvailability",
         "responses": {
           "200": {
-            "description": "Username availability result",
+            "description": "Username availability",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "available": {
-                      "type": "boolean",
-                      "description": "Whether username is available"
-                    },
-                    "suggestions": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      },
-                      "description": "Alternative username suggestions"
-                    }
-                  },
-                  "required": [
-                    "available",
-                    "suggestions"
-                  ]
+                  "$ref": "#/components/schemas/UsernameAvailability"
                 }
               }
             }
@@ -378,16 +1537,27 @@
         }
       }
     },
-    "/api/v1/users/{username}/avatar": {
+    "/api/v1/users/:username/avatar": {
       "get": {
-        "operationId": "getApiV1Users:usernameAvatar",
-        "description": "Get user avatar image",
         "tags": [
           "Users"
         ],
+        "operationId": "getUserAvatar",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "User avatar image",
+            "description": "User avatar",
             "content": {
               "image/png": {
                 "schema": {
@@ -407,48 +1577,28 @@
               }
             }
           }
-        },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "username",
-            "required": true
-          }
-        ]
+        }
       }
     },
     "/api/v1/users/avatar": {
       "post": {
-        "operationId": "postApiV1UsersAvatar",
-        "description": "Upload user avatar image",
         "tags": [
           "Users"
         ],
+        "operationId": "uploadUserAvatar",
         "responses": {
           "200": {
-            "description": "Avatar uploaded successfully",
+            "description": "Avatar uploaded",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Success message"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/Message"
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid file or no file uploaded",
+            "description": "No file or invalid image",
             "content": {
               "application/json": {
                 "schema": {
@@ -482,27 +1632,17 @@
     },
     "/api/v1/users/avatar/delete": {
       "post": {
-        "operationId": "postApiV1UsersAvatarDelete",
-        "description": "Delete user avatar image",
         "tags": [
           "Users"
         ],
+        "operationId": "deleteUserAvatar",
         "responses": {
           "200": {
-            "description": "Avatar deleted successfully",
+            "description": "Avatar deleted",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Success message"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/Message"
                 }
               }
             }
@@ -532,18 +1672,20 @@
     },
     "/api/v1/projects": {
       "get": {
-        "operationId": "getApiV1Projects",
-        "description": "Get all projects for the authenticated user",
         "tags": [
           "Projects"
         ],
+        "operationId": "listUserProjects",
         "responses": {
           "200": {
-            "description": "List of projects",
+            "description": "List of user projects",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProjectsListResponse"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Project"
+                  }
                 }
               }
             }
@@ -561,14 +1703,22 @@
         }
       },
       "post": {
-        "operationId": "postApiV1Projects",
-        "description": "Create a new project",
         "tags": [
           "Projects"
         ],
+        "operationId": "createProject",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": "Project created successfully",
+            "description": "Project created",
             "content": {
               "application/json": {
                 "schema": {
@@ -578,7 +1728,7 @@
             }
           },
           "400": {
-            "description": "Invalid input or project slug already exists",
+            "description": "Invalid input or project already exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -596,25 +1746,49 @@
                 }
               }
             }
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateProjectRequest"
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           }
         }
       }
     },
-    "/api/v1/projects/{username}/{slug}": {
+    "/api/v1/projects/:username/:slug": {
       "get": {
-        "operationId": "getApiV1Projects:username:slug",
-        "description": "Get a specific project by username and slug",
         "tags": [
           "Projects"
+        ],
+        "operationId": "getProject",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
         ],
         "responses": {
           "200": {
@@ -657,49 +1831,53 @@
               }
             }
           }
-        },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "username",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "slug",
-            "required": true
-          }
-        ]
+        }
       },
       "put": {
-        "operationId": "putApiV1Projects:username:slug",
-        "description": "Update a project",
         "tags": [
           "Projects"
         ],
+        "operationId": "updateProject",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Project updated successfully",
+            "description": "Project updated",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Project"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -734,44 +1912,40 @@
               }
             }
           }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateProjectRequest"
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "username",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "slug",
-            "required": true
-          }
-        ]
+        }
       },
       "delete": {
-        "operationId": "deleteApiV1Projects:username:slug",
-        "description": "Delete a project",
         "tags": [
           "Projects"
         ],
+        "operationId": "deleteProject",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Project deleted successfully",
+            "description": "Project deleted",
             "content": {
               "application/json": {
                 "schema": {
@@ -810,33 +1984,38 @@
               }
             }
           }
-        },
+        }
+      }
+    },
+    "/api/v1/projects/:username/:slug/docs": {
+      "get": {
+        "operationId": "listProjectDocuments",
+        "tags": [
+          "Documents"
+        ],
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
           }
-        ]
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/docs": {
-      "get": {
-        "operationId": "getApiV1Projects:username:slugDocs",
-        "description": "List all documents in a project",
-        "tags": [
-          "Documents"
         ],
         "responses": {
           "200": {
@@ -846,34 +2025,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "description": "Document ID"
-                      },
-                      "name": {
-                        "type": "string",
-                        "description": "Document name"
-                      },
-                      "type": {
-                        "type": "string",
-                        "description": "Document type"
-                      },
-                      "createdAt": {
-                        "type": "string",
-                        "description": "Creation timestamp"
-                      },
-                      "updatedAt": {
-                        "type": "string",
-                        "description": "Last update timestamp"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "name",
-                      "type"
-                    ]
+                    "$ref": "#/components/schemas/Document"
                   }
                 }
               }
@@ -884,16 +2036,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/DocumentError"
                 }
               }
             }
@@ -903,47 +2046,54 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/DocumentError"
                 }
               }
             }
           }
-        },
+        }
+      }
+    },
+    "/api/v1/projects/:username/:slug/docs/:docId": {
+      "get": {
+        "operationId": "getProjectDocument",
+        "tags": [
+          "Documents"
+        ],
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "doc-123",
+              "description": "Document ID"
+            },
+            "required": true,
+            "description": "Document ID",
+            "name": "docId",
+            "in": "path"
           }
-        ]
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/docs/{docId}": {
-      "get": {
-        "operationId": "getApiV1Projects:username:slugDocs:docId",
-        "description": "Get document metadata",
-        "tags": [
-          "Documents"
         ],
         "responses": {
           "200": {
@@ -951,34 +2101,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "description": "Document ID"
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "Document name"
-                    },
-                    "type": {
-                      "type": "string",
-                      "description": "Document type"
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "description": "Creation timestamp"
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "description": "Last update timestamp"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "type"
-                  ]
+                  "$ref": "#/components/schemas/Document"
                 }
               }
             }
@@ -988,16 +2111,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/DocumentError"
                 }
               }
             }
@@ -1007,55 +2121,53 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/DocumentError"
                 }
               }
             }
           }
-        },
+        }
+      }
+    },
+    "/api/v1/projects/:username/:slug/docs/:docId/html": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "operationId": "renderDocumentAsHtml",
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Document ID"
             },
-            "in": "path",
+            "required": true,
+            "description": "Document ID",
             "name": "docId",
-            "required": true
+            "in": "path"
           }
-        ]
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/docs/{docId}/html": {
-      "get": {
-        "operationId": "getApiV1Projects:username:slugDocs:docIdHtml",
-        "description": "Render document as HTML",
-        "tags": [
-          "Documents"
         ],
         "responses": {
           "200": {
@@ -1073,16 +2185,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/DocumentError"
                 }
               }
             }
@@ -1092,55 +2195,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/DocumentError"
                 }
               }
             }
           }
-        },
+        }
+      }
+    },
+    "/api/v1/projects/:username/:slug/elements": {
+      "get": {
+        "operationId": "listProjectElements",
+        "tags": [
+          "Elements"
+        ],
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "docId",
-            "required": true
+            "in": "path"
           }
-        ]
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/elements": {
-      "get": {
-        "operationId": "getApiV1Projects:username:slugElements",
-        "description": "Get all project elements (folder structure)",
-        "tags": [
-          "Elements"
         ],
         "responses": {
           "200": {
@@ -1150,83 +2241,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "description": "Element ID"
-                      },
-                      "name": {
-                        "type": "string",
-                        "description": "Element name"
-                      },
-                      "type": {
-                        "type": "string",
-                        "enum": [
-                          "FOLDER",
-                          "ITEM",
-                          "CHARACTER",
-                          "LOCATION",
-                          "WB_ITEM",
-                          "MAP",
-                          "RELATIONSHIP",
-                          "PHILOSOPHY",
-                          "CULTURE",
-                          "SPECIES",
-                          "SYSTEMS"
-                        ],
-                        "description": "Element type"
-                      },
-                      "parentId": {
-                        "type": [
-                          "string",
-                          "null"
-                        ],
-                        "description": "Parent element ID"
-                      },
-                      "order": {
-                        "type": "number",
-                        "description": "Order in parent"
-                      },
-                      "level": {
-                        "type": "number",
-                        "description": "Nesting level in tree hierarchy"
-                      },
-                      "expandable": {
-                        "type": "boolean",
-                        "description": "Whether element can be expanded (folders)"
-                      },
-                      "version": {
-                        "type": "number",
-                        "description": "Version number for optimistic locking"
-                      },
-                      "metadata": {
-                        "type": "object",
-                        "additionalProperties": {
-                          "type": "string"
-                        },
-                        "description": "Element metadata key-value pairs"
-                      },
-                      "createdAt": {
-                        "type": "string",
-                        "description": "Creation timestamp"
-                      },
-                      "updatedAt": {
-                        "type": "string",
-                        "description": "Last update timestamp"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "name",
-                      "type",
-                      "parentId",
-                      "order",
-                      "level",
-                      "expandable",
-                      "version",
-                      "metadata"
-                    ]
+                    "$ref": "#/components/schemas/Element"
                   }
                 }
               }
@@ -1237,16 +2252,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/ElementError"
                 }
               }
             }
@@ -1256,47 +2262,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/ElementError"
                 }
               }
             }
           }
-        },
+        }
+      }
+    },
+    "/api/v1/projects/:username/:slug/files": {
+      "get": {
+        "operationId": "listProjectFiles",
+        "tags": [
+          "Files"
+        ],
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
           }
-        ]
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/files": {
-      "get": {
-        "operationId": "getApiV1Projects:username:slugFiles",
-        "description": "List all files in a project",
-        "tags": [
-          "Files"
         ],
         "responses": {
           "200": {
@@ -1306,24 +2308,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "description": "File name"
-                      },
-                      "size": {
-                        "type": "number",
-                        "description": "File size in bytes"
-                      },
-                      "uploadDate": {
-                        "type": "string",
-                        "description": "Upload timestamp"
-                      }
-                    },
-                    "required": [
-                      "name"
-                    ]
+                    "$ref": "#/components/schemas/ProjectFile"
                   }
                 }
               }
@@ -1334,16 +2319,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/FileError"
                 }
               }
             }
@@ -1353,45 +2329,41 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/FileError"
                 }
               }
             }
           }
-        },
+        }
+      },
+      "post": {
+        "operationId": "uploadProjectFile",
+        "tags": [
+          "Files"
+        ],
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
           }
-        ]
-      },
-      "post": {
-        "operationId": "postApiV1Projects:username:slugFiles",
-        "description": "Upload a file to the project",
-        "tags": [
-          "Files"
         ],
         "responses": {
           "200": {
@@ -1399,26 +2371,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "Uploaded file name"
-                    },
-                    "size": {
-                      "type": "number",
-                      "description": "File size in bytes"
-                    },
-                    "uploadDate": {
-                      "type": "string",
-                      "description": "Upload timestamp"
-                    }
-                  },
-                  "required": [
-                    "name",
-                    "size",
-                    "uploadDate"
-                  ]
+                  "$ref": "#/components/schemas/UploadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No file provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileError"
                 }
               }
             }
@@ -1428,16 +2391,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/FileError"
                 }
               }
             }
@@ -1447,47 +2401,54 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/FileError"
                 }
               }
             }
           }
-        },
+        }
+      }
+    },
+    "/api/v1/projects/:username/:slug/files/:storedName": {
+      "get": {
+        "operationId": "downloadProjectFile",
+        "tags": [
+          "Files"
+        ],
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "document.pdf",
+              "description": "File name"
+            },
+            "required": true,
+            "description": "File name",
+            "name": "storedName",
+            "in": "path"
           }
-        ]
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/files/{storedName}": {
-      "get": {
-        "operationId": "getApiV1Projects:username:slugFiles:storedName",
-        "description": "Download a file from the project",
-        "tags": [
-          "Files"
         ],
         "responses": {
           "200": {
@@ -1506,16 +2467,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/FileError"
                 }
               }
             }
@@ -1525,53 +2477,52 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/FileError"
                 }
               }
             }
           }
-        },
+        }
+      },
+      "delete": {
+        "operationId": "deleteProjectFile",
+        "tags": [
+          "Files"
+        ],
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "document.pdf",
+              "description": "File name"
             },
-            "in": "path",
+            "required": true,
+            "description": "File name",
             "name": "storedName",
-            "required": true
+            "in": "path"
           }
-        ]
-      },
-      "delete": {
-        "operationId": "deleteApiV1Projects:username:slugFiles:storedName",
-        "description": "Delete a file from the project",
-        "tags": [
-          "Files"
         ],
         "responses": {
           "200": {
@@ -1579,16 +2530,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Success message"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/DeleteResponse"
                 }
               }
             }
@@ -1598,16 +2540,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/FileError"
                 }
               }
             }
@@ -1617,55 +2550,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/FileError"
                 }
               }
             }
           }
-        },
+        }
+      }
+    },
+    "/api/v1/projects/:username/:slug/epub": {
+      "post": {
+        "tags": [
+          "Export"
+        ],
+        "operationId": "exportProjectAsEpub",
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "storedName",
-            "required": true
+            "in": "path"
           }
-        ]
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/epub": {
-      "post": {
-        "operationId": "postApiV1Projects:username:slugEpub",
-        "description": "Export project as EPUB file",
-        "tags": [
-          "Export"
         ],
         "responses": {
           "200": {
@@ -1673,36 +2594,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "originalName": {
-                      "type": "string",
-                      "description": "Original filename"
-                    },
-                    "storedName": {
-                      "type": "string",
-                      "description": "Stored filename"
-                    },
-                    "contentType": {
-                      "type": "string",
-                      "description": "MIME type"
-                    },
-                    "size": {
-                      "type": "number",
-                      "description": "File size in bytes"
-                    },
-                    "uploadDate": {
-                      "type": "string",
-                      "description": "Creation timestamp"
-                    }
-                  },
-                  "required": [
-                    "originalName",
-                    "storedName",
-                    "contentType",
-                    "size",
-                    "uploadDate"
-                  ]
+                  "$ref": "#/components/schemas/EpubResponse"
                 }
               }
             }
@@ -1712,16 +2604,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/EpubError"
                 }
               }
             }
@@ -1731,16 +2614,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/EpubError"
                 }
               }
             }
@@ -1750,47 +2624,53 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/EpubError"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Not implemented",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpubError"
                 }
               }
             }
           }
-        },
+        }
+      }
+    },
+    "/api/v1/projects/:username/:slug/cover": {
+      "post": {
+        "operationId": "uploadProjectCover",
+        "tags": [
+          "Images"
+        ],
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
           }
-        ]
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/cover": {
-      "post": {
-        "operationId": "postApiV1Projects:username:slugCover",
-        "description": "Upload a cover image for a project",
-        "tags": [
-          "Images"
         ],
         "responses": {
           "200": {
@@ -1798,16 +2678,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Success message"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/ImageMessage"
                 }
               }
             }
@@ -1817,16 +2688,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/ImageError"
                 }
               }
             }
@@ -1836,16 +2698,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/ImageError"
                 }
               }
             }
@@ -1855,16 +2708,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/ImageError"
                 }
               }
             }
@@ -1874,45 +2718,41 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/ImageError"
                 }
               }
             }
           }
-        },
+        }
+      },
+      "get": {
+        "operationId": "getProjectCover",
+        "tags": [
+          "Images"
+        ],
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
           }
-        ]
-      },
-      "get": {
-        "operationId": "getApiV1Projects:username:slugCover",
-        "description": "Get the cover image for a project",
-        "tags": [
-          "Images"
         ],
         "responses": {
           "200": {
@@ -1931,45 +2771,41 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/ImageError"
                 }
               }
             }
           }
-        },
+        }
+      },
+      "delete": {
+        "operationId": "deleteProjectCover",
+        "tags": [
+          "Images"
+        ],
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
           }
-        ]
-      },
-      "delete": {
-        "operationId": "deleteApiV1Projects:username:slugCover",
-        "description": "Delete the cover image for a project",
-        "tags": [
-          "Images"
         ],
         "responses": {
           "200": {
@@ -1977,16 +2813,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Success message"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/ImageMessage"
                 }
               }
             }
@@ -1996,16 +2823,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/ImageError"
                 }
               }
             }
@@ -2015,16 +2833,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/ImageError"
                 }
               }
             }
@@ -2034,47 +2843,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/ImageError"
                 }
               }
             }
           }
-        },
+        }
+      }
+    },
+    "/api/v1/snapshots/:username/:slug": {
+      "get": {
+        "tags": [
+          "Snapshots"
+        ],
+        "operationId": "listProjectSnapshots",
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
           }
-        ]
-      }
-    },
-    "/api/v1/snapshots/{username}/{slug}": {
-      "get": {
-        "operationId": "getApiV1Snapshots:username:slug",
-        "description": "Get all snapshots for a project",
-        "tags": [
-          "Snapshots"
         ],
         "responses": {
           "200": {
@@ -2082,7 +2887,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SnapshotsListResponse"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentSnapshot"
+                  }
                 }
               }
             }
@@ -2117,32 +2925,46 @@
               }
             }
           }
-        },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "username",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "slug",
-            "required": true
-          }
-        ]
+        }
       },
       "post": {
-        "operationId": "postApiV1Snapshots:username:slug",
-        "description": "Create a new snapshot for a document in the project",
         "tags": [
           "Snapshots"
         ],
+        "operationId": "createProjectSnapshot",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSnapshotRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Snapshot created successfully",
@@ -2194,42 +3016,48 @@
               }
             }
           }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateSnapshotRequest"
-              }
-            }
-          }
-        },
+        }
+      }
+    },
+    "/api/v1/snapshots/:username/:slug/:snapshotId": {
+      "get": {
+        "tags": [
+          "Snapshots"
+        ],
+        "operationId": "getProjectSnapshot",
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Snapshot ID"
+            },
+            "required": true,
+            "description": "Snapshot ID",
+            "name": "snapshotId",
+            "in": "path"
           }
-        ]
-      }
-    },
-    "/api/v1/snapshots/{username}/{slug}/{snapshotId}": {
-      "get": {
-        "operationId": "getApiV1Snapshots:username:slug:snapshotId",
-        "description": "Get a specific snapshot with full document state",
-        "tags": [
-          "Snapshots"
         ],
         "responses": {
           "200": {
@@ -2272,39 +3100,46 @@
               }
             }
           }
-        },
+        }
+      },
+      "delete": {
+        "tags": [
+          "Snapshots"
+        ],
+        "operationId": "deleteProjectSnapshot",
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Snapshot ID"
             },
-            "in": "path",
+            "required": true,
+            "description": "Snapshot ID",
             "name": "snapshotId",
-            "required": true
+            "in": "path"
           }
-        ]
-      },
-      "delete": {
-        "operationId": "deleteApiV1Snapshots:username:slug:snapshotId",
-        "description": "Delete a snapshot from the project",
-        "tags": [
-          "Snapshots"
         ],
         "responses": {
           "200": {
@@ -2347,41 +3182,48 @@
               }
             }
           }
-        },
+        }
+      }
+    },
+    "/api/v1/snapshots/:username/:slug/:snapshotId/restore": {
+      "post": {
+        "tags": [
+          "Snapshots"
+        ],
+        "operationId": "restoreProjectSnapshot",
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Snapshot ID"
             },
-            "in": "path",
+            "required": true,
+            "description": "Snapshot ID",
             "name": "snapshotId",
-            "required": true
+            "in": "path"
           }
-        ]
-      }
-    },
-    "/api/v1/snapshots/{username}/{slug}/{snapshotId}/restore": {
-      "post": {
-        "operationId": "postApiV1Snapshots:username:slug:snapshotIdRestore",
-        "description": "Restore a document from a snapshot",
-        "tags": [
-          "Snapshots"
         ],
         "responses": {
           "200": {
@@ -2389,7 +3231,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MessageResponse"
+                  "$ref": "#/components/schemas/RestoreResponse"
                 }
               }
             }
@@ -2424,41 +3266,48 @@
               }
             }
           }
-        },
+        }
+      }
+    },
+    "/api/v1/snapshots/:username/:slug/:snapshotId/preview": {
+      "get": {
+        "tags": [
+          "Snapshots"
+        ],
+        "operationId": "previewProjectSnapshot",
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
             },
-            "in": "path",
+            "required": true,
+            "description": "Username",
             "name": "username",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
             },
-            "in": "path",
+            "required": true,
+            "description": "Project slug",
             "name": "slug",
-            "required": true
+            "in": "path"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Snapshot ID"
             },
-            "in": "path",
+            "required": true,
+            "description": "Snapshot ID",
             "name": "snapshotId",
-            "required": true
+            "in": "path"
           }
-        ]
-      }
-    },
-    "/api/v1/snapshots/{username}/{slug}/{snapshotId}/preview": {
-      "get": {
-        "operationId": "getApiV1Snapshots:username:slug:snapshotIdPreview",
-        "description": "Get a preview of the snapshot content",
-        "tags": [
-          "Snapshots"
         ],
         "responses": {
           "200": {
@@ -2501,68 +3350,22 @@
               }
             }
           }
-        },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "username",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "slug",
-            "required": true
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "snapshotId",
-            "required": true
-          }
-        ]
+        }
       }
     },
     "/api/v1/health": {
       "get": {
-        "operationId": "getApiV1Health",
-        "description": "Returns the health status of the API server",
         "tags": [
           "Health"
         ],
+        "operationId": "checkHealth",
         "responses": {
           "200": {
             "description": "Server is healthy",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "description": "Health status"
-                    },
-                    "timestamp": {
-                      "type": "string",
-                      "description": "Current server timestamp"
-                    },
-                    "uptime": {
-                      "type": "number",
-                      "description": "Server uptime in seconds"
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "timestamp",
-                    "uptime"
-                  ]
+                  "$ref": "#/components/schemas/HealthResponse"
                 }
               }
             }
@@ -2572,32 +3375,17 @@
     },
     "/api/v1/health/ready": {
       "get": {
-        "operationId": "getApiV1HealthReady",
-        "description": "Returns the readiness status of the API server",
         "tags": [
           "Health"
         ],
+        "operationId": "checkReadiness",
         "responses": {
           "200": {
             "description": "Server is ready to accept requests",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "description": "Readiness status"
-                    },
-                    "timestamp": {
-                      "type": "string",
-                      "description": "Current server timestamp"
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "timestamp"
-                  ]
+                  "$ref": "#/components/schemas/ReadyResponse"
                 }
               }
             }
@@ -2607,37 +3395,17 @@
     },
     "/api/v1/config": {
       "get": {
-        "operationId": "getApiV1Config",
-        "description": "Get public application configuration",
         "tags": [
           "Configuration"
         ],
+        "operationId": "getAppConfiguration",
         "responses": {
           "200": {
             "description": "Application configuration",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "version": {
-                      "type": "string",
-                      "description": "Application version"
-                    },
-                    "userApprovalRequired": {
-                      "type": "boolean",
-                      "description": "Whether admin approval is required for new users"
-                    },
-                    "githubEnabled": {
-                      "type": "boolean",
-                      "description": "Whether GitHub OAuth is enabled"
-                    }
-                  },
-                  "required": [
-                    "version",
-                    "userApprovalRequired",
-                    "githubEnabled"
-                  ]
+                  "$ref": "#/components/schemas/ConfigResponse"
                 }
               }
             }
@@ -2647,69 +3415,17 @@
     },
     "/api/v1/config/features": {
       "get": {
-        "operationId": "getApiV1ConfigFeatures",
-        "description": "Get system features configuration",
         "tags": [
           "Configuration"
         ],
+        "operationId": "getSystemFeatures",
         "responses": {
           "200": {
             "description": "System features configuration",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "aiLinting": {
-                      "type": "boolean",
-                      "description": "Whether AI-powered linting is available"
-                    },
-                    "aiImageGeneration": {
-                      "type": "boolean",
-                      "description": "Whether AI-powered image generation is available"
-                    },
-                    "captcha": {
-                      "type": "object",
-                      "properties": {
-                        "enabled": {
-                          "type": "boolean",
-                          "description": "Whether reCAPTCHA is enabled"
-                        },
-                        "siteKey": {
-                          "type": "string",
-                          "description": "reCAPTCHA site key for client-side validation"
-                        }
-                      },
-                      "required": [
-                        "enabled"
-                      ],
-                      "description": "ReCaptcha configuration for registration"
-                    },
-                    "appMode": {
-                      "type": "string",
-                      "enum": [
-                        "ONLINE",
-                        "OFFLINE",
-                        "BOTH"
-                      ],
-                      "description": "Application mode configuration"
-                    },
-                    "defaultServerName": {
-                      "type": "string",
-                      "description": "Default server name to pre-populate in setup form"
-                    },
-                    "userApprovalRequired": {
-                      "type": "boolean",
-                      "description": "Whether admin approval is required for new users"
-                    }
-                  },
-                  "required": [
-                    "aiLinting",
-                    "aiImageGeneration",
-                    "captcha",
-                    "appMode",
-                    "userApprovalRequired"
-                  ]
+                  "$ref": "#/components/schemas/SystemFeatures"
                 }
               }
             }
@@ -2719,27 +3435,17 @@
     },
     "/api/v1/csrf/token": {
       "get": {
-        "operationId": "getApiV1CsrfToken",
-        "description": "Get a CSRF token for form submissions",
         "tags": [
           "Security"
         ],
+        "operationId": "getCSRFToken",
         "responses": {
           "200": {
             "description": "CSRF token generated successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "token": {
-                      "type": "string",
-                      "description": "CSRF token for form submissions"
-                    }
-                  },
-                  "required": [
-                    "token"
-                  ]
+                  "$ref": "#/components/schemas/CSRFTokenResponse"
                 }
               }
             }
@@ -2749,20 +3455,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "description": "Error message"
-                    },
-                    "error": {
-                      "type": "string",
-                      "description": "Error details"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/CSRFErrorResponse"
                 }
               }
             }
@@ -2772,32 +3465,17 @@
     },
     "/api/v1/ai/lint/status": {
       "get": {
-        "operationId": "getApiV1AiLintStatus",
-        "description": "Check if AI linting features are available",
         "tags": [
           "Linting"
         ],
+        "operationId": "getLintStatus",
         "responses": {
           "200": {
             "description": "AI service status",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "enabled": {
-                      "type": "boolean",
-                      "description": "Whether AI linting is enabled"
-                    },
-                    "service": {
-                      "type": "string",
-                      "description": "The AI service being used"
-                    }
-                  },
-                  "required": [
-                    "enabled",
-                    "service"
-                  ]
+                  "$ref": "#/components/schemas/LintStatus"
                 }
               }
             }
@@ -2807,100 +3485,26 @@
     },
     "/api/v1/ai/lint": {
       "post": {
-        "operationId": "postApiV1AiLint",
-        "description": "Lint a paragraph for grammar, spelling, and style issues",
         "tags": [
           "Linting"
         ],
+        "operationId": "lintParagraph",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LintRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Lint results",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "original_paragraph": {
-                      "type": "string",
-                      "description": "The original paragraph"
-                    },
-                    "corrections": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "start_pos": {
-                            "type": "number",
-                            "description": "Start position of the error"
-                          },
-                          "end_pos": {
-                            "type": "number",
-                            "description": "End position of the error"
-                          },
-                          "original_text": {
-                            "type": "string",
-                            "description": "The original text with the error"
-                          },
-                          "corrected_text": {
-                            "type": "string",
-                            "description": "The suggested correction"
-                          },
-                          "error_type": {
-                            "type": "string",
-                            "description": "Type of error"
-                          },
-                          "recommendation": {
-                            "type": "string",
-                            "description": "Explanation of the correction"
-                          }
-                        },
-                        "required": [
-                          "start_pos",
-                          "end_pos",
-                          "original_text",
-                          "corrected_text",
-                          "error_type",
-                          "recommendation"
-                        ]
-                      },
-                      "description": "List of corrections"
-                    },
-                    "style_recommendations": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "suggestion": {
-                            "type": "string",
-                            "description": "Style suggestion"
-                          },
-                          "reason": {
-                            "type": "string",
-                            "description": "Reason for the suggestion"
-                          }
-                        },
-                        "required": [
-                          "suggestion",
-                          "reason"
-                        ]
-                      },
-                      "description": "List of style recommendations"
-                    },
-                    "source": {
-                      "type": "string",
-                      "enum": [
-                        "openai",
-                        "languagetool"
-                      ],
-                      "description": "The linting service source"
-                    }
-                  },
-                  "required": [
-                    "original_paragraph",
-                    "corrections",
-                    "style_recommendations",
-                    "source"
-                  ]
+                  "$ref": "#/components/schemas/LintResponse"
                 }
               }
             }
@@ -2910,16 +3514,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/LintError"
                 }
               }
             }
@@ -2929,16 +3524,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/LintError"
                 }
               }
             }
@@ -2948,51 +3534,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/LintError"
                 }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "paragraph": {
-                    "type": "string",
-                    "maxLength": 4096,
-                    "description": "The paragraph text to be checked"
-                  },
-                  "style": {
-                    "type": "string",
-                    "description": "The writing style to check against"
-                  },
-                  "level": {
-                    "type": "string",
-                    "enum": [
-                      "low",
-                      "medium",
-                      "high"
-                    ],
-                    "description": "The level of linting strictness"
-                  }
-                },
-                "required": [
-                  "paragraph",
-                  "style",
-                  "level"
-                ]
               }
             }
           }
@@ -3001,54 +3544,26 @@
     },
     "/api/v1/ai/image/generate": {
       "post": {
-        "operationId": "postApiV1AiImageGenerate",
-        "description": "Generate an image using AI",
         "tags": [
           "AI Image Generation"
         ],
+        "operationId": "generateAIImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageGenerateRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Image generated successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "created": {
-                      "type": "number",
-                      "description": "Unix timestamp of creation"
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "b64_json": {
-                            "type": "string",
-                            "description": "Base64-encoded JSON image data"
-                          },
-                          "url": {
-                            "type": "string",
-                            "description": "URL to the image"
-                          },
-                          "revised_prompt": {
-                            "type": "string",
-                            "description": "The revised prompt used"
-                          }
-                        }
-                      },
-                      "description": "Generated images"
-                    },
-                    "source": {
-                      "type": "string",
-                      "description": "Source service"
-                    }
-                  },
-                  "required": [
-                    "created",
-                    "data",
-                    "source"
-                  ]
+                  "$ref": "#/components/schemas/ImageResponse"
                 }
               }
             }
@@ -3058,16 +3573,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/AIImageError"
                 }
               }
             }
@@ -3077,16 +3583,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/AIImageError"
                 }
               }
             }
@@ -3096,16 +3593,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/AIImageError"
                 }
               }
             }
@@ -3115,32 +3603,17 @@
     },
     "/api/v1/ai/image/status": {
       "get": {
-        "operationId": "getApiV1AiImageStatus",
-        "description": "Check if AI image generation is available",
         "tags": [
           "AI Image Generation"
         ],
+        "operationId": "getAIImageStatus",
         "responses": {
           "200": {
             "description": "Service status",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "enabled": {
-                      "type": "boolean",
-                      "description": "Whether AI image generation is enabled"
-                    },
-                    "service": {
-                      "type": "string",
-                      "description": "The AI service being used"
-                    }
-                  },
-                  "required": [
-                    "enabled",
-                    "service"
-                  ]
+                  "$ref": "#/components/schemas/AIImageStatus"
                 }
               }
             }
@@ -3150,11 +3623,10 @@
     },
     "/api/v1/ai/mcp/sse": {
       "get": {
-        "operationId": "getApiV1AiMcpSse",
-        "description": "Model Context Protocol Server-Sent Events stream",
         "tags": [
           "MCP"
         ],
+        "operationId": "getMCPEventStream",
         "responses": {
           "200": {
             "description": "SSE stream of MCP events",
@@ -3171,16 +3643,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/MCPError"
                 }
               }
             }
@@ -3190,522 +3653,12 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "description": "Error message"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
+                  "$ref": "#/components/schemas/MCPError"
                 }
               }
             }
           }
         }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "RegisterResponse": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "example": "Registration successful. You can now log in."
-          },
-          "user": {
-            "$ref": "#/components/schemas/User"
-          },
-          "token": {
-            "type": "string",
-            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-            "description": "Authentication token (only present if auto-login is enabled)"
-          },
-          "requiresApproval": {
-            "type": "boolean",
-            "example": false,
-            "description": "Whether the user account requires admin approval before being enabled"
-          }
-        },
-        "required": [
-          "message",
-          "user"
-        ]
-      },
-      "User": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "user-123"
-          },
-          "username": {
-            "type": "string",
-            "example": "johndoe"
-          },
-          "name": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "example": "John Doe"
-          },
-          "email": {
-            "type": "string",
-            "example": "john@example.com"
-          },
-          "approved": {
-            "type": "boolean",
-            "example": true
-          },
-          "enabled": {
-            "type": "boolean",
-            "example": true
-          }
-        },
-        "required": [
-          "id",
-          "username",
-          "enabled"
-        ]
-      },
-      "ErrorResponse": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "string",
-            "example": "An error occurred"
-          }
-        },
-        "required": [
-          "error"
-        ]
-      },
-      "RegisterRequest": {
-        "type": "object",
-        "properties": {
-          "username": {
-            "type": "string",
-            "minLength": 3,
-            "example": "johndoe",
-            "description": "Username (minimum 3 characters)"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 6,
-            "example": "secret123",
-            "description": "Password (minimum 6 characters)"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "example": "john@example.com",
-            "description": "Email address (optional)"
-          },
-          "name": {
-            "type": "string",
-            "example": "John Doe",
-            "description": "User display name"
-          },
-          "captchaToken": {
-            "type": "string",
-            "example": "03AGdBq...",
-            "description": "reCAPTCHA token (required if reCAPTCHA is enabled)"
-          }
-        },
-        "required": [
-          "username",
-          "password"
-        ]
-      },
-      "LoginResponse": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "example": "Login successful"
-          },
-          "user": {
-            "$ref": "#/components/schemas/User"
-          },
-          "token": {
-            "type": "string",
-            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-            "description": "JWT authentication token"
-          }
-        },
-        "required": [
-          "user",
-          "token"
-        ]
-      },
-      "LoginRequest": {
-        "type": "object",
-        "properties": {
-          "username": {
-            "type": "string",
-            "minLength": 1,
-            "example": "johndoe",
-            "description": "Username"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 1,
-            "example": "secret123",
-            "description": "Password"
-          }
-        },
-        "required": [
-          "username",
-          "password"
-        ]
-      },
-      "MessageResponse": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "example": "Operation successful"
-          }
-        },
-        "required": [
-          "message"
-        ]
-      },
-      "OAuthProvidersResponse": {
-        "type": "object",
-        "properties": {
-          "providers": {
-            "type": "object",
-            "properties": {
-              "github": {
-                "type": "boolean",
-                "example": false,
-                "description": "Whether GitHub OAuth is enabled"
-              }
-            },
-            "required": [
-              "github"
-            ]
-          }
-        },
-        "required": [
-          "providers"
-        ]
-      },
-      "PaginatedUsersResponse": {
-        "type": "object",
-        "properties": {
-          "users": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/User"
-            }
-          },
-          "total": {
-            "type": "number",
-            "example": 100
-          },
-          "page": {
-            "type": "number",
-            "example": 1
-          },
-          "pageSize": {
-            "type": "number",
-            "example": 10
-          },
-          "totalPages": {
-            "type": "number",
-            "example": 10
-          }
-        },
-        "required": [
-          "users",
-          "total",
-          "page",
-          "pageSize",
-          "totalPages"
-        ]
-      },
-      "ProjectsListResponse": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/Project"
-        }
-      },
-      "Project": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "proj-123"
-          },
-          "slug": {
-            "type": "string",
-            "example": "my-novel"
-          },
-          "title": {
-            "type": "string",
-            "example": "My Novel"
-          },
-          "description": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "example": "A thrilling adventure story"
-          },
-          "username": {
-            "type": "string",
-            "example": "johndoe"
-          },
-          "coverImage": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "example": "cover.jpg",
-            "description": "Cover image filename, null if no cover"
-          },
-          "createdDate": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2023-01-01T00:00:00.000Z"
-          },
-          "updatedDate": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2023-01-01T00:00:00.000Z"
-          }
-        },
-        "required": [
-          "id",
-          "slug",
-          "title",
-          "username",
-          "createdDate",
-          "updatedDate"
-        ]
-      },
-      "CreateProjectRequest": {
-        "type": "object",
-        "properties": {
-          "slug": {
-            "type": "string",
-            "pattern": "^[a-z0-9-]+$",
-            "minLength": 3,
-            "example": "my-novel",
-            "description": "URL-friendly project identifier (lowercase, numbers, hyphens only)"
-          },
-          "title": {
-            "type": "string",
-            "minLength": 1,
-            "example": "My Novel",
-            "description": "Project title"
-          },
-          "description": {
-            "type": "string",
-            "example": "A thrilling adventure story",
-            "description": "Project description"
-          }
-        },
-        "required": [
-          "slug",
-          "title"
-        ]
-      },
-      "UpdateProjectRequest": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1,
-            "example": "My Updated Novel",
-            "description": "Project title"
-          },
-          "description": {
-            "type": "string",
-            "example": "An updated thrilling adventure story",
-            "description": "Project description"
-          }
-        }
-      },
-      "SnapshotsListResponse": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/DocumentSnapshot"
-        }
-      },
-      "DocumentSnapshot": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "snap-123"
-          },
-          "documentId": {
-            "type": "string",
-            "example": "doc-456"
-          },
-          "name": {
-            "type": "string",
-            "example": "Chapter 1 Draft"
-          },
-          "description": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "example": "First draft of chapter 1"
-          },
-          "wordCount": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "example": 1250
-          },
-          "metadata": {
-            "type": [
-              "object",
-              "null"
-            ],
-            "additionalProperties": {},
-            "example": {
-              "version": 1
-            }
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2023-01-01T00:00:00.000Z"
-          }
-        },
-        "required": [
-          "id",
-          "documentId",
-          "name",
-          "createdAt"
-        ]
-      },
-      "SnapshotWithContent": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "snap-123"
-          },
-          "documentId": {
-            "type": "string",
-            "example": "doc-456"
-          },
-          "name": {
-            "type": "string",
-            "example": "Chapter 1 Draft"
-          },
-          "description": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "example": "First draft of chapter 1"
-          },
-          "wordCount": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "example": 1250
-          },
-          "metadata": {
-            "type": [
-              "object",
-              "null"
-            ],
-            "additionalProperties": {},
-            "example": {
-              "version": 1
-            }
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2023-01-01T00:00:00.000Z"
-          },
-          "yDocState": {
-            "type": "string",
-            "example": "base64encodedstate..."
-          },
-          "stateVector": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "example": "base64vector..."
-          }
-        },
-        "required": [
-          "id",
-          "documentId",
-          "name",
-          "createdAt",
-          "yDocState"
-        ]
-      },
-      "CreateSnapshotRequest": {
-        "type": "object",
-        "properties": {
-          "documentId": {
-            "type": "string",
-            "example": "doc-456",
-            "description": "Document ID"
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255,
-            "example": "Chapter 1 Draft",
-            "description": "Snapshot name"
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 1000,
-            "example": "First draft of chapter 1",
-            "description": "Snapshot description"
-          },
-          "yDocState": {
-            "type": "string",
-            "example": "base64encodedstate...",
-            "description": "Base64 encoded Yjs document state"
-          },
-          "stateVector": {
-            "type": "string",
-            "example": "base64vector...",
-            "description": "Base64 encoded state vector"
-          },
-          "wordCount": {
-            "type": "number",
-            "example": 1250,
-            "description": "Word count"
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": {},
-            "example": {
-              "version": 1
-            },
-            "description": "Additional metadata"
-          }
-        },
-        "required": [
-          "documentId",
-          "name",
-          "yDocState"
-        ]
       }
     }
   }

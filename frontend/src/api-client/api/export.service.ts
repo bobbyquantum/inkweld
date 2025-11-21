@@ -17,9 +17,9 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
-import { GetApiV1ProjectsUsernameSlugDocs401Response } from '../model/get-api-v1-projects-username-slug-docs401-response';
+import { EpubError } from '../model/epub-error';
 // @ts-ignore
-import { PostApiV1ProjectsUsernameSlugEpub200Response } from '../model/post-api-v1-projects-username-slug-epub200-response';
+import { EpubResponse } from '../model/epub-response';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -38,22 +38,21 @@ export class ExportService extends BaseService {
     }
 
     /**
-     * Export project as EPUB file
-     * @endpoint post /api/v1/projects/{username}/{slug}/epub
-     * @param username 
-     * @param slug 
+     * @endpoint post /api/v1/projects/:username/:slug/epub
+     * @param username Username
+     * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public postApiV1ProjectsUsernameSlugEpub(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PostApiV1ProjectsUsernameSlugEpub200Response>;
-    public postApiV1ProjectsUsernameSlugEpub(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PostApiV1ProjectsUsernameSlugEpub200Response>>;
-    public postApiV1ProjectsUsernameSlugEpub(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PostApiV1ProjectsUsernameSlugEpub200Response>>;
-    public postApiV1ProjectsUsernameSlugEpub(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public exportProjectAsEpub(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<EpubResponse>;
+    public exportProjectAsEpub(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<EpubResponse>>;
+    public exportProjectAsEpub(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<EpubResponse>>;
+    public exportProjectAsEpub(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling postApiV1ProjectsUsernameSlugEpub.');
+            throw new Error('Required parameter username was null or undefined when calling exportProjectAsEpub.');
         }
         if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling postApiV1ProjectsUsernameSlugEpub.');
+            throw new Error('Required parameter slug was null or undefined when calling exportProjectAsEpub.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -81,9 +80,9 @@ export class ExportService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/epub`;
+        let localVarPath = `/api/v1/projects/:username/:slug/epub`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<PostApiV1ProjectsUsernameSlugEpub200Response>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<EpubResponse>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

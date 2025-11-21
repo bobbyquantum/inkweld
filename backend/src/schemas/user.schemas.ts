@@ -1,8 +1,7 @@
 /**
  * User management OpenAPI schemas
  */
-import { z } from 'zod';
-import 'zod-openapi/extend';
+import { z } from '@hono/zod-openapi';
 import { UserSchema } from './common.schemas';
 
 // Re-export UserSchema for convenience
@@ -14,20 +13,11 @@ export { UserSchema };
  */
 export const UserRegisterRequestSchema = z
   .object({
-    username: z
-      .string()
-      .min(3)
-      .openapi({ example: 'johndoe', description: 'Username (minimum 3 characters)' }),
-    email: z
-      .string()
-      .email()
-      .openapi({ example: 'john@example.com', description: 'Email address' }),
-    password: z
-      .string()
-      .min(6)
-      .openapi({ example: 'secret123', description: 'Password (minimum 6 characters)' }),
+    username: z.string().min(3),
+    email: z.string().email(),
+    password: z.string().min(6),
   })
-  .openapi({ ref: 'UserRegisterRequest' });
+  .openapi('UserRegisterRequest');
 
 /**
  * User search response
@@ -36,9 +26,9 @@ export const UserRegisterRequestSchema = z
 export const UsersSearchResponseSchema = z
   .object({
     users: z.array(UserSchema),
-    total: z.number().openapi({ example: 10 }),
+    total: z.number(),
   })
-  .openapi({ ref: 'UsersSearchResponse' });
+  .openapi('UsersSearchResponse');
 
 /**
  * Paginated users response
@@ -47,12 +37,12 @@ export const UsersSearchResponseSchema = z
 export const PaginatedUsersResponseSchema = z
   .object({
     users: z.array(UserSchema),
-    total: z.number().openapi({ example: 100 }),
-    page: z.number().openapi({ example: 1 }),
-    pageSize: z.number().openapi({ example: 10 }),
-    totalPages: z.number().openapi({ example: 10 }),
+    total: z.number(),
+    page: z.number(),
+    pageSize: z.number(),
+    totalPages: z.number(),
   })
-  .openapi({ ref: 'PaginatedUsersResponse' });
+  .openapi('PaginatedUsersResponse');
 
 /**
  * Username availability response
@@ -60,6 +50,6 @@ export const PaginatedUsersResponseSchema = z
  */
 export const UsernameAvailabilityResponseSchema = z
   .object({
-    available: z.boolean().openapi({ example: true }),
+    available: z.boolean(),
   })
-  .openapi({ ref: 'UsernameAvailabilityResponse' });
+  .openapi('UsernameAvailabilityResponse');

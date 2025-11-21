@@ -43,9 +43,9 @@ export class XsrfService {
       this.logger.debug('XsrfService', 'Refreshing CSRF token from server');
 
       // Use the generated SecurityService to get the token
-      const response = (await firstValueFrom(
+      const response = await firstValueFrom(
         this.SecurityService.getApiV1CsrfToken()
-      )) as CsrfTokenResponse;
+      );
 
       if (!response || !response.token || typeof response.token !== 'string') {
         throw new Error('Invalid token format received from server');

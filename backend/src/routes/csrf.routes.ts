@@ -1,14 +1,26 @@
-import { Hono } from 'hono';
-import { describeRoute, resolver } from 'hono-openapi';
-import { z } from 'zod';
+import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
+import { z } from '@hono/zod-openapi';
 import { config } from '../config/env';
 
-const csrfRoutes = new Hono();
+const csrfRoutes = new OpenAPIHono();
 
 // Schema definitions
-const CSRFTokenResponseSchema = z.object({
-  token: z.string().describe('CSRF token for form submissions'),
-});
+const CSRFTokenResponseSchema = z
+  .object({
+    token: z
+      .string()
+      .openapi({ example: 'abc123...', description: 'CSRF token for form submissions' }),
+  })
+  .openapi('CSRFTokenResponse');
+
+const CSRFErrorResponseSchema = z
+  .object({
+    message: z
+      .string()
+      .openapi({ example: 'Failed to generate token', description: 'Error message' }),
+    error: z.string().optional().openapi({ description: 'Error details' }),
+  })
+  .openapi('CSRFErrorResponse');
 
 /**
  * Generate a CSRF token - works in both Bun and Workers
@@ -55,57 +67,52 @@ async function generateCSRFToken(secret: string): Promise<string> {
   return `${dataHex}.${signatureHex}`;
 }
 
-// CSRF token endpoint - generates a token compatible with both Bun and Workers
-csrfRoutes.get(
-  '/token',
-  describeRoute({
-    description: 'Get a CSRF token for form submissions',
-    tags: ['Security'],
-    responses: {
-      200: {
-        description: 'CSRF token generated successfully',
-        content: {
-          'application/json': {
-            schema: resolver(CSRFTokenResponseSchema),
-          },
+// CSRF token endpoint route
+const tokenRoute = createRoute({
+  method: 'get',
+  path: '/token',
+  tags: ['Security'],
+  operationId: 'getCSRFToken',
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: CSRFTokenResponseSchema,
         },
       },
-      500: {
-        description: 'Failed to generate CSRF token',
-        content: {
-          'application/json': {
-            schema: resolver(
-              z.object({
-                message: z.string().describe('Error message'),
-                error: z.string().optional().describe('Error details'),
-              })
-            ),
-          },
-        },
-      },
+      description: 'CSRF token generated successfully',
     },
-  }),
-  async (c) => {
-    try {
-      // Get the secret from config
-      const secret = config.session.secret || 'inkweld-csrf-secret';
-
-      // Generate a token using our cross-platform function
-      const token = await generateCSRFToken(secret);
-
-      // Return the token in the response body
-      return c.json({ token });
-    } catch (error: unknown) {
-      console.error('Error generating CSRF token:', error);
-      return c.json(
-        {
-          message: 'Failed to generate CSRF token',
-          error: config.nodeEnv === 'production' ? undefined : String(error),
+    500: {
+      content: {
+        'application/json': {
+          schema: CSRFErrorResponseSchema,
         },
-        500
-      );
-    }
+      },
+      description: 'Failed to generate CSRF token',
+    },
+  },
+});
+
+csrfRoutes.openapi(tokenRoute, async (c) => {
+  try {
+    // Get the secret from config
+    const secret = config.session.secret || 'inkweld-csrf-secret';
+
+    // Generate a token using our cross-platform function
+    const token = await generateCSRFToken(secret);
+
+    // Return the token in the response body
+    return c.json({ token });
+  } catch (error: unknown) {
+    console.error('Error generating CSRF token:', error);
+    return c.json(
+      {
+        message: 'Failed to generate CSRF token',
+        error: config.nodeEnv === 'production' ? undefined : String(error),
+      },
+      500
+    );
   }
-);
+});
 
 export default csrfRoutes;

@@ -10,16 +10,37 @@
 
 
 export interface Project { 
+    /**
+     * Unique project identifier
+     */
     id: string;
+    /**
+     * URL-friendly project identifier
+     */
     slug: string;
+    /**
+     * Project title
+     */
     title: string;
+    /**
+     * Project description
+     */
     description?: string | null;
+    /**
+     * Project owner username
+     */
     username: string;
     /**
-     * Cover image filename, null if no cover
+     * Cover image URL
      */
     coverImage?: string | null;
+    /**
+     * Project creation date
+     */
     createdDate: string;
+    /**
+     * Last update date
+     */
     updatedDate: string;
 }
 

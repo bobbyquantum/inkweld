@@ -1,8 +1,7 @@
 /**
  * Authentication-related OpenAPI schemas
  */
-import { z } from 'zod';
-import 'zod-openapi/extend';
+import { z } from '@hono/zod-openapi';
 import { UserSchema } from './common.schemas';
 
 /**
@@ -14,24 +13,26 @@ export const RegisterRequestSchema = z
     username: z
       .string()
       .min(3)
-      .openapi({ example: 'johndoe', description: 'Username (minimum 3 characters)' }),
+      .openapi({ description: 'Username (minimum 3 characters)', example: 'johndoe' }),
     password: z
       .string()
       .min(6)
-      .openapi({ example: 'secret123', description: 'Password (minimum 6 characters)' }),
+      .openapi({ description: 'Password (minimum 6 characters)', example: 'password123' }),
+    email: z
+      .string()
+      .email()
+      .optional()
+      .openapi({ description: 'Email address (optional)', example: 'john@example.com' }),
+    name: z
+      .string()
+      .optional()
+      .openapi({ description: 'Display name (optional)', example: 'John Doe' }),
+    captchaToken: z
+      .string()
+      .optional()
+      .openapi({ description: 'reCAPTCHA token for verification' }),
   })
-  .extend({
-    email: z.string().email().optional().openapi({
-      example: 'john@example.com',
-      description: 'Email address (optional)',
-    }),
-    name: z.string().optional().openapi({ example: 'John Doe', description: 'User display name' }),
-    captchaToken: z.string().optional().openapi({
-      example: '03AGdBq...',
-      description: 'reCAPTCHA token (required if reCAPTCHA is enabled)',
-    }),
-  })
-  .openapi({ ref: 'RegisterRequest' });
+  .openapi('RegisterRequest');
 
 /**
  * User registration response
@@ -39,18 +40,20 @@ export const RegisterRequestSchema = z
  */
 export const RegisterResponseSchema = z
   .object({
-    message: z.string().openapi({ example: 'Registration successful. You can now log in.' }),
+    message: z
+      .string()
+      .openapi({ description: 'Registration status message', example: 'Registration successful' }),
     user: UserSchema,
     token: z.string().optional().openapi({
+      description: 'JWT authentication token (if auto-login enabled)',
       example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-      description: 'Authentication token (only present if auto-login is enabled)',
     }),
-    requiresApproval: z.boolean().optional().openapi({
-      example: false,
-      description: 'Whether the user account requires admin approval before being enabled',
-    }),
+    requiresApproval: z
+      .boolean()
+      .optional()
+      .openapi({ description: 'Whether account requires admin approval', example: false }),
   })
-  .openapi({ ref: 'RegisterResponse' });
+  .openapi('RegisterResponse');
 
 /**
  * User login request
@@ -58,10 +61,10 @@ export const RegisterResponseSchema = z
  */
 export const LoginRequestSchema = z
   .object({
-    username: z.string().min(1).openapi({ example: 'johndoe', description: 'Username' }),
-    password: z.string().min(1).openapi({ example: 'secret123', description: 'Password' }),
+    username: z.string().min(1).openapi({ description: 'Username', example: 'johndoe' }),
+    password: z.string().min(1).openapi({ description: 'Password', example: 'password123' }),
   })
-  .openapi({ ref: 'LoginRequest' });
+  .openapi('LoginRequest');
 
 /**
  * User login response
@@ -69,14 +72,17 @@ export const LoginRequestSchema = z
  */
 export const LoginResponseSchema = z
   .object({
-    message: z.string().optional().openapi({ example: 'Login successful' }),
+    message: z
+      .string()
+      .optional()
+      .openapi({ description: 'Login status message', example: 'Login successful' }),
     user: UserSchema,
     token: z.string().openapi({
-      example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
       description: 'JWT authentication token',
+      example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
     }),
   })
-  .openapi({ ref: 'LoginResponse' });
+  .openapi('LoginResponse');
 
 /**
  * OAuth providers list response
@@ -85,9 +91,7 @@ export const LoginResponseSchema = z
 export const OAuthProvidersResponseSchema = z
   .object({
     providers: z.object({
-      github: z
-        .boolean()
-        .openapi({ example: false, description: 'Whether GitHub OAuth is enabled' }),
+      github: z.boolean(),
     }),
   })
-  .openapi({ ref: 'OAuthProvidersResponse' });
+  .openapi('OAuthProvidersResponse');

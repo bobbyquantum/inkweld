@@ -1,95 +1,116 @@
-import { Hono } from 'hono';
-import { describeRoute, resolver } from 'hono-openapi';
-import { z } from 'zod';
+import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
+import { z } from '@hono/zod-openapi';
 import { projectService } from '../services/project.service';
 import { requireAuth } from '../middleware/auth';
 import { type AppContext } from '../types/context';
+import { ProjectPathParamsSchema } from '../schemas/common.schemas';
 
-const elementRoutes = new Hono<AppContext>();
+const elementRoutes = new OpenAPIHono<AppContext>();
+
+// Apply auth middleware to all element routes
+elementRoutes.use('*', requireAuth);
 
 // Schemas
-const elementSchema = z.object({
-  id: z.string().describe('Element ID'),
-  name: z.string().describe('Element name'),
-  type: z
-    .enum([
-      'FOLDER',
-      'ITEM',
-      'CHARACTER',
-      'LOCATION',
-      'WB_ITEM',
-      'MAP',
-      'RELATIONSHIP',
-      'PHILOSOPHY',
-      'CULTURE',
-      'SPECIES',
-      'SYSTEMS',
-    ])
-    .describe('Element type'),
-  parentId: z.string().nullable().describe('Parent element ID'),
-  order: z.number().describe('Order in parent'),
-  level: z.number().describe('Nesting level in tree hierarchy'),
-  expandable: z.boolean().describe('Whether element can be expanded (folders)'),
-  version: z.number().describe('Version number for optimistic locking'),
-  metadata: z.record(z.string(), z.string()).describe('Element metadata key-value pairs'),
-  createdAt: z.string().optional().describe('Creation timestamp'),
-  updatedAt: z.string().optional().describe('Last update timestamp'),
-});
+const ElementSchema = z
+  .object({
+    id: z.string().openapi({ example: 'elem-123', description: 'Element ID' }),
+    name: z.string().openapi({ example: 'Chapter 1', description: 'Element name' }),
+    type: z
+      .enum([
+        'FOLDER',
+        'ITEM',
+        'CHARACTER',
+        'LOCATION',
+        'WB_ITEM',
+        'MAP',
+        'RELATIONSHIP',
+        'PHILOSOPHY',
+        'CULTURE',
+        'SPECIES',
+        'SYSTEMS',
+      ])
+      .openapi({ example: 'ITEM', description: 'Element type' }),
+    parentId: z.string().nullable().openapi({ example: null, description: 'Parent element ID' }),
+    order: z.number().openapi({ example: 0, description: 'Order in parent' }),
+    level: z.number().openapi({ example: 0, description: 'Nesting level in tree hierarchy' }),
+    expandable: z
+      .boolean()
+      .openapi({ example: false, description: 'Whether element can be expanded (folders)' }),
+    version: z
+      .number()
+      .openapi({ example: 1, description: 'Version number for optimistic locking' }),
+    metadata: z
+      .record(z.string(), z.string())
+      .openapi({ description: 'Element metadata key-value pairs' }),
+    createdAt: z
+      .string()
+      .optional()
+      .openapi({ example: '2023-01-01T00:00:00.000Z', description: 'Creation timestamp' }),
+    updatedAt: z
+      .string()
+      .optional()
+      .openapi({ example: '2023-01-01T00:00:00.000Z', description: 'Last update timestamp' }),
+  })
+  .openapi('Element');
 
-const errorSchema = z.object({
-  error: z.string().describe('Error message'),
-});
+const ErrorSchema = z
+  .object({
+    error: z.string().openapi({ example: 'An error occurred', description: 'Error message' }),
+  })
+  .openapi('ElementError');
 
 // Get all elements for a project
-elementRoutes.get(
-  '/:username/:slug/elements',
-  describeRoute({
-    description: 'Get all project elements (folder structure)',
-    tags: ['Elements'],
-    responses: {
-      200: {
-        description: 'List of project elements',
-        content: {
-          'application/json': {
-            schema: resolver(z.array(elementSchema)),
-          },
+const listElementsRoute = createRoute({
+  method: 'get',
+  path: '/:username/:slug/elements',
+  operationId: 'listProjectElements',
+  tags: ['Elements'],
+  request: {
+    params: ProjectPathParamsSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.array(ElementSchema),
         },
       },
-      401: {
-        description: 'Not authenticated',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
-      404: {
-        description: 'Project not found',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
+      description: 'List of project elements',
     },
-  }),
-  requireAuth,
-  async (c) => {
-    const db = c.get('db');
-    const username = c.req.param('username');
-    const slug = c.req.param('slug');
+    401: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Not authenticated',
+    },
+    404: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Project not found',
+    },
+  },
+});
 
-    // Verify project exists
-    const project = await projectService.findByUsernameAndSlug(db, username, slug);
+elementRoutes.openapi(listElementsRoute, async (c) => {
+  const db = c.get('db');
+  const username = c.req.param('username');
+  const slug = c.req.param('slug');
 
-    if (!project) {
-      return c.json({ error: 'Project not found' }, 404);
-    }
+  // Verify project exists
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
-    // Placeholder - full implementation would query elements from Yjs document
-    // The elements are stored in a Yjs Map in the project's elements document
-    return c.json([]);
+  if (!project) {
+    return c.json({ error: 'Project not found' }, 404);
   }
-);
+
+  // Placeholder - full implementation would query elements from Yjs document
+  // The elements are stored in a Yjs Map in the project's elements document
+  return c.json([]);
+});
 
 export default elementRoutes;

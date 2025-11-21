@@ -9,14 +9,18 @@
  */
 
 
-export interface GetApiV1HealthReady200Response { 
+export interface ImageData { 
     /**
-     * Readiness status
+     * Base64-encoded JSON image data
      */
-    status: string;
+    b64Json?: string;
     /**
-     * Current server timestamp
+     * URL to the image
      */
-    timestamp: string;
+    url?: string;
+    /**
+     * The revised prompt used
+     */
+    revisedPrompt?: string;
 }
 

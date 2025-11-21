@@ -7,10 +7,10 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { GetApiV1ConfigFeatures200ResponseCaptcha } from './get-api-v1-config-features200-response-captcha';
+import { CaptchaSettings } from './captcha-settings';
 
 
-export interface GetApiV1ConfigFeatures200Response { 
+export interface SystemFeatures { 
     /**
      * Whether AI-powered linting is available
      */
@@ -19,11 +19,11 @@ export interface GetApiV1ConfigFeatures200Response {
      * Whether AI-powered image generation is available
      */
     aiImageGeneration: boolean;
-    captcha: GetApiV1ConfigFeatures200ResponseCaptcha;
+    captcha: CaptchaSettings;
     /**
      * Application mode configuration
      */
-    appMode: GetApiV1ConfigFeatures200ResponseAppMode;
+    appMode: SystemFeaturesAppMode;
     /**
      * Default server name to pre-populate in setup form
      */
@@ -33,7 +33,7 @@ export interface GetApiV1ConfigFeatures200Response {
      */
     userApprovalRequired: boolean;
 }
-export enum GetApiV1ConfigFeatures200ResponseAppMode {
+export enum SystemFeaturesAppMode {
     Online = 'ONLINE',
     Offline = 'OFFLINE',
     Both = 'BOTH'

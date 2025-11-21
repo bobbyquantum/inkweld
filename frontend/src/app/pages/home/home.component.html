@@ -301,7 +301,17 @@
                     tabindex="0"
                     role="button">
                     <div class="tile-cover-container">
-                      <app-project-cover [project]="project" variant="card"></app-project-cover>
+                      <img
+                        [src]="getCoverUrl(project)"
+                        [alt]="project.title + ' cover'"
+                        [title]="project.title"
+                        class="tile-cover"
+                        (error)="$any($event.target).style.display = 'none'" />
+                      <div
+                        class="tile-cover-placeholder"
+                        [style.display]="'flex'">
+                        <mat-icon>auto_stories</mat-icon>
+                      </div>
                     </div>
                     <div class="tile-info">
                       <h3>{{ project.title }}</h3>
@@ -328,8 +338,16 @@
                     (keyup.enter)="selectProject(project)"
                     tabindex="0"
                     role="button">
-                    <div class="list-cover-wrapper">
-                      <app-project-cover [project]="project" variant="list"></app-project-cover>
+                    <img
+                      [src]="getCoverUrl(project)"
+                      [alt]="project.title + ' cover'"
+                      [title]="project.title"
+                      class="list-cover"
+                      (error)="$any($event.target).style.display = 'none'" />
+                    <div
+                      class="list-cover-placeholder"
+                      [style.display]="'flex'">
+                      <mat-icon>auto_stories</mat-icon>
                     </div>
                     <div class="list-info">
                       <h3>{{ project.title }}</h3>

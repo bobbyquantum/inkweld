@@ -9,7 +9,7 @@
  */
 
 
-export interface GetApiV1Config200Response { 
+export interface ConfigResponse { 
     /**
      * Application version
      */

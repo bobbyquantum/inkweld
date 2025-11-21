@@ -17,9 +17,9 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
-import { GetApiV1ProjectsUsernameSlugCover404Response } from '../model/get-api-v1-projects-username-slug-cover404-response';
+import { ImageError } from '../model/image-error';
 // @ts-ignore
-import { PostApiV1UsersAvatar200Response } from '../model/post-api-v1-users-avatar200-response';
+import { ImageMessage } from '../model/image-message';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -38,22 +38,21 @@ export class ImagesService extends BaseService {
     }
 
     /**
-     * Delete the cover image for a project
-     * @endpoint delete /api/v1/projects/{username}/{slug}/cover
-     * @param username 
-     * @param slug 
+     * @endpoint delete /api/v1/projects/:username/:slug/cover
+     * @param username Username
+     * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public deleteApiV1ProjectsUsernameSlugCover(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PostApiV1UsersAvatar200Response>;
-    public deleteApiV1ProjectsUsernameSlugCover(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PostApiV1UsersAvatar200Response>>;
-    public deleteApiV1ProjectsUsernameSlugCover(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PostApiV1UsersAvatar200Response>>;
-    public deleteApiV1ProjectsUsernameSlugCover(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public deleteProjectCover(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ImageMessage>;
+    public deleteProjectCover(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ImageMessage>>;
+    public deleteProjectCover(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ImageMessage>>;
+    public deleteProjectCover(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling deleteApiV1ProjectsUsernameSlugCover.');
+            throw new Error('Required parameter username was null or undefined when calling deleteProjectCover.');
         }
         if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling deleteApiV1ProjectsUsernameSlugCover.');
+            throw new Error('Required parameter slug was null or undefined when calling deleteProjectCover.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -81,9 +80,9 @@ export class ImagesService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/cover`;
+        let localVarPath = `/api/v1/projects/:username/:slug/cover`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<PostApiV1UsersAvatar200Response>('delete', `${basePath}${localVarPath}`,
+        return this.httpClient.request<ImageMessage>('delete', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -97,22 +96,21 @@ export class ImagesService extends BaseService {
     }
 
     /**
-     * Get the cover image for a project
-     * @endpoint get /api/v1/projects/{username}/{slug}/cover
-     * @param username 
-     * @param slug 
+     * @endpoint get /api/v1/projects/:username/:slug/cover
+     * @param username Username
+     * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getApiV1ProjectsUsernameSlugCover(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'image/jpeg' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Blob>;
-    public getApiV1ProjectsUsernameSlugCover(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'image/jpeg' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Blob>>;
-    public getApiV1ProjectsUsernameSlugCover(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'image/jpeg' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Blob>>;
-    public getApiV1ProjectsUsernameSlugCover(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'image/jpeg' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public getProjectCover(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'image/jpeg' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Blob>;
+    public getProjectCover(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'image/jpeg' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Blob>>;
+    public getProjectCover(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'image/jpeg' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Blob>>;
+    public getProjectCover(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'image/jpeg' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling getApiV1ProjectsUsernameSlugCover.');
+            throw new Error('Required parameter username was null or undefined when calling getProjectCover.');
         }
         if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling getApiV1ProjectsUsernameSlugCover.');
+            throw new Error('Required parameter slug was null or undefined when calling getProjectCover.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -130,7 +128,7 @@ export class ImagesService extends BaseService {
         const localVarTransferCache: boolean = options?.transferCache ?? true;
 
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/cover`;
+        let localVarPath = `/api/v1/projects/:username/:slug/cover`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request('get', `${basePath}${localVarPath}`,
             {
@@ -146,22 +144,21 @@ export class ImagesService extends BaseService {
     }
 
     /**
-     * Upload a cover image for a project
-     * @endpoint post /api/v1/projects/{username}/{slug}/cover
-     * @param username 
-     * @param slug 
+     * @endpoint post /api/v1/projects/:username/:slug/cover
+     * @param username Username
+     * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public postApiV1ProjectsUsernameSlugCover(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PostApiV1UsersAvatar200Response>;
-    public postApiV1ProjectsUsernameSlugCover(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PostApiV1UsersAvatar200Response>>;
-    public postApiV1ProjectsUsernameSlugCover(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PostApiV1UsersAvatar200Response>>;
-    public postApiV1ProjectsUsernameSlugCover(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public uploadProjectCover(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<ImageMessage>;
+    public uploadProjectCover(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ImageMessage>>;
+    public uploadProjectCover(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ImageMessage>>;
+    public uploadProjectCover(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling postApiV1ProjectsUsernameSlugCover.');
+            throw new Error('Required parameter username was null or undefined when calling uploadProjectCover.');
         }
         if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling postApiV1ProjectsUsernameSlugCover.');
+            throw new Error('Required parameter slug was null or undefined when calling uploadProjectCover.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -189,9 +186,9 @@ export class ImagesService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/cover`;
+        let localVarPath = `/api/v1/projects/:username/:slug/cover`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<PostApiV1UsersAvatar200Response>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<ImageMessage>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

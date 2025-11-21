@@ -1,303 +1,337 @@
-import { Hono } from 'hono';
-import { describeRoute, resolver } from 'hono-openapi';
-import { z } from 'zod';
+import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
+import { z } from '@hono/zod-openapi';
 import { projectService } from '../services/project.service';
 import { requireAuth } from '../middleware/auth';
 import { getStorageService } from '../services/storage.service';
 import { type AppContext } from '../types/context';
+import { ProjectPathParamsSchema } from '../schemas/common.schemas';
 
-const fileRoutes = new Hono<AppContext>();
+const fileRoutes = new OpenAPIHono<AppContext>();
+
+// Apply auth middleware to all file routes
+fileRoutes.use('*', requireAuth);
 
 // Schemas
-const fileSchema = z.object({
-  name: z.string().describe('File name'),
-  size: z.number().optional().describe('File size in bytes'),
-  uploadDate: z.string().optional().describe('Upload timestamp'),
+const FileSchema = z
+  .object({
+    name: z.string().openapi({ example: 'document.pdf', description: 'File name' }),
+    size: z.number().optional().openapi({ example: 1024, description: 'File size in bytes' }),
+    uploadDate: z
+      .string()
+      .optional()
+      .openapi({ example: '2023-01-01T00:00:00.000Z', description: 'Upload timestamp' }),
+  })
+  .openapi('ProjectFile');
+
+const UploadResponseSchema = z
+  .object({
+    name: z.string().openapi({ example: 'document.pdf', description: 'Uploaded file name' }),
+    size: z.number().openapi({ example: 1024, description: 'File size in bytes' }),
+    uploadDate: z
+      .string()
+      .openapi({ example: '2023-01-01T00:00:00.000Z', description: 'Upload timestamp' }),
+  })
+  .openapi('UploadResponse');
+
+const DeleteResponseSchema = z
+  .object({
+    message: z
+      .string()
+      .openapi({ example: 'File deleted successfully', description: 'Success message' }),
+  })
+  .openapi('DeleteResponse');
+
+const ErrorSchema = z
+  .object({
+    error: z.string().openapi({ example: 'An error occurred', description: 'Error message' }),
+  })
+  .openapi('FileError');
+
+// List files route
+const listFilesRoute = createRoute({
+  method: 'get',
+  path: '/:username/:slug/files',
+  operationId: 'listProjectFiles',
+  tags: ['Files'],
+  request: {
+    params: ProjectPathParamsSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.array(FileSchema),
+        },
+      },
+      description: 'List of files',
+    },
+    401: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Not authenticated',
+    },
+    404: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Project not found',
+    },
+  },
 });
 
-const uploadResponseSchema = z.object({
-  name: z.string().describe('Uploaded file name'),
-  size: z.number().describe('File size in bytes'),
-  uploadDate: z.string().describe('Upload timestamp'),
+fileRoutes.openapi(listFilesRoute, async (c) => {
+  const db = c.get('db');
+  const storage = getStorageService(c.get('storage'));
+  const username = c.req.param('username');
+  const slug = c.req.param('slug');
+
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
+
+  if (!project) {
+    return c.json({ error: 'Project not found' }, 404);
+  }
+
+  try {
+    const files = await storage.listProjectFiles(username, slug);
+    return c.json(
+      files.map((name) => ({
+        name,
+      }))
+    );
+  } catch {
+    return c.json({ error: 'Failed to list files' }, 500);
+  }
 });
 
-const deleteResponseSchema = z.object({
-  message: z.string().describe('Success message'),
+// Download file route
+const downloadFileRoute = createRoute({
+  method: 'get',
+  path: '/:username/:slug/files/:storedName',
+  operationId: 'downloadProjectFile',
+  tags: ['Files'],
+  request: {
+    params: ProjectPathParamsSchema.extend({
+      storedName: z.string().openapi({ example: 'document.pdf', description: 'File name' }),
+    }),
+  },
+  responses: {
+    200: {
+      content: {
+        'application/octet-stream': {
+          schema: {
+            type: 'string',
+            format: 'binary',
+          },
+        },
+      },
+      description: 'File content',
+    },
+    401: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Not authenticated',
+    },
+    404: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'File not found',
+    },
+  },
 });
 
-const errorSchema = z.object({
-  error: z.string().describe('Error message'),
+fileRoutes.openapi(downloadFileRoute, async (c) => {
+  const db = c.get('db');
+  const storage = getStorageService(c.get('storage'));
+  const username = c.req.param('username');
+  const slug = c.req.param('slug');
+  const storedName = c.req.param('storedName');
+
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
+
+  if (!project) {
+    return c.json({ error: 'Project not found' }, 404);
+  }
+
+  try {
+    const fileExists = await storage.projectFileExists(username, slug, storedName);
+    if (!fileExists) {
+      return c.json({ error: 'File not found' }, 404);
+    }
+
+    const data = await storage.readProjectFile(username, slug, storedName);
+    if (!data) {
+      return c.json({ error: 'File not found' }, 404);
+    }
+
+    const uint8Array = data instanceof Buffer ? new Uint8Array(data) : new Uint8Array(data);
+
+    return c.body(uint8Array, 200, {
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${storedName}"`,
+      'Content-Length': uint8Array.length.toString(),
+    });
+  } catch {
+    return c.json({ error: 'Failed to read file' }, 500);
+  }
 });
 
-// List files in project
-fileRoutes.get(
-  '/:username/:slug/files',
-  describeRoute({
-    description: 'List all files in a project',
-    tags: ['Files'],
-    responses: {
-      200: {
-        description: 'List of files',
-        content: {
-          'application/json': {
-            schema: resolver(z.array(fileSchema)),
-          },
+// Upload file route
+const uploadFileRoute = createRoute({
+  method: 'post',
+  path: '/:username/:slug/files',
+  operationId: 'uploadProjectFile',
+  tags: ['Files'],
+  request: {
+    params: ProjectPathParamsSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: UploadResponseSchema,
         },
       },
-      401: {
-        description: 'Not authenticated',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
-      404: {
-        description: 'Project not found',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
+      description: 'File uploaded successfully',
     },
-  }),
-  requireAuth,
-  async (c) => {
-    const db = c.get('db');
-    const storage = getStorageService(c.get('storage'));
-    const username = c.req.param('username');
-    const slug = c.req.param('slug');
-
-    // Verify project exists
-    const project = await projectService.findByUsernameAndSlug(db, username, slug);
-
-    if (!project) {
-      return c.json({ error: 'Project not found' }, 404);
-    }
-
-    try {
-      const files = await storage.listProjectFiles(username, slug);
-      return c.json(
-        files.map((name) => ({
-          name,
-        }))
-      );
-    } catch {
-      return c.json({ error: 'Failed to list files' }, 500);
-    }
-  }
-);
-
-// Download file
-fileRoutes.get(
-  '/:username/:slug/files/:storedName',
-  describeRoute({
-    description: 'Download a file from the project',
-    tags: ['Files'],
-    responses: {
-      200: {
-        description: 'File content',
-        content: {
-          'application/octet-stream': {
-            schema: {
-              type: 'string',
-              format: 'binary',
-            },
-          },
+    400: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
         },
       },
-      401: {
-        description: 'Not authenticated',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
-      404: {
-        description: 'File not found',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
+      description: 'No file provided',
     },
-  }),
-  requireAuth,
-  async (c) => {
-    const db = c.get('db');
-    const storage = getStorageService(c.get('storage'));
-    const username = c.req.param('username');
-    const slug = c.req.param('slug');
-    const storedName = c.req.param('storedName');
-
-    // Verify project exists
-    const project = await projectService.findByUsernameAndSlug(db, username, slug);
-
-    if (!project) {
-      return c.json({ error: 'Project not found' }, 404);
-    }
-
-    try {
-      const fileExists = await storage.projectFileExists(username, slug, storedName);
-      if (!fileExists) {
-        return c.json({ error: 'File not found' }, 404);
-      }
-
-      const data = await storage.readProjectFile(username, slug, storedName);
-      if (!data) {
-        return c.json({ error: 'File not found' }, 404);
-      }
-
-      const uint8Array = data instanceof Buffer ? new Uint8Array(data) : new Uint8Array(data);
-
-      return c.body(uint8Array, 200, {
-        'Content-Type': 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${storedName}"`,
-        'Content-Length': uint8Array.length.toString(),
-      });
-    } catch {
-      return c.json({ error: 'Failed to read file' }, 500);
-    }
-  }
-);
-
-// Upload file
-fileRoutes.post(
-  '/:username/:slug/files',
-  describeRoute({
-    description: 'Upload a file to the project',
-    tags: ['Files'],
-    responses: {
-      200: {
-        description: 'File uploaded successfully',
-        content: {
-          'application/json': {
-            schema: resolver(uploadResponseSchema),
-          },
+    401: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
         },
       },
-      401: {
-        description: 'Not authenticated',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
-      404: {
-        description: 'Project not found',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
+      description: 'Not authenticated',
     },
-  }),
-  requireAuth,
-  async (c) => {
-    const db = c.get('db');
-    const storage = getStorageService(c.get('storage'));
-    const username = c.req.param('username');
-    const slug = c.req.param('slug');
-
-    // Verify project exists
-    const project = await projectService.findByUsernameAndSlug(db, username, slug);
-
-    if (!project) {
-      return c.json({ error: 'Project not found' }, 404);
-    }
-
-    try {
-      const formData = await c.req.formData();
-      const file = formData.get('file') as File;
-
-      if (!file) {
-        return c.json({ error: 'No file provided' }, 400);
-      }
-
-      const buffer = await file.arrayBuffer();
-      const fileName = file.name;
-
-      await storage.saveProjectFile(username, slug, fileName, buffer);
-
-      return c.json({
-        name: fileName,
-        size: buffer.byteLength,
-        uploadDate: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error('File upload error:', error);
-      return c.json({ error: 'Failed to upload file' }, 500);
-    }
-  }
-);
-
-// Delete file
-fileRoutes.delete(
-  '/:username/:slug/files/:storedName',
-  describeRoute({
-    description: 'Delete a file from the project',
-    tags: ['Files'],
-    responses: {
-      200: {
-        description: 'File deleted successfully',
-        content: {
-          'application/json': {
-            schema: resolver(deleteResponseSchema),
-          },
+    404: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
         },
       },
-      401: {
-        description: 'Not authenticated',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
-      404: {
-        description: 'File or project not found',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
+      description: 'Project not found',
     },
-  }),
-  requireAuth,
-  async (c) => {
-    const db = c.get('db');
-    const storage = getStorageService(c.get('storage'));
-    const username = c.req.param('username');
-    const slug = c.req.param('slug');
-    const storedName = c.req.param('storedName');
+  },
+});
 
-    // Verify project exists
-    const project = await projectService.findByUsernameAndSlug(db, username, slug);
+fileRoutes.openapi(uploadFileRoute, async (c) => {
+  const db = c.get('db');
+  const storage = getStorageService(c.get('storage'));
+  const username = c.req.param('username');
+  const slug = c.req.param('slug');
 
-    if (!project) {
-      return c.json({ error: 'Project not found' }, 404);
-    }
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
-    try {
-      const fileExists = await storage.projectFileExists(username, slug, storedName);
-      if (!fileExists) {
-        return c.json({ error: 'File not found' }, 404);
-      }
-
-      await storage.deleteProjectFile(username, slug, storedName);
-
-      return c.json({ message: 'File deleted successfully' });
-    } catch (error) {
-      console.error('File delete error:', error);
-      return c.json({ error: 'Failed to delete file' }, 500);
-    }
+  if (!project) {
+    return c.json({ error: 'Project not found' }, 404);
   }
-);
+
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File;
+
+    if (!file) {
+      return c.json({ error: 'No file provided' }, 400);
+    }
+
+    const buffer = await file.arrayBuffer();
+    const fileName = file.name;
+
+    await storage.saveProjectFile(username, slug, fileName, buffer);
+
+    return c.json({
+      name: fileName,
+      size: buffer.byteLength,
+      uploadDate: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('File upload error:', error);
+    return c.json({ error: 'Failed to upload file' }, 500);
+  }
+});
+
+// Delete file route
+const deleteFileRoute = createRoute({
+  method: 'delete',
+  path: '/:username/:slug/files/:storedName',
+  operationId: 'deleteProjectFile',
+  tags: ['Files'],
+  request: {
+    params: ProjectPathParamsSchema.extend({
+      storedName: z.string().openapi({ example: 'document.pdf', description: 'File name' }),
+    }),
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: DeleteResponseSchema,
+        },
+      },
+      description: 'File deleted successfully',
+    },
+    401: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Not authenticated',
+    },
+    404: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'File or project not found',
+    },
+  },
+});
+
+fileRoutes.openapi(deleteFileRoute, async (c) => {
+  const db = c.get('db');
+  const storage = getStorageService(c.get('storage'));
+  const username = c.req.param('username');
+  const slug = c.req.param('slug');
+  const storedName = c.req.param('storedName');
+
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
+
+  if (!project) {
+    return c.json({ error: 'Project not found' }, 404);
+  }
+
+  try {
+    const fileExists = await storage.projectFileExists(username, slug, storedName);
+    if (!fileExists) {
+      return c.json({ error: 'File not found' }, 404);
+    }
+
+    await storage.deleteProjectFile(username, slug, storedName);
+
+    return c.json({ message: 'File deleted successfully' });
+  } catch (error) {
+    console.error('File delete error:', error);
+    return c.json({ error: 'Failed to delete file' }, 500);
+  }
+});
 
 export default fileRoutes;

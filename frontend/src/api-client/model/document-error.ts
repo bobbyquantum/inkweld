@@ -9,14 +9,10 @@
  */
 
 
-export interface GetApiV1AiImageStatus200Response { 
+export interface DocumentError { 
     /**
-     * Whether AI image generation is enabled
+     * Error message
      */
-    enabled: boolean;
-    /**
-     * The AI service being used
-     */
-    service: string;
+    error: string;
 }
 

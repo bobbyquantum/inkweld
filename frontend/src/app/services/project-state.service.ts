@@ -320,9 +320,9 @@ export class ProjectStateService {
     slug: string
   ): Promise<void> {
     // Note: API client incorrectly types this as DocumentSnapshot[] but it actually returns Project
-    const project = (await firstValueFrom(
+    const project = await firstValueFrom(
       this.ProjectsService.getApiV1ProjectsUsernameSlug(username, slug)
-    )) as unknown as Project;
+    );
     this.project.set(project);
 
     this.docId = `${username}:${slug}:elements`;
@@ -736,7 +736,7 @@ export class ProjectStateService {
       }
     } else {
       // Add element in server mode
-      
+
       // Fetch icon for the element type (especially for custom templates)
       let icon: string | undefined;
       if (project) {
@@ -753,19 +753,20 @@ export class ProjectStateService {
         : -1;
       const parentLevel = parentIndex >= 0 ? elements[parentIndex].level : -1;
 
-      const elementToAdd: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
-        id: nanoid(),
-        name,
-        type,
-        parentId: parentId || null,
-        level: parentLevel + 1,
-        expandable:
-          type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
-        order: elements.length,
-        version: 0,
-        metadata: icon ? { icon } : {},
-      };
+      const elementToAdd: GetApiV1ProjectsUsernameSlugElements200ResponseInner =
+        {
+          id: nanoid(),
+          name,
+          type,
+          parentId: parentId || null,
+          level: parentLevel + 1,
+          expandable:
+            type ===
+            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+          order: elements.length,
+          version: 0,
+          metadata: icon ? { icon } : {},
+        };
 
       newElementId = elementToAdd.id;
 

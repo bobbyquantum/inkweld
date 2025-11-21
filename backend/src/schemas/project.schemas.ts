@@ -1,8 +1,7 @@
 /**
  * Project management OpenAPI schemas
  */
-import { z } from 'zod';
-import 'zod-openapi/extend';
+import { z } from '@hono/zod-openapi';
 
 /**
  * Project information
@@ -10,24 +9,16 @@ import 'zod-openapi/extend';
  */
 export const ProjectSchema = z
   .object({
-    id: z.string().openapi({ example: 'proj-123' }),
-    slug: z.string().openapi({ example: 'my-novel' }),
-    title: z.string().openapi({ example: 'My Novel' }),
-    description: z
-      .string()
-      .nullable()
-      .optional()
-      .openapi({ example: 'A thrilling adventure story' }),
-    username: z.string().openapi({ example: 'johndoe' }),
-    coverImage: z
-      .string()
-      .nullable()
-      .optional()
-      .openapi({ example: 'cover.jpg', description: 'Cover image filename, null if no cover' }),
-    createdDate: z.string().datetime().openapi({ example: '2023-01-01T00:00:00.000Z' }),
-    updatedDate: z.string().datetime().openapi({ example: '2023-01-01T00:00:00.000Z' }),
+    id: z.string().openapi({ description: 'Unique project identifier' }),
+    slug: z.string().openapi({ description: 'URL-friendly project identifier' }),
+    title: z.string().openapi({ description: 'Project title' }),
+    description: z.string().nullable().optional().openapi({ description: 'Project description' }),
+    username: z.string().openapi({ description: 'Project owner username' }),
+    coverImage: z.string().nullable().optional().openapi({ description: 'Cover image URL' }),
+    createdDate: z.string().datetime().openapi({ description: 'Project creation date' }),
+    updatedDate: z.string().datetime().openapi({ description: 'Last update date' }),
   })
-  .openapi({ ref: 'Project' });
+  .openapi('Project');
 
 /**
  * Project creation request
@@ -40,16 +31,13 @@ export const CreateProjectRequestSchema = z
       .min(3)
       .regex(/^[a-z0-9-]+$/)
       .openapi({
-        example: 'my-novel',
         description: 'URL-friendly project identifier (lowercase, numbers, hyphens only)',
+        example: 'my-novel',
       }),
-    title: z.string().min(1).openapi({ example: 'My Novel', description: 'Project title' }),
-    description: z
-      .string()
-      .optional()
-      .openapi({ example: 'A thrilling adventure story', description: 'Project description' }),
+    title: z.string().min(1).openapi({ description: 'Project title', example: 'My Novel' }),
+    description: z.string().optional().openapi({ description: 'Optional project description' }),
   })
-  .openapi({ ref: 'CreateProjectRequest' });
+  .openapi('CreateProjectRequest');
 
 /**
  * Project update request
@@ -61,18 +49,13 @@ export const UpdateProjectRequestSchema = z
       .string()
       .min(1)
       .optional()
-      .openapi({ example: 'My Updated Novel', description: 'Project title' }),
-    description: z.string().optional().openapi({
-      example: 'An updated thrilling adventure story',
-      description: 'Project description',
-    }),
+      .openapi({ description: 'Updated project title', example: 'My Updated Novel' }),
+    description: z.string().optional().openapi({ description: 'Updated project description' }),
   })
-  .openapi({ ref: 'UpdateProjectRequest' });
+  .openapi('UpdateProjectRequest');
 
 /**
  * Projects list response
  * @component ProjectsListResponse
  */
-export const ProjectsListResponseSchema = z
-  .array(ProjectSchema)
-  .openapi({ ref: 'ProjectsListResponse' });
+export const ProjectsListResponseSchema = z.array(ProjectSchema).openapi('ProjectsListResponse');

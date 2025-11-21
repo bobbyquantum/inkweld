@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../../api-client';
+import { Element } from '../../api-client';
 import { ElementTypeSchema } from '../models/schema-types';
 import { SetupService } from './setup.service';
 import { WorldbuildingService } from './worldbuilding.service';
@@ -511,7 +511,7 @@ describe('WorldbuildingService', () => {
         id: 'test-element-123',
         type: 'CHARACTER',
         name: 'Test Character',
-      } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
+      } as Element;
       const username = 'testuser';
       const slug = 'test-project';
 
@@ -549,7 +549,7 @@ describe('WorldbuildingService', () => {
         id: 'test-element-123',
         type: 'ITEM', // ITEM is not a worldbuilding type
         name: 'Test Document',
-      } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
+      } as Element;
 
       const setupSpy = vi.spyOn(service, 'setupCollaboration');
 
@@ -563,7 +563,7 @@ describe('WorldbuildingService', () => {
         id: 'test-element-123',
         type: 'CHARACTER',
         name: 'Test Character',
-      } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
+      } as Element;
 
       // Create mock Yjs document and connection with type already set
       const mockYdoc = new Y.Doc();

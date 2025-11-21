@@ -3,7 +3,9 @@
     <div class="full-width-header">
       <div class="header-content">
         <div class="cover-image-wrapper">
-          <app-project-cover [project]="projectState.project()!" variant="list"></app-project-cover>
+          <app-project-cover
+            [project]="projectState.project()!"
+            variant="list"></app-project-cover>
         </div>
         <div class="project-info">
           <h2>{{ projectState.project()?.title }}</h2>
@@ -51,7 +53,11 @@
           <mat-icon>list</mat-icon>
           Project Documents
         </button>
-        <button mat-button color="primary" (click)="openTemplatesTab()" data-testid="template-library-button">
+        <button
+          mat-button
+          color="primary"
+          (click)="openTemplatesTab()"
+          data-testid="template-library-button">
           <mat-icon>description</mat-icon>
           Templates
         </button>

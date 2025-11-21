@@ -9,10 +9,18 @@
  */
 
 
-export interface GetApiV1CsrfToken200Response { 
+export interface UploadResponse { 
     /**
-     * CSRF token for form submissions
+     * Uploaded file name
      */
-    token: string;
+    name: string;
+    /**
+     * File size in bytes
+     */
+    size: number;
+    /**
+     * Upload timestamp
+     */
+    uploadDate: string;
 }
 

@@ -9,10 +9,10 @@
  */
 
 
-export interface GetApiV1ProjectsUsernameSlugDocs401Response { 
+export interface ImageMessage { 
     /**
-     * Error message
+     * Success message
      */
-    error: string;
+    message: string;
 }
 

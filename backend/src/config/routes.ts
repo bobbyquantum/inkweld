@@ -3,7 +3,6 @@
  * ONLY includes routes that are safe for ALL runtimes (Bun, Node.js, Workers)
  * Specialized routes (WebSocket/Yjs) are registered per-app
  */
-import type { Hono } from 'hono';
 
 // Import COMMON routes that work across all runtimes
 import authRoutes from '../routes/auth.routes';
@@ -25,10 +24,10 @@ import mcpRoutes from '../routes/mcp.routes';
 /**
  * Register common API routes that work in all runtime environments
  * Each app can then register its own specialized routes (WebSocket, etc.)
- * @param app - Hono app instance
+ * @param app - Hono or OpenAPIHono app instance
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function registerCommonRoutes(app: Hono<any>): void {
+export function registerCommonRoutes(app: any): void {
   // Authentication routes
   app.route('/api/v1/auth', authRoutes);
 
@@ -46,7 +45,7 @@ export function registerCommonRoutes(app: Hono<any>): void {
   // Snapshots have their own base path to avoid conflicts
   app.route('/api/v1/snapshots', snapshotRoutes);
 
-  // System endpoints
+  // System endpoints - start with just health
   app.route('/api/v1/health', healthRoutes);
   app.route('/api/v1/config', configRoutes);
   app.route('/api/v1/csrf', csrfRoutes);

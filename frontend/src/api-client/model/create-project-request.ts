@@ -19,7 +19,7 @@ export interface CreateProjectRequest {
      */
     title: string;
     /**
-     * Project description
+     * Optional project description
      */
     description?: string;
 }

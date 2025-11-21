@@ -9,10 +9,10 @@
  */
 
 
-export interface GetApiV1ProjectsUsernameSlugCover404Response { 
+export interface CSRFTokenResponse { 
     /**
-     * Error message
+     * CSRF token for form submissions
      */
-    message: string;
+    token: string;
 }
 

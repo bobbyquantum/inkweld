@@ -11,11 +11,11 @@
 
 export interface UpdateProjectRequest { 
     /**
-     * Project title
+     * Updated project title
      */
     title?: string;
     /**
-     * Project description
+     * Updated project description
      */
     description?: string;
 }

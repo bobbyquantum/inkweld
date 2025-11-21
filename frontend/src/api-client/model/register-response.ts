@@ -11,14 +11,17 @@ import { User } from './user';
 
 
 export interface RegisterResponse { 
+    /**
+     * Registration status message
+     */
     message: string;
     user: User;
     /**
-     * Authentication token (only present if auto-login is enabled)
+     * JWT authentication token (if auto-login enabled)
      */
     token?: string;
     /**
-     * Whether the user account requires admin approval before being enabled
+     * Whether account requires admin approval
      */
     requiresApproval?: boolean;
 }

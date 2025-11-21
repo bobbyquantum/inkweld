@@ -23,11 +23,11 @@ export interface RegisterRequest {
      */
     email?: string;
     /**
-     * User display name
+     * Display name (optional)
      */
     name?: string;
     /**
-     * reCAPTCHA token (required if reCAPTCHA is enabled)
+     * reCAPTCHA token for verification
      */
     captchaToken?: string;
 }

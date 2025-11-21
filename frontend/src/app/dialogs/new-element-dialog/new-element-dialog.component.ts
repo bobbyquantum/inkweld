@@ -163,30 +163,33 @@ export class NewElementDialogComponent {
       console.log('[NewElementDialog] Loaded library:', library);
 
       const schemasMap = library.get('schemas');
-      
+
       // Auto-load default templates if library is empty
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
       if (!schemasMap || (schemasMap as any).size === 0) {
-        console.log('[NewElementDialog] Schema library empty, auto-loading default templates');
+        console.log(
+          '[NewElementDialog] Schema library empty, auto-loading default templates'
+        );
         await this.worldbuildingService.autoLoadDefaultTemplates(
           projectKey,
           username,
           slug
         );
-        
+
         // Reload library after auto-loading
-        const reloadedLibrary = await this.worldbuildingService.loadSchemaLibrary(
-          projectKey,
-          username,
-          slug
-        );
+        const reloadedLibrary =
+          await this.worldbuildingService.loadSchemaLibrary(
+            projectKey,
+            username,
+            slug
+          );
         const reloadedSchemas = reloadedLibrary.get('schemas');
-        
+
         if (!reloadedSchemas) {
           console.warn('[NewElementDialog] No schemas after auto-load');
           return;
         }
-        
+
         // Continue with the reloaded schemas
         this.buildWorldbuildingOptions(reloadedSchemas);
         return;
@@ -208,7 +211,7 @@ export class NewElementDialogComponent {
     // Iterate through available schemas
     // Y.Map iteration requires any types for dynamic schema structure
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    (schemasMap as any).forEach((schemaData: any) => {
+    schemasMap.forEach((schemaData: any) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       const type = schemaData.get('type');
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access

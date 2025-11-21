@@ -36,11 +36,8 @@ export type TestFixtures = {
   // Anonymous state (default)
   anonymousPage: Page;
 
-  // Authenticated user state (server mode)
+  // Authenticated user state
   authenticatedPage: Page;
-
-  // Authenticated user state (offline mode)
-  offlineAuthenticatedPage: Page;
 
   // Admin user state
   adminPage: Page;
@@ -52,22 +49,11 @@ export type TestFixtures = {
 export const test = base.extend<TestFixtures>({
   // Base page setup (for anonymous user)
   anonymousPage: async ({ page }, use) => {
-    // Block Service Worker to ensure API mocking works reliably
-    await page.route('**/ngsw-worker.js', route => route.abort());
-
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
 
     // Set up app configuration in localStorage
-    await page.addInitScript(async () => {
-      // Unregister any existing Service Workers
-      if (window.navigator.serviceWorker) {
-        const registrations = await window.navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-          await registration.unregister();
-        }
-      }
-
+    await page.addInitScript(() => {
       localStorage.setItem('inkweld-app-config', JSON.stringify({
         mode: 'server',
         serverUrl: 'http://localhost:8333'
@@ -80,24 +66,13 @@ export const test = base.extend<TestFixtures>({
     await use(page);
   },
 
-  // Authenticated user (server mode)
+  // Authenticated user
   authenticatedPage: async ({ page }, use) => {
-    // Block Service Worker to ensure API mocking works reliably
-    await page.route('**/ngsw-worker.js', route => route.abort());
-
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
 
     // Set up app configuration and auth token in localStorage
-    await page.addInitScript(async () => {
-      // Unregister any existing Service Workers
-      if (window.navigator.serviceWorker) {
-        const registrations = await window.navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-          await registration.unregister();
-        }
-      }
-
+    await page.addInitScript(() => {
       localStorage.setItem('inkweld-app-config', JSON.stringify({
         mode: 'server',
         serverUrl: 'http://localhost:8333'
@@ -106,12 +81,12 @@ export const test = base.extend<TestFixtures>({
       localStorage.setItem('auth_token', 'mock-token-testuser');
     });
 
-    console.log('Setting up page for authenticated user (server mode)');
+    console.log('Setting up page for authenticated user');
     console.log('Mock auth token set for authenticated user');
 
     // Navigate to the base URL *after* setting the auth token
     await page.goto('/');
-    
+
     // Wait for projects to be loaded (the loading state should appear and disappear)
     // Or wait for at least one project card to appear or the empty state
     await page.waitForFunction(() => {
@@ -125,84 +100,13 @@ export const test = base.extend<TestFixtures>({
     await use(page);
   },
 
-  // Authenticated user (offline mode - for tests that use Yjs without WebSocket)
-  offlineAuthenticatedPage: async ({ page }, use) => {
-    // We DO NOT block Service Worker here as offline mode might depend on it
-    // Set up mock API interception
-    await mockApi.setupPageInterception(page);
-
-    // Set up app configuration and offline user in localStorage (OFFLINE MODE)
-    await page.addInitScript(() => {
-      // Offline mode configuration with user profile
-      localStorage.setItem('inkweld-app-config', JSON.stringify({
-        mode: 'offline',
-        userProfile: {
-          username: 'testuser',
-          name: 'Test User'
-        }
-      }));
-      
-      // Set offline user data
-      localStorage.setItem('inkweld-offline-user', JSON.stringify({
-        id: '',
-        username: 'testuser',
-        name: 'Test User',
-        enabled: true
-      }));
-    });
-
-    console.log('Setting up page for authenticated user (offline mode)');
-    console.log('Offline user profile configured');
-
-    // Navigate to the base URL *after* setting the offline config
-    await page.goto('/');
-    
-    // In offline mode, we need to create a project via UI since there's no API
-    // Wait for the "Create Project" button to appear
-    const createButton = page.getByText('Create Project');
-    await createButton.waitFor({ state: 'visible', timeout: 10000 });
-    
-    // Click create project button
-    await createButton.click();
-    
-    // Fill in project details using testids
-    await page.getByTestId('project-title-input').fill('Test Project');
-    await page.getByTestId('project-slug-input').fill('test-project');
-    await page.getByTestId('project-description-input').fill('A test project for e2e tests');
-    
-    // Submit the form
-    await page.getByTestId('create-project-button').click();
-    
-    // Wait for navigation to the project page
-    await page.waitForURL(/.*\/testuser\/test-project/, { timeout: 10000 });
-    
-    // Navigate back to home page so project card is available for tests
-    await page.goto('/');
-    
-    // Wait for project card to appear
-    await page.waitForSelector('[data-testid="project-card"]', { timeout: 10000 });
-
-    await use(page);
-  },
-
   // Admin user
   adminPage: async ({ page }, use) => {
-    // Block Service Worker to ensure API mocking works reliably
-    await page.route('**/ngsw-worker.js', route => route.abort());
-
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
 
     // Set up app configuration and auth token in localStorage
-    await page.addInitScript(async () => {
-      // Unregister any existing Service Workers
-      if (window.navigator.serviceWorker) {
-        const registrations = await window.navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-          await registration.unregister();
-        }
-      }
-
+    await page.addInitScript(() => {
       localStorage.setItem('inkweld-app-config', JSON.stringify({
         mode: 'server',
         serverUrl: 'http://localhost:8333'

@@ -9,7 +9,7 @@
  */
 
 
-export interface GetApiV1ProjectsUsernameSlugDocs200ResponseInner { 
+export interface Document { 
     /**
      * Document ID
      */

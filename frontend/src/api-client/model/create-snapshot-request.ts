@@ -10,33 +10,12 @@
 
 
 export interface CreateSnapshotRequest { 
-    /**
-     * Document ID
-     */
     documentId: string;
-    /**
-     * Snapshot name
-     */
     name: string;
-    /**
-     * Snapshot description
-     */
     description?: string;
-    /**
-     * Base64 encoded Yjs document state
-     */
     yDocState: string;
-    /**
-     * Base64 encoded state vector
-     */
     stateVector?: string;
-    /**
-     * Word count
-     */
     wordCount?: number;
-    /**
-     * Additional metadata
-     */
-    metadata?: { [key: string]: any; };
+    metadata?: { [key: string]: any | null; };
 }
 

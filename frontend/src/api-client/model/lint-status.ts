@@ -9,17 +9,14 @@
  */
 
 
-/**
- * ReCaptcha configuration for registration
- */
-export interface GetApiV1ConfigFeatures200ResponseCaptcha { 
+export interface LintStatus { 
     /**
-     * Whether reCAPTCHA is enabled
+     * Whether AI linting is enabled
      */
     enabled: boolean;
     /**
-     * reCAPTCHA site key for client-side validation
+     * The AI service being used
      */
-    siteKey?: string;
+    service: string;
 }
 

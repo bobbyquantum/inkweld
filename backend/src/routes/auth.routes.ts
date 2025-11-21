@@ -1,5 +1,4 @@
-import { Hono } from 'hono';
-import { describeRoute, resolver, validator } from 'hono-openapi';
+import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { authService } from '../services/auth.service.js';
 import { userService } from '../services/user.service.js';
 import { config } from '../config/env.js';
@@ -13,213 +12,244 @@ import {
 } from '../schemas/auth.schemas.js';
 import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas.js';
 
-const authRoutes = new Hono<AppContext>();
+const authRoutes = new OpenAPIHono<AppContext>();
 
 // Registration endpoint
-authRoutes.post(
-  '/register',
-  describeRoute({
-    description: 'Register a new user account',
-    tags: ['Authentication'],
-    responses: {
-      200: {
-        description: 'Registration successful',
-        content: {
-          'application/json': {
-            schema: resolver(RegisterResponseSchema),
-          },
-        },
-      },
-      400: {
-        description: 'Invalid input or username already exists',
-        content: {
-          'application/json': {
-            schema: resolver(ErrorResponseSchema),
-          },
-        },
-      },
-      403: {
-        description: 'reCAPTCHA validation failed',
-        content: {
-          'application/json': {
-            schema: resolver(ErrorResponseSchema),
-          },
+const registerRoute = createRoute({
+  method: 'post',
+  path: '/register',
+  tags: ['Authentication'],
+  operationId: 'registerUser',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: RegisterRequestSchema,
         },
       },
     },
-  }),
-  validator('json', RegisterRequestSchema),
-  async (c) => {
-    const db = c.get('db');
-    const { username, password, email, name } = c.req.valid('json');
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: RegisterResponseSchema,
+        },
+      },
+      description: 'Registration successful',
+    },
+    400: {
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
+        },
+      },
+      description: 'Invalid input or username already exists',
+    },
+    403: {
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
+        },
+      },
+      description: 'reCAPTCHA validation failed',
+    },
+  },
+});
 
-    // Create user
-    try {
-      const newUser = await userService.create(db, {
-        username,
-        password,
-        email: email || username + '@local',
-        name: name || username,
-      });
+authRoutes.openapi(registerRoute, async (c) => {
+  const db = c.get('db');
+  const { username, password, email, name } = c.req.valid('json');
 
-      // Auto-login if approval not required
-      if (!config.userApprovalRequired) {
-        const token = await authService.createSession(c, newUser);
-        return c.json({
+  // Create user
+  try {
+    const newUser = await userService.create(db, {
+      username,
+      password,
+      email: email || username + '@local',
+      name: name || username,
+    });
+
+    // Auto-login if approval not required
+    if (!config.userApprovalRequired) {
+      const token = await authService.createSession(c, newUser);
+      return c.json(
+        {
           message: 'Registration successful',
           user: {
             id: newUser.id,
-            username: newUser.username,
+            username: newUser.username || '',
             name: newUser.name,
+            email: newUser.email || undefined,
+            approved: newUser.approved,
             enabled: newUser.enabled,
           },
           token,
           requiresApproval: false,
-        });
-      }
+        },
+        200
+      );
+    }
 
-      return c.json({
+    return c.json(
+      {
         message: config.userApprovalRequired
           ? 'Registration successful. Please wait for admin approval.'
           : 'Registration successful. You can now log in.',
         user: {
           id: newUser.id,
-          username: newUser.username,
+          username: newUser.username || '',
           name: newUser.name,
+          email: newUser.email || undefined,
+          approved: newUser.approved,
           enabled: newUser.enabled,
         },
         requiresApproval: true,
-      });
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
-        return c.json({ error: 'Username already exists' }, 400);
-      }
-      throw error;
+      },
+      200
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
+      return c.json({ error: 'Username already exists' }, 400);
     }
+    throw error;
   }
-);
+});
 
 // Login endpoint
-authRoutes.post(
-  '/login',
-  describeRoute({
-    description: 'Log in with username and password',
-    tags: ['Authentication'],
-    responses: {
-      200: {
-        description: 'Login successful',
-        content: {
-          'application/json': {
-            schema: resolver(LoginResponseSchema),
-          },
-        },
-      },
-      401: {
-        description: 'Invalid credentials',
-        content: {
-          'application/json': {
-            schema: resolver(ErrorResponseSchema),
-          },
-        },
-      },
-      403: {
-        description: 'Account disabled or pending approval',
-        content: {
-          'application/json': {
-            schema: resolver(ErrorResponseSchema),
-          },
+const loginRoute = createRoute({
+  method: 'post',
+  path: '/login',
+  tags: ['Authentication'],
+  operationId: 'login',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: LoginRequestSchema,
         },
       },
     },
-  }),
-  validator('json', LoginRequestSchema),
-  async (c) => {
-    const db = c.get('db');
-    const { username, password } = c.req.valid('json');
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: LoginResponseSchema,
+        },
+      },
+      description: 'Login successful',
+    },
+    401: {
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
+        },
+      },
+      description: 'Invalid credentials',
+    },
+    403: {
+      content: {
+        'application/json': {
+          schema: ErrorResponseSchema,
+        },
+      },
+      description: 'Account disabled or pending approval',
+    },
+  },
+});
 
-    // Authenticate user
-    const user = await authService.authenticate(db, username, password);
+authRoutes.openapi(loginRoute, async (c) => {
+  const db = c.get('db');
+  const { username, password } = c.req.valid('json');
 
-    if (!user) {
-      return c.json({ error: 'Invalid credentials' }, 401);
+  // Authenticate user
+  const user = await authService.authenticate(db, username, password);
+
+  if (!user) {
+    return c.json({ error: 'Invalid credentials' }, 401);
+  }
+
+  // Check if user can login
+  if (!userService.canLogin(user)) {
+    if (!user.enabled) {
+      return c.json({ error: 'Account is disabled' }, 403);
     }
-
-    // Check if user can login
-    if (!userService.canLogin(user)) {
-      if (!user.enabled) {
-        return c.json({ error: 'Account is disabled' }, 403);
-      }
-      if (!user.approved) {
-        return c.json({ error: 'Account pending approval' }, 403);
-      }
+    if (!user.approved) {
+      return c.json({ error: 'Account pending approval' }, 403);
     }
+  }
 
-    // Create session and get JWT token
-    const token = await authService.createSession(c, user);
+  // Create session and get JWT token
+  const token = await authService.createSession(c, user);
 
-    console.log('[Login] Session created for user:', user.username);
+  console.log('[Login] Session created for user:', user.username);
 
-    // Return user object with JWT token
-    return c.json({
+  // Return user object with JWT token
+  return c.json(
+    {
       user: {
         id: user.id,
-        username: user.username,
+        username: user.username || '',
         name: user.name,
+        email: user.email || undefined,
+        approved: user.approved,
         enabled: user.enabled,
       },
       token, // Return JWT token for client to store
-    });
-  }
-);
+    },
+    200
+  );
+});
 
 // Logout endpoint
-authRoutes.post(
-  '/logout',
-  describeRoute({
-    description: 'Log out and end session',
-    tags: ['Authentication'],
-    responses: {
-      200: {
-        description: 'Logout successful',
-        content: {
-          'application/json': {
-            schema: resolver(MessageResponseSchema),
-          },
+const logoutRoute = createRoute({
+  method: 'post',
+  path: '/logout',
+  tags: ['Authentication'],
+  operationId: 'logout',
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: MessageResponseSchema,
         },
       },
+      description: 'Logout successful',
     },
-  }),
-  async (c) => {
-    authService.destroySession(c);
-    return c.json({ message: 'Logged out successfully' });
-  }
-);
+  },
+});
+
+authRoutes.openapi(logoutRoute, async (c) => {
+  authService.destroySession(c);
+  return c.json({ message: 'Logged out successfully' });
+});
 
 // List OAuth providers
-authRoutes.get(
-  '/providers',
-  describeRoute({
-    description: 'List available OAuth providers',
-    tags: ['Authentication'],
-    responses: {
-      200: {
-        description: 'Available OAuth providers',
-        content: {
-          'application/json': {
-            schema: resolver(OAuthProvidersResponseSchema),
-          },
+const providersRoute = createRoute({
+  method: 'get',
+  path: '/providers',
+  tags: ['Authentication'],
+  operationId: 'listOAuthProviders',
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: OAuthProvidersResponseSchema,
         },
       },
+      description: 'Available OAuth providers',
     },
-  }),
-  async (c) => {
-    return c.json({
-      providers: {
-        github: config.github.enabled,
-      },
-    });
-  }
-);
+  },
+});
+
+authRoutes.openapi(providersRoute, async (c) => {
+  return c.json({
+    providers: {
+      github: config.github.enabled,
+    },
+  });
+});
 
 // GitHub OAuth endpoints will be added using @hono/oauth-providers
 // TODO: Implement GitHub OAuth with @hono/oauth-providers/github

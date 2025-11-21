@@ -7,18 +7,12 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { User } from './user';
 
 
-export interface LoginResponse { 
+export interface ElementError { 
     /**
-     * Login status message
+     * Error message
      */
-    message?: string;
-    user: User;
-    /**
-     * JWT authentication token
-     */
-    token: string;
+    error: string;
 }
 

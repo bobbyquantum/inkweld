@@ -1,185 +1,209 @@
-import { Hono } from 'hono';
-import { describeRoute, resolver } from 'hono-openapi';
-import { z } from 'zod';
+import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
+import { z } from '@hono/zod-openapi';
 import { projectService } from '../services/project.service';
 import { requireAuth } from '../middleware/auth';
 import { type AppContext } from '../types/context';
+import { ProjectPathParamsSchema } from '../schemas/common.schemas';
 
-const documentRoutes = new Hono<AppContext>();
+const documentRoutes = new OpenAPIHono<AppContext>();
+
+// Apply auth middleware to all document routes
+documentRoutes.use('*', requireAuth);
 
 // Schemas
-const documentSchema = z.object({
-  id: z.string().describe('Document ID'),
-  name: z.string().describe('Document name'),
-  type: z.string().describe('Document type'),
-  createdAt: z.string().optional().describe('Creation timestamp'),
-  updatedAt: z.string().optional().describe('Last update timestamp'),
-});
+const DocumentSchema = z
+  .object({
+    id: z.string().openapi({ example: 'doc-123', description: 'Document ID' }),
+    name: z.string().openapi({ example: 'Chapter 1', description: 'Document name' }),
+    type: z.string().openapi({ example: 'ITEM', description: 'Document type' }),
+    createdAt: z
+      .string()
+      .optional()
+      .openapi({ example: '2023-01-01T00:00:00.000Z', description: 'Creation timestamp' }),
+    updatedAt: z
+      .string()
+      .optional()
+      .openapi({ example: '2023-01-01T00:00:00.000Z', description: 'Last update timestamp' }),
+  })
+  .openapi('Document');
 
-const errorSchema = z.object({
-  error: z.string().describe('Error message'),
-});
+const ErrorSchema = z
+  .object({
+    error: z.string().openapi({ example: 'An error occurred', description: 'Error message' }),
+  })
+  .openapi('DocumentError');
 
 // List all documents in a project
-documentRoutes.get(
-  '/:username/:slug/docs',
-  describeRoute({
-    description: 'List all documents in a project',
-    tags: ['Documents'],
-    responses: {
-      200: {
-        description: 'List of documents',
-        content: {
-          'application/json': {
-            schema: resolver(z.array(documentSchema)),
-          },
+const listDocsRoute = createRoute({
+  method: 'get',
+  path: '/:username/:slug/docs',
+  operationId: 'listProjectDocuments',
+  tags: ['Documents'],
+  request: {
+    params: ProjectPathParamsSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.array(DocumentSchema),
         },
       },
-      401: {
-        description: 'Not authenticated',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
-      404: {
-        description: 'Project not found',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
+      description: 'List of documents',
     },
-  }),
-  requireAuth,
-  async (c) => {
-    const db = c.get('db');
-    const username = c.req.param('username');
-    const slug = c.req.param('slug');
+    401: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Not authenticated',
+    },
+    404: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Project not found',
+    },
+  },
+});
 
-    // Verify project exists
-    const project = await projectService.findByUsernameAndSlug(db, username, slug);
+documentRoutes.openapi(listDocsRoute, async (c) => {
+  const db = c.get('db');
+  const username = c.req.param('username');
+  const slug = c.req.param('slug');
 
-    if (!project) {
-      return c.json({ error: 'Project not found' }, 404);
-    }
+  // Verify project exists
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
-    // For now, return empty array - full implementation would query elements
-    // from the project's elements Yjs document
-    return c.json([]);
+  if (!project) {
+    return c.json({ error: 'Project not found' }, 404);
   }
-);
+
+  // For now, return empty array - full implementation would query elements
+  // from the project's elements Yjs document
+  return c.json([]);
+});
 
 // Get document metadata
-documentRoutes.get(
-  '/:username/:slug/docs/:docId',
-  describeRoute({
-    description: 'Get document metadata',
-    tags: ['Documents'],
-    responses: {
-      200: {
-        description: 'Document metadata',
-        content: {
-          'application/json': {
-            schema: resolver(documentSchema),
-          },
+const getDocRoute = createRoute({
+  method: 'get',
+  path: '/:username/:slug/docs/:docId',
+  operationId: 'getProjectDocument',
+  tags: ['Documents'],
+  request: {
+    params: ProjectPathParamsSchema.extend({
+      docId: z.string().openapi({ example: 'doc-123', description: 'Document ID' }),
+    }),
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: DocumentSchema,
         },
       },
-      401: {
-        description: 'Not authenticated',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
-      404: {
-        description: 'Document not found',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
+      description: 'Document metadata',
     },
-  }),
-  requireAuth,
-  async (c) => {
-    const db = c.get('db');
-    const username = c.req.param('username');
-    const slug = c.req.param('slug');
-    const docId = c.req.param('docId');
+    401: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Not authenticated',
+    },
+    404: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Document not found',
+    },
+  },
+});
 
-    // Verify project exists
-    const project = await projectService.findByUsernameAndSlug(db, username, slug);
+documentRoutes.openapi(getDocRoute, async (c) => {
+  const db = c.get('db');
+  const username = c.req.param('username');
+  const slug = c.req.param('slug');
+  const docId = c.req.param('docId');
 
-    if (!project) {
-      return c.json({ error: 'Project not found' }, 404);
-    }
+  // Verify project exists
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
-    // Return placeholder - full implementation would query the element from Yjs
-    return c.json({
-      id: docId,
-      name: 'Document',
-      type: 'ITEM',
-    });
+  if (!project) {
+    return c.json({ error: 'Project not found' }, 404);
   }
-);
+
+  // Return placeholder - full implementation would query the element from Yjs
+  return c.json({
+    id: docId,
+    name: 'Document',
+    type: 'ITEM',
+  });
+});
 
 // Render document as HTML
-documentRoutes.get(
-  '/:username/:slug/docs/:docId/html',
-  describeRoute({
-    description: 'Render document as HTML',
-    tags: ['Documents'],
-    responses: {
-      200: {
-        description: 'Rendered HTML content',
-        content: {
-          'text/html': {
-            schema: {
-              type: 'string',
-            },
+const renderHtmlRoute = createRoute({
+  method: 'get',
+  path: '/:username/:slug/docs/:docId/html',
+  tags: ['Documents'],
+  operationId: 'renderDocumentAsHtml',
+  request: {
+    params: ProjectPathParamsSchema.extend({
+      docId: z.string().openapi({ description: 'Document ID' }),
+    }),
+  },
+  responses: {
+    200: {
+      content: {
+        'text/html': {
+          schema: {
+            type: 'string',
           },
         },
       },
-      401: {
-        description: 'Not authenticated',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
-      404: {
-        description: 'Document not found',
-        content: {
-          'application/json': {
-            schema: resolver(errorSchema),
-          },
-        },
-      },
+      description: 'Rendered HTML content',
     },
-  }),
-  requireAuth,
-  async (c) => {
-    const db = c.get('db');
-    const username = c.req.param('username');
-    const slug = c.req.param('slug');
-    const docId = c.req.param('docId');
+    401: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Not authenticated',
+    },
+    404: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Document not found',
+    },
+  },
+});
 
-    // Verify project exists
-    const project = await projectService.findByUsernameAndSlug(db, username, slug);
+documentRoutes.openapi(renderHtmlRoute, async (c) => {
+  const db = c.get('db');
+  const username = c.req.param('username');
+  const slug = c.req.param('slug');
+  const docId = c.req.param('docId');
 
-    if (!project) {
-      return c.json({ error: 'Project not found' }, 404);
-    }
+  // Verify project exists
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
-    // Placeholder HTML rendering
-    // Full implementation would load from LevelDB and render ProseMirror content
-    const html = `
+  if (!project) {
+    return c.json({ error: 'Project not found' }, 404);
+  }
+
+  // Placeholder HTML rendering
+  // Full implementation would load from LevelDB and render ProseMirror content
+  const html = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -198,8 +222,7 @@ documentRoutes.get(
 </html>
 `;
 
-    return c.html(html);
-  }
-);
+  return c.html(html);
+});
 
 export default documentRoutes;

@@ -7,20 +7,21 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { ImageData } from './image-data';
 
 
-export interface GetApiV1Health200Response { 
+export interface ImageResponse { 
     /**
-     * Health status
+     * Unix timestamp of creation
      */
-    status: string;
+    created: number;
     /**
-     * Current server timestamp
+     * Generated images
      */
-    timestamp: string;
+    data: Array<ImageData>;
     /**
-     * Server uptime in seconds
+     * Source service
      */
-    uptime: number;
+    source: string;
 }
 

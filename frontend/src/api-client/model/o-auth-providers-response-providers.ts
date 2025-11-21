@@ -10,9 +10,6 @@
 
 
 export interface OAuthProvidersResponseProviders { 
-    /**
-     * Whether GitHub OAuth is enabled
-     */
     github: boolean;
 }
 

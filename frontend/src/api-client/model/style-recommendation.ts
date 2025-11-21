@@ -9,14 +9,14 @@
  */
 
 
-export interface GetApiV1UsersCheckUsername200Response { 
+export interface StyleRecommendation { 
     /**
-     * Whether username is available
+     * Style suggestion
      */
-    available: boolean;
+    suggestion: string;
     /**
-     * Alternative username suggestions
+     * Reason for the suggestion
      */
-    suggestions: Array<string>;
+    reason: string;
 }
 

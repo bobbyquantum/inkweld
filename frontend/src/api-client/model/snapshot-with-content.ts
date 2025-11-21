@@ -15,7 +15,7 @@ export interface SnapshotWithContent {
     name: string;
     description?: string | null;
     wordCount?: number | null;
-    metadata?: { [key: string]: any; };
+    metadata?: { [key: string]: any | null; } | null;
     createdAt: string;
     yDocState: string;
     stateVector?: string | null;

@@ -9,14 +9,10 @@
  */
 
 
-export interface PostApiV1AiLint200ResponseStyleRecommendationsInner { 
+export interface LintError { 
     /**
-     * Style suggestion
+     * Error message
      */
-    suggestion: string;
-    /**
-     * Reason for the suggestion
-     */
-    reason: string;
+    error: string;
 }
 

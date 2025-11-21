@@ -342,7 +342,6 @@ test.describe('Error Handling and Edge Cases', () => {
     test('should handle long-running session without memory leaks', async ({
       authenticatedPage: page,
     }) => {
-      test.skip(process.env['E2E_MODE'] !== 'prod', 'Skipping long-running test in non-prod mode');
       // Navigate through various pages multiple times
       for (let i = 0; i < 10; i++) {
         await page.goto('/');

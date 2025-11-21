@@ -2,8 +2,15 @@
  * Common OpenAPI schemas shared across routes
  * These schemas are registered as reusable components in the OpenAPI spec
  */
-import { z } from 'zod';
-import 'zod-openapi/extend';
+import { z } from '@hono/zod-openapi';
+
+/**
+ * Path parameters for project routes
+ */
+export const ProjectPathParamsSchema = z.object({
+  username: z.string().openapi({ example: 'johndoe', description: 'Username' }),
+  slug: z.string().openapi({ example: 'my-novel', description: 'Project slug' }),
+});
 
 /**
  * Standard error response
@@ -11,9 +18,9 @@ import 'zod-openapi/extend';
  */
 export const ErrorResponseSchema = z
   .object({
-    error: z.string().openapi({ example: 'An error occurred' }),
+    error: z.string(),
   })
-  .openapi({ ref: 'ErrorResponse' });
+  .openapi('ErrorResponse', { example: { error: 'An error occurred' } });
 
 /**
  * Standard message response
@@ -21,9 +28,9 @@ export const ErrorResponseSchema = z
  */
 export const MessageResponseSchema = z
   .object({
-    message: z.string().openapi({ example: 'Operation successful' }),
+    message: z.string(),
   })
-  .openapi({ ref: 'MessageResponse' });
+  .openapi('MessageResponse', { example: { message: 'Operation successful' } });
 
 /**
  * User information (without sensitive data)
@@ -31,11 +38,20 @@ export const MessageResponseSchema = z
  */
 export const UserSchema = z
   .object({
-    id: z.string().openapi({ example: 'user-123' }),
-    username: z.string().openapi({ example: 'johndoe' }),
-    name: z.string().nullable().optional().openapi({ example: 'John Doe' }),
-    email: z.string().optional().openapi({ example: 'john@example.com' }),
-    approved: z.boolean().optional().openapi({ example: true }),
-    enabled: z.boolean().openapi({ example: true }),
+    id: z.string(),
+    username: z.string(),
+    name: z.string().nullable().optional(),
+    email: z.string().optional(),
+    approved: z.boolean().optional(),
+    enabled: z.boolean(),
   })
-  .openapi({ ref: 'User' });
+  .openapi('User', {
+    example: {
+      id: 'user-123',
+      username: 'johndoe',
+      name: 'John Doe',
+      email: 'john@example.com',
+      approved: true,
+      enabled: true,
+    },
+  });

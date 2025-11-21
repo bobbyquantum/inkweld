@@ -3,7 +3,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
-import { AuthenticationService } from '@inkweld/index';
+import { AuthenticationService, User, UsersService } from '@inkweld/index';
 import {
   catchError,
   firstValueFrom,
@@ -12,8 +12,6 @@ import {
   throwError,
 } from 'rxjs';
 
-import { UsersService } from '../../api-client/api/users.service';
-import { User } from '../../api-client/model/user';
 import { LoggerService } from './logger.service';
 import { StorageService } from './storage.service';
 import { XsrfService } from './xsrf.service';
@@ -52,7 +50,7 @@ export class UserService {
   private readonly http = inject(HttpClient);
   private readonly userAPI = inject(UsersService);
   private readonly xsrfService = inject(XsrfService);
-  private readonly AuthenticationService = inject(AuthenticationService);
+  private readonly authenticationService = inject(AuthenticationService);
   private readonly router = inject(Router);
   private readonly storage = inject(StorageService);
   private readonly logger = inject(LoggerService);
@@ -138,7 +136,7 @@ export class UserService {
 
       // Fallback to API with retry mechanism
       const user = await firstValueFrom(
-        this.userAPI.getApiV1UsersMe().pipe(
+        this.userAPI.getCurrentUser().pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
             const userError = this.formatError(error);
@@ -183,7 +181,7 @@ export class UserService {
 
     try {
       const response = await firstValueFrom(
-        this.AuthenticationService.postApiV1AuthLogin({
+        this.authenticationService.login({
           username,
           password,
         })
@@ -194,7 +192,9 @@ export class UserService {
         localStorage.setItem('auth_token', response.token);
       }
 
-      await this.setCurrentUser(response.user);
+      if ('user' in response && response.user) {
+        await this.setCurrentUser(response.user);
+      }
       await this.router.navigate(['/']);
     } catch (err) {
       const error = this.formatError(err);
@@ -231,7 +231,9 @@ export class UserService {
     this.error.set(undefined);
 
     try {
-      await firstValueFrom(this.AuthenticationService.postApiV1AuthLogout());
+      await firstValueFrom(
+        this.authenticationService.logout() as Observable<any>
+      );
       await this.clearCurrentUser();
       await this.router.navigate(['/welcome']);
     } catch (err) {
@@ -244,27 +246,21 @@ export class UserService {
   }
 
   getUserAvatar(username: string): Observable<Blob> {
-    return this.userAPI.getApiV1UsersUsernameAvatar(username);
+    return this.userAPI.getUserAvatar(username);
   }
 
-  uploadAvatar(file: File): Observable<void> {
+  uploadAvatar(file: File): Observable<unknown> {
+    // Note: File upload still uses HttpClient as generated client may not handle FormData properly
     const formData = new FormData();
     formData.append('avatar', file);
     const url = `${this.userAPI.configuration.basePath}/api/v1/users/avatar`;
-    return this.http.post<void>(url, formData, {
+    return this.http.post(url, formData, {
       withCredentials: true,
     });
   }
 
-  deleteAvatar(): Observable<void> {
-    const url = `${this.userAPI.configuration.basePath}/api/v1/users/avatar/delete`;
-    return this.http.post<void>(
-      url,
-      {},
-      {
-        withCredentials: true,
-      }
-    );
+  deleteAvatar(): Observable<unknown> {
+    return this.userAPI.deleteUserAvatar();
   }
 
   private formatError(error: unknown): UserServiceError {

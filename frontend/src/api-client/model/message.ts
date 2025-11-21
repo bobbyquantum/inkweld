@@ -7,18 +7,12 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { User } from './user';
 
 
-export interface LoginResponse { 
+export interface Message { 
     /**
-     * Login status message
+     * Success message
      */
-    message?: string;
-    user: User;
-    /**
-     * JWT authentication token
-     */
-    token: string;
+    message: string;
 }
 

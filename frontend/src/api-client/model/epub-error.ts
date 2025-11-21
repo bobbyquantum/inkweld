@@ -9,11 +9,10 @@
  */
 
 
-export interface PostApiV1UsersRegisterRequest { 
-    username: string;
-    password: string;
-    email?: string;
-    name?: string;
-    captchaToken?: string;
+export interface EpubError { 
+    /**
+     * Error message
+     */
+    error: string;
 }
 

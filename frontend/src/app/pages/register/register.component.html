@@ -124,7 +124,9 @@
             mat-raised-button
             color="primary"
             type="submit"
-            [disabled]="registerForm.invalid || isRegistering || !providersLoaded"
+            [disabled]="
+              registerForm.invalid || isRegistering || !providersLoaded
+            "
             class="register-button"
             data-testid="register-button">
             @if (!isRegistering) {

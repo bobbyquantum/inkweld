@@ -9,18 +9,14 @@
  */
 
 
-export interface PostApiV1ProjectsUsernameSlugFiles200Response { 
+export interface RestoreResponse { 
     /**
-     * Uploaded file name
+     * Status message
      */
-    name: string;
+    message: string;
     /**
-     * File size in bytes
+     * Snapshot ID
      */
-    size: number;
-    /**
-     * Upload timestamp
-     */
-    uploadDate: string;
+    snapshotId: string;
 }
 

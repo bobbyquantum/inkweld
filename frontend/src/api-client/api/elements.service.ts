@@ -17,9 +17,9 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
-import { GetApiV1ProjectsUsernameSlugDocs401Response } from '../model/get-api-v1-projects-username-slug-docs401-response';
+import { Element } from '../model/element';
 // @ts-ignore
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '../model/get-api-v1-projects-username-slug-elements200-response-inner';
+import { ElementError } from '../model/element-error';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -38,22 +38,21 @@ export class ElementsService extends BaseService {
     }
 
     /**
-     * Get all project elements (folder structure)
-     * @endpoint get /api/v1/projects/{username}/{slug}/elements
-     * @param username 
-     * @param slug 
+     * @endpoint get /api/v1/projects/:username/:slug/elements
+     * @param username Username
+     * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getApiV1ProjectsUsernameSlugElements(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<GetApiV1ProjectsUsernameSlugElements200ResponseInner>>;
-    public getApiV1ProjectsUsernameSlugElements(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<GetApiV1ProjectsUsernameSlugElements200ResponseInner>>>;
-    public getApiV1ProjectsUsernameSlugElements(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<GetApiV1ProjectsUsernameSlugElements200ResponseInner>>>;
-    public getApiV1ProjectsUsernameSlugElements(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public listProjectElements(username: string, slug: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<Element>>;
+    public listProjectElements(username: string, slug: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<Element>>>;
+    public listProjectElements(username: string, slug: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<Element>>>;
+    public listProjectElements(username: string, slug: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling getApiV1ProjectsUsernameSlugElements.');
+            throw new Error('Required parameter username was null or undefined when calling listProjectElements.');
         }
         if (slug === null || slug === undefined) {
-            throw new Error('Required parameter slug was null or undefined when calling getApiV1ProjectsUsernameSlugElements.');
+            throw new Error('Required parameter slug was null or undefined when calling listProjectElements.');
         }
 
         let localVarHeaders = this.defaultHeaders;
@@ -81,9 +80,9 @@ export class ElementsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/elements`;
+        let localVarPath = `/api/v1/projects/:username/:slug/elements`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<Array<GetApiV1ProjectsUsernameSlugElements200ResponseInner>>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<Array<Element>>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

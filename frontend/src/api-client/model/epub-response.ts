@@ -9,7 +9,7 @@
  */
 
 
-export interface PostApiV1ProjectsUsernameSlugEpub200Response { 
+export interface EpubResponse { 
     /**
      * Original filename
      */

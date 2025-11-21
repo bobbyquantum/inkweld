@@ -9,18 +9,18 @@
  */
 
 
-export interface PostApiV1AiImageGenerate200ResponseDataInner { 
+export interface HealthResponse { 
     /**
-     * Base64-encoded JSON image data
+     * Health status
      */
-    b64Json?: string;
+    status: string;
     /**
-     * URL to the image
+     * Current server timestamp
      */
-    url?: string;
+    timestamp: string;
     /**
-     * The revised prompt used
+     * Server uptime in seconds
      */
-    revisedPrompt?: string;
+    uptime: number;
 }
 

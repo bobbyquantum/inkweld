@@ -9,7 +9,7 @@
  */
 
 
-export interface PostApiV1AiLint200ResponseCorrectionsInner { 
+export interface Correction { 
     /**
      * Start position of the error
      */

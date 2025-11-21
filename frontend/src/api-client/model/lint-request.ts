@@ -9,7 +9,7 @@
  */
 
 
-export interface PostApiV1AiLintRequest { 
+export interface LintRequest { 
     /**
      * The paragraph text to be checked
      */
@@ -21,9 +21,9 @@ export interface PostApiV1AiLintRequest {
     /**
      * The level of linting strictness
      */
-    level: PostApiV1AiLintRequestLevel;
+    level: LintRequestLevel;
 }
-export enum PostApiV1AiLintRequestLevel {
+export enum LintRequestLevel {
     Low = 'low',
     Medium = 'medium',
     High = 'high'

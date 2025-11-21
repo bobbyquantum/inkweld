@@ -9,14 +9,10 @@
  */
 
 
-export interface GetApiV1CsrfToken500Response { 
+export interface MCPError { 
     /**
      * Error message
      */
-    message: string;
-    /**
-     * Error details
-     */
-    error?: string;
+    error: string;
 }
 

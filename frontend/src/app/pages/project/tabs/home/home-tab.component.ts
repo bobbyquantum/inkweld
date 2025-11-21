@@ -1,12 +1,8 @@
 import { CommonModule } from '@angular/common';
-import {
-  Component,
-  EventEmitter,
-  inject,
-  Output,
-} from '@angular/core';
+import { Component, EventEmitter, inject, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { ProjectsService } from '@inkweld/api/projects.service';
@@ -16,10 +12,8 @@ import { ProjectService } from '@services/project.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
 import { ProjectStateService } from '@services/project-state.service';
 
-import { RecentFilesService } from '../../../../services/recent-files.service';
-
 import { ProjectCoverComponent } from '../../../../components/project-cover/project-cover.component';
-import { MatMenuModule } from '@angular/material/menu';
+import { RecentFilesService } from '../../../../services/recent-files.service';
 
 @Component({
   selector: 'app-home-tab',
@@ -167,10 +161,14 @@ export class HomeTabComponent {
         this.snackBar.open('Cover image saved successfully', 'Close', {
           duration: 3000,
         });
-        
+
         // Refresh the project to get the updated cover image
         try {
-          const updatedProject = await this.projectService.getProjectByUsernameAndSlug(username, slug);
+          const updatedProject =
+            await this.projectService.getProjectByUsernameAndSlug(
+              username,
+              slug
+            );
           this.projectState.updateProject(updatedProject);
         } catch (error) {
           console.error('Failed to refresh project after cover upload:', error);

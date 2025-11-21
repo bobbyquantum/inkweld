@@ -9,18 +9,17 @@
  */
 
 
-export interface GetApiV1ProjectsUsernameSlugFiles200ResponseInner { 
+/**
+ * ReCaptcha configuration for registration
+ */
+export interface CaptchaSettings { 
     /**
-     * File name
+     * Whether reCAPTCHA is enabled
      */
-    name: string;
+    enabled: boolean;
     /**
-     * File size in bytes
+     * reCAPTCHA site key for client-side validation
      */
-    size?: number;
-    /**
-     * Upload timestamp
-     */
-    uploadDate?: string;
+    siteKey?: string;
 }
 

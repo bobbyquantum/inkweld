@@ -1,8 +1,7 @@
 /**
  * Document snapshot OpenAPI schemas
  */
-import { z } from 'zod';
-import 'zod-openapi/extend';
+import { z } from '@hono/zod-openapi';
 
 /**
  * Document snapshot information
@@ -10,19 +9,15 @@ import 'zod-openapi/extend';
  */
 export const DocumentSnapshotSchema = z
   .object({
-    id: z.string().openapi({ example: 'snap-123' }),
-    documentId: z.string().openapi({ example: 'doc-456' }),
-    name: z.string().openapi({ example: 'Chapter 1 Draft' }),
-    description: z.string().nullable().optional().openapi({ example: 'First draft of chapter 1' }),
-    wordCount: z.number().nullable().optional().openapi({ example: 1250 }),
-    metadata: z
-      .record(z.any())
-      .nullable()
-      .optional()
-      .openapi({ example: { version: 1 } }),
-    createdAt: z.string().datetime().openapi({ example: '2023-01-01T00:00:00.000Z' }),
+    id: z.string(),
+    documentId: z.string(),
+    name: z.string(),
+    description: z.string().nullable().optional(),
+    wordCount: z.number().nullable().optional(),
+    metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+    createdAt: z.string().datetime(),
   })
-  .openapi({ ref: 'DocumentSnapshot' });
+  .openapi('DocumentSnapshot');
 
 /**
  * Create snapshot request
@@ -30,32 +25,15 @@ export const DocumentSnapshotSchema = z
  */
 export const CreateSnapshotRequestSchema = z
   .object({
-    documentId: z.string().openapi({ example: 'doc-456', description: 'Document ID' }),
-    name: z
-      .string()
-      .min(1)
-      .max(255)
-      .openapi({ example: 'Chapter 1 Draft', description: 'Snapshot name' }),
-    description: z
-      .string()
-      .max(1000)
-      .optional()
-      .openapi({ example: 'First draft of chapter 1', description: 'Snapshot description' }),
-    yDocState: z.string().openapi({
-      example: 'base64encodedstate...',
-      description: 'Base64 encoded Yjs document state',
-    }),
-    stateVector: z
-      .string()
-      .optional()
-      .openapi({ example: 'base64vector...', description: 'Base64 encoded state vector' }),
-    wordCount: z.number().optional().openapi({ example: 1250, description: 'Word count' }),
-    metadata: z
-      .record(z.any())
-      .optional()
-      .openapi({ example: { version: 1 }, description: 'Additional metadata' }),
+    documentId: z.string(),
+    name: z.string().min(1).max(255),
+    description: z.string().max(1000).optional(),
+    yDocState: z.string(),
+    stateVector: z.string().optional(),
+    wordCount: z.number().optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
   })
-  .openapi({ ref: 'CreateSnapshotRequest' });
+  .openapi('CreateSnapshotRequest');
 
 /**
  * Snapshots list response
@@ -63,7 +41,7 @@ export const CreateSnapshotRequestSchema = z
  */
 export const SnapshotsListResponseSchema = z
   .array(DocumentSnapshotSchema)
-  .openapi({ ref: 'SnapshotsListResponse' });
+  .openapi('SnapshotsListResponse');
 
 /**
  * Snapshot with content response (includes full Yjs state)
@@ -71,18 +49,14 @@ export const SnapshotsListResponseSchema = z
  */
 export const SnapshotWithContentSchema = z
   .object({
-    id: z.string().openapi({ example: 'snap-123' }),
-    documentId: z.string().openapi({ example: 'doc-456' }),
-    name: z.string().openapi({ example: 'Chapter 1 Draft' }),
-    description: z.string().nullable().optional().openapi({ example: 'First draft of chapter 1' }),
-    wordCount: z.number().nullable().optional().openapi({ example: 1250 }),
-    metadata: z
-      .record(z.any())
-      .nullable()
-      .optional()
-      .openapi({ example: { version: 1 } }),
-    createdAt: z.string().datetime().openapi({ example: '2023-01-01T00:00:00.000Z' }),
-    yDocState: z.string().openapi({ example: 'base64encodedstate...' }),
-    stateVector: z.string().nullable().optional().openapi({ example: 'base64vector...' }),
+    id: z.string(),
+    documentId: z.string(),
+    name: z.string(),
+    description: z.string().nullable().optional(),
+    wordCount: z.number().nullable().optional(),
+    metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+    createdAt: z.string().datetime(),
+    yDocState: z.string(),
+    stateVector: z.string().nullable().optional(),
   })
-  .openapi({ ref: 'SnapshotWithContent' });
+  .openapi('SnapshotWithContent');

@@ -7,6 +7,7 @@ import {
   signal,
   WritableSignal,
 } from '@angular/core';
+import { DocumentsService } from '@inkweld/index';
 import { Editor } from 'ngx-editor';
 import { Plugin } from 'prosemirror-state';
 import { Observable } from 'rxjs';
@@ -15,7 +16,6 @@ import { yCursorPlugin, ySyncPlugin, yUndoPlugin } from 'y-prosemirror';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import { DocumentsService } from '../../api-client/api/documents.service';
 import { LintApiService } from '../components/lint/lint-api.service';
 import { createLintPlugin } from '../components/lint/lint-plugin';
 import { DocumentSyncState } from '../models/document-sync-state';

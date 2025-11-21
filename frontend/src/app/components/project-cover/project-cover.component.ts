@@ -1,6 +1,7 @@
-import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, Input } from '@angular/core';
 import { Project } from '@inkweld/index';
+
 import { environment } from '../../../environments/environment';
 
 export type ProjectCoverVariant = 'card' | 'list' | 'small';
@@ -10,7 +11,7 @@ export type ProjectCoverVariant = 'card' | 'list' | 'small';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './project-cover.component.html',
-  styleUrls: ['./project-cover.component.scss']
+  styleUrls: ['./project-cover.component.scss'],
 })
 export class ProjectCoverComponent {
   @Input() project!: Project;

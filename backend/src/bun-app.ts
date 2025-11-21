@@ -2,13 +2,12 @@
  * Bun-specific app configuration using native bun:sqlite
  * This file imports Bun-only modules and should only be used in Bun runtime
  */
-import { Hono } from 'hono';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import type { MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
-import { generateSpecs } from 'hono-openapi';
 import { websocket } from 'hono/bun';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -24,7 +23,7 @@ import { setupBunDatabase } from './db/bun-sqlite';
 import { registerCommonRoutes } from './config/routes';
 import yjsRoutes from './routes/yjs.routes';
 
-const app = new Hono<BunSqliteAppContext>();
+const app = new OpenAPIHono<BunSqliteAppContext>();
 const frontendDistPath = process.env.FRONTEND_DIST;
 const spaEnabled = Boolean(frontendDistPath && existsSync(join(frontendDistPath, 'index.html')));
 const SPA_BYPASS_PREFIXES = ['/api', '/health', '/lint', '/image', '/mcp', '/ws'];
@@ -47,7 +46,7 @@ app.use(
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'X-CSRF-TOKEN'],
     exposeHeaders: ['Content-Type', 'Authorization'],
-    maxAge: 600, // Cache preflight for 10 minutes
+    maxAge: 600, // Cache preflight for 10 minutes,
   })
 );
 
@@ -94,10 +93,11 @@ app.get('/api', (c) => {
   });
 });
 
-// OpenAPI documentation
-app.get('/api/openapi.json', async (c) => {
-  const spec = await generateSpecs(app, {
-    documentation: {
+// OpenAPI documentation - must be registered AFTER all routes
+app.get('/api/openapi.json', (c) => {
+  return c.json(
+    app.getOpenAPIDocument({
+      openapi: '3.0.0',
       info: {
         title: 'Inkweld API',
         version: '1.0.0',
@@ -109,9 +109,8 @@ app.get('/api/openapi.json', async (c) => {
           description: 'Local development server',
         },
       ],
-    },
-  });
-  return c.json(spec);
+    })
+  );
 });
 
 if (spaEnabled && frontendDistPath) {

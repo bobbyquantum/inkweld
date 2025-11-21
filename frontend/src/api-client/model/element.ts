@@ -9,7 +9,7 @@
  */
 
 
-export interface GetApiV1ProjectsUsernameSlugElements200ResponseInner { 
+export interface Element { 
     /**
      * Element ID
      */
@@ -21,7 +21,7 @@ export interface GetApiV1ProjectsUsernameSlugElements200ResponseInner {
     /**
      * Element type
      */
-    type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType;
+    type: ElementType;
     /**
      * Parent element ID
      */
@@ -55,7 +55,7 @@ export interface GetApiV1ProjectsUsernameSlugElements200ResponseInner {
      */
     updatedAt?: string;
 }
-export enum GetApiV1ProjectsUsernameSlugElements200ResponseInnerType {
+export enum ElementType {
     Folder = 'FOLDER',
     Item = 'ITEM',
     Character = 'CHARACTER',
