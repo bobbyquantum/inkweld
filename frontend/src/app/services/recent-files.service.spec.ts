@@ -1,7 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInner } from '@inkweld/index';
+import { ElementType } from '@inkweld/index';
+import { Element } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoggerService } from './logger.service';
@@ -52,10 +52,10 @@ describe('RecentFilesService', () => {
   });
 
   it('should add a file to recent files', () => {
-    const mockFile: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
+    const mockFile: Element = {
       id: 'file1',
       name: 'Test File',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
       level: 0,
       expandable: false,
       order: 0,
@@ -76,10 +76,10 @@ describe('RecentFilesService', () => {
 
   it('should move existing file to the top when added again', () => {
     // Add first file
-    const file1: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
+    const file1: Element = {
       id: 'file1',
       name: 'File 1',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
       level: 0,
       expandable: false,
       order: 0,
@@ -89,10 +89,10 @@ describe('RecentFilesService', () => {
     };
 
     // Add second file
-    const file2: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
+    const file2: Element = {
       id: 'file2',
       name: 'File 2',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
       level: 0,
       expandable: false,
       order: 1,
@@ -121,10 +121,10 @@ describe('RecentFilesService', () => {
   });
 
   it('should filter files by project ID', () => {
-    const file1: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
+    const file1: Element = {
       id: 'file1',
       name: 'File 1',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
       level: 0,
       expandable: false,
       order: 0,
@@ -133,10 +133,10 @@ describe('RecentFilesService', () => {
       parentId: null,
     };
 
-    const file2: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
+    const file2: Element = {
       id: 'file2',
       name: 'File 2',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
       level: 0,
       expandable: false,
       order: 1,
@@ -160,10 +160,10 @@ describe('RecentFilesService', () => {
   it('should limit the number of recent files', () => {
     // Add MAX_RECENT_FILES + 1 files
     for (let i = 0; i < 11; i++) {
-      const file: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
+      const file: Element = {
         id: `file${i}`,
         name: `File ${i}`,
-        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        type: ElementType.Item,
         level: 0,
         expandable: false,
         order: i,
@@ -182,10 +182,10 @@ describe('RecentFilesService', () => {
   });
 
   it('should clear all recent files', () => {
-    const file: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
+    const file: Element = {
       id: 'file1',
       name: 'Test File',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
       level: 0,
       expandable: false,
       order: 0,

@@ -1,5 +1,5 @@
 // Mock Y.js and WebSocket providers BEFORE imports (hoisted by Vitest)
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
+import { ElementType } from '@inkweld/index';
 import { MockedObject, vi } from 'vitest';
 
 // Create mock constructors that will be configured in beforeEach
@@ -24,7 +24,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import {
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  Element,
   Project,
   ProjectsService,
 } from '@inkweld/index';
@@ -45,13 +45,13 @@ import { StorageService } from './storage.service';
 import { UnifiedProjectService } from './unified-project.service';
 
 // Mock state - will be reset per test
-const mockYArrayState: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+const mockYArrayState: Element[] =
   [];
 const mockArrayObservers: any[] = [];
 
 function createMockYArray() {
   // Create isolated state for THIS array instance
-  const localArrayState: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+  const localArrayState: Element[] =
     [];
   const localObservers: any[] = [];
 
@@ -71,7 +71,7 @@ function createMockYArray() {
     },
     insert(
       index: number,
-      elements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+      elements: Element[]
     ) {
       // Insert elements at the specified index
       localArrayState.splice(index, 0, ...elements);
@@ -116,10 +116,10 @@ describe('ProjectStateService', () => {
     updatedDate: mockDate.toISOString(),
   };
 
-  const mockElementDto: GetApiV1ProjectsUsernameSlugElements200ResponseInner = {
+  const mockElementDto: Element = {
     id: 'element-1',
     name: 'Test Element',
-    type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+    type: ElementType.Folder,
     parentId: null,
     level: 0,
     order: 0,
@@ -296,11 +296,11 @@ describe('ProjectStateService', () => {
     // Mock addElement to actually add to the Yjs array
     vi.spyOn(service, 'addElement').mockImplementation(
       (
-        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+        type: ElementType,
         name: string,
         parentId: string | null | undefined = null
       ) => {
-        const newElement: GetApiV1ProjectsUsernameSlugElements200ResponseInner =
+        const newElement: Element =
           {
             id: nanoid(),
             name,
@@ -310,7 +310,7 @@ describe('ProjectStateService', () => {
             order: service.elements().length,
             expandable:
               type ===
-              GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+              ElementType.Folder,
             version: 0,
             metadata: {},
           };
@@ -335,7 +335,7 @@ describe('ProjectStateService', () => {
 
         // Remove element and its children
         const element = elements[elementIndex];
-        const subtree: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+        const subtree: Element[] =
           [element];
         let i = elementIndex + 1;
         while (i < elements.length && elements[i].level > element.level) {
@@ -559,7 +559,7 @@ describe('ProjectStateService', () => {
     it('should add root level element', async () => {
       await service.loadProject('testuser', 'test-project');
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'New Folder'
       );
       const elements = service.elements();
@@ -575,13 +575,13 @@ describe('ProjectStateService', () => {
       await service.loadProject('testuser', 'test-project');
 
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'Parent'
       );
       const parent = service.elements()[0];
 
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        ElementType.Item,
         'New Item',
         parent.id
       );
@@ -597,16 +597,16 @@ describe('ProjectStateService', () => {
       await service.loadProject('testuser', 'test-project');
 
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'Folder 1'
       );
       const folder1 = service.elements()[0];
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'Folder 2'
       );
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        ElementType.Item,
         'Item 1',
         folder1.id
       );
@@ -633,17 +633,17 @@ describe('ProjectStateService', () => {
       await new Promise(resolve => setTimeout(resolve, 50));
 
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'Root 1'
       );
       const root1 = service.elements()[0];
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        ElementType.Item,
         'Child 1',
         root1.id
       );
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'Root 2'
       );
 
@@ -660,18 +660,18 @@ describe('ProjectStateService', () => {
       await service.loadProject('testuser', 'test-project');
 
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'Root'
       );
       const root = service.elements()[0];
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'Child 1',
         root.id
       );
       const child1 = service.elements()[1];
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        ElementType.Item,
         'Grandchild',
         child1.id
       );
@@ -697,7 +697,7 @@ describe('ProjectStateService', () => {
       it('should validate drops relative to folders', async () => {
         await service.loadProject('testuser', 'test-project');
         void service.addElement(
-          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+          ElementType.Folder,
           'Parent'
         );
         const folder = service.elements()[0];
@@ -710,7 +710,7 @@ describe('ProjectStateService', () => {
       it('should validate drops relative to items', async () => {
         await service.loadProject('testuser', 'test-project');
         void service.addElement(
-          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+          ElementType.Item,
           'Item'
         );
         const item = service.elements()[0];
@@ -729,7 +729,7 @@ describe('ProjectStateService', () => {
         it('should handle case with only nodeBelow', async () => {
           await service.loadProject('testuser', 'test-project');
           void service.addElement(
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            ElementType.Item,
             'Item'
           );
           const nodeBelow = service.elements()[0];
@@ -742,7 +742,7 @@ describe('ProjectStateService', () => {
         it('should handle case with only nodeAbove', async () => {
           await service.loadProject('testuser', 'test-project');
           void service.addElement(
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            ElementType.Folder,
             'Folder'
           );
           const folderAbove = service.elements()[0];
@@ -755,7 +755,7 @@ describe('ProjectStateService', () => {
 
           // Test with item above
           void service.addElement(
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            ElementType.Item,
             'Item'
           );
           const itemAbove = service.elements()[1];
@@ -768,13 +768,13 @@ describe('ProjectStateService', () => {
         it('should handle nodeAbove with lower level than nodeBelow', async () => {
           await service.loadProject('testuser', 'test-project');
           void service.addElement(
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            ElementType.Folder,
             'Parent'
           );
           const folderAbove = service.elements()[0];
 
           void service.addElement(
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            ElementType.Item,
             'Child',
             folderAbove.id
           );
@@ -787,13 +787,13 @@ describe('ProjectStateService', () => {
         it('should handle nodeAbove with same level as nodeBelow', async () => {
           await service.loadProject('testuser', 'test-project');
           void service.addElement(
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            ElementType.Folder,
             'Folder1'
           );
           const folderAbove = service.elements()[0];
 
           void service.addElement(
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            ElementType.Folder,
             'Folder2'
           );
           const nodeBelow = service.elements()[1];
@@ -807,20 +807,20 @@ describe('ProjectStateService', () => {
         it('should handle nodeAbove with higher level than nodeBelow', async () => {
           await service.loadProject('testuser', 'test-project');
           void service.addElement(
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            ElementType.Folder,
             'Root'
           );
           const rootNode = service.elements()[0];
 
           void service.addElement(
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            ElementType.Item,
             'Child',
             rootNode.id
           );
           const nodeAbove = service.elements()[1];
 
           void service.addElement(
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            ElementType.Item,
             'Next Root'
           );
           const nodeBelow = service.elements()[2];
@@ -841,7 +841,7 @@ describe('ProjectStateService', () => {
         it('should insert after nodeAbove when dropping at a deeper level', async () => {
           await service.loadProject('testuser', 'test-project');
           void service.addElement(
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            ElementType.Folder,
             'Folder'
           );
           const folderNode = service.elements()[0];
@@ -856,18 +856,18 @@ describe('ProjectStateService', () => {
         it('should insert after the entire subtree when dropping at same level', async () => {
           await service.loadProject('testuser', 'test-project');
           void service.addElement(
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+            ElementType.Folder,
             'Parent'
           );
           const parentNode = service.elements()[0];
 
           void service.addElement(
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            ElementType.Item,
             'Child1',
             parentNode.id
           );
           void service.addElement(
-            GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            ElementType.Item,
             'Child2',
             parentNode.id
           );
@@ -886,7 +886,7 @@ describe('ProjectStateService', () => {
     it('should toggle expanded state', async () => {
       await service.loadProject('testuser', 'test-project');
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'Folder'
       );
       const folder = service.elements()[0];
@@ -906,7 +906,7 @@ describe('ProjectStateService', () => {
     it('should explicitly set expanded state', async () => {
       await service.loadProject('testuser', 'test-project');
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'Folder'
       );
       const folder = service.elements()[0];
@@ -922,7 +922,7 @@ describe('ProjectStateService', () => {
   describe('Dialog Operations', () => {
     it('should open new element dialog', () => {
       const mockDialogResult = {
-        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        type: ElementType.Folder,
         name: 'New Test Folder',
       };
 
@@ -957,7 +957,7 @@ describe('ProjectStateService', () => {
       await service.loadProject('testuser', 'test-project');
 
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'root'
       );
       const visible = service.visibleElements();
@@ -970,12 +970,12 @@ describe('ProjectStateService', () => {
     it('should show children when parent is expanded', async () => {
       await service.loadProject('testuser', 'test-project');
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'Parent'
       );
       const parent = service.elements()[0];
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        ElementType.Item,
         'Child',
         parent.id
       );
@@ -991,12 +991,12 @@ describe('ProjectStateService', () => {
     it('should hide children when parent is collapsed', async () => {
       await service.loadProject('testuser', 'test-project');
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'Parent'
       );
       const parent = service.elements()[0];
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        ElementType.Item,
         'Child',
         parent.id
       );
@@ -1011,23 +1011,23 @@ describe('ProjectStateService', () => {
     it('should handle multiple levels of nesting with mixed expanded states', async () => {
       await service.loadProject('testuser', 'test-project');
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'Root'
       );
       const root = service.elements()[0];
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'Child 1',
         root.id
       );
       const child1 = service.elements()[1];
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        ElementType.Item,
         'Grandchild 1',
         child1.id
       );
       void service.addElement(
-        GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        ElementType.Folder,
         'Child 2',
         root.id
       );

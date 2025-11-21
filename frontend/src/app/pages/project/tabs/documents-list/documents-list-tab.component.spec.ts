@@ -9,8 +9,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import {
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
-  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+  Element,
+  ElementType,
 } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
@@ -36,11 +36,11 @@ describe('DocumentsListTabComponent', () => {
     description: 'Test description',
   };
 
-  const mockElements: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] = [
+  const mockElements: Element[] = [
     {
       id: 'doc1',
       name: 'Document 1',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
       level: 0,
       order: 0,
       version: 1,
@@ -51,7 +51,7 @@ describe('DocumentsListTabComponent', () => {
     {
       id: 'doc2',
       name: 'Document 2',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+      type: ElementType.Folder,
       level: 0,
       order: 1,
       version: 1,
@@ -62,7 +62,7 @@ describe('DocumentsListTabComponent', () => {
     {
       id: 'doc3',
       name: 'Document 3',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
       level: 0,
       order: 2,
       version: 1,
@@ -127,7 +127,7 @@ describe('DocumentsListTabComponent', () => {
       mockElements.filter(
         el =>
           el.type ===
-          GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
+          ElementType.Item
       )
     );
 
@@ -170,7 +170,7 @@ describe('DocumentsListTabComponent', () => {
     const newDocArg = (projectStateService.openDocument as Mock).mock
       .calls[0][0];
     expect(newDocArg.type).toBe(
-      GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item
+      ElementType.Item
     );
     expect(newDocArg.name).toBe('New Document');
   });

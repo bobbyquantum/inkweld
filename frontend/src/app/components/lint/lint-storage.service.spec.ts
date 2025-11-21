@@ -2,14 +2,14 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 
-import { PostApiV1AiLint200ResponseCorrectionsInner } from '../../../api-client/model/post-api-v1-ai-lint200-response-corrections-inner';
+import { Correction } from '../../../api-client/model/correction';
 import { LintStorageService } from './lint-storage.service';
 
 describe('LintStorageService', () => {
   let service: LintStorageService;
   let localStorageSpy: Record<string, any>;
 
-  const mockCorrection: PostApiV1AiLint200ResponseCorrectionsInner = {
+  const mockCorrection: Correction = {
     startPos: 0,
     endPos: 5,
     originalText: 'original text',

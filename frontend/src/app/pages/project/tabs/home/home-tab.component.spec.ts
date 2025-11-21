@@ -8,8 +8,8 @@ import { Router } from '@angular/router';
 import { ImagesService } from '@inkweld/api/images.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import {
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
-  GetApiV1ProjectsUsernameSlugElements200ResponseInnerType,
+  Element,
+  ElementType,
   Project,
 } from '@inkweld/index';
 import { vi } from 'vitest';
@@ -47,7 +47,7 @@ describe('HomeTabComponent', () => {
     {
       id: 'doc1',
       name: 'Recent Document 1',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
     },
     {
       id: 'doc2',
@@ -70,7 +70,7 @@ describe('HomeTabComponent', () => {
     // Initialize signals for ProjectStateService
     const projectSignal = signal(mockProject);
     const elementsSignal = signal<
-      GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+      Element[]
     >([]);
 
     // Mock Router
@@ -168,13 +168,13 @@ describe('HomeTabComponent', () => {
     const mockElement = {
       id: 'doc1',
       name: 'Recent Document 1',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
       level: 0,
       order: 0,
       expandable: false,
       version: 1,
       metadata: {},
-    } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
+    } as Element;
 
     // Setup elements to include the document for lookup
     (projectStateService.elements as any).set([mockElement]);
@@ -190,13 +190,13 @@ describe('HomeTabComponent', () => {
     const mockElement = {
       id: 'doc1',
       name: 'Recent Document 1',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
       level: 0,
       order: 0,
       expandable: false,
       version: 1,
       metadata: {},
-    } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
+    } as Element;
 
     vi.spyOn(component, 'onRecentDocumentClick');
     (projectStateService.elements as any).set([mockElement]);
@@ -212,13 +212,13 @@ describe('HomeTabComponent', () => {
     const mockElement = {
       id: 'doc1',
       name: 'Recent Document 1',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
       level: 0,
       order: 0,
       expandable: false,
       version: 1,
       metadata: {},
-    } as GetApiV1ProjectsUsernameSlugElements200ResponseInner;
+    } as Element;
 
     vi.spyOn(component, 'onRecentDocumentClick');
     (projectStateService.elements as any).set([mockElement]);

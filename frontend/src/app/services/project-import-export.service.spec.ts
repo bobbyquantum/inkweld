@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
+import { ElementType } from '@inkweld/index';
 import JSZip from '@progress/jszip-esm';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
@@ -26,7 +26,7 @@ describe('ProjectImportExportService', () => {
     {
       id: 'folder1',
       name: 'Folder 1',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+      type: ElementType.Folder,
       order: 0,
       level: 0,
       version: 1,
@@ -36,7 +36,7 @@ describe('ProjectImportExportService', () => {
     {
       id: 'item1',
       name: 'Item 1',
-      type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+      type: ElementType.Item,
       order: 1,
       level: 0,
       version: 1,
@@ -252,7 +252,7 @@ describe('ProjectImportExportService', () => {
           {
             id: 'item1',
             name: 'Item 1',
-            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            type: ElementType.Item,
             order: 0,
             level: 0,
             version: 1,
@@ -290,7 +290,7 @@ describe('ProjectImportExportService', () => {
           {
             id: 'item2',
             name: 'Item 2',
-            type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+            type: ElementType.Item,
             order: 0,
             level: 0,
             version: 1,
@@ -403,7 +403,7 @@ describe('ProjectImportExportService', () => {
             {
               id: 'itemMissing',
               name: 'Missing Item',
-              type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+              type: ElementType.Item,
               order: 0,
               level: 0,
               version: 1,
@@ -429,7 +429,7 @@ describe('ProjectImportExportService', () => {
             {
               id: 'itemValid',
               name: 'Valid Item',
-              type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+              type: ElementType.Item,
               order: 0,
               level: 0,
               version: 1,
@@ -456,7 +456,7 @@ describe('ProjectImportExportService', () => {
             {
               id: 'itemInvalid',
               name: 'Invalid Item',
-              type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+              type: ElementType.Item,
               order: 0,
               level: 0,
               version: 1,

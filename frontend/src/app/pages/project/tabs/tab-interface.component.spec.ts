@@ -15,9 +15,9 @@ import {
   Router,
   RouterModule,
 } from '@angular/router';
-import { GetApiV1ProjectsUsernameSlugElements200ResponseInnerType } from '@inkweld/index';
+import { ElementType } from '@inkweld/index';
 import {
-  GetApiV1ProjectsUsernameSlugElements200ResponseInner,
+  Element,
   Project,
 } from '@inkweld/index';
 import { of, Subject } from 'rxjs';
@@ -50,12 +50,12 @@ describe('TabInterfaceComponent', () => {
     title: 'Test Project',
   } as Project;
 
-  const mockDocuments: GetApiV1ProjectsUsernameSlugElements200ResponseInner[] =
+  const mockDocuments: Element[] =
     [
       {
         id: 'doc1',
         name: 'Document 1',
-        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Item,
+        type: ElementType.Item,
         level: 0,
         order: 0,
         version: 1,
@@ -66,7 +66,7 @@ describe('TabInterfaceComponent', () => {
       {
         id: 'doc2',
         name: 'Document 2',
-        type: GetApiV1ProjectsUsernameSlugElements200ResponseInnerType.Folder,
+        type: ElementType.Folder,
         level: 0,
         order: 1,
         version: 1,
@@ -101,7 +101,7 @@ describe('TabInterfaceComponent', () => {
     // Initialize signals
     const projectSignal = signal(mockProject);
     const openDocumentsSignal = signal<
-      GetApiV1ProjectsUsernameSlugElements200ResponseInner[]
+      Element[]
     >([...mockDocuments]);
     const openTabsSignal = signal<AppTab[]>([...mockTabs]);
     const selectedTabIndexSignal = signal<number>(0);
