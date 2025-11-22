@@ -52,6 +52,81 @@ This starts the server with hot reload on port 8333.
 ### Production Build
 
 ```bash
+# Standard builds
+bun run build        # Build for Bun runtime
+bun run build:node   # Build for Node.js runtime
+
+# Binary builds (standalone executables)
+bun run build:binary       # Backend-only binary
+bun run build:binary:full  # Full binary with embedded frontend (recommended)
+```
+
+#### Full Binary Build
+
+The `build:binary:full` command creates a single self-contained executable (~68MB) that includes:
+- Bun runtime
+- Complete backend API server
+- Full Angular frontend application
+- All static assets (images, fonts, CSS, JS)
+- Interactive setup wizard for first-time users
+
+**Benefits:**
+- ✅ Single file deployment
+- ✅ No runtime dependencies required
+- ✅ Faster startup and asset serving
+- ✅ Simplified distribution
+- ✅ Guided first-time setup
+
+**First-Time Usage:**
+
+When you run the binary for the first time without a configuration file, it will launch an interactive setup wizard:
+
+```bash
+./dist/inkweld
+
+# The wizard will ask you:
+# - Port to run on (default: 8333)
+# - Database location
+# - Whether to require user approval
+# - Optional OpenAI API key
+# - Where to save the configuration
+```
+
+**Configuration Locations:**
+
+The binary automatically checks for `.env` files in this order:
+1. Current directory (`./.env`)
+2. User config directory:
+   - **Linux/Mac**: `~/.inkweld/.env`
+   - **Windows**: `%APPDATA%\Inkweld\.env`
+
+**Usage:**
+```bash
+# First run - setup wizard
+./dist/inkweld
+
+# Subsequent runs - uses saved configuration
+./dist/inkweld
+
+# Override with environment variables
+DB_PATH=./data/inkweld.db PORT=8333 ./dist/inkweld
+
+# Non-interactive (skip setup wizard)
+DB_PATH=:memory: ./dist/inkweld
+```
+
+The binary automatically detects embedded frontend assets and serves them. Visit `http://localhost:8333` in your browser to access the application.
+
+# With custom configuration
+DB_PATH=./data/inkweld.db PORT=8333 ./dist/inkweld-backend
+```
+
+The binary automatically detects embedded frontend assets and serves them at the root path. No need to set `FRONTEND_DIST` environment variable.
+
+#### Standard Runtime
+
+For non-binary deployments:
+```bash
 bun run build
 bun start
 ```

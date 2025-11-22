@@ -1,8 +1,51 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import { existsSync } from 'fs';
+import { homedir, platform } from 'os';
 
-// Load environment variables from parent directory .env file
-dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
+// Try to load environment variables from multiple locations
+function loadEnvironment() {
+  // Priority 1: Current directory
+  const localEnv = path.resolve(process.cwd(), '.env');
+  if (existsSync(localEnv)) {
+    dotenv.config({ path: localEnv });
+    return;
+  }
+
+  // Priority 2: Parent directory (for monorepo structure)
+  const parentEnv = path.resolve(process.cwd(), '../.env');
+  if (existsSync(parentEnv)) {
+    dotenv.config({ path: parentEnv });
+    return;
+  }
+
+  // Priority 3: User config directory (~/.inkweld/.env on Unix, %APPDATA%\Inkweld\.env on Windows)
+  const home = homedir();
+  const plat = platform();
+  let configDir: string;
+
+  switch (plat) {
+    case 'win32':
+      configDir = path.join(
+        process.env.APPDATA || path.join(home, 'AppData', 'Roaming'),
+        'Inkweld'
+      );
+      break;
+    case 'darwin':
+    case 'linux':
+    default:
+      configDir = path.join(home, '.inkweld');
+  }
+
+  const configEnv = path.join(configDir, '.env');
+  if (existsSync(configEnv)) {
+    dotenv.config({ path: configEnv });
+  }
+
+  // If none found, continue with environment variables only
+}
+
+loadEnvironment();
 
 export const config = {
   // Server

@@ -2,24 +2,21 @@
  * Bun runtime entrypoint
  * Uses native bun:sqlite for database operations
  */
-import bunApp, { app } from './bun-app';
-import { setupBunDatabase } from './db/bun-sqlite';
-import { config } from './config/env';
+import { checkAndRunSetup } from './setup-wizard';
 
-// Initialize database before starting server
-const dbPath =
-  process.env.DB_DATABASE === ':memory:' ? ':memory:' : process.env.DB_PATH || './data/inkweld.db';
+// Check if running as compiled binary and if setup is needed
+const isCompiled = typeof Bun.main === 'string' && !Bun.main.includes('node_modules');
+const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
 
-console.log('[bun-runner] Initializing database:', dbPath);
-
-try {
-  await setupBunDatabase(dbPath);
-  console.log('[bun-runner] Database initialized successfully');
-} catch (error) {
-  console.error('[bun-runner] Failed to initialize database:', error);
-  process.exit(1);
+if (isCompiled && isInteractive) {
+  // Run setup wizard if needed (checks for .env files automatically)
+  await checkAndRunSetup();
 }
+
+// Import config and app AFTER setup wizard has run
+const { config } = await import('./config/env');
+const bunAppModule = await import('./bun-app');
 
 console.log(`[bun-runner] Server starting on port ${config.port}`);
 
-export default bunApp;
+export default bunAppModule.default;

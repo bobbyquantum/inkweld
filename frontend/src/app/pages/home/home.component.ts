@@ -18,7 +18,6 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterModule } from '@angular/router';
 import { BookshelfComponent } from '@components/bookshelf/bookshelf.component';
-import { ProjectCoverComponent } from '@components/project-cover/project-cover.component';
 import { SideNavComponent } from '@components/side-nav/side-nav.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Project } from '@inkweld/index';
@@ -46,7 +45,6 @@ type ViewMode = 'tiles' | 'bookshelf' | 'list';
     BookshelfComponent,
     UserMenuComponent,
     SideNavComponent,
-    ProjectCoverComponent,
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',

@@ -8,6 +8,9 @@ coverage
 data
 dist-worker
 
+# Auto-generated files
+src/.frontend-imports-generated.ts
+
 # Wrangler
 .wrangler/
 wrangler.toml
