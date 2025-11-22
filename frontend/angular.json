@@ -91,7 +91,27 @@
             "buildTarget": "inkweld-frontend:build:development",
             "tsConfig": "tsconfig.spec.json",
             "runner": "vitest",
-            "setupFiles": ["setup-vitest.ts"]
+            "setupFiles": ["setup-vitest.ts"],
+            "coverage": true,
+            "coverageInclude": ["src/**/*.ts"],
+            "coverageExclude": [
+              "**/*.spec.ts",
+              "**/setup-vitest.ts",
+              "**/e2e/**",
+              "**/testing/**",
+              "**/environments/**",
+              "**/*.config.ts",
+              "**/*.d.ts",
+              "**/main.ts",
+              "**/api-client/**"
+            ],
+            "coverageReporters": ["text", "html", "lcov"],
+            "coverageThresholds": {
+              "statements": 80,
+              "functions": 80,
+              "lines": 80,
+              "branches": 60
+            }
           }
         },
         "lint": {
