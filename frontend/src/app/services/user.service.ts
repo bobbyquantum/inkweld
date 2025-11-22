@@ -232,6 +232,7 @@ export class UserService {
 
     try {
       await firstValueFrom(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.authenticationService.logout() as Observable<any>
       );
       await this.clearCurrentUser();
@@ -265,9 +266,13 @@ export class UserService {
 
   private formatError(error: unknown): UserServiceError {
     // Check if error has HttpErrorResponse-like structure
-    const isHttpError = error instanceof HttpErrorResponse || 
-      (error != null && typeof error === 'object' && 'status' in error && 'error' in error);
-    
+    const isHttpError =
+      error instanceof HttpErrorResponse ||
+      (error != null &&
+        typeof error === 'object' &&
+        'status' in error &&
+        'error' in error);
+
     if (isHttpError) {
       const httpError = error as HttpErrorResponse;
       if (httpError.status === 0) {

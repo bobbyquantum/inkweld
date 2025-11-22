@@ -1,6 +1,18 @@
 import { Route } from '@playwright/test';
+
 import { mockApi } from './index';
-import { mockUsers, MockUserDto } from './users';
+import { MockUserDto, mockUsers } from './users';
+
+interface RegisterRequestBody {
+  username: string;
+  password: string;
+  name?: string;
+}
+
+interface LoginRequestBody {
+  username: string;
+  password: string;
+}
 
 /**
  * Authentication handler for mock API
@@ -16,7 +28,7 @@ export function setupAuthHandlers(): void {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ token: csrfToken })
+      body: JSON.stringify({ token: csrfToken }),
     });
   });
 
@@ -32,65 +44,68 @@ export function setupAuthHandlers(): void {
           google: true,
           facebook: false,
           discord: false,
-          apple: false
-        }
-      })
+          apple: false,
+        },
+      }),
     });
   });
   // GET /api/v1/users/check-username - Check username availability
-  mockApi.addHandler('**/api/v1/users/check-username**', async (route: Route) => {
-    const url = new URL(route.request().url());
-    const username = url.searchParams.get('username');
+  mockApi.addHandler(
+    '**/api/v1/users/check-username**',
+    async (route: Route) => {
+      const url = new URL(route.request().url());
+      const username = url.searchParams.get('username');
 
-    if (!username) {
-      await route.fulfill({
-        status: 400,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          message: 'Username parameter is required',
-          error: 'Bad Request',
-          statusCode: 400
-        })
-      });
-      return;
+      if (!username) {
+        await route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            message: 'Username parameter is required',
+            error: 'Bad Request',
+            statusCode: 400,
+          }),
+        });
+        return;
+      }
+
+      // Check if username exists
+      const existingUser = mockUsers.findByUsername(username);
+
+      if (existingUser) {
+        // Username is taken, generate suggestions
+        const suggestions = [
+          `${username}123`,
+          `${username}_${Math.floor(Math.random() * 1000)}`,
+          `${username}_user`,
+        ];
+
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            available: false,
+            suggestions: suggestions,
+          }),
+        });
+      } else {
+        // Username is available
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            available: true,
+            suggestions: [],
+          }),
+        });
+      }
     }
-
-    // Check if username exists
-    const existingUser = mockUsers.findByUsername(username);
-
-    if (existingUser) {
-      // Username is taken, generate suggestions
-      const suggestions = [
-        `${username}123`,
-        `${username}_${Math.floor(Math.random() * 1000)}`,
-        `${username}_user`
-      ];
-
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          available: false,
-          suggestions: suggestions
-        })
-      });
-    } else {
-      // Username is available
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          available: true,
-          suggestions: []
-        })
-      });
-    }
-  });
+  );
 
   // POST /api/v1/auth/register - User registration
   mockApi.addHandler('**/api/v1/auth/register', async (route: Route) => {
     const request = route.request();
-    const body = await request.postDataJSON() as any;
+    const body = (await request.postDataJSON()) as RegisterRequestBody | null;
 
     if (!body || !body.username || !body.password) {
       await route.fulfill({
@@ -99,8 +114,8 @@ export function setupAuthHandlers(): void {
         body: JSON.stringify({
           message: 'Username and password are required',
           error: 'Bad Request',
-          statusCode: 400
-        })
+          statusCode: 400,
+        }),
       });
       return;
     }
@@ -108,39 +123,47 @@ export function setupAuthHandlers(): void {
     // Check if username is already taken
     const existingUser = mockUsers.findByUsername(body.username);
     if (existingUser) {
-      console.log(`Registration failed: Username ${body.username} already taken`);
+      console.log(
+        `Registration failed: Username ${body.username} already taken`
+      );
       await route.fulfill({
         status: 400,
         contentType: 'application/json',
         body: JSON.stringify({
           message: 'Username already taken',
           errors: {
-            username: ['Username already taken']
+            username: ['Username already taken'],
           },
           error: 'Bad Request',
-          statusCode: 400
-        })
+          statusCode: 400,
+        }),
       });
       return;
     }
 
     // Validate password strength
-    const password = body.password as string;
+    const password = body.password;
     const passwordErrors: string[] = [];
     if (password.length < 8) {
       passwordErrors.push('Password must be at least 8 characters long');
     }
     if (!/[A-Z]/.test(password)) {
-      passwordErrors.push('Password must contain at least one uppercase letter');
+      passwordErrors.push(
+        'Password must contain at least one uppercase letter'
+      );
     }
     if (!/[a-z]/.test(password)) {
-      passwordErrors.push('Password must contain at least one lowercase letter');
+      passwordErrors.push(
+        'Password must contain at least one lowercase letter'
+      );
     }
     if (!/\d/.test(password)) {
       passwordErrors.push('Password must contain at least one number');
     }
     if (!/[@$!%*?&]/.test(password)) {
-      passwordErrors.push('Password must contain at least one special character (@$!%*?&)');
+      passwordErrors.push(
+        'Password must contain at least one special character (@$!%*?&)'
+      );
     }
 
     if (passwordErrors.length > 0) {
@@ -150,11 +173,11 @@ export function setupAuthHandlers(): void {
         body: JSON.stringify({
           message: 'Password does not meet requirements',
           errors: {
-            password: passwordErrors
+            password: passwordErrors,
           },
           error: 'Bad Request',
-          statusCode: 400
-        })
+          statusCode: 400,
+        }),
       });
       return;
     }
@@ -183,8 +206,8 @@ export function setupAuthHandlers(): void {
             name: newUser.name,
           },
           token: token,
-          requiresApproval: false
-        })
+          requiresApproval: false,
+        }),
       });
     } catch (error) {
       console.error('Failed to create user:', error);
@@ -194,8 +217,8 @@ export function setupAuthHandlers(): void {
         body: JSON.stringify({
           message: 'Failed to create user',
           error: 'Internal Server Error',
-          statusCode: 500
-        })
+          statusCode: 500,
+        }),
       });
     }
   });
@@ -203,7 +226,7 @@ export function setupAuthHandlers(): void {
   // POST /api/auth/login - User login
   mockApi.addHandler('**/login', async (route: Route) => {
     const request = route.request();
-    const body = await request.postDataJSON() as any;
+    const body = (await request.postDataJSON()) as LoginRequestBody | null;
 
     if (!body || !body.username || !body.password) {
       await route.fulfill({
@@ -212,8 +235,8 @@ export function setupAuthHandlers(): void {
         body: JSON.stringify({
           message: 'Username and password are required',
           error: 'Bad Request',
-          statusCode: 400
-        })
+          statusCode: 400,
+        }),
       });
       return;
     }
@@ -231,8 +254,8 @@ export function setupAuthHandlers(): void {
         body: JSON.stringify({
           message: 'Invalid username or password',
           error: 'Unauthorized',
-          statusCode: 401
-        })
+          statusCode: 401,
+        }),
       });
       return;
     }
@@ -247,8 +270,8 @@ export function setupAuthHandlers(): void {
         token: token,
         name: user.name,
         username: user.username,
-        ...(user.roles && { roles: user.roles })
-      })
+        ...(user.roles && { roles: user.roles }),
+      }),
     });
   });
 
@@ -258,7 +281,7 @@ export function setupAuthHandlers(): void {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true })
+      body: JSON.stringify({ success: true }),
     });
   });
 
@@ -287,7 +310,8 @@ export function setupAuthHandlers(): void {
         if (!existing) {
           mockUsers.addUser(oauthUser);
         }
-      } catch (error) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_error) {
         // User likely already exists, use the existing one
         const existing = mockUsers.findByUsername(oauthUser.username);
         if (existing) {
@@ -307,7 +331,7 @@ export function setupAuthHandlers(): void {
           token,
           name: oauthUser.name,
           username: oauthUser.username,
-        })
+        }),
       });
     } else {
       // For initial OAuth request, normally we'd redirect to the provider
@@ -316,8 +340,8 @@ export function setupAuthHandlers(): void {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          redirectUrl: `http://localhost:4200/auth/callback/${provider}?code=mock-auth-code`
-        })
+          redirectUrl: `http://localhost:4200/auth/callback/${provider}?code=mock-auth-code`,
+        }),
       });
     }
   });

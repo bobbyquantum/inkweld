@@ -199,6 +199,7 @@ export class NewElementDialogComponent {
   /**
    * Build worldbuilding type options from schemas map
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private buildWorldbuildingOptions(schemasMap: any): void {
     const worldbuildingOptions: ElementTypeOption[] = [];
 

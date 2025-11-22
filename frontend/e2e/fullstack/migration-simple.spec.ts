@@ -1,11 +1,13 @@
-import { test, expect } from './fixtures';
+import { expect, test } from './fixtures';
 
 /**
  * Simplified migration test that focuses on the core migration logic
  * without complex UI interactions
  */
 test.describe('Migration Service', () => {
-  test('should register user and prepare for migration', async ({ offlinePage }) => {
+  test('should register user and prepare for migration', async ({
+    offlinePage,
+  }) => {
     // Step 1: Verify we're in offline mode
     const mode = await offlinePage.evaluate(() => {
       const config = localStorage.getItem('inkweld-app-config');
@@ -35,7 +37,10 @@ test.describe('Migration Service', () => {
           updatedDate: new Date().toISOString(),
         },
       ];
-      localStorage.setItem('inkweld-offline-projects', JSON.stringify(projects));
+      localStorage.setItem(
+        'inkweld-offline-projects',
+        JSON.stringify(projects)
+      );
     });
 
     // Step 3: Verify projects were stored
@@ -79,7 +84,7 @@ test.describe('Migration Service', () => {
       'http://localhost:8333/api/v1/projects',
       {
         headers: {
-          'Authorization': `Bearer ${registerData.token}`,
+          Authorization: `Bearer ${registerData.token}`,
           'Content-Type': 'application/json',
         },
         data: {
@@ -99,7 +104,7 @@ test.describe('Migration Service', () => {
       `http://localhost:8333/api/v1/projects/${testUsername}/server-project`,
       {
         headers: {
-          'Authorization': `Bearer ${registerData.token}`,
+          Authorization: `Bearer ${registerData.token}`,
         },
       }
     );
@@ -110,7 +115,9 @@ test.describe('Migration Service', () => {
     expect(fetchedProject.title).toBe('Server Project');
   });
 
-  test('should create project via API with authenticated user', async ({ authenticatedPage }) => {
+  test('should create project via API with authenticated user', async ({
+    authenticatedPage,
+  }) => {
     // This test uses the authenticatedPage fixture which already has a registered user
     // with a valid JWT token in localStorage
 
@@ -125,7 +132,7 @@ test.describe('Migration Service', () => {
       'http://localhost:8333/api/v1/projects',
       {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         data: {
@@ -142,22 +149,12 @@ test.describe('Migration Service', () => {
     expect(projectData.title).toBe('Authenticated Project');
 
     // Step 3: Verify we can fetch it back
-    const username = await authenticatedPage.evaluate(() => {
-      const config = localStorage.getItem('inkweld-app-config');
-      return config ? JSON.parse(config).serverUrl : null;
-    });
-
-    // Get username from the page (testCredentials stored by fixture)
-    const credentials = await authenticatedPage.evaluate(() => {
-      return (window as any).testCredentials;
-    });
-
-    // If we can't get credentials from testCredentials, fetch from the API
+    // Fetch username from the API
     const userResponse = await authenticatedPage.request.get(
       'http://localhost:8333/api/v1/users/me',
       {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       }
     );
@@ -169,7 +166,7 @@ test.describe('Migration Service', () => {
       `http://localhost:8333/api/v1/projects/${userData.username}/authenticated-project`,
       {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       }
     );

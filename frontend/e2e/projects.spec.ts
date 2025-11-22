@@ -65,11 +65,11 @@ test.describe('Project Workflows', () => {
     expect(slugValue).toMatch(/^[a-z0-9-]+$/);
   });
 
-  test.skip('should list user projects on home page', async ({
+  test('should list user projects on home page', async ({
     authenticatedPage: page,
   }) => {
-    // Skip: Project cards not set up in mock API
-    await expect(page.locator('app-project-card')).toHaveCount(1);
+    // Should show the mock project from the API
+    await expect(page.getByTestId('project-card').first()).toBeVisible();
   });
 
   test.skip('should open existing project', async ({

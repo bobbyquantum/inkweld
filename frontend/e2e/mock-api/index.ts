@@ -1,4 +1,5 @@
-import { Page } from '@playwright/test';
+import { Page, Route } from '@playwright/test';
+
 import { MockApiRegistry } from './registry';
 
 /**
@@ -30,8 +31,6 @@ export class MockApi {
   public async setupPageInterception(page: Page): Promise<void> {
     console.log('Setting up API mocking for page');
 
-
-
     // Register default handlers
     await this.registerDefaultHandlers(page);
 
@@ -47,7 +46,7 @@ export class MockApi {
    */
   private async registerDefaultHandlers(page: Page): Promise<void> {
     // Default handler for all API requests that don't match specific handlers
-    await page.route('**/api/**', async (route) => {
+    await page.route('**/api/**', async route => {
       const url = route.request().url();
       console.log(`Handling request: ${url}`);
 
@@ -62,8 +61,8 @@ export class MockApi {
           body: JSON.stringify({
             message: 'Not Found',
             error: 'Not Found',
-            statusCode: 404
-          })
+            statusCode: 404,
+          }),
         });
       }
     });
@@ -74,7 +73,10 @@ export class MockApi {
    * @param pattern - URL pattern as a regex string
    * @param handler - Route handler function
    */
-  public addHandler(pattern: string, handler: (route: any) => Promise<void>): void {
+  public addHandler(
+    pattern: string,
+    handler: (route: Route) => Promise<void>
+  ): void {
     this.registry.addHandler(pattern, handler);
   }
 

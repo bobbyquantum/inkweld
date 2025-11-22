@@ -1,4 +1,5 @@
 import { Route } from '@playwright/test';
+
 import { mockApi } from './index';
 
 /**
@@ -26,8 +27,8 @@ class MockUsers {
       id: '2',
       username: 'adminuser',
       name: 'Admin User',
-      roles: ['admin']
-    }
+      roles: ['admin'],
+    },
   ];
 
   /**
@@ -69,8 +70,8 @@ class MockUsers {
         id: '2',
         username: 'adminuser',
         name: 'Admin User',
-        roles: ['admin']
-      }
+        roles: ['admin'],
+      },
     ];
   }
 }
@@ -82,40 +83,43 @@ export const mockUsers = new MockUsers();
  */
 export function setupUserHandlers(): void {
   // GET /api/v1/users/check-username - Check username availability
-  mockApi.addHandler('**/api/v1/users/check-username/**', async (route: Route) => {
-    const url = route.request().url();
-    const username = url.split('/').pop()?.split('?')[0] || '';
+  mockApi.addHandler(
+    '**/api/v1/users/check-username/**',
+    async (route: Route) => {
+      const url = route.request().url();
+      const username = url.split('/').pop()?.split('?')[0] || '';
 
-    const existingUser = mockUsers.findByUsername(username);
+      const existingUser = mockUsers.findByUsername(username);
 
-    if (existingUser) {
-      // Username is taken, provide suggestions
-      const suggestions = [
-        `${username}1`,
-        `${username}2`,
-        `${username}_user`,
-      ];
+      if (existingUser) {
+        // Username is taken, provide suggestions
+        const suggestions = [
+          `${username}1`,
+          `${username}2`,
+          `${username}_user`,
+        ];
 
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          available: false,
-          suggestions
-        })
-      });
-    } else {
-      // Username is available
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          available: true,
-          suggestions: []
-        })
-      });
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            available: false,
+            suggestions,
+          }),
+        });
+      } else {
+        // Username is available
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            available: true,
+            suggestions: [],
+          }),
+        });
+      }
     }
-  });
+  );
 
   // GET /api/v1/users/me - Current user endpoint (Token based)
   mockApi.addHandler('**/api/v1/users/me', async (route: Route) => {
@@ -137,8 +141,8 @@ export function setupUserHandlers(): void {
         body: JSON.stringify({
           message: 'Unauthorized',
           error: 'Unauthorized',
-          statusCode: 401
-        })
+          statusCode: 401,
+        }),
       });
       return;
     }
@@ -158,7 +162,7 @@ export function setupUserHandlers(): void {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(user)
+        body: JSON.stringify(user),
       });
     } else {
       console.warn('No matching user found for token');
@@ -168,8 +172,8 @@ export function setupUserHandlers(): void {
         body: JSON.stringify({
           message: 'User not found',
           error: 'Unauthorized',
-          statusCode: 401
-        })
+          statusCode: 401,
+        }),
       });
     }
   });

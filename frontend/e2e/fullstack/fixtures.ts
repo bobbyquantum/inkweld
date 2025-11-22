@@ -1,4 +1,4 @@
-import { test as base, Page } from '@playwright/test';
+import { Page, test as base } from '@playwright/test';
 
 /**
  * Full-stack test fixtures
@@ -83,7 +83,8 @@ export const test = base.extend<FullStackFixtures>({
     await page.waitForLoadState('domcontentloaded');
 
     // Store credentials for potential later use
-    (page as any).testCredentials = { username, password };
+    // @ts-expect-error - Dynamic property for test context
+    page.testCredentials = { username, password };
 
     await use(page);
 
@@ -104,7 +105,7 @@ export const test = base.extend<FullStackFixtures>({
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     // Set up app configuration for offline mode (one-time, not on every navigation)
-    await page.evaluate((user) => {
+    await page.evaluate(user => {
       const userProfile = {
         id: user,
         username: user,
@@ -154,33 +155,43 @@ export async function authenticateUser(
 
   if (isRegister) {
     // Register via API
-    const registerResponse = await page.request.post(`${apiUrl}/api/v1/auth/register`, {
-      data: {
-        username,
-        password,
-      },
-    });
+    const registerResponse = await page.request.post(
+      `${apiUrl}/api/v1/auth/register`,
+      {
+        data: {
+          username,
+          password,
+        },
+      }
+    );
 
     if (!registerResponse.ok()) {
-      throw new Error(`Registration failed: ${registerResponse.status()} ${await registerResponse.text()}`);
+      throw new Error(
+        `Registration failed: ${registerResponse.status()} ${await registerResponse.text()}`
+      );
     }
 
-    const registerData: any = await registerResponse.json();
+    const registerData = (await registerResponse.json()) as { token: string };
     return registerData.token;
   } else {
     // Login via API
-    const loginResponse = await page.request.post(`${apiUrl}/api/v1/auth/login`, {
-      data: {
-        username,
-        password,
-      },
-    });
+    const loginResponse = await page.request.post(
+      `${apiUrl}/api/v1/auth/login`,
+      {
+        data: {
+          username,
+          password,
+        },
+      }
+    );
 
     if (!loginResponse.ok()) {
-      throw new Error(`Login failed: ${loginResponse.status()} ${await loginResponse.text()}`);
+      throw new Error(
+        `Login failed: ${loginResponse.status()} ${await loginResponse.text()}`
+      );
     }
 
-    const loginData: any = await loginResponse.json();
+    const loginData = (await loginResponse.json()) as { token: string };
     return loginData.token;
   }
 }
@@ -203,7 +214,9 @@ export async function createOfflineProject(
   await page.locator('[data-testid="project-slug-input"]').fill(slug);
 
   if (description) {
-    await page.locator('[data-testid="project-description-input"]').fill(description);
+    await page
+      .locator('[data-testid="project-description-input"]')
+      .fill(description);
   }
 
   // Submit form
@@ -214,12 +227,14 @@ export async function createOfflineProject(
 
   // Wait for localStorage to be updated by checking it directly
   await page.waitForFunction(
-    (expectedSlug) => {
+    expectedSlug => {
       const stored = localStorage.getItem('inkweld-offline-projects');
       if (!stored) return false;
       try {
-        const projects = JSON.parse(stored);
-        return Array.isArray(projects) && projects.some((p: any) => p.slug === expectedSlug);
+        const projects = JSON.parse(stored) as Array<{ slug: string }>;
+        return (
+          Array.isArray(projects) && projects.some(p => p.slug === expectedSlug)
+        );
       } catch {
         return false;
       }
@@ -246,12 +261,16 @@ export async function openUserSettings(page: Page): Promise<void> {
   console.log('[DEBUG] User menu component count:', userMenuExists);
 
   // Check if the button with data-testid exists
-  const testidButtonExists = await page.locator('[data-testid="user-menu-button"]').count();
+  const testidButtonExists = await page
+    .locator('[data-testid="user-menu-button"]')
+    .count();
   console.log('[DEBUG] Button with data-testid count:', testidButtonExists);
 
   // Check all buttons in the user menu component
   if (userMenuExists > 0) {
-    const userMenuButtons = await page.locator('app-user-menu button').allTextContents();
+    const userMenuButtons = await page
+      .locator('app-user-menu button')
+      .allTextContents();
     console.log('[DEBUG] Buttons inside user-menu component:', userMenuButtons);
 
     const userMenuHtml = await page.locator('app-user-menu').innerHTML();
@@ -264,7 +283,8 @@ export async function openUserSettings(page: Page): Promise<void> {
   // Wait for button to be visible
   try {
     await userMenuButton.waitFor({ state: 'visible', timeout: 10000 });
-  } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (_e) {
     // Debug: Take screenshot and log page state
     await page.screenshot({ path: 'test-results/debug-no-user-menu.png' });
     const buttons = await page.locator('button').allTextContents();
@@ -279,12 +299,19 @@ export async function openUserSettings(page: Page): Promise<void> {
   const settingsOption = page.getByRole('menuitem', { name: /settings/i });
   try {
     await settingsOption.waitFor({ state: 'visible', timeout: 10000 });
-  } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (_e) {
     // Debug: Check if menu opened
-    const menuItems = await page.locator('[role="menuitem"], [role="menu"] button').allTextContents();
+    const menuItems = await page
+      .locator('[role="menuitem"], [role="menu"] button')
+      .allTextContents();
     console.log('[DEBUG] Available menu items:', menuItems);
-    await page.screenshot({ path: 'test-results/debug-no-settings-menuitem.png' });
-    throw new Error('Settings menu item not found after clicking user menu. See debug screenshot.');
+    await page.screenshot({
+      path: 'test-results/debug-no-settings-menuitem.png',
+    });
+    throw new Error(
+      'Settings menu item not found after clicking user menu. See debug screenshot.'
+    );
   }
 
   await settingsOption.click();
@@ -293,10 +320,12 @@ export async function openUserSettings(page: Page): Promise<void> {
 /**
  * Helper to verify offline project exists in localStorage
  */
-export async function getOfflineProjects(page: Page): Promise<any[]> {
+export async function getOfflineProjects(
+  page: Page
+): Promise<Array<{ slug: string }>> {
   return page.evaluate(() => {
     const stored = localStorage.getItem('inkweld-offline-projects');
-    return stored ? JSON.parse(stored) : [];
+    return stored ? (JSON.parse(stored) as Array<{ slug: string }>) : [];
   });
 }
 
@@ -307,7 +336,7 @@ export async function getAppMode(page: Page): Promise<string> {
   return page.evaluate(() => {
     const config = localStorage.getItem('inkweld-app-config');
     if (!config) return 'unknown';
-    const parsed = JSON.parse(config);
+    const parsed = JSON.parse(config) as { mode?: string };
     return parsed.mode || 'unknown';
   });
 }

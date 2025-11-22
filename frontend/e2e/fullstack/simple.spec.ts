@@ -1,10 +1,12 @@
-import { test, expect } from './fixtures';
+import { expect, test } from './fixtures';
 
 /**
  * Simple test to verify full-stack infrastructure is working
  */
 test.describe('Full-Stack Infrastructure', () => {
-  test('should load frontend and verify offline mode', async ({ offlinePage }) => {
+  test('should load frontend and verify offline mode', async ({
+    offlinePage,
+  }) => {
     // Verify page loaded
     await expect(offlinePage).toHaveTitle(/Home|Inkweld/i);
 
@@ -18,7 +20,9 @@ test.describe('Full-Stack Infrastructure', () => {
   });
 
   test('should access backend health endpoint', async ({ page }) => {
-    const response = await page.request.get('http://localhost:8333/api/v1/health');
+    const response = await page.request.get(
+      'http://localhost:8333/api/v1/health'
+    );
     expect(response.ok()).toBeTruthy();
   });
 
@@ -74,14 +78,22 @@ test.describe('Full-Stack Infrastructure', () => {
     await context.close();
   });
 
-  test('should persist offline projects across page reload', async ({ offlinePage }) => {
+  test('should persist offline projects across page reload', async ({
+    offlinePage,
+  }) => {
     // Create a project through the UI
     await offlinePage.goto('/create-project');
     await offlinePage.waitForLoadState('domcontentloaded');
 
-    await offlinePage.locator('[data-testid="project-title-input"]').fill('Reload Test Project');
-    await offlinePage.locator('[data-testid="project-slug-input"]').fill('reload-test');
-    await offlinePage.locator('[data-testid="project-description-input"]').fill('Testing persistence across reload');
+    await offlinePage
+      .locator('[data-testid="project-title-input"]')
+      .fill('Reload Test Project');
+    await offlinePage
+      .locator('[data-testid="project-slug-input"]')
+      .fill('reload-test');
+    await offlinePage
+      .locator('[data-testid="project-description-input"]')
+      .fill('Testing persistence across reload');
     await offlinePage.locator('[data-testid="create-project-button"]').click();
 
     // Wait for project page to load

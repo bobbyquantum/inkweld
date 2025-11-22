@@ -1,9 +1,15 @@
-import { test as base, expect as baseExpect, Page } from '@playwright/test';
+import {
+  BrowserContext,
+  expect as baseExpect,
+  Page,
+  test as base,
+} from '@playwright/test';
+
 import { mockApi } from './mock-api';
 import { setupAuthHandlers } from './mock-api/auth';
-import { setupUserHandlers } from './mock-api/users';
 import { setupConfigHandlers } from './mock-api/config';
 import { setupProjectHandlers } from './mock-api/projects';
+import { setupUserHandlers } from './mock-api/users';
 
 /**
  * Initialize all mock API handlers
@@ -36,11 +42,17 @@ export type TestFixtures = {
   // Anonymous state (default)
   anonymousPage: Page;
 
-  // Authenticated user state
+  // Authenticated user state (server mode with mock API)
   authenticatedPage: Page;
 
-  // Admin user state
+  // Admin user state (server mode with mock API)
   adminPage: Page;
+
+  // Offline mode with authenticated user
+  offlinePage: Page;
+
+  // Offline mode browser context
+  offlineContext: BrowserContext;
 };
 
 /**
@@ -54,10 +66,13 @@ export const test = base.extend<TestFixtures>({
 
     // Set up app configuration in localStorage
     await page.addInitScript(() => {
-      localStorage.setItem('inkweld-app-config', JSON.stringify({
-        mode: 'server',
-        serverUrl: 'http://localhost:8333'
-      }));
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          mode: 'server',
+          serverUrl: 'http://localhost:8333',
+        })
+      );
     });
 
     // No authentication state is set
@@ -73,10 +88,13 @@ export const test = base.extend<TestFixtures>({
 
     // Set up app configuration and auth token in localStorage
     await page.addInitScript(() => {
-      localStorage.setItem('inkweld-app-config', JSON.stringify({
-        mode: 'server',
-        serverUrl: 'http://localhost:8333'
-      }));
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          mode: 'server',
+          serverUrl: 'http://localhost:8333',
+        })
+      );
       // Set mock auth token for authenticated user
       localStorage.setItem('auth_token', 'mock-token-testuser');
     });
@@ -85,17 +103,65 @@ export const test = base.extend<TestFixtures>({
     console.log('Mock auth token set for authenticated user');
 
     // Navigate to the base URL *after* setting the auth token
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    // Log what state we're in
+    await page.waitForTimeout(2000); // Give Angular time to initialize and run effects
+    const hasCards = await page.locator('[data-testid="project-card"]').count();
+    const hasEmptyState = await page
+      .locator('.empty-state')
+      .isVisible()
+      .catch(() => false);
+    const hasLoading = await page
+      .locator('[data-testid="loading-projects"]')
+      .isVisible()
+      .catch(() => false);
+    console.log(
+      `Page state after goto: cards=${hasCards}, empty=${hasEmptyState}, loading=${hasLoading}`
+    );
 
     // Wait for projects to be loaded (the loading state should appear and disappear)
     // Or wait for at least one project card to appear or the empty state
-    await page.waitForFunction(() => {
-      const loadingElement = document.querySelector('[data-testid="loading-projects"]');
-      const projectCards = document.querySelectorAll('[data-testid="project-card"]');
-      const emptyState = document.querySelector('.empty-state');
-      // Either we have projects, we have empty state, or we're done loading
-      return projectCards.length > 0 || emptyState !== null || loadingElement === null;
-    }, { timeout: 10000 });
+    await page.waitForFunction(
+      () => {
+        const loadingElement = document.querySelector(
+          '[data-testid="loading-projects"]'
+        );
+        const projectCards = document.querySelectorAll(
+          '[data-testid="project-card"]'
+        );
+        const emptyState = document.querySelector('.empty-state');
+        // Either we have projects (cards visible), we have empty state, or we're done loading
+        return (
+          projectCards.length > 0 ||
+          emptyState !== null ||
+          loadingElement === null
+        );
+      },
+      { timeout: 10000 }
+    );
+
+    // Wait specifically for project cards to be visible (handles both bookshelf and tiles views)
+    try {
+      await page.waitForSelector('[data-testid="project-card"]', {
+        state: 'visible',
+        timeout: 5000,
+      });
+      console.log('Successfully found project cards');
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_e) {
+      // If no project cards appear, check if we're in empty state
+      const hasEmptyState = await page
+        .locator('.empty-state')
+        .isVisible()
+        .catch(() => false);
+      console.log(`No project cards found, empty state: ${hasEmptyState}`);
+      if (!hasEmptyState) {
+        console.warn(
+          'No project cards or empty state found after projects loaded'
+        );
+      }
+    }
 
     await use(page);
   },
@@ -107,10 +173,13 @@ export const test = base.extend<TestFixtures>({
 
     // Set up app configuration and auth token in localStorage
     await page.addInitScript(() => {
-      localStorage.setItem('inkweld-app-config', JSON.stringify({
-        mode: 'server',
-        serverUrl: 'http://localhost:8333'
-      }));
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          mode: 'server',
+          serverUrl: 'http://localhost:8333',
+        })
+      );
       // Set mock auth token for admin user
       localStorage.setItem('auth_token', 'mock-token-adminuser');
     });
@@ -122,6 +191,74 @@ export const test = base.extend<TestFixtures>({
     await page.goto('/');
 
     await use(page);
+  },
+
+  // Offline mode with authenticated user
+  offlinePage: async ({ page }, use) => {
+    // Set up app configuration for offline mode
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          mode: 'offline',
+          userProfile: {
+            username: 'testuser',
+            name: 'Test User',
+          },
+        })
+      );
+    });
+
+    console.log('Setting up page for offline mode with test project');
+
+    // Navigate to the home page
+    await page.goto('/');
+
+    // Click create project button (should open a dialog in offline mode)
+    await page.getByRole('button', { name: /create project/i }).click();
+
+    // Fill in project details in the dialog
+    await page.getByLabel(/project title/i).fill('Test Project');
+    await page.getByLabel(/project slug/i).fill('test-project');
+
+    // Submit the form
+    await page.getByRole('button', { name: /create/i }).click();
+
+    // Wait for navigation to project page
+    await page.waitForURL(/.*testuser.*test-project.*/);
+
+    // Navigate back to home to see the project card
+    await page.goto('/');
+
+    // Wait for the project card to appear
+    await page.waitForSelector('[data-testid="project-card"]', {
+      state: 'visible',
+      timeout: 10000,
+    });
+
+    await use(page);
+  },
+
+  // Offline mode browser context
+  offlineContext: async ({ browser }, use) => {
+    const context = await browser.newContext();
+
+    // Set up offline mode for all pages in this context
+    await context.addInitScript(() => {
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          mode: 'offline',
+          userProfile: {
+            username: 'testuser',
+            name: 'Test User',
+          },
+        })
+      );
+    });
+
+    await use(context);
+    await context.close();
   },
 });
 

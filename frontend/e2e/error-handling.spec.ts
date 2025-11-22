@@ -262,7 +262,10 @@ test.describe('Error Handling and Edge Cases', () => {
       await page.waitForTimeout(1000);
       const url = page.url();
       // Accept either outcome - staying on register page or redirecting to home
-      expect(url === 'http://localhost:4200/register' || url === 'http://localhost:4200/').toBeTruthy();
+      expect(
+        url === 'http://localhost:4200/register' ||
+          url === 'http://localhost:4200/'
+      ).toBeTruthy();
     });
 
     test('should handle window resize gracefully', async ({

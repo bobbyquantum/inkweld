@@ -12,7 +12,10 @@ export class MockApiRegistry {
    * @param pattern - URL pattern as a regex string
    * @param handler - Route handler function
    */
-  public addHandler(pattern: string, handler: (route: Route) => Promise<void>): void {
+  public addHandler(
+    pattern: string,
+    handler: (route: Route) => Promise<void>
+  ): void {
     this.handlers.set(pattern, handler);
   }
 

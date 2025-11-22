@@ -6,11 +6,11 @@ import { Page } from '@playwright/test';
 export const TEST_CONSTANTS = {
   // Valid password that meets all requirements
   VALID_PASSWORD: 'ValidPass123!',
-  
+
   // Default test users
   TEST_USER: 'testuser',
   ADMIN_USER: 'adminuser',
-  
+
   // Common timeouts
   TIMEOUTS: {
     SHORT: 300,
@@ -18,13 +18,13 @@ export const TEST_CONSTANTS = {
     LONG: 2000,
     NETWORK: 5000,
   },
-  
+
   // Mobile viewport
   MOBILE_VIEWPORT: {
     width: 375,
     height: 667,
   },
-  
+
   // Tablet viewport
   TABLET_VIEWPORT: {
     width: 768,
@@ -109,10 +109,7 @@ export async function scrollIntoView(
  * @param page Playwright page
  * @param name Screenshot name
  */
-export async function takeScreenshot(
-  page: Page,
-  name: string
-): Promise<void> {
+export async function takeScreenshot(page: Page, name: string): Promise<void> {
   await page.screenshot({
     path: `test-results/screenshots/${name}-${Date.now()}.png`,
     fullPage: true,
@@ -143,7 +140,7 @@ export async function retryAction<T>(
     }
   }
 
-  throw lastError;
+  throw lastError || new Error('Retry failed with unknown error');
 }
 
 /**

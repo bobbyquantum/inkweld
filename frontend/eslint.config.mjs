@@ -9,7 +9,7 @@ import vitest from 'eslint-plugin-vitest';
 
 export default tseslint.config(
   {
-    files: ['src/app/**/*.ts', 'src/themes/**/*.ts'],
+    files: ['src/app/**/*.ts', 'src/themes/**/*.ts', 'e2e/**/*.ts'],
     extends: [
       eslint.configs.recommended,
       ...tseslint.configs.recommendedTypeChecked,

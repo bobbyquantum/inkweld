@@ -1,4 +1,5 @@
 import { Route } from '@playwright/test';
+
 import { mockApi } from './index';
 
 /**
@@ -17,8 +18,8 @@ export async function handleSystemFeatures(route: Route): Promise<void> {
       aiImageGeneration: false,
       captcha: { enabled: false },
       appMode: 'BOTH',
-      defaultServerName: null
-    })
+      defaultServerName: null,
+    }),
   });
 }
 
@@ -27,7 +28,7 @@ export async function handleSystemFeatures(route: Route): Promise<void> {
  */
 export function setupConfigHandlers(): void {
   console.log('Config handlers initialized');
-  
+
   // Register the features endpoint handler
   mockApi.addHandler('**/api/v1/config/features', handleSystemFeatures);
 }

@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures';
+import { expect, test } from './fixtures';
 import { mockProjects } from './mock-api/projects';
 
 /**
@@ -64,7 +64,12 @@ test.describe('Project Switching Bug', () => {
       browserLogs.push(text);
 
       // Echo important logs
-      if (text.includes('ProjectState') || text.includes('🔍') || text.includes('💾') || text.includes('🧹')) {
+      if (
+        text.includes('ProjectState') ||
+        text.includes('🔍') ||
+        text.includes('💾') ||
+        text.includes('🧹')
+      ) {
         console.log(`[BROWSER] ${text}`);
       }
     });
@@ -107,11 +112,12 @@ test.describe('Project Switching Bug', () => {
       console.error(`   Browser navigated to WRONG project!\n`);
 
       // Print relevant logs
-      const relevantLogs = browserLogs.filter(log =>
-        log.includes('🔍 Restoring') ||
-        log.includes('💾 Saving') ||
-        log.includes('🧹 Clearing') ||
-        log.includes('cache key')
+      const relevantLogs = browserLogs.filter(
+        log =>
+          log.includes('🔍 Restoring') ||
+          log.includes('💾 Saving') ||
+          log.includes('🧹 Clearing') ||
+          log.includes('cache key')
       );
 
       if (relevantLogs.length > 0) {
@@ -123,8 +129,11 @@ test.describe('Project Switching Bug', () => {
     }
 
     // Print cache-related logs for debugging
-    const cacheOps = browserLogs.filter(log =>
-      log.includes('cache key') || log.includes('Restoring tabs') || log.includes('Saving')
+    const cacheOps = browserLogs.filter(
+      log =>
+        log.includes('cache key') ||
+        log.includes('Restoring tabs') ||
+        log.includes('Saving')
     );
 
     if (cacheOps.length > 0) {
@@ -211,7 +220,9 @@ test.describe('Project Switching Bug', () => {
     mockProjects.addProject(project1);
     mockProjects.addProject(project2);
 
-    console.log('\n🧪 Testing back-and-forth project switching with content verification');
+    console.log(
+      '\n🧪 Testing back-and-forth project switching with content verification'
+    );
     console.log(`   Project 1: "${project1.title}" (/${project1.slug})`);
     console.log(`   Project 2: "${project2.title}" (/${project2.slug})\n`);
 
@@ -259,7 +270,9 @@ test.describe('Project Switching Bug', () => {
 
     // Check if URL is wrong
     if (url.includes(project2.slug)) {
-      console.error(`\n🐛 BUG: URL shows ${project2.slug} instead of ${project1.slug}!`);
+      console.error(
+        `\n🐛 BUG: URL shows ${project2.slug} instead of ${project1.slug}!`
+      );
     }
 
     // Check page title/content - look for project name in the page
@@ -273,7 +286,9 @@ test.describe('Project Switching Bug', () => {
     console.log(`   Contains "${project2.title}": ${hasProject2Title}`);
 
     if (!hasProject1Title && hasProject2Title) {
-      console.error(`\n🐛 BUG DETECTED: Page shows "${project2.title}" content when it should show "${project1.title}"!`);
+      console.error(
+        `\n🐛 BUG DETECTED: Page shows "${project2.title}" content when it should show "${project1.title}"!`
+      );
       console.error(`   URL: ${url}`);
       console.error(`   Expected project: ${project1.slug}`);
       console.error(`   Content from: ${project2.slug}`);
@@ -289,6 +304,8 @@ test.describe('Project Switching Bug', () => {
       expect(hasProject2Title).toBe(false);
     }
 
-    console.log('\n✅ Test passed: Correct project shown after back-and-forth navigation\n');
+    console.log(
+      '\n✅ Test passed: Correct project shown after back-and-forth navigation\n'
+    );
   });
 });

@@ -6,8 +6,11 @@ import { test } from './fixtures';
 import { mockProjects } from './mock-api/projects';
 
 // Only run screenshot tests when explicitly requested
-const shouldGenerateScreenshots = process.env['GENERATE_SCREENSHOTS'] === 'true';
-const describeScreenshots = shouldGenerateScreenshots ? test.describe : test.describe.skip;
+const shouldGenerateScreenshots =
+  process.env['GENERATE_SCREENSHOTS'] === 'true';
+const describeScreenshots = shouldGenerateScreenshots
+  ? test.describe
+  : test.describe.skip;
 
 describeScreenshots('PWA Screenshots', () => {
   const demoProjects = [
@@ -45,13 +48,20 @@ describeScreenshots('PWA Screenshots', () => {
 
   test.beforeAll(async () => {
     // Ensure screenshots directory exists in docs/site/static/img
-    const screenshotsDir = join(process.cwd(), '..', 'docs', 'site', 'static', 'img');
+    const screenshotsDir = join(
+      process.cwd(),
+      '..',
+      'docs',
+      'site',
+      'static',
+      'img'
+    );
     if (!existsSync(screenshotsDir)) {
       await mkdir(screenshotsDir, { recursive: true });
     }
   });
 
-  test.beforeEach(async () => {
+  test.beforeEach(() => {
     // Set up demo projects before EACH test
     // This needs to run before the fixture navigates
     mockProjects.resetProjects();
@@ -60,12 +70,17 @@ describeScreenshots('PWA Screenshots', () => {
     });
   });
 
-  test('capture project bookshelf - desktop', async ({ authenticatedPage: page }) => {
+  test('capture project bookshelf - desktop', async ({
+    authenticatedPage: page,
+  }) => {
     // Set viewport to desktop size - tighter focus at 1280px
     await page.setViewportSize({ width: 1280, height: 720 });
 
     // Wait for the bookshelf to load
-    await page.waitForSelector('app-bookshelf', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('app-bookshelf', {
+      state: 'visible',
+      timeout: 10000,
+    });
 
     // Wait a bit for project cards and images to load
     await page.waitForTimeout(2000);
@@ -80,12 +95,22 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'bookshelf-desktop.png'),
+      path: join(
+        process.cwd(),
+        '..',
+        'docs',
+        'site',
+        'static',
+        'img',
+        'bookshelf-desktop.png'
+      ),
       fullPage: true,
     });
   });
 
-  test('capture project bookshelf - desktop dark mode', async ({ authenticatedPage: page }) => {
+  test('capture project bookshelf - desktop dark mode', async ({
+    authenticatedPage: page,
+  }) => {
     // Set viewport to desktop size - tighter focus at 1280px
     await page.setViewportSize({ width: 1280, height: 720 });
 
@@ -93,7 +118,10 @@ describeScreenshots('PWA Screenshots', () => {
     await page.emulateMedia({ colorScheme: 'dark' });
 
     // Wait for the bookshelf to load
-    await page.waitForSelector('app-bookshelf', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('app-bookshelf', {
+      state: 'visible',
+      timeout: 10000,
+    });
 
     // Wait a bit for project cards and images to load
     await page.waitForTimeout(2000);
@@ -108,17 +136,30 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'bookshelf-desktop-dark.png'),
+      path: join(
+        process.cwd(),
+        '..',
+        'docs',
+        'site',
+        'static',
+        'img',
+        'bookshelf-desktop-dark.png'
+      ),
       fullPage: true,
     });
   });
 
-  test('capture project bookshelf - mobile', async ({ authenticatedPage: page }) => {
+  test('capture project bookshelf - mobile', async ({
+    authenticatedPage: page,
+  }) => {
     // Set viewport to mobile size - smaller for tighter focus
     await page.setViewportSize({ width: 375, height: 667 });
 
     // Wait for bookshelf to load
-    await page.waitForSelector('app-bookshelf', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('app-bookshelf', {
+      state: 'visible',
+      timeout: 10000,
+    });
 
     // Wait for project cards to load
     await page.waitForTimeout(2000);
@@ -133,12 +174,22 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'bookshelf-mobile.png'),
+      path: join(
+        process.cwd(),
+        '..',
+        'docs',
+        'site',
+        'static',
+        'img',
+        'bookshelf-mobile.png'
+      ),
       fullPage: true,
     });
   });
 
-  test('capture project bookshelf - mobile dark mode', async ({ authenticatedPage: page }) => {
+  test('capture project bookshelf - mobile dark mode', async ({
+    authenticatedPage: page,
+  }) => {
     // Set viewport to mobile size - smaller for tighter focus
     await page.setViewportSize({ width: 375, height: 667 });
 
@@ -146,7 +197,10 @@ describeScreenshots('PWA Screenshots', () => {
     await page.emulateMedia({ colorScheme: 'dark' });
 
     // Wait for bookshelf to load
-    await page.waitForSelector('app-bookshelf', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('app-bookshelf', {
+      state: 'visible',
+      timeout: 10000,
+    });
 
     // Wait for project cards to load
     await page.waitForTimeout(2000);
@@ -161,7 +215,15 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'bookshelf-mobile-dark.png'),
+      path: join(
+        process.cwd(),
+        '..',
+        'docs',
+        'site',
+        'static',
+        'img',
+        'bookshelf-mobile-dark.png'
+      ),
       fullPage: true,
     });
   });
@@ -172,30 +234,42 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Configure offline mode to avoid WebSocket connection attempts
     await page.addInitScript(() => {
-      localStorage.setItem('inkweld-app-config', JSON.stringify({
-        mode: 'offline',
-        userProfile: {
-          name: 'Demo User',
-          username: 'demouser'
-        }
-      }));
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          mode: 'offline',
+          userProfile: {
+            name: 'Demo User',
+            username: 'demouser',
+          },
+        })
+      );
     });
 
     // Navigate to root - should go straight to home since configured
     await page.goto('/');
 
     // Wait for the empty state (since no projects exist in offline mode initially)
-    await page.waitForSelector('.empty-state', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('.empty-state', {
+      state: 'visible',
+      timeout: 10000,
+    });
 
     // Click the "Create Project" button in the empty state
     await page.click('button:has-text("Create Project")');
 
     // Wait for create project form to load
-    await page.waitForSelector('input[data-testid="project-title-input"]', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('input[data-testid="project-title-input"]', {
+      state: 'visible',
+      timeout: 10000,
+    });
 
     // Fill in project details
     await page.fill('input[data-testid="project-title-input"]', 'My Novel');
-    await page.fill('textarea[formcontrolname="description"]', 'A captivating story about creativity and collaboration');
+    await page.fill(
+      'textarea[formcontrolname="description"]',
+      'A captivating story about creativity and collaboration'
+    );
     await page.fill('input[data-testid="project-slug-input"]', 'my-novel');
 
     // Submit the form
@@ -205,12 +279,17 @@ describeScreenshots('PWA Screenshots', () => {
     await page.waitForURL(/\/demouser\/my-novel/, { timeout: 10000 });
 
     // Wait for the project tree to be visible (not just app-project component)
-    await page.waitForSelector('app-project-tree', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('app-project-tree', {
+      state: 'visible',
+      timeout: 10000,
+    });
     await page.waitForTimeout(1500);
 
     // The default structure creates "Chapters" folder with "Chapter 1" inside
     // First, expand the "Chapters" folder by clicking the chevron button
-    const expandButton = page.locator('[data-testid="expand-folder-button"]').first();
+    const expandButton = page
+      .locator('[data-testid="expand-folder-button"]')
+      .first();
     await expandButton.click();
     await page.waitForTimeout(500);
 
@@ -224,16 +303,33 @@ describeScreenshots('PWA Screenshots', () => {
     await editor.click();
 
     // Type some compelling content
-    await editor.pressSequentially('The rain hammered against the windowpane as Sarah opened her laptop, ready to pour her imagination onto the digital page. ', { delay: 10 });
-    await editor.pressSequentially('Inkweld made it effortless—her characters, plot notes, and chapters all organized in one place.\n\n', { delay: 10 });
-    await editor.pressSequentially('She smiled, knowing that collaboration with her co-author would be seamless, even across continents.', { delay: 10 });
+    await editor.pressSequentially(
+      'The rain hammered against the windowpane as Sarah opened her laptop, ready to pour her imagination onto the digital page. ',
+      { delay: 10 }
+    );
+    await editor.pressSequentially(
+      'Inkweld made it effortless—her characters, plot notes, and chapters all organized in one place.\n\n',
+      { delay: 10 }
+    );
+    await editor.pressSequentially(
+      'She smiled, knowing that collaboration with her co-author would be seamless, even across continents.',
+      { delay: 10 }
+    );
 
     // Wait for content to settle
     await page.waitForTimeout(1000);
 
     // Take screenshot
     await page.screenshot({
-      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'editor-desktop.png'),
+      path: join(
+        process.cwd(),
+        '..',
+        'docs',
+        'site',
+        'static',
+        'img',
+        'editor-desktop.png'
+      ),
       fullPage: true,
     });
   });
@@ -244,30 +340,42 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Configure offline mode
     await page.addInitScript(() => {
-      localStorage.setItem('inkweld-app-config', JSON.stringify({
-        mode: 'offline',
-        userProfile: {
-          name: 'Demo User',
-          username: 'demouser'
-        }
-      }));
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          mode: 'offline',
+          userProfile: {
+            name: 'Demo User',
+            username: 'demouser',
+          },
+        })
+      );
     });
 
     // Navigate to root
     await page.goto('/');
 
     // Wait for the empty state (no projects initially)
-    await page.waitForSelector('.empty-state', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('.empty-state', {
+      state: 'visible',
+      timeout: 10000,
+    });
 
     // Click the create project button
     await page.click('button:has-text("Create Project")');
 
     // Wait for create project form
-    await page.waitForSelector('input[data-testid="project-title-input"]', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('input[data-testid="project-title-input"]', {
+      state: 'visible',
+      timeout: 10000,
+    });
 
     // Fill in project details
     await page.fill('input[data-testid="project-title-input"]', 'Mobile Story');
-    await page.fill('textarea[formcontrolname="description"]', 'Writing on the go');
+    await page.fill(
+      'textarea[formcontrolname="description"]',
+      'Writing on the go'
+    );
     await page.fill('input[data-testid="project-slug-input"]', 'mobile-story');
 
     // Submit form
@@ -277,16 +385,26 @@ describeScreenshots('PWA Screenshots', () => {
     await page.waitForURL(/\/demouser\/mobile-story/, { timeout: 10000 });
 
     // On mobile, the project tree is in a sidebar - click hamburger menu to open it
-    await page.waitForSelector('button[aria-label*="menu" i], button:has(mat-icon:text("menu"))', { state: 'visible', timeout: 5000 });
-    await page.click('button[aria-label*="menu" i], button:has(mat-icon:text("menu"))');
+    await page.waitForSelector(
+      'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))',
+      { state: 'visible', timeout: 5000 }
+    );
+    await page.click(
+      'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
+    );
     await page.waitForTimeout(500);
 
     // Wait for project tree to appear in sidebar
-    await page.waitForSelector('app-project-tree', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('app-project-tree', {
+      state: 'visible',
+      timeout: 10000,
+    });
     await page.waitForTimeout(500);
 
     // Expand "Chapters" folder by clicking the chevron
-    const expandButton = page.locator('[data-testid="expand-folder-button"]').first();
+    const expandButton = page
+      .locator('[data-testid="expand-folder-button"]')
+      .first();
     await expandButton.click();
     await page.waitForTimeout(500);
 
@@ -300,17 +418,26 @@ describeScreenshots('PWA Screenshots', () => {
     await editor.click();
 
     // Type first paragraph
-    await editor.pressSequentially('Writing on mobile has never been easier. Inkweld adapts to your screen, letting you craft stories wherever inspiration strikes.', { delay: 10 });
+    await editor.pressSequentially(
+      'Writing on mobile has never been easier. Inkweld adapts to your screen, letting you craft stories wherever inspiration strikes.',
+      { delay: 10 }
+    );
     await page.keyboard.press('Enter');
     await page.keyboard.press('Enter');
 
     // Type second paragraph
-    await editor.pressSequentially('Whether you\'re on the bus, waiting in line, or relaxing in a café, your stories are always at your fingertips.', { delay: 10 });
+    await editor.pressSequentially(
+      "Whether you're on the bus, waiting in line, or relaxing in a café, your stories are always at your fingertips.",
+      { delay: 10 }
+    );
     await page.keyboard.press('Enter');
     await page.keyboard.press('Enter');
 
     // Type third paragraph
-    await editor.pressSequentially('Start writing today and bring your ideas to life.', { delay: 10 });
+    await editor.pressSequentially(
+      'Start writing today and bring your ideas to life.',
+      { delay: 10 }
+    );
 
     await page.waitForTimeout(500);
 
@@ -322,7 +449,15 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Take screenshot with text selected and formatting menu visible
     await page.screenshot({
-      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'editor-mobile.png'),
+      path: join(
+        process.cwd(),
+        '..',
+        'docs',
+        'site',
+        'static',
+        'img',
+        'editor-mobile.png'
+      ),
       fullPage: true,
     });
   });
@@ -336,30 +471,42 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Configure offline mode to avoid WebSocket connection attempts
     await page.addInitScript(() => {
-      localStorage.setItem('inkweld-app-config', JSON.stringify({
-        mode: 'offline',
-        userProfile: {
-          name: 'Demo User',
-          username: 'demouser'
-        }
-      }));
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          mode: 'offline',
+          userProfile: {
+            name: 'Demo User',
+            username: 'demouser',
+          },
+        })
+      );
     });
 
     // Navigate to root - should go straight to home since configured
     await page.goto('/');
 
     // Wait for the empty state (since no projects exist in offline mode initially)
-    await page.waitForSelector('.empty-state', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('.empty-state', {
+      state: 'visible',
+      timeout: 10000,
+    });
 
     // Click the "Create Project" button in the empty state
     await page.click('button:has-text("Create Project")');
 
     // Wait for create project form to load
-    await page.waitForSelector('input[data-testid="project-title-input"]', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('input[data-testid="project-title-input"]', {
+      state: 'visible',
+      timeout: 10000,
+    });
 
     // Fill in project details
     await page.fill('input[data-testid="project-title-input"]', 'My Novel');
-    await page.fill('textarea[formcontrolname="description"]', 'A captivating story about creativity and collaboration');
+    await page.fill(
+      'textarea[formcontrolname="description"]',
+      'A captivating story about creativity and collaboration'
+    );
     await page.fill('input[data-testid="project-slug-input"]', 'my-novel');
 
     // Submit the form
@@ -369,12 +516,17 @@ describeScreenshots('PWA Screenshots', () => {
     await page.waitForURL(/\/demouser\/my-novel/, { timeout: 10000 });
 
     // Wait for the project tree to be visible (not just app-project component)
-    await page.waitForSelector('app-project-tree', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('app-project-tree', {
+      state: 'visible',
+      timeout: 10000,
+    });
     await page.waitForTimeout(1500);
 
     // The default structure creates "Chapters" folder with "Chapter 1" inside
     // First, expand the "Chapters" folder by clicking the chevron button
-    const expandButton = page.locator('[data-testid="expand-folder-button"]').first();
+    const expandButton = page
+      .locator('[data-testid="expand-folder-button"]')
+      .first();
     await expandButton.click();
     await page.waitForTimeout(500);
 
@@ -388,16 +540,33 @@ describeScreenshots('PWA Screenshots', () => {
     await editor.click();
 
     // Type some compelling content
-    await editor.pressSequentially('The rain hammered against the windowpane as Sarah opened her laptop, ready to pour her imagination onto the digital page. ', { delay: 10 });
-    await editor.pressSequentially('Inkweld made it effortless—her characters, plot notes, and chapters all organized in one place.\n\n', { delay: 10 });
-    await editor.pressSequentially('She smiled, knowing that collaboration with her co-author would be seamless, even across continents.', { delay: 10 });
+    await editor.pressSequentially(
+      'The rain hammered against the windowpane as Sarah opened her laptop, ready to pour her imagination onto the digital page. ',
+      { delay: 10 }
+    );
+    await editor.pressSequentially(
+      'Inkweld made it effortless—her characters, plot notes, and chapters all organized in one place.\n\n',
+      { delay: 10 }
+    );
+    await editor.pressSequentially(
+      'She smiled, knowing that collaboration with her co-author would be seamless, even across continents.',
+      { delay: 10 }
+    );
 
     // Wait for content to settle
     await page.waitForTimeout(1000);
 
     // Take screenshot
     await page.screenshot({
-      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'editor-desktop-dark.png'),
+      path: join(
+        process.cwd(),
+        '..',
+        'docs',
+        'site',
+        'static',
+        'img',
+        'editor-desktop-dark.png'
+      ),
       fullPage: true,
     });
   });
@@ -411,30 +580,42 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Configure offline mode
     await page.addInitScript(() => {
-      localStorage.setItem('inkweld-app-config', JSON.stringify({
-        mode: 'offline',
-        userProfile: {
-          name: 'Demo User',
-          username: 'demouser'
-        }
-      }));
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          mode: 'offline',
+          userProfile: {
+            name: 'Demo User',
+            username: 'demouser',
+          },
+        })
+      );
     });
 
     // Navigate to root
     await page.goto('/');
 
     // Wait for the empty state (no projects initially)
-    await page.waitForSelector('.empty-state', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('.empty-state', {
+      state: 'visible',
+      timeout: 10000,
+    });
 
     // Click the create project button
     await page.click('button:has-text("Create Project")');
 
     // Wait for create project form
-    await page.waitForSelector('input[data-testid="project-title-input"]', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('input[data-testid="project-title-input"]', {
+      state: 'visible',
+      timeout: 10000,
+    });
 
     // Fill in project details
     await page.fill('input[data-testid="project-title-input"]', 'Mobile Story');
-    await page.fill('textarea[formcontrolname="description"]', 'Writing on the go');
+    await page.fill(
+      'textarea[formcontrolname="description"]',
+      'Writing on the go'
+    );
     await page.fill('input[data-testid="project-slug-input"]', 'mobile-story');
 
     // Submit form
@@ -444,16 +625,26 @@ describeScreenshots('PWA Screenshots', () => {
     await page.waitForURL(/\/demouser\/mobile-story/, { timeout: 10000 });
 
     // On mobile, the project tree is in a sidebar - click hamburger menu to open it
-    await page.waitForSelector('button[aria-label*="menu" i], button:has(mat-icon:text("menu"))', { state: 'visible', timeout: 5000 });
-    await page.click('button[aria-label*="menu" i], button:has(mat-icon:text("menu"))');
+    await page.waitForSelector(
+      'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))',
+      { state: 'visible', timeout: 5000 }
+    );
+    await page.click(
+      'button[aria-label*="menu" i], button:has(mat-icon:text("menu"))'
+    );
     await page.waitForTimeout(500);
 
     // Wait for project tree to appear in sidebar
-    await page.waitForSelector('app-project-tree', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('app-project-tree', {
+      state: 'visible',
+      timeout: 10000,
+    });
     await page.waitForTimeout(500);
 
     // Expand "Chapters" folder by clicking the chevron
-    const expandButton = page.locator('[data-testid="expand-folder-button"]').first();
+    const expandButton = page
+      .locator('[data-testid="expand-folder-button"]')
+      .first();
     await expandButton.click();
     await page.waitForTimeout(500);
 
@@ -467,17 +658,26 @@ describeScreenshots('PWA Screenshots', () => {
     await editor.click();
 
     // Type first paragraph
-    await editor.pressSequentially('Writing on mobile has never been easier. Inkweld adapts to your screen, letting you craft stories wherever inspiration strikes.', { delay: 10 });
+    await editor.pressSequentially(
+      'Writing on mobile has never been easier. Inkweld adapts to your screen, letting you craft stories wherever inspiration strikes.',
+      { delay: 10 }
+    );
     await page.keyboard.press('Enter');
     await page.keyboard.press('Enter');
 
     // Type second paragraph
-    await editor.pressSequentially('Whether you\'re on the bus, waiting in line, or relaxing in a café, your stories are always at your fingertips.', { delay: 10 });
+    await editor.pressSequentially(
+      "Whether you're on the bus, waiting in line, or relaxing in a café, your stories are always at your fingertips.",
+      { delay: 10 }
+    );
     await page.keyboard.press('Enter');
     await page.keyboard.press('Enter');
 
     // Type third paragraph
-    await editor.pressSequentially('Start writing today and bring your ideas to life.', { delay: 10 });
+    await editor.pressSequentially(
+      'Start writing today and bring your ideas to life.',
+      { delay: 10 }
+    );
 
     await page.waitForTimeout(500);
 
@@ -489,7 +689,15 @@ describeScreenshots('PWA Screenshots', () => {
 
     // Take screenshot with text selected and formatting menu visible
     await page.screenshot({
-      path: join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'editor-mobile-dark.png'),
+      path: join(
+        process.cwd(),
+        '..',
+        'docs',
+        'site',
+        'static',
+        'img',
+        'editor-mobile-dark.png'
+      ),
       fullPage: true,
     });
   });

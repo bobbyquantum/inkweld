@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/e2e",
+    "types": ["node", "@playwright/test"],
+    "paths": {
+      "@inkweld/*": ["api-client/*"],
+      "@components/*": ["app/components/*"],
+      "@dialogs/*": ["app/dialogs/*"],
+      "@services/*": ["app/services/*"],
+      "@themes/*": ["themes/*"]
+    }
+  },
+  "include": [
+    "e2e/**/*.ts"
+  ]
+}
