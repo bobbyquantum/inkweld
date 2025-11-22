@@ -1,5 +1,4 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { CommonModule } from '@angular/common';
 import {
   Component,
   computed,
@@ -33,7 +32,6 @@ type ViewMode = 'tiles' | 'bookshelf' | 'list';
   selector: 'app-home',
   standalone: true,
   imports: [
-    CommonModule,
     MatButtonModule,
     MatIconModule,
     MatInputModule,

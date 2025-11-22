@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import { Project } from '@inkweld/index';
 
@@ -9,7 +8,7 @@ export type ProjectCoverVariant = 'card' | 'list' | 'small';
 @Component({
   selector: 'app-project-cover',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './project-cover.component.html',
   styleUrls: ['./project-cover.component.scss'],
 })

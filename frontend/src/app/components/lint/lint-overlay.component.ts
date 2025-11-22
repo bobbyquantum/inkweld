@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   Component,
   ElementRef,
@@ -15,7 +14,7 @@ import { Correction } from '../../../api-client/model/correction';
 @Component({
   selector: 'app-lint-overlay',
   standalone: true,
-  imports: [MatTooltipModule, CommonModule],
+  imports: [MatTooltipModule],
   encapsulation: ViewEncapsulation.None,
   template: `
     <span

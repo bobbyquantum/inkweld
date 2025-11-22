@@ -91,7 +91,6 @@
             "buildTarget": "inkweld-frontend:build:development",
             "tsConfig": "tsconfig.spec.json",
             "runner": "vitest",
-            "codeCoverage": false,
             "setupFiles": ["setup-vitest.ts"]
           }
         },

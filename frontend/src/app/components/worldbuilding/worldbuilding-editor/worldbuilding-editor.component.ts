@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -12,7 +11,7 @@ import { DynamicWorldbuildingEditorComponent } from '../dynamic-worldbuilding-ed
 @Component({
   selector: 'app-worldbuilding-editor',
   standalone: true,
-  imports: [CommonModule, MatIconModule, DynamicWorldbuildingEditorComponent],
+  imports: [MatIconModule, DynamicWorldbuildingEditorComponent],
   templateUrl: './worldbuilding-editor.component.html',
   styleUrls: ['./worldbuilding-editor.component.scss'],
 })
