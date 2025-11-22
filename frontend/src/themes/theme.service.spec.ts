@@ -15,7 +15,8 @@ describe('ThemeService', () => {
   let document: Document;
   let matIconRegistry: MatIconRegistry;
   let domSanitizer: DomSanitizer;
-  let localStorageSpy: any;
+  let getItemSpy: any;
+  let setItemSpy: any;
   let addClassSpy: Mock;
   let removeClassSpy: Mock;
   let mediaQueryList: MediaQueryList;
@@ -86,8 +87,10 @@ describe('ThemeService', () => {
     document = TestBed.inject(DOCUMENT);
     matIconRegistry = TestBed.inject(MatIconRegistry);
     domSanitizer = TestBed.inject(DomSanitizer);
-    localStorageSpy = vi.spyOn(Storage.prototype, 'setItem');
-    vi.spyOn(Storage.prototype, 'getItem');
+
+    // Spy on global localStorage methods
+    getItemSpy = vi.spyOn(localStorage, 'getItem');
+    setItemSpy = vi.spyOn(localStorage, 'setItem');
   });
 
   it('should be created', () => {
@@ -96,12 +99,12 @@ describe('ThemeService', () => {
 
   it('should initialize with system theme by default', () => {
     service.initTheme();
-    expect(localStorage.getItem).toHaveBeenCalledWith('user-theme');
+    expect(getItemSpy).toHaveBeenCalledWith('user-theme');
   });
 
   it('should update theme and persist in localStorage', () => {
     service.update('dark-theme');
-    expect(localStorageSpy).toHaveBeenCalledWith('user-theme', 'dark-theme');
+    expect(setItemSpy).toHaveBeenCalledWith('user-theme', 'dark-theme');
     expect(addClassSpy).toHaveBeenCalledWith(document.body, 'dark-theme');
   });
 
@@ -137,7 +140,7 @@ describe('ThemeService', () => {
 
   it('should handle system theme preference', () => {
     service.update('system');
-    expect(localStorageSpy).toHaveBeenCalledWith('user-theme', 'system');
+    expect(setItemSpy).toHaveBeenCalledWith('user-theme', 'system');
     expect(addClassSpy).toHaveBeenCalledWith(
       document.body,
       expect.stringMatching(/(light|dark)-theme/)

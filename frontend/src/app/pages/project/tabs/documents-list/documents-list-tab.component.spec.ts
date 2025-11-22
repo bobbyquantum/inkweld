@@ -8,10 +8,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
-import {
-  Element,
-  ElementType,
-} from '@inkweld/index';
+import { Element, ElementType } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { ProjectStateService } from '@services/project-state.service';
 import { Mock, vi } from 'vitest';
@@ -124,11 +121,7 @@ describe('DocumentsListTabComponent', () => {
   it('should filter and display only ITEM type elements as documents', () => {
     // Manually set documents for test
     component.documents.set(
-      mockElements.filter(
-        el =>
-          el.type ===
-          ElementType.Item
-      )
+      mockElements.filter(el => el.type === ElementType.Item)
     );
 
     const docs = component.documents();
@@ -169,9 +162,7 @@ describe('DocumentsListTabComponent', () => {
     expect(projectStateService.openDocument).toHaveBeenCalled();
     const newDocArg = (projectStateService.openDocument as Mock).mock
       .calls[0][0];
-    expect(newDocArg.type).toBe(
-      ElementType.Item
-    );
+    expect(newDocArg.type).toBe(ElementType.Item);
     expect(newDocArg.name).toBe('New Document');
   });
 

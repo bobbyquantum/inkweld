@@ -1,10 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import {
-  ElementType,
-  Project,
-} from '@inkweld/index';
+import { ElementType, Project } from '@inkweld/index';
 import { of } from 'rxjs';
 import { Mock, MockedObject, vi } from 'vitest';
 

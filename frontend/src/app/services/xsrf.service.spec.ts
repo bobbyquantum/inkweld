@@ -10,11 +10,11 @@ import { XsrfService } from './xsrf.service';
 
 describe('XsrfService', () => {
   let service: XsrfService;
-  let mockCsrfService: { getApiV1CsrfToken: Mock };
+  let mockCsrfService: { getCSRFToken: Mock };
 
   beforeEach(() => {
     mockCsrfService = {
-      getApiV1CsrfToken: vi.fn().mockReturnValue(of({ token: 'test-token' })),
+      getCSRFToken: vi.fn().mockReturnValue(of({ token: 'test-token' })),
     };
 
     TestBed.configureTestingModule({
@@ -37,18 +37,16 @@ describe('XsrfService', () => {
 
   describe('refreshToken()', () => {
     it('should fetch token using SecurityService', async () => {
-      mockCsrfService.getApiV1CsrfToken.mockReturnValue(
-        of({ token: 'new-token' })
-      );
+      mockCsrfService.getCSRFToken.mockReturnValue(of({ token: 'new-token' }));
 
       const token = await service.refreshToken();
 
-      expect(mockCsrfService.getApiV1CsrfToken).toHaveBeenCalled();
+      expect(mockCsrfService.getCSRFToken).toHaveBeenCalled();
       expect(token).toBe('new-token');
     });
 
     it('should return empty string when API fails and no cookie exists', async () => {
-      mockCsrfService.getApiV1CsrfToken.mockImplementation(() => {
+      mockCsrfService.getCSRFToken.mockImplementation(() => {
         throw new Error('API error');
       });
 

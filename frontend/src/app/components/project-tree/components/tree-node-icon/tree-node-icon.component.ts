@@ -34,8 +34,7 @@ export class TreeNodeIconComponent {
       ['CULTURE']: 'groups',
       ['SPECIES']: 'pets',
       ['SYSTEMS']: 'settings',
-      [ElementType.Item]:
-        'description',
+      [ElementType.Item]: 'description',
       IMAGE: 'image', // Legacy type not in enum
     };
 

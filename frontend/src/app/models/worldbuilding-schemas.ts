@@ -403,9 +403,7 @@ export type WorldbuildingSchema =
   | SystemsSchema;
 
 // Helper to get the schema type from element type
-export function getSchemaFromType(
-  type: ElementType
-): string | null {
+export function getSchemaFromType(type: ElementType): string | null {
   switch (type) {
     case ElementType.Character:
       return 'character';
@@ -431,9 +429,7 @@ export function getSchemaFromType(
 }
 
 // Helper to check if an element type is a worldbuilding type
-export function isWorldbuildingType(
-  type: ElementType
-): boolean {
+export function isWorldbuildingType(type: ElementType): boolean {
   // Custom templates start with 'CUSTOM_'
   if (typeof type === 'string' && type.startsWith('CUSTOM_')) {
     return true;

@@ -1,8 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import {
-  Element,
-  ElementType,
-} from '@inkweld/index';
+import { Element, ElementType } from '@inkweld/index';
 import { nanoid } from 'nanoid';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
@@ -28,9 +25,7 @@ interface StoredProjectElements {
 export class OfflineProjectElementsService {
   private logger = inject(LoggerService);
 
-  readonly elements = signal<
-    Element[]
-  >([]);
+  readonly elements = signal<Element[]>([]);
   readonly isLoading = signal(false);
 
   // Yjs connections per project (username:slug -> connection)
@@ -128,10 +123,7 @@ export class OfflineProjectElementsService {
     // Wait for IndexedDB to sync before proceeding
     await provider.whenSynced;
 
-    const elementsArray =
-      doc.getArray<Element>(
-        'elements'
-      );
+    const elementsArray = doc.getArray<Element>('elements');
 
     // Check if we need to migrate from localStorage
     if (elementsArray.length === 0) {
@@ -201,53 +193,52 @@ export class OfflineProjectElementsService {
     username: string,
     slug: string
   ): Promise<Element[]> {
-    const defaultElements: Element[] =
-      [
-        {
-          id: nanoid(),
-          name: 'Chapters',
-          type: ElementType.Folder,
-          level: 0,
-          expandable: true,
-          order: 0,
-          parentId: null,
-          version: 0,
-          metadata: {},
-        },
-        {
-          id: nanoid(),
-          name: 'Chapter 1',
-          type: ElementType.Item,
-          level: 1,
-          expandable: false,
-          order: 1,
-          parentId: null,
-          version: 0,
-          metadata: {},
-        },
-        {
-          id: nanoid(),
-          name: 'Notes',
-          type: ElementType.Folder,
-          level: 0,
-          expandable: true,
-          order: 2,
-          parentId: null,
-          version: 0,
-          metadata: {},
-        },
-        {
-          id: nanoid(),
-          name: 'Research',
-          type: ElementType.Item,
-          level: 1,
-          expandable: false,
-          order: 3,
-          parentId: null,
-          version: 0,
-          metadata: {},
-        },
-      ];
+    const defaultElements: Element[] = [
+      {
+        id: nanoid(),
+        name: 'Chapters',
+        type: ElementType.Folder,
+        level: 0,
+        expandable: true,
+        order: 0,
+        parentId: null,
+        version: 0,
+        metadata: {},
+      },
+      {
+        id: nanoid(),
+        name: 'Chapter 1',
+        type: ElementType.Item,
+        level: 1,
+        expandable: false,
+        order: 1,
+        parentId: null,
+        version: 0,
+        metadata: {},
+      },
+      {
+        id: nanoid(),
+        name: 'Notes',
+        type: ElementType.Folder,
+        level: 0,
+        expandable: true,
+        order: 2,
+        parentId: null,
+        version: 0,
+        metadata: {},
+      },
+      {
+        id: nanoid(),
+        name: 'Research',
+        type: ElementType.Item,
+        level: 1,
+        expandable: false,
+        order: 3,
+        parentId: null,
+        version: 0,
+        metadata: {},
+      },
+    ];
 
     await this.saveElements(username, slug, defaultElements);
     return defaultElements;
@@ -286,9 +277,7 @@ export class OfflineProjectElementsService {
       name,
       type,
       level: parentLevel + 1,
-      expandable:
-        type ===
-        ElementType.Folder,
+      expandable: type === ElementType.Folder,
       order: elements.length,
       parentId: null,
       version: 0,
@@ -442,10 +431,7 @@ export class OfflineProjectElementsService {
     }
   }
 
-  private getSubtree(
-    elements: Element[],
-    startIndex: number
-  ): Element[] {
+  private getSubtree(elements: Element[], startIndex: number): Element[] {
     const startLevel = elements[startIndex].level;
     const subtree = [elements[startIndex]];
 
@@ -460,9 +446,7 @@ export class OfflineProjectElementsService {
     return subtree;
   }
 
-  private recomputePositions(
-    elements: Element[]
-  ): Element[] {
+  private recomputePositions(elements: Element[]): Element[] {
     return elements.map((element, index) => ({
       ...element,
       order: index,

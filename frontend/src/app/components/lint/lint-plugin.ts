@@ -6,8 +6,8 @@ import { Plugin, PluginKey, TextSelection } from 'prosemirror-state';
 import { Decoration, DecorationSet, EditorView } from 'prosemirror-view';
 import { debounceTime, Subject, Subscription } from 'rxjs';
 
-import { LintResponse } from '../../../api-client/model/lint-response';
 import { Correction } from '../../../api-client/model/correction';
+import { LintResponse } from '../../../api-client/model/lint-response';
 import { ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintApiService } from './lint-api.service';
 import { LintStorageService } from './lint-storage.service';
@@ -200,8 +200,7 @@ export function createLintPlugin(lintApi: LintApiService): Plugin<LintState> {
 
     // Filter out rejected suggestions
     const filteredCorrections = lintResult.corrections.filter(
-      (correction: Correction) =>
-        !lintStorage.isSuggestionRejected(correction)
+      (correction: Correction) => !lintStorage.isSuggestionRejected(correction)
     );
 
     console.log(

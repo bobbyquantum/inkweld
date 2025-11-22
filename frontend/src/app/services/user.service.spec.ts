@@ -41,17 +41,17 @@ describe('UserService', () => {
   let storageService: StorageService;
   let httpTestingController: HttpTestingController;
   let authServiceMock: {
-    postApiV1AuthLogin: Mock;
-    postApiV1AuthLogout: Mock;
+    login: Mock;
+    logout: Mock;
   };
   let dialogMock: { open: Mock };
   let routerMock: { navigate: Mock };
 
   beforeEach(() => {
-    userServiceMock.getApiV1UsersMe.mockReturnValue(of(TEST_USER));
+    userServiceMock.getCurrentUser.mockReturnValue(of(TEST_USER));
     authServiceMock = {
-      postApiV1AuthLogin: vi.fn(),
-      postApiV1AuthLogout: vi.fn(),
+      login: vi.fn(),
+      logout: vi.fn(),
     };
     dialogMock = { open: vi.fn() };
     routerMock = { navigate: vi.fn() };
@@ -123,9 +123,9 @@ describe('UserService', () => {
 
   describe('loadCurrentUser', () => {
     it('should load user from API when cache is empty', async () => {
-      userServiceMock.getApiV1UsersMe.mockClear();
+      userServiceMock.getCurrentUser.mockClear();
       await service.loadCurrentUser();
-      expect(userServiceMock.getApiV1UsersMe).toHaveBeenCalledTimes(1);
+      expect(userServiceMock.getCurrentUser).toHaveBeenCalledTimes(1);
       expect(service.currentUser()).toEqual(TEST_USER);
       expect(service.isLoading()).toBe(false);
       expect(service.error()).toBeUndefined();
@@ -133,15 +133,15 @@ describe('UserService', () => {
 
     it('should use cached user when available', async () => {
       // First load to cache the user
-      userServiceMock.getApiV1UsersMe.mockReturnValue(of(TEST_USER));
+      userServiceMock.getCurrentUser.mockReturnValue(of(TEST_USER));
       await service.loadCurrentUser();
 
-      userServiceMock.getApiV1UsersMe.mockClear();
+      userServiceMock.getCurrentUser.mockClear();
 
-      expect(userServiceMock.getApiV1UsersMe).not.toHaveBeenCalled();
+      expect(userServiceMock.getCurrentUser).not.toHaveBeenCalled();
       // Second load should use cache
       await service.loadCurrentUser();
-      expect(userServiceMock.getApiV1UsersMe).not.toHaveBeenCalled();
+      expect(userServiceMock.getCurrentUser).not.toHaveBeenCalled();
       expect(service.currentUser()).toEqual(TEST_USER);
     });
 
@@ -151,7 +151,7 @@ describe('UserService', () => {
         status: 0,
         statusText: 'Network Error',
       });
-      userServiceMock.getApiV1UsersMe.mockReturnValue(throwError(() => error));
+      userServiceMock.getCurrentUser.mockReturnValue(throwError(() => error));
 
       await expect(service.loadCurrentUser()).rejects.toThrow(UserServiceError);
       expect(service.error()?.code).toBe('NETWORK_ERROR');
@@ -164,7 +164,7 @@ describe('UserService', () => {
         status: 401,
         statusText: 'Unauthorized',
       });
-      userServiceMock.getApiV1UsersMe.mockReturnValue(throwError(() => error));
+      userServiceMock.getCurrentUser.mockReturnValue(throwError(() => error));
 
       await expect(service.loadCurrentUser()).rejects.toThrow(UserServiceError);
       expect(service.error()?.code).toBe('SESSION_EXPIRED');
@@ -207,14 +207,14 @@ describe('UserService', () => {
       const username = 'testuser';
       const password = 'password123';
 
-      authServiceMock.postApiV1AuthLogin.mockReturnValue(
+      authServiceMock.login.mockReturnValue(
         of({ user: TEST_USER, token: 'test-token' })
       );
 
       await service.login(username, password);
 
       // Verify the auth service was called
-      expect(authServiceMock.postApiV1AuthLogin).toHaveBeenCalledWith({
+      expect(authServiceMock.login).toHaveBeenCalledWith({
         username,
         password,
       });
@@ -238,9 +238,7 @@ describe('UserService', () => {
         statusText: 'Unauthorized',
       });
 
-      authServiceMock.postApiV1AuthLogin.mockReturnValue(
-        throwError(() => errorResponse)
-      );
+      authServiceMock.login.mockReturnValue(throwError(() => errorResponse));
 
       const loginPromise = service.login(username, password);
 
@@ -349,7 +347,7 @@ describe('UserService', () => {
       const router = TestBed.inject(Router);
       const service = TestBed.inject(UserService);
 
-      vi.spyOn(authService, 'postApiV1AuthLogout').mockReturnValue(
+      vi.spyOn(authService, 'logout').mockReturnValue(
         of(new HttpResponse({ status: 200, body: { message: 'Logged out' } }))
       );
       const clearCurrentUserSpy = vi
@@ -358,7 +356,7 @@ describe('UserService', () => {
 
       await service.logout();
 
-      expect(authService.postApiV1AuthLogout).toHaveBeenCalled();
+      expect(authService.logout).toHaveBeenCalled();
       expect(clearCurrentUserSpy).toHaveBeenCalled();
       expect(router.navigate).toHaveBeenCalledWith(['/welcome']);
     });
@@ -371,7 +369,7 @@ describe('UserService', () => {
         'SERVER_ERROR',
         'Failed to load user data'
       );
-      vi.spyOn(authService, 'postApiV1AuthLogout').mockReturnValue(
+      vi.spyOn(authService, 'logout').mockReturnValue(
         throwError(() => new Error('Logout failed'))
       );
       const clearCurrentUserSpy = vi

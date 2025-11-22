@@ -52,9 +52,7 @@ describe('NewElementDialogComponent', () => {
 
   it('should initialize form with default values', () => {
     expect(component.form.get('name')?.value).toBe('');
-    expect(component.form.get('type')?.value).toBe(
-      ElementType.Item
-    );
+    expect(component.form.get('type')?.value).toBe(ElementType.Item);
   });
 
   it('should validate required fields', () => {

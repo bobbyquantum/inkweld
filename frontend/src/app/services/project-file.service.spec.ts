@@ -1,14 +1,14 @@
 import { HttpClient, HttpEvent, provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { FilesService } from '@inkweld/api/files.service';
+import { MessageResponse } from '@inkweld/model/message-response';
+import { ProjectFile as ApiProjectFile } from '@inkweld/model/project-file';
+import { UploadResponse } from '@inkweld/model/upload-response';
 import { Observable, of } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
-import { FilesService } from '../../api-client/api/files.service';
-import { ProjectFile as ApiProjectFile } from '../../api-client/model/project-file';
-import { UploadResponse } from '../../api-client/model/upload-response';
-import { MessageResponse } from '../../api-client/model/message-response';
 import {
   FileDeleteResponse,
   ProjectFile,
@@ -60,9 +60,7 @@ describe('ProjectFileService', () => {
 
     /* default stubbing for every test */
     api.listProjectFiles.mockReturnValue(
-      of([uploadResp]) as unknown as Observable<
-        HttpEvent<ProjectFile[]>
-      >
+      of([uploadResp]) as unknown as Observable<HttpEvent<ApiProjectFile[]>>
     );
 
     // Mock HttpClient.post for uploadFile
@@ -81,14 +79,10 @@ describe('ProjectFileService', () => {
         originalName: 'test.jpg',
         size: 1,
         mimeType: 'image/jpeg',
-      }) as unknown as Observable<
-        HttpEvent<UploadResponse>
-      >
+      }) as unknown as Observable<HttpEvent<UploadResponse>>
     );
     api.deleteProjectFile.mockReturnValue(
-      of(deleteResp) as unknown as Observable<
-        HttpEvent<MessageResponse>
-      >
+      of(deleteResp) as unknown as Observable<HttpEvent<MessageResponse>>
     );
 
     xsrf.getXsrfToken.mockReturnValue('test-token');
@@ -108,10 +102,7 @@ describe('ProjectFileService', () => {
       .getProjectFiles('alice', 'proj')
       .subscribe((f: ProjectFile[]) => (files = f));
 
-    expect(api.listProjectFiles).toHaveBeenCalledWith(
-      'alice',
-      'proj'
-    );
+    expect(api.listProjectFiles).toHaveBeenCalledWith('alice', 'proj');
     expect(files[0]).toMatchObject({ originalName: 'stored-test.jpg' });
     expect(files[0].uploadDate.toISOString()).toBe(TEST_DATE);
   });
@@ -153,9 +144,11 @@ describe('ProjectFileService', () => {
         });
     });
 
-    expect(
-      api.deleteProjectFile
-    ).toHaveBeenCalledWith('alice', 'proj', 'stored-test.jpg');
+    expect(api.deleteProjectFile).toHaveBeenCalledWith(
+      'alice',
+      'proj',
+      'stored-test.jpg'
+    );
     expect(delResp.message).toBe('File deleted successfully');
   });
 

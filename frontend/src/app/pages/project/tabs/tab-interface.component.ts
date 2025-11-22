@@ -22,10 +22,7 @@ import {
   Router,
   RouterModule,
 } from '@angular/router';
-import {
-  Element,
-  ElementType,
-} from '@inkweld/index';
+import { Element, ElementType } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { AppTab, ProjectStateService } from '@services/project-state.service';
 import { filter, Subject, Subscription, takeUntil } from 'rxjs';
@@ -315,9 +312,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     this.projectState.closeTab(index - 1);
   }
 
-  openDocument(
-    document: Element
-  ): void {
+  openDocument(document: Element): void {
     const project = this.projectState.project();
     if (!project) return;
 

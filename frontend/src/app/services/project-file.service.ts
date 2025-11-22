@@ -1,9 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import {
-  ProjectFile as ApiProjectFile,
-  MessageResponse,
-} from '@inkweld/index';
+import { MessageResponse, ProjectFile as ApiProjectFile } from '@inkweld/index';
 import { catchError, map, Observable, throwError } from 'rxjs';
 
 import { FilesService } from '../../api-client/api/files.service';
@@ -35,33 +32,31 @@ export class ProjectFileService {
     projectSlug: string
   ): Observable<ProjectFile[]> {
     try {
-      return this.filesApi
-        .listProjectFiles(username, projectSlug)
-        .pipe(
-          map((files: ApiProjectFile[]) =>
-            files.map(file => ({
-              originalName: file.name,
-              storedName: file.name, // API doesn't distinguish, use same name
-              contentType: '', // Not provided by API
-              size: file.size ?? 0, // Default to 0 if not provided
-              uploadDate: file.uploadDate
-                ? new Date(file.uploadDate)
-                : new Date(), // Default to now if not provided
-              fileUrl: this.getFileUrl(username, projectSlug, file.name), // Add fileUrl using name
-            }))
-          ),
-          catchError((error: unknown) => {
-            console.error('Error fetching project files:', error);
-            return throwError(
-              () =>
-                new Error(
-                  `Failed to fetch project files: ${
-                    error instanceof Error ? error.message : 'Unknown error'
-                  }`
-                )
-            );
-          })
-        );
+      return this.filesApi.listProjectFiles(username, projectSlug).pipe(
+        map((files: ApiProjectFile[]) =>
+          files.map(file => ({
+            originalName: file.name,
+            storedName: file.name, // API doesn't distinguish, use same name
+            contentType: '', // Not provided by API
+            size: file.size ?? 0, // Default to 0 if not provided
+            uploadDate: file.uploadDate
+              ? new Date(file.uploadDate)
+              : new Date(), // Default to now if not provided
+            fileUrl: this.getFileUrl(username, projectSlug, file.name), // Add fileUrl using name
+          }))
+        ),
+        catchError((error: unknown) => {
+          console.error('Error fetching project files:', error);
+          return throwError(
+            () =>
+              new Error(
+                `Failed to fetch project files: ${
+                  error instanceof Error ? error.message : 'Unknown error'
+                }`
+              )
+          );
+        })
+      );
     } catch (error: unknown) {
       console.error('Error in getProjectFiles:', error);
       return throwError(
@@ -86,23 +81,17 @@ export class ProjectFileService {
 
       const url = `${this.filesApi.configuration.basePath}/api/v1/projects/${username}/${projectSlug}/files`;
       return this.http
-        .post<ApiProjectFile>(
-          url,
-          formData,
-          { withCredentials: true }
-        )
+        .post<ApiProjectFile>(url, formData, { withCredentials: true })
         .pipe(
-          map(
-            (response: ApiProjectFile) => ({
-              originalName: response.name,
-              storedName: response.name,
-              contentType: '',
-              size: response.size ?? 0, // Default to 0 if not provided
-              uploadDate: response.uploadDate
-                ? new Date(response.uploadDate)
-                : new Date(), // Default to now
-            })
-          ),
+          map((response: ApiProjectFile) => ({
+            originalName: response.name,
+            storedName: response.name,
+            contentType: '',
+            size: response.size ?? 0, // Default to 0 if not provided
+            uploadDate: response.uploadDate
+              ? new Date(response.uploadDate)
+              : new Date(), // Default to now
+          })),
           catchError((error: unknown) => {
             console.error('Error uploading file:', error);
             return throwError(
@@ -135,11 +124,7 @@ export class ProjectFileService {
   ): Observable<FileDeleteResponse> {
     try {
       return this.filesApi
-        .deleteProjectFile(
-          username,
-          projectSlug,
-          storedName
-        )
+        .deleteProjectFile(username, projectSlug, storedName)
         .pipe(
           map((response: MessageResponse) => ({
             message: response.message || 'File deleted successfully',

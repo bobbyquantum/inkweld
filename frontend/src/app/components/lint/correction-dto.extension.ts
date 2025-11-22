@@ -3,8 +3,7 @@ import { Correction } from '../../../api-client/model/correction';
 /**
  * Extended correction interface for internal use in the lint system
  */
-export interface ExtendedCorrectionDto
-  extends Correction {
+export interface ExtendedCorrectionDto extends Correction {
   /**
    * The text content that this correction applies to
    */

@@ -28,11 +28,7 @@ import {
 } from '@angular/router';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import {
-  Element,
-  ElementType,
-  Project,
-} from '@inkweld/index';
+import { Element, ElementType, Project } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
 import { ProjectImportExportService } from '@services/project-import-export.service';
 import { ProjectStateService } from '@services/project-state.service';
@@ -283,9 +279,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     localStorage.setItem('splitSize', this.splitSize.toString());
   }
 
-  onDocumentOpened = (
-    element: Element
-  ) => {
+  onDocumentOpened = (element: Element) => {
     this.projectState.openDocument(element);
     if (this.isMobile()) {
       void this.sidenav.close();
@@ -294,10 +288,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     const project = this.projectState.project();
     if (project) {
       const typeRoute =
-        element.type ===
-        ElementType.Folder
-          ? 'folder'
-          : 'document';
+        element.type === ElementType.Folder ? 'folder' : 'document';
       void this.router.navigate([
         '/',
         project.username,

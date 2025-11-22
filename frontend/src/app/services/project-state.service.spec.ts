@@ -23,11 +23,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
-import {
-  Element,
-  Project,
-  ProjectsService,
-} from '@inkweld/index';
+import { Element, Project, ProjectsService } from '@inkweld/index';
 import { nanoid } from 'nanoid';
 import { of } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -45,14 +41,12 @@ import { StorageService } from './storage.service';
 import { UnifiedProjectService } from './unified-project.service';
 
 // Mock state - will be reset per test
-const mockYArrayState: Element[] =
-  [];
+const mockYArrayState: Element[] = [];
 const mockArrayObservers: any[] = [];
 
 function createMockYArray() {
   // Create isolated state for THIS array instance
-  const localArrayState: Element[] =
-    [];
+  const localArrayState: Element[] = [];
   const localObservers: any[] = [];
 
   function notifyLocalObservers(event: any) {
@@ -69,10 +63,7 @@ function createMockYArray() {
       // Notify observers once for this deletion.
       notifyLocalObservers({ changes: { added: [], deleted: length } });
     },
-    insert(
-      index: number,
-      elements: Element[]
-    ) {
+    insert(index: number, elements: Element[]) {
       // Insert elements at the specified index
       localArrayState.splice(index, 0, ...elements);
       notifyLocalObservers({
@@ -184,7 +175,7 @@ describe('ProjectStateService', () => {
     } as unknown as MockedObject<MatDialog>;
 
     mockProjectAPI = {
-      getApiV1ProjectsUsernameSlug: vi.fn().mockReturnValue(of(mockProject)),
+      getProject: vi.fn().mockReturnValue(of(mockProject)),
     } as unknown as MockedObject<ProjectsService>;
 
     mockUnifiedProjectService = {
@@ -300,20 +291,17 @@ describe('ProjectStateService', () => {
         name: string,
         parentId: string | null | undefined = null
       ) => {
-        const newElement: Element =
-          {
-            id: nanoid(),
-            name,
-            type,
-            parentId: parentId ?? null,
-            level: parentId ? 1 : 0,
-            order: service.elements().length,
-            expandable:
-              type ===
-              ElementType.Folder,
-            version: 0,
-            metadata: {},
-          };
+        const newElement: Element = {
+          id: nanoid(),
+          name,
+          type,
+          parentId: parentId ?? null,
+          level: parentId ? 1 : 0,
+          order: service.elements().length,
+          expandable: type === ElementType.Folder,
+          version: 0,
+          metadata: {},
+        };
         // Directly add to elements array for testing
         service['elements'].set([...service.elements(), newElement]);
         // Auto-expand parent when adding child
@@ -335,8 +323,7 @@ describe('ProjectStateService', () => {
 
         // Remove element and its children
         const element = elements[elementIndex];
-        const subtree: Element[] =
-          [element];
+        const subtree: Element[] = [element];
         let i = elementIndex + 1;
         while (i < elements.length && elements[i].level > element.level) {
           subtree.push(elements[i]);
@@ -409,10 +396,7 @@ describe('ProjectStateService', () => {
       async (username: string, slug: string) => {
         try {
           // Just set the project without WebSocket setup
-          const project = mockProjectAPI.getApiV1ProjectsUsernameSlug(
-            username,
-            slug
-          ) as any;
+          const project = mockProjectAPI.getProject(username, slug) as any;
           if (project && typeof project.subscribe === 'function') {
             // Handle Observable
             await new Promise<void>((resolve, reject) => {
@@ -471,7 +455,7 @@ describe('ProjectStateService', () => {
     it('should load project metadata and initialize Yjs document', async () => {
       await service.loadProject('testuser', 'test-project');
 
-      expect(mockProjectAPI.getApiV1ProjectsUsernameSlug).toHaveBeenCalledWith(
+      expect(mockProjectAPI.getProject).toHaveBeenCalledWith(
         'testuser',
         'test-project'
       );
@@ -481,7 +465,7 @@ describe('ProjectStateService', () => {
     });
 
     it('should handle errors during project loading', async () => {
-      mockProjectAPI.getApiV1ProjectsUsernameSlug.mockImplementation(() => {
+      mockProjectAPI.getProject.mockImplementation(() => {
         throw new Error('API Error');
       });
 
@@ -558,10 +542,7 @@ describe('ProjectStateService', () => {
   describe('Element Management', () => {
     it('should add root level element', async () => {
       await service.loadProject('testuser', 'test-project');
-      void service.addElement(
-        ElementType.Folder,
-        'New Folder'
-      );
+      void service.addElement(ElementType.Folder, 'New Folder');
       const elements = service.elements();
 
       expect(elements).toHaveLength(1);
@@ -574,17 +555,10 @@ describe('ProjectStateService', () => {
       // First load a project to initialize the service
       await service.loadProject('testuser', 'test-project');
 
-      void service.addElement(
-        ElementType.Folder,
-        'Parent'
-      );
+      void service.addElement(ElementType.Folder, 'Parent');
       const parent = service.elements()[0];
 
-      void service.addElement(
-        ElementType.Item,
-        'New Item',
-        parent.id
-      );
+      void service.addElement(ElementType.Item, 'New Item', parent.id);
 
       const elements = service.elements();
       expect(elements).toHaveLength(2);
@@ -596,20 +570,10 @@ describe('ProjectStateService', () => {
     it('should maintain correct positions when adding elements', async () => {
       await service.loadProject('testuser', 'test-project');
 
-      void service.addElement(
-        ElementType.Folder,
-        'Folder 1'
-      );
+      void service.addElement(ElementType.Folder, 'Folder 1');
       const folder1 = service.elements()[0];
-      void service.addElement(
-        ElementType.Folder,
-        'Folder 2'
-      );
-      void service.addElement(
-        ElementType.Item,
-        'Item 1',
-        folder1.id
-      );
+      void service.addElement(ElementType.Folder, 'Folder 2');
+      void service.addElement(ElementType.Item, 'Item 1', folder1.id);
 
       const elements = service.elements();
       expect(elements).toHaveLength(3);
@@ -632,20 +596,10 @@ describe('ProjectStateService', () => {
       await service.loadProject('testuser', 'test-project');
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      void service.addElement(
-        ElementType.Folder,
-        'Root 1'
-      );
+      void service.addElement(ElementType.Folder, 'Root 1');
       const root1 = service.elements()[0];
-      void service.addElement(
-        ElementType.Item,
-        'Child 1',
-        root1.id
-      );
-      void service.addElement(
-        ElementType.Folder,
-        'Root 2'
-      );
+      void service.addElement(ElementType.Item, 'Child 1', root1.id);
+      void service.addElement(ElementType.Folder, 'Root 2');
 
       void service.moveElement(root1.id, 2, 0);
       const movedElements = service.elements();
@@ -659,22 +613,11 @@ describe('ProjectStateService', () => {
     it('should delete element and its subtree', async () => {
       await service.loadProject('testuser', 'test-project');
 
-      void service.addElement(
-        ElementType.Folder,
-        'Root'
-      );
+      void service.addElement(ElementType.Folder, 'Root');
       const root = service.elements()[0];
-      void service.addElement(
-        ElementType.Folder,
-        'Child 1',
-        root.id
-      );
+      void service.addElement(ElementType.Folder, 'Child 1', root.id);
       const child1 = service.elements()[1];
-      void service.addElement(
-        ElementType.Item,
-        'Grandchild',
-        child1.id
-      );
+      void service.addElement(ElementType.Item, 'Grandchild', child1.id);
 
       service.setExpanded(root.id, true);
       service.setExpanded(child1.id, true);
@@ -696,10 +639,7 @@ describe('ProjectStateService', () => {
 
       it('should validate drops relative to folders', async () => {
         await service.loadProject('testuser', 'test-project');
-        void service.addElement(
-          ElementType.Folder,
-          'Parent'
-        );
+        void service.addElement(ElementType.Folder, 'Parent');
         const folder = service.elements()[0];
 
         expect(service.isValidDrop(folder, folder.level)).toBe(true); // Same level
@@ -709,10 +649,7 @@ describe('ProjectStateService', () => {
 
       it('should validate drops relative to items', async () => {
         await service.loadProject('testuser', 'test-project');
-        void service.addElement(
-          ElementType.Item,
-          'Item'
-        );
+        void service.addElement(ElementType.Item, 'Item');
         const item = service.elements()[0];
 
         expect(service.isValidDrop(item, item.level)).toBe(true); // Same level
@@ -728,10 +665,7 @@ describe('ProjectStateService', () => {
 
         it('should handle case with only nodeBelow', async () => {
           await service.loadProject('testuser', 'test-project');
-          void service.addElement(
-            ElementType.Item,
-            'Item'
-          );
+          void service.addElement(ElementType.Item, 'Item');
           const nodeBelow = service.elements()[0];
 
           const result = service.getValidDropLevels(null, nodeBelow);
@@ -741,10 +675,7 @@ describe('ProjectStateService', () => {
 
         it('should handle case with only nodeAbove', async () => {
           await service.loadProject('testuser', 'test-project');
-          void service.addElement(
-            ElementType.Folder,
-            'Folder'
-          );
+          void service.addElement(ElementType.Folder, 'Folder');
           const folderAbove = service.elements()[0];
 
           const result = service.getValidDropLevels(folderAbove, null);
@@ -754,10 +685,7 @@ describe('ProjectStateService', () => {
           expect(result.defaultLevel).toBe(Math.min(...result.levels));
 
           // Test with item above
-          void service.addElement(
-            ElementType.Item,
-            'Item'
-          );
+          void service.addElement(ElementType.Item, 'Item');
           const itemAbove = service.elements()[1];
 
           const resultItem = service.getValidDropLevels(itemAbove, null);
@@ -767,17 +695,10 @@ describe('ProjectStateService', () => {
 
         it('should handle nodeAbove with lower level than nodeBelow', async () => {
           await service.loadProject('testuser', 'test-project');
-          void service.addElement(
-            ElementType.Folder,
-            'Parent'
-          );
+          void service.addElement(ElementType.Folder, 'Parent');
           const folderAbove = service.elements()[0];
 
-          void service.addElement(
-            ElementType.Item,
-            'Child',
-            folderAbove.id
-          );
+          void service.addElement(ElementType.Item, 'Child', folderAbove.id);
           const nodeBelow = service.elements()[1];
 
           const result = service.getValidDropLevels(folderAbove, nodeBelow);
@@ -786,16 +707,10 @@ describe('ProjectStateService', () => {
 
         it('should handle nodeAbove with same level as nodeBelow', async () => {
           await service.loadProject('testuser', 'test-project');
-          void service.addElement(
-            ElementType.Folder,
-            'Folder1'
-          );
+          void service.addElement(ElementType.Folder, 'Folder1');
           const folderAbove = service.elements()[0];
 
-          void service.addElement(
-            ElementType.Folder,
-            'Folder2'
-          );
+          void service.addElement(ElementType.Folder, 'Folder2');
           const nodeBelow = service.elements()[1];
 
           const result = service.getValidDropLevels(folderAbove, nodeBelow);
@@ -806,23 +721,13 @@ describe('ProjectStateService', () => {
 
         it('should handle nodeAbove with higher level than nodeBelow', async () => {
           await service.loadProject('testuser', 'test-project');
-          void service.addElement(
-            ElementType.Folder,
-            'Root'
-          );
+          void service.addElement(ElementType.Folder, 'Root');
           const rootNode = service.elements()[0];
 
-          void service.addElement(
-            ElementType.Item,
-            'Child',
-            rootNode.id
-          );
+          void service.addElement(ElementType.Item, 'Child', rootNode.id);
           const nodeAbove = service.elements()[1];
 
-          void service.addElement(
-            ElementType.Item,
-            'Next Root'
-          );
+          void service.addElement(ElementType.Item, 'Next Root');
           const nodeBelow = service.elements()[2];
 
           const result = service.getValidDropLevels(nodeAbove, nodeBelow);
@@ -840,10 +745,7 @@ describe('ProjectStateService', () => {
 
         it('should insert after nodeAbove when dropping at a deeper level', async () => {
           await service.loadProject('testuser', 'test-project');
-          void service.addElement(
-            ElementType.Folder,
-            'Folder'
-          );
+          void service.addElement(ElementType.Folder, 'Folder');
           const folderNode = service.elements()[0];
 
           const index = service.getDropInsertIndex(
@@ -855,22 +757,11 @@ describe('ProjectStateService', () => {
 
         it('should insert after the entire subtree when dropping at same level', async () => {
           await service.loadProject('testuser', 'test-project');
-          void service.addElement(
-            ElementType.Folder,
-            'Parent'
-          );
+          void service.addElement(ElementType.Folder, 'Parent');
           const parentNode = service.elements()[0];
 
-          void service.addElement(
-            ElementType.Item,
-            'Child1',
-            parentNode.id
-          );
-          void service.addElement(
-            ElementType.Item,
-            'Child2',
-            parentNode.id
-          );
+          void service.addElement(ElementType.Item, 'Child1', parentNode.id);
+          void service.addElement(ElementType.Item, 'Child2', parentNode.id);
 
           const index = service.getDropInsertIndex(
             parentNode,
@@ -885,10 +776,7 @@ describe('ProjectStateService', () => {
   describe('Tree Node Expansion', () => {
     it('should toggle expanded state', async () => {
       await service.loadProject('testuser', 'test-project');
-      void service.addElement(
-        ElementType.Folder,
-        'Folder'
-      );
+      void service.addElement(ElementType.Folder, 'Folder');
       const folder = service.elements()[0];
 
       // Initial state should be collapsed
@@ -905,10 +793,7 @@ describe('ProjectStateService', () => {
 
     it('should explicitly set expanded state', async () => {
       await service.loadProject('testuser', 'test-project');
-      void service.addElement(
-        ElementType.Folder,
-        'Folder'
-      );
+      void service.addElement(ElementType.Folder, 'Folder');
       const folder = service.elements()[0];
 
       service.setExpanded(folder.id, true);
@@ -956,10 +841,7 @@ describe('ProjectStateService', () => {
     it('should show root level elements', async () => {
       await service.loadProject('testuser', 'test-project');
 
-      void service.addElement(
-        ElementType.Folder,
-        'root'
-      );
+      void service.addElement(ElementType.Folder, 'root');
       const visible = service.visibleElements();
 
       expect(visible).toHaveLength(1);
@@ -969,16 +851,9 @@ describe('ProjectStateService', () => {
 
     it('should show children when parent is expanded', async () => {
       await service.loadProject('testuser', 'test-project');
-      void service.addElement(
-        ElementType.Folder,
-        'Parent'
-      );
+      void service.addElement(ElementType.Folder, 'Parent');
       const parent = service.elements()[0];
-      void service.addElement(
-        ElementType.Item,
-        'Child',
-        parent.id
-      );
+      void service.addElement(ElementType.Item, 'Child', parent.id);
       service.setExpanded(parent.id, true);
       const visible = service.visibleElements();
 
@@ -990,16 +865,9 @@ describe('ProjectStateService', () => {
 
     it('should hide children when parent is collapsed', async () => {
       await service.loadProject('testuser', 'test-project');
-      void service.addElement(
-        ElementType.Folder,
-        'Parent'
-      );
+      void service.addElement(ElementType.Folder, 'Parent');
       const parent = service.elements()[0];
-      void service.addElement(
-        ElementType.Item,
-        'Child',
-        parent.id
-      );
+      void service.addElement(ElementType.Item, 'Child', parent.id);
       service.setExpanded(parent.id, false); // Ensure parent is collapsed
       const visible = service.visibleElements(); // Parent should be collapsed by default
 
@@ -1010,27 +878,12 @@ describe('ProjectStateService', () => {
 
     it('should handle multiple levels of nesting with mixed expanded states', async () => {
       await service.loadProject('testuser', 'test-project');
-      void service.addElement(
-        ElementType.Folder,
-        'Root'
-      );
+      void service.addElement(ElementType.Folder, 'Root');
       const root = service.elements()[0];
-      void service.addElement(
-        ElementType.Folder,
-        'Child 1',
-        root.id
-      );
+      void service.addElement(ElementType.Folder, 'Child 1', root.id);
       const child1 = service.elements()[1];
-      void service.addElement(
-        ElementType.Item,
-        'Grandchild 1',
-        child1.id
-      );
-      void service.addElement(
-        ElementType.Folder,
-        'Child 2',
-        root.id
-      );
+      void service.addElement(ElementType.Item, 'Grandchild 1', child1.id);
+      void service.addElement(ElementType.Folder, 'Child 2', root.id);
 
       service.setExpanded(root.id, true);
       service.setExpanded(child1.id, true);

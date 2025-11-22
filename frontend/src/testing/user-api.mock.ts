@@ -9,8 +9,8 @@ export const userServiceMock = {
   defaultHeaders: new HttpHeaders(),
   configuration: new Configuration(),
   encoder: {} as HttpParameterCodec,
-  getApiV1UsersCheckUsername: vi.fn<(username: string) => Observable<UsernameAvailability>>(),
-  getApiV1UsersMe: vi.fn<() => Observable<User>>(),
-  getApiV1AuthProviders: vi.fn<() => Observable<string[]>>(),
-  postApiV1UsersRegister: vi.fn<(dto: RegisterRequest) => Observable<User>>()
+  checkUsernameAvailability: vi.fn<(username: string) => Observable<UsernameAvailability>>(),
+  getCurrentUser: vi.fn<() => Observable<User>>(),
+  listOAuthProviders: vi.fn<() => Observable<string[]>>(),
+  registerUser: vi.fn<(dto: RegisterRequest) => Observable<User>>()
 };

@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ElementType } from '@inkweld/index';
 import { Element } from '@inkweld/index';
+import { IDBFactory } from 'fake-indexeddb';
 import { vi } from 'vitest';
 
 import { OfflineProjectElementsService } from './offline-project-elements.service';
@@ -46,6 +47,8 @@ describe('OfflineProjectElementsService', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    // Reset IndexedDB between tests to prevent data leakage
+    indexedDB = new IDBFactory();
   });
 
   describe('initialization', () => {
@@ -58,20 +61,19 @@ describe('OfflineProjectElementsService', () => {
 
   describe('loadElements', () => {
     it('should load elements from localStorage', async () => {
-      const mockElements: Element[] =
-        [
-          {
-            id: 'element-1',
-            name: 'Test Element',
-            type: ElementType.Folder,
-            parentId: null,
-            level: 0,
-            expandable: true,
-            order: 0,
-            version: 0,
-            metadata: {},
-          },
-        ];
+      const mockElements: Element[] = [
+        {
+          id: 'element-1',
+          name: 'Test Element',
+          type: ElementType.Folder,
+          parentId: null,
+          level: 0,
+          expandable: true,
+          order: 0,
+          version: 0,
+          metadata: {},
+        },
+      ];
 
       const storedData = { [PROJECT_KEY]: mockElements };
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify(storedData));
@@ -129,8 +131,7 @@ describe('OfflineProjectElementsService', () => {
     });
 
     it('should handle save errors', async () => {
-      const elements: Element[] =
-        [];
+      const elements: Element[] = [];
       mockLocalStorage.getItem.mockReturnValue('{}');
 
       // The save should complete even if there are issues
@@ -165,34 +166,34 @@ describe('OfflineProjectElementsService', () => {
       expect(result[2].id).toBeTypeOf('string');
       expect(result[3].id).toBeTypeOf('string');
 
-      expect(mockLocalStorage.setItem).toHaveBeenCalled();
+      // Elements should be saved (using Yjs/IndexedDB, not localStorage)
+      expect(service.elements()).toEqual(result);
     });
   });
 
   describe('addElement', () => {
     beforeEach(() => {
-      const initialElements: Element[] =
-        [
-          {
-            id: 'folder-1',
-            name: 'Folder 1',
-            type: ElementType.Folder,
-            parentId: null,
-            level: 0,
-            expandable: true,
-            order: 0,
-            version: 0,
-            metadata: {},
-          },
-        ];
+      const initialElements: Element[] = [
+        {
+          id: 'folder-1',
+          name: 'Folder 1',
+          type: ElementType.Folder,
+          parentId: null,
+          level: 0,
+          expandable: true,
+          order: 0,
+          version: 0,
+          metadata: {},
+        },
+      ];
       service.elements.set(initialElements);
       mockLocalStorage.getItem.mockReturnValue(
         JSON.stringify({ [PROJECT_KEY]: initialElements })
       );
     });
 
-    it('should add element at root level', () => {
-      const result = service.addElement(
+    it('should add element at root level', async () => {
+      const result = await service.addElement(
         TEST_USERNAME,
         TEST_SLUG,
         ElementType.Item,
@@ -216,8 +217,8 @@ describe('OfflineProjectElementsService', () => {
       });
     });
 
-    it('should add element as child of folder', () => {
-      const result = service.addElement(
+    it('should add element as child of folder', async () => {
+      const result = await service.addElement(
         TEST_USERNAME,
         TEST_SLUG,
         ElementType.Item,
@@ -258,69 +259,72 @@ describe('OfflineProjectElementsService', () => {
 
   describe('deleteElement', () => {
     beforeEach(() => {
-      const initialElements: Element[] =
-        [
-          {
-            id: 'folder-1',
-            name: 'Folder 1',
-            type: ElementType.Folder,
-            parentId: null,
-            level: 0,
-            expandable: true,
-            order: 0,
-            version: 0,
-            metadata: {},
-          },
-          {
-            id: 'doc-1',
-            name: 'Document 1',
-            type: ElementType.Item,
-            parentId: null,
-            level: 1,
-            expandable: false,
-            order: 1,
-            version: 0,
-            metadata: {},
-          },
-          {
-            id: 'doc-2',
-            name: 'Document 2',
-            type: ElementType.Item,
-            parentId: null,
-            level: 1,
-            expandable: false,
-            order: 2,
-            version: 0,
-            metadata: {},
-          },
-          {
-            id: 'folder-2',
-            name: 'Folder 2',
-            type: ElementType.Folder,
-            parentId: null,
-            level: 0,
-            expandable: true,
-            order: 3,
-            version: 0,
-            metadata: {},
-          },
-        ];
+      const initialElements: Element[] = [
+        {
+          id: 'folder-1',
+          name: 'Folder 1',
+          type: ElementType.Folder,
+          parentId: null,
+          level: 0,
+          expandable: true,
+          order: 0,
+          version: 0,
+          metadata: {},
+        },
+        {
+          id: 'doc-1',
+          name: 'Document 1',
+          type: ElementType.Item,
+          parentId: null,
+          level: 1,
+          expandable: false,
+          order: 1,
+          version: 0,
+          metadata: {},
+        },
+        {
+          id: 'doc-2',
+          name: 'Document 2',
+          type: ElementType.Item,
+          parentId: null,
+          level: 1,
+          expandable: false,
+          order: 2,
+          version: 0,
+          metadata: {},
+        },
+        {
+          id: 'folder-2',
+          name: 'Folder 2',
+          type: ElementType.Folder,
+          parentId: null,
+          level: 0,
+          expandable: true,
+          order: 3,
+          version: 0,
+          metadata: {},
+        },
+      ];
       service.elements.set(initialElements);
       mockLocalStorage.getItem.mockReturnValue(
         JSON.stringify({ [PROJECT_KEY]: initialElements })
       );
     });
 
-    it('should delete single element', () => {
-      const result = service.deleteElement(TEST_USERNAME, TEST_SLUG, 'doc-2');
+    it('should delete single element', async () => {
+      const result = await service.deleteElement(
+        TEST_USERNAME,
+        TEST_SLUG,
+        'doc-2'
+      );
 
       expect(result).toHaveLength(3);
       expect(result.find(e => e.id === 'doc-2')).toBeUndefined();
       expect(result[2].order).toBe(2); // Positions recomputed
     });
 
-    it('should delete element with subtree', () => {
-      const result = service.deleteElement(
+    it('should delete element with subtree', async () => {
+      const result = await service.deleteElement(
         TEST_USERNAME,
         TEST_SLUG,
         'folder-1'
@@ -333,8 +337,8 @@ describe('OfflineProjectElementsService', () => {
       expect(result[0].id).toBe('folder-2');
     });
 
-    it('should handle non-existent element', () => {
-      const result = service.deleteElement(
+    it('should handle non-existent element', async () => {
+      const result = await service.deleteElement(
         TEST_USERNAME,
         TEST_SLUG,
         'non-existent'
@@ -346,50 +350,49 @@ describe('OfflineProjectElementsService', () => {
 
   describe('moveElement', () => {
     beforeEach(() => {
-      const initialElements: Element[] =
-        [
-          {
-            id: 'folder-1',
-            name: 'Folder 1',
-            type: ElementType.Folder,
-            parentId: null,
-            level: 0,
-            expandable: true,
-            order: 0,
-            version: 0,
-            metadata: {},
-          },
-          {
-            id: 'doc-1',
-            name: 'Document 1',
-            type: ElementType.Item,
-            parentId: null,
-            level: 1,
-            expandable: false,
-            order: 1,
-            version: 0,
-            metadata: {},
-          },
-          {
-            id: 'doc-2',
-            name: 'Document 2',
-            type: ElementType.Item,
-            parentId: null,
-            level: 0,
-            expandable: false,
-            order: 2,
-            version: 0,
-            metadata: {},
-          },
-        ];
+      const initialElements: Element[] = [
+        {
+          id: 'folder-1',
+          name: 'Folder 1',
+          type: ElementType.Folder,
+          parentId: null,
+          level: 0,
+          expandable: true,
+          order: 0,
+          version: 0,
+          metadata: {},
+        },
+        {
+          id: 'doc-1',
+          name: 'Document 1',
+          type: ElementType.Item,
+          parentId: null,
+          level: 1,
+          expandable: false,
+          order: 1,
+          version: 0,
+          metadata: {},
+        },
+        {
+          id: 'doc-2',
+          name: 'Document 2',
+          type: ElementType.Item,
+          parentId: null,
+          level: 0,
+          expandable: false,
+          order: 2,
+          version: 0,
+          metadata: {},
+        },
+      ];
       service.elements.set(initialElements);
       mockLocalStorage.getItem.mockReturnValue(
         JSON.stringify({ [PROJECT_KEY]: initialElements })
       );
     });
 
-    it('should move element to different position', () => {
-      const result = service.moveElement(
+    it('should move element to different position', async () => {
+      const result = await service.moveElement(
         TEST_USERNAME,
         TEST_SLUG,
         'doc-2',
@@ -402,8 +405,8 @@ describe('OfflineProjectElementsService', () => {
       expect(result[2].id).toBe('doc-1');
     });
 
-    it('should change element level when moving', () => {
-      const result = service.moveElement(
+    it('should change element level when moving', async () => {
+      const result = await service.moveElement(
         TEST_USERNAME,
         TEST_SLUG,
         'doc-2',
@@ -415,8 +418,8 @@ describe('OfflineProjectElementsService', () => {
       expect(movedElement?.level).toBe(1);
     });
 
-    it('should handle non-existent element', () => {
-      const result = service.moveElement(
+    it('should handle non-existent element', async () => {
+      const result = await service.moveElement(
         TEST_USERNAME,
         TEST_SLUG,
         'non-existent',
@@ -430,28 +433,27 @@ describe('OfflineProjectElementsService', () => {
 
   describe('renameElement', () => {
     beforeEach(() => {
-      const initialElements: Element[] =
-        [
-          {
-            id: 'doc-1',
-            name: 'Old Name',
-            type: ElementType.Item,
-            parentId: null,
-            level: 0,
-            expandable: false,
-            order: 0,
-            version: 0,
-            metadata: {},
-          },
-        ];
+      const initialElements: Element[] = [
+        {
+          id: 'doc-1',
+          name: 'Old Name',
+          type: ElementType.Item,
+          parentId: null,
+          level: 0,
+          expandable: false,
+          order: 0,
+          version: 0,
+          metadata: {},
+        },
+      ];
       service.elements.set(initialElements);
       mockLocalStorage.getItem.mockReturnValue(
         JSON.stringify({ [PROJECT_KEY]: initialElements })
       );
     });
 
-    it('should rename element', () => {
-      const result = service.renameElement(
+    it('should rename element', async () => {
+      const result = await service.renameElement(
         TEST_USERNAME,
         TEST_SLUG,
         'doc-1',
@@ -462,8 +464,8 @@ describe('OfflineProjectElementsService', () => {
       expect(mockLocalStorage.setItem).toHaveBeenCalled();
     });
 
-    it('should handle non-existent element', () => {
-      const result = service.renameElement(
+    it('should handle non-existent element', async () => {
+      const result = await service.renameElement(
         TEST_USERNAME,
         TEST_SLUG,
         'non-existent',
@@ -477,35 +479,33 @@ describe('OfflineProjectElementsService', () => {
 
   describe('project isolation', () => {
     it('should isolate elements by project key', async () => {
-      const project1Elements: Element[] =
-        [
-          {
-            id: 'p1-doc',
-            name: 'Project 1 Doc',
-            type: ElementType.Item,
-            parentId: null,
-            level: 0,
-            expandable: false,
-            order: 0,
-            version: 0,
-            metadata: {},
-          },
-        ];
+      const project1Elements: Element[] = [
+        {
+          id: 'p1-doc',
+          name: 'Project 1 Doc',
+          type: ElementType.Item,
+          parentId: null,
+          level: 0,
+          expandable: false,
+          order: 0,
+          version: 0,
+          metadata: {},
+        },
+      ];
 
-      const project2Elements: Element[] =
-        [
-          {
-            id: 'p2-doc',
-            name: 'Project 2 Doc',
-            type: ElementType.Item,
-            parentId: null,
-            level: 0,
-            expandable: false,
-            order: 0,
-            version: 0,
-            metadata: {},
-          },
-        ];
+      const project2Elements: Element[] = [
+        {
+          id: 'p2-doc',
+          name: 'Project 2 Doc',
+          type: ElementType.Item,
+          parentId: null,
+          level: 0,
+          expandable: false,
+          order: 0,
+          version: 0,
+          metadata: {},
+        },
+      ];
 
       const storedData = {
         'user1:project1': project1Elements,

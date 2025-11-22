@@ -1,9 +1,10 @@
+import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { Element } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
-import { Element } from '../../api-client';
 import { ElementTypeSchema } from '../models/schema-types';
 import { SetupService } from './setup.service';
 import { WorldbuildingService } from './worldbuilding.service';
@@ -56,6 +57,7 @@ describe('WorldbuildingService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        provideHttpClient(),
         WorldbuildingService,
         { provide: SetupService, useValue: setupService },
       ],

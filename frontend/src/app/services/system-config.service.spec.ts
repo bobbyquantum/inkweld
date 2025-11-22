@@ -1,10 +1,13 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { ConfigurationService } from '@inkweld/api/configuration.service';
+import {
+  SystemFeatures,
+  SystemFeaturesAppMode,
+} from '@inkweld/model/system-features';
 import { of, throwError } from 'rxjs';
 import { Mock, MockedObject, vi } from 'vitest';
 
-import { ConfigurationService } from '../../api-client/api/configuration.service';
-import { SystemFeaturesAppMode, SystemFeatures } from '../../api-client/model/system-features';
 import { SystemConfigService } from './system-config.service';
 
 describe('SystemConfigService', () => {
@@ -156,9 +159,9 @@ describe('SystemConfigService', () => {
           setTimeout(() => {
             expect(service.systemFeatures()).toEqual(newFeatures);
             expect(service.isConfigLoaded()).toBe(true);
-            expect(
-              mockConfigService.getSystemFeatures
-            ).toHaveBeenCalledTimes(1);
+            expect(mockConfigService.getSystemFeatures).toHaveBeenCalledTimes(
+              1
+            );
             resolve();
           }, 10);
         }, 10);
@@ -342,9 +345,9 @@ describe('SystemConfigService', () => {
           expect(testService.isAiImageGenerationEnabled()).toBe(false);
 
           // Update features
-          (
-            mockConfigService.getSystemFeatures as Mock
-          ).mockReturnValueOnce(of(updatedFeatures));
+          (mockConfigService.getSystemFeatures as Mock).mockReturnValueOnce(
+            of(updatedFeatures)
+          );
 
           testService.refreshSystemFeatures();
 

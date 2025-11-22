@@ -120,10 +120,7 @@ export class DynamicWorldbuildingEditorComponent implements OnDestroy {
 
           // Find the element from project state to get its type
           const elements = this.projectState.elements();
-          const element = elements.find(
-            (el: Element) =>
-              el.id === elementId
-          );
+          const element = elements.find((el: Element) => el.id === elementId);
 
           if (element) {
             await this.worldbuildingService.initializeWorldbuildingElement(

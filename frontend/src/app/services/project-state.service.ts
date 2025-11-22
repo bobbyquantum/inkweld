@@ -1,8 +1,8 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import {
-  ExportService,
   Element,
   ElementType,
+  ExportService,
   Project,
   ProjectsService,
 } from '@inkweld/index';
@@ -69,12 +69,8 @@ export class ProjectStateService {
 
   // Core state signals
   readonly project = signal<Project | undefined>(undefined);
-  readonly elements = signal<
-    Element[]
-  >([]);
-  readonly openDocuments = signal<
-    Element[]
-  >([]);
+  readonly elements = signal<Element[]>([]);
+  readonly openDocuments = signal<Element[]>([]);
   readonly openTabs = signal<AppTab[]>([]);
   readonly selectedTabIndex = signal<number>(0);
   readonly isLoading = signal<boolean>(false);
@@ -530,10 +526,7 @@ export class ProjectStateService {
     // Also re-check after WebSocket syncs (for initial data load)
     this.provider.on('sync', (isSynced: boolean) => {
       if (isSynced && this.doc) {
-        const elementsArray =
-          this.doc.getArray<Element>(
-            'elements'
-          );
+        const elementsArray = this.doc.getArray<Element>('elements');
         const elements = elementsArray.toArray();
 
         this.logger.debug(
@@ -556,9 +549,7 @@ export class ProjectStateService {
     });
   }
 
-  updateElements(
-    elements: Element[]
-  ): void {
+  updateElements(elements: Element[]): void {
     const mode = this.setupService.getMode();
 
     if (mode === 'offline') {
@@ -587,10 +578,7 @@ export class ProjectStateService {
         `Writing ${elements.length} elements to Yjs doc`
       );
 
-      const elementsArray =
-        this.doc.getArray<Element>(
-          'elements'
-        );
+      const elementsArray = this.doc.getArray<Element>('elements');
 
       this.logger.debug(
         'ProjectState',
@@ -613,10 +601,7 @@ export class ProjectStateService {
     }
   }
 
-  async renameNode(
-    node: Element,
-    newName: string
-  ): Promise<void> {
+  async renameNode(node: Element, newName: string): Promise<void> {
     const mode = this.setupService.getMode();
     const project = this.project();
 
@@ -752,20 +737,17 @@ export class ProjectStateService {
         : -1;
       const parentLevel = parentIndex >= 0 ? elements[parentIndex].level : -1;
 
-      const elementToAdd: Element =
-        {
-          id: nanoid(),
-          name,
-          type,
-          parentId: parentId || null,
-          level: parentLevel + 1,
-          expandable:
-            type ===
-            ElementType.Folder,
-          order: elements.length,
-          version: 0,
-          metadata: icon ? { icon } : {},
-        };
+      const elementToAdd: Element = {
+        id: nanoid(),
+        name,
+        type,
+        parentId: parentId || null,
+        level: parentLevel + 1,
+        expandable: type === ElementType.Folder,
+        order: elements.length,
+        version: 0,
+        metadata: icon ? { icon } : {},
+      };
 
       newElementId = elementToAdd.id;
 
@@ -797,28 +779,20 @@ export class ProjectStateService {
     return newElementId;
   }
 
-  isValidDrop(
-    nodeAbove: Element | null,
-    targetLevel: number
-  ): boolean {
+  isValidDrop(nodeAbove: Element | null, targetLevel: number): boolean {
     if (!nodeAbove) {
       // If no node above, only allow root level or first level
       return targetLevel <= 1;
     }
 
     // Items can't have children
-    if (
-      nodeAbove.type ===
-        ElementType.Item &&
-      targetLevel > nodeAbove.level
-    ) {
+    if (nodeAbove.type === ElementType.Item && targetLevel > nodeAbove.level) {
       return false;
     }
 
     // Folders can only have children one level deeper
     if (
-      nodeAbove.type ===
-        ElementType.Folder &&
+      nodeAbove.type === ElementType.Folder &&
       targetLevel > nodeAbove.level + 1
     ) {
       return false;
@@ -850,10 +824,7 @@ export class ProjectStateService {
 
     if (nodeAbove && nodeBelow) {
       if (nodeAbove.level < nodeBelow.level) {
-        if (
-          nodeAbove.type ===
-          ElementType.Folder
-        ) {
+        if (nodeAbove.type === ElementType.Folder) {
           if (nodeBelow.level === nodeAbove.level + 1) {
             validLevels.add(nodeBelow.level);
           } else {
@@ -866,10 +837,7 @@ export class ProjectStateService {
       } else if (nodeAbove.level === nodeBelow.level) {
         validLevels.add(nodeAbove.level);
         // Also allow dropping inside if above node is a folder
-        if (
-          nodeAbove.type ===
-          ElementType.Folder
-        ) {
+        if (nodeAbove.type === ElementType.Folder) {
           validLevels.add(nodeAbove.level + 1);
         }
       } else {
@@ -884,10 +852,7 @@ export class ProjectStateService {
         validLevels.add(level);
       }
       // If above node is a folder, allow one level deeper
-      if (
-        nodeAbove.type ===
-        ElementType.Folder
-      ) {
+      if (nodeAbove.type === ElementType.Folder) {
         validLevels.add(nodeAbove.level + 1);
       }
     } else if (!nodeAbove && nodeBelow) {
@@ -905,10 +870,7 @@ export class ProjectStateService {
     };
   }
 
-  getDropInsertIndex(
-    nodeAbove: Element | null,
-    targetLevel: number
-  ): number {
+  getDropInsertIndex(nodeAbove: Element | null, targetLevel: number): number {
     if (!nodeAbove) {
       return 0;
     }
@@ -1002,10 +964,7 @@ export class ProjectStateService {
   async publishProject(project: Project): Promise<void> {
     try {
       const response = await firstValueFrom(
-        this.ExportService.exportProjectAsEpub(
-          project.username,
-          project.slug
-        )
+        this.ExportService.exportProjectAsEpub(project.username, project.slug)
       );
 
       this.logger.info(
@@ -1057,9 +1016,7 @@ export class ProjectStateService {
   }
 
   // Tab Operations
-  openDocument(
-    element: Element
-  ): void {
+  openDocument(element: Element): void {
     const documents = this.openDocuments();
     const tabs = this.openTabs();
 
@@ -1091,15 +1048,9 @@ export class ProjectStateService {
 
     // Determine the tab type based on element type
     let tabType: 'document' | 'folder' | 'worldbuilding' = 'document';
-    if (
-      element.type ===
-      ElementType.Folder
-    ) {
+    if (element.type === ElementType.Folder) {
       tabType = 'folder';
-    } else if (
-      element.type ===
-      ElementType.Item
-    ) {
+    } else if (element.type === ElementType.Item) {
       // ITEM is always a document
       tabType = 'document';
     } else {
@@ -1410,10 +1361,7 @@ export class ProjectStateService {
                 tab.element &&
                 (tab.type === 'document' || tab.type === 'folder')
             )
-            .map(
-              tab =>
-                tab.element as Element
-            );
+            .map(tab => tab.element as Element);
 
           if (documents.length > 0) {
             this.openDocuments.set(documents);
@@ -1458,9 +1406,11 @@ export class ProjectStateService {
       }
 
       // Fallback to legacy document loading
-      const documents = await this.storageService.get<
-        Element[]
-      >(db, 'openedDocuments', cacheKey);
+      const documents = await this.storageService.get<Element[]>(
+        db,
+        'openedDocuments',
+        cacheKey
+      );
 
       if (documents && documents.length > 0) {
         this.openDocuments.set(documents);
@@ -1484,9 +1434,7 @@ export class ProjectStateService {
   }
 
   // Dialog Handlers
-  showNewElementDialog(
-    parentElement?: Element
-  ): void {
+  showNewElementDialog(parentElement?: Element): void {
     void this.dialogGateway.openNewElementDialog().then(async result => {
       if (result) {
         const newElementId = await this.addElement(
@@ -1517,10 +1465,7 @@ export class ProjectStateService {
       });
   }
 
-  private getSubtree(
-    elements: Element[],
-    startIndex: number
-  ): Element[] {
+  private getSubtree(elements: Element[], startIndex: number): Element[] {
     const startLevel = elements[startIndex].level;
     const subtree = [elements[startIndex]];
 
@@ -1535,9 +1480,7 @@ export class ProjectStateService {
     return subtree;
   }
 
-  private recomputePositions(
-    elements: Element[]
-  ): Element[] {
+  private recomputePositions(elements: Element[]): Element[] {
     return elements.map((element, index) => ({
       ...element,
       position: index,
@@ -1547,10 +1490,7 @@ export class ProjectStateService {
   private initializeFromDoc(): void {
     if (!this.doc) return;
 
-    const elementsArray =
-      this.doc.getArray<Element>(
-        'elements'
-      );
+    const elementsArray = this.doc.getArray<Element>('elements');
     const elements = elementsArray.toArray();
 
     this.logger.debug(
@@ -1564,10 +1504,7 @@ export class ProjectStateService {
   private observeDocChanges(): void {
     if (!this.doc) return;
 
-    const elementsArray =
-      this.doc.getArray<Element>(
-        'elements'
-      );
+    const elementsArray = this.doc.getArray<Element>('elements');
     elementsArray.observe(() => {
       const elements = elementsArray.toArray();
       this.logger.debug(
@@ -1584,9 +1521,7 @@ export class ProjectStateService {
   /**
    * Enrich elements with custom type icons from the schema library
    */
-  private async enrichElementsWithIcons(
-    elements: Element[]
-  ): Promise<void> {
+  private async enrichElementsWithIcons(elements: Element[]): Promise<void> {
     const project = this.project();
     if (!project) return;
 

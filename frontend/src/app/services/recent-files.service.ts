@@ -29,11 +29,7 @@ export class RecentFilesService {
     this.loadRecentFiles();
   }
 
-  addRecentFile(
-    file: Element,
-    username: string,
-    slug: string
-  ): void {
+  addRecentFile(file: Element, username: string, slug: string): void {
     const currentFiles = [...this.recentFiles()];
 
     // Remove the file if it already exists

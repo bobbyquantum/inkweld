@@ -85,3 +85,38 @@ Object.defineProperty(File.prototype, 'arrayBuffer', {
 // Mock URL.createObjectURL and URL.revokeObjectURL for jsdom environment
 (global as any).URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 (global as any).URL.revokeObjectURL = vi.fn();
+
+// Mock localStorage for jsdom environment
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString();
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+    get length() {
+      return Object.keys(store).length;
+    },
+    key: (index: number) => {
+      const keys = Object.keys(store);
+      return keys[index] || null;
+    },
+  };
+})();
+
+Object.defineProperty(global, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});
+
+Object.defineProperty(global, 'sessionStorage', {
+  value: localStorageMock,
+  writable: true,
+});

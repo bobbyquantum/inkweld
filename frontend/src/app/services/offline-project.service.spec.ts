@@ -89,7 +89,7 @@ describe('OfflineProjectService', () => {
       service.projects.set([]);
     });
 
-    it('should create project with default structure', () => {
+    it('should create project with default structure', async () => {
       const projectData = {
         title: 'Test Project',
         description: 'Test Description',
@@ -141,7 +141,7 @@ describe('OfflineProjectService', () => {
       expect(result.slug).toBe('custom-slug');
     });
 
-    it('should prevent duplicate slugs', () => {
+    it('should prevent duplicate slugs', async () => {
       const existingProject: Project = {
         id: 'existing-project-id',
         title: 'Existing Project',
@@ -159,24 +159,24 @@ describe('OfflineProjectService', () => {
         slug: 'test-project',
       };
 
-      expect(() => service.createProject(projectData)).toThrow(
+      await expect(service.createProject(projectData)).rejects.toThrow(
         'A project with this slug already exists'
       );
     });
 
-    it('should handle missing user profile', () => {
+    it('should handle missing user profile', async () => {
       mockSetupService.getOfflineUserProfile.mockReturnValue(null);
 
       const projectData = {
         title: 'Test Project',
       };
 
-      expect(() => service.createProject(projectData)).toThrow(
+      await expect(service.createProject(projectData)).rejects.toThrow(
         'No offline user profile found'
       );
     });
 
-    it('should handle localStorage errors', () => {
+    it('should handle localStorage errors', async () => {
       mockLocalStorage.setItem.mockImplementation(() => {
         throw new Error('Storage quota exceeded');
       });
@@ -185,7 +185,7 @@ describe('OfflineProjectService', () => {
         title: 'Test Project',
       };
 
-      expect(() => service.createProject(projectData)).toThrow(
+      await expect(service.createProject(projectData)).rejects.toThrow(
         'Storage quota exceeded'
       );
     });

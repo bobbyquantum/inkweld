@@ -301,16 +301,14 @@ export class ProjectService {
         description: Project.description || undefined,
       };
       const project = await firstValueFrom(
-        this.projectApi
-          .updateProject(username, slug, updateRequest)
-          .pipe(
-            retry(MAX_RETRIES),
-            catchError((error: unknown) => {
-              const projectError = this.formatError(error);
-              this.error.set(projectError);
-              return throwError(() => projectError);
-            })
-          )
+        this.projectApi.updateProject(username, slug, updateRequest).pipe(
+          retry(MAX_RETRIES),
+          catchError((error: unknown) => {
+            const projectError = this.formatError(error);
+            this.error.set(projectError);
+            return throwError(() => projectError);
+          })
+        )
       );
 
       // Update the project in cache
@@ -436,12 +434,10 @@ export class ProjectService {
     try {
       // Assume delete returns void or similar
       await firstValueFrom(
-        this.imagesApi
-          .deleteProjectCover(username, slug)
-          .pipe(
-            retry(MAX_RETRIES),
-            catchError(err => throwError(() => this.formatError(err)))
-          )
+        this.imagesApi.deleteProjectCover(username, slug).pipe(
+          retry(MAX_RETRIES),
+          catchError(err => throwError(() => this.formatError(err)))
+        )
       );
 
       // Update the project in the projects list if it exists to reflect no cover

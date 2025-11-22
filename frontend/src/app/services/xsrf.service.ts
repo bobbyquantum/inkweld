@@ -1,5 +1,5 @@
 import { DOCUMENT, inject, Injectable } from '@angular/core';
-import { CSRFTokenResponse, SecurityService } from '@inkweld/index';
+import { SecurityService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../environments/environment';

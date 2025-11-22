@@ -62,10 +62,7 @@ export class NewElementDialogComponent {
 
   // Step control
   currentStep = signal<1 | 2>(1);
-  selectedType =
-    signal<ElementType | null>(
-      null
-    );
+  selectedType = signal<ElementType | null>(null);
   searchQuery = signal('');
 
   // Element type options (starts with document types, worldbuilding loaded dynamically)
@@ -122,13 +119,10 @@ export class NewElementDialogComponent {
         nonNullable: true,
         validators: [Validators.required],
       }),
-      type: new FormControl<ElementType>(
-        ElementType.Item,
-        {
-          nonNullable: true,
-          validators: [Validators.required],
-        }
-      ),
+      type: new FormControl<ElementType>(ElementType.Item, {
+        nonNullable: true,
+        validators: [Validators.required],
+      }),
     });
 
     // Load worldbuilding types from project schema library
@@ -270,9 +264,7 @@ export class NewElementDialogComponent {
   };
 
   // Step 1: Select type
-  selectType(
-    type: ElementType
-  ): void {
+  selectType(type: ElementType): void {
     this.selectedType.set(type);
     this.form.controls.type.setValue(type);
     this.nextStep();

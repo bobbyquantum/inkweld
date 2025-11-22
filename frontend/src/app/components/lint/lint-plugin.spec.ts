@@ -1,12 +1,12 @@
 /**
  * @jest-environment jsdom
  */
+import { LintResponse } from '@inkweld/model/lint-response';
 import { Schema } from 'prosemirror-model';
 import { EditorState, Plugin } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { MockedObject, vi } from 'vitest';
 
-import { LintResponse } from '../../../api-client/model/lint-response';
 import { LintApiService } from './lint-api.service';
 import { createLintPlugin, pluginKey } from './lint-plugin';
 

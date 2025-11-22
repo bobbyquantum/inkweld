@@ -1,14 +1,17 @@
+import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { AuthenticationService } from '@inkweld/api/authentication.service';
+import { ProjectsService } from '@inkweld/api/projects.service';
+import { Project } from '@inkweld/model/project';
 import { of } from 'rxjs';
 
-import { ProjectsService } from '../../api-client/api/projects.service';
-import { Project } from '../../api-client/model/project';
 import { LoggerService } from './logger.service';
 import { MigrationService, MigrationStatus } from './migration.service';
 import { OfflineProjectService } from './offline-project.service';
 import { OfflineProjectElementsService } from './offline-project-elements.service';
 import { SetupService } from './setup.service';
+import { UserService } from './user.service';
 
 describe('MigrationService', () => {
   let service: MigrationService;
@@ -28,7 +31,16 @@ describe('MigrationService', () => {
 
   beforeEach(() => {
     const projectsServiceMock = {
-      postApiV1Projects: () => of(mockProjects[0]),
+      createProject: () => of(mockProjects[0]),
+    };
+
+    const authServiceMock = {
+      getCurrentUser: () => of({ username: 'testuser' }),
+    };
+
+    const userServiceMock = {
+      currentUser: signal(null),
+      loadCurrentUser: () => Promise.resolve(false),
     };
 
     const loggerMock = {
@@ -48,9 +60,12 @@ describe('MigrationService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
+        provideHttpClient(),
         MigrationService,
         { provide: OfflineProjectService, useValue: offlineProjectServiceMock },
         { provide: ProjectsService, useValue: projectsServiceMock },
+        { provide: AuthenticationService, useValue: authServiceMock },
+        { provide: UserService, useValue: userServiceMock },
         { provide: LoggerService, useValue: loggerMock },
         { provide: SetupService, useValue: setupServiceMock },
         {

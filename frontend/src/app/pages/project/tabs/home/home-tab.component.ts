@@ -52,10 +52,7 @@ export class HomeTabComponent {
       const project = this.projectState.project();
       if (project) {
         const typeRoute =
-          element.type ===
-          ElementType.Folder
-            ? 'folder'
-            : 'document';
+          element.type === ElementType.Folder ? 'folder' : 'document';
         void this.router.navigate([
           '/',
           project.username,

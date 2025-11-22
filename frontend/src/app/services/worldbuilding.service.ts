@@ -3,10 +3,7 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import {
-  Element,
-  ElementType,
-} from '../../api-client';
+import { Element, ElementType } from '../../api-client';
 import { ElementTypeSchema } from '../models/schema-types';
 import {
   isWorldbuildingType,
@@ -615,9 +612,7 @@ export class WorldbuildingService {
   /**
    * Get a list of all elements of a specific worldbuilding type
    */
-  getElementsOfType(
-    _type: ElementType
-  ): Promise<Element[]> {
+  getElementsOfType(_type: ElementType): Promise<Element[]> {
     // This would typically query from the project state service
     // For now, returning empty array as placeholder
     return Promise.resolve([]);
@@ -1124,10 +1119,8 @@ export class WorldbuildingService {
       CULTURE: 'groups',
       SPECIES: 'pets',
       SYSTEMS: 'settings',
-      [ElementType.Item]:
-        'description',
-      [ElementType.Folder]:
-        'folder',
+      [ElementType.Item]: 'description',
+      [ElementType.Folder]: 'folder',
     };
 
     // Check if it's a built-in type

@@ -13,7 +13,7 @@ describe('OAuthProviderListComponent', () => {
   let component: OAuthProviderListComponent;
   let fixture: ComponentFixture<OAuthProviderListComponent>;
   let authService: {
-    getApiV1AuthProviders: ReturnType<
+    listOAuthProviders: ReturnType<
       typeof vi.fn<() => Observable<OAuthProvidersResponse>>
     >;
   };
@@ -21,7 +21,7 @@ describe('OAuthProviderListComponent', () => {
 
   beforeEach(async () => {
     authService = {
-      getApiV1AuthProviders: vi.fn<() => Observable<OAuthProvidersResponse>>(),
+      listOAuthProviders: vi.fn<() => Observable<OAuthProvidersResponse>>(),
     };
 
     snackBar = {
@@ -51,7 +51,7 @@ describe('OAuthProviderListComponent', () => {
   describe('UI and text behavior', () => {
     beforeEach(() => {
       // Set up default mock behavior for UI tests
-      authService.getApiV1AuthProviders.mockReturnValue(
+      authService.listOAuthProviders.mockReturnValue(
         of({ providers: { github: false } })
       );
       fixture.detectChanges();
@@ -96,7 +96,7 @@ describe('OAuthProviderListComponent', () => {
 
   describe('initialization', () => {
     it('should load OAuth2 providers on init', async () => {
-      authService.getApiV1AuthProviders.mockReturnValue(
+      authService.listOAuthProviders.mockReturnValue(
         of({ providers: { github: true, google: true } })
       );
 
@@ -114,7 +114,7 @@ describe('OAuthProviderListComponent', () => {
       await Promise.resolve();
 
       // After loading completes
-      expect(authService.getApiV1AuthProviders).toHaveBeenCalled();
+      expect(authService.listOAuthProviders).toHaveBeenCalled();
       expect(component.enabledProviders()).toEqual(['github', 'google']);
       expect(component.isLoadingProviders()).toBeFalsy();
       expect(component.githubEnabled()).toBeTruthy();
@@ -123,7 +123,7 @@ describe('OAuthProviderListComponent', () => {
     });
 
     it('should handle OAuth2 providers loading error', async () => {
-      authService.getApiV1AuthProviders.mockReturnValue(
+      authService.listOAuthProviders.mockReturnValue(
         throwError(() => new Error('Failed to load providers'))
       );
 

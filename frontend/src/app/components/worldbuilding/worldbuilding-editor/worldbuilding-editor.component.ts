@@ -19,8 +19,7 @@ import { DynamicWorldbuildingEditorComponent } from '../dynamic-worldbuilding-ed
 export class WorldbuildingEditorComponent {
   // Input properties
   elementId = input.required<string>();
-  elementType =
-    input.required<ElementType>();
+  elementType = input.required<ElementType>();
   username = input<string>();
   slug = input<string>();
 }

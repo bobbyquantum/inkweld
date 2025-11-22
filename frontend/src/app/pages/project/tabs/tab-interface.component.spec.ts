@@ -16,10 +16,7 @@ import {
   RouterModule,
 } from '@angular/router';
 import { ElementType } from '@inkweld/index';
-import {
-  Element,
-  Project,
-} from '@inkweld/index';
+import { Element, Project } from '@inkweld/index';
 import { of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
@@ -50,31 +47,30 @@ describe('TabInterfaceComponent', () => {
     title: 'Test Project',
   } as Project;
 
-  const mockDocuments: Element[] =
-    [
-      {
-        id: 'doc1',
-        name: 'Document 1',
-        type: ElementType.Item,
-        level: 0,
-        order: 0,
-        version: 1,
-        expandable: false,
-        metadata: {},
-        parentId: null,
-      },
-      {
-        id: 'doc2',
-        name: 'Document 2',
-        type: ElementType.Folder,
-        level: 0,
-        order: 1,
-        version: 1,
-        expandable: true,
-        metadata: {},
-        parentId: null,
-      },
-    ];
+  const mockDocuments: Element[] = [
+    {
+      id: 'doc1',
+      name: 'Document 1',
+      type: ElementType.Item,
+      level: 0,
+      order: 0,
+      version: 1,
+      expandable: false,
+      metadata: {},
+      parentId: null,
+    },
+    {
+      id: 'doc2',
+      name: 'Document 2',
+      type: ElementType.Folder,
+      level: 0,
+      order: 1,
+      version: 1,
+      expandable: true,
+      metadata: {},
+      parentId: null,
+    },
+  ];
 
   const mockTabs: AppTab[] = [
     {
@@ -100,9 +96,7 @@ describe('TabInterfaceComponent', () => {
   const setupMockServices = () => {
     // Initialize signals
     const projectSignal = signal(mockProject);
-    const openDocumentsSignal = signal<
-      Element[]
-    >([...mockDocuments]);
+    const openDocumentsSignal = signal<Element[]>([...mockDocuments]);
     const openTabsSignal = signal<AppTab[]>([...mockTabs]);
     const selectedTabIndexSignal = signal<number>(0);
     const isLoadingSignal = signal<boolean>(false);
