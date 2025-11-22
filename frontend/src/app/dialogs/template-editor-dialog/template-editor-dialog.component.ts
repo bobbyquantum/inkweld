@@ -3,13 +3,14 @@ import {
   DragDropModule,
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, QueryList, ViewChildren, AfterViewInit } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { MatExpansionPanel } from '@angular/material/expansion';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import {
@@ -78,13 +79,16 @@ export interface TemplateEditorDialogData {
     DragDropModule,
   ],
 })
-export class TemplateEditorDialogComponent {
+export class TemplateEditorDialogComponent implements AfterViewInit {
   private dialogRef = inject(MatDialogRef<TemplateEditorDialogComponent>);
   private fb = inject(FormBuilder);
   readonly data = inject<TemplateEditorDialogData>(MAT_DIALOG_DATA);
 
+  @ViewChildren(MatExpansionPanel) expansionPanels!: QueryList<MatExpansionPanel>;
+
   readonly isSaving = signal(false);
   readonly selectedTabIndex = signal(0);
+  private lastFieldId: string | null = null;
 
   // Form for basic schema metadata
   basicForm: FormGroup;
@@ -143,13 +147,40 @@ export class TemplateEditorDialogComponent {
     this.tabs.set(tabs);
   }
 
+  ngAfterViewInit(): void {
+    // Watch for changes to expansion panels and auto-expand newly created fields
+    this.expansionPanels.changes.subscribe(() => {
+      if (this.lastFieldId) {
+        // Find and expand the panel for the newly created field
+        // Use a longer timeout to ensure Angular has finished rendering
+        setTimeout(() => {
+          const panels = this.expansionPanels.toArray();
+          const lastPanel = panels[panels.length - 1];
+          if (lastPanel && !lastPanel.expanded) {
+            lastPanel.open();
+          }
+          this.lastFieldId = null;
+        }, 100);
+      }
+    });
+  }
+
   /**
    * Add a new tab
    */
   addTab(): void {
+    // Generate unique tab label
+    let label = 'New Tab';
+    let counter = 1;
+    const existingLabels = this.tabs().map(t => t.label.toLowerCase());
+    while (existingLabels.includes(label.toLowerCase())) {
+      label = `New Tab ${counter}`;
+      counter++;
+    }
+
     const newTab: TabSchema = {
       key: `tab_${Date.now()}`,
-      label: 'New Tab',
+      label,
       icon: 'article',
       order: this.tabs().length,
       fields: [],
@@ -195,8 +226,9 @@ export class TemplateEditorDialogComponent {
    * Add a field to a tab
    */
   addField(tabIndex: number): void {
+    const fieldId = `field_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const newField: FieldSchema = {
-      id: `field_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: fieldId,
       key: `field_${Date.now()}`,
       label: 'New Field',
       type: 'text',
@@ -206,6 +238,9 @@ export class TemplateEditorDialogComponent {
     const updatedTabs = [...this.tabs()];
     updatedTabs[tabIndex].fields.push(newField);
     this.tabs.set(updatedTabs);
+    
+    // Store the field ID for auto-expansion
+    this.lastFieldId = fieldId;
   }
 
   /**

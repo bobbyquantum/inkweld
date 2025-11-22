@@ -9,7 +9,7 @@
   "tabs": [
     {
       "key": "basic",
-      "label": "Basic Info",
+      "label": "Properties",
       "icon": "info",
       "fields": [
         {
