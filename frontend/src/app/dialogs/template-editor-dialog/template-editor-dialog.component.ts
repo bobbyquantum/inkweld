@@ -5,6 +5,7 @@ import {
 } from '@angular/cdk/drag-drop';
 import {
   AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   inject,
   QueryList,
@@ -73,6 +74,7 @@ export interface TemplateEditorDialogData {
   templateUrl: './template-editor-dialog.component.html',
   styleUrls: ['./template-editor-dialog.component.scss'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
     MatDialogModule,

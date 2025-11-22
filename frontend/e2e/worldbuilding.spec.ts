@@ -56,17 +56,22 @@ test.describe('Worldbuilding Templates', () => {
     // Navigate to Templates tab to access clone functionality
     await page.getByTestId('back-to-project-button').click();
     await page.getByRole('button', { name: 'Templates' }).click();
-    
+
     // Wait for templates to load
     await page.waitForTimeout(500);
 
     // Find a template card and open its menu
-    const templateCards = page.locator('mat-card').filter({ hasText: 'Character' });
-    await templateCards.locator('button[aria-label="Template actions"]').first().click();
-    
+    const templateCards = page
+      .locator('mat-card')
+      .filter({ hasText: 'Character' });
+    await templateCards
+      .locator('button[aria-label="Template actions"]')
+      .first()
+      .click();
+
     // Click clone from the menu
     await page.getByTestId('clone-template-button').click();
-    
+
     // Fill in the rename dialog (clone uses a simple rename dialog)
     await page.getByLabel(/name/i).fill('Hero Template');
     await page.getByRole('button', { name: 'Rename' }).click();
@@ -75,7 +80,9 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page.getByText('Hero Template')).toBeVisible();
 
     // Test deleting the custom template
-    const heroCard = page.locator('mat-card').filter({ hasText: 'Hero Template' });
+    const heroCard = page
+      .locator('mat-card')
+      .filter({ hasText: 'Hero Template' });
     await heroCard.locator('button[aria-label="Template actions"]').click();
     await page.getByTestId('delete-template-button').click();
     await page.getByRole('button', { name: 'Delete' }).click();
@@ -84,7 +91,9 @@ test.describe('Worldbuilding Templates', () => {
     await page.waitForTimeout(500);
 
     // Verify template was deleted (check specifically for the card, not general text)
-    await expect(page.locator('mat-card').filter({ hasText: 'Hero Template' })).not.toBeVisible();
+    await expect(
+      page.locator('mat-card').filter({ hasText: 'Hero Template' })
+    ).not.toBeVisible();
   });
 
   test('should initialize worldbuilding elements with correct schemas', async ({
@@ -188,26 +197,37 @@ test.describe('Worldbuilding Templates', () => {
     await page.getByTestId('back-to-project-button').click();
     await page.getByRole('button', { name: 'Templates' }).click();
     await expect(page).toHaveURL(/.*templates-list.*/);
-    await page.waitForSelector('mat-card', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('mat-card', {
+      state: 'visible',
+      timeout: 10000,
+    });
     await page.waitForTimeout(500);
 
     // Clone Character template
-    const templateCards = page.locator('mat-card').filter({ hasText: 'Character' });
-    await templateCards.locator('button[aria-label="Template actions"]').first().click();
+    const templateCards = page
+      .locator('mat-card')
+      .filter({ hasText: 'Character' });
+    await templateCards
+      .locator('button[aria-label="Template actions"]')
+      .first()
+      .click();
     await page.getByTestId('clone-template-button').click();
     await page.getByLabel(/name/i).fill('Test Template');
     await page.getByRole('button', { name: 'Rename' }).click();
     await page.waitForTimeout(500);
 
     // Now edit the custom template
-    await page.locator('mat-card').filter({ hasText: 'Test Template' })
-      .locator('button[aria-label="Template actions"]').click();
+    await page
+      .locator('mat-card')
+      .filter({ hasText: 'Test Template' })
+      .locator('button[aria-label="Template actions"]')
+      .click();
     await page.getByRole('menuitem', { name: 'Edit' }).click();
     await expect(page.getByTestId('template-editor-dialog')).toBeVisible();
 
     // Try to clear required template name field
     await page.getByTestId('template-name-input').clear();
-    
+
     // Wait a moment for form validation to run
     await page.waitForTimeout(100);
 
@@ -232,34 +252,42 @@ test.describe('Worldbuilding Templates', () => {
     // Navigate to project (fixture has already waited for projects to load and cards to be visible)
     await page.getByTestId('project-card').first().click();
     await expect(page).toHaveURL(/\/.+\/.+/);
-    
+
     // Create a character first to ensure templates are initialized
     await page.getByTestId('add-element-button').click();
     await page.getByTestId('element-type-character').click();
     await page.getByTestId('element-name-input').fill('Init Character');
     await page.getByTestId('create-element-button').click();
     await expect(page.getByTestId('element-Init Character')).toBeVisible();
-    
+
     // Navigate back to project home, then to Templates
     await page.getByTestId('back-to-project-button').click();
     await page.getByRole('button', { name: 'Templates' }).click();
-    
+
     // Wait for templates page to load
     await expect(page).toHaveURL(/.*templates-list.*/);
-    await page.waitForSelector('mat-card', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('mat-card', {
+      state: 'visible',
+      timeout: 10000,
+    });
     await page.waitForTimeout(500);
 
     // Find Character template and clone it
-    const templateCards = page.locator('mat-card').filter({ hasText: 'Character' });
-    await templateCards.locator('button[aria-label="Template actions"]').first().click();
+    const templateCards = page
+      .locator('mat-card')
+      .filter({ hasText: 'Character' });
+    await templateCards
+      .locator('button[aria-label="Template actions"]')
+      .first()
+      .click();
     await page.getByTestId('clone-template-button').click();
-    
+
     // Fill in the rename dialog
     await page.getByLabel(/name/i).fill('Custom Hero');
-    
+
     // Listen for console logs to capture the custom template type
     let customTemplateType: string | undefined;
-    page.on('console', (msg) => {
+    page.on('console', msg => {
       const text = msg.text();
       // Look for: [WorldbuildingService] Cloned template CHARACTER to CUSTOM_123: "Custom Hero"
       const match = text.match(/Cloned template \w+ to (\w+):/);
@@ -267,7 +295,7 @@ test.describe('Worldbuilding Templates', () => {
         customTemplateType = match[1];
       }
     });
-    
+
     await page.getByRole('button', { name: 'Rename' }).click();
 
     // Wait for template to be created and snackbar
@@ -283,10 +311,10 @@ test.describe('Worldbuilding Templates', () => {
 
     // Create element using custom template
     await page.getByTestId('add-element-button').click();
-    
+
     // Wait a moment for dialog to open and templates to load
     await page.waitForTimeout(300);
-    
+
     // Use the dynamically captured custom template type
     const elementTypeTestId = `element-type-${customTemplateType!.toLowerCase()}`;
     await page.getByTestId(elementTypeTestId).click();
@@ -296,7 +324,9 @@ test.describe('Worldbuilding Templates', () => {
     // Verify icon is displayed in project tree (cloned from Character, so should be 'person' icon)
     const heroElement = page.getByTestId('element-My Hero');
     await expect(heroElement).toBeVisible();
-    await expect(heroElement.locator('mat-icon', { hasText: 'person' })).toBeVisible();
+    await expect(
+      heroElement.locator('mat-icon', { hasText: 'person' })
+    ).toBeVisible();
 
     // Verify icon in tab when element is opened
     await heroElement.click();

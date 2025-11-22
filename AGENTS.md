@@ -16,6 +16,32 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 
 ---
 
+## AI Development Tools
+
+### Model Context Protocol (MCP)
+
+This project is configured with the **Angular CLI MCP Server**, which enables AI assistants to access real-time Angular documentation and best practices directly from angular.dev.
+
+**Configuration**: The MCP server is configured in `.vscode/mcp.json` and provides the following tools:
+
+- `get_best_practices` - Retrieves current Angular coding standards
+- `search_documentation` - Searches angular.dev in real-time
+- `list_projects` - Analyzes workspace structure
+- `find_examples` (experimental) - Searches curated Angular code examples
+- `modernize` (experimental) - Provides migration instructions for upgrading code
+
+**Benefits**:
+- AI assistants have access to up-to-date Angular documentation
+- Reduces reliance on potentially outdated training data
+- Project-aware guidance based on actual workspace structure
+- Official Angular patterns and best practices
+
+**Restart Required**: After MCP configuration changes, restart VS Code or your AI assistant to enable the integration.
+
+For more information, visit: https://angular.dev/ai/mcp
+
+---
+
 ## Core Development Rules
 
 ### 1. Code Quality & Testing

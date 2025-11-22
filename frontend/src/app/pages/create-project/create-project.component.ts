@@ -1,10 +1,10 @@
-import { Component, effect, inject } from '@angular/core';
 import {
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+} from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -24,6 +24,7 @@ import { UnifiedUserService } from '../../services/unified-user.service';
   templateUrl: './create-project.component.html',
   styleUrls: ['./create-project.component.scss'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
     MatButtonModule,
@@ -40,14 +41,15 @@ export class CreateProjectComponent {
   protected unifiedUserService = inject(UnifiedUserService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
+  private fb = inject(FormBuilder);
 
-  projectForm = new FormGroup({
-    title: new FormControl('', [Validators.required]),
-    slug: new FormControl('', [
-      Validators.required,
-      Validators.pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-    ]),
-    description: new FormControl(''),
+  projectForm = this.fb.group({
+    title: ['', [Validators.required]],
+    slug: [
+      '',
+      [Validators.required, Validators.pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)],
+    ],
+    description: [''],
   });
   projectUrl = '';
   baseUrl: string;

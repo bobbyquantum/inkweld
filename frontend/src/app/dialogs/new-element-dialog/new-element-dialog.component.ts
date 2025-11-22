@@ -1,7 +1,13 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
 import {
-  FormControl,
-  FormGroup,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
+import {
+  FormBuilder,
   FormsModule,
   ReactiveFormsModule,
   Validators,
@@ -19,10 +25,6 @@ import { ElementType } from '../../../api-client';
 import { ProjectStateService } from '../../services/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding.service';
 
-interface NewElementForm {
-  name: FormControl<string>;
-  type: FormControl<ElementType>;
-}
 export interface NewElementDialogResult {
   name: string;
   type: ElementType;
@@ -40,6 +42,7 @@ interface ElementTypeOption {
   templateUrl: './new-element-dialog.component.html',
   styleUrls: ['./new-element-dialog.component.scss'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
     FormsModule,
@@ -59,6 +62,7 @@ export class NewElementDialogComponent {
   );
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly projectState = inject(ProjectStateService);
+  private readonly fb = inject(FormBuilder);
 
   // Step control
   currentStep = signal<1 | 2>(1);
@@ -110,21 +114,12 @@ export class NewElementDialogComponent {
     )
   );
 
-  readonly form: FormGroup<NewElementForm>;
+  readonly form = this.fb.group({
+    name: ['', [Validators.required]],
+    type: [ElementType.Item as ElementType, [Validators.required]],
+  });
 
   constructor() {
-    // Initialize form
-    this.form = new FormGroup<NewElementForm>({
-      name: new FormControl('', {
-        nonNullable: true,
-        validators: [Validators.required],
-      }),
-      type: new FormControl<ElementType>(ElementType.Item, {
-        nonNullable: true,
-        validators: [Validators.required],
-      }),
-    });
-
     // Load worldbuilding types from project schema library
     effect(() => {
       const project = this.projectState.project();
@@ -257,8 +252,8 @@ export class NewElementDialogComponent {
   onCreate = (): void => {
     if (this.form.valid) {
       const result: NewElementDialogResult = {
-        name: this.form.controls.name.value,
-        type: this.form.controls.type.value,
+        name: this.form.controls.name.value!,
+        type: this.form.controls.type.value!,
       };
       this.dialogRef.close(result);
     }

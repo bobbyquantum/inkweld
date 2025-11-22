@@ -181,21 +181,29 @@ test.describe('Offline to Server Migration', () => {
     // - Need to coordinate authentication between two browser contexts
     // - Need to verify duplicate handling logic exists in the migration service
     // - Migration service may not have duplicate detection implemented yet
-    
+
     // Step 1: Create project in offline mode
     await createOfflineProject(offlinePage, 'Duplicate Test', 'duplicate-test');
 
     // Step 2: Create a project with same slug on server using authenticated page
     await authenticatedPage.goto('/create-project');
     await authenticatedPage.waitForLoadState('domcontentloaded');
-    
+
     // Fill and submit the form
-    await authenticatedPage.locator('[data-testid="project-title-input"]').fill('Duplicate Test Server');
-    await authenticatedPage.locator('[data-testid="project-slug-input"]').fill('duplicate-test');
-    await authenticatedPage.locator('[data-testid="create-project-button"]').click();
-    
+    await authenticatedPage
+      .locator('[data-testid="project-title-input"]')
+      .fill('Duplicate Test Server');
+    await authenticatedPage
+      .locator('[data-testid="project-slug-input"]')
+      .fill('duplicate-test');
+    await authenticatedPage
+      .locator('[data-testid="create-project-button"]')
+      .click();
+
     // Wait for project creation
-    await authenticatedPage.waitForURL(/.*duplicate-test.*/, { timeout: 10000 });
+    await authenticatedPage.waitForURL(/.*duplicate-test.*/, {
+      timeout: 10000,
+    });
 
     // Additional steps needed to complete this test
   });
@@ -286,7 +294,7 @@ test.describe('Offline to Server Migration', () => {
     // Step 4: Navigate back to the project
     await offlinePage.goto('/');
     await offlinePage.waitForLoadState('networkidle', { timeout: 10000 });
-    
+
     // Click on the project card
     await offlinePage.getByRole('button', { name: /Content Test/i }).click();
     await offlinePage.waitForURL(/.*content-test.*/, { timeout: 10000 });

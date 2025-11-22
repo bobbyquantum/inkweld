@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   effect,
   inject,
@@ -40,6 +41,7 @@ import { WorldbuildingService } from '../../../services/worldbuilding.service';
 @Component({
   selector: 'app-dynamic-worldbuilding-editor',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ReactiveFormsModule,
