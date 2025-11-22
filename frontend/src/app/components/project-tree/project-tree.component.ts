@@ -34,9 +34,9 @@ import { ProjectStateService } from '@services/project-state.service';
 import { SettingsService } from '@services/settings.service';
 
 import { ProjectElement } from '../../models/project-element';
-import { isWorldbuildingType } from '../../models/worldbuilding-schemas';
 import { DialogGatewayService } from '../../services/dialog-gateway.service';
 import { LoggerService } from '../../services/logger.service';
+import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
 
 /**

@@ -5,10 +5,7 @@ import * as Y from 'yjs';
 
 import { Element, ElementType } from '../../api-client';
 import { ElementTypeSchema } from '../models/schema-types';
-import {
-  isWorldbuildingType,
-  WorldbuildingSchema,
-} from '../models/worldbuilding-schemas';
+import { isWorldbuildingType } from '../utils/worldbuilding.utils';
 import { DefaultTemplatesService } from './default-templates.service';
 import { SetupService } from './setup.service';
 
@@ -124,11 +121,11 @@ export class WorldbuildingService {
     elementId: string,
     username?: string,
     slug?: string
-  ): Promise<WorldbuildingSchema | null> {
+  ): Promise<Record<string, unknown> | null> {
     const dataMap = await this.setupCollaboration(elementId, username, slug);
     const jsonData = dataMap.toJSON() as Record<string, unknown>;
 
-    return (jsonData as unknown as WorldbuildingSchema) || null;
+    return jsonData || null;
   }
 
   /**
@@ -139,7 +136,7 @@ export class WorldbuildingService {
    */
   async observeChanges(
     elementId: string,
-    callback: (data: WorldbuildingSchema) => void,
+    callback: (data: Record<string, unknown>) => void,
     username?: string,
     slug?: string
   ): Promise<() => void> {
@@ -147,7 +144,7 @@ export class WorldbuildingService {
 
     const observer = () => {
       const jsonData = dataMap.toJSON() as Record<string, unknown>;
-      callback(jsonData as unknown as WorldbuildingSchema);
+      callback(jsonData);
     };
 
     dataMap.observe(observer);
@@ -161,7 +158,7 @@ export class WorldbuildingService {
    */
   async saveWorldbuildingData(
     elementId: string,
-    data: Partial<WorldbuildingSchema>,
+    data: Record<string, unknown>,
     username?: string,
     slug?: string
   ): Promise<void> {
@@ -223,7 +220,8 @@ export class WorldbuildingService {
             // Handle primitive values
             dataMap.set(key, value);
             console.log(
-              `[WorldbuildingService] Set primitive key="${key}" value="${value}"`
+              `[WorldbuildingService] Set primitive key="${key}"`,
+              value
             );
           }
         }
@@ -643,7 +641,7 @@ export class WorldbuildingService {
    */
   async importFromJSON(elementId: string, jsonData: string): Promise<void> {
     try {
-      const data = JSON.parse(jsonData) as WorldbuildingSchema;
+      const data = JSON.parse(jsonData) as Record<string, unknown>;
       await this.saveWorldbuildingData(elementId, data);
     } catch (error) {
       console.error('Error importing worldbuilding data:', error);

@@ -189,7 +189,7 @@ describe('WorldbuildingService', () => {
       const data = await service.getWorldbuildingData(elementId);
 
       expect(data).toBeDefined();
-      expect(data?.name).toBe('Test Character');
+      expect(data?.['name']).toBe('Test Character');
     });
 
     it('should return empty object if connection not found', async () => {
@@ -216,7 +216,7 @@ describe('WorldbuildingService', () => {
 
       // Verify data was saved
       const savedData = await service.getWorldbuildingData(elementId);
-      expect(savedData?.name).toBe('Updated Character');
+      expect(savedData?.['name']).toBe('Updated Character');
     });
   });
 

@@ -91,9 +91,7 @@
             "buildTarget": "inkweld-frontend:build:development",
             "tsConfig": "tsconfig.spec.json",
             "runner": "vitest",
-            "codeCoverage": true,
-            "codeCoverageReporters": ["html", "lcov", "text"],
-            "codeCoverageExclude": ["**/src/api-client/*", "node_modules/*"],
+            "codeCoverage": false,
             "setupFiles": ["setup-vitest.ts"]
           }
         },
