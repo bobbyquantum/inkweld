@@ -13,7 +13,7 @@
     "lint": "ng lint",
     "lint:fix": "ng lint --fix",
     "analyze": "ng build --stats-json && esbuild-visualizer --metadata dist/inkweld-frontend/stats.json",
-    "upgrade-angular": "ng update @angular/core@20 @angular/cli@20 @angular/material@20 @angular/cdk@20 --allow-dirty",
+    "upgrade-angular": "ng update @angular/core@21 @angular/cli@21 @angular/material@21 @angular/cdk@21 --allow-dirty",
     "fix-angular-control-flow": "ng generate @angular/core:control-flow",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
