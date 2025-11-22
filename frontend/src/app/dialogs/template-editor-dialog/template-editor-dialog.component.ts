@@ -3,14 +3,20 @@ import {
   DragDropModule,
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
-import { Component, inject, signal, QueryList, ViewChildren, AfterViewInit } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  inject,
+  QueryList,
+  signal,
+  ViewChildren,
+} from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { MatExpansionPanel } from '@angular/material/expansion';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import {
@@ -18,6 +24,7 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
+import { MatExpansionPanel } from '@angular/material/expansion';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -84,7 +91,8 @@ export class TemplateEditorDialogComponent implements AfterViewInit {
   private fb = inject(FormBuilder);
   readonly data = inject<TemplateEditorDialogData>(MAT_DIALOG_DATA);
 
-  @ViewChildren(MatExpansionPanel) expansionPanels!: QueryList<MatExpansionPanel>;
+  @ViewChildren(MatExpansionPanel)
+  expansionPanels!: QueryList<MatExpansionPanel>;
 
   readonly isSaving = signal(false);
   readonly selectedTabIndex = signal(0);
@@ -238,7 +246,7 @@ export class TemplateEditorDialogComponent implements AfterViewInit {
     const updatedTabs = [...this.tabs()];
     updatedTabs[tabIndex].fields.push(newField);
     this.tabs.set(updatedTabs);
-    
+
     // Store the field ID for auto-expansion
     this.lastFieldId = fieldId;
   }
