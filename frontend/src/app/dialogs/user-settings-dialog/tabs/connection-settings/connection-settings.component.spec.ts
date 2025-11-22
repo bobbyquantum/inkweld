@@ -85,6 +85,9 @@ describe('ConnectionSettingsComponent', () => {
 
       await component.switchToOfflineMode();
 
+      // Wait for all promises to resolve
+      await fixture.whenStable();
+
       expect(dialog.open).toHaveBeenCalled();
       expect(setupService.resetConfiguration).toHaveBeenCalled();
       expect(router.navigate).toHaveBeenCalledWith(['/setup']);
@@ -166,6 +169,9 @@ describe('ConnectionSettingsComponent', () => {
     component['currentMode'] = 'offline';
 
     await component.switchToOfflineMode();
+
+    // Wait for all promises to resolve
+    await fixture.whenStable();
 
     expect(dialog.open).not.toHaveBeenCalled();
     expect(setupService.resetConfiguration).toHaveBeenCalled();

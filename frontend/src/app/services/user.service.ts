@@ -264,13 +264,18 @@ export class UserService {
   }
 
   private formatError(error: unknown): UserServiceError {
-    if (error instanceof HttpErrorResponse) {
-      if (error.status === 0) {
+    // Check if error has HttpErrorResponse-like structure
+    const isHttpError = error instanceof HttpErrorResponse || 
+      (error != null && typeof error === 'object' && 'status' in error && 'error' in error);
+    
+    if (isHttpError) {
+      const httpError = error as HttpErrorResponse;
+      if (httpError.status === 0) {
         return new UserServiceError('NETWORK_ERROR', 'Server unavailable');
       }
-      if (error.status === 401) {
+      if (httpError.status === 401) {
         // Check for specific login failure case
-        const errorBody = error.error as
+        const errorBody = httpError.error as
           | {
               message: string;
               error: string;
@@ -291,9 +296,9 @@ export class UserService {
         // Other 401 errors are treated as session expired
         return new UserServiceError('SESSION_EXPIRED', 'Session expired');
       }
-      if (error.status === 403) {
+      if (httpError.status === 403) {
         // Check if this is a pending approval error
-        const errorBody = error.error as
+        const errorBody = httpError.error as
           | {
               message: string;
               error: string;

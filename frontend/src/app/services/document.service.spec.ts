@@ -18,19 +18,25 @@ import { SystemConfigService } from './system-config.service';
 
 // Mock y-websocket and y-indexeddb to prevent real WebSocket connections
 vi.mock('y-indexeddb', () => ({
-  IndexeddbPersistence: vi.fn(() => ({
-    whenSynced: Promise.resolve(),
-    destroy: vi.fn(),
-  })),
+  IndexeddbPersistence: class IndexeddbPersistence {
+    whenSynced = Promise.resolve();
+    constructor(_name: string, _doc: any) {}
+    destroy = vi.fn();
+  },
 }));
 
 vi.mock('y-websocket', () => ({
-  WebsocketProvider: vi.fn(() => ({
-    on: vi.fn(),
-    connect: vi.fn(),
-    destroy: vi.fn(),
-    awareness: {},
-  })),
+  WebsocketProvider: class WebsocketProvider {
+    on = vi.fn();
+    connect = vi.fn();
+    destroy = vi.fn();
+    awareness = {
+      setLocalState: vi.fn(),
+      setLocalStateField: vi.fn(),
+      getStates: () => new Map(),
+    };
+    constructor(_url: string, _room: string, _doc: any, _options?: any) {}
+  },
 }));
 vi.mock('ngx-editor', () => ({
   Editor: vi.fn(() => ({
@@ -70,7 +76,11 @@ describe('DocumentService', () => {
       on: vi.fn().mockReturnValue(() => {}), // Return cleanup function
       connect: vi.fn(),
       destroy: vi.fn(),
-      awareness: {},
+      awareness: {
+        setLocalState: vi.fn(),
+        setLocalStateField: vi.fn(),
+        getStates: () => new Map(),
+      },
     } as unknown as DeepMockProxy<WebsocketProvider>;
 
     mockIndexedDbProvider = {

@@ -374,7 +374,7 @@ export class DocumentService {
 
         // Set user information for awareness (collaborative cursors)
         const currentUser = this.userService.currentUser();
-        if (currentUser?.username) {
+        if (currentUser?.username && provider.awareness.setLocalStateField) {
           provider.awareness.setLocalStateField('user', {
             name: currentUser.username,
             color: this.generateUserColor(currentUser.username),

@@ -816,19 +816,8 @@ describe('BookshelfComponent', () => {
 
   describe('Full lifecycle initialization', () => {
     beforeEach(() => {
-      // Mock Angular's effect() function
-      vi.mock('@angular/core', async () => {
-        const originalModule = await vi.importActual('@angular/core');
-        return {
-          ...originalModule,
-          effect: vi.fn().mockImplementation(fn => {
-            fn();
-            return {
-              destroy: vi.fn(),
-            };
-          }),
-        };
-      });
+      // Note: vi.mock must be at top level, not inside tests
+      // We'll spy on the effect instead
     });
 
     afterEach(() => {
