@@ -221,9 +221,13 @@ app.notFound((c) => {
 // Initialize database and start server
 async function bootstrap() {
   try {
-    const dbPath = process.env.DB_PATH || './data/inkweld.db';
+    // In test mode with :memory:, use that; otherwise use DB_PATH or default
+    const dbPath =
+      process.env.DB_DATABASE === ':memory:'
+        ? ':memory:'
+        : process.env.DB_PATH || './data/inkweld.db';
     await setupBunDatabase(dbPath);
-    console.log('Bun SQLite database initialized');
+    console.log(`Bun SQLite database initialized (${dbPath})`);
 
     const port = config.port;
     console.log(`Inkweld backend (Bun) ready on port ${port}`);
@@ -247,10 +251,8 @@ async function bootstrap() {
   }
 }
 
-// Only run bootstrap if not in test mode
-if (process.env.NODE_ENV !== 'test') {
-  bootstrap();
-}
+// Always initialize database (including in test mode)
+bootstrap();
 
 export default {
   port: config.port,
