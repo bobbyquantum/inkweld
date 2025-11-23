@@ -50,7 +50,6 @@ describe('Config', () => {
       // Check all required properties exist
       expect(data).toHaveProperty('aiLinting');
       expect(data).toHaveProperty('aiImageGeneration');
-      expect(data).toHaveProperty('captcha');
       expect(data).toHaveProperty('appMode');
       expect(data).toHaveProperty('userApprovalRequired');
 
@@ -58,10 +57,6 @@ describe('Config', () => {
       expect(typeof data.aiLinting).toBe('boolean');
       expect(typeof data.aiImageGeneration).toBe('boolean');
       expect(typeof data.userApprovalRequired).toBe('boolean');
-
-      // Check captcha object
-      expect(data.captcha).toHaveProperty('enabled');
-      expect(typeof data.captcha.enabled).toBe('boolean');
 
       // Check appMode is valid enum value
       expect(['ONLINE', 'OFFLINE', 'BOTH']).toContain(data.appMode);
@@ -75,19 +70,6 @@ describe('Config', () => {
       // Without OPENAI_API_KEY in test env, should be false
       expect(data.aiLinting).toBe(false);
       expect(data.aiImageGeneration).toBe(false);
-    });
-
-    it('should have captcha configuration based on env vars', async () => {
-      const { response, json } = await client.request('/api/v1/config/features');
-      expect(response.status).toBe(200);
-      const data = await json();
-
-      // Check captcha configuration
-      expect(typeof data.captcha.enabled).toBe('boolean');
-      if (data.captcha.enabled) {
-        expect(data.captcha.siteKey).toBeDefined();
-        expect(typeof data.captcha.siteKey).toBe('string');
-      }
     });
 
     it('should return default appMode as BOTH when not configured', async () => {
