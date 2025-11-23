@@ -94,7 +94,7 @@ if (isCompiled) {
     if (!embeddedFrontendFiles) {
       embeddedFrontendFiles = new Map();
     }
-    bunEmbedded.forEach(([name, blob]) => embeddedFrontendFiles!.set(name, blob));
+    bunEmbedded.forEach(([name, blob]) => embeddedFrontendFiles.set(name, blob));
     console.log(`[SPA] Added ${bunEmbedded.length} files from Bun.embeddedFiles`);
   }
 

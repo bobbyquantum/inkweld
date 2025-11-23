@@ -27,10 +27,6 @@ export const RegisterRequestSchema = z
       .string()
       .optional()
       .openapi({ description: 'Display name (optional)', example: 'John Doe' }),
-    captchaToken: z
-      .string()
-      .optional()
-      .openapi({ description: 'reCAPTCHA token for verification' }),
   })
   .openapi('RegisterRequest');
 

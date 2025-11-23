@@ -9,7 +9,6 @@ import {
   ProjectSchema,
   CreateProjectRequestSchema,
   UpdateProjectRequestSchema,
-  ProjectsListResponseSchema,
 } from '../schemas/project.schemas';
 import {
   ErrorResponseSchema,
@@ -50,11 +49,22 @@ const listProjectsRoute = createRoute({
 
 projectRoutes.openapi(listProjectsRoute, async (c) => {
   const db = c.get('db');
-  const userId = c.get('user')!.id;
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    throw new HTTPException(401, { message: 'Not authenticated' });
+  }
+  const userId = contextUser.id;
 
   const projects = await projectService.findByUserId(db, userId);
 
-  return c.json(projects);
+  return c.json(
+    projects.map((p) => ({
+      ...p,
+      createdDate: new Date(p.createdDate).toISOString(),
+      updatedDate: new Date(p.updatedDate).toISOString(),
+    })),
+    200
+  );
 });
 
 // Get single project route
@@ -106,7 +116,11 @@ projectRoutes.openapi(getProjectRoute, async (c) => {
   const db = c.get('db');
   const username = c.req.param('username');
   const slug = c.req.param('slug');
-  const userId = c.get('user')!.id;
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    throw new HTTPException(401, { message: 'Not authenticated' });
+  }
+  const userId = contextUser.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
@@ -118,16 +132,19 @@ projectRoutes.openapi(getProjectRoute, async (c) => {
     throw new HTTPException(403, { message: 'Access denied' });
   }
 
-  return c.json({
-    id: project.id,
-    version: project.version,
-    slug: project.slug,
-    title: project.title,
-    description: project.description,
-    createdDate: project.createdDate,
-    updatedDate: project.updatedDate,
-    username: project.username,
-  });
+  return c.json(
+    {
+      id: project.id,
+      version: project.version,
+      slug: project.slug,
+      title: project.title,
+      description: project.description,
+      createdDate: new Date(project.createdDate).toISOString(),
+      updatedDate: new Date(project.updatedDate).toISOString(),
+      username: project.username,
+    },
+    200
+  );
 });
 
 // Create project route
@@ -185,7 +202,11 @@ projectRoutes.openapi(createProjectRoute, async (c) => {
   const db = c.get('db');
   const body = await c.req.json();
   const { slug, title, description } = CreateProjectRequestSchema.parse(body);
-  const userId = c.get('user')!.id;
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    throw new HTTPException(401, { message: 'Not authenticated' });
+  }
+  const userId = contextUser.id;
 
   const user = await userService.findById(db, userId);
   if (!user || !user.username) {
@@ -212,8 +233,8 @@ projectRoutes.openapi(createProjectRoute, async (c) => {
       slug: project.slug,
       title: project.title,
       description: project.description,
-      createdDate: project.createdDate,
-      updatedDate: project.updatedDate,
+      createdDate: new Date(project.createdDate).toISOString(),
+      updatedDate: new Date(project.updatedDate).toISOString(),
       username: user.username,
     },
     201
@@ -276,7 +297,11 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
   const db = c.get('db');
   const username = c.req.param('username');
   const slug = c.req.param('slug');
-  const userId = c.get('user')!.id;
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    throw new HTTPException(401, { message: 'Not authenticated' });
+  }
+  const userId = contextUser.id;
   const body = await c.req.json();
   const updates = UpdateProjectRequestSchema.parse(body);
 
@@ -297,16 +322,19 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
     throw new HTTPException(500, { message: 'Failed to update project' });
   }
 
-  return c.json({
-    id: updated.id,
-    version: updated.version,
-    slug: updated.slug,
-    title: updated.title,
-    description: updated.description,
-    createdDate: updated.createdDate,
-    updatedDate: updated.updatedDate,
-    username: project.username,
-  });
+  return c.json(
+    {
+      id: updated.id,
+      version: updated.version,
+      slug: updated.slug,
+      title: updated.title,
+      description: updated.description,
+      createdDate: new Date(updated.createdDate).toISOString(),
+      updatedDate: new Date(updated.updatedDate).toISOString(),
+      username: project.username,
+    },
+    200
+  );
 });
 
 // Delete project route
@@ -358,7 +386,11 @@ projectRoutes.openapi(deleteProjectRoute, async (c) => {
   const db = c.get('db');
   const username = c.req.param('username');
   const slug = c.req.param('slug');
-  const userId = c.get('user')!.id;
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    throw new HTTPException(401, { message: 'Not authenticated' });
+  }
+  const userId = contextUser.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
@@ -372,7 +404,7 @@ projectRoutes.openapi(deleteProjectRoute, async (c) => {
 
   await projectService.delete(db, project.id);
 
-  return c.json({ message: 'Project deleted successfully' });
+  return c.json({ message: 'Project deleted successfully' }, 200);
 });
 
 export default projectRoutes;

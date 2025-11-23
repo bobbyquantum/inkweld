@@ -84,7 +84,7 @@ documentRoutes.openapi(listDocsRoute, async (c) => {
 
   // For now, return empty array - full implementation would query elements
   // from the project's elements Yjs document
-  return c.json([]);
+  return c.json([], 200);
 });
 
 // Get document metadata
@@ -140,11 +140,14 @@ documentRoutes.openapi(getDocRoute, async (c) => {
   }
 
   // Return placeholder - full implementation would query the element from Yjs
-  return c.json({
-    id: docId,
-    name: 'Document',
-    type: 'ITEM',
-  });
+  return c.json(
+    {
+      id: docId,
+      name: 'Document',
+      type: 'ITEM',
+    },
+    200
+  );
 });
 
 // Render document as HTML

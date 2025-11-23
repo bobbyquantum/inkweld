@@ -31,14 +31,11 @@ export interface CloudflareEnv {
   ALLOWED_ORIGINS: string;
   USER_APPROVAL_REQUIRED: string;
   GITHUB_ENABLED: string;
-  RECAPTCHA_ENABLED: string;
 
   // Optional secrets
   SESSION_SECRET?: string;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
-  RECAPTCHA_SITE_KEY?: string;
-  RECAPTCHA_SECRET_KEY?: string;
 }
 
 /**

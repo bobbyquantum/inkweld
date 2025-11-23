@@ -66,7 +66,7 @@ class UserService {
     await db.insert(users).values(newUser);
 
     // Return the created user
-    const created = await this.findById(db, newUser.id!);
+    const created = await this.findById(db, newUser.id);
     if (!created) {
       throw new Error('Failed to create user');
     }
@@ -117,7 +117,7 @@ class UserService {
 
       await db.insert(users).values(newUser);
 
-      const created = await this.findById(db, newUser.id!);
+      const created = await this.findById(db, newUser.id);
       if (!created) {
         throw new Error('Failed to create user');
       }

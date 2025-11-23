@@ -110,7 +110,7 @@ elementRoutes.openapi(listElementsRoute, async (c) => {
 
   // Placeholder - full implementation would query elements from Yjs document
   // The elements are stored in a Yjs Map in the project's elements document
-  return c.json([]);
+  return c.json([], 200);
 });
 
 export default elementRoutes;

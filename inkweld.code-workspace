@@ -23,6 +23,11 @@
       "backend/": true,
       "docs/": true
     },
+    // Coverage Gutters configuration for multi-root workspace
+    "coverage-gutters.coverageBaseDir": "**",
+    "coverage-gutters.showLineCoverage": true,
+    "coverage-gutters.showRulerCoverage": true,
+    "coverage-gutters.showGutterCoverage": true,
     "typescript.tsdk": "🎨 Frontend/frontend/node_modules/typescript/lib",
     "[typescript]": {
       "editor.defaultFormatter": "dbaeumer.vscode-eslint",

@@ -100,26 +100,6 @@
             <mat-error>{{ getConfirmPasswordErrorMessage() }}</mat-error>
           </mat-form-field>
 
-          @if (isCaptchaEnabled) {
-            <div class="captcha-container">
-              <div class="captcha-wrapper">
-                <div #recaptchaElement class="recaptcha-element"></div>
-                @if (captchaLoading) {
-                  <div class="captcha-loading-overlay">
-                    <mat-spinner diameter="20"></mat-spinner>
-                    <span>Loading verification...</span>
-                  </div>
-                }
-              </div>
-              @if (captchaError) {
-                <div class="captcha-error">
-                  <mat-icon color="warn">error</mat-icon>
-                  <span>Please complete the captcha verification</span>
-                </div>
-              }
-            </div>
-          }
-
           <button
             mat-raised-button
             color="primary"

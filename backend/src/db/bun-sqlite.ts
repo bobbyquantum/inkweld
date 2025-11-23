@@ -62,7 +62,7 @@ async function runMigrations(database: ReturnType<typeof drizzle>): Promise<void
       migrationsApplied = true;
       return;
     }
-  } catch (_error) {
+  } catch {
     // If we can't check, proceed with migrations
     console.log('[drizzle] Could not check existing tables, attempting migrations');
   }

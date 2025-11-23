@@ -9,7 +9,6 @@ import { type AppContext } from '../types/context';
 import {
   DocumentSnapshotSchema,
   CreateSnapshotRequestSchema,
-  SnapshotsListResponseSchema,
   SnapshotWithContentSchema,
 } from '../schemas/snapshot.schemas';
 import {
@@ -72,7 +71,11 @@ snapshotRoutes.openapi(getSnapshotsRoute, async (c) => {
   const db = c.get('db');
   const username = c.req.param('username');
   const slug = c.req.param('slug');
-  const userId = c.get('user')!.id;
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    throw new HTTPException(401, { message: 'Not authenticated' });
+  }
+  const userId = contextUser.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
@@ -86,7 +89,13 @@ snapshotRoutes.openapi(getSnapshotsRoute, async (c) => {
 
   const snapshots = await documentSnapshotService.findByProjectId(db, project.id);
 
-  return c.json(snapshots);
+  return c.json(
+    snapshots.map((s) => ({
+      ...s,
+      createdAt: new Date(s.createdAt).toISOString(),
+    })),
+    200
+  );
 });
 
 // Get single snapshot route
@@ -141,7 +150,11 @@ snapshotRoutes.openapi(getSnapshotRoute, async (c) => {
   const username = c.req.param('username');
   const slug = c.req.param('slug');
   const snapshotId = c.req.param('snapshotId');
-  const userId = c.get('user')!.id;
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    throw new HTTPException(401, { message: 'Not authenticated' });
+  }
+  const userId = contextUser.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
@@ -161,11 +174,12 @@ snapshotRoutes.openapi(getSnapshotRoute, async (c) => {
 
   const response = {
     ...snapshot,
+    createdAt: new Date(snapshot.createdAt).toISOString(),
     yDocState: snapshot.yDocState.toString('base64'),
     stateVector: snapshot.stateVector?.toString('base64'),
   };
 
-  return c.json(response);
+  return c.json(response, 200);
 });
 
 // Create snapshot route
@@ -232,7 +246,11 @@ snapshotRoutes.openapi(createSnapshotRoute, async (c) => {
   const db = c.get('db');
   const username = c.req.param('username');
   const slug = c.req.param('slug');
-  const userId = c.get('user')!.id;
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    throw new HTTPException(401, { message: 'Not authenticated' });
+  }
+  const userId = contextUser.id;
   const body = await c.req.json();
   const data = CreateSnapshotRequestSchema.parse(body);
 
@@ -271,7 +289,7 @@ snapshotRoutes.openapi(createSnapshotRoute, async (c) => {
       description: snapshot.description,
       wordCount: snapshot.wordCount,
       metadata: snapshot.metadata,
-      createdAt: snapshot.createdAt,
+      createdAt: new Date(snapshot.createdAt).toISOString(),
     },
     201
   );
@@ -329,7 +347,11 @@ snapshotRoutes.openapi(deleteSnapshotRoute, async (c) => {
   const username = c.req.param('username');
   const slug = c.req.param('slug');
   const snapshotId = c.req.param('snapshotId');
-  const userId = c.get('user')!.id;
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    throw new HTTPException(401, { message: 'Not authenticated' });
+  }
+  const userId = contextUser.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
@@ -349,7 +371,7 @@ snapshotRoutes.openapi(deleteSnapshotRoute, async (c) => {
 
   await documentSnapshotService.delete(db, snapshotId);
 
-  return c.json({ message: 'Snapshot deleted successfully' });
+  return c.json({ message: 'Snapshot deleted successfully' }, 200);
 });
 
 // Restore snapshot route
@@ -413,7 +435,11 @@ snapshotRoutes.openapi(restoreSnapshotRoute, async (c) => {
   const username = c.req.param('username');
   const slug = c.req.param('slug');
   const snapshotId = c.req.param('snapshotId');
-  const userId = c.get('user')!.id;
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    throw new HTTPException(401, { message: 'Not authenticated' });
+  }
+  const userId = contextUser.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
@@ -431,7 +457,7 @@ snapshotRoutes.openapi(restoreSnapshotRoute, async (c) => {
     throw new HTTPException(404, { message: 'Snapshot not found' });
   }
 
-  return c.json({ message: 'Snapshot can be restored', snapshotId: snapshot.id });
+  return c.json({ message: 'Snapshot can be restored', snapshotId: snapshot.id }, 200);
 });
 
 // Preview snapshot route
@@ -486,7 +512,11 @@ snapshotRoutes.openapi(previewSnapshotRoute, async (c) => {
   const username = c.req.param('username');
   const slug = c.req.param('slug');
   const snapshotId = c.req.param('snapshotId');
-  const userId = c.get('user')!.id;
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    throw new HTTPException(401, { message: 'Not authenticated' });
+  }
+  const userId = contextUser.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
@@ -506,11 +536,12 @@ snapshotRoutes.openapi(previewSnapshotRoute, async (c) => {
 
   const response = {
     ...snapshot,
+    createdAt: new Date(snapshot.createdAt).toISOString(),
     yDocState: snapshot.yDocState.toString('base64'),
     stateVector: snapshot.stateVector?.toString('base64'),
   };
 
-  return c.json(response);
+  return c.json(response, 200);
 });
 
 export default snapshotRoutes;

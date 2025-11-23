@@ -17,16 +17,6 @@ const ConfigResponseSchema = z
   })
   .openapi('ConfigResponse');
 
-const CaptchaSettingsSchema = z
-  .object({
-    enabled: z.boolean().openapi({ example: true, description: 'Whether reCAPTCHA is enabled' }),
-    siteKey: z.string().optional().openapi({
-      example: '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI',
-      description: 'reCAPTCHA site key for client-side validation',
-    }),
-  })
-  .openapi('CaptchaSettings');
-
 const SystemFeaturesSchema = z
   .object({
     aiLinting: z
@@ -35,9 +25,6 @@ const SystemFeaturesSchema = z
     aiImageGeneration: z
       .boolean()
       .openapi({ example: true, description: 'Whether AI-powered image generation is available' }),
-    captcha: CaptchaSettingsSchema.openapi({
-      description: 'ReCaptcha configuration for registration',
-    }),
     appMode: z
       .enum(['ONLINE', 'OFFLINE', 'BOTH'])
       .openapi({ example: 'BOTH', description: 'Application mode configuration' }),
@@ -100,14 +87,6 @@ configRoutes.openapi(getFeaturesRoute, (c) => {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   const hasOpenAI = !!openaiApiKey && openaiApiKey.trim().length > 0;
 
-  // Check reCAPTCHA configuration
-  const recaptchaEnabled = process.env.RECAPTCHA_ENABLED?.toLowerCase() === 'true';
-  const recaptchaSiteKey = process.env.RECAPTCHA_SITE_KEY;
-  const captchaSettings = {
-    enabled: recaptchaEnabled && !!recaptchaSiteKey,
-    siteKey: recaptchaEnabled ? recaptchaSiteKey : undefined,
-  };
-
   // Get app mode configuration
   const appModeEnv = process.env.APP_MODE?.toUpperCase() || 'BOTH';
   const appMode = ['ONLINE', 'OFFLINE', 'BOTH'].includes(appModeEnv)
@@ -120,7 +99,6 @@ configRoutes.openapi(getFeaturesRoute, (c) => {
   return c.json({
     aiLinting: hasOpenAI,
     aiImageGeneration: hasOpenAI,
-    captcha: captchaSettings,
     appMode,
     defaultServerName,
     userApprovalRequired: config.userApprovalRequired,

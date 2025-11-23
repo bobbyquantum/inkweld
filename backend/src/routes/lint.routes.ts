@@ -176,14 +176,14 @@ lintRoutes.openapi(lintRoute, async (c) => {
       validatedBody.level
     );
 
-    return c.json(result);
+    return c.json(result, 200);
   } catch (error: unknown) {
     console.error('Error in lint endpoint:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     if (error instanceof Error && error.name === 'ZodError') {
       return c.json({ error: 'Invalid request body' }, 400);
     }
-    return c.json({ error: errorMessage || 'Failed to process linting request' }, 500);
+    return c.json({ error: errorMessage || 'Failed to process linting request' }, 503);
   }
 });
 

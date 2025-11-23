@@ -6,8 +6,6 @@ import { users as usersTable } from '../db/schema/users';
 import { userService } from '../services/user.service';
 import { fileStorageService } from '../services/file-storage.service';
 import { imageService } from '../services/image.service';
-import { recaptchaService } from '../services/recaptcha.service';
-import { config } from '../config/env';
 import { like, or } from 'drizzle-orm';
 import { UserSchema, PaginatedUsersResponseSchema } from '../schemas/user.schemas';
 import { ErrorResponseSchema } from '../schemas/common.schemas';
@@ -53,22 +51,30 @@ const getCurrentUserRoute = createRoute({
 });
 
 userRoutes.openapi(getCurrentUserRoute, async (c) => {
-  const userId = c.get('user')!.id;
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  const userId = contextUser.id;
   const db = c.get('db');
   const user = await userService.findById(db, userId);
 
-  if (!user) {
+  if (!user || !user.username) {
     return c.json({ error: 'User not found' }, 404);
   }
 
-  return c.json({
-    id: user.id,
-    username: user.username,
-    name: user.name || null,
-    email: user.email || undefined,
-    enabled: user.enabled,
-    approved: user.approved,
-  });
+  return c.json(
+    {
+      id: user.id,
+      username: user.username,
+      name: user.name || null,
+      email: user.email || undefined,
+      enabled: user.enabled,
+      approved: user.approved,
+    },
+    200
+  );
 });
 
 // Get users route
@@ -96,12 +102,7 @@ userRoutes.openapi(getUsersRoute, async (c) => {
   const db = c.get('db');
 
   const allUsers = await db
-    .select({
-      id: usersTable.id,
-      username: usersTable.username,
-      name: usersTable.name,
-      enabled: usersTable.enabled,
-    })
+    .select()
     .from(usersTable)
     .limit(pageSize)
     .offset((page - 1) * pageSize);
@@ -109,13 +110,23 @@ userRoutes.openapi(getUsersRoute, async (c) => {
   const totalCount = await db.select().from(usersTable);
   const total = totalCount.length;
 
-  return c.json({
-    users: allUsers,
-    total,
-    page,
-    pageSize,
-    totalPages: Math.ceil(total / pageSize),
-  });
+  return c.json(
+    {
+      users: allUsers
+        .filter((u): u is typeof u & { username: string } => u.username !== null)
+        .map((u) => ({
+          id: u.id,
+          username: u.username,
+          name: u.name,
+          enabled: u.enabled,
+        })),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    },
+    200
+  );
 });
 
 // Search users route
@@ -145,12 +156,7 @@ userRoutes.openapi(searchUsersRoute, async (c) => {
 
   const searchTerm = `%${term}%`;
   const foundUsers = await db
-    .select({
-      id: usersTable.id,
-      username: usersTable.username,
-      name: usersTable.name,
-      enabled: usersTable.enabled,
-    })
+    .select()
     .from(usersTable)
     .where(or(like(usersTable.username, searchTerm), like(usersTable.name, searchTerm)))
     .limit(pageSize)
@@ -162,13 +168,23 @@ userRoutes.openapi(searchUsersRoute, async (c) => {
     .where(or(like(usersTable.username, searchTerm), like(usersTable.name, searchTerm)));
   const total = totalResults.length;
 
-  return c.json({
-    users: foundUsers,
-    total,
-    page,
-    pageSize,
-    totalPages: Math.ceil(total / pageSize),
-  });
+  return c.json(
+    {
+      users: foundUsers
+        .filter((u): u is typeof u & { username: string } => u.username !== null)
+        .map((u) => ({
+          id: u.id,
+          username: u.username,
+          name: u.name,
+          enabled: u.enabled,
+        })),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    },
+    200
+  );
 });
 
 // Check username route
@@ -216,10 +232,13 @@ userRoutes.openapi(checkUsernameRoute, async (c) => {
   const db = c.get('db');
   const existingUser = await userService.findByUsername(db, username);
 
-  return c.json({
-    available: !existingUser,
-    suggestions: existingUser ? [`${username}123`, `${username}_new`] : [],
-  });
+  return c.json(
+    {
+      available: !existingUser,
+      suggestions: existingUser ? [`${username}123`, `${username}_new`] : [],
+    },
+    200
+  );
 });
 
 // Get avatar route
@@ -324,7 +343,12 @@ const uploadAvatarRoute = createRoute({
 });
 
 userRoutes.openapi(uploadAvatarRoute, async (c) => {
-  const userId = c.get('user')!.id;
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  const userId = contextUser.id;
 
   const db = c.get('db');
   const user = await userService.findById(db, userId);
@@ -349,7 +373,7 @@ userRoutes.openapi(uploadAvatarRoute, async (c) => {
   const processedAvatar = await imageService.processAvatar(buffer);
   await fileStorageService.saveUserAvatar(user.username, processedAvatar);
 
-  return c.json({ message: 'Avatar uploaded successfully' });
+  return c.json({ message: 'Avatar uploaded successfully' }, 200);
 });
 
 // Delete avatar route
@@ -387,7 +411,12 @@ const deleteAvatarRoute = createRoute({
 });
 
 userRoutes.openapi(deleteAvatarRoute, async (c) => {
-  const userId = c.get('user')!.id;
+  const contextUser = c.get('user');
+  if (!contextUser) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  const userId = contextUser.id;
 
   const db = c.get('db');
   const user = await userService.findById(db, userId);
@@ -402,7 +431,7 @@ userRoutes.openapi(deleteAvatarRoute, async (c) => {
 
   await fileStorageService.deleteUserAvatar(user.username);
 
-  return c.json({ message: 'Avatar deleted successfully' });
+  return c.json({ message: 'Avatar deleted successfully' }, 200);
 });
 
 export default userRoutes;

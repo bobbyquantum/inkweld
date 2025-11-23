@@ -102,7 +102,7 @@ csrfRoutes.openapi(tokenRoute, async (c) => {
     const token = await generateCSRFToken(secret);
 
     // Return the token in the response body
-    return c.json({ token });
+    return c.json({ token }, 200);
   } catch (error: unknown) {
     console.error('Error generating CSRF token:', error);
     return c.json(

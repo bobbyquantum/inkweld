@@ -81,6 +81,14 @@ const listFilesRoute = createRoute({
       },
       description: 'Project not found',
     },
+    500: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Internal server error',
+    },
   },
 });
 
@@ -101,7 +109,8 @@ fileRoutes.openapi(listFilesRoute, async (c) => {
     return c.json(
       files.map((name) => ({
         name,
-      }))
+      })),
+      200
     );
   } catch {
     return c.json({ error: 'Failed to list files' }, 500);
@@ -146,6 +155,14 @@ const downloadFileRoute = createRoute({
         },
       },
       description: 'File not found',
+    },
+    500: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Internal server error',
     },
   },
 });
@@ -228,6 +245,14 @@ const uploadFileRoute = createRoute({
       },
       description: 'Project not found',
     },
+    500: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Internal server error',
+    },
   },
 });
 
@@ -245,22 +270,26 @@ fileRoutes.openapi(uploadFileRoute, async (c) => {
 
   try {
     const formData = await c.req.formData();
-    const file = formData.get('file') as File;
+    const fileEntry = formData.get('file');
 
-    if (!file) {
+    if (!fileEntry || typeof fileEntry === 'string') {
       return c.json({ error: 'No file provided' }, 400);
     }
 
+    const file = fileEntry as File;
     const buffer = await file.arrayBuffer();
     const fileName = file.name;
 
     await storage.saveProjectFile(username, slug, fileName, buffer);
 
-    return c.json({
-      name: fileName,
-      size: buffer.byteLength,
-      uploadDate: new Date().toISOString(),
-    });
+    return c.json(
+      {
+        name: fileName,
+        size: buffer.byteLength,
+        uploadDate: new Date().toISOString(),
+      },
+      200
+    );
   } catch (error) {
     console.error('File upload error:', error);
     return c.json({ error: 'Failed to upload file' }, 500);
@@ -303,6 +332,14 @@ const deleteFileRoute = createRoute({
       },
       description: 'File or project not found',
     },
+    500: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Internal server error',
+    },
   },
 });
 
@@ -327,7 +364,7 @@ fileRoutes.openapi(deleteFileRoute, async (c) => {
 
     await storage.deleteProjectFile(username, slug, storedName);
 
-    return c.json({ message: 'File deleted successfully' });
+    return c.json({ message: 'File deleted successfully' }, 200);
   } catch (error) {
     console.error('File delete error:', error);
     return c.json({ error: 'Failed to delete file' }, 500);

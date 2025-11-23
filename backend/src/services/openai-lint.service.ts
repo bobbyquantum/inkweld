@@ -8,10 +8,12 @@ interface CacheEntry<T> {
 }
 
 interface CorrectionDto {
-  error: string;
-  suggestion: string;
-  from?: number;
-  to?: number;
+  start_pos: number;
+  end_pos: number;
+  original_text: string;
+  corrected_text: string;
+  error_type: string;
+  recommendation: string;
 }
 
 interface StyleRecommendationDto {
@@ -94,7 +96,14 @@ The JSON must follow this format:
 {
   "original_paragraph": "the original text",
   "corrections": [
-    { "error": "text with error", "suggestion": "corrected text" }
+    {
+      "start_pos": 0,
+      "end_pos": 4,
+      "original_text": "text with error",
+      "corrected_text": "corrected text",
+      "error_type": "grammar",
+      "recommendation": "explanation of the correction"
+    }
   ],
   "style_recommendations": [
     { "suggestion": "recommendation text", "reason": "reason for recommendation" }

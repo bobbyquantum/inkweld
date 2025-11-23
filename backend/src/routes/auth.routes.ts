@@ -46,14 +46,6 @@ const registerRoute = createRoute({
       },
       description: 'Invalid input or username already exists',
     },
-    403: {
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-      description: 'reCAPTCHA validation failed',
-    },
   },
 });
 

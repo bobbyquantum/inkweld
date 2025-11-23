@@ -96,7 +96,7 @@ class ProjectService {
 
     await db.insert(projects).values(newProject);
 
-    const created = await this.findById(db, newProject.id!);
+    const created = await this.findById(db, newProject.id);
     if (!created) {
       throw new Error('Failed to create project');
     }

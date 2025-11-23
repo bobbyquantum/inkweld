@@ -1,0 +1,71 @@
+---
+id: delete-project-file
+title: "deleteProjectFile"
+description: "deleteProjectFile"
+sidebar_label: "deleteProjectFile"
+hide_title: true
+hide_table_of_contents: true
+api: eJzdVctu2zAQ/BWCpxZwLbvOodAtfQEGiiBo0VOQA0NRFl2Ky/Lh1DD8792lZDuObDcFeupJFLk7OzNarjYcnPIiarDzipe8UkZFdethqWT8rI3iIx7FIvDyjtNr4Pcj7oQXLYZ52t7wIBvVCl5ueFw7hSAhem0XmKl+idYZ2lpCYysgtEoF6bWjirj/PShvEYxvR9yrn0l7hTSiT+ps5IjnR8nTYUdThBOxQZyXEWrXbyyslBkw6rWzYNLiz6yOovfM+re/Z1WBTK2yceyqesCM/GcvM+sQeuAUAcNvBn7dE1ZwYAN+XCT3djKhxwm8rjcqFpKUKoQ6GbNGLAk2ImVKEs4ZLXM3FctAmSdkwwM5honOU+9F3dVtEVIs1GV/LvE4ZvytO2Q72O2RZ3f7cig/6pjBP2bcr70ZmEE5V5Pp0I4biEyk2KBskouI/8wG5T34yyZcW5ajGEiZvM/Vj/l9ysfnpHclnggnV3PKXvPVmRZAVNd3vEUPakj2v9K+fY52ah7i6GvgMCxJBt2kkhfC6WI1LXqLQlHuRlRR0kgoapqguH56FTFitZukyRuEaWJ0ZVEYkMI0EGL5bjabDXR+oWO8CzjDwNHMYB1SvtHa1pCN7FXO7Y9HZSp2fTtHIKrXgUzHk/FkAP0BjBEPQL+FlWLSq27x6HXE78GcEbEG3xIae/U+2dfo3W+6gy51
+sidebar_class_name: "delete api-method"
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"deleteProjectFile"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/api/v1/projects/:username/:slug/files/:storedName"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+deleteProjectFile
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string","example":"johndoe","description":"Username"},"required":true,"description":"Username","name":"username","in":"path"},{"schema":{"type":"string","example":"my-novel","description":"Project slug"},"required":true,"description":"Project slug","name":"slug","in":"path"},{"schema":{"type":"string","example":"document.pdf","description":"File name"},"required":true,"description":"File name","name":"storedName","in":"path"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"File deleted successfully","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","example":"File deleted successfully","description":"Success message"}},"required":["message"],"title":"DeleteResponse"}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred","description":"Error message"}},"required":["error"],"title":"FileError"}}}},"404":{"description":"File or project not found","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred","description":"Error message"}},"required":["error"],"title":"FileError"}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

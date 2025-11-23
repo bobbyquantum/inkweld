@@ -1,0 +1,71 @@
+---
+id: list-project-snapshots
+title: "listProjectSnapshots"
+description: "listProjectSnapshots"
+sidebar_label: "listProjectSnapshots"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVcFu2zAM/RVDpw1I62TpYfAt63YIUAzBhp2KHlSLiZXJoibR6Yog/z7ScdKkdrBht54sS4+PfCRFbRXpVVLFvfrudUgVUlIPI4UBoiaLfm5UoZxNtIi4hpJeUCMVdNQ1EESx36pUVlBrVWwVPQdgs0TR+hUD4beug5OtNVbeIPCegVRGG8QH7/9IED2Tqd1IRfjV2AjsmGIDF5Ej1X4K1bzsWEEETRXz/FtA9fOVxw24XkSd3iy5ZvX3qM7Qx8i6v5OoHoQoBfQJkgT2YTyWzznZHac7w2WWTnJdoifwJGAdgrNlW518ncRiQKqOUT+Lb4I6nezjo8QpxYtSY7L7OKzpp4lFGyybmt3Oh4/3MofsTvX00+8b5/Sj5F9yyfgnjOYWm72+Du2b+hHiEJp7ThtNekjWOXiktDFWwtBucSb4FSmzlhE0gZnRUMRLjLXmE8V+4YqsdOpZU9xLCs8S1qXnlJirT5bavvvcAQ/3iel2wngznvQb4itSphuqGC+FB/MfDXGh8BAjxoEavhK3hz2c3JyjqZr5rF1mWJZNFIPdi84vcvKta3l10Djta5yVJaSUGfD27eu76es7TAjPtVxyq79pja+v+KUXgm9qhfKCrKANW2ZgoXIdbL6Z5Mf5lheHGZ4X3czk/83hYWmiY6uKKBR57rDUrsJExcfpdNob23dyzF3EIx2DXLBsz9SOXuuX2OapEzb3P5/AmWy2mDOR+NuTTK7H1+Me9S3KyEB5FzeQtbdaFk+RB4xfZcFpkjEhbNm7T41/z6n6AxsvkMU=
+sidebar_class_name: "get api-method"
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"listProjectSnapshots"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/snapshots/:username/:slug"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+listProjectSnapshots
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string","example":"johndoe","description":"Username"},"required":true,"description":"Username","name":"username","in":"path"},{"schema":{"type":"string","example":"my-novel","description":"Project slug"},"required":true,"description":"Project slug","name":"slug","in":"path"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"List of snapshots","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"documentId":{"type":"string"},"name":{"type":"string"},"description":{"type":"string","nullable":true},"wordCount":{"type":"number","nullable":true},"metadata":{"type":"object","nullable":true,"additionalProperties":{"nullable":true}},"createdAt":{"type":"string","format":"date-time"}},"required":["id","documentId","name","createdAt"],"title":"DocumentSnapshot"}}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"example":{"error":"An error occurred"},"title":"ErrorResponse"}}}},"403":{"description":"Access denied","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"example":{"error":"An error occurred"},"title":"ErrorResponse"}}}},"404":{"description":"Project not found","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"example":{"error":"An error occurred"},"title":"ErrorResponse"}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

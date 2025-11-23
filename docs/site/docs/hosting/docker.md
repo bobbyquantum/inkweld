@@ -30,7 +30,6 @@ Select option **1. Docker** and follow the prompts. The wizard will:
 - Domain/URL
 - User approval requirements
 - GitHub OAuth (optional)
-- reCAPTCHA (optional)
 
 ---
 

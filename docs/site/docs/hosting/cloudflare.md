@@ -171,10 +171,6 @@ echo "your-super-secret-session-key-here-make-it-long" | npx wrangler secret put
 # Optional: GitHub OAuth (if enabled)
 echo "your-github-client-id" | npx wrangler secret put GITHUB_CLIENT_ID
 echo "your-github-client-secret" | npx wrangler secret put GITHUB_CLIENT_SECRET
-
-# Optional: reCAPTCHA (if enabled)
-echo "your-recaptcha-site-key" | npx wrangler secret put RECAPTCHA_SITE_KEY
-echo "your-recaptcha-secret-key" | npx wrangler secret put RECAPTCHA_SECRET_KEY
 ```
 
 For production environment, add `--env production` to each command:
@@ -229,7 +225,6 @@ Configure these in the `[vars]` section of `wrangler.toml`:
 | `ALLOWED_ORIGINS`        | Required     | Comma-separated list of allowed origins |
 | `USER_APPROVAL_REQUIRED` | `false`      | Require admin approval for new users    |
 | `GITHUB_ENABLED`         | `false`      | Enable GitHub OAuth login               |
-| `RECAPTCHA_ENABLED`      | `false`      | Enable reCAPTCHA for registration       |
 
 ### R2 Storage (Optional)
 

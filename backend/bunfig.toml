@@ -1,0 +1,25 @@
+[test]
+# Enable coverage reporting
+coverage = true
+
+# Coverage reporters - lcov is needed for Coverage Gutters
+coverageReporter = ["text", "lcov"]
+
+# Coverage directory
+coverageDir = "./coverage"
+
+# Files to include in coverage
+coverageInclude = ["src/**/*.ts"]
+
+# Files to exclude from coverage
+coverageExclude = [
+  "**/*.test.ts",
+  "**/*.spec.ts",
+  "**/test/**",
+  "**/scripts/**",
+  "**/*.config.ts",
+  "**/node_modules/**"
+]
+
+# Coverage thresholds (optional)
+coverageThreshold = 60

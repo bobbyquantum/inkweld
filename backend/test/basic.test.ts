@@ -111,11 +111,12 @@ describe('Config', () => {
 });
 
 describe('Root', () => {
-  it('should return API info', async () => {
-    const { response, json } = await client.request('/');
+  it('should return the SPA index.html', async () => {
+    const { response } = await client.request('/');
     expect(response.status).toBe(200);
-    const data = await json();
-    expect(data.name).toContain('Inkweld API');
+    const html = await response.text();
+    expect(html.toLowerCase()).toContain('<!doctype html>');
+    expect(html).toContain('</html>');
   });
 
   it('should return OAuth providers', async () => {

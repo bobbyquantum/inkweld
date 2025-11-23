@@ -964,15 +964,6 @@ async function gatherDockerConfig(): Promise<Record<string, string>> {
     config.GITHUB_CALLBACK_URL = `${config.CLIENT_URL}/api/auth/github/callback`;
   }
 
-  // reCAPTCHA
-  const enableRecaptcha = await promptYesNo('Enable reCAPTCHA for registration?', false);
-  config.RECAPTCHA_ENABLED = enableRecaptcha ? 'true' : 'false';
-
-  if (enableRecaptcha) {
-    config.RECAPTCHA_SITE_KEY = await promptRequired('reCAPTCHA Site Key');
-    config.RECAPTCHA_SECRET_KEY = await promptRequired('reCAPTCHA Secret Key');
-  }
-
   console.log('');
   return config;
 }
@@ -1015,15 +1006,6 @@ async function generateEnvFile(config: Record<string, string>): Promise<void> {
       `GITHUB_CLIENT_ID=${config.GITHUB_CLIENT_ID}`,
       `GITHUB_CLIENT_SECRET=${config.GITHUB_CLIENT_SECRET}`,
       `GITHUB_CALLBACK_URL=${config.GITHUB_CALLBACK_URL}`
-    );
-  }
-
-  envContent.push('', '# reCAPTCHA', `RECAPTCHA_ENABLED=${config.RECAPTCHA_ENABLED}`);
-
-  if (config.RECAPTCHA_SITE_KEY) {
-    envContent.push(
-      `RECAPTCHA_SITE_KEY=${config.RECAPTCHA_SITE_KEY}`,
-      `RECAPTCHA_SECRET_KEY=${config.RECAPTCHA_SECRET_KEY}`
     );
   }
 

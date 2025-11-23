@@ -11,7 +11,6 @@ import {
   UsernameAvailability,
   UsersService,
 } from '@inkweld/index';
-import { RecaptchaService } from '@services/recaptcha.service';
 import { SystemConfigService } from '@services/system-config.service';
 import { UserService } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
@@ -35,7 +34,6 @@ describe('RegisterComponent', () => {
   let xsrfService: MockedObject<XsrfService>;
   let userAuthService: MockedObject<UserService>;
   let systemConfigService: MockedObject<SystemConfigService>;
-  let recaptchaService: MockedObject<RecaptchaService>;
 
   beforeEach(async () => {
     httpClient = {
@@ -76,12 +74,6 @@ describe('RegisterComponent', () => {
       captchaSiteKey: vi.fn().mockReturnValue('test-site-key'),
     } as unknown as MockedObject<SystemConfigService>;
 
-    recaptchaService = {
-      render: vi.fn().mockResolvedValue(0),
-      getResponse: vi.fn().mockReturnValue('test-captcha-token'),
-      reset: vi.fn(),
-    } as unknown as MockedObject<RecaptchaService>;
-
     await TestBed.configureTestingModule({
       imports: [RegisterComponent, NoopAnimationsModule, ReactiveFormsModule],
       providers: [
@@ -94,7 +86,6 @@ describe('RegisterComponent', () => {
         { provide: XsrfService, useValue: xsrfService },
         { provide: UserService, useValue: userAuthService },
         { provide: SystemConfigService, useValue: systemConfigService },
-        { provide: RecaptchaService, useValue: recaptchaService },
         {
           provide: ActivatedRoute,
           useValue: {

@@ -153,7 +153,7 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
       style: validatedBody.style,
     });
 
-    return c.json(result);
+    return c.json(result, 200);
   } catch (error: unknown) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling needs name/message properties
     const err = error as any;
@@ -161,7 +161,7 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
     if (err.name === 'ZodError') {
       return c.json({ error: 'Invalid request body' }, 400);
     }
-    return c.json({ error: err.message || 'Failed to generate image' }, 500);
+    return c.json({ error: err.message || 'Failed to generate image' }, 503);
   }
 });
 

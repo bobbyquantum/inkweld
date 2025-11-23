@@ -9,10 +9,8 @@ import { TemplatePortal } from '@angular/cdk/portal';
 import { KeyValuePipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import {
-  AfterViewInit,
   ChangeDetectorRef,
   Component,
-  effect,
   ElementRef,
   inject,
   OnDestroy,
@@ -46,7 +44,6 @@ import {
   UsernameAvailability,
   UsersService,
 } from '@inkweld/index';
-import { RecaptchaService } from '@services/recaptcha.service';
 import { SystemConfigService } from '@services/system-config.service';
 import { UserService } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
@@ -72,7 +69,7 @@ import { firstValueFrom, Subject, takeUntil } from 'rxjs';
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss',
 })
-export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
+export class RegisterComponent implements OnInit, OnDestroy {
   private httpClient = inject(HttpClient);
   private usersApiService = inject(UsersService);
   private authService = inject(AuthenticationService);
@@ -82,14 +79,10 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
   private xsrfService = inject(XsrfService);
   private fb = inject(FormBuilder);
   private systemConfigService = inject(SystemConfigService);
-  private recaptchaService = inject(RecaptchaService);
   private overlay = inject(Overlay);
   private overlayPositionBuilder = inject(OverlayPositionBuilder);
   private viewContainerRef = inject(ViewContainerRef);
   private changeDetectorRef = inject(ChangeDetectorRef);
-
-  @ViewChild('recaptchaElement', { static: false })
-  recaptchaElement?: ElementRef<HTMLDivElement>;
 
   @ViewChild('passwordField', { static: false, read: ElementRef })
   passwordField?: ElementRef<HTMLInputElement>;
@@ -105,12 +98,6 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
   usernameAvailability: 'available' | 'unavailable' | 'unknown' = 'unknown';
   serverValidationErrors: { [key: string]: string[] } = {};
   providersLoaded = false;
-
-  // Captcha-related properties
-  captchaWidgetId?: number;
-  captchaToken?: string;
-  captchaError = false;
-  captchaLoading = false;
 
   // Password focus state for showing requirements callout
   isPasswordFocused = false;
@@ -141,32 +128,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private destroy$ = new Subject<void>();
 
-  constructor() {
-    // React to system config changes - this will trigger when config loads
-    effect(() => {
-      const isEnabled = this.systemConfigService.isCaptchaEnabled();
-      const isLoaded = this.systemConfigService.isConfigLoaded();
-
-      // Only try to initialize captcha if config is loaded, captcha is enabled, and we haven't already initialized
-      if (isLoaded && isEnabled && !this.captchaWidgetId) {
-        // Use setTimeout to allow Angular to update the DOM first
-        setTimeout(() => {
-          if (this.recaptchaElement) {
-            this.initializeCaptcha();
-          }
-        }, 0);
-      }
-    });
-  }
-
-  // Computed properties for captcha
-  get isCaptchaEnabled() {
-    return this.systemConfigService.isCaptchaEnabled();
-  }
-
-  get captchaSiteKey() {
-    return this.systemConfigService.captchaSiteKey();
-  }
+  constructor() {}
 
   get usernameControl() {
     return this.registerForm.get('username');
@@ -216,11 +178,6 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       .subscribe((password: string) => {
         this.updatePasswordRequirements(password);
       });
-
-    // Initialize captcha loading state if captcha is enabled
-    if (this.isCaptchaEnabled) {
-      this.captchaLoading = true;
-    }
   }
 
   ngOnDestroy(): void {
@@ -435,7 +392,6 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
   async onRegister(): Promise<void> {
     // Clear any previous server validation errors
     this.serverValidationErrors = {};
-    this.captchaError = false;
 
     // Mark all fields as touched to trigger validation display
     this.registerForm.markAllAsTouched();
@@ -455,24 +411,6 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    // Check captcha if enabled
-    if (this.isCaptchaEnabled) {
-      this.captchaToken = this.recaptchaService.getResponse(
-        this.captchaWidgetId
-      );
-      if (!this.captchaToken) {
-        this.captchaError = true;
-        this.snackBar.open(
-          'Please complete the captcha verification',
-          'Close',
-          {
-            duration: 3000,
-          }
-        );
-        return;
-      }
-    }
-
     // Set loading state
     this.isRegistering = true;
 
@@ -486,7 +424,6 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       const registerRequest = {
         username: formValues.username,
         password: formValues.password,
-        captchaToken: this.captchaToken,
       };
 
       const response = await firstValueFrom(
@@ -515,12 +452,6 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
         void this.router.navigate(['/']);
       }
     } catch (error: unknown) {
-      // Reset captcha on error
-      if (this.isCaptchaEnabled && this.captchaWidgetId !== undefined) {
-        this.recaptchaService.reset(this.captchaWidgetId);
-        this.captchaToken = undefined;
-      }
-
       if (error instanceof HttpErrorResponse) {
         // Handle validation errors from the server
         if (
@@ -633,36 +564,5 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
     this.snackBar.open('Please fix the validation errors', 'Close', {
       duration: 5000,
     });
-  }
-
-  ngAfterViewInit(): void {
-    // Try to initialize captcha if everything is ready
-    if (
-      this.systemConfigService.isConfigLoaded() &&
-      this.isCaptchaEnabled &&
-      this.recaptchaElement &&
-      !this.captchaWidgetId
-    ) {
-      this.initializeCaptcha();
-    }
-  }
-
-  private initializeCaptcha(): void {
-    if (!this.recaptchaElement || this.captchaWidgetId) {
-      return;
-    }
-
-    this.captchaLoading = true;
-
-    void this.recaptchaService
-      .render(this.recaptchaElement.nativeElement, this.captchaSiteKey)
-      .then(widgetId => {
-        this.captchaWidgetId = widgetId;
-        this.captchaLoading = false;
-      })
-      .catch(error => {
-        console.error('[RegisterComponent] Failed to render reCAPTCHA:', error);
-        this.captchaLoading = false;
-      });
   }
 }
