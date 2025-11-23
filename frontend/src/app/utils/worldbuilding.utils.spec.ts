@@ -35,9 +35,9 @@ describe('worldbuilding.utils', () => {
       expect(
         isWorldbuildingType('custom_lowercase' as unknown as ElementType)
       ).toBe(false);
-      expect(
-        isWorldbuildingType('NOT_CUSTOM' as unknown as ElementType)
-      ).toBe(false);
+      expect(isWorldbuildingType('NOT_CUSTOM' as unknown as ElementType)).toBe(
+        false
+      );
     });
 
     it('should handle edge cases', () => {

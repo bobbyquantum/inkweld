@@ -65,5 +65,146 @@ describe('XsrfService', () => {
       expect(service.refreshToken).toHaveBeenCalled();
       expect(token).toBe('new-token');
     });
+
+    it('should return cached token if not expired', async () => {
+      // Set up a token via refreshToken first
+      mockCsrfService.getCSRFToken.mockReturnValue(
+        of({ token: 'cached-token' })
+      );
+      await service.refreshToken();
+
+      // Spy on refreshToken to ensure it's not called again
+      const refreshSpy = vi.spyOn(service, 'refreshToken');
+
+      const token = await service.getToken();
+
+      expect(refreshSpy).not.toHaveBeenCalled();
+      expect(token).toBe('cached-token');
+    });
+
+    it('should refresh token if expired', async () => {
+      // Set up an expired token by manipulating time
+      mockCsrfService.getCSRFToken.mockReturnValue(of({ token: 'old-token' }));
+      await service.refreshToken();
+
+      // Mock Date.now to simulate time passing
+      const originalNow = Date.now;
+      Date.now = vi.fn(() => originalNow() + 6 * 60 * 1000); // 6 minutes later
+
+      mockCsrfService.getCSRFToken.mockReturnValue(of({ token: 'new-token' }));
+
+      const token = await service.getToken();
+
+      expect(token).toBe('new-token');
+
+      // Restore Date.now
+      Date.now = originalNow;
+    });
+  });
+
+  describe('getXsrfToken()', () => {
+    it('should return token from cookie if available', () => {
+      const mockDocument = TestBed.inject(DOCUMENT) as { cookie: string };
+      mockDocument.cookie = 'XSRF-TOKEN=cookie-token';
+
+      const token = service.getXsrfToken();
+
+      expect(token).toBe('cookie-token');
+    });
+
+    it('should return stored token if no cookie', async () => {
+      const mockDocument = TestBed.inject(DOCUMENT) as { cookie: string };
+      mockDocument.cookie = '';
+
+      // Set stored token via refreshToken
+      mockCsrfService.getCSRFToken.mockReturnValue(
+        of({ token: 'stored-token' })
+      );
+      await service.refreshToken();
+
+      const token = service.getXsrfToken();
+
+      expect(token).toBe('stored-token');
+    });
+
+    it('should update stored token if cookie token differs', async () => {
+      // First set a stored token
+      mockCsrfService.getCSRFToken.mockReturnValue(
+        of({ token: 'old-stored-token' })
+      );
+      await service.refreshToken();
+
+      // Then set a different cookie token
+      const mockDocument = TestBed.inject(DOCUMENT) as { cookie: string };
+      mockDocument.cookie = 'XSRF-TOKEN=new-cookie-token';
+
+      const token = service.getXsrfToken();
+
+      expect(token).toBe('new-cookie-token');
+      // Calling again should return the same (now updated) token
+      expect(service.getXsrfToken()).toBe('new-cookie-token');
+    });
+
+    it('should handle malformed cookie', () => {
+      const mockDocument = TestBed.inject(DOCUMENT) as { cookie: string };
+      mockDocument.cookie = 'OTHER-COOKIE=value';
+
+      const token = service.getXsrfToken();
+
+      expect(token).toBe('');
+    });
+  });
+
+  describe('cookie initialization', () => {
+    it('should initialize token from cookie on construction', () => {
+      // Create a new service instance with cookie already set
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          {
+            provide: DOCUMENT,
+            useValue: { cookie: 'XSRF-TOKEN=init-token' },
+          },
+          { provide: SecurityService, useValue: mockCsrfService },
+          { provide: HttpClient, useValue: {} },
+        ],
+      });
+
+      const newService = TestBed.inject(XsrfService);
+
+      expect(newService.getXsrfToken()).toBe('init-token');
+    });
+  });
+
+  describe('error handling', () => {
+    it('should handle invalid token format from server', async () => {
+      mockCsrfService.getCSRFToken.mockReturnValue(of({ token: null }));
+
+      const token = await service.refreshToken();
+
+      expect(token).toBe('');
+    });
+
+    it('should handle missing token in response', async () => {
+      mockCsrfService.getCSRFToken.mockReturnValue(of({}));
+
+      const token = await service.refreshToken();
+
+      expect(token).toBe('');
+    });
+
+    it('should use cookie fallback when API throws error', async () => {
+      mockCsrfService.getCSRFToken.mockImplementation(() => {
+        throw new Error('Network error');
+      });
+
+      const mockDocument = TestBed.inject(DOCUMENT) as { cookie: string };
+      mockDocument.cookie = 'XSRF-TOKEN=fallback-token';
+
+      const token = await service.refreshToken();
+
+      expect(token).toBe('fallback-token');
+    });
   });
 });

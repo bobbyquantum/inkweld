@@ -1,11 +1,17 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Project } from '@inkweld/index';
-import { MockedObject, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { Project } from '../../api-client/model/project';
 import { OfflineProjectService } from './offline-project.service';
 import { OfflineProjectElementsService } from './offline-project-elements.service';
 import { SetupService } from './setup.service';
+
+type MockedObject<T> = {
+  [K in keyof T]: T[K] extends (...args: any[]) => any
+    ? ReturnType<typeof vi.fn> & T[K]
+    : T[K];
+};
 
 describe('OfflineProjectService', () => {
   let service: OfflineProjectService;
