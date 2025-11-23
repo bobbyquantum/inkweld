@@ -9,13 +9,13 @@ import * as Y from 'yjs';
 
 import { ElementTypeSchema } from '../../../models/schema-types';
 import { WorldbuildingService } from '../../../services/worldbuilding.service';
-import { DynamicWorldbuildingEditorComponent } from './dynamic-worldbuilding-editor.component';
+import { WorldbuildingEditorComponent } from './worldbuilding-editor.component';
 
 type WorldbuildingMock = DeepMockProxy<WorldbuildingService>;
 
-describe('DynamicWorldbuildingEditorComponent', () => {
-  let component: DynamicWorldbuildingEditorComponent;
-  let fixture: ComponentFixture<DynamicWorldbuildingEditorComponent>;
+describe('WorldbuildingEditorComponent', () => {
+  let component: WorldbuildingEditorComponent;
+  let fixture: ComponentFixture<WorldbuildingEditorComponent>;
   let worldbuildingService: WorldbuildingMock;
 
   const mockCharacterSchema: ElementTypeSchema = {
@@ -88,7 +88,7 @@ describe('DynamicWorldbuildingEditorComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
-        DynamicWorldbuildingEditorComponent,
+        WorldbuildingEditorComponent,
         ReactiveFormsModule,
         NoopAnimationsModule,
       ],
@@ -99,13 +99,14 @@ describe('DynamicWorldbuildingEditorComponent', () => {
       ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(DynamicWorldbuildingEditorComponent);
+    fixture = TestBed.createComponent(WorldbuildingEditorComponent);
     component = fixture.componentInstance;
 
     // Set required inputs
     fixture.componentRef.setInput('elementId', 'test-element-123');
     fixture.componentRef.setInput('username', 'testuser');
     fixture.componentRef.setInput('slug', 'test-project');
+    fixture.componentRef.setInput('elementType', 'character');
 
     fixture.detectChanges();
   });
@@ -174,8 +175,6 @@ describe('DynamicWorldbuildingEditorComponent', () => {
   describe('form building', () => {
     it('should build form with top-level fields', () => {
       component.schema.set(mockCharacterSchema);
-
-      // Manually trigger form building (normally done via effect)
       component['buildFormFromSchema'](mockCharacterSchema);
 
       expect(component.form.get('name')).toBeDefined();
@@ -221,8 +220,6 @@ describe('DynamicWorldbuildingEditorComponent', () => {
 
   describe('schema loading', () => {
     it('should load schema when element ID changes', async () => {
-      // Schema loading happens via effect in the component
-      // Wait for async operations
       await new Promise(resolve => setTimeout(resolve, 100));
 
       expect(worldbuildingService.setupCollaboration).toHaveBeenCalledWith(
