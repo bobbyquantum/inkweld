@@ -10,7 +10,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { Element, ElementType } from '../../../../../api-client';
-import { WorldbuildingEditorComponent } from '../../../../components/worldbuilding/worldbuilding-editor/worldbuilding-editor.component';
+import { WorldbuildingEditorComponent } from '../../../../components/worldbuilding/worldbuilding-editor.component';
 import { ProjectStateService } from '../../../../services/project-state.service';
 
 @Component({

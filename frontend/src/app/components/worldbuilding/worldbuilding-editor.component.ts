@@ -24,15 +24,15 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
 import { debounceTime } from 'rxjs';
 
-import { Element, ElementType } from '../../../../api-client';
-import { TemplateEditorDialogComponent } from '../../../dialogs/template-editor-dialog/template-editor-dialog.component';
+import { Element as ApiElement, ElementType } from '../../../api-client';
+import { TemplateEditorDialogComponent } from '../../dialogs/template-editor-dialog/template-editor-dialog.component';
 import {
   ElementTypeSchema,
   FieldSchema,
   TabSchema,
-} from '../../../models/schema-types';
-import { ProjectStateService } from '../../../services/project-state.service';
-import { WorldbuildingService } from '../../../services/worldbuilding.service';
+} from '../../models/schema-types';
+import { ProjectStateService } from '../../services/project-state.service';
+import { WorldbuildingService } from '../../services/worldbuilding.service';
 
 /**
  * Main worldbuilding editor component that renders the dynamic
@@ -52,7 +52,6 @@ import { WorldbuildingService } from '../../../services/worldbuilding.service';
     MatIconModule,
     MatExpansionModule,
     MatTabsModule,
-    // (MatIconModule already included above)
   ],
   templateUrl: './worldbuilding-editor.component.html',
   styleUrls: ['./worldbuilding-editor.component.scss'],
@@ -95,9 +94,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     }
   }
 
-  /**
-   * Load element data and schema
-   */
   private async loadElementData(elementId: string): Promise<void> {
     try {
       await this.worldbuildingService.setupCollaboration(
@@ -115,13 +111,10 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         console.log('[WorldbuildingEditor] Loaded schema:', loadedSchema);
 
         if (!loadedSchema && this.username() && this.slug()) {
-          console.log(
-            '[WorldbuildingEditor] No embedded schema found, initializing element...'
-          );
-
           const elements = this.projectState.elements();
-          const element = elements.find((el: Element) => el.id === elementId);
-
+          const element: ApiElement | undefined = elements.find(
+            (el: ApiElement) => el.id === elementId
+          );
           if (element) {
             await this.worldbuildingService.initializeWorldbuildingElement(
               element,
@@ -132,11 +125,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
             const reinitializedSchema =
               this.worldbuildingService.loadSchemaFromElement(ydoc);
             this.schema.set(reinitializedSchema);
-            console.log(
-              '[WorldbuildingEditor] Schema after initialization:',
-              reinitializedSchema
-            );
-
             if (reinitializedSchema) {
               this.buildFormFromSchema(reinitializedSchema);
             }
@@ -147,10 +135,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
         const data =
           await this.worldbuildingService.getWorldbuildingData(elementId);
-        console.log('[WorldbuildingEditor] Loaded data from Y.Doc:', {
-          data,
-          dataStringified: JSON.stringify(data, null, 2),
-        });
         if (data) {
           this.updateFormFromData(data);
         }
@@ -160,30 +144,23 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     }
   }
 
-  /**
-   * Build reactive form from schema definition
-   */
   private buildFormFromSchema(schema: ElementTypeSchema): void {
     if (!schema?.tabs) {
       console.warn('[WorldbuildingEditor] No tabs in schema');
       return;
     }
 
-    // Form group needs any type due to dynamic nature of form controls
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formGroup: Record<string, any> = {};
 
     schema.tabs.forEach((tab: TabSchema) => {
       tab.fields?.forEach((field: FieldSchema) => {
         const fieldKey = field.key;
-
         if (fieldKey.includes('.')) {
           const [parentKey, childKey] = fieldKey.split('.');
-
           if (!formGroup[parentKey]) {
             formGroup[parentKey] = new FormGroup({});
           }
-
           const parentGroup = formGroup[parentKey] as FormGroup;
           switch (field.type) {
             case 'text':
@@ -221,10 +198,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     });
 
     this.form = new FormGroup(formGroup);
-    console.log(
-      '[WorldbuildingEditor] Built form with controls:',
-      Object.keys(formGroup)
-    );
     this.setupFormSubscription();
   }
 
@@ -232,27 +205,19 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (this.formSubscription) {
       this.formSubscription();
     }
-
     const subscription = this.form.valueChanges
       .pipe(debounceTime(500))
       .subscribe(() => {
-        console.log('[WorldbuildingEditor] Form value changed, saving...');
         if (!this.isUpdatingFromRemote) {
           void this.saveData();
-        } else {
-          console.log(
-            '[WorldbuildingEditor] Skipping save - updating from remote changes'
-          );
         }
       });
-
     this.formSubscription = () => subscription.unsubscribe();
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private updateFormFromData(data: any): void {
     this.isUpdatingFromRemote = true;
-
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     Object.entries(data).forEach(([key, value]) => {
       const control = this.form.get(key);
@@ -260,9 +225,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         if (control instanceof FormArray) {
           control.clear();
           if (Array.isArray(value)) {
-            value.forEach(item => {
-              control.push(new FormControl(item));
-            });
+            value.forEach(item => control.push(new FormControl(item)));
           }
         } else if (
           control instanceof FormGroup &&
@@ -281,7 +244,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         }
       }
     });
-
     this.isUpdatingFromRemote = false;
   }
 
@@ -289,7 +251,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (this.unsubscribeObserver) {
       this.unsubscribeObserver();
     }
-
     this.unsubscribeObserver = await this.worldbuildingService.observeChanges(
       elementId,
       data => {
@@ -304,21 +265,14 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   private async saveData(): Promise<void> {
     const formValue = this.form.value;
-    console.log('[WorldbuildingEditor] Saving data:', {
-      elementId: this.elementId(),
-      formValue,
-      formValueStringified: JSON.stringify(formValue, null, 2),
-    });
     await this.worldbuildingService.saveWorldbuildingData(
       this.elementId(),
       formValue,
       this.username(),
       this.slug()
     );
-    console.log('[WorldbuildingEditor] Data saved successfully');
   }
 
-  // Getters and helpers that were previously on dynamic component
   getTabs(): TabSchema[] {
     return this.schema()?.tabs || [];
   }
@@ -344,17 +298,13 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   async editEmbeddedTemplate(): Promise<void> {
     const currentSchema = this.schema();
-    if (!currentSchema) {
-      console.warn('[WorldbuildingEditor] No schema available to edit');
-      return;
-    }
+    if (!currentSchema) return;
 
     const dialogRef = this.dialog.open(TemplateEditorDialogComponent, {
       width: '800px',
       maxHeight: '90vh',
       data: { schema: currentSchema },
     });
-
     try {
       const result = (await dialogRef.afterClosed().toPromise()) as
         | ElementTypeSchema
@@ -363,7 +313,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         const elementId = this.elementId();
         const connection =
           this.worldbuildingService['connections'].get(elementId);
-
         if (connection?.ydoc) {
           this.worldbuildingService.embedSchemaInElement(
             connection.ydoc,
@@ -371,10 +320,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
           );
           this.schema.set(result);
           this.buildFormFromSchema(result);
-          console.log(
-            '[WorldbuildingEditor] Updated embedded template:',
-            result.name
-          );
         }
       }
     } catch (error) {
