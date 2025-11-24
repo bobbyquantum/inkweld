@@ -3,7 +3,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { SettingsService } from '@services/settings.service';
 
 import { ProjectSettingsComponent } from './project-settings.component';
@@ -41,7 +40,6 @@ describe('ProjectSettingsComponent', () => {
         FormsModule,
         MatCheckboxModule,
         MatFormFieldModule, // Added
-        NoopAnimationsModule,
       ],
       providers: [provideZonelessChangeDetection(), SettingsService],
     }).compileComponents();

@@ -1,6 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
 import { SystemConfigService } from '@services/system-config.service';
 import { vi } from 'vitest';
@@ -36,7 +35,7 @@ describe('ApprovalPendingComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ApprovalPendingComponent, NoopAnimationsModule],
+      imports: [ApprovalPendingComponent],
       providers: [
         provideZonelessChangeDetection(),
         {

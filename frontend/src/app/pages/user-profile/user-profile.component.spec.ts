@@ -1,7 +1,6 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
 import { Project, User } from '@inkweld/index';
 import { ProjectService } from '@services/project.service';
@@ -59,7 +58,7 @@ describe('UserProfileComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [UserProfileComponent, NoopAnimationsModule],
+      imports: [UserProfileComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ActivatedRoute, useValue: activatedRouteMock },

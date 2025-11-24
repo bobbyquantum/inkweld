@@ -3,7 +3,6 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import {
   AuthenticationService,
@@ -75,7 +74,7 @@ describe('RegisterComponent', () => {
     } as unknown as MockedObject<SystemConfigService>;
 
     await TestBed.configureTestingModule({
-      imports: [RegisterComponent, NoopAnimationsModule, ReactiveFormsModule],
+      imports: [RegisterComponent, ReactiveFormsModule],
       providers: [
         provideZonelessChangeDetection(),
         { provide: HttpClient, useValue: httpClient },

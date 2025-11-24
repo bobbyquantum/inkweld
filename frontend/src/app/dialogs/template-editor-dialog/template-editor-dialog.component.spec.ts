@@ -2,7 +2,6 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ElementTypeSchema } from '../../models/schema-types';
@@ -65,7 +64,6 @@ describe('TemplateEditorDialogComponent', () => {
       imports: [
         TemplateEditorDialogComponent,
         ReactiveFormsModule,
-        NoopAnimationsModule,
       ],
       providers: [
         provideZonelessChangeDetection(),

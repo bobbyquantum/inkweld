@@ -13,7 +13,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   ActivatedRoute,
   convertToParamMap,
@@ -84,7 +83,6 @@ describe('CreateProjectComponent', () => {
         MatInputModule,
         MatCardModule,
         MatProgressBarModule,
-        NoopAnimationsModule,
       ],
       providers: [
         provideZonelessChangeDetection(),

@@ -5,7 +5,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { Project, User } from '@inkweld/index';
 import { of } from 'rxjs';
@@ -104,7 +103,6 @@ describe('EditProjectDialogComponent', () => {
       imports: [
         EditProjectDialogComponent,
         ReactiveFormsModule,
-        NoopAnimationsModule,
       ],
       providers: [
         provideZonelessChangeDetection(),

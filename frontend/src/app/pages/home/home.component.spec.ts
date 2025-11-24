@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { provideLocationMocks } from '@angular/common/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   ActivatedRoute,
   convertToParamMap,
@@ -71,7 +70,7 @@ describe('HomeComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [HomeComponent, NoopAnimationsModule],
+      imports: [HomeComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([

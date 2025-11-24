@@ -2,7 +2,6 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DefaultTemplatesService } from '@services/default-templates.service';
 import { DialogGatewayService } from '@services/dialog-gateway.service';
 import { ProjectStateService } from '@services/project-state.service';
@@ -107,7 +106,7 @@ describe('TemplatesTabComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [TemplatesTabComponent, NoopAnimationsModule],
+      imports: [TemplatesTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },

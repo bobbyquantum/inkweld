@@ -7,7 +7,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTabsModule } from '@angular/material/tabs';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   ActivatedRoute,
   convertToParamMap,
@@ -175,7 +174,6 @@ describe('TabInterfaceComponent', () => {
         CdkContextMenuTrigger,
         CdkMenu,
         CdkMenuItem,
-        NoopAnimationsModule,
       ],
       providers: [
         provideZonelessChangeDetection(),

@@ -1,6 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { SetupService } from '@services/setup.service';
 import { MockedObject, vi } from 'vitest';
 
@@ -18,7 +17,7 @@ describe('SyncSettingsComponent', () => {
     } as unknown as MockedObject<SetupService>;
 
     await TestBed.configureTestingModule({
-      imports: [SyncSettingsComponent, NoopAnimationsModule],
+      imports: [SyncSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: SetupService, useValue: setupService },

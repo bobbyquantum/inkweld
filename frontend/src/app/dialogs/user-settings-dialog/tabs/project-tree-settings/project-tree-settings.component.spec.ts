@@ -2,7 +2,6 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { SettingsService } from '@services/settings.service';
 
 import { ProjectTreeSettingsComponent } from './project-tree-settings.component';
@@ -38,7 +37,6 @@ describe('ProjectTreeSettingsComponent', () => {
         ProjectTreeSettingsComponent,
         FormsModule,
         MatCheckboxModule,
-        NoopAnimationsModule,
       ],
       providers: [provideZonelessChangeDetection(), SettingsService],
     }).compileComponents();

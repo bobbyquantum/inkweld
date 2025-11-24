@@ -13,7 +13,6 @@ import {
   WritableSignal,
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ElementType } from '@inkweld/index';
 import { ProjectsService } from '@inkweld/index';
 import { ProjectStateService } from '@services/project-state.service';
@@ -111,7 +110,7 @@ describe('ProjectTreeComponent', () => {
     } as unknown as MockedObject<DialogGatewayService>;
 
     await TestBed.configureTestingModule({
-      imports: [ProjectTreeComponent, NoopAnimationsModule],
+      imports: [ProjectTreeComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: SettingsService, useValue: settingsService },

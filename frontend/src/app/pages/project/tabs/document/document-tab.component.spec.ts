@@ -8,7 +8,6 @@ import {
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatIconModule } from '@angular/material/icon';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Project } from '@inkweld/index';
@@ -92,7 +91,6 @@ describe('DocumentTabComponent', () => {
         RouterTestingModule,
         MatIconModule,
         DocumentTabComponent,
-        NoopAnimationsModule,
         MockDocumentElementEditorComponent,
       ],
       providers: [

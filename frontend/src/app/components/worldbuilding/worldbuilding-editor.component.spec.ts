@@ -2,7 +2,6 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 import * as Y from 'yjs';
@@ -75,7 +74,6 @@ describe('WorldbuildingEditorComponent', () => {
       imports: [
         WorldbuildingEditorComponent,
         ReactiveFormsModule,
-        NoopAnimationsModule,
       ],
       providers: [
         provideZonelessChangeDetection(),

@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router } from '@angular/router';
 import { UserService, UserServiceError } from '@services/user.service';
 import { XsrfService } from '@services/xsrf.service';
@@ -52,7 +51,7 @@ describe('WelcomeComponent', () => {
     } as unknown as MockedObject<BreakpointObserver>;
 
     await TestBed.configureTestingModule({
-      imports: [WelcomeComponent, NoopAnimationsModule],
+      imports: [WelcomeComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: HttpClient, useValue: httpClient },

@@ -6,7 +6,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { UserService } from '@services/user.service';
 import { ThemeOption, ThemeService } from '@themes/theme.service';
 import { of, throwError } from 'rxjs';
@@ -53,7 +52,6 @@ describe('GeneralSettingsComponent', () => {
         MatInputModule,
         MatButtonModule,
         MatIconModule,
-        NoopAnimationsModule,
         GeneralSettingsComponent,
       ],
       providers: [

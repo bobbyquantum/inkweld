@@ -2,7 +2,6 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { AuthenticationService, OAuthProvidersResponse } from '@inkweld/index';
 import { Observable, of, throwError } from 'rxjs';
 import { vi } from 'vitest';
@@ -29,7 +28,7 @@ describe('OAuthProviderListComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [OAuthProviderListComponent, NoopAnimationsModule],
+      imports: [OAuthProviderListComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(),

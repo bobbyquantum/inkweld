@@ -3,7 +3,6 @@ import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ElementType } from '@inkweld/index';
 import { vi } from 'vitest';
 
@@ -81,7 +80,6 @@ describe('FolderElementEditorComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
-        NoopAnimationsModule,
         FolderElementEditorComponent,
         MockTreeNodeIconComponent,
       ],

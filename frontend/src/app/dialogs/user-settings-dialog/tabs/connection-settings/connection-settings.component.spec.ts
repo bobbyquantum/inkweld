@@ -2,7 +2,6 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { MigrationService } from '@services/migration.service';
 import { SetupService } from '@services/setup.service';
@@ -48,7 +47,7 @@ describe('ConnectionSettingsComponent', () => {
     } as unknown as MockedObject<Router>;
 
     await TestBed.configureTestingModule({
-      imports: [ConnectionSettingsComponent, NoopAnimationsModule],
+      imports: [ConnectionSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(),

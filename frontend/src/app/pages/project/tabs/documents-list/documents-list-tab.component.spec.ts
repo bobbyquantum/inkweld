@@ -6,7 +6,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { Element, ElementType } from '@inkweld/index';
 import { DocumentService } from '@services/document.service';
@@ -95,7 +94,6 @@ describe('DocumentsListTabComponent', () => {
         MatTableModule,
         MatProgressSpinnerModule,
         MatTooltipModule,
-        NoopAnimationsModule,
         DocumentsListTabComponent,
       ],
       providers: [

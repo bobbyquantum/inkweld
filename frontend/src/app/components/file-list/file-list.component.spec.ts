@@ -4,7 +4,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { By } from '@angular/platform-browser';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { vi } from 'vitest';
 
 import { FileSizePipe } from '../../pipes/file-size.pipe';
@@ -39,7 +38,6 @@ describe('FileListComponent', () => {
         MatTableModule,
         MatButtonModule,
         MatIconModule,
-        NoopAnimationsModule,
         FileSizePipe,
       ],
       providers: [

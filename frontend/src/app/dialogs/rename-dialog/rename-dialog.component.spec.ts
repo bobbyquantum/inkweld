@@ -5,7 +5,6 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MockedObject, vi } from 'vitest';
 
 import {
@@ -31,7 +30,7 @@ describe('RenameDialogComponent', () => {
     >;
 
     await TestBed.configureTestingModule({
-      imports: [RenameDialogComponent, NoopAnimationsModule, MatDialogModule],
+      imports: [RenameDialogComponent, MatDialogModule],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },
