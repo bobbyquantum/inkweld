@@ -9,8 +9,17 @@ import {
   ConfirmationDialogComponent,
   ConfirmationDialogData,
 } from '../dialogs/confirmation-dialog/confirmation-dialog.component';
+import { EditAvatarDialogComponent } from '../dialogs/edit-avatar-dialog/edit-avatar-dialog.component';
 import { EditProjectDialogComponent } from '../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { FileUploadComponent } from '../dialogs/file-upload/file-upload.component';
+import {
+  GenerateCoverDialogComponent,
+  GenerateCoverDialogData,
+} from '../dialogs/generate-cover-dialog/generate-cover-dialog.component';
+import {
+  ImageViewerDialogComponent,
+  ImageViewerDialogData,
+} from '../dialogs/image-viewer-dialog/image-viewer-dialog.component';
 import {
   NewElementDialogComponent,
   NewElementDialogResult,
@@ -19,6 +28,7 @@ import {
   RenameDialogComponent,
   RenameDialogData,
 } from '../dialogs/rename-dialog/rename-dialog.component';
+import { UserSettingsDialogComponent } from '../dialogs/user-settings-dialog/user-settings-dialog.component';
 import { DialogGatewayService } from './dialog-gateway.service';
 
 describe('DialogGatewayService', () => {
@@ -141,5 +151,82 @@ describe('DialogGatewayService', () => {
     const result = await service.openRenameDialog({ currentName: 'Test' });
 
     expect(result).toBeNull();
+  });
+
+  it('should open image viewer dialog', () => {
+    const data: ImageViewerDialogData = {
+      imageUrl: 'https://example.com/image.png',
+      fileName: 'test-image.png',
+    };
+
+    service.openImageViewerDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(ImageViewerDialogComponent, {
+      data,
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      panelClass: 'image-viewer-dialog-panel',
+    });
+  });
+
+  it('should open edit avatar dialog', async () => {
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(true));
+
+    const result = await service.openEditAvatarDialog();
+
+    expect(dialogMock.open).toHaveBeenCalledWith(EditAvatarDialogComponent, {
+      disableClose: true,
+      width: '400px',
+    });
+    expect(result).toBe(true);
+  });
+
+  it('should open generate cover dialog', async () => {
+    const project: Project = {
+      id: '1',
+      title: 'Test Project',
+      slug: 'test-project',
+      username: 'testuser',
+    } as Project;
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(true));
+
+    const result = await service.openGenerateCoverDialog(project);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(GenerateCoverDialogComponent, {
+      data: { project } as GenerateCoverDialogData,
+      disableClose: false,
+      width: '600px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+    });
+    expect(result).toBe(true);
+  });
+
+  it('should open user settings dialog with default category', async () => {
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(undefined));
+
+    await service.openUserSettingsDialog();
+
+    expect(dialogMock.open).toHaveBeenCalledWith(UserSettingsDialogComponent, {
+      width: '800px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      panelClass: 'user-settings-dialog-panel',
+      data: { selectedCategory: 'general' },
+    });
+  });
+
+  it('should open user settings dialog with specified category', async () => {
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(undefined));
+
+    await service.openUserSettingsDialog('account');
+
+    expect(dialogMock.open).toHaveBeenCalledWith(UserSettingsDialogComponent, {
+      width: '800px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      panelClass: 'user-settings-dialog-panel',
+      data: { selectedCategory: 'account' },
+    });
   });
 });
