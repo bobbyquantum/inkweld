@@ -15,6 +15,7 @@ import * as Y from 'yjs';
 
 import { DocumentSyncState } from '../models/document-sync-state';
 import { DialogGatewayService } from './dialog-gateway.service';
+import { ElementTreeService, ValidDropLevels } from './element-tree.service';
 import { LoggerService } from './logger.service';
 import { OfflineProjectElementsService } from './offline-project-elements.service';
 import { RecentFilesService } from './recent-files.service';
@@ -32,10 +33,8 @@ const DOCUMENT_CACHE_CONFIG = {
   },
 };
 
-export interface ValidDropLevels {
-  levels: number[];
-  defaultLevel: number;
-}
+// Re-export ValidDropLevels for backward compatibility
+export type { ValidDropLevels };
 
 // Interfaces for tab management
 export interface AppTab {
@@ -61,6 +60,7 @@ export class ProjectStateService {
   private storageService = inject(StorageService);
   private logger = inject(LoggerService);
   private worldbuildingService = inject(WorldbuildingService);
+  private elementTreeService = inject(ElementTreeService);
 
   // Document cache
   private documentCacheDb: Promise<IDBDatabase> | null = null;
@@ -622,7 +622,7 @@ export class ProjectStateService {
 
       const newElements = [...elements];
       newElements[index] = { ...newElements[index], name: newName };
-      this.updateElements(this.recomputePositions(newElements));
+      this.updateElements(this.elementTreeService.recomputeOrder(newElements));
     }
   }
 
@@ -759,7 +759,9 @@ export class ProjectStateService {
         `Created new element in server mode, calling updateElements with ${updatedElements.length} elements`
       );
 
-      this.updateElements(this.recomputePositions(updatedElements));
+      this.updateElements(
+        this.elementTreeService.recomputeOrder(updatedElements)
+      );
 
       // Auto-expand parent when adding new element
       if (parentId) {
@@ -780,38 +782,13 @@ export class ProjectStateService {
   }
 
   isValidDrop(nodeAbove: Element | null, targetLevel: number): boolean {
-    if (!nodeAbove) {
-      // If no node above, only allow root level or first level
-      return targetLevel <= 1;
-    }
-
-    // Items can't have children
-    if (nodeAbove.type === ElementType.Item && targetLevel > nodeAbove.level) {
-      return false;
-    }
-
-    // Folders can only have children one level deeper
-    if (
-      nodeAbove.type === ElementType.Folder &&
-      targetLevel > nodeAbove.level + 1
-    ) {
-      return false;
-    }
-
-    // Prevent negative levels
-    if (targetLevel < 0) {
-      return false;
-    }
-
-    return true;
+    return this.elementTreeService.isValidDrop(nodeAbove, targetLevel);
   }
 
   getValidDropLevels(
     nodeAbove: Element | null,
     nodeBelow: Element | null
   ): ValidDropLevels {
-    const validLevels = new Set<number>();
-
     // Debug logging
     this.logger.debug('ProjectState', 'GetValidDropLevels Debug:', {
       nodeAbove: nodeAbove
@@ -822,73 +799,15 @@ export class ProjectStateService {
         : null,
     });
 
-    if (nodeAbove && nodeBelow) {
-      if (nodeAbove.level < nodeBelow.level) {
-        if (nodeAbove.type === ElementType.Folder) {
-          if (nodeBelow.level === nodeAbove.level + 1) {
-            validLevels.add(nodeBelow.level);
-          } else {
-            validLevels.add(nodeAbove.level);
-            validLevels.add(nodeAbove.level + 1);
-          }
-        } else {
-          validLevels.add(nodeBelow.level);
-        }
-      } else if (nodeAbove.level === nodeBelow.level) {
-        validLevels.add(nodeAbove.level);
-        // Also allow dropping inside if above node is a folder
-        if (nodeAbove.type === ElementType.Folder) {
-          validLevels.add(nodeAbove.level + 1);
-        }
-      } else {
-        // Allow all levels between the two nodes
-        for (let level = nodeBelow.level; level <= nodeAbove.level; level++) {
-          validLevels.add(level);
-        }
-      }
-    } else if (nodeAbove && !nodeBelow) {
-      // Allow current level and all levels above it
-      for (let level = 0; level <= nodeAbove.level; level++) {
-        validLevels.add(level);
-      }
-      // If above node is a folder, allow one level deeper
-      if (nodeAbove.type === ElementType.Folder) {
-        validLevels.add(nodeAbove.level + 1);
-      }
-    } else if (!nodeAbove && nodeBelow) {
-      validLevels.add(nodeBelow.level);
-    } else {
-      validLevels.add(0); // Root level only if no context
-    }
-
-    const levels = Array.from(validLevels).sort((a, b) => a - b);
-    const defaultLevel = levels.length > 0 ? levels[0] : 0;
-
-    return {
-      levels,
-      defaultLevel,
-    };
+    return this.elementTreeService.getValidDropLevels(nodeAbove, nodeBelow);
   }
 
   getDropInsertIndex(nodeAbove: Element | null, targetLevel: number): number {
-    if (!nodeAbove) {
-      return 0;
-    }
-
-    const elements = this.elements();
-    const nodeAboveIndex = elements.findIndex(n => n.id === nodeAbove.id);
-    if (nodeAboveIndex === -1) {
-      return elements.length;
-    }
-
-    // If dropping at a deeper level than the node above, insert right after it
-    if (targetLevel > nodeAbove.level) {
-      return nodeAboveIndex + 1;
-    }
-
-    // If dropping at the same or higher level, insert after the entire subtree
-    const subtree = this.getSubtree(elements, nodeAboveIndex);
-    return nodeAboveIndex + subtree.length;
+    return this.elementTreeService.getDropInsertIndex(
+      this.elements(),
+      nodeAbove,
+      targetLevel
+    );
   }
 
   async moveElement(
@@ -910,24 +829,17 @@ export class ProjectStateService {
       );
       this.elements.set(newElements);
     } else {
-      // Move element in server mode
+      // Move element in server mode using ElementTreeService
       const elements = this.elements();
-      const elementIndex = elements.findIndex(e => e.id === elementId);
-      if (elementIndex === -1) return;
-
-      const element = elements[elementIndex];
-      const subtree = this.getSubtree(elements, elementIndex);
-      const levelDiff = newLevel - element.level;
-
-      // Remove subtree from current position
-      const newElements = elements.filter(e => !subtree.includes(e));
-
-      // Update levels in subtree
-      subtree.forEach(e => (e.level += levelDiff));
-
-      // Insert at new position
-      newElements.splice(targetIndex, 0, ...subtree);
-      void this.updateElements(this.recomputePositions(newElements));
+      const newElements = this.elementTreeService.moveElement(
+        elements,
+        elementId,
+        targetIndex,
+        newLevel
+      );
+      if (newElements !== elements) {
+        void this.updateElements(newElements);
+      }
     }
   }
 
@@ -1002,7 +914,7 @@ export class ProjectStateService {
       const index = elements.findIndex(e => e.id === elementId);
       if (index === -1) return;
 
-      const subtree = this.getSubtree(elements, index);
+      const subtree = this.elementTreeService.getSubtree(elements, index);
       const newElements = elements.filter(e => !subtree.includes(e));
 
       // Remove deleted elements from expanded set
@@ -1011,7 +923,9 @@ export class ProjectStateService {
       subtree.forEach(e => newExpanded.delete(e.id));
       this.expandedNodeIds.set(newExpanded);
 
-      void this.updateElements(this.recomputePositions(newElements));
+      void this.updateElements(
+        this.elementTreeService.recomputeOrder(newElements)
+      );
     }
   }
 
@@ -1463,28 +1377,6 @@ export class ProjectStateService {
           void this.updateProject(result);
         }
       });
-  }
-
-  private getSubtree(elements: Element[], startIndex: number): Element[] {
-    const startLevel = elements[startIndex].level;
-    const subtree = [elements[startIndex]];
-
-    for (let i = startIndex + 1; i < elements.length; i++) {
-      if (elements[i].level > startLevel) {
-        subtree.push(elements[i]);
-      } else {
-        break;
-      }
-    }
-
-    return subtree;
-  }
-
-  private recomputePositions(elements: Element[]): Element[] {
-    return elements.map((element, index) => ({
-      ...element,
-      position: index,
-    }));
   }
 
   private initializeFromDoc(): void {
