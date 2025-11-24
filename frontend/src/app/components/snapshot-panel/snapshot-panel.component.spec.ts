@@ -92,7 +92,7 @@ describe('SnapshotPanelComponent', () => {
     it('should set loading to true while loading', () => {
       component.loading.set(false);
       component.loadSnapshots();
-      
+
       // After subscribe completes, loading should be false
       expect(component.loading()).toBe(false);
       expect(component.snapshots()).toEqual(mockSnapshots);
@@ -314,7 +314,7 @@ describe('SnapshotPanelComponent', () => {
   describe('formatDate', () => {
     it('should format date string correctly', () => {
       const result = component.formatDate('2024-01-15T10:30:00Z');
-      
+
       // The exact format depends on locale, but it should contain the date
       expect(result).toBeTruthy();
       expect(typeof result).toBe('string');
@@ -323,7 +323,7 @@ describe('SnapshotPanelComponent', () => {
     it('should format Date object correctly', () => {
       const date = new Date('2024-01-15T10:30:00Z');
       const result = component.formatDate(date);
-      
+
       expect(result).toBeTruthy();
       expect(typeof result).toBe('string');
     });
@@ -351,9 +351,9 @@ describe('SnapshotPanelComponent', () => {
   describe('closePanel output', () => {
     it('should emit when close is requested', () => {
       const emitSpy = vi.spyOn(component.closePanel, 'emit');
-      
+
       component.closePanel.emit();
-      
+
       expect(emitSpy).toHaveBeenCalled();
     });
   });

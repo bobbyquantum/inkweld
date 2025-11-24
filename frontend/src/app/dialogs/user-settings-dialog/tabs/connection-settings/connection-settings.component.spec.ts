@@ -141,7 +141,9 @@ describe('ConnectionSettingsComponent', () => {
 
       await component.testConnection();
 
-      expect(component['connectionError']()).toBe('Failed to connect to server');
+      expect(component['connectionError']()).toBe(
+        'Failed to connect to server'
+      );
       consoleSpy.mockRestore();
       vi.unstubAllGlobals();
     });

@@ -81,7 +81,7 @@ describe('RestoreSnapshotDialogComponent', () => {
   describe('formatDate', () => {
     it('should format date string correctly', () => {
       const result = component.formatDate('2024-01-15T10:30:00Z');
-      
+
       // The exact format depends on locale, but it should be a non-empty string
       expect(result).toBeTruthy();
       expect(typeof result).toBe('string');
@@ -90,14 +90,14 @@ describe('RestoreSnapshotDialogComponent', () => {
     it('should format Date object correctly', () => {
       const date = new Date('2024-01-15T10:30:00Z');
       const result = component.formatDate(date);
-      
+
       expect(result).toBeTruthy();
       expect(typeof result).toBe('string');
     });
 
     it('should handle invalid date gracefully', () => {
       const result = component.formatDate('invalid-date');
-      
+
       // Invalid date should return "Invalid Date" string
       expect(result).toBe('Invalid Date');
     });
