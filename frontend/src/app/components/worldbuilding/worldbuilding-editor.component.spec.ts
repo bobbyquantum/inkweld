@@ -9,7 +9,7 @@ import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 import * as Y from 'yjs';
 
 import { Element, ElementType } from '../../../api-client';
-import { ElementTypeSchema, TabSchema } from '../../models/schema-types';
+import { ElementTypeSchema } from '../../models/schema-types';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { WorldbuildingEditorComponent } from './worldbuilding-editor.component';

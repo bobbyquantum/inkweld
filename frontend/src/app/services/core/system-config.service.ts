@@ -1,12 +1,8 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
+import { ConfigurationService } from '@inkweld/index';
+import { SystemFeatures, SystemFeaturesAppMode } from '@inkweld/index';
 import { of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
-
-import { ConfigurationService } from '@inkweld/index';
-import {
-  SystemFeatures,
-  SystemFeaturesAppMode,
-} from '@inkweld/index';
 
 // ExtendedSystemFeatures is the same as the API response now
 type ExtendedSystemFeatures = SystemFeatures;

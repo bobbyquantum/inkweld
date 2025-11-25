@@ -1,14 +1,14 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
-
 import { AuthenticationService } from '@inkweld/index';
 import { ProjectsService } from '@inkweld/index';
 import { Project } from '@inkweld/index';
+import { firstValueFrom } from 'rxjs';
+
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { UserService } from '../user/user.service';
-import { OfflineProjectElementsService } from './offline-project-elements.service';
 import { OfflineProjectService } from './offline-project.service';
+import { OfflineProjectElementsService } from './offline-project-elements.service';
 
 /**
  * Status of a migration operation

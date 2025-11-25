@@ -10,8 +10,8 @@ import {
   Router,
 } from '@angular/router';
 import { Project, User } from '@inkweld/index';
-import { ProjectServiceError } from '@services/project/project.service';
 import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { ProjectServiceError } from '@services/project/project.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { ThemeService } from '@themes/theme.service';
 import { of } from 'rxjs';

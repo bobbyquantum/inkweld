@@ -1,10 +1,10 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { User } from '@inkweld/index';
 import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
 
-import { User } from '@inkweld/index';
-import { OfflineUserService } from './offline-user.service';
 import { SetupService } from '../core/setup.service';
+import { OfflineUserService } from './offline-user.service';
 
 describe('OfflineUserService', () => {
   let service: OfflineUserService;

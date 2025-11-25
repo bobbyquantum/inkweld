@@ -1,9 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { MessageResponse, ProjectFile as ApiProjectFile } from '@inkweld/index';
+import { FilesService } from '@inkweld/index';
 import { catchError, map, Observable, throwError } from 'rxjs';
 
-import { FilesService } from '@inkweld/index';
 import { XsrfService } from '../auth/xsrf.service';
 
 export interface ProjectFile {

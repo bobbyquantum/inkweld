@@ -100,10 +100,7 @@ describe('EditProjectDialogComponent', () => {
     document.cookie = 'XSRF-TOKEN=test-token';
 
     await TestBed.configureTestingModule({
-      imports: [
-        EditProjectDialogComponent,
-        ReactiveFormsModule,
-      ],
+      imports: [EditProjectDialogComponent, ReactiveFormsModule],
       providers: [
         provideZonelessChangeDetection(),
         FormBuilder,

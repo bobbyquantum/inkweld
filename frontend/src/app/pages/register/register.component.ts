@@ -44,9 +44,9 @@ import {
   UsernameAvailability,
   UsersService,
 } from '@inkweld/index';
+import { XsrfService } from '@services/auth/xsrf.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
-import { XsrfService } from '@services/auth/xsrf.service';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 
 @Component({

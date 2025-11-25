@@ -33,11 +33,7 @@ describe('ProjectTreeSettingsComponent', () => {
     });
 
     await TestBed.configureTestingModule({
-      imports: [
-        ProjectTreeSettingsComponent,
-        FormsModule,
-        MatCheckboxModule,
-      ],
+      imports: [ProjectTreeSettingsComponent, FormsModule, MatCheckboxModule],
       providers: [provideZonelessChangeDetection(), SettingsService],
     }).compileComponents();
 

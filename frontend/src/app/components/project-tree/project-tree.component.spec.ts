@@ -15,8 +15,8 @@ import {
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ElementType } from '@inkweld/index';
 import { ProjectsService } from '@inkweld/index';
-import { ProjectStateService } from '@services/project/project-state.service';
 import { SettingsService } from '@services/core/settings.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 import {
   afterEach,
   beforeEach,

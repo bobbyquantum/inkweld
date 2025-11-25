@@ -24,7 +24,10 @@ import {
 } from '@angular/router';
 import { Element, ElementType } from '@inkweld/index';
 import { DocumentService } from '@services/project/document.service';
-import { AppTab, ProjectStateService } from '@services/project/project-state.service';
+import {
+  AppTab,
+  ProjectStateService,
+} from '@services/project/project-state.service';
 import { filter, Subject, Subscription, takeUntil } from 'rxjs';
 
 import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';

@@ -1,7 +1,7 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-
 import { User } from '@inkweld/index';
+
 import { SetupService } from '../core/setup.service';
 import { OfflineUserService } from '../offline/offline-user.service';
 import { UserService } from './user.service';

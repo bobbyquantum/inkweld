@@ -1,11 +1,11 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { Project } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Project } from '@inkweld/index';
+import { SetupService } from '../core/setup.service';
 import { OfflineProjectService } from './offline-project.service';
 import { OfflineProjectElementsService } from './offline-project-elements.service';
-import { SetupService } from '../core/setup.service';
 
 type MockedObject<T> = {
   [K in keyof T]: T[K] extends (...args: any[]) => any

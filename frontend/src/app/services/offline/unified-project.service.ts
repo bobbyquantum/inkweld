@@ -1,6 +1,6 @@
 import { computed, inject, Injectable } from '@angular/core';
-
 import { Project } from '@inkweld/index';
+
 import { SetupService } from '../core/setup.service';
 import { ProjectService } from '../project/project.service';
 import { OfflineProjectService } from './offline-project.service';

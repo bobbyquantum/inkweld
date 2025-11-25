@@ -4,8 +4,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { MigrationService, MigrationStatus } from '@services/offline/migration.service';
 import { SetupService } from '@services/core/setup.service';
+import {
+  MigrationService,
+  MigrationStatus,
+} from '@services/offline/migration.service';
 import { of } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 

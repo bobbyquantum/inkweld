@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
-
 import { User } from '@inkweld/index';
+
 import { SetupService } from '../core/setup.service';
 
 const OFFLINE_USER_STORAGE_KEY = 'inkweld-offline-user';

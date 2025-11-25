@@ -1,6 +1,4 @@
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-
 import {
   CreateSnapshotRequest,
   DocumentSnapshot,
@@ -8,6 +6,8 @@ import {
   SnapshotsService,
   SnapshotWithContent,
 } from '@inkweld/index';
+import { Observable } from 'rxjs';
+
 import { ProjectStateService } from './project-state.service';
 
 /**

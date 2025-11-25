@@ -1,8 +1,5 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
-import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
-
 import {
   CreateSnapshotRequest,
   DocumentSnapshot,
@@ -10,6 +7,9 @@ import {
   SnapshotWithContent,
 } from '@inkweld/index';
 import { Project } from '@inkweld/index';
+import { of } from 'rxjs';
+import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
+
 import { DocumentSnapshotService } from './document-snapshot.service';
 import { ProjectStateService } from './project-state.service';
 

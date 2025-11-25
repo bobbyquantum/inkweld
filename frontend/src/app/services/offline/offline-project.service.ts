@@ -1,8 +1,8 @@
 import { inject, Injectable, signal } from '@angular/core';
-
 import { Project } from '@inkweld/index';
-import { OfflineProjectElementsService } from './offline-project-elements.service';
+
 import { SetupService } from '../core/setup.service';
+import { OfflineProjectElementsService } from './offline-project-elements.service';
 
 const OFFLINE_PROJECTS_STORAGE_KEY = 'inkweld-offline-projects';
 

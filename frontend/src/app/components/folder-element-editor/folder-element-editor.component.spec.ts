@@ -79,10 +79,7 @@ describe('FolderElementEditorComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [
-        FolderElementEditorComponent,
-        MockTreeNodeIconComponent,
-      ],
+      imports: [FolderElementEditorComponent, MockTreeNodeIconComponent],
       declarations: [],
       providers: [
         provideZonelessChangeDetection(),

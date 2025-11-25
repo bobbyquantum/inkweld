@@ -20,9 +20,9 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { SettingsService } from '@services/core/settings.service';
 import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
 
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';

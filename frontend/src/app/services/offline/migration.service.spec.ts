@@ -11,8 +11,8 @@ import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { UserService } from '../user/user.service';
 import { MigrationService, MigrationStatus } from './migration.service';
-import { OfflineProjectElementsService } from './offline-project-elements.service';
 import { OfflineProjectService } from './offline-project.service';
+import { OfflineProjectElementsService } from './offline-project-elements.service';
 
 describe('MigrationService', () => {
   let service: MigrationService;

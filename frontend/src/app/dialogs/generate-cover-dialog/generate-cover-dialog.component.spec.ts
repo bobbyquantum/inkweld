@@ -124,9 +124,9 @@ describe('GenerateCoverDialogComponent', () => {
         .spyOn(console, 'error')
         .mockImplementation(() => {});
       aiImageServiceMock.generateAIImage.mockReturnValue(
-        throwError(() => new Error('Generation failed')) as unknown as ReturnType<
-          typeof aiImageServiceMock.generateAIImage
-        >
+        throwError(
+          () => new Error('Generation failed')
+        ) as unknown as ReturnType<typeof aiImageServiceMock.generateAIImage>
       );
 
       fixture.detectChanges();

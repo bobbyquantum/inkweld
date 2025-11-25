@@ -1,11 +1,11 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { Project } from '@inkweld/index';
 import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
 
-import { Project } from '@inkweld/index';
-import { OfflineProjectService } from './offline-project.service';
-import { ProjectService } from '../project/project.service';
 import { SetupService } from '../core/setup.service';
+import { ProjectService } from '../project/project.service';
+import { OfflineProjectService } from './offline-project.service';
 import { UnifiedProjectService } from './unified-project.service';
 
 describe('UnifiedProjectService', () => {

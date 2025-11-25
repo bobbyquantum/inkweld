@@ -61,10 +61,7 @@ describe('TemplateEditorDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [
-        TemplateEditorDialogComponent,
-        ReactiveFormsModule,
-      ],
+      imports: [TemplateEditorDialogComponent, ReactiveFormsModule],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },

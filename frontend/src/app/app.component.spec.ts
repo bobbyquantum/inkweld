@@ -270,7 +270,10 @@ describe('AppComponent', () => {
 
     it('should skip user loading on registration pages', async () => {
       const router = TestBed.inject(Router);
-      Object.defineProperty(router, 'url', { value: '/register', writable: true });
+      Object.defineProperty(router, 'url', {
+        value: '/register',
+        writable: true,
+      });
 
       await component.ngOnInit();
       await fixture.whenStable();
@@ -281,7 +284,10 @@ describe('AppComponent', () => {
 
     it('should skip user loading on welcome page', async () => {
       const router = TestBed.inject(Router);
-      Object.defineProperty(router, 'url', { value: '/welcome', writable: true });
+      Object.defineProperty(router, 'url', {
+        value: '/welcome',
+        writable: true,
+      });
 
       await component.ngOnInit();
       await fixture.whenStable();
@@ -292,7 +298,10 @@ describe('AppComponent', () => {
 
     it('should skip user loading on approval-pending page', async () => {
       const router = TestBed.inject(Router);
-      Object.defineProperty(router, 'url', { value: '/approval-pending', writable: true });
+      Object.defineProperty(router, 'url', {
+        value: '/approval-pending',
+        writable: true,
+      });
 
       await component.ngOnInit();
       await fixture.whenStable();

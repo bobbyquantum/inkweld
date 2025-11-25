@@ -30,8 +30,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { Router } from '@angular/router';
 import { Element, ElementType } from '@inkweld/index';
-import { ProjectStateService } from '@services/project/project-state.service';
 import { SettingsService } from '@services/core/settings.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 
 import { ProjectElement } from '../../models/project-element';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';

@@ -9,12 +9,12 @@ import { Observable, of } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
+import { XsrfService } from '../auth/xsrf.service';
 import {
   FileDeleteResponse,
   ProjectFile,
   ProjectFileService,
 } from './project-file.service';
-import { XsrfService } from '../auth/xsrf.service';
 
 describe('ProjectFileService', () => {
   const TEST_DATE = '2025-03-16T10:00:00.000Z';

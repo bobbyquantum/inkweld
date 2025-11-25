@@ -1,9 +1,9 @@
 import { inject, Injectable } from '@angular/core';
+import { Element, ElementType } from '@inkweld/index';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import { Element, ElementType } from '@inkweld/index';
 import { ElementTypeSchema } from '../../models/schema-types';
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { SetupService } from '../core/setup.service';

@@ -194,14 +194,13 @@ describe('ThemeService', () => {
 
   it('should return current theme as observable', () => {
     service.update('dark-theme');
-    
+
     let receivedTheme: ThemeOption | undefined;
     const subscription = service.getCurrentTheme().subscribe(theme => {
       receivedTheme = theme;
     });
-    
+
     expect(receivedTheme).toBe('dark-theme');
     subscription.unsubscribe();
   });
-
 });

@@ -29,11 +29,11 @@ import {
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Element, ElementType, Project } from '@inkweld/index';
+import { SettingsService } from '@services/core/settings.service';
+import { UnifiedProjectService } from '@services/offline/unified-project.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectImportExportService } from '@services/project/project-import-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { SettingsService } from '@services/core/settings.service';
-import { UnifiedProjectService } from '@services/offline/unified-project.service';
 import {
   AngularSplitModule,
   SplitGutterDirective,

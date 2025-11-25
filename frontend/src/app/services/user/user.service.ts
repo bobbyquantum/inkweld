@@ -12,9 +12,9 @@ import {
   throwError,
 } from 'rxjs';
 
+import { XsrfService } from '../auth/xsrf.service';
 import { LoggerService } from '../core/logger.service';
 import { StorageService } from '../offline/storage.service';
-import { XsrfService } from '../auth/xsrf.service';
 
 export class UserServiceError extends Error {
   constructor(

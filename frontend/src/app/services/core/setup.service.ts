@@ -1,5 +1,4 @@
 import { Injectable, signal } from '@angular/core';
-
 import { User } from '@inkweld/index';
 
 export interface AppConfig {
