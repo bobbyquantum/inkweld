@@ -11,7 +11,7 @@ import { Subscription } from 'rxjs';
 
 import { Element, ElementType } from '../../../../../api-client';
 import { WorldbuildingEditorComponent } from '../../../../components/worldbuilding/worldbuilding-editor.component';
-import { ProjectStateService } from '../../../../services/project-state.service';
+import { ProjectStateService } from '../../../../services/project/project-state.service';
 
 @Component({
   selector: 'app-worldbuilding-tab',

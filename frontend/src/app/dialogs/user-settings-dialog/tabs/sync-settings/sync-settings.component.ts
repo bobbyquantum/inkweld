@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { SetupService } from '@services/setup.service';
+import { SetupService } from '@services/core/setup.service';
 
 interface SyncStatus {
   lastSync: Date | null;

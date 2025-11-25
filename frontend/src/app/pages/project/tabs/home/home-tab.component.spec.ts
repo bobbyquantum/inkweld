@@ -11,11 +11,11 @@ import { Element, ElementType, Project } from '@inkweld/index';
 import { vi } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
-import { DialogGatewayService } from '../../../../services/dialog-gateway.service';
-import { ProjectService } from '../../../../services/project.service';
-import { ProjectImportExportService } from '../../../../services/project-import-export.service';
-import { ProjectStateService } from '../../../../services/project-state.service';
-import { RecentFilesService } from '../../../../services/recent-files.service';
+import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
+import { ProjectService } from '../../../../services/project/project.service';
+import { ProjectImportExportService } from '../../../../services/project/project-import-export.service';
+import { ProjectStateService } from '../../../../services/project/project-state.service';
+import { RecentFilesService } from '../../../../services/project/recent-files.service';
 import { HomeTabComponent } from './home-tab.component';
 
 /* Convenience aliases for mocks */

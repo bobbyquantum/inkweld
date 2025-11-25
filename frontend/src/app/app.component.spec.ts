@@ -10,8 +10,8 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { By } from '@angular/platform-browser';
 import { Event, Router } from '@angular/router';
 import { Configuration, UsersService } from '@inkweld/index';
-import { SetupService } from '@services/setup.service';
-import { UnifiedUserService } from '@services/unified-user.service';
+import { SetupService } from '@services/core/setup.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 import { Subject } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 

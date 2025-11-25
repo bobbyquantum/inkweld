@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { SettingsService } from '@services/settings.service';
+import { SettingsService } from '@services/core/settings.service';
 
 import { ProjectSettingsComponent } from './project-settings.component';
 

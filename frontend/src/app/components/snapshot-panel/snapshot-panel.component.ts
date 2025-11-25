@@ -13,7 +13,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DocumentSnapshotService } from '@services/document-snapshot.service';
+import { DocumentSnapshotService } from '@services/project/document-snapshot.service';
 
 import { DocumentSnapshot } from '../../../api-client';
 import {

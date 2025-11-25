@@ -10,7 +10,7 @@ import {
 } from '@inkweld/index';
 
 import { environment } from '../../environments/environment';
-import { SetupService } from '../services/setup.service';
+import { SetupService } from '../services/core/setup.service';
 
 /**
  * Creates a dynamic Configuration that reads basePath from SetupService

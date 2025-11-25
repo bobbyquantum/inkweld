@@ -2,7 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { DocumentSnapshotService } from '@services/document-snapshot.service';
+import { DocumentSnapshotService } from '@services/project/document-snapshot.service';
 import { of, throwError } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 

@@ -4,8 +4,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Project } from '@inkweld/index';
-import { DocumentService } from '@services/document.service';
-import { ProjectStateService } from '@services/project-state.service';
+import { DocumentService } from '@services/project/document.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 import { BehaviorSubject, of } from 'rxjs';
 import { vi } from 'vitest';
 

@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { SettingsService } from '@services/settings.service';
+import { SettingsService } from '@services/core/settings.service';
 
 @Component({
   selector: 'app-project-tree-settings',

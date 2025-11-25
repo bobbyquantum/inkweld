@@ -29,11 +29,11 @@ import {
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Element, ElementType, Project } from '@inkweld/index';
-import { DocumentService } from '@services/document.service';
-import { ProjectImportExportService } from '@services/project-import-export.service';
-import { ProjectStateService } from '@services/project-state.service';
-import { SettingsService } from '@services/settings.service';
-import { UnifiedProjectService } from '@services/unified-project.service';
+import { DocumentService } from '@services/project/document.service';
+import { ProjectImportExportService } from '@services/project/project-import-export.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { SettingsService } from '@services/core/settings.service';
+import { UnifiedProjectService } from '@services/offline/unified-project.service';
 import {
   AngularSplitModule,
   SplitGutterDirective,
@@ -43,8 +43,8 @@ import { Subject, Subscription, takeUntil } from 'rxjs';
 
 import { DocumentElementEditorComponent } from '../../components/document-element-editor/document-element-editor.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { DialogGatewayService } from '../../services/dialog-gateway.service';
-import { RecentFilesService } from '../../services/recent-files.service';
+import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
+import { RecentFilesService } from '../../services/project/recent-files.service';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
 @Component({
@@ -202,7 +202,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
         void this.projectState.loadProject(username, slug);
 
         // Ensure we're starting with tab index 0 (home tab)
-        this.projectState.selectedTabIndex.set(0);
+        this.projectState.selectTab(0);
       }
     });
 
@@ -313,7 +313,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   };
 
   setSelectedTabIndex(index: number): void {
-    this.projectState.selectedTabIndex.set(index);
+    this.projectState.selectTab(index);
   }
 
   onImportClicked = (): void => {
@@ -512,7 +512,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   goHome(): void {
     const project = this.projectState.project();
     if (project) {
-      this.projectState.selectedTabIndex.set(0);
+      this.projectState.selectTab(0);
       void this.router.navigate(['/', project.username, project.slug]);
     }
   }

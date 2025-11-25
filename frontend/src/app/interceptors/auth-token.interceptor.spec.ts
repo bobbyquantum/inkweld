@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
-import { AuthTokenService } from '../services/auth-token.service';
+import { AuthTokenService } from '../services/auth/auth-token.service';
 import { authTokenInterceptor } from './auth-token.interceptor';
 
 describe('authTokenInterceptor', () => {

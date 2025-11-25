@@ -16,8 +16,8 @@ import { Router } from '@angular/router';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Project } from '@inkweld/index';
 
-import { UnifiedProjectService } from '../../services/unified-project.service';
-import { UnifiedUserService } from '../../services/unified-user.service';
+import { UnifiedProjectService } from '../../services/offline/unified-project.service';
+import { UnifiedUserService } from '../../services/user/unified-user.service';
 
 @Component({
   selector: 'app-create-project',

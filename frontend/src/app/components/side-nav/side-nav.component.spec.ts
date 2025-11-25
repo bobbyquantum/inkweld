@@ -1,7 +1,7 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { UserService } from '@services/user.service';
+import { UserService } from '@services/user/user.service';
 import { MockedObject, vi } from 'vitest';
 
 import { NavItem, SideNavComponent } from './side-nav.component';

@@ -9,10 +9,10 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DefaultTemplatesService } from '@services/default-templates.service';
-import { DialogGatewayService } from '@services/dialog-gateway.service';
-import { ProjectStateService } from '@services/project-state.service';
-import { WorldbuildingService } from '@services/worldbuilding.service';
+import { DefaultTemplatesService } from '@services/worldbuilding/default-templates.service';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { firstValueFrom } from 'rxjs';
 import * as Y from 'yjs';
 

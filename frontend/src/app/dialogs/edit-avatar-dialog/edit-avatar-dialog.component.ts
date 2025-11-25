@@ -4,7 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { UserService } from '@services/user.service';
+import { UserService } from '@services/user/user.service';
 import {
   ImageCroppedEvent,
   ImageCropperComponent,

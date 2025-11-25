@@ -23,11 +23,11 @@ import {
   RouterModule,
 } from '@angular/router';
 import { Element, ElementType } from '@inkweld/index';
-import { DocumentService } from '@services/document.service';
-import { AppTab, ProjectStateService } from '@services/project-state.service';
+import { DocumentService } from '@services/project/document.service';
+import { AppTab, ProjectStateService } from '@services/project/project-state.service';
 import { filter, Subject, Subscription, takeUntil } from 'rxjs';
 
-import { DialogGatewayService } from '../../../services/dialog-gateway.service';
+import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
 
 @Component({
   selector: 'app-tab-interface',
@@ -244,7 +244,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
 
     // Check if we are at the project root (home tab)
     if (!tabId && !systemRoute) {
-      this.projectState.selectedTabIndex.set(0);
+      this.projectState.selectTab(0);
       return;
     }
 
@@ -279,13 +279,13 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     }
     if (tabIndex !== -1) {
       const newIndex = tabIndex + 1; // +1 to account for home tab
-      this.projectState.selectedTabIndex.set(newIndex);
+      this.projectState.selectTab(newIndex);
     }
   }
 
   onTabChange(index: number): void {
     // Update the project state - navigation will be handled by the effect
-    this.projectState.selectedTabIndex.set(index);
+    this.projectState.selectTab(index);
 
     // Trigger change detection
     this.cdr.detectChanges();

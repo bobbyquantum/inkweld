@@ -15,8 +15,8 @@ import {
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ElementType } from '@inkweld/index';
 import { ProjectsService } from '@inkweld/index';
-import { ProjectStateService } from '@services/project-state.service';
-import { SettingsService } from '@services/settings.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { SettingsService } from '@services/core/settings.service';
 import {
   afterEach,
   beforeEach,
@@ -29,7 +29,7 @@ import {
 
 import { projectServiceMock } from '../../../testing/project-api.mock';
 import { ProjectElement } from '../../models/project-element';
-import { DialogGatewayService } from '../../services/dialog-gateway.service';
+import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectTreeComponent } from './project-tree.component';
 
 describe('ProjectTreeComponent', () => {

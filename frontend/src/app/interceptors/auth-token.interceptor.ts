@@ -1,7 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 
-import { AuthTokenService } from '../services/auth-token.service';
+import { AuthTokenService } from '../services/auth/auth-token.service';
 
 /**
  * HTTP interceptor that adds JWT Bearer token to requests

@@ -1,7 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
-import { SystemConfigService } from '@services/system-config.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { vi } from 'vitest';
 
 import { ApprovalPendingComponent } from './approval-pending.component';

@@ -6,13 +6,13 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { ElementType } from '@inkweld/index';
-import { DialogGatewayService } from '@services/dialog-gateway.service';
-import { ProjectService } from '@services/project.service';
-import { ProjectImportExportService } from '@services/project-import-export.service';
-import { ProjectStateService } from '@services/project-state.service';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { ProjectService } from '@services/project/project.service';
+import { ProjectImportExportService } from '@services/project/project-import-export.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 
 import { ProjectCoverComponent } from '../../../../components/project-cover/project-cover.component';
-import { RecentFilesService } from '../../../../services/recent-files.service';
+import { RecentFilesService } from '../../../../services/project/recent-files.service';
 
 @Component({
   selector: 'app-home-tab',

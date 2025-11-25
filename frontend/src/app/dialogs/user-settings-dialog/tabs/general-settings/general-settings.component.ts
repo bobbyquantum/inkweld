@@ -5,7 +5,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { UserService } from '@services/user.service';
+import { UserService } from '@services/user/user.service';
 import { ThemeOption, ThemeService } from '@themes/theme.service';
 import { firstValueFrom, Subscription } from 'rxjs';
 

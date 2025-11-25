@@ -11,8 +11,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { ConfigurationService } from '@inkweld/index';
 
-import { SetupService } from '../../services/setup.service';
-import { UnifiedUserService } from '../../services/unified-user.service';
+import { SetupService } from '../../services/core/setup.service';
+import { UnifiedUserService } from '../../services/user/unified-user.service';
 
 type AppMode = 'ONLINE' | 'OFFLINE' | 'BOTH';
 

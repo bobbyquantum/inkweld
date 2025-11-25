@@ -7,7 +7,7 @@ import {
   SimpleChanges,
 } from '@angular/core';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { UnifiedUserService } from '@services/unified-user.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 
 @Component({
   selector: 'app-user-avatar',

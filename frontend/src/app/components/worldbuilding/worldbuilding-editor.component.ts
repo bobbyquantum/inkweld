@@ -31,8 +31,8 @@ import {
   FieldSchema,
   TabSchema,
 } from '../../models/schema-types';
-import { ProjectStateService } from '../../services/project-state.service';
-import { WorldbuildingService } from '../../services/worldbuilding.service';
+import { ProjectStateService } from '../../services/project/project-state.service';
+import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 
 /**
  * Main worldbuilding editor component that renders the dynamic

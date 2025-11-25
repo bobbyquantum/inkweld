@@ -12,8 +12,8 @@ import {
   UrlTree,
 } from '@angular/router';
 import { User } from '@inkweld/index';
-import { SetupService } from '@services/setup.service';
-import { UnifiedUserService } from '@services/unified-user.service';
+import { SetupService } from '@services/core/setup.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 import { Mock, vi } from 'vitest';
 
 import { authGuard } from './auth.guard';

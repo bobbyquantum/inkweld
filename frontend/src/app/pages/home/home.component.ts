@@ -20,9 +20,9 @@ import { BookshelfComponent } from '@components/bookshelf/bookshelf.component';
 import { SideNavComponent } from '@components/side-nav/side-nav.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Project } from '@inkweld/index';
-import { ProjectServiceError } from '@services/project.service';
-import { UnifiedProjectService } from '@services/unified-project.service';
-import { UnifiedUserService } from '@services/unified-user.service';
+import { ProjectServiceError } from '@services/project/project.service';
+import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 import { Subject } from 'rxjs';
 import { debounceTime, takeUntil } from 'rxjs/operators';
 

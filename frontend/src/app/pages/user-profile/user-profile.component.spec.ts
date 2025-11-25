@@ -3,11 +3,11 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Project, User } from '@inkweld/index';
-import { DialogGatewayService } from '@services/dialog-gateway.service';
-import { ProjectService } from '@services/project.service';
-import { UnifiedProjectService } from '@services/unified-project.service';
-import { UnifiedUserService } from '@services/unified-user.service';
-import { UserService } from '@services/user.service';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { ProjectService } from '@services/project/project.service';
+import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
+import { UserService } from '@services/user/user.service';
 import { of, Subject } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 

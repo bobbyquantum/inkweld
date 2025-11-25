@@ -15,9 +15,9 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
 import { User } from '@inkweld/index';
-import { DialogGatewayService } from '@services/dialog-gateway.service';
-import { UnifiedProjectService } from '@services/unified-project.service';
-import { UnifiedUserService } from '@services/unified-user.service';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 import { Subject, takeUntil } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 

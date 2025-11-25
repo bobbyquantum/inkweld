@@ -14,8 +14,8 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { Element, ElementType } from '@inkweld/index';
-import { DocumentService } from '@services/document.service';
-import { ProjectStateService } from '@services/project-state.service';
+import { DocumentService } from '@services/project/document.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 import { format } from 'date-fns';
 
 import { DocumentSyncState } from '../../../../models/document-sync-state';

@@ -9,7 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
-import { UserService, UserServiceError } from '@services/user.service';
+import { UserService, UserServiceError } from '@services/user/user.service';
 
 @Component({
   selector: 'app-welcome',

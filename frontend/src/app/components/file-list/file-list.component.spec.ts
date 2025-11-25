@@ -7,8 +7,8 @@ import { By } from '@angular/platform-browser';
 import { vi } from 'vitest';
 
 import { FileSizePipe } from '../../pipes/file-size.pipe';
-import { DialogGatewayService } from '../../services/dialog-gateway.service';
-import { ProjectFile } from '../../services/project-file.service';
+import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
+import { ProjectFile } from '../../services/project/project-file.service';
 import { FileListComponent } from './file-list.component';
 
 describe('FileListComponent', () => {

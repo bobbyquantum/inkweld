@@ -19,8 +19,8 @@ import {
   vi,
 } from 'vitest';
 
-import { ProjectService } from '../../services/project.service';
-import { ProjectImportExportService } from '../../services/project-import-export.service';
+import { ProjectService } from '../../services/project/project.service';
+import { ProjectImportExportService } from '../../services/project/project-import-export.service';
 import { EditProjectDialogComponent } from './edit-project-dialog.component';
 
 // Helper to create a mock File object

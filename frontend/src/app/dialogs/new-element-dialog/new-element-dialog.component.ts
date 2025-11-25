@@ -22,8 +22,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ElementType } from '../../../api-client';
-import { ProjectStateService } from '../../services/project-state.service';
-import { WorldbuildingService } from '../../services/worldbuilding.service';
+import { ProjectStateService } from '../../services/project/project-state.service';
+import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 
 export interface NewElementDialogResult {
   name: string;

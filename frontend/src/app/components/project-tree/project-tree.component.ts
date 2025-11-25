@@ -30,12 +30,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { Router } from '@angular/router';
 import { Element, ElementType } from '@inkweld/index';
-import { ProjectStateService } from '@services/project-state.service';
-import { SettingsService } from '@services/settings.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { SettingsService } from '@services/core/settings.service';
 
 import { ProjectElement } from '../../models/project-element';
-import { DialogGatewayService } from '../../services/dialog-gateway.service';
-import { LoggerService } from '../../services/logger.service';
+import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
+import { LoggerService } from '../../services/core/logger.service';
 import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
 

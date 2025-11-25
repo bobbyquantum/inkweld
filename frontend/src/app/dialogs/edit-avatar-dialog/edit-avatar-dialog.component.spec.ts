@@ -1,7 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
-import { UserService } from '@services/user.service';
+import { UserService } from '@services/user/user.service';
 import { ImageCroppedEvent, LoadedImage } from 'ngx-image-cropper';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';

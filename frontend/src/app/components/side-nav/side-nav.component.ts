@@ -4,7 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { Router, RouterModule } from '@angular/router';
-import { UserService } from '@services/user.service';
+import { UserService } from '@services/user/user.service';
 
 export interface NavItem {
   label: string;

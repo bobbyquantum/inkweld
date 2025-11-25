@@ -4,8 +4,8 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
-import { UserService, UserServiceError } from '@services/user.service';
-import { XsrfService } from '@services/xsrf.service';
+import { UserService, UserServiceError } from '@services/user/user.service';
+import { XsrfService } from '@services/auth/xsrf.service';
 import { of } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 

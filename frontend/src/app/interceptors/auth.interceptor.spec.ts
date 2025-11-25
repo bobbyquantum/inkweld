@@ -9,7 +9,7 @@ import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, MockedObject, vi } from 'vitest';
 
-import { SetupService } from '../services/setup.service';
+import { SetupService } from '../services/core/setup.service';
 import { AuthInterceptor } from './auth.interceptor';
 
 describe('AuthInterceptor', () => {

@@ -20,12 +20,12 @@ import { of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { DocumentSyncState } from '../../../models/document-sync-state';
-import { DialogGatewayService } from '../../../services/dialog-gateway.service';
-import { DocumentService } from '../../../services/document.service';
+import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
+import { DocumentService } from '../../../services/project/document.service';
 import {
   AppTab,
   ProjectStateService,
-} from '../../../services/project-state.service';
+} from '../../../services/project/project-state.service';
 import { TabInterfaceComponent } from './tab-interface.component';
 
 describe('TabInterfaceComponent', () => {
@@ -112,6 +112,7 @@ describe('TabInterfaceComponent', () => {
       closeTab: vi.fn(),
       renameNode: vi.fn(),
       openSystemTab: vi.fn(),
+      selectTab: vi.fn((index: number) => selectedTabIndexSignal.set(index)),
     };
 
     // Mock document service
@@ -205,12 +206,9 @@ describe('TabInterfaceComponent', () => {
   });
 
   it('should change tab when onTabChange is called', () => {
-    const selectedTabIndexSpy = vi.spyOn(
-      projectStateService.selectedTabIndex as any,
-      'set'
-    );
+    const selectTabSpy = vi.spyOn(projectStateService as any, 'selectTab');
     component.onTabChange(1);
-    expect(selectedTabIndexSpy).toHaveBeenCalledWith(1);
+    expect(selectTabSpy).toHaveBeenCalledWith(1);
   });
 
   it('should close a tab when closeTab is called', () => {
@@ -329,16 +327,13 @@ describe('TabInterfaceComponent', () => {
 
     (component as any)['route'] = mockRoute as any;
 
-    // Mock selectedTabIndex.set method
-    const selectedTabIndexSpy = vi.spyOn(
-      projectStateService.selectedTabIndex as any,
-      'set'
-    );
+    // Mock selectTab method
+    const selectTabSpy = vi.spyOn(projectStateService as any, 'selectTab');
 
     component.updateSelectedTabFromUrl();
 
     // Should set tab index to document index + 1 (for home tab)
-    expect(selectedTabIndexSpy).toHaveBeenCalled();
+    expect(selectTabSpy).toHaveBeenCalled();
   });
 
   it('should set selectedTabIndex to 0 when URL has no tabId', () => {
@@ -360,16 +355,13 @@ describe('TabInterfaceComponent', () => {
 
     (component as any)['route'] = mockRoute as any;
 
-    // Mock selectedTabIndex.set method
-    const selectedTabIndexSpy = vi.spyOn(
-      projectStateService.selectedTabIndex as any,
-      'set'
-    );
+    // Mock selectTab method
+    const selectTabSpy = vi.spyOn(projectStateService as any, 'selectTab');
 
     component.updateSelectedTabFromUrl();
 
     // Should set tab index to 0 (home tab)
-    expect(selectedTabIndexSpy).toHaveBeenCalledWith(0);
+    expect(selectTabSpy).toHaveBeenCalledWith(0);
   });
 
   it('should handle router navigation events', () => {

@@ -7,7 +7,7 @@ import { ElementType } from '@inkweld/index';
 import { vi } from 'vitest';
 
 import { ProjectElement } from '../../models/project-element';
-import { ProjectStateService } from '../../services/project-state.service';
+import { ProjectStateService } from '../../services/project/project-state.service';
 import { FolderElementEditorComponent } from './folder-element-editor.component';
 
 // Mock component for TreeNodeIcon

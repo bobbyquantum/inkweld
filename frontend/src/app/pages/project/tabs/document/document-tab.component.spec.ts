@@ -11,9 +11,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Project } from '@inkweld/index';
-import { DocumentService } from '@services/document.service';
-import { ProjectStateService } from '@services/project-state.service';
-import { SettingsService } from '@services/settings.service';
+import { DocumentService } from '@services/project/document.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { SettingsService } from '@services/core/settings.service';
 import { BehaviorSubject, of } from 'rxjs';
 
 import { DocumentTabComponent } from './document-tab.component';

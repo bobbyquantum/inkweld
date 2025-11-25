@@ -5,9 +5,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { RouterModule } from '@angular/router';
 import { User } from '@inkweld/index';
-import { DialogGatewayService } from '@services/dialog-gateway.service';
-import { SetupService } from '@services/setup.service';
-import { UnifiedUserService } from '@services/unified-user.service';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { SetupService } from '@services/core/setup.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 

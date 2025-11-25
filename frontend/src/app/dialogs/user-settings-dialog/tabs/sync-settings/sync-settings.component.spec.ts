@@ -1,7 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { SetupService } from '@services/setup.service';
+import { SetupService } from '@services/core/setup.service';
 import { MockedObject, vi } from 'vitest';
 
 import { SyncSettingsComponent } from './sync-settings.component';

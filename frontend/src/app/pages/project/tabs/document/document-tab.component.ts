@@ -1,8 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { DocumentElementEditorComponent } from '@components/document-element-editor/document-element-editor.component';
-import { ProjectStateService } from '@services/project-state.service';
-import { SettingsService } from '@services/settings.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { SettingsService } from '@services/core/settings.service';
 
 @Component({
   selector: 'app-document-tab',

@@ -10,9 +10,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { MigrationService, MigrationStatus } from '@services/migration.service';
-import { SetupService } from '@services/setup.service';
-import { UserService } from '@services/user.service';
+import { MigrationService, MigrationStatus } from '@services/offline/migration.service';
+import { SetupService } from '@services/core/setup.service';
+import { UserService } from '@services/user/user.service';
 import { firstValueFrom } from 'rxjs';
 
 import {
