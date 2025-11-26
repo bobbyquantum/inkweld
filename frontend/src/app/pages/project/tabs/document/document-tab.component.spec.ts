@@ -121,6 +121,85 @@ describe('DocumentTabComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  describe('fullDocumentId computed signal', () => {
+    const mockProjectWithInfo = {
+      username: 'testuser',
+      slug: 'test-project',
+      title: 'Test Project',
+      createdDate: new Date().toISOString(),
+      updatedDate: new Date().toISOString(),
+      id: '123',
+    } as Project;
+
+    it('should return empty string when no tabs are open', () => {
+      (projectStateService.openTabs as any).set([]);
+      (projectStateService.selectedTabIndex as any).set(1);
+
+      const fullId = (component as any).fullDocumentId();
+      expect(fullId).toBe('');
+    });
+
+    it('should return empty string when selectedTabIndex is 0 (home)', () => {
+      (projectStateService.openTabs as any).set([
+        { element: { id: 'doc1' } },
+      ]);
+      (projectStateService.selectedTabIndex as any).set(0);
+
+      const fullId = (component as any).fullDocumentId();
+      expect(fullId).toBe('');
+    });
+
+    it('should return empty string when tab has no element', () => {
+      (projectStateService.openTabs as any).set([{}]);
+      (projectStateService.selectedTabIndex as any).set(1);
+
+      const fullId = (component as any).fullDocumentId();
+      expect(fullId).toBe('');
+    });
+
+    it('should return empty string when project is undefined', () => {
+      (projectStateService.openTabs as any).set([
+        { element: { id: 'doc1' } },
+      ]);
+      (projectStateService.selectedTabIndex as any).set(1);
+      (projectStateService.project as any).set(undefined);
+
+      const fullId = (component as any).fullDocumentId();
+      expect(fullId).toBe('');
+    });
+
+    it('should return properly formatted document ID when all data is available', () => {
+      (projectStateService.openTabs as any).set([
+        { element: { id: 'doc1' } },
+      ]);
+      (projectStateService.selectedTabIndex as any).set(1);
+      (projectStateService.project as any).set(mockProjectWithInfo);
+
+      const fullId = (component as any).fullDocumentId();
+      expect(fullId).toBe('testuser:test-project:doc1');
+    });
+
+    it('should return correct document ID for second tab', () => {
+      (projectStateService.openTabs as any).set([
+        { element: { id: 'doc1' } },
+        { element: { id: 'doc2' } },
+      ]);
+      (projectStateService.selectedTabIndex as any).set(2);
+      (projectStateService.project as any).set(mockProjectWithInfo);
+
+      const fullId = (component as any).fullDocumentId();
+      expect(fullId).toBe('testuser:test-project:doc2');
+    });
+  });
+
+  describe('useTabsDesktop', () => {
+    it('should return settings value for useTabsDesktop', () => {
+      const result = (component as any).useTabsDesktop();
+      expect(settingsService.getSetting).toHaveBeenCalledWith('useTabsDesktop', true);
+      expect(result).toBe(true);
+    });
+  });
+
   // it('should initialize with document ID from route params', () => {
   //   expect(component['documentId']).toBe('doc1');
   // });

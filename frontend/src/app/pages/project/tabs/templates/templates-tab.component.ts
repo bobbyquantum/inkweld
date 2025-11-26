@@ -1,4 +1,11 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  InjectionToken,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -20,6 +27,30 @@ import {
   TemplateEditorDialogComponent,
   TemplateEditorDialogData,
 } from '../../../../dialogs/template-editor-dialog/template-editor-dialog.component';
+
+/**
+ * Injection token for WebSocket sync timeout.
+ * In tests, this can be overridden to speed up tests.
+ */
+export const TEMPLATE_SYNC_TIMEOUT = new InjectionToken<number>(
+  'TEMPLATE_SYNC_TIMEOUT',
+  {
+    providedIn: 'root',
+    factory: () => 1000, // Default 1000ms in production
+  }
+);
+
+/**
+ * Injection token for reload delay after mutations.
+ * In tests, this can be overridden to speed up tests.
+ */
+export const TEMPLATE_RELOAD_DELAY = new InjectionToken<number>(
+  'TEMPLATE_RELOAD_DELAY',
+  {
+    providedIn: 'root',
+    factory: () => 500, // Default 500ms in production
+  }
+);
 
 interface TabSchema {
   key: string;
@@ -87,6 +118,8 @@ export class TemplatesTabComponent {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly dialog = inject(MatDialog);
   private readonly defaultTemplatesService = inject(DefaultTemplatesService);
+  private readonly syncTimeout = inject(TEMPLATE_SYNC_TIMEOUT);
+  private readonly reloadDelay = inject(TEMPLATE_RELOAD_DELAY);
 
   readonly project = this.projectState.project;
   readonly templates = signal<TemplateSchema[]>([]);
@@ -128,7 +161,7 @@ export class TemplatesTabComponent {
 
       // Wait for WebSocket sync to complete after library is loaded
       // For new projects, schemas may have just been created on the backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, this.syncTimeout));
 
       const schemasMap = library.get('schemas') as Map<
         string,
@@ -321,7 +354,7 @@ export class TemplatesTabComponent {
       });
 
       // Wait for sync then reload
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, this.reloadDelay));
       await this.loadTemplates();
     } catch (err) {
       console.error('[TemplatesTab] Error cloning template:', err);
@@ -366,7 +399,7 @@ export class TemplatesTabComponent {
       });
 
       // Wait for sync then reload
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, this.reloadDelay));
       await this.loadTemplates();
     } catch (err) {
       console.error('[TemplatesTab] Error deleting template:', err);
@@ -459,7 +492,7 @@ export class TemplatesTabComponent {
         );
 
         // Wait for sync then reload
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, this.reloadDelay));
         await this.loadTemplates();
       }
     } catch (err) {

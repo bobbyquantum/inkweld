@@ -179,5 +179,36 @@ describe('OfflineUserService', () => {
 
       consoleSpy.mockRestore();
     });
+
+    it('should handle localStorage errors when loading invalid JSON', () => {
+      // Store invalid JSON in localStorage
+      mockStorage['inkweld-offline-user'] = 'invalid json {{{';
+
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      // Create a new service instance to trigger loadOfflineUser
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          OfflineUserService,
+          { provide: SetupService, useValue: setupService },
+        ],
+      });
+
+      const newService = TestBed.inject(OfflineUserService);
+
+      // Verify that error was logged and service is still functional
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to load offline user:',
+        expect.any(Error)
+      );
+      expect(newService.initialized()).toBe(true);
+      expect(newService.currentUser().username).toBe('anonymous');
+
+      consoleSpy.mockRestore();
+    });
   });
 });

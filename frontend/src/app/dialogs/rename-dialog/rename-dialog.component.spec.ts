@@ -78,4 +78,16 @@ describe('RenameDialogComponent', () => {
     component.onCancel();
     expect(mockDialogRef.close).toHaveBeenCalledWith();
   });
+
+  it('should show error when field is touched and empty', async () => {
+    component.nameControl.setValue('');
+    component.nameControl.markAsTouched();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const error = compiled.querySelector('mat-error');
+    expect(error).toBeTruthy();
+    expect(error?.textContent).toContain('Name is required');
+  });
 });

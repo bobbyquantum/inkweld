@@ -221,6 +221,153 @@ describe('ConnectionSettingsComponent', () => {
 
       expect(component['authError']()).toBe('Passwords do not match');
     });
+
+    it('should call registerOnServer when in register mode', async () => {
+      component['newServerUrl'] = 'http://localhost:8333';
+      component['authMode'].set('register');
+      component['username'].set('testuser');
+      component['password'].set('password');
+      component['confirmPassword'].set('password');
+
+      // Mock completed migration
+      migrationService.migrationState.mockReturnValue({
+        status: MigrationStatus.Completed,
+        totalProjects: 1,
+        completedProjects: 1,
+        failedProjects: 0,
+        projectStatuses: [],
+      });
+
+      // Mock window.location.reload
+      const reloadSpy = vi.fn();
+      const originalLocation = window.location;
+      Object.defineProperty(window, 'location', {
+        value: { ...originalLocation, reload: reloadSpy },
+        writable: true,
+      });
+
+      await component.authenticate();
+
+      expect(setupService.configureServerMode).toHaveBeenCalledWith(
+        'http://localhost:8333'
+      );
+      expect(migrationService.registerOnServer).toHaveBeenCalledWith(
+        'testuser',
+        'password'
+      );
+      expect(migrationService.migrateToServer).toHaveBeenCalledWith(
+        'http://localhost:8333'
+      );
+      expect(component['showAuthForm']()).toBe(false);
+      expect(snackBar.open).toHaveBeenCalled();
+
+      // Restore original location
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        writable: true,
+      });
+    });
+
+    it('should call loginToServer when in login mode', async () => {
+      component['newServerUrl'] = 'http://localhost:8333';
+      component['authMode'].set('login');
+      component['username'].set('testuser');
+      component['password'].set('password');
+
+      // Mock completed migration
+      migrationService.migrationState.mockReturnValue({
+        status: MigrationStatus.Completed,
+        totalProjects: 1,
+        completedProjects: 1,
+        failedProjects: 0,
+        projectStatuses: [],
+      });
+
+      // Mock window.location.reload
+      const originalLocation = window.location;
+      Object.defineProperty(window, 'location', {
+        value: { ...originalLocation, reload: vi.fn() },
+        writable: true,
+      });
+
+      await component.authenticate();
+
+      expect(migrationService.loginToServer).toHaveBeenCalledWith(
+        'testuser',
+        'password'
+      );
+
+      // Restore original location
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        writable: true,
+      });
+    });
+
+    it('should show failure message when migration has failed projects', async () => {
+      component['newServerUrl'] = 'http://localhost:8333';
+      component['authMode'].set('login');
+      component['username'].set('testuser');
+      component['password'].set('password');
+
+      // Mock failed migration
+      migrationService.migrationState.mockReturnValue({
+        status: MigrationStatus.Failed,
+        totalProjects: 2,
+        completedProjects: 1,
+        failedProjects: 1,
+        projectStatuses: [],
+      });
+
+      await component.authenticate();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Migration completed with errors. 1 succeeded, 1 failed.',
+        'Close',
+        { duration: 7000 }
+      );
+    });
+
+    it('should handle authentication errors gracefully', async () => {
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      component['newServerUrl'] = 'http://localhost:8333';
+      component['authMode'].set('login');
+      component['username'].set('testuser');
+      component['password'].set('password');
+
+      migrationService.loginToServer.mockRejectedValue(
+        new Error('Auth failed')
+      );
+
+      await component.authenticate();
+
+      expect(component['authError']()).toBe('Auth failed');
+      expect(component['isAuthenticating']()).toBe(false);
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should show generic error message for non-Error exceptions', async () => {
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      component['newServerUrl'] = 'http://localhost:8333';
+      component['authMode'].set('login');
+      component['username'].set('testuser');
+      component['password'].set('password');
+
+      migrationService.loginToServer.mockRejectedValue('Unknown error');
+
+      await component.authenticate();
+
+      expect(component['authError']()).toBe(
+        'Authentication failed. Please try again.'
+      );
+
+      consoleSpy.mockRestore();
+    });
   });
 
   describe('safety guards', () => {
@@ -259,6 +406,45 @@ describe('ConnectionSettingsComponent', () => {
       expect(dialog.open).toHaveBeenCalled();
       expect(setupService.resetConfiguration).not.toHaveBeenCalled();
       expect(router.navigate).not.toHaveBeenCalled();
+    });
+
+    it('should handle error when switch to offline mode fails', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      component['currentMode'] = 'server';
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      dialog.open.mockReturnValue({
+        afterClosed: () => of(true),
+      } as any);
+
+      setupService.resetConfiguration.mockImplementation(() => {
+        throw new Error('Reset failed');
+      });
+
+      await component.switchToOfflineMode();
+      await fixture.whenStable();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Failed to switch modes',
+        'Close',
+        { duration: 3000 }
+      );
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle error when switch to server mode fails', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      component['newServerUrl'] = 'http://localhost:8333';
+
+      setupService.configureServerMode.mockRejectedValue(new Error('Config failed'));
+
+      await component.switchToServerMode();
+
+      expect(component['connectionError']()).toBe(
+        'Failed to connect to server. Please check the URL and try again.'
+      );
+      expect(component['isConnecting']()).toBe(false);
+      consoleSpy.mockRestore();
     });
 
     it('should show confirmation when migrating offline projects', async () => {

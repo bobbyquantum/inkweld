@@ -283,6 +283,12 @@ describe('TabManagerService', () => {
       expect(result).toBe(true);
       expect(service.openTabs().length).toBe(0);
     });
+
+    it('should return false when tab ID is not found', () => {
+      const result = service.closeTabById('non-existent-tab-id');
+
+      expect(result).toBe(false);
+    });
   });
 
   describe('clearAllTabs', () => {

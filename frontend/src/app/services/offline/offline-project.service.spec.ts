@@ -89,6 +89,58 @@ describe('OfflineProjectService', () => {
     });
   });
 
+  describe('loadProjects', () => {
+    it('should only load projects once when called multiple times', () => {
+      // Reset the service state
+      (service as any).initialized.set(false);
+      mockLocalStorage.getItem.mockClear();
+
+      service.loadProjects();
+      service.loadProjects();
+      service.loadProjects();
+
+      // Should only call loadOfflineProjects once (getItem called once more)
+      // Initial call was in constructor, then one more in first loadProjects
+      expect(service['initialized']()).toBe(true);
+    });
+
+    it('should skip loading when already initialized', () => {
+      (service as any).initialized.set(true);
+      mockLocalStorage.getItem.mockClear();
+
+      service.loadProjects();
+
+      // Should not load projects again
+      expect(mockLocalStorage.getItem).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('reloadProjects', () => {
+    it('should force reload projects from localStorage', () => {
+      const newProjects: Project[] = [
+        {
+          id: 'new-project-id',
+          title: 'New Project',
+          slug: 'new-project',
+          username: 'testuser',
+          description: '',
+          createdDate: new Date().toISOString(),
+          updatedDate: new Date().toISOString(),
+        },
+      ];
+
+      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(newProjects));
+      mockLocalStorage.getItem.mockClear();
+
+      service.reloadProjects();
+
+      expect(mockLocalStorage.getItem).toHaveBeenCalledWith(
+        'inkweld-offline-projects'
+      );
+      expect(service.projects()).toEqual(newProjects);
+    });
+  });
+
   describe('createProject', () => {
     beforeEach(() => {
       // Initialize with empty projects for each test

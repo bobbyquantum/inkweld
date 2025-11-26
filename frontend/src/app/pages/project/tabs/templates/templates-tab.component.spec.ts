@@ -11,7 +11,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
 import { Project } from '../../../../../api-client';
-import { TemplatesTabComponent } from './templates-tab.component';
+import {
+  TEMPLATE_RELOAD_DELAY,
+  TEMPLATE_SYNC_TIMEOUT,
+  TemplatesTabComponent,
+} from './templates-tab.component';
 
 describe('TemplatesTabComponent', () => {
   let component: TemplatesTabComponent;
@@ -118,6 +122,9 @@ describe('TemplatesTabComponent', () => {
           provide: DefaultTemplatesService,
           useValue: mockDefaultTemplatesService,
         },
+        // Override timeouts to 0 for faster tests
+        { provide: TEMPLATE_SYNC_TIMEOUT, useValue: 0 },
+        { provide: TEMPLATE_RELOAD_DELAY, useValue: 0 },
       ],
     }).compileComponents();
 
@@ -162,8 +169,7 @@ describe('TemplatesTabComponent', () => {
 
       await component.loadTemplates();
 
-      // Wait for sync timeout
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      // With TEMPLATE_SYNC_TIMEOUT set to 0, no wait needed
 
       expect(component.templates().length).toBe(1);
       expect(component.templates()[0].type).toBe('CHARACTER');
@@ -183,7 +189,7 @@ describe('TemplatesTabComponent', () => {
 
       await component.loadTemplates();
 
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      // With TEMPLATE_SYNC_TIMEOUT set to 0, no wait needed
 
       expect(component.templates().length).toBe(0);
       expect(component.isLoading()).toBe(false);
@@ -226,7 +232,8 @@ describe('TemplatesTabComponent', () => {
 
       component.refresh();
 
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      // With TEMPLATE_SYNC_TIMEOUT set to 0, just wait a tick for async
+      await Promise.resolve();
 
       expect(mockWorldbuildingService.loadSchemaLibrary).toHaveBeenCalled();
     });
@@ -258,7 +265,7 @@ describe('TemplatesTabComponent', () => {
 
       await component.loadDefaultTemplates();
 
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      // With TEMPLATE_SYNC_TIMEOUT set to 0, no wait needed
 
       // SnackBar may not be called in test environment due to async timing
       expect(
@@ -327,7 +334,7 @@ describe('TemplatesTabComponent', () => {
 
       await component.cloneTemplate(template);
 
-      await new Promise(resolve => setTimeout(resolve, 1600));
+      // With timeouts set to 0, no wait needed
 
       expect(mockWorldbuildingService.cloneTemplate).toHaveBeenCalledWith(
         'testuser:test-project',
@@ -409,7 +416,7 @@ describe('TemplatesTabComponent', () => {
 
       await component.deleteTemplate(template);
 
-      await new Promise(resolve => setTimeout(resolve, 1600));
+      // With timeouts set to 0, no wait needed
 
       expect(mockWorldbuildingService.deleteTemplate).toHaveBeenCalledWith(
         'testuser:test-project',
@@ -504,7 +511,7 @@ describe('TemplatesTabComponent', () => {
 
       await component.editTemplate(template);
 
-      await new Promise(resolve => setTimeout(resolve, 1600));
+      // With timeouts set to 0, no wait needed
 
       expect(mockWorldbuildingService.updateTemplate).toHaveBeenCalledWith(
         'testuser:test-project',

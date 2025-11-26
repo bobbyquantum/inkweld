@@ -6,7 +6,7 @@ import { ImagesService } from '@inkweld/api/images.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { Project } from '@inkweld/model/project';
 import { Observable } from 'rxjs';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { apiErr, apiOk } from '../../../testing/utils';
@@ -917,5 +917,24 @@ describe('ProjectService', () => {
     await service.loadAllProjects(); // wait until the method resolves
 
     expect(service.projects()).toEqual(fresh);
+  });
+
+  describe('cache error handling', () => {
+    it('should handle getCachedProjectsList storage error', async () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      
+      // Make storage throw when getting cached projects list
+      store.get.mockRejectedValueOnce(new Error('Storage read error'));
+      api.listUserProjects.mockReturnValue(apiOk(BASE));
+
+      await service.loadAllProjects();
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to get cached projects:',
+        expect.any(Error)
+      );
+      expect(service.projects()).toEqual(BASE);
+      consoleSpy.mockRestore();
+    });
   });
 });

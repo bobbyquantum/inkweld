@@ -137,4 +137,54 @@ describe('AuthInterceptor', () => {
       expect(router.navigate).not.toHaveBeenCalled();
     });
   });
+
+  it('should add Authorization header when token exists', () => {
+    localStorage.setItem('auth_token', 'test-token');
+    const request = new HttpRequest('GET', '/api/test');
+    const response = new HttpResponse({ status: 200 });
+
+    const mockHandler = {
+      handle: vi.fn().mockReturnValue(of(response)),
+    };
+
+    interceptor.intercept(request, mockHandler).subscribe(() => {
+      const clonedRequest = mockHandler.handle.mock.calls[0][0] as HttpRequest<unknown>;
+      expect(clonedRequest.headers.get('Authorization')).toBe('Bearer test-token');
+    });
+
+    localStorage.removeItem('auth_token');
+  });
+
+  it('should handle navigation failure gracefully', async () => {
+    router.url = '/projects';
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    router.navigate.mockRejectedValue(new Error('Navigation failed'));
+
+    const request = new HttpRequest('GET', '/api/test');
+    const error = new HttpErrorResponse({ status: 401 });
+
+    const mockHandler = {
+      handle: vi.fn().mockReturnValue(throwError(() => error)),
+    };
+
+    return new Promise<void>((resolve, reject) => {
+      interceptor.intercept(request, mockHandler).subscribe({
+        error: async () => {
+          try {
+            await Promise.resolve();
+            await Promise.resolve();
+            expect(consoleSpy).toHaveBeenCalledWith(
+              'Failed to navigate to welcome page:',
+              expect.any(Error)
+            );
+            consoleSpy.mockRestore();
+            resolve();
+          } catch (e) {
+            consoleSpy.mockRestore();
+            reject(e instanceof Error ? e : new Error(String(e)));
+          }
+        },
+      });
+    });
+  });
 });

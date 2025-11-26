@@ -52,4 +52,34 @@ describe('TreeNodeIconComponent', () => {
       fixture.nativeElement.querySelector('mat-icon');
     expect(matIconEl.textContent.trim()).toBe('description');
   });
+
+  it('should display custom icon from metadata for unknown type', () => {
+    component.isExpandable = false;
+    component.type = 'CUSTOM_TYPE';
+    component.metadata = { icon: 'star' };
+    fixture.detectChanges();
+    const matIconEl: HTMLElement =
+      fixture.nativeElement.querySelector('mat-icon');
+    expect(matIconEl.textContent.trim()).toBe('star');
+  });
+
+  it.each([
+    ['CHARACTER', 'person'],
+    ['LOCATION', 'place'],
+    ['WB_ITEM', 'category'],
+    ['MAP', 'map'],
+    ['RELATIONSHIP', 'diversity_1'],
+    ['PHILOSOPHY', 'auto_stories'],
+    ['CULTURE', 'groups'],
+    ['SPECIES', 'pets'],
+    ['SYSTEMS', 'settings'],
+    ['item', 'description'],
+  ])('should display %s icon for type %s', (type, expectedIcon) => {
+    component.isExpandable = false;
+    component.type = type;
+    fixture.detectChanges();
+    const matIconEl: HTMLElement =
+      fixture.nativeElement.querySelector('mat-icon');
+    expect(matIconEl.textContent.trim()).toBe(expectedIcon);
+  });
 });

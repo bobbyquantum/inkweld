@@ -123,7 +123,7 @@ describe('UserProfileComponent', () => {
         of({ matches: true, breakpoints: {} })
       );
 
-      await TestBed.resetTestingModule();
+      TestBed.resetTestingModule();
       await TestBed.configureTestingModule({
         imports: [UserProfileComponent],
         providers: [

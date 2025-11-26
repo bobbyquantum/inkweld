@@ -98,7 +98,7 @@ describe('WorldbuildingEditorComponent', () => {
       type: 'character',
       name: 'Test Character',
       age: '25',
-    } as any);
+    } as Record<string, unknown>);
     worldbuildingService.observeChanges.mockResolvedValue(() => {});
     worldbuildingService.saveWorldbuildingData.mockResolvedValue();
 

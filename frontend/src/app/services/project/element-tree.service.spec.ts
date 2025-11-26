@@ -391,6 +391,14 @@ describe('ElementTreeService', () => {
       expect(service.findParent(elements, -1)).toBeNull();
       expect(service.findParent(elements, 100)).toBeNull();
     });
+
+    it('should return null when parent element is not found in backward search', () => {
+      // Create an element with level > 0 but no parent exists before it
+      const orphanedElements = [
+        createElement('2', 'Orphan', 1, ElementType.Item, 0), // level 1 with no level 0 parent before it
+      ];
+      expect(service.findParent(orphanedElements, 0)).toBeNull();
+    });
   });
 
   describe('getAncestors', () => {

@@ -223,4 +223,15 @@ describe('UnifiedUserService', () => {
       expect(service.getMode()).toBe('offline');
     });
   });
+
+  describe('null mode', () => {
+    beforeEach(() => {
+      setupService.getMode.mockReturnValue(null);
+    });
+
+    it('should return false for hasCachedUser when mode is null', async () => {
+      const hasCached = await service.hasCachedUser();
+      expect(hasCached).toBe(false);
+    });
+  });
 });

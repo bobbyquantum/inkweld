@@ -161,4 +161,34 @@ describe('authGuard', () => {
     expect(result).toBe(welcomeUrlTree);
     expect(router.createUrlTree).toHaveBeenCalledWith(['/welcome']);
   });
+
+  it('should redirect to welcome when user is not authenticated after initialization in server mode', async () => {
+    mockCurrentUser.set(undefined);
+    (unifiedUserService.hasCachedUser as Mock).mockResolvedValue(true);
+    (unifiedUserService.initialize as Mock).mockResolvedValue(undefined);
+    mockIsAuthenticated.set(false); // Not authenticated after initialization
+
+    const welcomeUrlTree = new UrlTree();
+    (router.createUrlTree as Mock).mockReturnValue(welcomeUrlTree);
+
+    const result = await executeGuard(
+      {} as ActivatedRouteSnapshot,
+      {} as RouterStateSnapshot
+    );
+    expect(result).toBe(welcomeUrlTree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/welcome']);
+  });
+
+  it('should redirect to setup when mode is null', async () => {
+    (setupService.getMode as Mock).mockReturnValue(null);
+    const setupUrlTree = new UrlTree();
+    (router.createUrlTree as Mock).mockReturnValue(setupUrlTree);
+
+    const result = await executeGuard(
+      {} as ActivatedRouteSnapshot,
+      {} as RouterStateSnapshot
+    );
+    expect(result).toBe(setupUrlTree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/setup']);
+  });
 });

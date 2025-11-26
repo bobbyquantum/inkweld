@@ -138,6 +138,20 @@ describe('FolderElementEditorComponent', () => {
     expect(mockProjectStateService.updateElements).toHaveBeenCalled();
   });
 
+  it('should not update elements when dropped in same position', () => {
+    const dropEvent = {
+      previousIndex: 0,
+      currentIndex: 0,
+      container: {
+        data: component.childElements(),
+      },
+    } as unknown as CdkDragDrop<ProjectElement[]>;
+
+    component.onDrop(dropEvent);
+
+    expect(mockProjectStateService.updateElements).not.toHaveBeenCalled();
+  });
+
   it('should create a new element', () => {
     component.createNewElement();
 

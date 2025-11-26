@@ -156,6 +156,13 @@ describe('EditProjectDialogComponent', () => {
     );
   });
 
+  describe('onCancel', () => {
+    it('should close the dialog without returning data', () => {
+      component.onCancel();
+      expect(dialogRef.close).toHaveBeenCalledWith();
+    });
+  });
+
   describe('loadCoverImage on init', () => {
     it('should call getProjectCover on init', () => {
       expect(projectService.getProjectCover).toHaveBeenCalledWith(

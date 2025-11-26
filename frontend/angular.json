@@ -103,6 +103,7 @@
               "**/*.config.ts",
               "**/*.d.ts",
               "**/main.ts",
+              "**/app.routes.ts",
               "**/api-client/**"
             ],
             "coverageReporters": ["text", "html", "lcov"],

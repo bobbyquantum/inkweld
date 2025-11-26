@@ -243,7 +243,7 @@ describe('AppComponent', () => {
       const router = TestBed.inject(Router);
 
       // Call ngOnInit which triggers initializeApp
-      await component.ngOnInit();
+      component.ngOnInit();
       await fixture.whenStable();
 
       expect(router.navigate).toHaveBeenCalledWith(['/setup']);
@@ -256,13 +256,13 @@ describe('AppComponent', () => {
       const router = TestBed.inject(Router);
 
       // Call ngOnInit which triggers initializeApp
-      await component.ngOnInit();
+      component.ngOnInit();
       await fixture.whenStable();
 
       expect(router.navigate).toHaveBeenCalledWith(['/setup']);
     });
 
-    it('should initialize in server mode by default', async () => {
+    it('should initialize in server mode by default', () => {
       // The component already initializes during beforeEach with server mode
       // Since initialization completes without error, verify the component state
       expect((component as any).offlineMode()).toBe(false);
@@ -275,7 +275,7 @@ describe('AppComponent', () => {
         writable: true,
       });
 
-      await component.ngOnInit();
+      component.ngOnInit();
       await fixture.whenStable();
 
       // Should not call initialize when on registration page
@@ -289,7 +289,7 @@ describe('AppComponent', () => {
         writable: true,
       });
 
-      await component.ngOnInit();
+      component.ngOnInit();
       await fixture.whenStable();
 
       // Should not call initialize when on welcome page
@@ -303,7 +303,7 @@ describe('AppComponent', () => {
         writable: true,
       });
 
-      await component.ngOnInit();
+      component.ngOnInit();
       await fixture.whenStable();
 
       // Should not call initialize when on approval-pending page

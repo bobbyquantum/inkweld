@@ -1,7 +1,10 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, QueryList } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatExpansionPanel } from '@angular/material/expansion';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ElementTypeSchema } from '../../models/schema-types';
@@ -61,7 +64,11 @@ describe('TemplateEditorDialogComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [TemplateEditorDialogComponent, ReactiveFormsModule],
+      imports: [
+        TemplateEditorDialogComponent,
+        ReactiveFormsModule,
+        BrowserAnimationsModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: mockDialogRef },
@@ -92,6 +99,103 @@ describe('TemplateEditorDialogComponent', () => {
     expect(component.tabs()[0].label).toBe('Basic Info');
   });
 
+  it('should assign IDs to fields without IDs during initialization', () => {
+    // The mockSchema fields don't have IDs, so the constructor should assign them
+    const fields = component.tabs()[0].fields;
+    fields.forEach(field => {
+      expect(field.id).toBeDefined();
+      expect(field.id).toMatch(/^field_\d+_/);
+    });
+  });
+
+  describe('ngAfterViewInit', () => {
+    it('should set up expansion panel subscription', async () => {
+      vi.useFakeTimers();
+
+      // Create mock expansion panels
+      const mockPanel = {
+        expanded: false,
+        open: vi.fn(),
+      };
+
+      const changesSubject = new Subject<void>();
+      const mockQueryList = {
+        changes: changesSubject.asObservable(),
+        toArray: () => [mockPanel],
+      } as unknown as QueryList<MatExpansionPanel>;
+
+      // Set up lastFieldId to simulate a newly added field
+      (component as any).lastFieldId = 'test-field-id';
+      component.expansionPanels = mockQueryList;
+
+      component.ngAfterViewInit();
+
+      // Trigger the changes event
+      changesSubject.next();
+
+      // Advance timers to trigger the setTimeout
+      vi.advanceTimersByTime(150);
+
+      expect(mockPanel.open).toHaveBeenCalled();
+      expect((component as any).lastFieldId).toBeNull();
+
+      vi.useRealTimers();
+    });
+
+    it('should not open panel if already expanded', async () => {
+      vi.useFakeTimers();
+
+      const mockPanel = {
+        expanded: true, // Already expanded
+        open: vi.fn(),
+      };
+
+      const changesSubject = new Subject<void>();
+      const mockQueryList = {
+        changes: changesSubject.asObservable(),
+        toArray: () => [mockPanel],
+      } as unknown as QueryList<MatExpansionPanel>;
+
+      (component as any).lastFieldId = 'test-field-id';
+      component.expansionPanels = mockQueryList;
+
+      component.ngAfterViewInit();
+      changesSubject.next();
+      vi.advanceTimersByTime(150);
+
+      expect(mockPanel.open).not.toHaveBeenCalled();
+      expect((component as any).lastFieldId).toBeNull();
+
+      vi.useRealTimers();
+    });
+
+    it('should not do anything if no lastFieldId', async () => {
+      vi.useFakeTimers();
+
+      const mockPanel = {
+        expanded: false,
+        open: vi.fn(),
+      };
+
+      const changesSubject = new Subject<void>();
+      const mockQueryList = {
+        changes: changesSubject.asObservable(),
+        toArray: () => [mockPanel],
+      } as unknown as QueryList<MatExpansionPanel>;
+
+      (component as any).lastFieldId = null; // No lastFieldId
+      component.expansionPanels = mockQueryList;
+
+      component.ngAfterViewInit();
+      changesSubject.next();
+      vi.advanceTimersByTime(150);
+
+      expect(mockPanel.open).not.toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+  });
+
   describe('tab management', () => {
     it('should add a new tab', () => {
       const initialTabCount = component.tabs().length;
@@ -104,6 +208,17 @@ describe('TemplateEditorDialogComponent', () => {
       expect(newTab.label).toBe('New Tab');
     });
 
+    it('should generate unique tab labels when adding multiple tabs', () => {
+      component.addTab(); // "New Tab"
+      component.addTab(); // "New Tab 1"
+      component.addTab(); // "New Tab 2"
+
+      const labels = component.tabs().map(t => t.label);
+      expect(labels).toContain('New Tab');
+      expect(labels).toContain('New Tab 1');
+      expect(labels).toContain('New Tab 2');
+    });
+
     it('should remove a tab', () => {
       // Add a tab first
       component.addTab();
@@ -112,6 +227,16 @@ describe('TemplateEditorDialogComponent', () => {
       component.removeTab(1); // Remove second tab
 
       expect(component.tabs()).toHaveLength(initialTabCount - 1);
+    });
+
+    it('should adjust selectedTabIndex when removing a tab at the current index', () => {
+      component.addTab();
+      component.addTab();
+      component.selectedTabIndex.set(2);
+
+      component.removeTab(2);
+
+      expect(component.selectedTabIndex()).toBe(1);
     });
 
     it("should not remove tabs when there's only one", () => {
@@ -124,6 +249,50 @@ describe('TemplateEditorDialogComponent', () => {
       expect(component.tabs()).toHaveLength(
         initialTabCount > 0 ? initialTabCount - 1 : 0
       );
+    });
+
+    it('should update tab properties', () => {
+      component.updateTab(0, { label: 'Updated Label', icon: 'star' });
+
+      expect(component.tabs()[0].label).toBe('Updated Label');
+      expect(component.tabs()[0].icon).toBe('star');
+    });
+
+    it('should handle tab drag and drop', () => {
+      component.addTab();
+      expect(component.tabs().length).toBe(2);
+
+      // Create a mock drag event
+      const dragEvent = {
+        previousIndex: 0,
+        currentIndex: 1,
+        container: {},
+        previousContainer: {},
+        item: {},
+        isPointerOverContainer: true,
+        distance: { x: 0, y: 0 },
+        dropPoint: { x: 0, y: 0 },
+        event: new Event('drop'),
+      } as any;
+
+      const originalFirstLabel = component.tabs()[0].label;
+      const originalSecondLabel = component.tabs()[1].label;
+
+      component.onTabsDrop(dragEvent);
+
+      // Order should be reversed
+      expect(component.tabs()[0].label).toBe(originalSecondLabel);
+      expect(component.tabs()[1].label).toBe(originalFirstLabel);
+
+      // Order property should be updated
+      expect(component.tabs()[0].order).toBe(0);
+      expect(component.tabs()[1].order).toBe(1);
+    });
+
+    it('should set selectedTabIndex when adding a new tab', () => {
+      component.addTab();
+
+      expect(component.selectedTabIndex()).toBe(component.tabs().length - 1);
     });
 
     it('should move tab up', () => {
@@ -172,6 +341,50 @@ describe('TemplateEditorDialogComponent', () => {
       expect(updatedTab.fields).toHaveLength(initialFieldCount - 1);
     });
 
+    it('should update field properties', () => {
+      const tabIndex = 0;
+      const fieldIndex = 0;
+
+      component.updateField(tabIndex, fieldIndex, {
+        label: 'Updated Field Name',
+        type: 'textarea',
+        placeholder: 'Enter text here',
+      });
+
+      const updatedField = component.tabs()[tabIndex].fields[fieldIndex];
+      expect(updatedField.label).toBe('Updated Field Name');
+      expect(updatedField.type).toBe('textarea');
+      expect(updatedField.placeholder).toBe('Enter text here');
+    });
+
+    it('should handle field drag and drop', () => {
+      const tabIndex = 0;
+      component.addField(tabIndex); // Add a third field
+
+      const tab = component.tabs()[tabIndex];
+      expect(tab.fields.length).toBe(3);
+
+      // Create a mock drag event
+      const dragEvent = {
+        previousIndex: 0,
+        currentIndex: 2,
+        container: {},
+        previousContainer: {},
+        item: {},
+        isPointerOverContainer: true,
+        distance: { x: 0, y: 0 },
+        dropPoint: { x: 0, y: 0 },
+        event: new Event('drop'),
+      } as any;
+
+      const originalFirstKey = component.tabs()[tabIndex].fields[0].key;
+
+      component.onFieldsDrop(dragEvent, tabIndex);
+
+      // First field should now be at the end
+      expect(component.tabs()[tabIndex].fields[2].key).toBe(originalFirstKey);
+    });
+
     it('should move fields via drag drop', () => {
       const tabIndex = 0;
       component.addField(tabIndex); // Add a second field
@@ -194,6 +407,19 @@ describe('TemplateEditorDialogComponent', () => {
       // Test that fields were added successfully
       expect(fieldsCount).toBe(3); // Original 2 + 1 added
       expect(tab.fields[2].label).toBe('New Field');
+    });
+
+    it('should store lastFieldId when adding a field for auto-expansion', () => {
+      const tabIndex = 0;
+
+      component.addField(tabIndex);
+
+      // The lastFieldId should be set (private property, we can check indirectly)
+      const newField =
+        component.tabs()[tabIndex].fields[
+          component.tabs()[tabIndex].fields.length - 1
+        ];
+      expect(newField.id).toBeDefined();
     });
   });
 

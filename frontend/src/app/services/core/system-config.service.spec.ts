@@ -317,6 +317,114 @@ describe('SystemConfigService', () => {
         }, 10);
       });
     });
+
+    it('should compute isCaptchaEnabled correctly', () => {
+      TestBed.resetTestingModule();
+      (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
+        of({
+          aiLinting: false,
+          captcha: { enabled: true, siteKey: 'test-key' },
+        } as SystemFeatures)
+      );
+
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          SystemConfigService,
+          { provide: ConfigurationService, useValue: mockConfigService },
+        ],
+      });
+
+      const testService = TestBed.inject(SystemConfigService);
+
+      return new Promise<void>(resolve => {
+        setTimeout(() => {
+          expect(testService.isCaptchaEnabled()).toBe(true);
+          expect(testService.captchaSiteKey()).toBe('test-key');
+          resolve();
+        }, 10);
+      });
+    });
+
+    it('should return false for isCaptchaEnabled when captcha is undefined', () => {
+      TestBed.resetTestingModule();
+      (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
+        of({
+          aiLinting: false,
+        } as SystemFeatures)
+      );
+
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          SystemConfigService,
+          { provide: ConfigurationService, useValue: mockConfigService },
+        ],
+      });
+
+      const testService = TestBed.inject(SystemConfigService);
+
+      return new Promise<void>(resolve => {
+        setTimeout(() => {
+          expect(testService.isCaptchaEnabled()).toBe(false);
+          expect(testService.captchaSiteKey()).toBe('');
+          resolve();
+        }, 10);
+      });
+    });
+
+    it('should compute isUserApprovalRequired correctly', () => {
+      TestBed.resetTestingModule();
+      (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
+        of({
+          aiLinting: false,
+          userApprovalRequired: true,
+        } as SystemFeatures)
+      );
+
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          SystemConfigService,
+          { provide: ConfigurationService, useValue: mockConfigService },
+        ],
+      });
+
+      const testService = TestBed.inject(SystemConfigService);
+
+      return new Promise<void>(resolve => {
+        setTimeout(() => {
+          expect(testService.isUserApprovalRequired()).toBe(true);
+          resolve();
+        }, 10);
+      });
+    });
+
+    it('should default isUserApprovalRequired to true when undefined', () => {
+      TestBed.resetTestingModule();
+      (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
+        of({
+          aiLinting: false,
+        } as SystemFeatures)
+      );
+
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          SystemConfigService,
+          { provide: ConfigurationService, useValue: mockConfigService },
+        ],
+      });
+
+      const testService = TestBed.inject(SystemConfigService);
+
+      return new Promise<void>(resolve => {
+        setTimeout(() => {
+          expect(testService.isUserApprovalRequired()).toBe(true);
+          resolve();
+        }, 10);
+      });
+    });
   });
 
   describe('Signal Reactivity', () => {

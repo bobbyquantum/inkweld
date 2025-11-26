@@ -50,6 +50,29 @@ describe('SetupService', () => {
     expect(service.isLoading()).toBe(false);
   });
 
+  describe('loadConfig on initialization', () => {
+    it('should load stored config when present at startup', () => {
+      // Pre-populate storage before creating a fresh TestBed
+      const config = {
+        mode: 'offline' as const,
+        userProfile: { name: 'Preloaded', username: 'preloaded' },
+      };
+      mockLocalStorage[SETUP_STORAGE_KEY] = JSON.stringify(config);
+
+      // Reset TestBed to create a fresh service with pre-populated storage
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [provideZonelessChangeDetection()],
+      });
+
+      const freshService = TestBed.inject(SetupService);
+      
+      // The constructor should have loaded the config
+      expect(freshService.isConfigured()).toBe(true);
+      expect(freshService.appConfig()).toEqual(config);
+    });
+  });
+
   describe('checkConfiguration', () => {
     it('should return false when no config is stored', () => {
       const result = service.checkConfiguration();

@@ -95,4 +95,31 @@ describe('ProjectSettingsComponent', () => {
       });
     });
   });
+
+  describe('useTabsDesktop', () => {
+    it('should return default value (true) when setting is not set', () => {
+      expect(component.useTabsDesktop).toBe(true);
+    });
+
+    it('should return stored value when setting exists', () => {
+      localStorageMock['userSettings'] = JSON.stringify({
+        useTabsDesktop: false,
+      });
+      fixture = TestBed.createComponent(ProjectSettingsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+      expect(component.useTabsDesktop).toBe(false);
+    });
+
+    it('should update setting when value is set', () => {
+      component.useTabsDesktop = false;
+      expect(settingsService.getSetting('useTabsDesktop', true)).toBe(false);
+    });
+
+    it('should reset to default (true) when non-boolean value is set', () => {
+      // @ts-expect-error Testing invalid type
+      component.useTabsDesktop = 'invalid';
+      expect(settingsService.getSetting('useTabsDesktop', true)).toBe(true);
+    });
+  });
 });

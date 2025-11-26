@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatDialogModule } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { By } from '@angular/platform-browser';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -200,5 +200,45 @@ describe('UserSettingsDialogComponent', () => {
     expect((closeButton.nativeElement as HTMLElement).textContent).toContain(
       'Close'
     );
+  });
+
+  describe('dialog data', () => {
+    it('should initialize with category from dialog data', async () => {
+      const dialogData = { selectedCategory: 'account' };
+
+      @Component({
+        selector: 'app-test-wrapper-data',
+        standalone: true,
+        imports: [
+          MatDialogModule,
+          MockGeneralSettingsComponent,
+          MockAccountSettingsComponent,
+          MockProjectTreeSettingsComponent,
+          MockProjectSettingsComponent,
+        ],
+        template: '<div></div>',
+      })
+      class TestWrapperWithDataComponent extends UserSettingsDialogComponent {}
+
+      await TestBed.resetTestingModule()
+        .configureTestingModule({
+          imports: [TestWrapperWithDataComponent],
+          providers: [
+            provideZonelessChangeDetection(),
+            provideHttpClient(),
+            provideHttpClientTesting(),
+            { provide: MAT_DIALOG_DATA, useValue: dialogData },
+          ],
+        })
+        .compileComponents();
+
+      const fixtureWithData = TestBed.createComponent(
+        TestWrapperWithDataComponent
+      );
+      const componentWithData = fixtureWithData.componentInstance;
+      fixtureWithData.detectChanges();
+
+      expect(componentWithData.selectedCategory).toBe('account');
+    });
   });
 });

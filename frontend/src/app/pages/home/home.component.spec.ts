@@ -334,7 +334,7 @@ describe('HomeComponent', () => {
       expect(component['filteredProjects']()).toEqual(mockProjects);
     });
 
-    it('should filter projects by title', async () => {
+    it('should filter projects by title', () => {
       mockProjectsSignal.set(mockProjects);
       component.ngOnInit();
 
@@ -347,7 +347,7 @@ describe('HomeComponent', () => {
       expect(filtered[0].title).toBe('Test Project');
     });
 
-    it('should filter projects by slug', async () => {
+    it('should filter projects by slug', () => {
       mockProjectsSignal.set(mockProjects);
       component.ngOnInit();
 
@@ -358,7 +358,7 @@ describe('HomeComponent', () => {
       expect(filtered[0].slug).toBe('another-project');
     });
 
-    it('should filter projects by description', async () => {
+    it('should filter projects by description', () => {
       mockProjectsSignal.set(mockProjects);
       component.ngOnInit();
 
@@ -368,7 +368,7 @@ describe('HomeComponent', () => {
       expect(filtered.length).toBe(2); // Both have "description" in their description
     });
 
-    it('should filter projects by username', async () => {
+    it('should filter projects by username', () => {
       mockProjectsSignal.set(mockProjects);
       component.ngOnInit();
 

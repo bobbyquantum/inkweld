@@ -253,6 +253,42 @@ describe('BookshelfComponent', () => {
       expect(component.projectSelected.emit).not.toHaveBeenCalled();
       expect(component.scrollToCard).not.toHaveBeenCalled();
     });
+
+    it('should not emit or scroll when recently scrolled', () => {
+      // Setup
+      const selectedProject = mockProjects[0];
+      vi.spyOn(component.projectSelected, 'emit');
+      vi.spyOn(component, 'scrollToCard');
+      component['recentlyScrolled'] = true;
+
+      // Execute
+      component.selectProject(selectedProject);
+
+      // Assert
+      expect(component.projectSelected.emit).not.toHaveBeenCalled();
+      expect(component.scrollToCard).not.toHaveBeenCalled();
+    });
+
+    it('should set recentlyScrolled flag when scrolling to non-active card', () => {
+      // Setup
+      vi.useFakeTimers();
+      const nonActiveProject = mockProjects[1];
+      vi.spyOn(component, 'scrollToCard');
+      component['activeCardIndex'].set(0);
+      component['recentlyScrolled'] = false;
+
+      // Execute
+      component.selectProject(nonActiveProject);
+
+      // Assert - should set flag immediately
+      expect(component['recentlyScrolled']).toBe(true);
+
+      // Assert - should reset flag after timeout
+      vi.advanceTimersByTime(600);
+      expect(component['recentlyScrolled']).toBe(false);
+
+      vi.useRealTimers();
+    });
   });
 
   describe('Drag Interactions', () => {

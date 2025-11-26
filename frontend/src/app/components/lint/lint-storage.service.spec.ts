@@ -129,4 +129,30 @@ describe('LintStorageService', () => {
 
     expect(rejectSpy).toHaveBeenCalledWith(mockCorrection);
   });
+
+  it('should log acceptance when lint-correction-accept event is dispatched', () => {
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const event = new CustomEvent('lint-correction-accept', {
+      detail: mockCorrection,
+    });
+
+    document.dispatchEvent(event);
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[LintStorage] Suggestion accepted:',
+      mockCorrection.correctedText
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('should clear all rejected suggestions', () => {
+    // First add a suggestion
+    service.rejectSuggestion(mockCorrection);
+    expect(service.isSuggestionRejected(mockCorrection)).toBe(true);
+
+    // Clear all suggestions
+    service.clearRejectedSuggestions();
+
+    expect(service.isSuggestionRejected(mockCorrection)).toBe(false);
+  });
 });
