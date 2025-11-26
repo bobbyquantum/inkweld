@@ -1,20 +1,31 @@
 import { Page, test as base } from '@playwright/test';
 
 /**
- * Full-stack test fixtures
+ * Online Test Fixtures
  *
  * These fixtures work with the REAL backend server, not mocked APIs.
  * They provide utilities for setting up different user states and scenarios.
+ *
+ * The backend runs with an in-memory SQLite database for test isolation.
  */
 
-export type FullStackFixtures = {
-  // Anonymous page (no authentication)
+export type OnlineTestFixtures = {
+  /**
+   * Anonymous page (no authentication).
+   * Configured for server mode but not logged in.
+   */
   anonymousPage: Page;
 
-  // Authenticated user page (creates and logs in a test user)
+  /**
+   * Authenticated user page.
+   * Creates and logs in a unique test user via the real backend.
+   */
   authenticatedPage: Page;
 
-  // Offline mode page (configured for offline storage)
+  /**
+   * Offline mode page (configured for offline storage).
+   * Used for testing migration scenarios where we switch between modes.
+   */
   offlinePage: Page;
 };
 
@@ -26,9 +37,9 @@ function generateTestId(): string {
 }
 
 /**
- * Extended test with full-stack fixtures
+ * Extended test with online fixtures
  */
-export const test = base.extend<FullStackFixtures>({
+export const test = base.extend<OnlineTestFixtures>({
   // Anonymous page (no authentication)
   anonymousPage: async ({ browser }, use) => {
     // Create a new context for isolation
@@ -80,7 +91,20 @@ export const test = base.extend<FullStackFixtures>({
 
     // Navigate to the app with both config and token already set
     await page.goto('/');
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState('networkidle');
+
+    // Wait for the app to fully initialize and cache the user
+    // This ensures the auth guard will find a cached user on subsequent navigations
+    await page.waitForFunction(
+      () => {
+        // Check that we're not on a redirect page (setup/welcome)
+        return (
+          !window.location.pathname.includes('setup') &&
+          !window.location.pathname.includes('welcome')
+        );
+      },
+      { timeout: 10000 }
+    );
 
     // Store credentials for potential later use
     // @ts-expect-error - Dynamic property for test context
@@ -197,6 +221,101 @@ export async function authenticateUser(
 }
 
 /**
+ * Helper to register a user via UI (for tests that need to go through the full flow)
+ */
+export async function registerUser(
+  page: Page,
+  username: string,
+  password: string
+): Promise<void> {
+  await page.goto('/register');
+  await page.waitForLoadState('domcontentloaded');
+
+  await page.locator('[data-testid="username-input"]').fill(username);
+  await page.locator('[data-testid="username-input"]').blur();
+  await page.waitForTimeout(500); // Wait for username availability check
+
+  await page.locator('[data-testid="password-input"]').fill(password);
+  await page.locator('[data-testid="confirm-password-input"]').fill(password);
+
+  // Wait for the register button to be enabled
+  await page
+    .locator('[data-testid="register-button"]')
+    .waitFor({ state: 'visible' });
+
+  // Click register and wait for navigation
+  await Promise.all([
+    page.waitForURL('/', { timeout: 15000 }),
+    page.locator('[data-testid="register-button"]').click(),
+  ]);
+
+  // Wait for network to settle
+  await page.waitForLoadState('networkidle');
+
+  // Verify token was stored (registration should auto-login)
+  const token = await page.evaluate(() => localStorage.getItem('auth_token'));
+  if (!token) {
+    throw new Error(
+      'registerUser: Expected auth_token in localStorage after registration, but none found'
+    );
+  }
+
+  // Wait for the user menu to appear (indicates successful authentication)
+  try {
+    await page.locator('[data-testid="user-menu-button"]').waitFor({
+      state: 'visible',
+      timeout: 10000,
+    });
+  } catch {
+    // Log diagnostic info
+    const url = page.url();
+    const hasToken = await page.evaluate(
+      () => !!localStorage.getItem('auth_token')
+    );
+    throw new Error(
+      `registerUser: User menu not visible after registration. ` +
+        `URL: ${url}, Has token: ${hasToken}`
+    );
+  }
+}
+
+/**
+ * Helper to create a project via UI
+ */
+export async function createProject(
+  page: Page,
+  title: string,
+  slug: string,
+  description?: string
+): Promise<void> {
+  await page.goto('/create-project');
+  await page.waitForLoadState('networkidle');
+
+  // Verify we're on the create project page (not redirected to login)
+  const url = page.url();
+  if (url.includes('welcome') || url.includes('login')) {
+    throw new Error(
+      `createProject: Expected /create-project but landed on ${url}. ` +
+        `Token in localStorage: ${await page.evaluate(() => localStorage.getItem('auth_token'))}`
+    );
+  }
+
+  await page.locator('[data-testid="project-title-input"]').fill(title);
+  await page.locator('[data-testid="project-slug-input"]').fill(slug);
+
+  if (description) {
+    await page
+      .locator('[data-testid="project-description-input"]')
+      .fill(description);
+  }
+
+  await page.locator('[data-testid="create-project-button"]').click();
+
+  // Wait for navigation to project page
+  await page.waitForURL(new RegExp(`.*${slug}.*`), { timeout: 10000 });
+}
+
+/**
  * Helper to create an offline project
  */
 export async function createOfflineProject(
@@ -283,8 +402,7 @@ export async function openUserSettings(page: Page): Promise<void> {
   // Wait for button to be visible
   try {
     await userMenuButton.waitFor({ state: 'visible', timeout: 10000 });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (_e) {
+  } catch {
     // Debug: Take screenshot and log page state
     await page.screenshot({ path: 'test-results/debug-no-user-menu.png' });
     const buttons = await page.locator('button').allTextContents();
@@ -299,8 +417,7 @@ export async function openUserSettings(page: Page): Promise<void> {
   const settingsOption = page.getByRole('menuitem', { name: /settings/i });
   try {
     await settingsOption.waitFor({ state: 'visible', timeout: 10000 });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (_e) {
+  } catch {
     // Debug: Check if menu opened
     const menuItems = await page
       .locator('[role="menuitem"], [role="menu"] button')
@@ -343,3 +460,6 @@ export async function getAppMode(page: Page): Promise<string> {
 
 // Re-export expect
 export { expect } from '@playwright/test';
+
+// Re-export common helpers
+export * from '../common';

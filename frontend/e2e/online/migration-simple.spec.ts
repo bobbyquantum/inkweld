@@ -75,7 +75,10 @@ test.describe('Migration Service', () => {
     );
 
     expect(registerResponse.ok()).toBeTruthy();
-    const registerData: any = await registerResponse.json();
+    const registerData = (await registerResponse.json()) as {
+      token: string;
+      user: { username: string };
+    };
     expect(registerData.token).toBeTruthy();
     expect(registerData.user.username).toBe(testUsername);
 
@@ -96,7 +99,9 @@ test.describe('Migration Service', () => {
     );
 
     expect(createProjectResponse.ok()).toBeTruthy();
-    const projectData: any = await createProjectResponse.json();
+    const projectData = (await createProjectResponse.json()) as {
+      slug: string;
+    };
     expect(projectData.slug).toBe('server-project');
 
     // Step 8: Verify we can fetch the project back
@@ -110,7 +115,10 @@ test.describe('Migration Service', () => {
     );
 
     expect(fetchProjectResponse.ok()).toBeTruthy();
-    const fetchedProject: any = await fetchProjectResponse.json();
+    const fetchedProject = (await fetchProjectResponse.json()) as {
+      slug: string;
+      title: string;
+    };
     expect(fetchedProject.slug).toBe('server-project');
     expect(fetchedProject.title).toBe('Server Project');
   });
@@ -144,7 +152,10 @@ test.describe('Migration Service', () => {
     );
 
     expect(createProjectResponse.ok()).toBeTruthy();
-    const projectData: any = await createProjectResponse.json();
+    const projectData = (await createProjectResponse.json()) as {
+      slug: string;
+      title: string;
+    };
     expect(projectData.slug).toBe('authenticated-project');
     expect(projectData.title).toBe('Authenticated Project');
 
@@ -160,7 +171,7 @@ test.describe('Migration Service', () => {
     );
 
     expect(userResponse.ok()).toBeTruthy();
-    const userData: any = await userResponse.json();
+    const userData = (await userResponse.json()) as { username: string };
 
     const fetchProjectResponse = await authenticatedPage.request.get(
       `http://localhost:8333/api/v1/projects/${userData.username}/authenticated-project`,

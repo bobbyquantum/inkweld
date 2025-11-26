@@ -446,6 +446,11 @@ export class RegisterComponent implements OnInit, OnDestroy {
           localStorage.setItem('auth_token', response.token);
         }
 
+        // Set the user in the user service so isAuthenticated() returns true
+        if (response.user) {
+          await this.userService.setCurrentUser(response.user);
+        }
+
         this.snackBar.open('Registration successful!', 'Close', {
           duration: 3000,
         });

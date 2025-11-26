@@ -1,17 +1,23 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Full-stack e2e configuration
+ * Online E2E Test Configuration
  *
  * This configuration runs tests against both the Angular frontend
- * and the real Bun backend server, allowing for complete integration testing.
+ * and the real Bun backend server with an in-memory database.
+ *
+ * Used for:
+ * - Migration tests (offline → server)
+ * - Server mode functionality
+ * - Authentication flows with real backend
+ * - API integration testing
  *
  * Usage:
- *   npm run e2e:fullstack
- *   npm run e2e:fullstack:ci
+ *   npm run e2e:online
+ *   npm run e2e:online:ci
  */
 export default defineConfig({
-  testDir: './e2e/fullstack',
+  testDir: './e2e/online',
 
   /* Run tests in files in parallel */
   fullyParallel: false, // Sequential for database state management
@@ -26,13 +32,10 @@ export default defineConfig({
   workers: 1,
 
   /* Reporter to use */
-  reporter: [
-    ['list'],
-    ['html', { open: 'never' }],
-  ],
+  reporter: [['list'], ['html', { open: 'never' }]],
 
-  /* Test timeout - reasonable for full-stack tests */
-  timeout: 10000,
+  /* Test timeout - longer for full-stack tests */
+  timeout: 30000,
 
   /* Expect timeout */
   expect: {
@@ -62,7 +65,7 @@ export default defineConfig({
   /* Configure web servers for both frontend and backend */
   webServer: [
     {
-      // Backend server
+      // Backend server with in-memory database
       command: 'bun src/bun-runner.ts',
       cwd: '../backend',
       url: 'http://localhost:8333/api/v1/health',
@@ -73,7 +76,8 @@ export default defineConfig({
         PORT: '8333',
         DB_TYPE: 'sqlite',
         DB_DATABASE: ':memory:',
-        SESSION_SECRET: 'test-session-secret-for-e2e-testing-minimum-32-characters',
+        SESSION_SECRET:
+          'test-session-secret-for-e2e-testing-minimum-32-characters',
         ALLOWED_ORIGINS: 'http://localhost:4200',
         USER_APPROVAL_REQUIRED: 'false',
         GITHUB_ENABLED: 'false',
@@ -95,5 +99,15 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+
+    // Uncomment for additional browser coverage
+    // {
+    //   name: 'firefox',
+    //   use: { ...devices['Desktop Firefox'] },
+    // },
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
   ],
 });

@@ -2,17 +2,22 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// require('dotenv').config();
-
-/**
+ * Main Playwright Configuration (Legacy/Mock API tests)
+ *
+ * This configuration runs tests in the root e2e folder that use mock APIs.
+ * These are tests that haven't been categorized into offline or online yet.
+ *
+ * RECOMMENDED: Use the specific configs instead:
+ *   - npm run e2e:offline  - Pure offline tests (no network)
+ *   - npm run e2e:online   - Full-stack tests with real backend
+ *   - npm run e2e          - Runs both offline and online tests
+ *
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: '**/fullstack/**', // Exclude fullstack tests (use playwright.fullstack.config.ts)
+  // Exclude offline, online, fullstack folders and common utilities
+  testIgnore: ['**/offline/**', '**/online/**', '**/fullstack/**', '**/common/**'],
   /* Run tests in files in parallel */
   fullyParallel: false, // Sequential for database state management
   /* Fail the build on CI if you accidentally left test.only in the source code. */

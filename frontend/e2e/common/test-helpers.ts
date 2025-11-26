@@ -1,7 +1,7 @@
 import { Page } from '@playwright/test';
 
 /**
- * Common test constants
+ * Common test constants used across offline and online tests
  */
 export const TEST_CONSTANTS = {
   // Valid password that meets all requirements
@@ -216,4 +216,30 @@ export async function assertElementsVisible(
       throw new Error(`Element ${selector} is not visible`);
     }
   }
+}
+
+/**
+ * Verify app mode from localStorage
+ * @param page Playwright page
+ */
+export async function getAppMode(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const config = localStorage.getItem('inkweld-app-config');
+    if (!config) return 'unknown';
+    const parsed = JSON.parse(config) as { mode?: string };
+    return parsed.mode || 'unknown';
+  });
+}
+
+/**
+ * Get offline projects from localStorage
+ * @param page Playwright page
+ */
+export async function getOfflineProjects(
+  page: Page
+): Promise<Array<{ slug: string }>> {
+  return page.evaluate(() => {
+    const stored = localStorage.getItem('inkweld-offline-projects');
+    return stored ? (JSON.parse(stored) as Array<{ slug: string }>) : [];
+  });
 }

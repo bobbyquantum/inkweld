@@ -3,49 +3,8 @@ import { mkdir } from 'fs/promises';
 import { join } from 'path';
 
 import { test } from './fixtures';
-import { mockProjects } from './mock-api/projects';
 
-// Only run screenshot tests when explicitly requested
-const shouldGenerateScreenshots =
-  process.env['GENERATE_SCREENSHOTS'] === 'true';
-const describeScreenshots = shouldGenerateScreenshots
-  ? test.describe
-  : test.describe.skip;
-
-describeScreenshots('PWA Screenshots', () => {
-  const demoProjects = [
-    {
-      id: 'screenshot-1',
-      title: 'The Worldbuilding Chronicles',
-      description: 'An epic fantasy world with detailed lore and characters',
-      username: 'testuser',
-      slug: 'worldbuilding-chronicles',
-      coverImageUrl: '/assets/demo_covers/worldbuilding_cover_1.png',
-      createdAt: new Date('2025-01-15').toISOString(),
-      updatedAt: new Date('2025-10-20').toISOString(),
-    },
-    {
-      id: 'screenshot-2',
-      title: 'Inkweld Demo Project',
-      description: 'A sample project showcasing collaborative writing features',
-      username: 'testuser',
-      slug: 'inkweld-demo',
-      coverImageUrl: '/assets/demo_covers/inkweld_cover_1.png',
-      createdAt: new Date('2025-02-10').toISOString(),
-      updatedAt: new Date('2025-10-18').toISOString(),
-    },
-    {
-      id: 'screenshot-3',
-      title: 'Mystery Novel Draft',
-      description: 'A thrilling detective story set in Victorian London',
-      username: 'testuser',
-      slug: 'mystery-novel',
-      coverImageUrl: '/assets/demo_covers/demo_cover_1.png',
-      createdAt: new Date('2025-03-05').toISOString(),
-      updatedAt: new Date('2025-10-15').toISOString(),
-    },
-  ];
-
+test.describe('PWA Screenshots', () => {
   test.beforeAll(async () => {
     // Ensure screenshots directory exists in docs/site/static/img
     const screenshotsDir = join(
@@ -59,15 +18,6 @@ describeScreenshots('PWA Screenshots', () => {
     if (!existsSync(screenshotsDir)) {
       await mkdir(screenshotsDir, { recursive: true });
     }
-  });
-
-  test.beforeEach(() => {
-    // Set up demo projects before EACH test
-    // This needs to run before the fixture navigates
-    mockProjects.resetProjects();
-    demoProjects.forEach(project => {
-      mockProjects.addProject(project);
-    });
   });
 
   test('capture project bookshelf - desktop', async ({
@@ -228,23 +178,9 @@ describeScreenshots('PWA Screenshots', () => {
     });
   });
 
-  test('capture project editor - desktop', async ({ page }) => {
+  test('capture project editor - desktop', async ({ offlinePage: page }) => {
     // Set viewport to desktop size - tighter focus at 1280px
     await page.setViewportSize({ width: 1280, height: 720 });
-
-    // Configure offline mode to avoid WebSocket connection attempts
-    await page.addInitScript(() => {
-      localStorage.setItem(
-        'inkweld-app-config',
-        JSON.stringify({
-          mode: 'offline',
-          userProfile: {
-            name: 'Demo User',
-            username: 'demouser',
-          },
-        })
-      );
-    });
 
     // Navigate to root - should go straight to home since configured
     await page.goto('/');
@@ -334,23 +270,9 @@ describeScreenshots('PWA Screenshots', () => {
     });
   });
 
-  test('capture project editor - mobile', async ({ page }) => {
+  test('capture project editor - mobile', async ({ offlinePage: page }) => {
     // Set viewport to mobile size - smaller for tighter focus
     await page.setViewportSize({ width: 375, height: 667 });
-
-    // Configure offline mode
-    await page.addInitScript(() => {
-      localStorage.setItem(
-        'inkweld-app-config',
-        JSON.stringify({
-          mode: 'offline',
-          userProfile: {
-            name: 'Demo User',
-            username: 'demouser',
-          },
-        })
-      );
-    });
 
     // Navigate to root
     await page.goto('/');
@@ -462,26 +384,14 @@ describeScreenshots('PWA Screenshots', () => {
     });
   });
 
-  test('capture project editor - desktop dark mode', async ({ page }) => {
+  test('capture project editor - desktop dark mode', async ({
+    offlinePage: page,
+  }) => {
     // Set viewport to desktop size - tighter focus at 1280px
     await page.setViewportSize({ width: 1280, height: 720 });
 
     // Set dark mode
     await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Configure offline mode to avoid WebSocket connection attempts
-    await page.addInitScript(() => {
-      localStorage.setItem(
-        'inkweld-app-config',
-        JSON.stringify({
-          mode: 'offline',
-          userProfile: {
-            name: 'Demo User',
-            username: 'demouser',
-          },
-        })
-      );
-    });
 
     // Navigate to root - should go straight to home since configured
     await page.goto('/');
@@ -571,26 +481,14 @@ describeScreenshots('PWA Screenshots', () => {
     });
   });
 
-  test('capture project editor - mobile dark mode', async ({ page }) => {
+  test('capture project editor - mobile dark mode', async ({
+    offlinePage: page,
+  }) => {
     // Set viewport to mobile size - smaller for tighter focus
     await page.setViewportSize({ width: 375, height: 667 });
 
     // Set dark mode
     await page.emulateMedia({ colorScheme: 'dark' });
-
-    // Configure offline mode
-    await page.addInitScript(() => {
-      localStorage.setItem(
-        'inkweld-app-config',
-        JSON.stringify({
-          mode: 'offline',
-          userProfile: {
-            name: 'Demo User',
-            username: 'demouser',
-          },
-        })
-      );
-    });
 
     // Navigate to root
     await page.goto('/');

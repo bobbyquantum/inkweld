@@ -20,7 +20,6 @@ import {
 test.describe('Offline to Server Migration', () => {
   test('should migrate offline projects to server after registration', async ({
     offlinePage,
-    page: _page,
   }) => {
     // Step 1: Verify we're in offline mode (page already navigated by fixture)
     const initialMode = await getAppMode(offlinePage);
@@ -43,8 +42,12 @@ test.describe('Offline to Server Migration', () => {
     // Step 3: Verify offline projects were created
     const offlineProjects = await getOfflineProjects(offlinePage);
     expect(offlineProjects).toHaveLength(2);
-    expect(offlineProjects.map((p: any) => p.slug)).toContain('offline-novel');
-    expect(offlineProjects.map((p: any) => p.slug)).toContain('offline-story');
+    expect(offlineProjects.map((p: { slug: string }) => p.slug)).toContain(
+      'offline-novel'
+    );
+    expect(offlineProjects.map((p: { slug: string }) => p.slug)).toContain(
+      'offline-story'
+    );
 
     // Step 4: Open user settings (already on home page)
     await openUserSettings(offlinePage);

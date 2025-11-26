@@ -1,14 +1,16 @@
 import { expect, test } from './fixtures';
 
-// Note: Using offlinePage instead of authenticatedPage due to server mode issues:
-// - Projects API calls are timing-dependent and inconsistent
-// - Schema library doesn't initialize properly
-// - Worldbuilding features are local-first (Yjs) and work perfectly offline
-// TODO: Fix server mode project/schema loading to enable testing against real backend
+/**
+ * Worldbuilding Template Tests - Offline Mode
+ *
+ * These tests verify worldbuilding functionality in pure offline mode.
+ * Any API requests will cause the test to fail, ensuring the feature
+ * works correctly without a server connection.
+ */
 
 test.describe('Worldbuilding Templates', () => {
   test('should create, edit, and delete custom templates', async ({
-    offlinePage: page,
+    offlinePageWithProject: page,
   }) => {
     // Navigate to project (fixture has already waited for projects to load and cards to be visible)
     await page.getByTestId('project-card').first().click();
@@ -97,7 +99,7 @@ test.describe('Worldbuilding Templates', () => {
   });
 
   test('should initialize worldbuilding elements with correct schemas', async ({
-    offlinePage: page,
+    offlinePageWithProject: page,
   }) => {
     // Navigate to project (fixture has already waited for projects to load and cards to be visible)
     await page.getByTestId('project-card').first().click();
@@ -130,7 +132,7 @@ test.describe('Worldbuilding Templates', () => {
 
   // Embedded schema modifications should persist when saved to the element's embedded schema
   test('should handle embedded template editing workflow', async ({
-    offlinePage: page,
+    offlinePageWithProject: page,
   }) => {
     // Navigate to project and create a character (fixture has already waited for projects to load and cards to be visible)
     await page.getByTestId('project-card').first().click();
@@ -168,19 +170,10 @@ test.describe('Worldbuilding Templates', () => {
     // Verify the form updated with new field
     await expect(page.getByTestId('template-editor-dialog')).not.toBeVisible();
     await expect(page.getByTestId('field-backstory')).toBeVisible();
-
-    // TODO: Test persistence after reload
-    // Currently failing due to IndexedDB timing issues with embedded schema loading
-    // The feature works manually but the test fails on reload
-    // Skip the reload test for now
-    // await page.reload();
-    // await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
-    // await page.waitForTimeout(1000);
-    // await expect(page.getByTestId('field-backstory')).toBeVisible();
   });
 
   test('should validate template editor form inputs', async ({
-    offlinePage: page,
+    offlinePageWithProject: page,
   }) => {
     // Navigate to project (fixture has already waited for projects to load and cards to be visible)
     await page.getByTestId('project-card').first().click();
@@ -228,26 +221,27 @@ test.describe('Worldbuilding Templates', () => {
     // Try to clear required template name field
     await page.getByTestId('template-name-input').clear();
 
-    // Wait a moment for form validation to run
-    await page.waitForTimeout(100);
+    // Blur the field to trigger validation (more reliable than timeout)
+    await page.getByTestId('template-name-input').blur();
 
-    // Verify the save button is disabled due to validation
-    await expect(page.getByTestId('save-template-button')).toBeDisabled();
+    // Verify the save button is disabled due to validation (use longer timeout for CI)
+    await expect(page.getByTestId('save-template-button')).toBeDisabled({
+      timeout: 10000,
+    });
 
     // Fix validation error
     await page.getByTestId('template-name-input').fill('Valid Name');
 
-    // Wait a moment for form validation to run
-    await page.waitForTimeout(100);
-
-    // Now button should be enabled and save should work
-    await expect(page.getByTestId('save-template-button')).toBeEnabled();
+    // Now button should be enabled and save should work (use longer timeout for CI)
+    await expect(page.getByTestId('save-template-button')).toBeEnabled({
+      timeout: 10000,
+    });
     await page.getByTestId('save-template-button').click();
     await expect(page.getByTestId('template-editor-dialog')).not.toBeVisible();
   });
 
   test('should handle icon display for custom templates', async ({
-    offlinePage: page,
+    offlinePageWithProject: page,
   }) => {
     // Navigate to project (fixture has already waited for projects to load and cards to be visible)
     await page.getByTestId('project-card').first().click();

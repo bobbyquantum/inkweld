@@ -4,14 +4,26 @@ import { SystemFeatures, SystemFeaturesAppMode } from '@inkweld/index';
 import { of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 
+import { SetupService } from './setup.service';
+
 // ExtendedSystemFeatures is the same as the API response now
 type ExtendedSystemFeatures = SystemFeatures;
+
+/** Default system features for offline mode */
+const OFFLINE_DEFAULTS: ExtendedSystemFeatures = {
+  aiLinting: false,
+  aiImageGeneration: false,
+  captcha: { enabled: false, siteKey: undefined },
+  userApprovalRequired: false, // No approval needed in offline mode
+  appMode: SystemFeaturesAppMode.Offline,
+};
 
 @Injectable({
   providedIn: 'root',
 })
 export class SystemConfigService {
   private readonly configApiService = inject(ConfigurationService);
+  private readonly setupService = inject(SetupService);
 
   private readonly systemFeaturesSignal = signal<ExtendedSystemFeatures>({
     aiLinting: false,
@@ -47,9 +59,21 @@ export class SystemConfigService {
   }
 
   /**
-   * Load system features configuration from the backend
+   * Load system features configuration from the backend.
+   * In offline mode, use sensible defaults without making any API calls.
    */
   private loadSystemFeatures(): void {
+    // Check if we're in offline mode - don't call API in offline mode
+    const mode = this.setupService.getMode();
+    if (mode === 'offline') {
+      console.log(
+        '[SystemConfig] Offline mode - using default features without API call'
+      );
+      this.systemFeaturesSignal.set(OFFLINE_DEFAULTS);
+      this.isLoaded.set(true);
+      return;
+    }
+
     this.configApiService
       .getSystemFeatures()
       .pipe(
