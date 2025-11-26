@@ -8,11 +8,8 @@ coverageReporter = ["text", "lcov"]
 # Coverage directory
 coverageDir = "./coverage"
 
-# Files to include in coverage
-coverageInclude = ["src/**/*.ts"]
-
-# Files to exclude from coverage
-coverageExclude = [
+# Exclude specific files/patterns from coverage reports
+coveragePathIgnorePatterns = [
   "**/*.test.ts",
   "**/*.spec.ts",
   "**/test/**",
@@ -21,5 +18,10 @@ coverageExclude = [
   "**/node_modules/**"
 ]
 
-# Coverage thresholds (optional)
-coverageThreshold = 60
+# Skip test files when computing coverage statistics
+coverageSkipTestFiles = true
+
+# Coverage thresholds - can be a single number or an object
+# Single number: coverageThreshold = 0.5
+# Object with specific thresholds:
+coverageThreshold = { line = 0.5, function = 0.5 }

@@ -140,9 +140,7 @@ describe('DocumentTabComponent', () => {
     });
 
     it('should return empty string when selectedTabIndex is 0 (home)', () => {
-      (projectStateService.openTabs as any).set([
-        { element: { id: 'doc1' } },
-      ]);
+      (projectStateService.openTabs as any).set([{ element: { id: 'doc1' } }]);
       (projectStateService.selectedTabIndex as any).set(0);
 
       const fullId = (component as any).fullDocumentId();
@@ -158,9 +156,7 @@ describe('DocumentTabComponent', () => {
     });
 
     it('should return empty string when project is undefined', () => {
-      (projectStateService.openTabs as any).set([
-        { element: { id: 'doc1' } },
-      ]);
+      (projectStateService.openTabs as any).set([{ element: { id: 'doc1' } }]);
       (projectStateService.selectedTabIndex as any).set(1);
       (projectStateService.project as any).set(undefined);
 
@@ -169,9 +165,7 @@ describe('DocumentTabComponent', () => {
     });
 
     it('should return properly formatted document ID when all data is available', () => {
-      (projectStateService.openTabs as any).set([
-        { element: { id: 'doc1' } },
-      ]);
+      (projectStateService.openTabs as any).set([{ element: { id: 'doc1' } }]);
       (projectStateService.selectedTabIndex as any).set(1);
       (projectStateService.project as any).set(mockProjectWithInfo);
 
@@ -195,7 +189,10 @@ describe('DocumentTabComponent', () => {
   describe('useTabsDesktop', () => {
     it('should return settings value for useTabsDesktop', () => {
       const result = (component as any).useTabsDesktop();
-      expect(settingsService.getSetting).toHaveBeenCalledWith('useTabsDesktop', true);
+      expect(settingsService.getSetting).toHaveBeenCalledWith(
+        'useTabsDesktop',
+        true
+      );
       expect(result).toBe(true);
     });
   });

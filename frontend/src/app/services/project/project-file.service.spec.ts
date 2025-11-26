@@ -268,7 +268,9 @@ describe('ProjectFileService', () => {
   describe('default values', () => {
     it('handles missing size in API response', () => {
       api.listProjectFiles.mockReturnValue(
-        of([{ name: 'file.jpg', uploadDate: TEST_DATE }]) as unknown as Observable<HttpEvent<ApiProjectFile[]>>
+        of([
+          { name: 'file.jpg', uploadDate: TEST_DATE },
+        ]) as unknown as Observable<HttpEvent<ApiProjectFile[]>>
       );
 
       let files!: ProjectFile[];
@@ -282,7 +284,9 @@ describe('ProjectFileService', () => {
     it('handles missing uploadDate in API response', () => {
       const beforeTest = new Date();
       api.listProjectFiles.mockReturnValue(
-        of([{ name: 'file.jpg', size: 100 }]) as unknown as Observable<HttpEvent<ApiProjectFile[]>>
+        of([{ name: 'file.jpg', size: 100 }]) as unknown as Observable<
+          HttpEvent<ApiProjectFile[]>
+        >
       );
 
       let files!: ProjectFile[];
@@ -291,8 +295,12 @@ describe('ProjectFileService', () => {
         .subscribe((f: ProjectFile[]) => (files = f));
 
       const afterTest = new Date();
-      expect(files[0].uploadDate.getTime()).toBeGreaterThanOrEqual(beforeTest.getTime());
-      expect(files[0].uploadDate.getTime()).toBeLessThanOrEqual(afterTest.getTime());
+      expect(files[0].uploadDate.getTime()).toBeGreaterThanOrEqual(
+        beforeTest.getTime()
+      );
+      expect(files[0].uploadDate.getTime()).toBeLessThanOrEqual(
+        afterTest.getTime()
+      );
     });
 
     it('handles missing size in upload response', async () => {
@@ -330,8 +338,12 @@ describe('ProjectFileService', () => {
       });
 
       const afterTest = new Date();
-      expect(uploaded.uploadDate.getTime()).toBeGreaterThanOrEqual(beforeTest.getTime());
-      expect(uploaded.uploadDate.getTime()).toBeLessThanOrEqual(afterTest.getTime());
+      expect(uploaded.uploadDate.getTime()).toBeGreaterThanOrEqual(
+        beforeTest.getTime()
+      );
+      expect(uploaded.uploadDate.getTime()).toBeLessThanOrEqual(
+        afterTest.getTime()
+      );
     });
 
     it('handles missing message in delete response', async () => {

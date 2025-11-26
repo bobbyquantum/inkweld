@@ -200,7 +200,10 @@ describe('CustomRouteReuseStrategy', () => {
   describe('clearStoredProject', () => {
     it('should clear stored routes when project params change', () => {
       // Store a route for project 1
-      const route1 = createRoute(':username', { username: 'user1', slug: 'project1' });
+      const route1 = createRoute(':username', {
+        username: 'user1',
+        slug: 'project1',
+      });
       const handle1 = { component: 'A' } as unknown as DetachedRouteHandle;
       strategy.store(route1, handle1);
 
@@ -230,10 +233,16 @@ describe('CustomRouteReuseStrategy', () => {
 
     it('should iterate over stored handlers when clearing project', () => {
       // Store multiple routes with project-like keys
-      const route1 = createRoute(':username-{"username":"user1","slug":"proj1"}', {});
-      const route2 = createRoute(':username-{"username":"user1","slug":"proj1"}/sub', {});
+      const route1 = createRoute(
+        ':username-{"username":"user1","slug":"proj1"}',
+        {}
+      );
+      const route2 = createRoute(
+        ':username-{"username":"user1","slug":"proj1"}/sub',
+        {}
+      );
       const route3 = createRoute('other-route', {});
-      
+
       const handle1 = { component: 'A' } as unknown as DetachedRouteHandle;
       const handle2 = { component: 'B' } as unknown as DetachedRouteHandle;
       const handle3 = { component: 'C' } as unknown as DetachedRouteHandle;

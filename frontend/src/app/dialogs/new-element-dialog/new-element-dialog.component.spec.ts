@@ -19,7 +19,9 @@ describe('NewElementDialogComponent', () => {
   let component: NewElementDialogComponent;
   let fixture: ComponentFixture<NewElementDialogComponent>;
   let dialogRef: MockedObject<MatDialogRef<NewElementDialogComponent>>;
-  let mockProjectState: { project: ReturnType<typeof signal<Project | undefined>> };
+  let mockProjectState: {
+    project: ReturnType<typeof signal<Project | undefined>>;
+  };
   let mockWorldbuildingService: {
     loadSchemaLibrary: ReturnType<typeof vi.fn>;
     autoLoadDefaultTemplates: ReturnType<typeof vi.fn>;
@@ -179,7 +181,9 @@ describe('NewElementDialogComponent', () => {
     it('should return all options when search is empty', () => {
       component.searchQuery.set('');
       expect(component.filteredOptions().length).toBeGreaterThan(0);
-      expect(component.filteredOptions()).toEqual(component.elementTypeOptions());
+      expect(component.filteredOptions()).toEqual(
+        component.elementTypeOptions()
+      );
     });
 
     it('should filter options by label', () => {
@@ -288,14 +292,18 @@ describe('NewElementDialogComponent', () => {
       mockWorldbuildingService.loadSchemaLibrary
         .mockResolvedValueOnce(emptyLibrary)
         .mockResolvedValueOnce(loadedLibrary);
-      mockWorldbuildingService.autoLoadDefaultTemplates.mockResolvedValue(undefined);
+      mockWorldbuildingService.autoLoadDefaultTemplates.mockResolvedValue(
+        undefined
+      );
 
       mockProjectState.project.set(mockProject);
       fixture.detectChanges();
 
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      expect(mockWorldbuildingService.autoLoadDefaultTemplates).toHaveBeenCalledWith(
+      expect(
+        mockWorldbuildingService.autoLoadDefaultTemplates
+      ).toHaveBeenCalledWith(
         'testuser:test-project',
         'testuser',
         'test-project'
@@ -306,8 +314,12 @@ describe('NewElementDialogComponent', () => {
     });
 
     it('should handle errors when loading schemas', async () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockWorldbuildingService.loadSchemaLibrary.mockRejectedValue(new Error('Load failed'));
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      mockWorldbuildingService.loadSchemaLibrary.mockRejectedValue(
+        new Error('Load failed')
+      );
 
       mockProjectState.project.set(mockProject);
       fixture.detectChanges();

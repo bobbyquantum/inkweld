@@ -36,12 +36,11 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   // Coverage Gutters configuration
+  // Include glob patterns to find lcov.info in various locations
   "coverage-gutters.coverageFileNames": [
     "lcov.info",
-    "cov.xml",
-    "coverage.xml",
-    "jacoco.xml",
-    "coverage.json"
+    "coverage/lcov.info",
+    "coverage/*/lcov.info"
   ],
   "coverage-gutters.coverageBaseDir": "**",
   "coverage-gutters.showLineCoverage": true,
@@ -50,11 +49,5 @@
   "coverage-gutters.highlightdark": "rgba(255, 64, 64, 0.3)",
   "coverage-gutters.highlightlight": "rgba(255, 64, 64, 0.3)",
   "coverage-gutters.partialHighlightDark": "rgba(255, 255, 64, 0.3)",
-  "coverage-gutters.partialHighlightLight": "rgba(255, 255, 64, 0.3)",
-  // For multi-root workspace, specify relative to each workspace folder
-  "coverage-gutters.manualCoverageFilePaths": [
-    "${workspaceFolder}/coverage/lcov.info",
-    "${workspaceFolder}/../frontend/coverage/lcov.info",
-    "${workspaceFolder}/../backend/coverage/lcov.info"
-  ]
+  "coverage-gutters.partialHighlightLight": "rgba(255, 255, 64, 0.3)"
 }

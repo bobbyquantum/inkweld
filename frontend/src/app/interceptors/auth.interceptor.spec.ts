@@ -148,8 +148,11 @@ describe('AuthInterceptor', () => {
     };
 
     interceptor.intercept(request, mockHandler).subscribe(() => {
-      const clonedRequest = mockHandler.handle.mock.calls[0][0] as HttpRequest<unknown>;
-      expect(clonedRequest.headers.get('Authorization')).toBe('Bearer test-token');
+      const clonedRequest = mockHandler.handle.mock
+        .calls[0][0] as HttpRequest<unknown>;
+      expect(clonedRequest.headers.get('Authorization')).toBe(
+        'Bearer test-token'
+      );
     });
 
     localStorage.removeItem('auth_token');
@@ -169,20 +172,22 @@ describe('AuthInterceptor', () => {
 
     return new Promise<void>((resolve, reject) => {
       interceptor.intercept(request, mockHandler).subscribe({
-        error: async () => {
-          try {
-            await Promise.resolve();
-            await Promise.resolve();
-            expect(consoleSpy).toHaveBeenCalledWith(
-              'Failed to navigate to welcome page:',
-              expect.any(Error)
-            );
-            consoleSpy.mockRestore();
-            resolve();
-          } catch (e) {
-            consoleSpy.mockRestore();
-            reject(e instanceof Error ? e : new Error(String(e)));
-          }
+        error: () => {
+          void (async () => {
+            try {
+              await Promise.resolve();
+              await Promise.resolve();
+              expect(consoleSpy).toHaveBeenCalledWith(
+                'Failed to navigate to welcome page:',
+                expect.any(Error)
+              );
+              consoleSpy.mockRestore();
+              resolve();
+            } catch (e) {
+              consoleSpy.mockRestore();
+              reject(e instanceof Error ? e : new Error(String(e)));
+            }
+          })();
         },
       });
     });

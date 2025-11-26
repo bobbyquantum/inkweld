@@ -409,7 +409,9 @@ describe('ConnectionSettingsComponent', () => {
     });
 
     it('should handle error when switch to offline mode fails', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
       component['currentMode'] = 'server';
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -433,10 +435,14 @@ describe('ConnectionSettingsComponent', () => {
     });
 
     it('should handle error when switch to server mode fails', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
       component['newServerUrl'] = 'http://localhost:8333';
 
-      setupService.configureServerMode.mockRejectedValue(new Error('Config failed'));
+      setupService.configureServerMode.mockRejectedValue(
+        new Error('Config failed')
+      );
 
       await component.switchToServerMode();
 

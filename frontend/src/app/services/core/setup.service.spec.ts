@@ -66,7 +66,7 @@ describe('SetupService', () => {
       });
 
       const freshService = TestBed.inject(SetupService);
-      
+
       // The constructor should have loaded the config
       expect(freshService.isConfigured()).toBe(true);
       expect(freshService.appConfig()).toEqual(config);

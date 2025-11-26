@@ -922,7 +922,7 @@ describe('ProjectService', () => {
   describe('cache error handling', () => {
     it('should handle getCachedProjectsList storage error', async () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       // Make storage throw when getting cached projects list
       store.get.mockRejectedValueOnce(new Error('Storage read error'));
       api.listUserProjects.mockReturnValue(apiOk(BASE));

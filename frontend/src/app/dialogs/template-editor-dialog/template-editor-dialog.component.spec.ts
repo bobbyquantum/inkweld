@@ -109,7 +109,7 @@ describe('TemplateEditorDialogComponent', () => {
   });
 
   describe('ngAfterViewInit', () => {
-    it('should set up expansion panel subscription', async () => {
+    it('should set up expansion panel subscription', () => {
       vi.useFakeTimers();
 
       // Create mock expansion panels
@@ -142,7 +142,7 @@ describe('TemplateEditorDialogComponent', () => {
       vi.useRealTimers();
     });
 
-    it('should not open panel if already expanded', async () => {
+    it('should not open panel if already expanded', () => {
       vi.useFakeTimers();
 
       const mockPanel = {
@@ -169,7 +169,7 @@ describe('TemplateEditorDialogComponent', () => {
       vi.useRealTimers();
     });
 
-    it('should not do anything if no lastFieldId', async () => {
+    it('should not do anything if no lastFieldId', () => {
       vi.useFakeTimers();
 
       const mockPanel = {
@@ -273,12 +273,13 @@ describe('TemplateEditorDialogComponent', () => {
         distance: { x: 0, y: 0 },
         dropPoint: { x: 0, y: 0 },
         event: new Event('drop'),
-      } as any;
+      };
 
       const originalFirstLabel = component.tabs()[0].label;
       const originalSecondLabel = component.tabs()[1].label;
 
-      component.onTabsDrop(dragEvent);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      component.onTabsDrop(dragEvent as any);
 
       // Order should be reversed
       expect(component.tabs()[0].label).toBe(originalSecondLabel);
@@ -375,11 +376,12 @@ describe('TemplateEditorDialogComponent', () => {
         distance: { x: 0, y: 0 },
         dropPoint: { x: 0, y: 0 },
         event: new Event('drop'),
-      } as any;
+      };
 
       const originalFirstKey = component.tabs()[tabIndex].fields[0].key;
 
-      component.onFieldsDrop(dragEvent, tabIndex);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      component.onFieldsDrop(dragEvent as any, tabIndex);
 
       // First field should now be at the end
       expect(component.tabs()[tabIndex].fields[2].key).toBe(originalFirstKey);
