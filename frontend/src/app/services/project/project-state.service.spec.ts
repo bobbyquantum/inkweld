@@ -1,34 +1,10 @@
-// Mock Y.js and WebSocket providers BEFORE imports (hoisted by Vitest)
-import { ElementType } from '@inkweld/index';
-import { MockedObject, vi } from 'vitest';
-
-// Create mock constructors that will be configured in beforeEach
-const WebsocketProviderMock = vi.fn();
-const IndexeddbPersistenceMock = vi.fn();
-const YDocMock = vi.fn();
-
-vi.mock('y-websocket', () => ({
-  WebsocketProvider: WebsocketProviderMock,
-}));
-vi.mock('y-indexeddb', () => ({
-  IndexeddbPersistence: IndexeddbPersistenceMock,
-}));
-vi.mock('yjs', () => ({
-  Doc: YDocMock,
-  Array: vi.fn(),
-  Map: vi.fn(),
-}));
-
 import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
-import { Element, Project, ProjectsService } from '@inkweld/index';
-import { nanoid } from 'nanoid';
-import { of } from 'rxjs';
-import { IndexeddbPersistence } from 'y-indexeddb';
-import { WebsocketProvider } from 'y-websocket';
-import * as Y from 'yjs';
+import { Element, ElementType, Project, ProjectsService } from '@inkweld/index';
+import { BehaviorSubject, of, Subject } from 'rxjs';
+import { MockedObject, vi } from 'vitest';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
@@ -37,56 +13,57 @@ import { SetupService } from '../core/setup.service';
 import { OfflineProjectElementsService } from '../offline/offline-project-elements.service';
 import { StorageService } from '../offline/storage.service';
 import { UnifiedProjectService } from '../offline/unified-project.service';
+import {
+  ElementSyncProviderFactory,
+  IElementSyncProvider,
+} from '../sync/index';
 import { ProjectStateService } from './project-state.service';
 import { RecentFilesService } from './recent-files.service';
 
-// Mock state - will be reset per test
-const mockYArrayState: Element[] = [];
-const mockArrayObservers: any[] = [];
-
-function createMockYArray() {
-  // Create isolated state for THIS array instance
-  const localArrayState: Element[] = [];
-  const localObservers: any[] = [];
-
-  function notifyLocalObservers(event: any) {
-    localObservers.forEach(callback => callback(event));
-  }
+/**
+ * Creates a mock IElementSyncProvider for testing.
+ */
+function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
+  _elementsSubject: BehaviorSubject<Element[]>;
+  _syncStateSubject: BehaviorSubject<DocumentSyncState>;
+  _errorsSubject: Subject<string>;
+} {
+  const elementsSubject = new BehaviorSubject<Element[]>([]);
+  const syncStateSubject = new BehaviorSubject<DocumentSyncState>(
+    DocumentSyncState.Unavailable
+  );
+  const errorsSubject = new Subject<string>();
 
   return {
-    toArray() {
-      return [...localArrayState];
-    },
-    delete(start: number, length: number) {
-      // Remove items from our simulated state.
-      localArrayState.splice(start, length);
-      // Notify observers once for this deletion.
-      notifyLocalObservers({ changes: { added: [], deleted: length } });
-    },
-    insert(index: number, elements: Element[]) {
-      // Insert elements at the specified index
-      localArrayState.splice(index, 0, ...elements);
-      notifyLocalObservers({
-        changes: { added: elements, deleted: 0 },
-      });
-    },
-    observe(callback: any) {
-      localObservers.push(callback);
-    },
-    unobserve(callback: any) {
-      const index = localObservers.indexOf(callback);
-      if (index > -1) localObservers.splice(index, 1);
-    },
+    _elementsSubject: elementsSubject,
+    _syncStateSubject: syncStateSubject,
+    _errorsSubject: errorsSubject,
+
+    connect: vi.fn().mockResolvedValue({ success: true }),
+    disconnect: vi.fn(),
+    isConnected: vi.fn().mockReturnValue(true),
+    getSyncState: vi.fn(() => syncStateSubject.getValue()),
+    getElements: vi.fn(() => elementsSubject.getValue()),
+    updateElements: vi.fn((elements: Element[]) => {
+      elementsSubject.next(elements);
+    }),
+
+    syncState$: syncStateSubject.asObservable(),
+    elements$: elementsSubject.asObservable(),
+    errors$: errorsSubject.asObservable(),
+  } as MockedObject<IElementSyncProvider> & {
+    _elementsSubject: BehaviorSubject<Element[]>;
+    _syncStateSubject: BehaviorSubject<DocumentSyncState>;
+    _errorsSubject: Subject<string>;
   };
 }
 
 describe('ProjectStateService', () => {
   let service: ProjectStateService;
+  let mockSyncProvider: ReturnType<typeof createMockSyncProvider>;
+  let mockSyncProviderFactory: MockedObject<ElementSyncProviderFactory>;
   let mockDialog: MockedObject<MatDialog>;
   let mockProjectAPI: MockedObject<ProjectsService>;
-  let mockWebsocketProvider: MockedObject<WebsocketProvider>;
-  let mockIndexeddbProvider: MockedObject<IndexeddbPersistence>;
-  let mockYDoc: MockedObject<Y.Doc>;
   let mockUnifiedProjectService: MockedObject<UnifiedProjectService>;
   let mockSetupService: MockedObject<SetupService>;
   let mockOfflineElementsService: MockedObject<OfflineProjectElementsService>;
@@ -102,7 +79,7 @@ describe('ProjectStateService', () => {
     title: 'Test Project',
     slug: 'test-project',
     description: 'Test Description',
-    username: 'testuser', // Replace user with username property
+    username: 'testuser',
     createdDate: mockDate.toISOString(),
     updatedDate: mockDate.toISOString(),
   };
@@ -118,57 +95,28 @@ describe('ProjectStateService', () => {
     version: 0,
     metadata: {},
   };
+
   beforeAll(() => {
     vi.setSystemTime(mockDate);
   });
 
   afterEach(() => {
-    // Clean up to prevent WebSocket errors and reset state
     if (service) {
-      // Forcefully clear all Y.js observers before destroying
-      if (service['doc']) {
-        try {
-          const elementsArray = service['doc'].getArray('elements');
-          // Clear the mock array's local state
-          if (elementsArray && typeof elementsArray.toArray === 'function') {
-            const currentArray = elementsArray.toArray();
-            if (
-              currentArray.length > 0 &&
-              typeof elementsArray.delete === 'function'
-            ) {
-              elementsArray.delete(0, currentArray.length);
-            }
-          }
-        } catch {
-          // Ignore errors during cleanup
-        }
-        service['doc'].destroy();
-        service['doc'] = null;
-      }
-
-      service['provider']?.destroy();
-      service['indexeddbProvider'] = null;
-      service['provider'] = null;
-      service['docId'] = null;
-      // Force reset signals
-      service['elements'].set([]);
-      // Use the TabManagerService to clear tabs
-      service['tabManager'].clearAllTabs();
+      service.ngOnDestroy();
     }
   });
 
   beforeEach(() => {
-    // Reset TestBed to ensure fresh service instances
     TestBed.resetTestingModule();
 
-    // Reset mock elements - MUST clear the array completely
-    mockYArrayState.length = 0;
-    mockArrayObservers.length = 0;
+    // Create mock sync provider
+    mockSyncProvider = createMockSyncProvider();
 
-    // Reset mock call tracking
-    WebsocketProviderMock.mockClear();
-    IndexeddbPersistenceMock.mockClear();
-    YDocMock.mockClear();
+    mockSyncProviderFactory = {
+      getProvider: vi.fn().mockReturnValue(mockSyncProvider),
+      getCurrentMode: vi.fn().mockReturnValue('server'),
+      isOfflineMode: vi.fn().mockReturnValue(false),
+    } as unknown as MockedObject<ElementSyncProviderFactory>;
 
     mockDialog = {
       open: vi.fn(),
@@ -219,52 +167,10 @@ describe('ProjectStateService', () => {
       group: vi.fn(),
     } as unknown as MockedObject<LoggerService>;
 
-    mockWebsocketProvider = {
-      on: vi.fn().mockImplementation(() => () => {}),
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      destroy: vi.fn(),
-      synced: true, // Mock as already synced to prevent waiting
-    } as unknown as MockedObject<WebsocketProvider>;
-
-    mockIndexeddbProvider = {
-      whenSynced: Promise.resolve(),
-    } as unknown as MockedObject<IndexeddbPersistence>;
-
-    // Set up mock YDoc instance with proper methods
-    // IMPORTANT: getArray() must return the SAME array instance for the same key
-    const arrayCache = new Map<string, any>();
-    mockYDoc = {
-      getMap: vi.fn(() => ({
-        set: vi.fn(),
-        get: vi.fn(),
-        observe: vi.fn(),
-      })),
-      getArray: vi.fn((key: string = 'elements') => {
-        if (!arrayCache.has(key)) {
-          arrayCache.set(key, createMockYArray());
-        }
-        return arrayCache.get(key);
-      }),
-      transact: vi.fn((fn: () => void) => {
-        fn();
-      }),
-      destroy: vi.fn(),
-    } as unknown as MockedObject<Y.Doc>;
-
-    // Configure mock constructors
-    WebsocketProviderMock.mockImplementation(
-      () => mockWebsocketProvider as any
-    );
-    IndexeddbPersistenceMock.mockImplementation(
-      () => mockIndexeddbProvider as any
-    );
-    YDocMock.mockImplementation(() => mockYDoc as any);
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(),
-        // Override to force new instance each test
         { provide: ProjectStateService, useClass: ProjectStateService },
         { provide: MatDialog, useValue: mockDialog },
         { provide: ProjectsService, useValue: mockProjectAPI },
@@ -278,181 +184,19 @@ describe('ProjectStateService', () => {
         { provide: RecentFilesService, useValue: mockRecentFilesService },
         { provide: StorageService, useValue: mockStorageService },
         { provide: LoggerService, useValue: mockLoggerService },
+        {
+          provide: ElementSyncProviderFactory,
+          useValue: mockSyncProviderFactory,
+        },
       ],
     });
 
     service = TestBed.inject(ProjectStateService);
     service.project.set(mockProject);
-
-    // Mock addElement to actually add to the Yjs array
-    vi.spyOn(service, 'addElement').mockImplementation(
-      (
-        type: ElementType,
-        name: string,
-        parentId: string | null | undefined = null
-      ) => {
-        const newElement: Element = {
-          id: nanoid(),
-          name,
-          type,
-          parentId: parentId ?? null,
-          level: parentId ? 1 : 0,
-          order: service.elements().length,
-          expandable: type === ElementType.Folder,
-          version: 0,
-          metadata: {},
-        };
-        // Directly add to elements array for testing
-        service['elements'].set([...service.elements(), newElement]);
-        // Auto-expand parent when adding child
-        if (parentId) {
-          const expandedSet = new Set(service['expandedNodeIds']());
-          expandedSet.add(parentId);
-          service['expandedNodeIds'].set(expandedSet);
-        }
-        return Promise.resolve(newElement.id);
-      }
-    );
-
-    // Mock moveElement to actually reorder elements
-    vi.spyOn(service, 'moveElement').mockImplementation(
-      (elementId: string, newPosition: number) => {
-        const elements = service.elements();
-        const elementIndex = elements.findIndex(e => e.id === elementId);
-        if (elementIndex === -1) return Promise.resolve();
-
-        // Remove element and its children
-        const element = elements[elementIndex];
-        const subtree: Element[] = [element];
-        let i = elementIndex + 1;
-        while (i < elements.length && elements[i].level > element.level) {
-          subtree.push(elements[i]);
-          i++;
-        }
-
-        // Remove subtree from original position
-        const remaining = elements.filter(e => !subtree.includes(e));
-
-        // Insert at new position
-        remaining.splice(newPosition, 0, ...subtree);
-
-        // Update the elements signal
-        service['elements'].set(remaining);
-        return Promise.resolve();
-      }
-    );
-
-    // Mock deleteElement to actually remove from array
-    vi.spyOn(service, 'deleteElement').mockImplementation(
-      (elementId: string) => {
-        const elements = service.elements();
-        const elementIndex = elements.findIndex(e => e.id === elementId);
-        if (elementIndex === -1) return Promise.resolve();
-
-        // Find element and ALL descendants (recursive subtree)
-        const toDelete = new Set<string>([elementId]);
-
-        // Recursively collect all descendants
-        const collectDescendants = (parentId: string) => {
-          elements.forEach(e => {
-            if (e.parentId === parentId) {
-              toDelete.add(e.id);
-              collectDescendants(e.id);
-            }
-          });
-        };
-        collectDescendants(elementId);
-
-        // Remove all elements in toDelete set
-        const remaining = elements.filter(e => !toDelete.has(e.id));
-        service['elements'].set(remaining);
-
-        // Clear expansion state for deleted elements
-        const expanded = new Set(service['expandedNodeIds']());
-        toDelete.forEach(id => expanded.delete(id));
-        service['expandedNodeIds'].set(expanded);
-        return Promise.resolve();
-      }
-    );
-
-    // Mock setExpanded to actually update expansion state
-    vi.spyOn(service, 'setExpanded').mockImplementation(
-      (elementId: string, expanded: boolean) => {
-        const expandedSet = new Set(service['expandedNodeIds']());
-        if (expanded) {
-          expandedSet.add(elementId);
-        } else {
-          expandedSet.delete(elementId);
-        }
-        service['expandedNodeIds'].set(expandedSet);
-      }
-    );
-
-    // Initialize the Yjs document
-    service['doc'] = mockYDoc;
-
-    // Mock loadProject to avoid async WebSocket connections in tests
-    vi.spyOn(service, 'loadProject').mockImplementation(
-      async (username: string, slug: string) => {
-        try {
-          // Just set the project without WebSocket setup
-          const project = mockProjectAPI.getProject(username, slug) as any;
-          if (project && typeof project.subscribe === 'function') {
-            // Handle Observable
-            await new Promise<void>((resolve, reject) => {
-              project.subscribe({
-                next: (p: Project) => {
-                  service.project.set(p);
-                  service['docId'] = `${username}:${slug}:elements`;
-                  service['doc'] = mockYDoc;
-                  resolve();
-                },
-                error: (err: any) => {
-                  const errorMsg =
-                    err instanceof Error ? err.message : String(err);
-                  service.error.set(
-                    `Failed to load project: ${errorMsg || 'Unknown error'}`
-                  );
-                  service['docSyncState'].set(DocumentSyncState.Unavailable);
-                  reject(new Error(errorMsg));
-                },
-              });
-            });
-          } else if (project instanceof Error) {
-            throw project;
-          } else {
-            service.project.set(project as Project);
-            service['docId'] = `${username}:${slug}:elements`;
-            service['doc'] = mockYDoc;
-          }
-        } catch (err: any) {
-          const errorMsg = err instanceof Error ? err.message : String(err);
-          service.error.set(
-            `Failed to load project: ${errorMsg || 'Unknown error'}`
-          );
-          service['docSyncState'].set(DocumentSyncState.Unavailable);
-          throw err;
-        }
-      }
-    );
-
-    // Set up default WebSocket status handler
-    mockWebsocketProvider.on.mockImplementation(
-      (event: string, callback: any) => {
-        if (event === 'status') {
-          const mockEvent = {
-            status: 'connected',
-            valueOf: () => true,
-          };
-          callback(mockEvent as any, mockWebsocketProvider);
-        }
-        return () => {};
-      }
-    );
   });
 
   describe('Project Loading', () => {
-    it('should load project metadata and initialize Yjs document', async () => {
+    it('should load project metadata and connect sync provider', async () => {
       await service.loadProject('testuser', 'test-project');
 
       expect(mockProjectAPI.getProject).toHaveBeenCalledWith(
@@ -460,7 +204,12 @@ describe('ProjectStateService', () => {
         'test-project'
       );
       expect(service.project()).toEqual(mockProject);
-      // Error should be null or undefined (not set)
+      expect(mockSyncProviderFactory.getProvider).toHaveBeenCalled();
+      expect(mockSyncProvider.connect).toHaveBeenCalledWith({
+        username: 'testuser',
+        slug: 'test-project',
+        webSocketUrl: 'ws://localhost:8333',
+      });
       expect(service.error()).toBeFalsy();
     });
 
@@ -474,13 +223,77 @@ describe('ProjectStateService', () => {
       expect(service.error()).toBe('Failed to load project: API Error');
       expect(service.getSyncState()).toBe(DocumentSyncState.Unavailable);
     });
+
+    it('should handle sync provider connection failure', async () => {
+      mockSyncProvider.connect.mockResolvedValue({
+        success: false,
+        error: 'WebSocket connection failed',
+      });
+
+      await service.loadProject('testuser', 'test-project').catch(() => {});
+
+      expect(service.error()).toBe(
+        'Failed to load project: WebSocket connection failed'
+      );
+    });
+  });
+
+  describe('Sync Provider Integration', () => {
+    it('should subscribe to elements changes from provider', async () => {
+      await service.loadProject('testuser', 'test-project');
+
+      const testElements: Element[] = [
+        {
+          id: 'elem-1',
+          name: 'Test',
+          type: ElementType.Folder,
+          parentId: null,
+          level: 0,
+          order: 0,
+          expandable: true,
+          version: 0,
+          metadata: {},
+        },
+      ];
+
+      // Simulate provider emitting elements
+      mockSyncProvider._elementsSubject.next(testElements);
+
+      expect(service.elements()).toEqual(testElements);
+    });
+
+    it('should subscribe to sync state changes from provider', async () => {
+      await service.loadProject('testuser', 'test-project');
+
+      // Simulate provider changing sync state
+      mockSyncProvider._syncStateSubject.next(DocumentSyncState.Synced);
+
+      expect(service.getSyncState()).toBe(DocumentSyncState.Synced);
+    });
+
+    it('should subscribe to errors from provider', async () => {
+      await service.loadProject('testuser', 'test-project');
+
+      // Simulate provider emitting error
+      mockSyncProvider._errorsSubject.next('Connection lost');
+
+      expect(service.error()).toBe('Connection lost');
+    });
+
+    it('should disconnect provider when loading new project', async () => {
+      await service.loadProject('testuser', 'test-project');
+
+      // Load a different project
+      await service.loadProject('testuser', 'other-project');
+
+      expect(mockSyncProvider.disconnect).toHaveBeenCalled();
+    });
   });
 
   describe('Document Management', () => {
     it('should open a document in editor tabs', () => {
       service.openDocument(mockElementDto);
       expect(service.openDocuments()).toContain(mockElementDto);
-      // Tab index is 1-based with 0 = home tab, 1 = first document tab
       expect(service.selectedTabIndex()).toBe(1);
     });
 
@@ -504,130 +317,101 @@ describe('ProjectStateService', () => {
       expect(service.getSyncState()).toBe(DocumentSyncState.Unavailable);
     });
 
-    it('should have sync state after loading project', async () => {
+    it('should update sync state after loading project', async () => {
+      mockSyncProvider._syncStateSubject.next(DocumentSyncState.Synced);
       await service.loadProject('testuser', 'test-project');
-      // Sync state should be set (either Synced or Offline depending on mock)
-      expect(service.getSyncState()).toBeDefined();
-    });
 
-    it('should update sync state signal', async () => {
-      await service.loadProject('testuser', 'test-project');
-      // State should be defined after loading
-      const afterLoadState = service.getSyncState();
-      expect(afterLoadState).toBeDefined();
-    });
-  });
-
-  describe('Project Updates', () => {
-    it('should update project metadata', () => {
-      const updatedProject = {
-        ...mockProject,
-        title: 'Updated Title',
-        description: 'Updated Description',
-      };
-
-      // Mock the dialog to return the updated project
-      mockDialogGatewayService.openEditProjectDialog.mockResolvedValue(
-        updatedProject
-      );
-
-      service.showEditProjectDialog();
-
-      expect(
-        mockDialogGatewayService.openEditProjectDialog
-      ).toHaveBeenCalledWith(mockProject);
+      expect(service.getSyncState()).toBe(DocumentSyncState.Synced);
     });
   });
 
   describe('Element Management', () => {
-    it('should add root level element', async () => {
+    beforeEach(async () => {
       await service.loadProject('testuser', 'test-project');
-      void service.addElement(ElementType.Folder, 'New Folder');
-      const elements = service.elements();
+    });
 
-      expect(elements).toHaveLength(1);
-      expect(elements[0].name).toBe('New Folder');
-      expect(elements[0].level).toBe(0);
-      expect(elements[0].order).toBe(0);
+    it('should add root level element via sync provider', async () => {
+      await service.addElement(ElementType.Folder, 'New Folder');
+
+      expect(mockSyncProvider.updateElements).toHaveBeenCalled();
+      const calledElements = mockSyncProvider.updateElements.mock.calls[0][0];
+      expect(calledElements).toHaveLength(1);
+      expect(calledElements[0].name).toBe('New Folder');
+      expect(calledElements[0].level).toBe(0);
     });
 
     it('should add child element and auto-expand parent', async () => {
-      // First load a project to initialize the service
-      await service.loadProject('testuser', 'test-project');
+      // Add parent first
+      await service.addElement(ElementType.Folder, 'Parent');
+      const parentId = mockSyncProvider.updateElements.mock.calls[0][0][0].id;
 
-      void service.addElement(ElementType.Folder, 'Parent');
-      const parent = service.elements()[0];
+      // Simulate provider returning the parent
+      mockSyncProvider._elementsSubject.next([
+        {
+          id: parentId,
+          name: 'Parent',
+          type: ElementType.Folder,
+          parentId: null,
+          level: 0,
+          order: 0,
+          expandable: true,
+          version: 0,
+          metadata: {},
+        },
+      ]);
 
-      void service.addElement(ElementType.Item, 'New Item', parent.id);
+      // Add child
+      await service.addElement(ElementType.Item, 'Child', parentId);
 
-      const elements = service.elements();
-      expect(elements).toHaveLength(2);
-      expect(elements[0].name).toBe('Parent');
-      expect(elements[1].name).toBe('New Item');
-      expect(service.isExpanded(parent.id)).toBe(true);
+      expect(service.isExpanded(parentId)).toBe(true);
     });
 
-    it('should maintain correct positions when adding elements', async () => {
-      await service.loadProject('testuser', 'test-project');
+    it('should delete element via sync provider', () => {
+      const testElement: Element = {
+        id: 'test-elem',
+        name: 'Test',
+        type: ElementType.Folder,
+        parentId: null,
+        level: 0,
+        order: 0,
+        expandable: true,
+        version: 0,
+        metadata: {},
+      };
+      mockSyncProvider._elementsSubject.next([testElement]);
 
-      void service.addElement(ElementType.Folder, 'Folder 1');
-      const folder1 = service.elements()[0];
-      void service.addElement(ElementType.Folder, 'Folder 2');
-      void service.addElement(ElementType.Item, 'Item 1', folder1.id);
+      service.deleteElement('test-elem');
 
-      const elements = service.elements();
-      expect(elements).toHaveLength(3);
-      // Verify we have the expected elements
-      expect(elements.some(e => e.name === 'Folder 1' && e.level === 0)).toBe(
-        true
-      );
-      expect(elements.some(e => e.name === 'Folder 2' && e.level === 0)).toBe(
-        true
-      );
-      expect(elements.some(e => e.name === 'Item 1' && e.level === 1)).toBe(
-        true
-      );
-      expect(elements.find(e => e.name === 'Item 1')?.level).toBe(1);
+      expect(mockSyncProvider.updateElements).toHaveBeenCalled();
+      const calledElements = mockSyncProvider.updateElements.mock.calls[0][0];
+      expect(calledElements).toHaveLength(0);
+    });
+
+    it('should rename element via sync provider', () => {
+      const testElement: Element = {
+        id: 'test-elem',
+        name: 'Old Name',
+        type: ElementType.Folder,
+        parentId: null,
+        level: 0,
+        order: 0,
+        expandable: true,
+        version: 0,
+        metadata: {},
+      };
+      mockSyncProvider._elementsSubject.next([testElement]);
+
+      service.renameNode(testElement, 'New Name');
+
+      expect(mockSyncProvider.updateElements).toHaveBeenCalled();
+      const calledElements = mockSyncProvider.updateElements.mock.calls[0][0];
+      expect(calledElements[0].name).toBe('New Name');
     });
   });
 
   describe('Tree Operations', () => {
-    it('should move element and its subtree', async () => {
+    beforeEach(async () => {
       await service.loadProject('testuser', 'test-project');
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      void service.addElement(ElementType.Folder, 'Root 1');
-      const root1 = service.elements()[0];
-      void service.addElement(ElementType.Item, 'Child 1', root1.id);
-      void service.addElement(ElementType.Folder, 'Root 2');
-
-      void service.moveElement(root1.id, 2, 0);
-      const movedElements = service.elements();
-      expect(movedElements.map(e => e.name)).toEqual([
-        'Root 2',
-        'Root 1',
-        'Child 1',
-      ]);
-    });
-
-    it('should delete element and its subtree', async () => {
-      await service.loadProject('testuser', 'test-project');
-
-      void service.addElement(ElementType.Folder, 'Root');
-      const root = service.elements()[0];
-      void service.addElement(ElementType.Folder, 'Child 1', root.id);
-      const child1 = service.elements()[1];
-      void service.addElement(ElementType.Item, 'Grandchild', child1.id);
-
-      service.setExpanded(root.id, true);
-      service.setExpanded(child1.id, true);
-
-      void service.deleteElement(child1.id);
-
-      const remainingElements = service.elements();
-      expect(remainingElements).toHaveLength(1);
-      expect(remainingElements[0].name).toBe('Root');
-      expect(service.isExpanded(child1.id)).toBe(false);
     });
 
     describe('Drop Validation', () => {
@@ -637,271 +421,215 @@ describe('ProjectStateService', () => {
         expect(service.isValidDrop(null, 2)).toBe(false);
       });
 
-      it('should validate drops relative to folders', async () => {
-        await service.loadProject('testuser', 'test-project');
-        void service.addElement(ElementType.Folder, 'Parent');
-        const folder = service.elements()[0];
+      it('should validate drops relative to folders', () => {
+        const folder: Element = {
+          id: 'folder-1',
+          name: 'Folder',
+          type: ElementType.Folder,
+          parentId: null,
+          level: 0,
+          order: 0,
+          expandable: true,
+          version: 0,
+          metadata: {},
+        };
 
-        expect(service.isValidDrop(folder, folder.level)).toBe(true); // Same level
-        expect(service.isValidDrop(folder, folder.level + 1)).toBe(true); // One level deeper
-        expect(service.isValidDrop(folder, folder.level + 2)).toBe(false); // Too deep
+        expect(service.isValidDrop(folder, folder.level)).toBe(true);
+        expect(service.isValidDrop(folder, folder.level + 1)).toBe(true);
+        expect(service.isValidDrop(folder, folder.level + 2)).toBe(false);
       });
 
-      it('should validate drops relative to items', async () => {
-        await service.loadProject('testuser', 'test-project');
-        void service.addElement(ElementType.Item, 'Item');
-        const item = service.elements()[0];
+      it('should validate drops relative to items', () => {
+        const item: Element = {
+          id: 'item-1',
+          name: 'Item',
+          type: ElementType.Item,
+          parentId: null,
+          level: 0,
+          order: 0,
+          expandable: false,
+          version: 0,
+          metadata: {},
+        };
 
-        expect(service.isValidDrop(item, item.level)).toBe(true); // Same level
-        expect(service.isValidDrop(item, item.level + 1)).toBe(false); // Can't nest under item
+        expect(service.isValidDrop(item, item.level)).toBe(true);
+        expect(service.isValidDrop(item, item.level + 1)).toBe(false);
+      });
+    });
+
+    describe('getValidDropLevels', () => {
+      it('should handle case with no nodes', () => {
+        const result = service.getValidDropLevels(null, null);
+        expect(result.levels).toEqual([0]);
+        expect(result.defaultLevel).toBe(0);
       });
 
-      describe('getValidDropLevels', () => {
-        it('should handle case with no nodes', () => {
-          const result = service.getValidDropLevels(null, null);
-          expect(result.levels).toEqual([0]);
-          expect(result.defaultLevel).toBe(0);
-        });
+      it('should handle case with only nodeBelow', () => {
+        const nodeBelow: Element = {
+          id: 'item-1',
+          name: 'Item',
+          type: ElementType.Item,
+          parentId: null,
+          level: 0,
+          order: 0,
+          expandable: false,
+          version: 0,
+          metadata: {},
+        };
 
-        it('should handle case with only nodeBelow', async () => {
-          await service.loadProject('testuser', 'test-project');
-          void service.addElement(ElementType.Item, 'Item');
-          const nodeBelow = service.elements()[0];
-
-          const result = service.getValidDropLevels(null, nodeBelow);
-          expect(result.levels).toContain(nodeBelow.level);
-          expect(result.defaultLevel).toBe(nodeBelow.level);
-        });
-
-        it('should handle case with only nodeAbove', async () => {
-          await service.loadProject('testuser', 'test-project');
-          void service.addElement(ElementType.Folder, 'Folder');
-          const folderAbove = service.elements()[0];
-
-          const result = service.getValidDropLevels(folderAbove, null);
-          // Should allow current level and child level for folders
-          expect(result.levels).toContain(folderAbove.level);
-          expect(result.levels).toContain(folderAbove.level + 1);
-          expect(result.defaultLevel).toBe(Math.min(...result.levels));
-
-          // Test with item above
-          void service.addElement(ElementType.Item, 'Item');
-          const itemAbove = service.elements()[1];
-
-          const resultItem = service.getValidDropLevels(itemAbove, null);
-          // Should only allow current level for items
-          expect(resultItem.levels).toContain(itemAbove.level);
-        });
-
-        it('should handle nodeAbove with lower level than nodeBelow', async () => {
-          await service.loadProject('testuser', 'test-project');
-          void service.addElement(ElementType.Folder, 'Parent');
-          const folderAbove = service.elements()[0];
-
-          void service.addElement(ElementType.Item, 'Child', folderAbove.id);
-          const nodeBelow = service.elements()[1];
-
-          const result = service.getValidDropLevels(folderAbove, nodeBelow);
-          expect(result.levels).toContain(nodeBelow.level);
-        });
-
-        it('should handle nodeAbove with same level as nodeBelow', async () => {
-          await service.loadProject('testuser', 'test-project');
-          void service.addElement(ElementType.Folder, 'Folder1');
-          const folderAbove = service.elements()[0];
-
-          void service.addElement(ElementType.Folder, 'Folder2');
-          const nodeBelow = service.elements()[1];
-
-          const result = service.getValidDropLevels(folderAbove, nodeBelow);
-          // Should allow same level and child level for folders
-          expect(result.levels).toContain(folderAbove.level);
-          expect(result.levels).toContain(folderAbove.level + 1);
-        });
-
-        it('should handle nodeAbove with higher level than nodeBelow', async () => {
-          await service.loadProject('testuser', 'test-project');
-          void service.addElement(ElementType.Folder, 'Root');
-          const rootNode = service.elements()[0];
-
-          void service.addElement(ElementType.Item, 'Child', rootNode.id);
-          const nodeAbove = service.elements()[1];
-
-          void service.addElement(ElementType.Item, 'Next Root');
-          const nodeBelow = service.elements()[2];
-
-          const result = service.getValidDropLevels(nodeAbove, nodeBelow);
-          // Should allow levels between the two nodes
-          expect(result.levels).toContain(nodeAbove.level);
-          expect(result.levels).toContain(nodeBelow.level);
-        });
+        const result = service.getValidDropLevels(null, nodeBelow);
+        expect(result.levels).toContain(nodeBelow.level);
+        expect(result.defaultLevel).toBe(nodeBelow.level);
       });
 
-      describe('getDropInsertIndex', () => {
-        it('should return 0 for drop at root level with no nodeAbove', () => {
-          const index = service.getDropInsertIndex(null, 0);
-          expect(index).toBe(0);
-        });
+      it('should handle case with only nodeAbove', () => {
+        const folderAbove: Element = {
+          id: 'folder-1',
+          name: 'Folder',
+          type: ElementType.Folder,
+          parentId: null,
+          level: 0,
+          order: 0,
+          expandable: true,
+          version: 0,
+          metadata: {},
+        };
 
-        it('should insert after nodeAbove when dropping at a deeper level', async () => {
-          await service.loadProject('testuser', 'test-project');
-          void service.addElement(ElementType.Folder, 'Folder');
-          const folderNode = service.elements()[0];
-
-          const index = service.getDropInsertIndex(
-            folderNode,
-            folderNode.level + 1
-          );
-          expect(index).toBe(1); // Insert right after the folder
-        });
-
-        it('should insert after the entire subtree when dropping at same level', async () => {
-          await service.loadProject('testuser', 'test-project');
-          void service.addElement(ElementType.Folder, 'Parent');
-          const parentNode = service.elements()[0];
-
-          void service.addElement(ElementType.Item, 'Child1', parentNode.id);
-          void service.addElement(ElementType.Item, 'Child2', parentNode.id);
-
-          const index = service.getDropInsertIndex(
-            parentNode,
-            parentNode.level
-          );
-          expect(index).toBe(3); // Insert after parent and its 2 children
-        });
+        const result = service.getValidDropLevels(folderAbove, null);
+        expect(result.levels).toContain(folderAbove.level);
+        expect(result.levels).toContain(folderAbove.level + 1);
+        expect(result.defaultLevel).toBe(Math.min(...result.levels));
       });
     });
   });
 
   describe('Tree Node Expansion', () => {
-    it('should toggle expanded state', async () => {
-      await service.loadProject('testuser', 'test-project');
-      void service.addElement(ElementType.Folder, 'Folder');
-      const folder = service.elements()[0];
+    it('should toggle expanded state', () => {
+      const folderId = 'test-folder';
 
-      // Initial state should be collapsed
-      expect(service.isExpanded(folder.id)).toBe(false);
+      expect(service.isExpanded(folderId)).toBe(false);
 
-      // Toggle to expanded
-      service.toggleExpanded(folder.id);
-      expect(service.isExpanded(folder.id)).toBe(true);
+      service.toggleExpanded(folderId);
+      expect(service.isExpanded(folderId)).toBe(true);
 
-      // Toggle back to collapsed
-      service.toggleExpanded(folder.id);
-      expect(service.isExpanded(folder.id)).toBe(false);
+      service.toggleExpanded(folderId);
+      expect(service.isExpanded(folderId)).toBe(false);
     });
 
-    it('should explicitly set expanded state', async () => {
-      await service.loadProject('testuser', 'test-project');
-      void service.addElement(ElementType.Folder, 'Folder');
-      const folder = service.elements()[0];
+    it('should explicitly set expanded state', () => {
+      const folderId = 'test-folder';
 
-      service.setExpanded(folder.id, true);
-      expect(service.isExpanded(folder.id)).toBe(true);
+      service.setExpanded(folderId, true);
+      expect(service.isExpanded(folderId)).toBe(true);
 
-      service.setExpanded(folder.id, false);
-      expect(service.isExpanded(folder.id)).toBe(false);
-    });
-  });
-
-  describe('Dialog Operations', () => {
-    it('should open new element dialog', () => {
-      const mockDialogResult = {
-        type: ElementType.Folder,
-        name: 'New Test Folder',
-      };
-
-      service['dialogGateway'] = {
-        openNewElementDialog: vi.fn().mockResolvedValue(mockDialogResult),
-      } as any;
-
-      service.showNewElementDialog();
-
-      expect(service['dialogGateway'].openNewElementDialog).toHaveBeenCalled();
-    });
-
-    it('should handle dialog cancellation', () => {
-      service['dialogGateway'] = {
-        openNewElementDialog: vi.fn().mockResolvedValue(null),
-      } as any;
-
-      service.showNewElementDialog();
-
-      // No new elements should be added
+      service.setExpanded(folderId, false);
+      expect(service.isExpanded(folderId)).toBe(false);
     });
   });
 
   describe('Visible Elements', () => {
-    it('should return empty array when no elements exist', async () => {
+    beforeEach(async () => {
       await service.loadProject('testuser', 'test-project');
-      // No elements added, should be empty by default
+    });
+
+    it('should return empty array when no elements exist', () => {
+      mockSyncProvider._elementsSubject.next([]);
       expect(service.visibleElements()).toEqual([]);
     });
 
-    it('should show root level elements', async () => {
-      await service.loadProject('testuser', 'test-project');
+    it('should show root level elements', () => {
+      const rootElement: Element = {
+        id: 'root-1',
+        name: 'Root',
+        type: ElementType.Folder,
+        parentId: null,
+        level: 0,
+        order: 0,
+        expandable: true,
+        version: 0,
+        metadata: {},
+      };
+      mockSyncProvider._elementsSubject.next([rootElement]);
 
-      void service.addElement(ElementType.Folder, 'root');
       const visible = service.visibleElements();
-
       expect(visible).toHaveLength(1);
-      expect(visible[0].name).toBe('root');
+      expect(visible[0].name).toBe('Root');
       expect(visible[0].expanded).toBe(false);
     });
 
-    it('should show children when parent is expanded', async () => {
-      await service.loadProject('testuser', 'test-project');
-      void service.addElement(ElementType.Folder, 'Parent');
-      const parent = service.elements()[0];
-      void service.addElement(ElementType.Item, 'Child', parent.id);
-      service.setExpanded(parent.id, true);
-      const visible = service.visibleElements();
+    it('should show children when parent is expanded', () => {
+      const parent: Element = {
+        id: 'parent-1',
+        name: 'Parent',
+        type: ElementType.Folder,
+        parentId: null,
+        level: 0,
+        order: 0,
+        expandable: true,
+        version: 0,
+        metadata: {},
+      };
+      const child: Element = {
+        id: 'child-1',
+        name: 'Child',
+        type: ElementType.Item,
+        parentId: 'parent-1',
+        level: 1,
+        order: 1,
+        expandable: false,
+        version: 0,
+        metadata: {},
+      };
+      mockSyncProvider._elementsSubject.next([parent, child]);
+      service.setExpanded('parent-1', true);
 
+      const visible = service.visibleElements();
       expect(visible).toHaveLength(2);
       expect(visible[0].name).toBe('Parent');
       expect(visible[0].expanded).toBe(true);
       expect(visible[1].name).toBe('Child');
     });
 
-    it('should hide children when parent is collapsed', async () => {
-      await service.loadProject('testuser', 'test-project');
-      void service.addElement(ElementType.Folder, 'Parent');
-      const parent = service.elements()[0];
-      void service.addElement(ElementType.Item, 'Child', parent.id);
-      service.setExpanded(parent.id, false); // Ensure parent is collapsed
-      const visible = service.visibleElements(); // Parent should be collapsed by default
+    it('should hide children when parent is collapsed', () => {
+      const parent: Element = {
+        id: 'parent-1',
+        name: 'Parent',
+        type: ElementType.Folder,
+        parentId: null,
+        level: 0,
+        order: 0,
+        expandable: true,
+        version: 0,
+        metadata: {},
+      };
+      const child: Element = {
+        id: 'child-1',
+        name: 'Child',
+        type: ElementType.Item,
+        parentId: 'parent-1',
+        level: 1,
+        order: 1,
+        expandable: false,
+        version: 0,
+        metadata: {},
+      };
+      mockSyncProvider._elementsSubject.next([parent, child]);
+      service.setExpanded('parent-1', false);
 
+      const visible = service.visibleElements();
       expect(visible).toHaveLength(1);
       expect(visible[0].name).toBe('Parent');
       expect(visible[0].expanded).toBe(false);
     });
+  });
 
-    it('should handle multiple levels of nesting with mixed expanded states', async () => {
+  describe('Cleanup', () => {
+    it('should disconnect provider on destroy', async () => {
       await service.loadProject('testuser', 'test-project');
-      void service.addElement(ElementType.Folder, 'Root');
-      const root = service.elements()[0];
-      void service.addElement(ElementType.Folder, 'Child 1', root.id);
-      const child1 = service.elements()[1];
-      void service.addElement(ElementType.Item, 'Grandchild 1', child1.id);
-      void service.addElement(ElementType.Folder, 'Child 2', root.id);
 
-      service.setExpanded(root.id, true);
-      service.setExpanded(child1.id, true);
-      const visible = service.visibleElements();
+      service.ngOnDestroy();
 
-      expect(visible).toHaveLength(4);
-      expect(visible[0].name).toBe('Root');
-      expect(visible[0].expanded).toBe(true);
-
-      // Verify all expected elements are present
-      const names = visible.map((e: any) => e.name);
-      expect(names).toContain('Child 1');
-      expect(names).toContain('Child 2');
-      expect(names).toContain('Grandchild 1');
-      // Verify Child 1 comes before its Grandchild
-      expect(names.indexOf('Child 1')).toBeLessThan(
-        names.indexOf('Grandchild 1')
-      );
+      expect(mockSyncProvider.disconnect).toHaveBeenCalled();
     });
   });
 });

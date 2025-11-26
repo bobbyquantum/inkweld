@@ -209,13 +209,7 @@ describe('UserSettingsDialogComponent', () => {
       @Component({
         selector: 'app-test-wrapper-data',
         standalone: true,
-        imports: [
-          MatDialogModule,
-          MockGeneralSettingsComponent,
-          MockAccountSettingsComponent,
-          MockProjectTreeSettingsComponent,
-          MockProjectSettingsComponent,
-        ],
+        imports: [MatDialogModule],
         template: '<div></div>',
       })
       class TestWrapperWithDataComponent extends UserSettingsDialogComponent {}
