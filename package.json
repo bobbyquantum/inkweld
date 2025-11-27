@@ -10,12 +10,10 @@
     "install:frontend": "cd frontend && bun install --save-text-lockfile",
     "install:backend": "cd backend && bun install",
     "install:docs": "cd docs/site && npm install",
-
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && bun run start",
     "dev:backend": "cd backend && bun run dev",
     "dev:all": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run docs\"",
-
     "build": "npm run build:frontend && npm run build:backend",
     "build:frontend": "cd frontend && bun run clean && bun run build",
     "build:backend": "cd backend && bun run build",
@@ -23,17 +21,14 @@
     "build:binary": "cd backend && bun run build:binary:full",
     "build:image": "docker build -t inkweld:latest -f backend/Dockerfile .",
     "build:image:prod": "docker build -t inkweld:prod -f backend/Dockerfile .",
-
     "test": "npm run test:frontend && npm run test:backend",
     "test:frontend": "cd frontend && npm test",
     "test:backend": "cd backend && bun test",
     "test:watch": "cd frontend && npm run test:watch",
     "test:coverage": "npm run test:frontend && cd backend && bun run test:coverage",
-
     "e2e": "cd frontend && npm run e2e",
     "e2e:ui": "cd frontend && npm run e2e:ui",
     "e2e:ci": "cd frontend && npm run e2e:ci",
-
     "lint": "npm run lint:frontend && npm run lint:backend",
     "lint:frontend": "cd frontend && npm run lint",
     "lint:backend": "cd backend && bun run lint",
@@ -44,32 +39,25 @@
     "format:frontend": "cd frontend && prettier --write \"src/**/*.{ts,html,scss}\"",
     "format:backend": "cd backend && bun run format",
     "format:docs": "cd docs/site && npm run format",
-
     "verify": "npm run verify:backend && npm run verify:frontend && npm run verify:docs",
     "verify:frontend": "cd frontend && npm run lint && npm test && npm run e2e:ci",
     "verify:backend": "cd backend && bun run lint && bun test",
     "verify:docs": "cd docs/site && npm run build",
-
     "docs": "cd docs/site && npm start",
     "docs:build": "cd docs/site && npm run build",
     "docs:serve": "cd docs/site && npm run serve",
     "docs:gen-api": "cd docs/site && npm run clean-api-docs && npm run gen-api-docs",
     "docs:update-api": "cd backend && bun run generate:openapi && cd ../docs/site && npm run clean-api-docs && npm run gen-api-docs",
-
     "generate:openapi": "cd backend && bun run generate:openapi",
     "generate:client": "cd backend && bun run generate:angular-client",
     "generate:all": "npm run generate:openapi && npm run generate:client && npm run docs:gen-api",
-
     "admin": "cd backend && bun run admin",
-
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "docker:build": "docker compose build",
     "docker:prod": "docker compose -f compose.yaml up -d --build",
-
     "deploy:cloudflare": "npm run build:prod && cd frontend && wrangler pages deploy dist/browser --project-name inkweld-frontend && cd ../backend && wrangler deploy",
-
     "clean": "npm run clean:frontend && npm run clean:backend && npm run clean:docs",
     "clean:frontend": "cd frontend && bun run clean && rm -rf node_modules/.cache .angular",
     "clean:backend": "cd backend && rm -rf dist coverage",
