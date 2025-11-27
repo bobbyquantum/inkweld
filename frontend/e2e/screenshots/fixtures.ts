@@ -6,28 +6,27 @@
  */
 import { expect as baseExpect, Page, test as base } from '@playwright/test';
 
-import { mockApi } from '../mock-api';
-import { setupAuthHandlers } from '../mock-api/auth';
-import { setupConfigHandlers } from '../mock-api/config';
-import { mockProjects, setupProjectHandlers } from '../mock-api/projects';
-import { setupUserHandlers } from '../mock-api/users';
+import { mockApi } from './mock-api';
+import { setupAuthHandlers } from './mock-api/auth';
+import { setupConfigHandlers } from './mock-api/config';
+import { mockProjects, setupProjectHandlers } from './mock-api/projects';
+import { setupUserHandlers } from './mock-api/users';
 
 /**
  * Initialize all mock API handlers
  */
 function initializeMockApi(): void {
+  // Reset the mock API to ensure clean state
+  mockApi.resetHandlers();
+
   setupAuthHandlers();
   setupUserHandlers();
   setupConfigHandlers();
   setupProjectHandlers();
 }
 
-// Initialize only once
-let initialized = false;
-if (!initialized) {
-  initializeMockApi();
-  initialized = true;
-}
+// Initialize handlers before each test
+// Note: initializeMockApi is called per-fixture to ensure clean state
 
 /**
  * Demo projects for screenshots
@@ -36,32 +35,32 @@ const demoProjects = [
   {
     id: 'screenshot-1',
     title: 'The Worldbuilding Chronicles',
+    slug: 'worldbuilding-chronicles',
     description: 'An epic fantasy world with detailed lore and characters',
     username: 'testuser',
-    slug: 'worldbuilding-chronicles',
-    coverImageUrl: '/assets/demo_covers/worldbuilding_cover_1.png',
-    createdAt: new Date('2025-01-15').toISOString(),
-    updatedAt: new Date('2025-10-20').toISOString(),
+    coverImage: '/assets/demo_covers/worldbuilding_cover_1.png',
+    createdDate: new Date('2025-01-15').toISOString(),
+    updatedDate: new Date('2025-10-20').toISOString(),
   },
   {
     id: 'screenshot-2',
     title: 'Inkweld Demo Project',
+    slug: 'inkweld-demo',
     description: 'A sample project showcasing collaborative writing features',
     username: 'testuser',
-    slug: 'inkweld-demo',
-    coverImageUrl: '/assets/demo_covers/inkweld_cover_1.png',
-    createdAt: new Date('2025-02-10').toISOString(),
-    updatedAt: new Date('2025-10-18').toISOString(),
+    coverImage: '/assets/demo_covers/inkweld_cover_1.png',
+    createdDate: new Date('2025-02-10').toISOString(),
+    updatedDate: new Date('2025-10-18').toISOString(),
   },
   {
     id: 'screenshot-3',
     title: 'Mystery Novel Draft',
+    slug: 'mystery-novel',
     description: 'A thrilling detective story set in Victorian London',
     username: 'testuser',
-    slug: 'mystery-novel',
-    coverImageUrl: '/assets/demo_covers/demo_cover_1.png',
-    createdAt: new Date('2025-03-05').toISOString(),
-    updatedAt: new Date('2025-10-15').toISOString(),
+    coverImage: '/assets/demo_covers/demo_cover_1.png',
+    createdDate: new Date('2025-03-05').toISOString(),
+    updatedDate: new Date('2025-10-15').toISOString(),
   },
 ];
 
@@ -82,14 +81,24 @@ export type ScreenshotFixtures = {
 export const test = base.extend<ScreenshotFixtures>({
   // Authenticated user with demo projects
   authenticatedPage: async ({ page }, use) => {
+    // Initialize mock API handlers for this test
+    initializeMockApi();
+
     // Reset and add demo projects
     mockProjects.resetProjects();
     demoProjects.forEach(project => {
       mockProjects.addProject(project);
     });
 
+    console.log(
+      `[Fixture] Added ${demoProjects.length} demo projects, total: ${mockProjects.getProjectsByUsername('testuser').length} for testuser`
+    );
+
     // Set up mock API interception
     await mockApi.setupPageInterception(page);
+
+    // Small delay to ensure handlers are fully registered
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Set up app configuration and auth token in localStorage
     await page.addInitScript(() => {
@@ -106,27 +115,43 @@ export const test = base.extend<ScreenshotFixtures>({
 
     console.log('Setting up screenshot page with demo projects');
 
-    // Navigate to the base URL
-    await page.goto('/', { waitUntil: 'networkidle' });
+    // First, do a blank navigation to establish the page context with localStorage
+    await page.goto('about:blank');
 
-    // Wait for projects to be loaded
-    await page.waitForFunction(
-      () => {
-        const loadingElement = document.querySelector(
-          '[data-testid="loading-projects"]'
-        );
-        const projectCards = document.querySelectorAll(
-          '[data-testid="project-card"]'
-        );
-        const emptyState = document.querySelector('.empty-state');
-        return (
-          projectCards.length > 0 ||
-          emptyState !== null ||
-          loadingElement === null
-        );
-      },
+    // Now navigate to the app and wait for API responses
+    const userApiPromise = page.waitForResponse(
+      resp => resp.url().includes('/api/v1/users/me') && resp.status() === 200,
       { timeout: 10000 }
     );
+
+    // Navigate and wait for DOM to be ready
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    // Wait for user API to respond first
+    console.log('[Fixture] Waiting for user API response...');
+    await userApiPromise;
+    console.log('[Fixture] User API responded');
+
+    // Now wait for projects API - it should be called after user is authenticated
+    // But if isAuthenticated() was checked before user loaded, projects won't load
+    // So we also set up a fallback: if no projects appear, reload the page
+    try {
+      await page.waitForSelector('.project-card', {
+        state: 'visible',
+        timeout: 3000,
+      });
+      console.log('[Fixture] Projects loaded successfully');
+    } catch {
+      // Projects didn't load - this means the race condition happened
+      // Reload the page now that user is cached
+      console.log('[Fixture] Projects not loaded, reloading...');
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('.project-card', {
+        state: 'visible',
+        timeout: 5000,
+      });
+      console.log('[Fixture] Projects loaded after reload');
+    }
 
     await use(page);
   },

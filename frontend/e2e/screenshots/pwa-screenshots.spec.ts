@@ -23,25 +23,23 @@ test.describe('PWA Screenshots', () => {
   test('capture project bookshelf - desktop', async ({
     authenticatedPage: page,
   }) => {
-    // Set viewport to desktop size - tighter focus at 1280px
-    await page.setViewportSize({ width: 1280, height: 720 });
+    // Set viewport to desktop size
+    await page.setViewportSize({ width: 1400, height: 800 });
 
-    // Wait for the bookshelf to load
+    // Wait for the bookshelf to load (short timeout for mock data)
     await page.waitForSelector('app-bookshelf', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
 
-    // Wait a bit for project cards and images to load
-    await page.waitForTimeout(2000);
+    // Wait for project cards to render
+    await page.waitForSelector('.project-card', {
+      state: 'visible',
+      timeout: 3000,
+    });
 
-    // Click on the middle project to shift carousel and show all 3 covers
-    const projectCards = page.locator('.project-card');
-    const cardCount = await projectCards.count();
-    if (cardCount >= 2) {
-      await projectCards.nth(1).click();
-      await page.waitForTimeout(500); // Wait for animation
-    }
+    // Brief pause for images and animations to settle
+    await page.waitForTimeout(300);
 
     // Take screenshot
     await page.screenshot({
@@ -70,11 +68,11 @@ test.describe('PWA Screenshots', () => {
     // Wait for the bookshelf to load
     await page.waitForSelector('app-bookshelf', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
 
     // Wait a bit for project cards and images to load
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(500);
 
     // Click on the middle project to shift carousel and show all 3 covers
     const projectCards = page.locator('.project-card');
@@ -108,11 +106,11 @@ test.describe('PWA Screenshots', () => {
     // Wait for bookshelf to load
     await page.waitForSelector('app-bookshelf', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
 
     // Wait for project cards to load
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(500);
 
     // On mobile, click middle card for carousel
     const projectCards = page.locator('.project-card');
@@ -149,11 +147,11 @@ test.describe('PWA Screenshots', () => {
     // Wait for bookshelf to load
     await page.waitForSelector('app-bookshelf', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
 
     // Wait for project cards to load
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(500);
 
     // On mobile, click middle card for carousel
     const projectCards = page.locator('.project-card');
@@ -188,7 +186,7 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state (since no projects exist in offline mode initially)
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
 
     // Click the "Create Project" button in the empty state
@@ -197,7 +195,7 @@ test.describe('PWA Screenshots', () => {
     // Wait for create project form to load
     await page.waitForSelector('input[data-testid="project-title-input"]', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
 
     // Fill in project details
@@ -212,12 +210,12 @@ test.describe('PWA Screenshots', () => {
     await page.click('button[type="submit"]');
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 10000 });
+    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
 
     // Wait for the project tree to be visible (not just app-project component)
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
     await page.waitForTimeout(1500);
 
@@ -231,7 +229,7 @@ test.describe('PWA Screenshots', () => {
 
     // Now "Chapter 1" should be visible - click on it to open
     await page.click('text="Chapter 1"');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(300);
 
     // Wait for editor to load and click into it
     const editor = page.locator('.ProseMirror').first();
@@ -253,7 +251,7 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for content to settle
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(300);
 
     // Take screenshot
     await page.screenshot({
@@ -280,7 +278,7 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state (no projects initially)
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
 
     // Click the create project button
@@ -289,7 +287,7 @@ test.describe('PWA Screenshots', () => {
     // Wait for create project form
     await page.waitForSelector('input[data-testid="project-title-input"]', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
 
     // Fill in project details
@@ -304,7 +302,7 @@ test.describe('PWA Screenshots', () => {
     await page.click('button[type="submit"]');
 
     // Wait for navigation to project page
-    await page.waitForURL(/\/demouser\/mobile-story/, { timeout: 10000 });
+    await page.waitForURL(/\/demouser\/mobile-story/, { timeout: 3000 });
 
     // On mobile, the project tree is in a sidebar - click hamburger menu to open it
     await page.waitForSelector(
@@ -319,7 +317,7 @@ test.describe('PWA Screenshots', () => {
     // Wait for project tree to appear in sidebar
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -332,7 +330,7 @@ test.describe('PWA Screenshots', () => {
 
     // Click on "Chapter 1" from default structure
     await page.click('text="Chapter 1"');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(300);
 
     // Type into editor - multiple paragraphs
     const editor = page.locator('.ProseMirror').first();
@@ -367,7 +365,7 @@ test.describe('PWA Screenshots', () => {
     // Triple-click selects the entire paragraph and triggers the inline menu
     const editorElement = page.locator('.ProseMirror').first();
     await editorElement.click({ clickCount: 3 });
-    await page.waitForTimeout(1000); // Wait for inline menu to appear
+    await page.waitForTimeout(300); // Wait for inline menu to appear
 
     // Take screenshot with text selected and formatting menu visible
     await page.screenshot({
@@ -399,7 +397,7 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state (since no projects exist in offline mode initially)
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
 
     // Click the "Create Project" button in the empty state
@@ -408,7 +406,7 @@ test.describe('PWA Screenshots', () => {
     // Wait for create project form to load
     await page.waitForSelector('input[data-testid="project-title-input"]', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
 
     // Fill in project details
@@ -423,12 +421,12 @@ test.describe('PWA Screenshots', () => {
     await page.click('button[type="submit"]');
 
     // Wait for navigation to the project page
-    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 10000 });
+    await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
 
     // Wait for the project tree to be visible (not just app-project component)
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
     await page.waitForTimeout(1500);
 
@@ -442,7 +440,7 @@ test.describe('PWA Screenshots', () => {
 
     // Now "Chapter 1" should be visible - click on it to open
     await page.click('text="Chapter 1"');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(300);
 
     // Wait for editor to load and click into it
     const editor = page.locator('.ProseMirror').first();
@@ -464,7 +462,7 @@ test.describe('PWA Screenshots', () => {
     );
 
     // Wait for content to settle
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(300);
 
     // Take screenshot
     await page.screenshot({
@@ -496,7 +494,7 @@ test.describe('PWA Screenshots', () => {
     // Wait for the empty state (no projects initially)
     await page.waitForSelector('.empty-state', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
 
     // Click the create project button
@@ -505,7 +503,7 @@ test.describe('PWA Screenshots', () => {
     // Wait for create project form
     await page.waitForSelector('input[data-testid="project-title-input"]', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
 
     // Fill in project details
@@ -520,7 +518,7 @@ test.describe('PWA Screenshots', () => {
     await page.click('button[type="submit"]');
 
     // Wait for navigation to project page
-    await page.waitForURL(/\/demouser\/mobile-story/, { timeout: 10000 });
+    await page.waitForURL(/\/demouser\/mobile-story/, { timeout: 3000 });
 
     // On mobile, the project tree is in a sidebar - click hamburger menu to open it
     await page.waitForSelector(
@@ -535,7 +533,7 @@ test.describe('PWA Screenshots', () => {
     // Wait for project tree to appear in sidebar
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 3000,
     });
     await page.waitForTimeout(500);
 
@@ -548,7 +546,7 @@ test.describe('PWA Screenshots', () => {
 
     // Click on "Chapter 1" from default structure
     await page.click('text="Chapter 1"');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(300);
 
     // Type into editor - multiple paragraphs
     const editor = page.locator('.ProseMirror').first();
@@ -583,7 +581,7 @@ test.describe('PWA Screenshots', () => {
     // Triple-click selects the entire paragraph and triggers the inline menu
     const editorElement = page.locator('.ProseMirror').first();
     await editorElement.click({ clickCount: 3 });
-    await page.waitForTimeout(1000); // Wait for inline menu to appear
+    await page.waitForTimeout(300); // Wait for inline menu to appear
 
     // Take screenshot with text selected and formatting menu visible
     await page.screenshot({

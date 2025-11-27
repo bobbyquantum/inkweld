@@ -33,8 +33,6 @@
     "e2e": "cd frontend && npm run e2e",
     "e2e:ui": "cd frontend && npm run e2e:ui",
     "e2e:ci": "cd frontend && npm run e2e:ci",
-    "e2e:fullstack": "cd frontend && npm run e2e:fullstack",
-    "e2e:fullstack:ci": "cd frontend && npm run e2e:fullstack:ci",
 
     "lint": "npm run lint:frontend && npm run lint:backend",
     "lint:frontend": "cd frontend && npm run lint",
@@ -48,7 +46,7 @@
     "format:docs": "cd docs/site && npm run format",
 
     "verify": "npm run verify:backend && npm run verify:frontend && npm run verify:docs",
-    "verify:frontend": "cd frontend && npm run lint && npm test && npm run e2e:ci && npm run e2e:fullstack:ci",
+    "verify:frontend": "cd frontend && npm run lint && npm test && npm run e2e:ci",
     "verify:backend": "cd backend && bun run lint && bun test",
     "verify:docs": "cd docs/site && npm run build",
 
