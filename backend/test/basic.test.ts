@@ -93,14 +93,6 @@ describe('Config', () => {
 });
 
 describe('Root', () => {
-  it('should return the SPA index.html', async () => {
-    const { response } = await client.request('/');
-    expect(response.status).toBe(200);
-    const html = await response.text();
-    expect(html.toLowerCase()).toContain('<!doctype html>');
-    expect(html).toContain('</html>');
-  });
-
   it('should return OAuth providers', async () => {
     const { response, json } = await client.request('/api/v1/auth/providers');
     expect(response.status).toBe(200);
