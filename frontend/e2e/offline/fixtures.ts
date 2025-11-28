@@ -143,27 +143,42 @@ export const test = base.extend<OfflineTestFixtures>({
 
     // Navigate to home
     await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    // Wait for app to fully initialize
+    await page.waitForTimeout(500);
 
     // Create a test project
-    await page.getByRole('button', { name: /create project/i }).click();
+    const createButton = page.getByRole('button', { name: /create project/i });
+    await createButton.waitFor({ state: 'visible', timeout: 15000 });
+    await createButton.click();
 
     // Fill in project details in the dialog
-    await page.getByLabel(/project title/i).fill('Test Project');
-    await page.getByLabel(/project slug/i).fill('test-project');
+    const titleInput = page.getByLabel(/project title/i);
+    await titleInput.waitFor({ state: 'visible', timeout: 10000 });
+    await titleInput.fill('Test Project');
+
+    const slugInput = page.getByLabel(/project slug/i);
+    await slugInput.waitFor({ state: 'visible', timeout: 5000 });
+    await slugInput.fill('test-project');
 
     // Submit the form
-    await page.getByRole('button', { name: /create/i }).click();
+    const submitButton = page.getByRole('button', { name: /create/i });
+    await submitButton.waitFor({ state: 'visible', timeout: 5000 });
+    await submitButton.click();
 
     // Wait for navigation to project page
-    await page.waitForURL(/.*testuser.*test-project.*/);
+    await page.waitForURL(/.*testuser.*test-project.*/, { timeout: 15000 });
+    await page.waitForLoadState('networkidle');
 
     // Navigate back to home to see the project card
     await page.goto('/');
+    await page.waitForLoadState('networkidle');
 
     // Wait for the project card to appear
     await page.waitForSelector('[data-testid="project-card"]', {
       state: 'visible',
-      timeout: 10000,
+      timeout: 15000,
     });
 
     await use(page);

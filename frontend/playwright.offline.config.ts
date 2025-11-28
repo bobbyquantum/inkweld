@@ -15,8 +15,8 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e/offline',
 
-  /* Run tests in files in parallel */
-  fullyParallel: true, // Offline tests can run in parallel (no shared state)
+  /* Disable parallel - Angular app is heavy and causes timeouts when parallel */
+  fullyParallel: false,
 
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env['CI'],
@@ -24,14 +24,19 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env['CI'] ? 2 : 0,
 
-  /* Can use multiple workers since offline tests are isolated */
-  workers: process.env['CI'] ? 2 : undefined,
+  /* Single worker - Angular app is resource-intensive */
+  workers: 1,
 
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [['list'], ['html', { open: 'never' }]],
 
   /* Test timeout */
-  timeout: 25000,
+  timeout: 30000,
+
+  /* Expect timeout */
+  expect: {
+    timeout: 10000,
+  },
 
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {

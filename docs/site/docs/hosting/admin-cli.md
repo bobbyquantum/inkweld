@@ -16,6 +16,10 @@ bun run admin --help
 
 The CLI automatically loads `backend/.env`, so make sure the database credentials align with the instance you intend to manage.
 
+## User management
+
+The CLI provides commands for managing user accounts, including approving new registrations and enabling/disabling accounts.
+
 ## Common commands
 
 ```bash

@@ -381,6 +381,6 @@ Most small-to-medium Inkweld installations will stay within the free tier limits
 
 - [Configure user approval](./admin-cli.md#user-management)
 - [Set up CI/CD](./ci-cd.md) for automated deployments
-- [Enable GitHub OAuth](#set-secrets) for social login
+- [Enable GitHub OAuth](#6-set-secrets) for social login
 - Monitor usage in the Cloudflare dashboard to stay within limits
 - Upgrade to Workers Paid plan when ready to scale beyond free tier limits
