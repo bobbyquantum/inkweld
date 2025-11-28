@@ -20,14 +20,15 @@ ALLOWED_ORIGINS = "http://localhost:4200,https://inkweld.app"
 USER_APPROVAL_REQUIRED = "false"
 GITHUB_ENABLED = "false"
 RECAPTCHA_ENABLED = "false"
+SESSION_SECRET = "local-dev-session-secret-for-testing-minimum-32-chars"
 
 # Database binding (Cloudflare D1)
-# IMPORTANT: Copy this section to wrangler.toml.local and set your actual database_id
-# Create a D1 database with: npx wrangler d1 create inkweld_dev
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "inkweld_dev"
-# database_id = "your-database-id-here"
+# For local development (wrangler dev --local), this binding is used
+# For remote D1 access, set your actual database_id in wrangler.toml.local
+[[d1_databases]]
+binding = "DB"
+database_name = "inkweld_local"
+database_id = "local-dev-placeholder"
 
 # R2 bucket for file storage (covers, avatars, exports, etc.)
 # Create dev bucket: npx wrangler r2 bucket create inkweld-storage-dev
@@ -50,10 +51,17 @@ name = "YJS_PROJECTS"
 class_name = "YjsProject"
 script_name = "inkweld-backend"
 
+# Migrations for Durable Objects
+# For fresh installs, only v1 is needed
+# For existing installations that had YjsDocument, v2 handles the transition
 [[migrations]]
-tag = "v2"
+tag = "v1"
 new_sqlite_classes = ["YjsProject"]
-deleted_classes = ["YjsDocument"]
+
+# Uncomment this for existing deployments that need to delete YjsDocument class
+# [[migrations]]
+# tag = "v2"
+# deleted_classes = ["YjsDocument"]
 
 # Secrets (set via: wrangler secret put SECRET_NAME)
 # - SESSION_SECRET

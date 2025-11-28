@@ -26,6 +26,7 @@
     "generate:openapi": "bun run scripts/generate-openapi.ts",
     "generate:angular-client": "bun run scripts/generate-angular-client.ts",
     "admin": "bun run admin-cli.ts",
+    "init:d1-local": "bun run scripts/init-d1-local.ts",
     "deploy:dev": "wrangler deploy --env dev",
     "deploy:prod": "wrangler deploy --env production",
     "logs:dev": "wrangler tail --env dev",

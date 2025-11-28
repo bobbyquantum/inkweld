@@ -53,17 +53,30 @@ authRoutes.openapi(registerRoute, async (c) => {
   const db = c.get('db');
   const { username, password, email, name } = c.req.valid('json');
 
-  // Create user
+  // Check USER_APPROVAL_REQUIRED from both context env (Workers) and config (Bun)
+  // In Workers, c.env contains wrangler.toml [vars]
+  // In Bun, config reads from process.env
+  const envApprovalRequired = (c.env as Record<string, string>)?.USER_APPROVAL_REQUIRED;
+  const userApprovalRequired =
+    envApprovalRequired !== undefined
+      ? envApprovalRequired !== 'false'
+      : config.userApprovalRequired;
+
+  // Create user with auto-approve based on env
   try {
-    const newUser = await userService.create(db, {
-      username,
-      password,
-      email: email || username + '@local',
-      name: name || username,
-    });
+    const newUser = await userService.create(
+      db,
+      {
+        username,
+        password,
+        email: email || username + '@local',
+        name: name || username,
+      },
+      { autoApprove: !userApprovalRequired }
+    );
 
     // Auto-login if approval not required
-    if (!config.userApprovalRequired) {
+    if (!userApprovalRequired) {
       const token = await authService.createSession(c, newUser);
       return c.json(
         {
@@ -85,7 +98,7 @@ authRoutes.openapi(registerRoute, async (c) => {
 
     return c.json(
       {
-        message: config.userApprovalRequired
+        message: userApprovalRequired
           ? 'Registration successful. Please wait for admin approval.'
           : 'Registration successful. You can now log in.',
         user: {
@@ -174,8 +187,6 @@ authRoutes.openapi(loginRoute, async (c) => {
 
   // Create session and get JWT token
   const token = await authService.createSession(c, user);
-
-  console.log('[Login] Session created for user:', user.username);
 
   // Return user object with JWT token
   return c.json(

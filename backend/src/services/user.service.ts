@@ -41,6 +41,9 @@ class UserService {
 
   /**
    * Create a new user with username/password
+   * @param db Database instance
+   * @param data User data
+   * @param options Additional options like skipApproval
    */
   async create(
     db: DatabaseInstance,
@@ -49,9 +52,16 @@ class UserService {
       email: string;
       password: string;
       name?: string;
+    },
+    options?: {
+      /** Override the default approval behavior. If true, user is auto-approved. */
+      autoApprove?: boolean;
     }
   ): Promise<User> {
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
+
+    // Use explicit autoApprove option if provided, otherwise fallback to config
+    const shouldAutoApprove = options?.autoApprove ?? !config.userApprovalRequired;
 
     const newUser: InsertUser = {
       id: crypto.randomUUID(),
@@ -60,7 +70,7 @@ class UserService {
       password: hashedPassword,
       name: data.name || null,
       enabled: true,
-      approved: !config.userApprovalRequired, // Auto-approve if approval not required
+      approved: shouldAutoApprove,
     };
 
     await db.insert(users).values(newUser);

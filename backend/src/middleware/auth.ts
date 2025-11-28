@@ -5,13 +5,8 @@ import { userService } from '../services/user.service.js';
 import { type AppContext } from '../types/context.js';
 
 export const requireAuth = async (c: Context<AppContext>, next: Next) => {
-  console.log('[requireAuth] Checking session...');
-  console.log('[requireAuth] Cookie header:', c.req.header('cookie'));
-
   const db = c.get('db');
   const user = await authService.getUserFromSession(db, c);
-
-  console.log('[requireAuth] User from session:', user ? user.username : 'null');
 
   if (!user) {
     throw new HTTPException(401, { message: 'Unauthorized' });

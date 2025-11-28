@@ -49,6 +49,45 @@ npm run e2e
 npm run e2e:ci
 ```
 
+## Cloudflare Workers Testing
+
+In addition to the standard test modes, you can test against Cloudflare Workers:
+
+### Wrangler Dev (Local Workers Runtime)
+
+Tests against `wrangler dev` which runs the Cloudflare Workers runtime locally.
+This provides a more production-like environment with D1 database and Durable Objects.
+
+```bash
+npm run e2e:wrangler        # Run against wrangler dev
+npm run e2e:wrangler:ui     # Run with UI
+npm run e2e:wrangler:debug  # Debug mode
+```
+
+**Prerequisites:**
+
+- Run `npx wrangler login` to authenticate
+- Create D1 database: `cd backend && npx wrangler d1 create inkweld_dev`
+- Configure `backend/wrangler.toml.local` with your database_id
+
+**Note:** Wrangler dev is slower to start (~30-60s) than the Bun backend.
+
+### Cloudflare Deployed (Remote Testing)
+
+Tests against actually deployed Cloudflare services (Pages + Workers).
+Useful for smoke testing after deployments.
+
+```bash
+# Set the deployed frontend URL
+CLOUDFLARE_FRONTEND_URL=https://inkweld-dev.pages.dev npm run e2e:cloudflare
+
+# With UI
+CLOUDFLARE_FRONTEND_URL=https://inkweld-dev.pages.dev npm run e2e:cloudflare:ui
+```
+
+**⚠️ Caution:** Tests create real data in the deployed environment!
+Consider using a dedicated test environment or running read-only tests only.
+
 ## Directory Structure
 
 ```
@@ -145,6 +184,8 @@ import {
 |------|---------|
 | `playwright.offline.config.ts` | Offline test configuration |
 | `playwright.online.config.ts` | Online test configuration |
+| `playwright.wrangler.config.ts` | Wrangler dev (local Workers runtime) |
+| `playwright.cloudflare.config.ts` | Deployed Cloudflare testing |
 | `playwright.config.ts` | Legacy mock API tests |
 
 ## CI/CD

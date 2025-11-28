@@ -19,13 +19,28 @@ export interface SessionData {
  * Auth service using Hono's signed cookies for session management
  */
 class AuthService {
-  private readonly secret: string;
+  /**
+   * Get the session secret from request context (for Workers) or config (for Bun/Node)
+   * In Cloudflare Workers, env vars are only available via c.env, not process.env
+   */
+  private getSecret(c: Context): string {
+    // Try to get from request context first (Cloudflare Workers)
+    // In Hono Workers, c.env is the raw Cloudflare env bindings object
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const env = (c as any).env;
+    const envSecret =
+      env && typeof env.SESSION_SECRET === 'string' ? env.SESSION_SECRET : undefined;
 
-  constructor() {
-    this.secret = config.session.secret;
-    if (!this.secret || this.secret.length < 32) {
+    if (envSecret && envSecret.length >= 32) {
+      return envSecret;
+    }
+
+    // Fall back to config (Bun/Node.js with process.env)
+    const configSecret = config.session.secret;
+    if (!configSecret || configSecret.length < 32) {
       throw new Error('SESSION_SECRET must be at least 32 characters for secure cookie signing');
     }
+    return configSecret;
   }
 
   /**
@@ -40,8 +55,9 @@ class AuthService {
       exp: now + TOKEN_EXPIRY, // JWT expiration (30 days)
     };
 
-    // Create JWT token
-    const token = await sign(sessionData, this.secret);
+    // Create JWT token using request-context secret
+    const secret = this.getSecret(c);
+    const token = await sign(sessionData, secret);
     return token;
   }
 
@@ -62,8 +78,9 @@ class AuthService {
         return null;
       }
 
-      // Verify and decode JWT
-      const payload = await verify(token, this.secret);
+      // Verify and decode JWT using request-context secret
+      const secret = this.getSecret(c);
+      const payload = await verify(token, secret);
 
       if (!payload) {
         return null;
