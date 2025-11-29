@@ -1,71 +1,149 @@
 ---
 id: delete-project-cover
-title: "deleteProjectCover"
-description: "deleteProjectCover"
-sidebar_label: "deleteProjectCover"
+title: 'deleteProjectCover'
+description: 'deleteProjectCover'
+sidebar_label: 'deleteProjectCover'
 hide_title: true
 hide_table_of_contents: true
 api: eJzdlU1v2zAMhv+KoNMGZHWy9DD41hU7BNiGAsNORQ+qzMTKZFGjqHRBkP8+yk7SZe6+Ljv05JgmH/J9ZTM7jRHIsMOwaHStG/DAcEO4BsvXuAHSE81mlXR9qxedWUHSdxMdDZlOEqnEdzrZFjqj653mbQTBJCYXVlIK30wXfQmtsQ0NgsQaSJZcLD0l/jkBBYHp/UQTfM2OQAZhyvDLzInuL7XOjxFXMqLhVjh/N1C3fRVEoB9NdFCvks+rP091ln2a7HD3w1R3BZQihiQWymCvp9NyOYf1jitXfFbDUTQqZWshpWX2fitIi4EhcKk1MXpn+8Or1qkAnlCO92U8KYxUjprd0L4TpHT5vUWfhtYjhw5xdYTsz1y6PcFFMzvuUf278+GUXyoup7OxAx+RlcncisQiTXj/V/I7IiSF1maivvn5eMPjf9XdV51Uz8eqrwY/GwjuOSq+HCs+fjZBznuJOTwz1fufgU8uVlmhLT6u3aKk7IpaVya6ajOr4pCfqvq46qq6rJbKHggS3Ry3cCYvpS1zrKvKozW+xcT1m/l8PtL3vjyW9032H8ZOTFcDqd9TLiyxd++oLXx5AN+oq5uFgEq/ATK7mF5MR+hr9N7cY/lT2YCyBMOPB3Ish6CiN7xE6gpNvXibw0sx7DsUaUUq
-sidebar_class_name: "delete api-method"
+sidebar_class_name: 'delete api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"deleteProjectCover"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'deleteProjectCover'}
+></Heading>
 
 <MethodEndpoint
-  method={"delete"}
-  path={"/api/v1/projects/:username/:slug/cover"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'delete'}
+  path={'/api/v1/projects/:username/:slug/cover'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 deleteProjectCover
 
 <Heading
-  id={"request"}
-  as={"h2"}
-  className={"openapi-tabs__heading"}
-  children={"Request"}
->
-</Heading>
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
 
 <ParamsDetails
-  parameters={[{"schema":{"type":"string","example":"johndoe","description":"Username"},"required":true,"description":"Username","name":"username","in":"path"},{"schema":{"type":"string","example":"my-novel","description":"Project slug"},"required":true,"description":"Project slug","name":"slug","in":"path"}]}
->
-  
-</ParamsDetails>
+  parameters={[
+    {
+      schema: { type: 'string', example: 'johndoe', description: 'Username' },
+      required: true,
+      description: 'Username',
+      name: 'username',
+      in: 'path',
+    },
+    {
+      schema: {
+        type: 'string',
+        example: 'my-novel',
+        description: 'Project slug',
+      },
+      required: true,
+      description: 'Project slug',
+      name: 'slug',
+      in: 'path',
+    },
+  ]}
+></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"Cover image deleted successfully","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","example":"Success","description":"Success message"}},"required":["message"],"title":"ImageMessage"}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","example":"Error occurred","description":"Error message"}},"required":["message"],"title":"ImageError"}}}},"403":{"description":"Access denied","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","example":"Error occurred","description":"Error message"}},"required":["message"],"title":"ImageError"}}}},"404":{"description":"Project not found","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","example":"Error occurred","description":"Error message"}},"required":["message"],"title":"ImageError"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'Cover image deleted successfully',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: 'Success',
+                description: 'Success message',
+              },
+            },
+            required: ['message'],
+            title: 'ImageMessage',
+          },
+        },
+      },
+    },
+    '401': {
+      description: 'Not authenticated',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: 'Error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['message'],
+            title: 'ImageError',
+          },
+        },
+      },
+    },
+    '403': {
+      description: 'Access denied',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: 'Error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['message'],
+            title: 'ImageError',
+          },
+        },
+      },
+    },
+    '404': {
+      description: 'Project not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: 'Error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['message'],
+            title: 'ImageError',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

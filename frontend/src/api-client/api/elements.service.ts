@@ -38,7 +38,7 @@ export class ElementsService extends BaseService {
     }
 
     /**
-     * @endpoint get /api/v1/projects/:username/:slug/elements
+     * @endpoint get /api/v1/projects/{username}/{slug}/elements
      * @param username Username
      * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -80,7 +80,7 @@ export class ElementsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/:username/:slug/elements`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/elements`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<Array<Element>>('get', `${basePath}${localVarPath}`,
             {

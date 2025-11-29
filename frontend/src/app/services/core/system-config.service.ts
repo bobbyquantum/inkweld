@@ -6,14 +6,10 @@ import { catchError, tap } from 'rxjs/operators';
 
 import { SetupService } from './setup.service';
 
-// ExtendedSystemFeatures is the same as the API response now
-type ExtendedSystemFeatures = SystemFeatures;
-
 /** Default system features for offline mode */
-const OFFLINE_DEFAULTS: ExtendedSystemFeatures = {
+const OFFLINE_DEFAULTS: SystemFeatures = {
   aiLinting: false,
   aiImageGeneration: false,
-  captcha: { enabled: false, siteKey: undefined },
   userApprovalRequired: false, // No approval needed in offline mode
   appMode: SystemFeaturesAppMode.Offline,
 };
@@ -25,10 +21,9 @@ export class SystemConfigService {
   private readonly configApiService = inject(ConfigurationService);
   private readonly setupService = inject(SetupService);
 
-  private readonly systemFeaturesSignal = signal<ExtendedSystemFeatures>({
+  private readonly systemFeaturesSignal = signal<SystemFeatures>({
     aiLinting: false,
     aiImageGeneration: false,
-    captcha: { enabled: false, siteKey: undefined },
     userApprovalRequired: true,
     appMode: SystemFeaturesAppMode.Both,
   });
@@ -42,12 +37,6 @@ export class SystemConfigService {
   );
   public readonly isAiImageGenerationEnabled = computed(
     () => this.systemFeaturesSignal().aiImageGeneration ?? false
-  );
-  public readonly isCaptchaEnabled = computed(
-    () => this.systemFeaturesSignal().captcha?.enabled ?? false
-  );
-  public readonly captchaSiteKey = computed(
-    () => this.systemFeaturesSignal().captcha?.siteKey ?? ''
   );
   public readonly isUserApprovalRequired = computed(
     () => this.systemFeaturesSignal().userApprovalRequired ?? true
@@ -90,7 +79,6 @@ export class SystemConfigService {
           this.systemFeaturesSignal.set({
             aiLinting: false,
             aiImageGeneration: false,
-            captcha: { enabled: false, siteKey: undefined },
             userApprovalRequired: true,
             appMode: SystemFeaturesAppMode.Both,
           });

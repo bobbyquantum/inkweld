@@ -1,71 +1,122 @@
 ---
 id: render-document-as-html
-title: "renderDocumentAsHtml"
-description: "renderDocumentAsHtml"
-sidebar_label: "renderDocumentAsHtml"
+title: 'renderDocumentAsHtml'
+description: 'renderDocumentAsHtml'
+sidebar_label: 'renderDocumentAsHtml'
 hide_title: true
 hide_table_of_contents: true
 api: eJzdVM9v0zAU/lcsn0AKS0t3QLkVhrRKA00ITtMOnvPauDh+xn7pNlX933l2mkLouu1MLk5ePn/f+72VpFZRVjfyAnXXgqMobwuJHoIig25Ry0oGcDWEATCPl9RaWUivgmqBIKT7Wxl1A62S1VbSowe+FikYt2IgPKjW22RaY+NqBLbVEHUwPmmw/UeE4JhM7gpW+9WZACxMoYOTyELmo5LdH4tJCK+oYZ7XOdQ+vnO4AXvk0XXANWgS0Xarl70aoQ+e7b9e69WYcki3WFy8rP83+CBfo+byjfRvE1H06CLE5ML7ySQdY7JvudxQi8vvX66ERkfMzDzDW3IdHqhsUhtUpyPa8VPI88n0WOIrklAdNUxntCKox/TKe5vsDC7XMd14QgXvUspTH4bUrmT6kCAEDM8Xfe5ERgnUugshq4/9+5x/txCjWnFTjvJ/s5fgXJKhTDikP187xH1+HPehTo4TsMTO/XeB7/5lPLE8eHE0mJbLCnIoqT0rWSpvys209P08xbIaprus0jSV3NNszJ3d918hGbAZdlAXuCNlQ+SrsrSolW0wUvVhNpsdhXqVfosaePrR56L0THlKjFtizuU+0IX7eQ+2FvPrBRMlvZ5kejY5mxxRf0Jr1R2mFboBoQP0L/fBEJdEeKtoiaFNbOLNx8695dT9BgWo6oQ=
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"renderDocumentAsHtml"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'renderDocumentAsHtml'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/projects/:username/:slug/docs/:docId/html"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/projects/:username/:slug/docs/:docId/html'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 renderDocumentAsHtml
 
 <Heading
-  id={"request"}
-  as={"h2"}
-  className={"openapi-tabs__heading"}
-  children={"Request"}
->
-</Heading>
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
 
 <ParamsDetails
-  parameters={[{"schema":{"type":"string","example":"johndoe","description":"Username"},"required":true,"description":"Username","name":"username","in":"path"},{"schema":{"type":"string","example":"my-novel","description":"Project slug"},"required":true,"description":"Project slug","name":"slug","in":"path"},{"schema":{"type":"string","description":"Document ID"},"required":true,"description":"Document ID","name":"docId","in":"path"}]}
->
-  
-</ParamsDetails>
+  parameters={[
+    {
+      schema: { type: 'string', example: 'johndoe', description: 'Username' },
+      required: true,
+      description: 'Username',
+      name: 'username',
+      in: 'path',
+    },
+    {
+      schema: {
+        type: 'string',
+        example: 'my-novel',
+        description: 'Project slug',
+      },
+      required: true,
+      description: 'Project slug',
+      name: 'slug',
+      in: 'path',
+    },
+    {
+      schema: { type: 'string', description: 'Document ID' },
+      required: true,
+      description: 'Document ID',
+      name: 'docId',
+      in: 'path',
+    },
+  ]}
+></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"Rendered HTML content","content":{"text/html":{"schema":{"type":"string"}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred","description":"Error message"}},"required":["error"],"title":"DocumentError"}}}},"404":{"description":"Document not found","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred","description":"Error message"}},"required":["error"],"title":"DocumentError"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'Rendered HTML content',
+      content: { 'text/html': { schema: { type: 'string' } } },
+    },
+    '401': {
+      description: 'Not authenticated',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'DocumentError',
+          },
+        },
+      },
+    },
+    '404': {
+      description: 'Document not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'DocumentError',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

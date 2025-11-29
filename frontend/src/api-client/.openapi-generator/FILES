@@ -25,7 +25,6 @@ git_push.sh
 index.ts
 model/ai-image-error.ts
 model/ai-image-status.ts
-model/captcha-settings.ts
 model/config-response.ts
 model/correction.ts
 model/create-project-request.ts

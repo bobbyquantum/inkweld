@@ -24,6 +24,11 @@ import { ProjectsService } from '@inkweld/api/projects.service';
 import { Project } from '@inkweld/index';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectImportExportService } from '@services/project/project-import-export.service';
+import {
+  ImageCroppedEvent,
+  ImageCropperComponent,
+  LoadedImage,
+} from 'ngx-image-cropper';
 
 @Component({
   selector: 'app-edit-project-dialog',
@@ -38,6 +43,7 @@ import { ProjectImportExportService } from '@services/project/project-import-exp
     MatButtonModule,
     MatProgressBarModule,
     MatIconModule,
+    ImageCropperComponent,
   ],
 })
 export class EditProjectDialogComponent implements OnInit {
@@ -63,6 +69,19 @@ export class EditProjectDialogComponent implements OnInit {
   coverImage?: Blob;
   coverImageUrl?: SafeUrl;
   private hasCoverImage = false;
+
+  // Image cropper properties
+  imageChangedEvent: Event | null = null;
+  croppedImage: SafeUrl | null = null;
+  croppedBlob: Blob | null = null;
+  isCropperReady = false;
+  hasImageLoaded = false;
+  hasLoadFailed = false;
+  showCropper = false;
+  pendingFileName = '';
+
+  // Project cover aspect ratio is 1.6:1 (width:height) which means 0.625 (height:width)
+  readonly coverAspectRatio = 1.6;
 
   ngOnInit(): void {
     this.project = this.dialogData;
@@ -113,15 +132,69 @@ export class EditProjectDialogComponent implements OnInit {
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
       if (this.isValidImageFile(file)) {
-        this.coverImage = file;
-        this.coverImageUrl = this.sanitizer.bypassSecurityTrustUrl(
-          URL.createObjectURL(file)
-        );
+        this.resetCropperState();
+        this.imageChangedEvent = event;
+        this.pendingFileName = file.name;
+        this.showCropper = true;
       } else {
-        this.showError(
-          'Invalid image file. Please select a JPEG or PNG file with 1.6:1 aspect ratio.'
-        );
+        this.showError('Invalid image file. Please select a JPEG or PNG file.');
       }
+    }
+  }
+
+  imageCropped(event: ImageCroppedEvent): void {
+    if (event.objectUrl && event.blob) {
+      this.croppedImage = this.sanitizer.bypassSecurityTrustUrl(
+        event.objectUrl
+      );
+      this.croppedBlob = event.blob;
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onImageLoaded(image: LoadedImage): void {
+    this.hasImageLoaded = true;
+  }
+
+  onCropperReady(): void {
+    this.isCropperReady = true;
+  }
+
+  onLoadImageFailed(): void {
+    this.hasLoadFailed = true;
+    this.showCropper = false;
+    this.showError('Failed to load image. Please try another file.');
+  }
+
+  resetCropperState(): void {
+    this.imageChangedEvent = null;
+    this.croppedImage = null;
+    this.croppedBlob = null;
+    this.hasImageLoaded = false;
+    this.isCropperReady = false;
+    this.hasLoadFailed = false;
+    this.pendingFileName = '';
+  }
+
+  applyCroppedImage(): void {
+    if (this.croppedBlob && this.croppedImage) {
+      // Create a File from the cropped blob
+      const file = new File([this.croppedBlob], this.pendingFileName, {
+        type: this.croppedBlob.type || 'image/png',
+      });
+      this.coverImage = file;
+      this.coverImageUrl = this.croppedImage;
+      this.showCropper = false;
+      this.resetCropperState();
+    }
+  }
+
+  cancelCropping(): void {
+    this.showCropper = false;
+    this.resetCropperState();
+    // Reset the file input
+    if (this.coverImageInput) {
+      this.coverImageInput.nativeElement.value = '';
     }
   }
 

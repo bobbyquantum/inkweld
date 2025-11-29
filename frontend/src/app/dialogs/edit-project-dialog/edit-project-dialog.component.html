@@ -1,83 +1,138 @@
 <mat-dialog-content class="dialog-content">
-  <div class="dialog-layout">
-    <!-- Left column: Cover image -->
-    <div class="cover-column">
-      @if (isLoadingCover) {
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      }
-
-      @if (coverImageUrl) {
-        <div class="cover-image-wrapper">
-          <img
-            [src]="coverImageUrl"
-            alt="Project cover image"
-            class="cover-preview" />
-          <button
-            mat-mini-fab
-            color="warn"
-            class="remove-image-btn"
-            (click)="removeCoverImage()"
-            [disabled]="isLoadingCover"
-            aria-label="Remove cover image">
-            <mat-icon>delete</mat-icon>
-          </button>
-        </div>
-      } @else {
-        <div class="placeholder-wrapper">
-          <mat-icon class="placeholder-icon">image</mat-icon>
-          <p class="placeholder-text">No cover image</p>
-          <p class="placeholder-text">1.6:1 ratio</p>
-        </div>
-      }
+  <!-- Image Cropper View -->
+  @if (showCropper) {
+    <div class="cropper-view">
+      <h3 class="cropper-title">Crop Cover Image</h3>
+      <p class="cropper-subtitle">
+        Adjust the selection to fit your project cover (1.6:1 ratio)
+      </p>
+      <div class="cropper-container">
+        <image-cropper
+          [imageChangedEvent]="imageChangedEvent"
+          [maintainAspectRatio]="true"
+          [aspectRatio]="coverAspectRatio"
+          [roundCropper]="false"
+          format="png"
+          output="blob"
+          [resizeToWidth]="800"
+          [cropperMinWidth]="200"
+          [cropperMinHeight]="125"
+          [onlyScaleDown]="true"
+          (imageCropped)="imageCropped($event)"
+          (imageLoaded)="onImageLoaded($event)"
+          (cropperReady)="onCropperReady()"
+          (loadImageFailed)="onLoadImageFailed()">
+        </image-cropper>
+        @if (croppedImage) {
+          <div class="preview-section">
+            <h4>Preview</h4>
+            <div class="cover-preview-wrapper">
+              <img
+                [src]="croppedImage"
+                alt="Cropped cover preview"
+                class="cropped-preview" />
+            </div>
+          </div>
+        }
+      </div>
+      <div class="cropper-actions">
+        <button mat-button (click)="cancelCropping()">Cancel</button>
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="applyCroppedImage()"
+          [disabled]="!croppedBlob">
+          Apply
+        </button>
+      </div>
     </div>
+  } @else {
+    <!-- Normal Dialog View -->
+    <div class="dialog-layout">
+      <!-- Left column: Cover image -->
+      <div class="cover-column">
+        @if (isLoadingCover) {
+          <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        }
 
-    <!-- Right column: Form -->
-    <div class="form-column">
-      <form [formGroup]="form">
-        <mat-form-field appearance="outline">
-          <mat-label>Title</mat-label>
-          <input matInput formControlName="title" required />
-          @if (form.get('title')?.hasError('required')) {
-            <mat-error>Title is required</mat-error>
-          }
-        </mat-form-field>
+        @if (coverImageUrl) {
+          <div class="cover-image-wrapper">
+            <img
+              [src]="coverImageUrl"
+              alt="Project cover image"
+              class="cover-preview" />
+            <button
+              mat-mini-fab
+              color="warn"
+              class="remove-image-btn"
+              (click)="removeCoverImage()"
+              [disabled]="isLoadingCover"
+              aria-label="Remove cover image">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        } @else {
+          <div class="placeholder-wrapper">
+            <mat-icon class="placeholder-icon">image</mat-icon>
+            <p class="placeholder-text">No cover image</p>
+            <p class="placeholder-text">1.6:1 ratio</p>
+          </div>
+        }
+      </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Description</mat-label>
-          <textarea matInput formControlName="description" rows="4"></textarea>
-        </mat-form-field>
+      <!-- Right column: Form -->
+      <div class="form-column">
+        <form [formGroup]="form">
+          <mat-form-field appearance="outline">
+            <mat-label>Title</mat-label>
+            <input matInput formControlName="title" required />
+            @if (form.get('title')?.hasError('required')) {
+              <mat-error>Title is required</mat-error>
+            }
+          </mat-form-field>
 
-        <div class="cover-image-controls">
-          <h3>Cover Image</h3>
-          <button
-            mat-stroked-button
-            color="primary"
-            (click)="openCoverImageSelector()"
-            [disabled]="isLoadingCover">
-            <mat-icon>add_photo_alternate</mat-icon>
-            {{ coverImageUrl ? 'Change Cover Image' : 'Add Cover Image' }}
-          </button>
-        </div>
-      </form>
+          <mat-form-field appearance="outline">
+            <mat-label>Description</mat-label>
+            <textarea
+              matInput
+              formControlName="description"
+              rows="4"></textarea>
+          </mat-form-field>
 
-      <!-- Hidden file input for cover image selection -->
-      <input
-        #coverImageInput
-        type="file"
-        accept="image/jpeg,image/jpg,image/png"
-        style="display: none"
-        (change)="onCoverImageSelected($event)" />
+          <div class="cover-image-controls">
+            <h3>Cover Image</h3>
+            <button
+              mat-stroked-button
+              color="primary"
+              (click)="openCoverImageSelector()"
+              [disabled]="isLoadingCover">
+              <mat-icon>add_photo_alternate</mat-icon>
+              {{ coverImageUrl ? 'Change Cover Image' : 'Add Cover Image' }}
+            </button>
+          </div>
+        </form>
+
+        <!-- Hidden file input for cover image selection -->
+        <input
+          #coverImageInput
+          type="file"
+          accept="image/jpeg,image/jpg,image/png"
+          style="display: none"
+          (change)="onCoverImageSelected($event)" />
+      </div>
     </div>
-  </div>
+  }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close>Cancel</button>
-  <button
-    mat-raised-button
-    color="primary"
-    [disabled]="form.invalid || isSaving"
-    (click)="onSave()">
-    Save
-  </button>
+  @if (!showCropper) {
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button
+      mat-raised-button
+      color="primary"
+      [disabled]="form.invalid || isSaving"
+      (click)="onSave()">
+      Save
+    </button>
+  }
 </mat-dialog-actions>

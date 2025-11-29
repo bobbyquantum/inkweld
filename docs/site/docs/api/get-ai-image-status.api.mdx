@@ -1,63 +1,69 @@
 ---
 id: get-ai-image-status
-title: "getAIImageStatus"
-description: "getAIImageStatus"
-sidebar_label: "getAIImageStatus"
+title: 'getAIImageStatus'
+description: 'getAIImageStatus'
+sidebar_label: 'getAIImageStatus'
 hide_title: true
 hide_table_of_contents: true
 api: eJxtU8Fu2zAM/RVBpw0I6mS5DL5lxVAY2GFAO+wQ7EDbbKxWllSJdhsY/veRduqlyXJwJJl6j+89etAEh6Tzvd4VqmjhgOoOHUYg453+s9I+nDZFrXN9QNoVU9k9AXVJr3TEFLxLyCCD/rJey1+NqYomTBi5vsfYmwpVer9SeUfoSCohBGuqiSB7SlI+6FQ12IKs6BiQAXz5hBXxxRClHTIzGTooLdZnhaX3FsFxJb5BGyyfUexwddHQ7wapwahYspkkHxbJyiT1jjuudJpbP6NIFI07nDOIRQ6MvmR5aFAYThCqRL6nuiTAo9j20pko3e8XIf/42HgyNKF/9HuU3yXTf1JpWaE/JSbGATW8ySCYrN9kYLJJeLZEIsQYZRAG3UXLtQ1RyLPM+gps4xPlX7fb7ZXIH/Ja1dij9aHlUNWMpEeWYNyjn6w7SSnc8yvaWu1+FgwkfDPI5mZ9s76CvvXWQukllx5VFXFevEZD4mSwQI8+toKmPn3r3GcJLHCnLUxj5KDF2QC1zPbizweqJVzCN8oY2DjBmnwYTt7teVQl437DjyntyUGxbsZkvWKTVA5DCQl/RTuOcvzSYTzyOS97iEaylh0zNAg1eyWmP+NRwq4qDBJYD7aTjq6+D/F1Cffu+wNPxF87+Eik
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"getAIImageStatus"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'getAIImageStatus'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/ai/image/status"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/ai/image/status'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 getAIImageStatus
 
-<ParamsDetails
-  parameters={undefined}
->
-  
-</ParamsDetails>
+<ParamsDetails parameters={undefined}></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"Service status","content":{"application/json":{"schema":{"type":"object","properties":{"enabled":{"type":"boolean","example":true,"description":"Whether AI image generation is enabled"},"service":{"type":"string","example":"openai","description":"The AI service being used"}},"required":["enabled","service"],"title":"AIImageStatus"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'Service status',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              enabled: {
+                type: 'boolean',
+                example: true,
+                description: 'Whether AI image generation is enabled',
+              },
+              service: {
+                type: 'string',
+                example: 'openai',
+                description: 'The AI service being used',
+              },
+            },
+            required: ['enabled', 'service'],
+            title: 'AIImageStatus',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

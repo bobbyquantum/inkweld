@@ -1,63 +1,84 @@
 ---
 id: get-csrf-token
-title: "getCSRFToken"
-description: "getCSRFToken"
-sidebar_label: "getCSRFToken"
+title: 'getCSRFToken'
+description: 'getCSRFToken'
+sidebar_label: 'getCSRFToken'
 hide_title: true
 hide_table_of_contents: true
 api: eJytk8Fu2zAMhl/F0GkDCjtpMGDIrSvaIcAOQ5udgh5kmYnVyJIq0W4Dw+8+0k68NfF62iGwrZA/yY+/WoFyF8VyIx5B1UHjQTxdCechSNTOrgqxFDvA28eH+7XbgxVXIkD0zkagrFZcz2b8KCCqoD2nUAJHJ8jhyQ4sS0GRxFopiHFbG3MgFeUsgkVOlt4brfp62XNkhVZEVUIl+Q0PHkjT5c+gkBJ94O5QD/X7Kn+FRQza7igM3mTlDR/JXM2vF2ma0uk/+9y6wL+K2swrHSMFRNF1PO1LrQMUjGgoRnxQYy89Ynk4MqEUTvoyReVeakMc0I1Qkj8N/D8iFUGWO/iYyUQvpzbeN30XApE5adJowAdT4lN5BSAVugR50jtD2Se9Q9md6555sQIs3dGjTEJiSR+Z9Dpr5pmKYZud5ooQGghs9VbUwVBYieiXWWackqZ0EZdfF4vFxSQ/+G+apAHjfEULSgYl0VH32m5dD+M4xcruX8EUyc3PFQlxvUFkns7S2aX/nDEyd3zVGkhUgOHlla4hMU28kdh7ktSST99q+5kX4KnTSvaWsLKCYfbBSeupFY6bQnjDjDS1ZZkeQXsktiHHaW54zj4kavQYzc5oOKRtcxnhVzBdx8cvNYQDndNrI4OWOQPYPJF0CbIgPgx6DxQibujme95PI03dX8lzfzPLcZff79a0/N+Mv5K8
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"getCSRFToken"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'getCSRFToken'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/csrf/token"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/csrf/token'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 getCSRFToken
 
-<ParamsDetails
-  parameters={undefined}
->
-  
-</ParamsDetails>
+<ParamsDetails parameters={undefined}></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"CSRF token generated successfully","content":{"application/json":{"schema":{"type":"object","properties":{"token":{"type":"string","example":"abc123...","description":"CSRF token for form submissions"}},"required":["token"],"title":"CSRFTokenResponse"}}}},"500":{"description":"Failed to generate CSRF token","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","example":"Failed to generate token","description":"Error message"},"error":{"type":"string","description":"Error details"}},"required":["message"],"title":"CSRFErrorResponse"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'CSRF token generated successfully',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              token: {
+                type: 'string',
+                example: 'abc123...',
+                description: 'CSRF token for form submissions',
+              },
+            },
+            required: ['token'],
+            title: 'CSRFTokenResponse',
+          },
+        },
+      },
+    },
+    '500': {
+      description: 'Failed to generate CSRF token',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: 'Failed to generate token',
+                description: 'Error message',
+              },
+              error: { type: 'string', description: 'Error details' },
+            },
+            required: ['message'],
+            title: 'CSRFErrorResponse',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

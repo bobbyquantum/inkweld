@@ -1,71 +1,98 @@
 ---
 id: get-project-cover
-title: "getProjectCover"
-description: "getProjectCover"
-sidebar_label: "getProjectCover"
+title: 'getProjectCover'
+description: 'getProjectCover'
+sidebar_label: 'getProjectCover'
 hide_title: true
 hide_table_of_contents: true
 api: eJyNU8Fu2zAM/RVBpw3wanfpYfBtK3YIsEMvOxU9KDJjK5NFjZLTBUH+faScdEvTdvNFFkU+8j097TVGIJMdhmWnW91DviPcgM23uAXSlc6mT7q918vR9JD0Q6WjITNCBpL4Xic7wGh0u9d5F4ExUiYXei6FX2aMXkIbHEKHwLEOkiUXpSHHvyegwGD6UGmCn5Mj4CkyTfBqZqXL0urpT8RJRjR5YJz/G2jcfQhM0F9MdGSvkp/6f091lv002XH311QPApQihsQS8mAfm0aWc7CiuHKiM1dbDBlClrQSqjcRetm9Tm+NNBqu0CsXDO30gb9K3zQ3b/ZSAbNa4xS6864mRu9ssUa9SVL1Qm9cCX8ujCRGym7mN0JKQuPNO/hKhKTQ2olE4OfazscnpMPZXdw/dWBls8sFrzi0VBXmh+eAl95mFw94tL1wkLtqdW2iq7fXdZyTU92erFa3crW1PZZzdHt6BRN5Lh1yjm1de7TGD5hy+2mxWFww+ybHqgP2H8aR5VYzUvGJC2ssup1YhR+P4Dv1+W7JQNJvBrm+aq6aC+hb9N6sUF70FpQlmH8eyWWWX0VvsrhE0NS7L1N4z1L9BqA/Ypk=
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"getProjectCover"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'getProjectCover'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/projects/:username/:slug/cover"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/projects/:username/:slug/cover'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 getProjectCover
 
 <Heading
-  id={"request"}
-  as={"h2"}
-  className={"openapi-tabs__heading"}
-  children={"Request"}
->
-</Heading>
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
 
 <ParamsDetails
-  parameters={[{"schema":{"type":"string","example":"johndoe","description":"Username"},"required":true,"description":"Username","name":"username","in":"path"},{"schema":{"type":"string","example":"my-novel","description":"Project slug"},"required":true,"description":"Project slug","name":"slug","in":"path"}]}
->
-  
-</ParamsDetails>
+  parameters={[
+    {
+      schema: { type: 'string', example: 'johndoe', description: 'Username' },
+      required: true,
+      description: 'Username',
+      name: 'username',
+      in: 'path',
+    },
+    {
+      schema: {
+        type: 'string',
+        example: 'my-novel',
+        description: 'Project slug',
+      },
+      required: true,
+      description: 'Project slug',
+      name: 'slug',
+      in: 'path',
+    },
+  ]}
+></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"Cover image","content":{"image/jpeg":{"schema":{"type":"string","format":"binary"}}}},"404":{"description":"Cover image not found","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","example":"Error occurred","description":"Error message"}},"required":["message"],"title":"ImageError"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'Cover image',
+      content: {
+        'image/jpeg': { schema: { type: 'string', format: 'binary' } },
+      },
+    },
+    '404': {
+      description: 'Cover image not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: 'Error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['message'],
+            title: 'ImageError',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

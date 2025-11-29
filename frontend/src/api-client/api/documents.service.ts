@@ -38,7 +38,7 @@ export class DocumentsService extends BaseService {
     }
 
     /**
-     * @endpoint get /api/v1/projects/:username/:slug/docs/:docId
+     * @endpoint get /api/v1/projects/{username}/{slug}/docs/{docId}
      * @param username Username
      * @param slug Project slug
      * @param docId Document ID
@@ -84,7 +84,7 @@ export class DocumentsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/:username/:slug/docs/:docId`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/docs/${this.configuration.encodeParam({name: "docId", value: docId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<Document>('get', `${basePath}${localVarPath}`,
             {
@@ -100,7 +100,7 @@ export class DocumentsService extends BaseService {
     }
 
     /**
-     * @endpoint get /api/v1/projects/:username/:slug/docs
+     * @endpoint get /api/v1/projects/{username}/{slug}/docs
      * @param username Username
      * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -142,7 +142,7 @@ export class DocumentsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/:username/:slug/docs`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/docs`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<Array<Document>>('get', `${basePath}${localVarPath}`,
             {
@@ -158,7 +158,7 @@ export class DocumentsService extends BaseService {
     }
 
     /**
-     * @endpoint get /api/v1/projects/:username/:slug/docs/:docId/html
+     * @endpoint get /api/v1/projects/{username}/{slug}/docs/{docId}/html
      * @param username Username
      * @param slug Project slug
      * @param docId Document ID
@@ -205,7 +205,7 @@ export class DocumentsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/:username/:slug/docs/:docId/html`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/docs/${this.configuration.encodeParam({name: "docId", value: docId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/html`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<string>('get', `${basePath}${localVarPath}`,
             {

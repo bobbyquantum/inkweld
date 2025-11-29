@@ -21,6 +21,30 @@ import healthRoutes from '../src/routes/health.routes';
 import configRoutes from '../src/routes/config.routes';
 import csrfRoutes from '../src/routes/csrf.routes';
 
+/**
+ * Convert Express-style path parameters (:param) to OpenAPI-style ({param})
+ * Hono uses Express-style paths internally, but OpenAPI spec requires {param} format
+ */
+function convertPathParameters(spec: Record<string, unknown>): Record<string, unknown> {
+  if (!spec.paths || typeof spec.paths !== 'object') {
+    return spec;
+  }
+
+  const paths = spec.paths as Record<string, unknown>;
+  const convertedPaths: Record<string, unknown> = {};
+
+  for (const [pathKey, pathValue] of Object.entries(paths)) {
+    // Convert :paramName to {paramName}
+    const convertedPath = pathKey.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, '{$1}');
+    convertedPaths[convertedPath] = pathValue;
+  }
+
+  return {
+    ...spec,
+    paths: convertedPaths,
+  };
+}
+
 async function generateOpenAPISpec() {
   try {
     console.log('📜 Generating OpenAPI specification...');
@@ -39,7 +63,7 @@ async function generateOpenAPISpec() {
     app.route('/api/v1/csrf', csrfRoutes);
 
     // Generate the spec using the built-in method
-    const spec = app.getOpenAPIDocument({
+    const rawSpec = app.getOpenAPIDocument({
       openapi: '3.0.0',
       info: {
         title: 'Inkweld API',
@@ -54,12 +78,17 @@ async function generateOpenAPISpec() {
       ],
     });
 
+    // Convert Express-style path parameters to OpenAPI-style
+    const spec = convertPathParameters(rawSpec as unknown as Record<string, unknown>);
+
     const outputPath = path.resolve(process.cwd(), 'openapi.json');
     await writeFile(outputPath, JSON.stringify(spec, null, 2));
 
+    const paths = spec.paths as Record<string, unknown> | undefined;
+    const components = spec.components as Record<string, Record<string, unknown>> | undefined;
     console.log(`✅ OpenAPI JSON generated at: ${outputPath}`);
-    console.log(`   Paths: ${Object.keys(spec.paths || {}).length}`);
-    console.log(`   Schemas: ${Object.keys(spec.components?.schemas || {}).length}`);
+    console.log(`   Paths: ${Object.keys(paths || {}).length}`);
+    console.log(`   Schemas: ${Object.keys(components?.schemas || {}).length}`);
     console.log('');
     process.exit(0);
   } catch (error) {

@@ -6,8 +6,9 @@
  * 2. Starts the server
  * 3. Waits for it to be ready
  * 4. Fetches the OpenAPI spec
- * 5. Stops the server
- * 6. Saves the spec to openapi.json
+ * 5. Converts Express-style path parameters to OpenAPI-style
+ * 6. Stops the server
+ * 7. Saves the spec to openapi.json
  *
  * Run with: bun run generate:openapi
  */
@@ -15,6 +16,30 @@
 import { writeFile, unlink } from 'fs/promises';
 import * as path from 'path';
 import { spawn, type ChildProcess } from 'child_process';
+
+/**
+ * Convert Express-style path parameters (:param) to OpenAPI-style ({param})
+ * Hono uses Express-style paths internally, but OpenAPI spec requires {param} format
+ */
+function convertPathParameters(spec: Record<string, unknown>): Record<string, unknown> {
+  if (!spec.paths || typeof spec.paths !== 'object') {
+    return spec;
+  }
+
+  const paths = spec.paths as Record<string, unknown>;
+  const convertedPaths: Record<string, unknown> = {};
+
+  for (const [pathKey, pathValue] of Object.entries(paths)) {
+    // Convert :paramName to {paramName}
+    const convertedPath = pathKey.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, '{$1}');
+    convertedPaths[convertedPath] = pathValue;
+  }
+
+  return {
+    ...spec,
+    paths: convertedPaths,
+  };
+}
 
 async function generateOpenAPIJson() {
   let serverProcess: ChildProcess | null = null;
@@ -98,14 +123,19 @@ async function generateOpenAPIJson() {
       throw new Error(`Failed to fetch OpenAPI spec: ${response.statusText}`);
     }
 
-    const spec = await response.json();
+    const rawSpec = (await response.json()) as Record<string, unknown>;
+
+    // Convert Express-style path parameters to OpenAPI-style
+    const spec = convertPathParameters(rawSpec);
 
     // Write to the same path we cleaned up earlier
     await writeFile(outputPath, JSON.stringify(spec, null, 2));
 
+    const paths = spec.paths as Record<string, unknown> | undefined;
+    const components = spec.components as Record<string, Record<string, unknown>> | undefined;
     console.log(`✅ OpenAPI JSON generated at: ${outputPath}`);
-    console.log(`   Paths: ${Object.keys(spec.paths || {}).length}`);
-    console.log(`   Schemas: ${Object.keys(spec.components?.schemas || {}).length}`);
+    console.log(`   Paths: ${Object.keys(paths || {}).length}`);
+    console.log(`   Schemas: ${Object.keys(components?.schemas || {}).length}`);
     console.log('');
   } catch (error) {
     console.error('❌ Failed to generate OpenAPI spec:', error);

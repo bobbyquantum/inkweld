@@ -46,7 +46,7 @@ export class SnapshotsService extends BaseService {
     }
 
     /**
-     * @endpoint post /api/v1/snapshots/:username/:slug
+     * @endpoint post /api/v1/snapshots/{username}/{slug}
      * @param username Username
      * @param slug Project slug
      * @param createSnapshotRequest 
@@ -98,7 +98,7 @@ export class SnapshotsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/snapshots/:username/:slug`;
+        let localVarPath = `/api/v1/snapshots/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<DocumentSnapshot>('post', `${basePath}${localVarPath}`,
             {
@@ -115,7 +115,7 @@ export class SnapshotsService extends BaseService {
     }
 
     /**
-     * @endpoint delete /api/v1/snapshots/:username/:slug/:snapshotId
+     * @endpoint delete /api/v1/snapshots/{username}/{slug}/{snapshotId}
      * @param username Username
      * @param slug Project slug
      * @param snapshotId Snapshot ID
@@ -161,7 +161,7 @@ export class SnapshotsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/snapshots/:username/:slug/:snapshotId`;
+        let localVarPath = `/api/v1/snapshots/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "snapshotId", value: snapshotId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<MessageResponse>('delete', `${basePath}${localVarPath}`,
             {
@@ -177,7 +177,7 @@ export class SnapshotsService extends BaseService {
     }
 
     /**
-     * @endpoint get /api/v1/snapshots/:username/:slug/:snapshotId
+     * @endpoint get /api/v1/snapshots/{username}/{slug}/{snapshotId}
      * @param username Username
      * @param slug Project slug
      * @param snapshotId Snapshot ID
@@ -223,7 +223,7 @@ export class SnapshotsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/snapshots/:username/:slug/:snapshotId`;
+        let localVarPath = `/api/v1/snapshots/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "snapshotId", value: snapshotId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<SnapshotWithContent>('get', `${basePath}${localVarPath}`,
             {
@@ -239,7 +239,7 @@ export class SnapshotsService extends BaseService {
     }
 
     /**
-     * @endpoint get /api/v1/snapshots/:username/:slug
+     * @endpoint get /api/v1/snapshots/{username}/{slug}
      * @param username Username
      * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -281,7 +281,7 @@ export class SnapshotsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/snapshots/:username/:slug`;
+        let localVarPath = `/api/v1/snapshots/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<Array<DocumentSnapshot>>('get', `${basePath}${localVarPath}`,
             {
@@ -297,7 +297,7 @@ export class SnapshotsService extends BaseService {
     }
 
     /**
-     * @endpoint get /api/v1/snapshots/:username/:slug/:snapshotId/preview
+     * @endpoint get /api/v1/snapshots/{username}/{slug}/{snapshotId}/preview
      * @param username Username
      * @param slug Project slug
      * @param snapshotId Snapshot ID
@@ -343,7 +343,7 @@ export class SnapshotsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/snapshots/:username/:slug/:snapshotId/preview`;
+        let localVarPath = `/api/v1/snapshots/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "snapshotId", value: snapshotId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/preview`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<SnapshotWithContent>('get', `${basePath}${localVarPath}`,
             {
@@ -359,7 +359,7 @@ export class SnapshotsService extends BaseService {
     }
 
     /**
-     * @endpoint post /api/v1/snapshots/:username/:slug/:snapshotId/restore
+     * @endpoint post /api/v1/snapshots/{username}/{slug}/{snapshotId}/restore
      * @param username Username
      * @param slug Project slug
      * @param snapshotId Snapshot ID
@@ -405,7 +405,7 @@ export class SnapshotsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/snapshots/:username/:slug/:snapshotId/restore`;
+        let localVarPath = `/api/v1/snapshots/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "snapshotId", value: snapshotId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/restore`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<RestoreResponse>('post', `${basePath}${localVarPath}`,
             {

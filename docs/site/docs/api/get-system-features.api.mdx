@@ -1,63 +1,111 @@
 ---
 id: get-system-features
-title: "getSystemFeatures"
-description: "getSystemFeatures"
-sidebar_label: "getSystemFeatures"
+title: 'getSystemFeatures'
+description: 'getSystemFeatures'
+sidebar_label: 'getSystemFeatures'
 hide_title: true
 hide_table_of_contents: true
 api: eJytVV1v2jAU/SuWnzaJNjCkbeKNsn6w0o+1dJtaVZNJLsStY7u2A0WI/757kxRooNM0LQ9gO/a5955zfLPgQUw879zxntFjOcmdCNJoft/gxkI56Se8wycQruc+QHYEIuQOPG9w/LVGexx3FvxDs0l/CfjYSVuAdHh5hI2rMyx+FaTBcR5ABzoorFUyLl5ED55OL7iPU8gEjcLcAuKZ0QPEAQ9aR+kFWcYWciB1kHqysXVkjAJBQeBZZFbhWnA5NGoZ/kghpOBYt79nzQwcJEyVWEx6JqZCKjHCw8sGRulnYgLHoCti/ks0SZhssgLdChsLG+L0L1gATUeSf8/KQa97OeyddCmHFzTMwMsApzDfAPbBEdsbuPzjAPrP3XjYpedrfPv96ml+kn5q3Zz1D4/Pv/06+/kgb0/TPq9HX0elOOwR5mxsHIuVRGfseZkAmwolk5Ly5ZJ895RLR5XerYq+r8NeQa8k7rXpCmwHE4klvLgwyFCUUB24hkD6+0Jza89MAjtL13lGGVycD/rnh7hwcXRUjQ4uhieU0ZqdYqWeYndteZZhlNr1WNL+schVuAY3BXcust2JrKKkIdhOFCkTC5UaHzrtJt7KetgvJSjzBSrTCMuCYdYBmtLmSqAKUuPrkFuiK6NMctyN+TqDWlyt+P+T08ZC+TetJpIMQ4gKkPz2ImohkIYZo4h+S+/1Vd91Ide3ZS3dG7nfr3WvNbYlPfXEd/W/DGsxVXOk2yhCipNIWBlNW1EpZjRe7y8Jp2674LlTuwT73G63twQb0GuWwBSUsRneiko6vsQipB6bQoiqmL5+nIFKWPeSrhrFK0Fa+839bS/0jMJGY4i+KfrPQTmYOVm0QItmIAcQGnt3kOv35AWLmWaiaH+68CQRwKpev8HPq1ArqwR4DhECy8LhBQ+LijuU10rKulV+G5A/HKwYxGqJJNq3WIyEhxunlktafsrBYX+6w+FUOFm0TpwhfgoiQaaI8kdqYbwbx2BJLjRDTvlsfXiI1ZW0x4dDNMRv1rB7+Q==
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"getSystemFeatures"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'getSystemFeatures'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/config/features"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/config/features'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 getSystemFeatures
 
-<ParamsDetails
-  parameters={undefined}
->
-  
-</ParamsDetails>
+<ParamsDetails parameters={undefined}></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"System features configuration","content":{"application/json":{"schema":{"type":"object","properties":{"aiLinting":{"type":"boolean","example":true,"description":"Whether AI-powered linting is available"},"aiImageGeneration":{"type":"boolean","example":true,"description":"Whether AI-powered image generation is available"},"captcha":{"type":"object","properties":{"enabled":{"type":"boolean","example":true,"description":"Whether reCAPTCHA is enabled"},"siteKey":{"type":"string","example":"6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI","description":"reCAPTCHA site key for client-side validation"}},"required":["enabled"],"description":"ReCaptcha configuration for registration","title":"CaptchaSettings"},"appMode":{"type":"string","enum":["ONLINE","OFFLINE","BOTH"],"example":"BOTH","description":"Application mode configuration"},"defaultServerName":{"type":"string","example":"http://localhost:3000","description":"Default server name to pre-populate in setup form"},"userApprovalRequired":{"type":"boolean","example":false,"description":"Whether admin approval is required for new users"}},"required":["aiLinting","aiImageGeneration","captcha","appMode","userApprovalRequired"],"title":"SystemFeatures"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'System features configuration',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              aiLinting: {
+                type: 'boolean',
+                example: true,
+                description: 'Whether AI-powered linting is available',
+              },
+              aiImageGeneration: {
+                type: 'boolean',
+                example: true,
+                description: 'Whether AI-powered image generation is available',
+              },
+              captcha: {
+                type: 'object',
+                properties: {
+                  enabled: {
+                    type: 'boolean',
+                    example: true,
+                    description: 'Whether reCAPTCHA is enabled',
+                  },
+                  siteKey: {
+                    type: 'string',
+                    example: '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI',
+                    description:
+                      'reCAPTCHA site key for client-side validation',
+                  },
+                },
+                required: ['enabled'],
+                description: 'ReCaptcha configuration for registration',
+                title: 'CaptchaSettings',
+              },
+              appMode: {
+                type: 'string',
+                enum: ['ONLINE', 'OFFLINE', 'BOTH'],
+                example: 'BOTH',
+                description: 'Application mode configuration',
+              },
+              defaultServerName: {
+                type: 'string',
+                example: 'http://localhost:3000',
+                description:
+                  'Default server name to pre-populate in setup form',
+              },
+              userApprovalRequired: {
+                type: 'boolean',
+                example: false,
+                description: 'Whether admin approval is required for new users',
+              },
+            },
+            required: [
+              'aiLinting',
+              'aiImageGeneration',
+              'captcha',
+              'appMode',
+              'userApprovalRequired',
+            ],
+            title: 'SystemFeatures',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

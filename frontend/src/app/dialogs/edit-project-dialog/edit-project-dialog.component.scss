@@ -16,6 +16,86 @@
   max-height: calc(90vh - 73px); /* 73px is the height of mat-dialog-actions */
 }
 
+/* Image Cropper View */
+.cropper-view {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 500px;
+
+  .cropper-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 500;
+  }
+
+  .cropper-subtitle {
+    margin: 0;
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 0.875rem;
+  }
+
+  .cropper-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    ::ng-deep image-cropper {
+      max-height: 400px;
+      margin: 0 auto;
+      width: 100%;
+
+      .ngx-ic-overlay {
+        outline: rgba(0, 0, 0, 0.6) solid 100vw !important;
+      }
+
+      .ngx-ic-cropper {
+        border: 2px solid rgba(0, 150, 255, 0.8) !important;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3) !important;
+      }
+    }
+  }
+
+  .preview-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+
+    h4 {
+      margin: 0;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.6);
+    }
+
+    .cover-preview-wrapper {
+      max-width: 200px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+      .cropped-preview {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+    }
+  }
+
+  .cropper-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.12);
+  }
+}
+
 /* Left column: Cover image */
 .cover-column {
   background-color: rgba(0, 0, 0, 0.03);
@@ -129,6 +209,38 @@ mat-progress-bar {
 
     .placeholder-icon {
       opacity: 0.7;
+    }
+  }
+
+  .cropper-view {
+    .cropper-subtitle {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .cropper-container {
+      ::ng-deep image-cropper {
+        .ngx-ic-overlay {
+          outline: rgba(0, 0, 0, 0.8) solid 100vw !important;
+        }
+
+        .ngx-ic-cropper {
+          border: 2px solid rgba(0, 170, 255, 0.9) !important;
+        }
+      }
+    }
+
+    .preview-section {
+      h4 {
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .cover-preview-wrapper {
+        border-color: rgba(255, 255, 255, 0.12);
+      }
+    }
+
+    .cropper-actions {
+      border-top-color: rgba(255, 255, 255, 0.12);
     }
   }
 

@@ -1,63 +1,69 @@
 ---
 id: get-lint-status
-title: "getLintStatus"
-description: "getLintStatus"
-sidebar_label: "getLintStatus"
+title: 'getLintStatus'
+description: 'getLintStatus'
+sidebar_label: 'getLintStatus'
 hide_title: true
 hide_table_of_contents: true
 api: eJxlU8Fu2zAM/RVBpxUI6mS5DLl1wzAE6KHAOuwQ7EDLbKxWllSJdhsY/veRdup5iQ+2JJOPj+9RvSY4Zr076Hvryfqj/rPSIWICssHvK73TRyT595OA2qxXOmGOwWfkrF5/Xq/lU2E2yUbJ4Yy7vcqYOmtQ5Y8sEzyhJwmGGJ01Y4HiOUtGr7OpsQFZ0SkiY4TyGQ1xYkxCh+xUDz2UDqtFYBmCQ/Acie/QRMdnlFpcXXD6XSPVmBRzc1Onymb1ATes9JnxAjlTEkEWwKKMB6svwR9rVIumSxT4NgvwIIK9tjYJ6cPM/1891pssjegLmQd5LstcOtFwS+FskSgFVPOmgGiLblOALaTTYrZAKmISs3vdJsehNVHcFYULBlwdMu2+bLfbq+7u5beqsEMXYsMmqglJD8zd+qcwanbuYe9f3tBV6u5hz0BSbwLZ3K5v11fQ34JzUAaZtg6VSTgt3pIdHYoO6CmkRtDUp6+tvxGnIjNtYBwbDw1O/StRRs3S/FdmdpTwnQoGtV5wRg36s2wHHksxttvwa7RYxBPVJkhuVRSSwL4vIeOv5IZBjl9bTCc+52UHyYq/suMCNULFMoneL3iSi2EMRgHtwLVC6OoqiKSzrT++P/Ig/AV62j4g
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"getLintStatus"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'getLintStatus'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/ai/lint/status"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/ai/lint/status'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 getLintStatus
 
-<ParamsDetails
-  parameters={undefined}
->
-  
-</ParamsDetails>
+<ParamsDetails parameters={undefined}></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"AI service status","content":{"application/json":{"schema":{"type":"object","properties":{"enabled":{"type":"boolean","example":true,"description":"Whether AI linting is enabled"},"service":{"type":"string","example":"openai","description":"The AI service being used"}},"required":["enabled","service"],"title":"LintStatus"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'AI service status',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              enabled: {
+                type: 'boolean',
+                example: true,
+                description: 'Whether AI linting is enabled',
+              },
+              service: {
+                type: 'string',
+                example: 'openai',
+                description: 'The AI service being used',
+              },
+            },
+            required: ['enabled', 'service'],
+            title: 'LintStatus',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

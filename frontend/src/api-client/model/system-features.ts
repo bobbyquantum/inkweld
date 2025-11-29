@@ -7,7 +7,6 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { CaptchaSettings } from './captcha-settings';
 
 
 export interface SystemFeatures { 
@@ -19,7 +18,6 @@ export interface SystemFeatures {
      * Whether AI-powered image generation is available
      */
     aiImageGeneration: boolean;
-    captcha: CaptchaSettings;
     /**
      * Application mode configuration
      */

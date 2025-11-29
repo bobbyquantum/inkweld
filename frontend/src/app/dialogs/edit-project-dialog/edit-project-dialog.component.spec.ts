@@ -7,6 +7,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { Project, User } from '@inkweld/index';
+import { LoadedImage } from 'ngx-image-cropper';
 import { of } from 'rxjs';
 import {
   afterEach,
@@ -261,7 +262,7 @@ describe('EditProjectDialogComponent', () => {
       mockEvent = { target: inputElement } as unknown as Event;
     });
 
-    it('should set coverImage and coverImageUrl for valid file', () => {
+    it('should activate cropper for valid file', () => {
       // Simulate file selection
       Object.defineProperty(inputElement, 'files', {
         value: [mockCoverFile],
@@ -270,8 +271,9 @@ describe('EditProjectDialogComponent', () => {
 
       component.onCoverImageSelected(mockEvent);
 
-      expect(component.coverImage).toBe(mockCoverFile);
-      expect(component.coverImageUrl).toBeDefined();
+      expect(component.showCropper).toBe(true);
+      expect(component.imageChangedEvent).toBe(mockEvent);
+      expect(component.pendingFileName).toBe('cover.png');
       expect(snackBar.open).not.toHaveBeenCalled();
     });
 
@@ -284,7 +286,7 @@ describe('EditProjectDialogComponent', () => {
 
       component.onCoverImageSelected(mockEvent);
 
-      expect(component.coverImage).not.toBe(invalidFile); // Should not be set
+      expect(component.showCropper).toBe(false);
       expect(snackBar.open).toHaveBeenCalledWith(
         expect.stringContaining('Invalid image file'),
         'Close',
@@ -297,14 +299,90 @@ describe('EditProjectDialogComponent', () => {
         value: [], // No files selected
         writable: false,
       });
-      const initialCoverImage = component.coverImage;
-      const initialCoverUrl = component.coverImageUrl;
 
       component.onCoverImageSelected(mockEvent);
 
-      expect(component.coverImage).toBe(initialCoverImage);
-      expect(component.coverImageUrl).toBe(initialCoverUrl);
+      expect(component.showCropper).toBe(false);
+      expect(component.imageChangedEvent).toBeNull();
       expect(snackBar.open).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('image cropper functionality', () => {
+    it('should apply cropped image correctly', () => {
+      const croppedBlob = new Blob(['cropped data'], { type: 'image/png' });
+      component.croppedBlob = croppedBlob;
+      component.pendingFileName = 'test.png';
+      component.croppedImage = 'blob:test-url' as any;
+      component.showCropper = true;
+
+      component.applyCroppedImage();
+
+      expect(component.coverImage).toBeDefined();
+      expect(component.coverImage instanceof File).toBe(true);
+      expect(component.coverImageUrl).toBe('blob:test-url');
+      expect(component.showCropper).toBe(false);
+    });
+
+    it('should cancel cropping and reset state', () => {
+      component.showCropper = true;
+      component.imageChangedEvent = {} as Event;
+      component.croppedBlob = new Blob();
+      component.croppedImage = 'test' as any;
+
+      // Mock the coverImageInput
+      const coverInput = document.createElement('input');
+      coverInput.type = 'file';
+      component.coverImageInput = { nativeElement: coverInput };
+
+      component.cancelCropping();
+
+      expect(component.showCropper).toBe(false);
+      expect(component.imageChangedEvent).toBeNull();
+      expect(component.croppedBlob).toBeNull();
+      expect(component.croppedImage).toBeNull();
+    });
+
+    it('should reset cropper state correctly', () => {
+      component.imageChangedEvent = {} as Event;
+      component.croppedImage = 'test' as any;
+      component.croppedBlob = new Blob();
+      component.hasImageLoaded = true;
+      component.isCropperReady = true;
+      component.pendingFileName = 'test.png';
+
+      component.resetCropperState();
+
+      expect(component.imageChangedEvent).toBeNull();
+      expect(component.croppedImage).toBeNull();
+      expect(component.croppedBlob).toBeNull();
+      expect(component.hasImageLoaded).toBe(false);
+      expect(component.isCropperReady).toBe(false);
+      expect(component.pendingFileName).toBe('');
+    });
+
+    it('should handle image load failure', () => {
+      component.showCropper = true;
+
+      component.onLoadImageFailed();
+
+      expect(component.hasLoadFailed).toBe(true);
+      expect(component.showCropper).toBe(false);
+      expect(snackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to load image'),
+        'Close',
+        expect.any(Object)
+      );
+    });
+
+    it('should set hasImageLoaded when image loads', () => {
+      component.onImageLoaded({} as LoadedImage);
+      expect(component.hasImageLoaded).toBe(true);
+    });
+
+    it('should set isCropperReady when cropper is ready', () => {
+      component.onCropperReady();
+      expect(component.isCropperReady).toBe(true);
     });
   });
 

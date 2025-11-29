@@ -26,9 +26,5 @@ export interface RegisterRequest {
      * Display name (optional)
      */
     name?: string;
-    /**
-     * reCAPTCHA token for verification
-     */
-    captchaToken?: string;
 }
 

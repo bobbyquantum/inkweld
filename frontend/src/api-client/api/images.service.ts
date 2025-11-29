@@ -38,7 +38,7 @@ export class ImagesService extends BaseService {
     }
 
     /**
-     * @endpoint delete /api/v1/projects/:username/:slug/cover
+     * @endpoint delete /api/v1/projects/{username}/{slug}/cover
      * @param username Username
      * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -80,7 +80,7 @@ export class ImagesService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/:username/:slug/cover`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/cover`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<ImageMessage>('delete', `${basePath}${localVarPath}`,
             {
@@ -96,7 +96,7 @@ export class ImagesService extends BaseService {
     }
 
     /**
-     * @endpoint get /api/v1/projects/:username/:slug/cover
+     * @endpoint get /api/v1/projects/{username}/{slug}/cover
      * @param username Username
      * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -128,7 +128,7 @@ export class ImagesService extends BaseService {
         const localVarTransferCache: boolean = options?.transferCache ?? true;
 
 
-        let localVarPath = `/api/v1/projects/:username/:slug/cover`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/cover`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request('get', `${basePath}${localVarPath}`,
             {
@@ -144,7 +144,7 @@ export class ImagesService extends BaseService {
     }
 
     /**
-     * @endpoint post /api/v1/projects/:username/:slug/cover
+     * @endpoint post /api/v1/projects/{username}/{slug}/cover
      * @param username Username
      * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -186,7 +186,7 @@ export class ImagesService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/:username/:slug/cover`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/cover`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<ImageMessage>('post', `${basePath}${localVarPath}`,
             {

@@ -1,63 +1,87 @@
 ---
 id: get-mcp-event-stream
-title: "getMCPEventStream"
-description: "getMCPEventStream"
-sidebar_label: "getMCPEventStream"
+title: 'getMCPEventStream'
+description: 'getMCPEventStream'
+sidebar_label: 'getMCPEventStream'
 hide_title: true
 hide_table_of_contents: true
 api: eJzdU01v2zAM/SuCThuQ1cmyAUNuXREMAbahQLZT0QMjM7FaWVIl2m1g5L+PlIMAafIL5oMt8+OR74kcNMEu68WD/nV3rx8nOkRMQDb4Va0XeofE9mWPntaUEFo90QlzDD4jZw3683QqnxqzSTZKHmet10uVS7gKW8UACgUhc7IJnvgoOYRvVBXHpzFYjNk02EJx7yMyFrus3+kDPxP9ZTq7rPY7kIKOGgayBgjr8zIQoxM7B1dPWTKuVAmbJzTEiTGJAGRHdphSSJfNTDS+QRudmG69KlEqGNOlVKqf97cs7hZzhh1qoZHwpbMSyrKPJVh4slQARe9iGyl/vUZZJPVM20oTLRP9r0gf3oNdm8IWqQnHERUKQA3/VBBt1c8qsFVrYpUzsi9j6jHJkA+6S47DGqK4qCoXDLgmZFp8m8/nFxx+ilvVPKIuRFFZjUj6wJ1bvw1FpCODlX9+RVer2/sVA0m9EWR2M72ZXkDfBedgE2TTelSGOZXDa7LEWqvogLYhtYKmPnzv/EfNokTutIVylx5aHLmX9SrSqJM2Z7VO91j2jZGtF7AixHDU7YEHxkrbM36BnFg9UY71Y64ikQQNwwYy/k3ucBDzS4dpz3Y+9pAsbESIh0cGbxBq1kkEf8a9DIwxGOWeenDdqZmz5RdRT5f6Y/mHR+EfxjmSgw==
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"getMCPEventStream"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'getMCPEventStream'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/ai/mcp/sse"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/ai/mcp/sse'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 getMCPEventStream
 
-<ParamsDetails
-  parameters={undefined}
->
-  
-</ParamsDetails>
+<ParamsDetails parameters={undefined}></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"SSE stream of MCP events","content":{"text/event-stream":{"schema":{"type":"string"}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred","description":"Error message"}},"required":["error"],"title":"MCPError"}}}},"501":{"description":"MCP not implemented","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred","description":"Error message"}},"required":["error"],"title":"MCPError"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'SSE stream of MCP events',
+      content: { 'text/event-stream': { schema: { type: 'string' } } },
+    },
+    '401': {
+      description: 'Not authenticated',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'MCPError',
+          },
+        },
+      },
+    },
+    '501': {
+      description: 'MCP not implemented',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'MCPError',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

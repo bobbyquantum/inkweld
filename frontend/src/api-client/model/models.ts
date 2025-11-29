@@ -2,7 +2,6 @@ export * from './ai-image-error';
 export * from './ai-image-status';
 export * from './csrf-error-response';
 export * from './csrf-token-response';
-export * from './captcha-settings';
 export * from './config-response';
 export * from './correction';
 export * from './create-project-request';

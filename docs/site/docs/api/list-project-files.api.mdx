@@ -1,71 +1,143 @@
 ---
 id: list-project-files
-title: "listProjectFiles"
-description: "listProjectFiles"
-sidebar_label: "listProjectFiles"
+title: 'listProjectFiles'
+description: 'listProjectFiles'
+sidebar_label: 'listProjectFiles'
 hide_title: true
 hide_table_of_contents: true
 api: eJzdVctu2zAQ/BWCpxZwLPlxKHRLX4CBoMihvTTIgZZWFl2KZMmlU9fwv3dJWalcOUl7LSBA1nJ3ODNLrg/cWHACpdGrihdcSY+3zmyhxI9SgecTjmLjeXHHu+/7CbfCiRYQXAwfuC8baAUvDhz3FgjDo5N6Q5XwQ7RWxdDWNLoyQLEKfOmkjRtS/IsHpwmMHyfcwfcgHRALdAGezJzw9Cp4+B2RMcMKbAjn7wi1+yttdqBGjE7imVdh8zKrs+xHZqevAav7COSt0Z4sJGLzPI+vc7Ab8p6ZmtUn40ujETTGRGGtkmVqU7b1MfuCTOGc2Md9EVo/iJt15EgL1sVmo+w4dGSfM6kyZWiJwdRW9cioeBxY3zsvfw6xdGjX4IZYs3y+vIgQK5nUbL1HokVQwSojqvcCXyA3z+eLq3xGz+c8L9IzzfP86/iMJUCGsgWPVM2PZ22964ygDqHEhDw4/5R7jOnLfDbu1yeDTARsyKHYGwL795490Rtwzrjn9V9rlrKYKcvgXNr9nN+HtEyqvdjASHW3xUB21JtKeK95OdbcH3hN2msT9H+l+fgn2oVpSIOvMXFSbiBJiNe74JmwMtvNMtsl+6zop1NWxGmQ9Xeaort+cAanqLRBtEWWKVMK1RiPxZvFYjHSdROXWQU0soyNd5J1SGm0SF2bZNxJ1Up/ewBVsevbFQHF/TqQ2ZSuyAj6nVFKrE38E9gBKx10Px6cRPKfWSWwNq6NaOzV26Bfk1e/AHHgIZc=
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"listProjectFiles"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'listProjectFiles'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/projects/:username/:slug/files"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/projects/:username/:slug/files'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 listProjectFiles
 
 <Heading
-  id={"request"}
-  as={"h2"}
-  className={"openapi-tabs__heading"}
-  children={"Request"}
->
-</Heading>
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
 
 <ParamsDetails
-  parameters={[{"schema":{"type":"string","example":"johndoe","description":"Username"},"required":true,"description":"Username","name":"username","in":"path"},{"schema":{"type":"string","example":"my-novel","description":"Project slug"},"required":true,"description":"Project slug","name":"slug","in":"path"}]}
->
-  
-</ParamsDetails>
+  parameters={[
+    {
+      schema: { type: 'string', example: 'johndoe', description: 'Username' },
+      required: true,
+      description: 'Username',
+      name: 'username',
+      in: 'path',
+    },
+    {
+      schema: {
+        type: 'string',
+        example: 'my-novel',
+        description: 'Project slug',
+      },
+      required: true,
+      description: 'Project slug',
+      name: 'slug',
+      in: 'path',
+    },
+  ]}
+></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"List of files","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string","example":"document.pdf","description":"File name"},"size":{"type":"number","example":1024,"description":"File size in bytes"},"uploadDate":{"type":"string","example":"2023-01-01T00:00:00.000Z","description":"Upload timestamp"}},"required":["name"],"title":"ProjectFile"}}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred","description":"Error message"}},"required":["error"],"title":"FileError"}}}},"404":{"description":"Project not found","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred","description":"Error message"}},"required":["error"],"title":"FileError"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'List of files',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name: {
+                  type: 'string',
+                  example: 'document.pdf',
+                  description: 'File name',
+                },
+                size: {
+                  type: 'number',
+                  example: 1024,
+                  description: 'File size in bytes',
+                },
+                uploadDate: {
+                  type: 'string',
+                  example: '2023-01-01T00:00:00.000Z',
+                  description: 'Upload timestamp',
+                },
+              },
+              required: ['name'],
+              title: 'ProjectFile',
+            },
+          },
+        },
+      },
+    },
+    '401': {
+      description: 'Not authenticated',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'FileError',
+          },
+        },
+      },
+    },
+    '404': {
+      description: 'Project not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'FileError',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

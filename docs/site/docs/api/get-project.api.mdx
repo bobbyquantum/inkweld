@@ -1,71 +1,166 @@
 ---
 id: get-project
-title: "getProject"
-description: "getProject"
-sidebar_label: "getProject"
+title: 'getProject'
+description: 'getProject'
+sidebar_label: 'getProject'
 hide_title: true
 hide_table_of_contents: true
 api: eJzVlktvGjEQgP+K5VMrQRZKDtXeaNoDUlRFkXqKODi7A+vUazv2LBSh/PfO7IMACyFSe8mF3bVnPs+M58FWolpGmT7Iu+CeIMMo5wPpPASF2tlZLlO5BGw35UB6FVQJCIGVtjJmBZRKpluJGw8kHDFouyRB+KNKb3jpyRU2d0BrOcQsaM9kWv8VIViCyZeBDPBc6QB0HIYKzkoOZP1IZfW6olnCKyyI8z6Dys3QuhWYnkWtmyKaannZqgPpnWXt155VcwZF72yEyIZ9GY34cRqWAyptIhEyZxEssqjy3uisvpHkKbL8CUfdY3dFge8PdXOazk8F4yi+Vj9XIHxrg87pXL3QEDgItUOXEfe3w0XQYHOzOQNCjRz+S6QuEo34y9F2X9tWxqhHJr91SfurxNzlz7vNcWsLQVR7OZtRDoVZqZYnKW+bdcO6QrOyoNDVuAAKIf9OP6d4CxdKRdkgcxIYoi77BdWZWpNoSbBo7a3P/xF9qyKKBtNSD8rjgdNs0OV+c3OD/SLdd+7QnvkuMTr7ic3069G4XyY/HQpVYcF5lTHj/xUKhOBCPzzHjjZi871+slOVUyvqV+GyrAqs8Jr28gfv3LeNYOfjpO/jNMsgRspYqz++f9fnW52lu1y4yn5oH4/70+G0pElZuHaG1sOT5kEqE+V1shonbZuMSdpVSpK2JUTfq27GVsGQUoHo0yQxLlOmcBHTr5PJpF+nvE2pQ9PN+ZIiKhpSPYW0Xbg6OK03M/t7DSYX07sZgfi8BjK+Gl2Neugbxw3N8R+DFbQ9hl7WQSPFWHijkBsJ08Snb5X9TPH5C0LV6Uc=
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"getProject"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'getProject'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/projects/:username/:slug"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/projects/:username/:slug'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 getProject
 
 <Heading
-  id={"request"}
-  as={"h2"}
-  className={"openapi-tabs__heading"}
-  children={"Request"}
->
-</Heading>
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
 
 <ParamsDetails
-  parameters={[{"schema":{"type":"string","example":"johndoe","description":"Username"},"required":true,"description":"Username","name":"username","in":"path"},{"schema":{"type":"string","example":"my-novel","description":"Project slug"},"required":true,"description":"Project slug","name":"slug","in":"path"}]}
->
-  
-</ParamsDetails>
+  parameters={[
+    {
+      schema: { type: 'string', example: 'johndoe', description: 'Username' },
+      required: true,
+      description: 'Username',
+      name: 'username',
+      in: 'path',
+    },
+    {
+      schema: {
+        type: 'string',
+        example: 'my-novel',
+        description: 'Project slug',
+      },
+      required: true,
+      description: 'Project slug',
+      name: 'slug',
+      in: 'path',
+    },
+  ]}
+></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"Project details","content":{"application/json":{"schema":{"type":"object","properties":{"id":{"type":"string","description":"Unique project identifier"},"slug":{"type":"string","description":"URL-friendly project identifier"},"title":{"type":"string","description":"Project title"},"description":{"type":"string","nullable":true,"description":"Project description"},"username":{"type":"string","description":"Project owner username"},"coverImage":{"type":"string","nullable":true,"description":"Cover image URL"},"createdDate":{"type":"string","format":"date-time","description":"Project creation date"},"updatedDate":{"type":"string","format":"date-time","description":"Last update date"}},"required":["id","slug","title","username","createdDate","updatedDate"],"title":"Project"}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"example":{"error":"An error occurred"},"title":"ErrorResponse"}}}},"403":{"description":"Access denied","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"example":{"error":"An error occurred"},"title":"ErrorResponse"}}}},"404":{"description":"Project not found","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"example":{"error":"An error occurred"},"title":"ErrorResponse"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'Project details',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', description: 'Unique project identifier' },
+              slug: {
+                type: 'string',
+                description: 'URL-friendly project identifier',
+              },
+              title: { type: 'string', description: 'Project title' },
+              description: {
+                type: 'string',
+                nullable: true,
+                description: 'Project description',
+              },
+              username: {
+                type: 'string',
+                description: 'Project owner username',
+              },
+              coverImage: {
+                type: 'string',
+                nullable: true,
+                description: 'Cover image URL',
+              },
+              createdDate: {
+                type: 'string',
+                format: 'date-time',
+                description: 'Project creation date',
+              },
+              updatedDate: {
+                type: 'string',
+                format: 'date-time',
+                description: 'Last update date',
+              },
+            },
+            required: [
+              'id',
+              'slug',
+              'title',
+              'username',
+              'createdDate',
+              'updatedDate',
+            ],
+            title: 'Project',
+          },
+        },
+      },
+    },
+    '401': {
+      description: 'Not authenticated',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+    '403': {
+      description: 'Access denied',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+    '404': {
+      description: 'Project not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

@@ -42,7 +42,7 @@ export class FilesService extends BaseService {
     }
 
     /**
-     * @endpoint delete /api/v1/projects/:username/:slug/files/:storedName
+     * @endpoint delete /api/v1/projects/{username}/{slug}/files/{storedName}
      * @param username Username
      * @param slug Project slug
      * @param storedName File name
@@ -88,7 +88,7 @@ export class FilesService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/:username/:slug/files/:storedName`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/files/${this.configuration.encodeParam({name: "storedName", value: storedName, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<DeleteResponse>('delete', `${basePath}${localVarPath}`,
             {
@@ -104,7 +104,7 @@ export class FilesService extends BaseService {
     }
 
     /**
-     * @endpoint get /api/v1/projects/:username/:slug/files/:storedName
+     * @endpoint get /api/v1/projects/{username}/{slug}/files/{storedName}
      * @param username Username
      * @param slug Project slug
      * @param storedName File name
@@ -140,7 +140,7 @@ export class FilesService extends BaseService {
         const localVarTransferCache: boolean = options?.transferCache ?? true;
 
 
-        let localVarPath = `/api/v1/projects/:username/:slug/files/:storedName`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/files/${this.configuration.encodeParam({name: "storedName", value: storedName, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request('get', `${basePath}${localVarPath}`,
             {
@@ -156,7 +156,7 @@ export class FilesService extends BaseService {
     }
 
     /**
-     * @endpoint get /api/v1/projects/:username/:slug/files
+     * @endpoint get /api/v1/projects/{username}/{slug}/files
      * @param username Username
      * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -198,7 +198,7 @@ export class FilesService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/:username/:slug/files`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/files`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<Array<ProjectFile>>('get', `${basePath}${localVarPath}`,
             {
@@ -214,7 +214,7 @@ export class FilesService extends BaseService {
     }
 
     /**
-     * @endpoint post /api/v1/projects/:username/:slug/files
+     * @endpoint post /api/v1/projects/{username}/{slug}/files
      * @param username Username
      * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -256,7 +256,7 @@ export class FilesService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/:username/:slug/files`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/files`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<UploadResponse>('post', `${basePath}${localVarPath}`,
             {

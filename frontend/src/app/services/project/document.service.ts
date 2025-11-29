@@ -361,7 +361,7 @@ export class DocumentService {
         // WebsocketProvider(url, roomName, doc, options)
         // The roomName parameter is appended to the URL, but we want documentId as a query param
         // So we include it in the URL and use a dummy room name
-        const wsUrl = `${websocketUrl}/ws/yjs?documentId=${formattedDocId}`;
+        const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${formattedDocId}`;
         provider = new WebsocketProvider(
           wsUrl,
           '', // Empty room name - documentId is already in URL
@@ -420,7 +420,7 @@ export class DocumentService {
           if (status === 'connecting') {
             this.logger.debug(
               'DocumentService',
-              `Connecting to WebSocket URL: ${websocketUrl}/ws/yjs?documentId=${formattedDocId}`
+              `Connecting to WebSocket URL: ${websocketUrl}/api/v1/ws/yjs?documentId=${formattedDocId}`
             );
           } else if (status === 'connected') {
             this.logger.info(
@@ -498,7 +498,7 @@ export class DocumentService {
           );
           this.logger.debug(
             'DocumentService',
-            `Connection details: URL=${websocketUrl}/ws/yjs?documentId=${formattedDocId}`
+            `Connection details: URL=${websocketUrl}/api/v1/ws/yjs?documentId=${formattedDocId}`
           );
 
           if (error instanceof Error && error.stack) {

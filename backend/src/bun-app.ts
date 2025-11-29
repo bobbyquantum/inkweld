@@ -111,7 +111,7 @@ const hasEmbeddedFrontend = embeddedFrontendFiles && embeddedFrontendFiles.size 
 const hasExternalFrontend = frontendDistPath && existsSync(join(frontendDistPath, 'index.html'));
 const spaEnabled = hasEmbeddedFrontend || hasExternalFrontend;
 
-const SPA_BYPASS_PREFIXES = ['/api', '/health', '/lint', '/image', '/mcp', '/ws'];
+const SPA_BYPASS_PREFIXES = ['/api', '/health', '/lint', '/image', '/mcp'];
 
 // Global middleware
 app.use('*', logger());

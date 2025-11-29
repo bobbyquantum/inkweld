@@ -105,7 +105,7 @@ export class ProjectsService extends BaseService {
     }
 
     /**
-     * @endpoint delete /api/v1/projects/:username/:slug
+     * @endpoint delete /api/v1/projects/{username}/{slug}
      * @param username Username
      * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -147,7 +147,7 @@ export class ProjectsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/:username/:slug`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<MessageResponse>('delete', `${basePath}${localVarPath}`,
             {
@@ -163,7 +163,7 @@ export class ProjectsService extends BaseService {
     }
 
     /**
-     * @endpoint get /api/v1/projects/:username/:slug
+     * @endpoint get /api/v1/projects/{username}/{slug}
      * @param username Username
      * @param slug Project slug
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -205,7 +205,7 @@ export class ProjectsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/:username/:slug`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<Project>('get', `${basePath}${localVarPath}`,
             {
@@ -271,7 +271,7 @@ export class ProjectsService extends BaseService {
     }
 
     /**
-     * @endpoint put /api/v1/projects/:username/:slug
+     * @endpoint put /api/v1/projects/{username}/{slug}
      * @param username Username
      * @param slug Project slug
      * @param updateProjectRequest 
@@ -323,7 +323,7 @@ export class ProjectsService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/projects/:username/:slug`;
+        let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/${this.configuration.encodeParam({name: "slug", value: slug, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<Project>('put', `${basePath}${localVarPath}`,
             {

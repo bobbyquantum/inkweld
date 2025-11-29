@@ -1,63 +1,87 @@
 ---
 id: search-users
-title: "searchUsers"
-description: "searchUsers"
-sidebar_label: "searchUsers"
+title: 'searchUsers'
+description: 'searchUsers'
+sidebar_label: 'searchUsers'
 hide_title: true
 hide_table_of_contents: true
 api: eJyFVMFu2zAM/RVDpw3I4qS5DDmt3YYhww7Fup6CHhSZjZXKkirRbjPD/z5Sdhun87CTbfLxkXx6citQ7qNYb8VthBDF3Uw4D0GidnZTiLWIIIMq++RMBIje2QhU0YqLxYIfBUQVtOcKwt8kfEbA2iCXKGcRLDJSem+0Stz5ITK8FVGVUEl+w6MHInC7AyikQh94EtR9szpNcILJEOSRUBqhiv8v18UIEzFouxfdLLFaWcFkcjpB8doYuTMUw1ADAWkBbSYpaOPgGhg33zlnQFrOgmWayWTHWj/WOnB6y+OPhj1V0nHBs6y8gZclE+rD8mI1LliLgytt4bh0CHynQPYlRYbxE+bTQDdXrhLj+XnV0cTD5qiRWyfzpKHRoRxLYetqxyk6D7mHfyZu9O/pZOK7JkScSL8RqR5M2s8wdBzxn7HdnYangLYSoUgu/zlYnOg77nBu7/PrUAGWjkXfQ7KcxJI+cul13izzNE/eV1CWvprk4S25ObDgJaJf57lxSprSRVx/XK343M5b/uB0VkADxvmKrlLWM4mOdtD23iVlhl029uEJTJFdXm+IiPv1JMv5Yr74i/qzYyc7vu4NZCpA//IUNJKBM28k3rtQMVv27qq279N50aSVTJd38FK/YvaiylmP10NDeMacGHWyfhKgHRTbks80j7scTBuTXEk32pGlYVDb7mSE22C6jsOPNYQjxem1kUH3N3J7R+QlyIL0YaEfgCDiUinwfEKNNHX6e7z9E7GWr6f57esvOv0/yIi8zw==
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"searchUsers"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'searchUsers'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/users/search"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/users/search'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 searchUsers
 
-<ParamsDetails
-  parameters={undefined}
->
-  
-</ParamsDetails>
+<ParamsDetails parameters={undefined}></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"Search results","content":{"application/json":{"schema":{"type":"object","properties":{"users":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"username":{"type":"string"},"name":{"type":"string","nullable":true},"email":{"type":"string"},"approved":{"type":"boolean"},"enabled":{"type":"boolean"}},"required":["id","username","enabled"],"example":{"id":"user-123","username":"johndoe","name":"John Doe","email":"john@example.com","approved":true,"enabled":true},"title":"User"}},"total":{"type":"number"},"page":{"type":"number"},"pageSize":{"type":"number"},"totalPages":{"type":"number"}},"required":["users","total","page","pageSize","totalPages"],"title":"PaginatedUsersResponse"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'Search results',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              users: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    username: { type: 'string' },
+                    name: { type: 'string', nullable: true },
+                    email: { type: 'string' },
+                    approved: { type: 'boolean' },
+                    enabled: { type: 'boolean' },
+                  },
+                  required: ['id', 'username', 'enabled'],
+                  example: {
+                    id: 'user-123',
+                    username: 'johndoe',
+                    name: 'John Doe',
+                    email: 'john@example.com',
+                    approved: true,
+                    enabled: true,
+                  },
+                  title: 'User',
+                },
+              },
+              total: { type: 'number' },
+              page: { type: 'number' },
+              pageSize: { type: 'number' },
+              totalPages: { type: 'number' },
+            },
+            required: ['users', 'total', 'page', 'pageSize', 'totalPages'],
+            title: 'PaginatedUsersResponse',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

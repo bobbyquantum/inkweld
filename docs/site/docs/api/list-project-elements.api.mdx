@@ -1,71 +1,207 @@
 ---
 id: list-project-elements
-title: "listProjectElements"
-description: "listProjectElements"
-sidebar_label: "listProjectElements"
+title: 'listProjectElements'
+description: 'listProjectElements'
+sidebar_label: 'listProjectElements'
 hide_title: true
 hide_table_of_contents: true
 api: eJzdVk1v2zgQ/SsETy2QVHLSQ6Gb67qIADc2YmeLblEsaGlsMaFJlaTcGoH/+85QUiJHdrq72FMBQaJIzpuvN0M+cFOCFV4aneY84Uo6P7PmDjI/VrAB7R0/416sHU++8sepb2e8FFZswIOllQfusgI2gicP3O9KQCTnrdRrFIafYlMqmrozhc4N4FwOLrOyJLU4f+vAagTj+zNu4XslLaAt3lZwcucZD5+EV08zknaUwheI888M2uzOtdmC6lnUhIA5Va1/bdXB7kfLmr+OVd8IyJVGO3Bk2EUc0+cQbIIZYGbFygYUntKQGe1xSDKiLJXMQt6iO0eCRzwW1oodmeBh4zrzZknIuIA6MPte1ubI/OVokSXng4vLXrQaWrD0A8Wqdv8loFEhSiQOG5xEatlQYxzB0tWGCPlxOvkwvsGJdDH+hJ/R1fBmOFqEqcl0NFyk02scfn7/V7Ph03CG75vxJCzNr1L6nV2lk+l8Orv6QhC3k8XtzRhH89l4lI7nNPoyR/E50f7JiwbxuAPB4H2oEvxNj0ZWV0qJJWHVpHqEpoUexwJQy4Ym1MbmYDvQGJUlTnSg4uc4UxJhUrPaMkJRQCXwr1CuwXl0ggVRQvMWgBUSW4nNih2hws9S6Lz27xF6aYwCobvYK6Fcr6I+F+ALtLN1NxOaLYHVmJCzVyuj0A/3mjRtcSDrEjjpweC5hj9qIVZvZStjmcG1DVafzJgy2T0lCdGxx4lceHGsfkSeS8ITanZQSYeZ3p8iSQvN7mF3vhWqAsyKxIaKEpkF4SEf+pdL6SK+uDyPB/gs4jgJz5s4jv/sEXNEeOQw+ojJQ3nSUpX5/6plIrB51aBdRQcd9Cs1mqZNNBXeqZOW1C0tD4j0lOtOXrAovfTBziawqHBPOt/Gg35/vTaeiQrZpT01UMj/Q2M90UDBWmNfjuRQs7CLmSyrrA3an5EjLGPonFhDL3S1ir7LQYq3br/tu92eURrdX5lK/25u94rs+E0GWVMYuuisIThC53LCI1HKaDuImjPXRUl7rYgSOsajziGMC9v20lNZ7Ju88L5Mogh7hlCFcT55d3nZPyQntMxyIrUpQ/nXSOFaIPXKhAg27qX6/geonA1naYf0CR+8wcLr17ahg8TQNW4LLHQOGvywMjTpUgmP/W1DaOzV+0pj19z/DTN7YYo=
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"listProjectElements"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'listProjectElements'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/projects/:username/:slug/elements"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/projects/:username/:slug/elements'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 listProjectElements
 
 <Heading
-  id={"request"}
-  as={"h2"}
-  className={"openapi-tabs__heading"}
-  children={"Request"}
->
-</Heading>
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
 
 <ParamsDetails
-  parameters={[{"schema":{"type":"string","example":"johndoe","description":"Username"},"required":true,"description":"Username","name":"username","in":"path"},{"schema":{"type":"string","example":"my-novel","description":"Project slug"},"required":true,"description":"Project slug","name":"slug","in":"path"}]}
->
-  
-</ParamsDetails>
+  parameters={[
+    {
+      schema: { type: 'string', example: 'johndoe', description: 'Username' },
+      required: true,
+      description: 'Username',
+      name: 'username',
+      in: 'path',
+    },
+    {
+      schema: {
+        type: 'string',
+        example: 'my-novel',
+        description: 'Project slug',
+      },
+      required: true,
+      description: 'Project slug',
+      name: 'slug',
+      in: 'path',
+    },
+  ]}
+></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"List of project elements","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string","example":"elem-123","description":"Element ID"},"name":{"type":"string","example":"Chapter 1","description":"Element name"},"type":{"type":"string","enum":["FOLDER","ITEM","CHARACTER","LOCATION","WB_ITEM","MAP","RELATIONSHIP","PHILOSOPHY","CULTURE","SPECIES","SYSTEMS"],"example":"ITEM","description":"Element type"},"parentId":{"type":"string","nullable":true,"example":null,"description":"Parent element ID"},"order":{"type":"number","example":0,"description":"Order in parent"},"level":{"type":"number","example":0,"description":"Nesting level in tree hierarchy"},"expandable":{"type":"boolean","example":false,"description":"Whether element can be expanded (folders)"},"version":{"type":"number","example":1,"description":"Version number for optimistic locking"},"metadata":{"type":"object","additionalProperties":{"type":"string"},"description":"Element metadata key-value pairs"},"createdAt":{"type":"string","example":"2023-01-01T00:00:00.000Z","description":"Creation timestamp"},"updatedAt":{"type":"string","example":"2023-01-01T00:00:00.000Z","description":"Last update timestamp"}},"required":["id","name","type","parentId","order","level","expandable","version","metadata"],"title":"Element"}}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred","description":"Error message"}},"required":["error"],"title":"ElementError"}}}},"404":{"description":"Project not found","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string","example":"An error occurred","description":"Error message"}},"required":["error"],"title":"ElementError"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'List of project elements',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  example: 'elem-123',
+                  description: 'Element ID',
+                },
+                name: {
+                  type: 'string',
+                  example: 'Chapter 1',
+                  description: 'Element name',
+                },
+                type: {
+                  type: 'string',
+                  enum: [
+                    'FOLDER',
+                    'ITEM',
+                    'CHARACTER',
+                    'LOCATION',
+                    'WB_ITEM',
+                    'MAP',
+                    'RELATIONSHIP',
+                    'PHILOSOPHY',
+                    'CULTURE',
+                    'SPECIES',
+                    'SYSTEMS',
+                  ],
+                  example: 'ITEM',
+                  description: 'Element type',
+                },
+                parentId: {
+                  type: 'string',
+                  nullable: true,
+                  example: null,
+                  description: 'Parent element ID',
+                },
+                order: {
+                  type: 'number',
+                  example: 0,
+                  description: 'Order in parent',
+                },
+                level: {
+                  type: 'number',
+                  example: 0,
+                  description: 'Nesting level in tree hierarchy',
+                },
+                expandable: {
+                  type: 'boolean',
+                  example: false,
+                  description: 'Whether element can be expanded (folders)',
+                },
+                version: {
+                  type: 'number',
+                  example: 1,
+                  description: 'Version number for optimistic locking',
+                },
+                metadata: {
+                  type: 'object',
+                  additionalProperties: { type: 'string' },
+                  description: 'Element metadata key-value pairs',
+                },
+                createdAt: {
+                  type: 'string',
+                  example: '2023-01-01T00:00:00.000Z',
+                  description: 'Creation timestamp',
+                },
+                updatedAt: {
+                  type: 'string',
+                  example: '2023-01-01T00:00:00.000Z',
+                  description: 'Last update timestamp',
+                },
+              },
+              required: [
+                'id',
+                'name',
+                'type',
+                'parentId',
+                'order',
+                'level',
+                'expandable',
+                'version',
+                'metadata',
+              ],
+              title: 'Element',
+            },
+          },
+        },
+      },
+    },
+    '401': {
+      description: 'Not authenticated',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'ElementError',
+          },
+        },
+      },
+    },
+    '404': {
+      description: 'Project not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'ElementError',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

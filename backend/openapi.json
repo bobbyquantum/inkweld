@@ -116,10 +116,6 @@
             "type": "string",
             "description": "Display name (optional)",
             "example": "John Doe"
-          },
-          "captchaToken": {
-            "type": "string",
-            "description": "reCAPTCHA token for verification"
           }
         },
         "required": [
@@ -870,25 +866,6 @@
           "githubEnabled"
         ]
       },
-      "CaptchaSettings": {
-        "type": "object",
-        "properties": {
-          "enabled": {
-            "type": "boolean",
-            "example": true,
-            "description": "Whether reCAPTCHA is enabled"
-          },
-          "siteKey": {
-            "type": "string",
-            "example": "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI",
-            "description": "reCAPTCHA site key for client-side validation"
-          }
-        },
-        "required": [
-          "enabled"
-        ],
-        "description": "ReCaptcha configuration for registration"
-      },
       "SystemFeatures": {
         "type": "object",
         "properties": {
@@ -901,9 +878,6 @@
             "type": "boolean",
             "example": true,
             "description": "Whether AI-powered image generation is available"
-          },
-          "captcha": {
-            "$ref": "#/components/schemas/CaptchaSettings"
           },
           "appMode": {
             "type": "string",
@@ -929,7 +903,6 @@
         "required": [
           "aiLinting",
           "aiImageGeneration",
-          "captcha",
           "appMode",
           "userApprovalRequired"
         ]
@@ -1324,16 +1297,6 @@
                 }
               }
             }
-          },
-          "403": {
-            "description": "reCAPTCHA validation failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
           }
         }
       }
@@ -1537,7 +1500,7 @@
         }
       }
     },
-    "/api/v1/users/:username/avatar": {
+    "/api/v1/users/{username}/avatar": {
       "get": {
         "tags": [
           "Users"
@@ -1760,7 +1723,7 @@
         }
       }
     },
-    "/api/v1/projects/:username/:slug": {
+    "/api/v1/projects/{username}/{slug}": {
       "get": {
         "tags": [
           "Projects"
@@ -1987,7 +1950,7 @@
         }
       }
     },
-    "/api/v1/projects/:username/:slug/docs": {
+    "/api/v1/projects/{username}/{slug}/docs": {
       "get": {
         "operationId": "listProjectDocuments",
         "tags": [
@@ -2054,7 +2017,7 @@
         }
       }
     },
-    "/api/v1/projects/:username/:slug/docs/:docId": {
+    "/api/v1/projects/{username}/{slug}/docs/{docId}": {
       "get": {
         "operationId": "getProjectDocument",
         "tags": [
@@ -2129,7 +2092,7 @@
         }
       }
     },
-    "/api/v1/projects/:username/:slug/docs/:docId/html": {
+    "/api/v1/projects/{username}/{slug}/docs/{docId}/html": {
       "get": {
         "tags": [
           "Documents"
@@ -2203,7 +2166,7 @@
         }
       }
     },
-    "/api/v1/projects/:username/:slug/elements": {
+    "/api/v1/projects/{username}/{slug}/elements": {
       "get": {
         "operationId": "listProjectElements",
         "tags": [
@@ -2270,7 +2233,7 @@
         }
       }
     },
-    "/api/v1/projects/:username/:slug/files": {
+    "/api/v1/projects/{username}/{slug}/files": {
       "get": {
         "operationId": "listProjectFiles",
         "tags": [
@@ -2326,6 +2289,16 @@
           },
           "404": {
             "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2405,11 +2378,21 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileError"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/v1/projects/:username/:slug/files/:storedName": {
+    "/api/v1/projects/{username}/{slug}/files/{storedName}": {
       "get": {
         "operationId": "downloadProjectFile",
         "tags": [
@@ -2474,6 +2457,16 @@
           },
           "404": {
             "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2554,11 +2547,21 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileError"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/api/v1/projects/:username/:slug/epub": {
+    "/api/v1/projects/{username}/{slug}/epub": {
       "post": {
         "tags": [
           "Export"
@@ -2642,7 +2645,7 @@
         }
       }
     },
-    "/api/v1/projects/:username/:slug/cover": {
+    "/api/v1/projects/{username}/{slug}/cover": {
       "post": {
         "operationId": "uploadProjectCover",
         "tags": [
@@ -2851,7 +2854,7 @@
         }
       }
     },
-    "/api/v1/snapshots/:username/:slug": {
+    "/api/v1/snapshots/{username}/{slug}": {
       "get": {
         "tags": [
           "Snapshots"
@@ -3019,7 +3022,7 @@
         }
       }
     },
-    "/api/v1/snapshots/:username/:slug/:snapshotId": {
+    "/api/v1/snapshots/{username}/{slug}/{snapshotId}": {
       "get": {
         "tags": [
           "Snapshots"
@@ -3185,7 +3188,7 @@
         }
       }
     },
-    "/api/v1/snapshots/:username/:slug/:snapshotId/restore": {
+    "/api/v1/snapshots/{username}/{slug}/{snapshotId}/restore": {
       "post": {
         "tags": [
           "Snapshots"
@@ -3269,7 +3272,7 @@
         }
       }
     },
-    "/api/v1/snapshots/:username/:slug/:snapshotId/preview": {
+    "/api/v1/snapshots/{username}/{slug}/{snapshotId}/preview": {
       "get": {
         "tags": [
           "Snapshots"

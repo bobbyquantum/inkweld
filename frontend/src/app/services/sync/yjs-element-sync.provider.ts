@@ -107,7 +107,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.doc = new Y.Doc();
 
       // Set up WebSocket connection FIRST to get server state
-      const wsUrl = `${webSocketUrl}/ws/yjs?documentId=${this.docId}`;
+      const wsUrl = `${webSocketUrl}/api/v1/ws/yjs?documentId=${this.docId}`;
       this.logger.info('YjsSync', `🌐 WebSocket URL: ${wsUrl}`);
 
       this.wsProvider = new WebsocketProvider(wsUrl, '', this.doc, {

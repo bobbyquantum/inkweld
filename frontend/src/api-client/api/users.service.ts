@@ -194,7 +194,7 @@ export class UsersService extends BaseService {
     }
 
     /**
-     * @endpoint get /api/v1/users/:username/avatar
+     * @endpoint get /api/v1/users/{username}/avatar
      * @param username Username
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
@@ -222,7 +222,7 @@ export class UsersService extends BaseService {
         const localVarTransferCache: boolean = options?.transferCache ?? true;
 
 
-        let localVarPath = `/api/v1/users/:username/avatar`;
+        let localVarPath = `/api/v1/users/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/avatar`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request('get', `${basePath}${localVarPath}`,
             {

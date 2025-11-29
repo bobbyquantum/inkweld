@@ -1,71 +1,149 @@
 ---
 id: preview-project-snapshot
-title: "previewProjectSnapshot"
-description: "previewProjectSnapshot"
-sidebar_label: "previewProjectSnapshot"
+title: 'previewProjectSnapshot'
+description: 'previewProjectSnapshot'
+sidebar_label: 'previewProjectSnapshot'
 hide_title: true
 hide_table_of_contents: true
 api: eJzVVk1v2zAM/SuGThuQ1unSw+Bbmu4QYBiKFdsORQ+KxMbKbEmT6GRFkf8+0h9JXLtoD7v0kNihnh75KIrMk0C5jiK7E7dW+pg7jOJ+IpyHINE4u9QiEz7A1sDuJrgNKOyAYiK8DLIEhMAMTyKqHEopsieBjx5oY8Rg7JqA8FeWvmDTxuVWOyCbhqiC8eyF7D8iBEtkYj8RAf5UJgC5xlDBi8iJqB+ZqI4WwwgvMSeetwVUPp5Zt4ViEFErN4lFtX49qh76EFn7661R9Sm7RCfL69f9n4KP7lsjnWIviHtmi97ZCJHj+DSd8uMFxvb4iUI5i2CRsdL7wqi6RtJN5A0jwtyKc8KFErii0DTujB6KJ4Haqaok+uX4cqNpbN9p2MOk2qoo5IrPmvNG+J0LeuGqRkeLtlW5gjCGpvqWWuKorD54IqTWhsOQxU1P8DNSYlUBJIKe41jEDy6UklYE+YUzNM2teLx26hbJMpqEyCs/KSwX3pCEXjnd8YH00t8m+zTMU/9UPmiwvj1dkfwymC/a6tjvmf9yejGsqW9UTrLCnGBcPKD/X1FBCGPSn0ttYPcnHeCwVcxtUr8mTqkq8Ib9UekXXvne3pqDxtlQ41wpiDHRYM3713c51Nd1OuLp+kti6fNAV+pd633eSl6ee9QTcseTcQ3NGKSmmolUepNuL9IuKzHNusmUZjwJ6PvQkNNjVyXMthuhVSiIKUf0WZoWTskidxGzz7PZbDAfvvIy1RkNL+f55iYNU93fjX1wdfZauUv7eweFTuY3SyJifw3Jxfn0fDqgXjhuF47/A2whqbsAv+wCtTe7TnwhkZsUsyUfrir7kRL4DwM34+Y=
-sidebar_class_name: "get api-method"
+sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
 ---
 
-import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
-import ParamsDetails from "@theme/ParamsDetails";
-import RequestSchema from "@theme/RequestSchema";
-import StatusCodes from "@theme/StatusCodes";
-import OperationTabs from "@theme/OperationTabs";
-import TabItem from "@theme/TabItem";
-import Heading from "@theme/Heading";
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
 
 <Heading
-  as={"h1"}
-  className={"openapi__heading"}
-  children={"previewProjectSnapshot"}
->
-</Heading>
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'previewProjectSnapshot'}
+></Heading>
 
 <MethodEndpoint
-  method={"get"}
-  path={"/api/v1/snapshots/:username/:slug/:snapshotId/preview"}
-  context={"endpoint"}
->
-  
-</MethodEndpoint>
-
-
+  method={'get'}
+  path={'/api/v1/snapshots/:username/:slug/:snapshotId/preview'}
+  context={'endpoint'}
+></MethodEndpoint>
 
 previewProjectSnapshot
 
 <Heading
-  id={"request"}
-  as={"h2"}
-  className={"openapi-tabs__heading"}
-  children={"Request"}
->
-</Heading>
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
 
 <ParamsDetails
-  parameters={[{"schema":{"type":"string","example":"johndoe","description":"Username"},"required":true,"description":"Username","name":"username","in":"path"},{"schema":{"type":"string","example":"my-novel","description":"Project slug"},"required":true,"description":"Project slug","name":"slug","in":"path"},{"schema":{"type":"string","description":"Snapshot ID"},"required":true,"description":"Snapshot ID","name":"snapshotId","in":"path"}]}
->
-  
-</ParamsDetails>
+  parameters={[
+    {
+      schema: { type: 'string', example: 'johndoe', description: 'Username' },
+      required: true,
+      description: 'Username',
+      name: 'username',
+      in: 'path',
+    },
+    {
+      schema: {
+        type: 'string',
+        example: 'my-novel',
+        description: 'Project slug',
+      },
+      required: true,
+      description: 'Project slug',
+      name: 'slug',
+      in: 'path',
+    },
+    {
+      schema: { type: 'string', description: 'Snapshot ID' },
+      required: true,
+      description: 'Snapshot ID',
+      name: 'snapshotId',
+      in: 'path',
+    },
+  ]}
+></ParamsDetails>
 
-<RequestSchema
-  title={"Body"}
-  body={undefined}
->
-  
-</RequestSchema>
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
 
 <StatusCodes
   id={undefined}
   label={undefined}
-  responses={{"200":{"description":"Snapshot preview","content":{"application/json":{"schema":{"type":"object","properties":{"id":{"type":"string"},"documentId":{"type":"string"},"name":{"type":"string"},"description":{"type":"string","nullable":true},"wordCount":{"type":"number","nullable":true},"metadata":{"type":"object","nullable":true,"additionalProperties":{"nullable":true}},"createdAt":{"type":"string","format":"date-time"},"yDocState":{"type":"string"},"stateVector":{"type":"string","nullable":true}},"required":["id","documentId","name","createdAt","yDocState"],"title":"SnapshotWithContent"}}}},"401":{"description":"Not authenticated","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"example":{"error":"An error occurred"},"title":"ErrorResponse"}}}},"403":{"description":"Access denied","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"example":{"error":"An error occurred"},"title":"ErrorResponse"}}}},"404":{"description":"Project or snapshot not found","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"example":{"error":"An error occurred"},"title":"ErrorResponse"}}}}}}
->
-  
-</StatusCodes>
-
-
-      
+  responses={{
+    '200': {
+      description: 'Snapshot preview',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              documentId: { type: 'string' },
+              name: { type: 'string' },
+              description: { type: 'string', nullable: true },
+              wordCount: { type: 'number', nullable: true },
+              metadata: {
+                type: 'object',
+                nullable: true,
+                additionalProperties: { nullable: true },
+              },
+              createdAt: { type: 'string', format: 'date-time' },
+              yDocState: { type: 'string' },
+              stateVector: { type: 'string', nullable: true },
+            },
+            required: ['id', 'documentId', 'name', 'createdAt', 'yDocState'],
+            title: 'SnapshotWithContent',
+          },
+        },
+      },
+    },
+    '401': {
+      description: 'Not authenticated',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+    '403': {
+      description: 'Access denied',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+    '404': {
+      description: 'Project or snapshot not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>
