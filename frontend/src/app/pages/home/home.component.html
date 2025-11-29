@@ -147,7 +147,14 @@
         (projectSelected)="selectProject($event)">
       </app-side-nav>
       @if (isMobile && sideNavOpen()) {
-        <div class="side-nav-overlay" (click)="toggleSideNav()"></div>
+        <div
+          class="side-nav-overlay"
+          (click)="toggleSideNav()"
+          (keydown.enter)="toggleSideNav()"
+          (keydown.escape)="toggleSideNav()"
+          tabindex="0"
+          role="button"
+          aria-label="Close navigation"></div>
       }
     }
 

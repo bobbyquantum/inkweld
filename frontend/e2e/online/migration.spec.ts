@@ -299,7 +299,9 @@ test.describe('Offline to Server Migration', () => {
     await offlinePage.waitForLoadState('networkidle', { timeout: 10000 });
 
     // Click on the project card (use specific testid to avoid matching sidebar item)
-    await offlinePage.locator('[data-testid="project-card"][title="Content Test"]').click();
+    await offlinePage
+      .locator('[data-testid="project-card"][title="Content Test"]')
+      .click();
     await offlinePage.waitForURL(/.*content-test.*/, { timeout: 10000 });
 
     // Step 5: Open the same document
