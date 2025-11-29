@@ -1,0 +1,35 @@
+# Development Docker Compose for Inkweld
+# This provides optional services that can be used alongside the dev container
+# Usage: docker compose -f .devcontainer/docker-compose.yml up -d
+
+services:
+  # PostgreSQL for production-like database testing
+  # Enable by setting DB_TYPE=postgres in devcontainer.json
+  postgres:
+    image: postgres:16-alpine
+    container_name: inkweld-dev-postgres
+    environment:
+      POSTGRES_USER: inkweld
+      POSTGRES_PASSWORD: inkweld_dev
+      POSTGRES_DB: inkweld_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inkweld -d inkweld_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Adminer for database management UI (optional)
+  adminer:
+    image: adminer:latest
+    container_name: inkweld-dev-adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
