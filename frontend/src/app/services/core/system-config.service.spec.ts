@@ -19,7 +19,6 @@ describe('SystemConfigService', () => {
   const mockSystemFeatures: SystemFeatures = {
     aiLinting: true,
     aiImageGeneration: true,
-    captcha: { enabled: false, siteKey: undefined },
     appMode: SystemFeaturesAppMode.Both,
     userApprovalRequired: false,
   };
@@ -105,7 +104,6 @@ describe('SystemConfigService', () => {
             aiLinting: false,
             aiImageGeneration: false,
             appMode: 'BOTH',
-            captcha: { enabled: false, siteKey: undefined },
             userApprovalRequired: true,
           });
           expect(errorService.isConfigLoaded()).toBe(true);
@@ -136,7 +134,6 @@ describe('SystemConfigService', () => {
     it('should refresh system features and reload configuration', () => {
       const newFeatures: SystemFeatures = {
         aiLinting: false,
-        captcha: { enabled: false, siteKey: undefined },
         appMode: SystemFeaturesAppMode.Both,
         userApprovalRequired: false,
         aiImageGeneration: true,
@@ -318,61 +315,6 @@ describe('SystemConfigService', () => {
       });
     });
 
-    it('should compute isCaptchaEnabled correctly', () => {
-      TestBed.resetTestingModule();
-      (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
-        of({
-          aiLinting: false,
-          captcha: { enabled: true, siteKey: 'test-key' },
-        } as SystemFeatures)
-      );
-
-      TestBed.configureTestingModule({
-        providers: [
-          provideZonelessChangeDetection(),
-          SystemConfigService,
-          { provide: ConfigurationService, useValue: mockConfigService },
-        ],
-      });
-
-      const testService = TestBed.inject(SystemConfigService);
-
-      return new Promise<void>(resolve => {
-        setTimeout(() => {
-          expect(testService.isCaptchaEnabled()).toBe(true);
-          expect(testService.captchaSiteKey()).toBe('test-key');
-          resolve();
-        }, 10);
-      });
-    });
-
-    it('should return false for isCaptchaEnabled when captcha is undefined', () => {
-      TestBed.resetTestingModule();
-      (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
-        of({
-          aiLinting: false,
-        } as SystemFeatures)
-      );
-
-      TestBed.configureTestingModule({
-        providers: [
-          provideZonelessChangeDetection(),
-          SystemConfigService,
-          { provide: ConfigurationService, useValue: mockConfigService },
-        ],
-      });
-
-      const testService = TestBed.inject(SystemConfigService);
-
-      return new Promise<void>(resolve => {
-        setTimeout(() => {
-          expect(testService.isCaptchaEnabled()).toBe(false);
-          expect(testService.captchaSiteKey()).toBe('');
-          resolve();
-        }, 10);
-      });
-    });
-
     it('should compute isUserApprovalRequired correctly', () => {
       TestBed.resetTestingModule();
       (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
@@ -502,7 +444,6 @@ describe('SystemConfigService', () => {
             aiLinting: false,
             aiImageGeneration: false,
             appMode: 'BOTH',
-            captcha: { enabled: false, siteKey: undefined },
             userApprovalRequired: true,
           });
           expect(testService.isConfigLoaded()).toBe(true);
@@ -534,7 +475,6 @@ describe('SystemConfigService', () => {
               aiLinting: false,
               aiImageGeneration: false,
               appMode: 'BOTH',
-              captcha: { enabled: false, siteKey: undefined },
               userApprovalRequired: true,
             });
             expect(service.isConfigLoaded()).toBe(true);
