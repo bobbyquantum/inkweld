@@ -62,6 +62,11 @@ USER vscode
 RUN curl -fsSL https://bun.sh/install | bash -s "bun-v${BUN_VERSION}"
 ENV PATH="/home/vscode/.bun/bin:${PATH}"
 
+# Pre-configure Angular CLI: disable prompts and enable autocompletion
+RUN mkdir -p /home/vscode/.angular \
+  && echo '{"version":1,"cli":{"completion":{"prompted":true},"analytics":false}}' > /home/vscode/.angular-config.json \
+  && echo 'source <(ng completion script)' >> /home/vscode/.bashrc
+
 # Pre-install Playwright browsers for e2e testing
 RUN npx playwright install chromium firefox
 
