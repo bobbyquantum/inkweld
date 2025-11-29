@@ -2,13 +2,12 @@
  * Node.js-specific app configuration using better-sqlite3
  * This file imports Node-compatible modules and should only be used in Node.js runtime
  */
-import { Hono } from 'hono';
+import { OpenAPIHono } from '@hono/zod-openapi';
 import { cors } from 'hono/cors';
 import { csrf } from 'hono/csrf';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
-import { generateSpecs } from 'hono-openapi';
 import { config } from './config/env';
 import { errorHandler } from './middleware/error-handler';
 import {
@@ -20,7 +19,7 @@ import { setupBetterSqliteDatabase } from './db/better-sqlite';
 // Import common route registration (no WebSocket/Yjs routes - Node doesn't support those easily)
 import { registerCommonRoutes } from './config/routes';
 
-const app = new Hono<BetterSqliteAppContext>();
+const app = new OpenAPIHono<BetterSqliteAppContext>();
 
 // Global middleware
 app.use('*', logger());
@@ -101,9 +100,10 @@ app.get('/api', (c) => {
 });
 
 // OpenAPI documentation
-app.get('/api/openapi.json', async (c) => {
-  const spec = await generateSpecs(app, {
-    documentation: {
+app.get('/api/openapi.json', (c) => {
+  return c.json(
+    app.getOpenAPIDocument({
+      openapi: '3.0.0',
       info: {
         title: 'Inkweld API',
         version: '1.0.0',
@@ -115,9 +115,8 @@ app.get('/api/openapi.json', async (c) => {
           description: 'Local development server',
         },
       ],
-    },
-  });
-  return c.json(spec);
+    })
+  );
 });
 
 // Error handler (must be last)

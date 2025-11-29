@@ -364,8 +364,9 @@ describe('ProjectService', () => {
         return Promise.resolve(undefined);
       });
 
-      // Clear previous calls
+      // Clear previous calls but re-mock the API response
       api.listUserProjects.mockClear();
+      api.listUserProjects.mockReturnValue(apiOk(BASE));
 
       await service.loadAllProjects();
 
@@ -376,7 +377,7 @@ describe('ProjectService', () => {
       expect(api.listUserProjects).toHaveBeenCalledWith();
     });
 
-    it('handles API errors gracefully when cache is available', async () => {
+    it('handles network errors gracefully when cache is available', async () => {
       // Mock cached projects
       store.get.mockImplementation((db, storeName, key) => {
         if (storeName === 'projectsList' && key === 'allProjects') {
@@ -385,15 +386,56 @@ describe('ProjectService', () => {
         return Promise.resolve(undefined);
       });
 
-      // Mock API error
+      // Mock network error (status 0) - this is recoverable with cache
       api.listUserProjects.mockReturnValue(
-        apiErr(new HttpErrorResponse({ status: 500 }))
+        apiErr(new HttpErrorResponse({ status: 0 }))
       );
 
       await service.loadAllProjects();
 
       // Should still set projects from cache
       expect(service.projects()).toEqual(BASE);
+    });
+
+    it('handles server unavailable errors gracefully when cache is available', async () => {
+      // Mock cached projects
+      store.get.mockImplementation((db, storeName, key) => {
+        if (storeName === 'projectsList' && key === 'allProjects') {
+          return Promise.resolve(BASE as any);
+        }
+        return Promise.resolve(undefined);
+      });
+
+      // Mock 503 Service Unavailable - this is recoverable with cache
+      api.listUserProjects.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 503 }))
+      );
+
+      await service.loadAllProjects();
+
+      // Should still set projects from cache
+      expect(service.projects()).toEqual(BASE);
+    });
+
+    it('does not use cache for non-recoverable errors like 500', async () => {
+      // Mock cached projects
+      store.get.mockImplementation((db, storeName, key) => {
+        if (storeName === 'projectsList' && key === 'allProjects') {
+          return Promise.resolve(BASE as any);
+        }
+        return Promise.resolve(undefined);
+      });
+
+      // Mock 500 Internal Server Error - NOT recoverable with cache
+      api.listUserProjects.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 500 }))
+      );
+
+      await expect(service.loadAllProjects()).rejects.toThrow();
+
+      // Error should be set
+      expect(service.error()).toBeDefined();
+      expect(service.error()?.code).toBe('SERVER_ERROR');
     });
 
     it('handles API errors when no cache is available', async () => {

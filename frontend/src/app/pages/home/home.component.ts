@@ -9,14 +9,13 @@ import {
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterModule } from '@angular/router';
-import { BookshelfComponent } from '@components/bookshelf/bookshelf.component';
+import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { SideNavComponent } from '@components/side-nav/side-nav.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Project } from '@inkweld/index';
@@ -25,8 +24,6 @@ import { ProjectServiceError } from '@services/project/project.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { Subject } from 'rxjs';
 import { debounceTime, takeUntil } from 'rxjs/operators';
-
-type ViewMode = 'tiles' | 'bookshelf' | 'list';
 
 @Component({
   selector: 'app-home',
@@ -37,10 +34,9 @@ type ViewMode = 'tiles' | 'bookshelf' | 'list';
     MatInputModule,
     MatFormFieldModule,
     MatProgressSpinnerModule,
-    MatButtonToggleModule,
     ReactiveFormsModule,
     RouterModule,
-    BookshelfComponent,
+    ProjectCardComponent,
     UserMenuComponent,
     SideNavComponent,
   ],
@@ -61,7 +57,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   searchControl = new FormControl('');
   sideNavOpen = signal(true); // Open by default on desktop
   mobileSearchActive = signal(false); // Track mobile search mode
-  viewMode = signal<ViewMode>('bookshelf'); // Default to bookshelf view
 
   protected user = this.userService.currentUser;
   protected isLoading = this.projectService.isLoading;
@@ -157,36 +152,15 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
-  setViewMode(mode: ViewMode): void {
-    this.viewMode.set(mode);
-  }
-
-  getCoverUrl(project: Project): string | null {
-    // Check if project has a cover image set
-    if (!project.coverImage) {
-      return null;
-    }
-
-    const baseUrl =
-      window.location.hostname === 'localhost'
-        ? 'http://localhost:8333'
-        : window.location.origin;
-    return `${baseUrl}/api/v1/projects/${project.username}/${project.slug}/cover`;
-  }
-
   selectProject(project: Project) {
-    // Add logging to debug project navigation
     console.log('[HomeComponent] selectProject called with:', {
       project: {
         username: project.username,
         slug: project.slug,
         title: project.title,
       },
-      fullProject: project,
     });
 
-    // Force complete route reload by using onSameUrlNavigation: 'reload' option
-    // and ensuring we're navigating with a unique navigationId
     void this.router.navigate([project.username || '', project.slug || ''], {
       onSameUrlNavigation: 'reload',
       skipLocationChange: false,

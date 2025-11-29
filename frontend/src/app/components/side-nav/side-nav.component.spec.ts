@@ -1,6 +1,7 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { Project } from '@inkweld/index';
 import { UserService } from '@services/user/user.service';
 import { MockedObject, vi } from 'vitest';
 
@@ -18,6 +19,25 @@ describe('SideNavComponent', () => {
     name: 'Test User',
     enabled: true,
   };
+
+  const mockProjects: Project[] = [
+    {
+      id: '1',
+      title: 'Project 1',
+      slug: 'project-1',
+      username: 'testuser',
+      createdDate: '2024-01-01',
+      updatedDate: '2024-01-01',
+    },
+    {
+      id: '2',
+      title: 'Project 2',
+      slug: 'project-2',
+      username: 'testuser',
+      createdDate: '2024-01-01',
+      updatedDate: '2024-01-01',
+    },
+  ];
 
   beforeEach(async () => {
     routerMock = {
@@ -51,13 +71,8 @@ describe('SideNavComponent', () => {
     it('should return navigation items with correct routes when user is logged in', () => {
       const navItems = component.navItems;
 
-      expect(navItems).toHaveLength(2);
+      expect(navItems).toHaveLength(1);
       expect(navItems[0]).toEqual({
-        label: 'Bookshelf',
-        icon: 'collections_bookmark',
-        route: '/home',
-      });
-      expect(navItems[1]).toEqual({
         label: 'Profile',
         icon: 'person',
         route: '/testuser',
@@ -87,7 +102,7 @@ describe('SideNavComponent', () => {
 
       const navItems = newComponent.navItems;
 
-      expect(navItems[1].route).toBe('/home');
+      expect(navItems[0].route).toBe('/home');
     });
   });
 
@@ -131,7 +146,8 @@ describe('SideNavComponent', () => {
 
       component.onNavItemClick(navItem);
 
-      expect(isOpenSignal()).toBe(false);
+      // Menu stays open after navigation (user can toggle manually)
+      expect(isOpenSignal()).toBe(true);
     });
 
     it('should not close menu on desktop after navigation', () => {
@@ -167,6 +183,51 @@ describe('SideNavComponent', () => {
     });
   });
 
+  describe('onProjectClick', () => {
+    it('should emit projectSelected event when project is clicked', () => {
+      const emitSpy = vi.spyOn(component.projectSelected, 'emit');
+      const project = mockProjects[0];
+
+      component.onProjectClick(project);
+
+      expect(emitSpy).toHaveBeenCalledWith(project);
+    });
+
+    it('should not close menu on mobile after project selection (user toggles manually)', () => {
+      const isOpenSignal = signal(true);
+      component.isOpen = isOpenSignal;
+      component.isMobile = true;
+
+      component.onProjectClick(mockProjects[0]);
+
+      // Menu stays open - user can toggle with hamburger
+      expect(isOpenSignal()).toBe(true);
+    });
+
+    it('should not close menu on desktop after project selection', () => {
+      const isOpenSignal = signal(true);
+      component.isOpen = isOpenSignal;
+      component.isMobile = false;
+
+      component.onProjectClick(mockProjects[0]);
+
+      expect(isOpenSignal()).toBe(true);
+    });
+  });
+
+  describe('toggleNav', () => {
+    it('should toggle the isOpen signal', () => {
+      const isOpenSignal = signal(true);
+      component.isOpen = isOpenSignal;
+
+      component.toggleNav();
+      expect(isOpenSignal()).toBe(false);
+
+      component.toggleNav();
+      expect(isOpenSignal()).toBe(true);
+    });
+  });
+
   describe('inputs', () => {
     it('should accept isOpen signal input', () => {
       const isOpenSignal = signal(true);
@@ -179,6 +240,19 @@ describe('SideNavComponent', () => {
       component.isMobile = true;
 
       expect(component.isMobile).toBe(true);
+    });
+
+    it('should accept projects input', () => {
+      component.projects = mockProjects;
+
+      expect(component.projects).toEqual(mockProjects);
+    });
+
+    it('should accept selectedProject input', () => {
+      const selectedProject = mockProjects[0];
+      component.selectedProject = selectedProject;
+
+      expect(component.selectedProject).toEqual(selectedProject);
     });
   });
 });

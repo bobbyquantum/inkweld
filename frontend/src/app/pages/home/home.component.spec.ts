@@ -269,63 +269,6 @@ describe('HomeComponent', () => {
     });
   });
 
-  describe('view mode', () => {
-    it('should set view mode to tiles', () => {
-      component.setViewMode('tiles');
-      expect(component.viewMode()).toBe('tiles');
-    });
-
-    it('should set view mode to list', () => {
-      component.setViewMode('list');
-      expect(component.viewMode()).toBe('list');
-    });
-
-    it('should set view mode to bookshelf', () => {
-      component.setViewMode('bookshelf');
-      expect(component.viewMode()).toBe('bookshelf');
-    });
-  });
-
-  describe('getCoverUrl', () => {
-    it('should return null when project has no cover image', () => {
-      const project = { ...mockProjects[0], coverImage: undefined };
-      expect(component.getCoverUrl(project)).toBeNull();
-    });
-
-    it('should return cover URL for project with cover image on localhost', () => {
-      // Mock window.location for localhost
-      Object.defineProperty(window, 'location', {
-        value: { hostname: 'localhost', origin: 'http://localhost:4200' },
-        writable: true,
-      });
-
-      const project = mockProjects[1]; // Has coverImage
-      const url = component.getCoverUrl(project);
-
-      expect(url).toBe(
-        'http://localhost:8333/api/v1/projects/testuser/another-project/cover'
-      );
-    });
-
-    it('should return cover URL for project with cover image on production', () => {
-      // Mock window.location for production
-      Object.defineProperty(window, 'location', {
-        value: {
-          hostname: 'inkweld.app',
-          origin: 'https://inkweld.app',
-        },
-        writable: true,
-      });
-
-      const project = mockProjects[1];
-      const url = component.getCoverUrl(project);
-
-      expect(url).toBe(
-        'https://inkweld.app/api/v1/projects/testuser/another-project/cover'
-      );
-    });
-  });
-
   describe('filteredProjects', () => {
     it('should return all projects when no search term', () => {
       mockProjectsSignal.set(mockProjects);

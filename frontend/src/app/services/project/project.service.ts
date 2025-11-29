@@ -13,11 +13,31 @@ export class ProjectServiceError extends Error {
       | 'SESSION_EXPIRED'
       | 'SERVER_ERROR'
       | 'PROJECT_NOT_FOUND',
-    message: string
+    message: string,
+    public readonly canUseCache: boolean = false
   ) {
     super(message);
     this.name = 'ProjectServiceError';
   }
+}
+
+/**
+ * Determines if an HTTP error is recoverable using cached data.
+ * Auth errors (401/403) should NOT use cache - user needs to re-authenticate.
+ * Network/server errors CAN use cache for offline resilience.
+ */
+function isRecoverableWithCache(error: unknown): boolean {
+  if (error instanceof HttpErrorResponse) {
+    // Network failures (status 0) or server unavailable errors - use cache
+    if (error.status === 0 || error.status === 502 || error.status === 503 || error.status === 504) {
+      return true;
+    }
+    // Auth errors - do NOT use cache, let interceptor handle redirect
+    if (error.status === 401 || error.status === 403) {
+      return false;
+    }
+  }
+  return false;
 }
 
 const PROJECT_CACHE_CONFIG = {
@@ -88,20 +108,20 @@ export class ProjectService {
           this.projectApi.listUserProjects().pipe(
             retry(MAX_RETRIES),
             catchError((error: unknown) => {
-              // If we have cached data, log the error but don't propagate it
-              if (cachedProjects && cachedProjects.length > 0) {
+              // Check if this error can be recovered using cache
+              if (isRecoverableWithCache(error) && cachedProjects && cachedProjects.length > 0) {
                 console.warn(
-                  'Failed to refresh projects, using cached data:',
-                  error
+                  'Network/server error, using cached projects:',
+                  error instanceof HttpErrorResponse ? `${error.status} ${error.statusText}` : error
                 );
-                // Return an empty observable or rethrow a specific error if needed,
-                // but avoid throwing the original error to prevent breaking the outer try/catch
+                // Return a specific error to signal we should use cache
                 return throwError(
                   () => new Error('Refresh failed, using cache')
-                ); // Use a distinct error/signal
+                );
               }
 
-              // Otherwise, handle error normally
+              // For auth errors (401/403), don't catch - let it propagate
+              // The AuthInterceptor will handle the redirect
               const projectError = this.formatError(error);
               this.error.set(projectError);
               return throwError(() => projectError);
@@ -114,20 +134,16 @@ export class ProjectService {
           await this.setProjects(projects);
         }
       } catch (err) {
-        // If we have cached data, we can survive API errors
-        if (!cachedProjects || cachedProjects.length === 0) {
-          // Only re-throw if it's not the specific 'Refresh failed' error
-          if (
-            !(
-              err instanceof Error &&
-              err.message === 'Refresh failed, using cache'
-            )
-          ) {
-            throw err; // Re-throw actual API errors if no cache
-          }
+        // Only use cache for recoverable errors (network/server issues)
+        const canRecover = err instanceof Error && err.message === 'Refresh failed, using cache';
+
+        if (canRecover && cachedProjects && cachedProjects.length > 0) {
+          console.info('Using cached projects due to network/server error');
+          // Projects already set from cache above, just continue
+        } else if (!canRecover) {
+          // Re-throw auth errors and other non-recoverable errors
+          throw err;
         }
-        // Otherwise just log the error
-        console.warn('Using cached projects due to API error:', err);
       }
     } catch (err) {
       const error =
@@ -598,22 +614,30 @@ export class ProjectService {
 
   private formatError(error: unknown): ProjectServiceError {
     if (error instanceof HttpErrorResponse) {
+      const canUseCache = isRecoverableWithCache(error);
+
       if (error.status === 0) {
-        return new ProjectServiceError('NETWORK_ERROR', 'Server unavailable');
+        return new ProjectServiceError('NETWORK_ERROR', 'Server unavailable', canUseCache);
       }
       if (error.status === 401) {
-        return new ProjectServiceError('SESSION_EXPIRED', 'Session expired');
+        return new ProjectServiceError('SESSION_EXPIRED', 'Session expired', false);
       }
       if (error.status === 404) {
         return new ProjectServiceError(
           'PROJECT_NOT_FOUND',
-          'Project not found'
+          'Project not found',
+          false
         );
+      }
+      // 502, 503, 504 - server errors that can use cache
+      if (error.status === 502 || error.status === 503 || error.status === 504) {
+        return new ProjectServiceError('SERVER_ERROR', 'Server temporarily unavailable', canUseCache);
       }
     }
     return new ProjectServiceError(
       'SERVER_ERROR',
-      error instanceof Error ? error.message : 'An unexpected error occurred'
+      error instanceof Error ? error.message : 'An unexpected error occurred',
+      false
     );
   }
 }

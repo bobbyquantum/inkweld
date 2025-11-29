@@ -1,6 +1,7 @@
 <div class="side-nav-container" [class.mobile]="isMobile">
   <nav class="side-nav" [class.collapsed]="!isOpen()">
-    <mat-nav-list>
+    <!-- Navigation items -->
+    <mat-nav-list class="nav-items">
       @for (item of navItems; track item.label) {
         <a
           mat-list-item
@@ -12,11 +13,42 @@
           role="button"
           [attr.data-testid]="'side-nav-' + item.label.toLowerCase()">
           <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-          @if (isOpen()) {
-            <span matListItemTitle>{{ item.label }}</span>
-          }
+          <span matListItemTitle>{{ item.label }}</span>
         </a>
       }
     </mat-nav-list>
+
+    <!-- Projects section -->
+    @if (projects.length > 0) {
+      <div class="projects-section">
+        <div class="section-header">
+          <mat-icon>collections_bookmark</mat-icon>
+          <span>Projects</span>
+        </div>
+        <div class="project-tiles">
+          @for (project of projects; track project.id) {
+            <div
+              class="project-tile"
+              (click)="onProjectClick(project)"
+              (keyup.enter)="onProjectClick(project)"
+              [class.selected]="selectedProject?.id === project.id"
+              tabindex="0"
+              role="button"
+              [attr.data-testid]="'project-' + project.slug"
+              [title]="project.title">
+              <div class="tile-cover">
+                <app-project-cover
+                  [project]="project"
+                  variant="small"></app-project-cover>
+              </div>
+              <div class="tile-info">
+                <span class="tile-title">{{ project.title }}</span>
+                <span class="tile-author">{{ project.username }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
   </nav>
 </div>

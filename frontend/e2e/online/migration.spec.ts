@@ -162,13 +162,13 @@ test.describe('Offline to Server Migration', () => {
     // Wait for the page to fully stabilize
     await offlinePage.waitForLoadState('networkidle', { timeout: 10000 });
 
-    // Step 17: Verify projects are visible in the project list
-    // Use getByRole('button') since the project cards are buttons with project name + " cover"
+    // Step 17: Verify projects are visible in the project grid
+    // Use data-testid="project-card" to specifically target the grid cards (not sidebar items)
     await expect(
-      offlinePage.getByRole('button', { name: /Offline Novel/i })
+      offlinePage.locator('[data-testid="project-card"][title="Offline Novel"]')
     ).toBeVisible({ timeout: 10000 });
     await expect(
-      offlinePage.getByRole('button', { name: /Offline Story/i })
+      offlinePage.locator('[data-testid="project-card"][title="Offline Story"]')
     ).toBeVisible({ timeout: 10000 });
 
     // Migration test complete - projects successfully migrated and visible on server
@@ -298,8 +298,8 @@ test.describe('Offline to Server Migration', () => {
     await offlinePage.goto('/');
     await offlinePage.waitForLoadState('networkidle', { timeout: 10000 });
 
-    // Click on the project card
-    await offlinePage.getByRole('button', { name: /Content Test/i }).click();
+    // Click on the project card (use specific testid to avoid matching sidebar item)
+    await offlinePage.locator('[data-testid="project-card"][title="Content Test"]').click();
     await offlinePage.waitForURL(/.*content-test.*/, { timeout: 10000 });
 
     // Step 5: Open the same document

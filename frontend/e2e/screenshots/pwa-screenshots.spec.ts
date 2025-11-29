@@ -23,17 +23,17 @@ test.describe('PWA Screenshots', () => {
   test('capture project bookshelf - desktop', async ({
     authenticatedPage: page,
   }) => {
-    // Set viewport to desktop size
-    await page.setViewportSize({ width: 1400, height: 800 });
+    // Set viewport to desktop size - compact for promo shots
+    await page.setViewportSize({ width: 1280, height: 720 });
 
-    // Wait for the bookshelf to load (short timeout for mock data)
-    await page.waitForSelector('app-bookshelf', {
+    // Wait for the covers grid to load (short timeout for mock data)
+    await page.waitForSelector('.covers-grid', {
       state: 'visible',
       timeout: 3000,
     });
 
     // Wait for project cards to render
-    await page.waitForSelector('.project-card', {
+    await page.waitForSelector('[data-testid="project-card"]', {
       state: 'visible',
       timeout: 3000,
     });
@@ -59,14 +59,14 @@ test.describe('PWA Screenshots', () => {
   test('capture project bookshelf - desktop dark mode', async ({
     authenticatedPage: page,
   }) => {
-    // Set viewport to desktop size - tighter focus at 1280px
+    // Set viewport to desktop size - compact for promo shots
     await page.setViewportSize({ width: 1280, height: 720 });
 
     // Set dark mode
     await page.emulateMedia({ colorScheme: 'dark' });
 
-    // Wait for the bookshelf to load
-    await page.waitForSelector('app-bookshelf', {
+    // Wait for the covers grid to load
+    await page.waitForSelector('.covers-grid', {
       state: 'visible',
       timeout: 3000,
     });
@@ -74,13 +74,9 @@ test.describe('PWA Screenshots', () => {
     // Wait a bit for project cards and images to load
     await page.waitForTimeout(500);
 
-    // Click on the middle project to shift carousel and show all 3 covers
-    const projectCards = page.locator('.project-card');
-    const cardCount = await projectCards.count();
-    if (cardCount >= 2) {
-      await projectCards.nth(1).click();
-      await page.waitForTimeout(500); // Wait for animation
-    }
+    // No carousel clicking needed - grid shows all projects
+    const projectCards = page.locator('[data-testid="project-card"]');
+    await projectCards.first().waitFor({ state: 'visible', timeout: 3000 });
 
     // Take screenshot
     await page.screenshot({
@@ -100,11 +96,14 @@ test.describe('PWA Screenshots', () => {
   test('capture project bookshelf - mobile', async ({
     authenticatedPage: page,
   }) => {
-    // Set viewport to mobile size - smaller for tighter focus
+    // Set viewport to mobile size FIRST
     await page.setViewportSize({ width: 375, height: 667 });
 
-    // Wait for bookshelf to load
-    await page.waitForSelector('app-bookshelf', {
+    // Reload page so Angular's BreakpointObserver detects mobile viewport
+    await page.reload({ waitUntil: 'domcontentloaded' });
+
+    // Wait for covers grid to load
+    await page.waitForSelector('.covers-grid', {
       state: 'visible',
       timeout: 3000,
     });
@@ -112,13 +111,9 @@ test.describe('PWA Screenshots', () => {
     // Wait for project cards to load
     await page.waitForTimeout(500);
 
-    // On mobile, click middle card for carousel
-    const projectCards = page.locator('.project-card');
-    const cardCount = await projectCards.count();
-    if (cardCount >= 2) {
-      await projectCards.nth(1).click();
-      await page.waitForTimeout(500);
-    }
+    // No carousel clicking needed - grid shows all projects
+    const projectCards = page.locator('[data-testid="project-card"]');
+    await projectCards.first().waitFor({ state: 'visible', timeout: 3000 });
 
     // Take screenshot
     await page.screenshot({
@@ -138,14 +133,17 @@ test.describe('PWA Screenshots', () => {
   test('capture project bookshelf - mobile dark mode', async ({
     authenticatedPage: page,
   }) => {
-    // Set viewport to mobile size - smaller for tighter focus
+    // Set viewport to mobile size FIRST
     await page.setViewportSize({ width: 375, height: 667 });
 
     // Set dark mode
     await page.emulateMedia({ colorScheme: 'dark' });
 
-    // Wait for bookshelf to load
-    await page.waitForSelector('app-bookshelf', {
+    // Reload page so Angular's BreakpointObserver detects mobile viewport
+    await page.reload({ waitUntil: 'domcontentloaded' });
+
+    // Wait for covers grid to load
+    await page.waitForSelector('.covers-grid', {
       state: 'visible',
       timeout: 3000,
     });
@@ -153,13 +151,9 @@ test.describe('PWA Screenshots', () => {
     // Wait for project cards to load
     await page.waitForTimeout(500);
 
-    // On mobile, click middle card for carousel
-    const projectCards = page.locator('.project-card');
-    const cardCount = await projectCards.count();
-    if (cardCount >= 2) {
-      await projectCards.nth(1).click();
-      await page.waitForTimeout(500);
-    }
+    // No carousel clicking needed - grid shows all projects
+    const projectCards = page.locator('[data-testid="project-card"]');
+    await projectCards.first().waitFor({ state: 'visible', timeout: 3000 });
 
     // Take screenshot
     await page.screenshot({

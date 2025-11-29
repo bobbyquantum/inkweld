@@ -1,50 +1,57 @@
 /**
  * Simple script to generate OpenAPI spec without starting the server
- * This avoids database connection issues
+ *
+ * NOTE: This script uses the OpenAPIHono.getOpenAPIDocument() method from @hono/zod-openapi
+ * instead of the deprecated hono-openapi package.
+ *
+ * For full OpenAPI generation with all routes, use: bun run generate:openapi
+ * which starts the server and fetches the complete spec.
  */
 import { writeFile } from 'fs/promises';
 import * as path from 'path';
+import { OpenAPIHono } from '@hono/zod-openapi';
 
-// Import schemas to ensure they're loaded
-import '../src/schemas';
+// Import route modules
+import authRoutes from '../src/routes/auth.routes';
+import userRoutes from '../src/routes/user.routes';
+import projectRoutes from '../src/routes/project.routes';
+import snapshotRoutes from '../src/routes/snapshot.routes';
+import imageRoutes from '../src/routes/image.routes';
+import healthRoutes from '../src/routes/health.routes';
+import configRoutes from '../src/routes/config.routes';
+import csrfRoutes from '../src/routes/csrf.routes';
 
-// Create a mock app with just the OpenAPI endpoint
 async function generateOpenAPISpec() {
   try {
     console.log('📜 Generating OpenAPI specification...');
 
-    // Import generateSpecs
-    const { generateSpecs } = await import('hono-openapi');
-    const { Hono } = await import('hono');
+    // Create an OpenAPIHono app and register routes
+    const app = new OpenAPIHono();
 
-    // Create a minimal app
-    const app = new Hono();
+    // Register routes
+    app.route('/api/v1/auth', authRoutes);
+    app.route('/api/v1/users', userRoutes);
+    app.route('/api/v1/projects', projectRoutes);
+    app.route('/api/v1/snapshots', snapshotRoutes);
+    app.route('/api/v1/images', imageRoutes);
+    app.route('/api/v1/health', healthRoutes);
+    app.route('/api/v1/config', configRoutes);
+    app.route('/api/v1/csrf', csrfRoutes);
 
-    // Import route definitions (they won't execute, just register schemas)
-    await import('../src/routes/auth.routes');
-    await import('../src/routes/user.routes');
-    await import('../src/routes/project.routes');
-    await import('../src/routes/snapshot.routes');
-    await import('../src/routes/image.routes');
-    await import('../src/routes/health.routes');
-    await import('../src/routes/config.routes');
-    await import('../src/routes/csrf.routes');
-
-    // Generate the spec
-    const spec = await generateSpecs(app, {
-      documentation: {
-        info: {
-          title: 'Inkweld API',
-          version: '1.0.0',
-          description: 'Collaborative creative writing platform API',
-        },
-        servers: [
-          {
-            url: 'http://localhost:8333',
-            description: 'Local development server',
-          },
-        ],
+    // Generate the spec using the built-in method
+    const spec = app.getOpenAPIDocument({
+      openapi: '3.0.0',
+      info: {
+        title: 'Inkweld API',
+        version: '1.0.0',
+        description: 'Collaborative creative writing platform API',
       },
+      servers: [
+        {
+          url: 'http://localhost:8333',
+          description: 'Local development server',
+        },
+      ],
     });
 
     const outputPath = path.resolve(process.cwd(), 'openapi.json');
