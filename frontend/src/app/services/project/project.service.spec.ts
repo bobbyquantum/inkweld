@@ -11,6 +11,9 @@ import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { apiErr, apiOk } from '../../../testing/utils';
 import { XsrfService } from '../auth/xsrf.service';
+import { SetupService } from '../core/setup.service';
+import { OfflineStorageService } from '../offline/offline-storage.service';
+import { ProjectSyncService } from '../offline/project-sync.service';
 import { StorageService } from '../offline/storage.service';
 import { ProjectService, ProjectServiceError } from './project.service';
 
@@ -40,6 +43,9 @@ type ApiMock = DeepMockProxy<ProjectsService>;
 type ImagesMock = DeepMockProxy<ImagesService>;
 type StoreMock = DeepMockProxy<StorageService>;
 type XsrfMock = DeepMockProxy<XsrfService>;
+type SetupMock = DeepMockProxy<SetupService>;
+type OfflineStorageMock = DeepMockProxy<OfflineStorageService>;
+type ProjectSyncMock = DeepMockProxy<ProjectSyncService>;
 
 describe('ProjectService', () => {
   let service: ProjectService;
@@ -47,12 +53,18 @@ describe('ProjectService', () => {
   let imagesApi: ImagesMock;
   let store: StoreMock;
   let xsrf: XsrfMock;
+  let setup: SetupMock;
+  let offlineStorage: OfflineStorageMock;
+  let projectSync: ProjectSyncMock;
 
   beforeEach(() => {
     api = mockDeep<ProjectsService>();
     imagesApi = mockDeep<ImagesService>();
     store = mockDeep<StorageService>() as StoreMock;
     xsrf = mockDeep<XsrfService>() as XsrfMock;
+    setup = mockDeep<SetupService>() as SetupMock;
+    offlineStorage = mockDeep<OfflineStorageService>() as OfflineStorageMock;
+    projectSync = mockDeep<ProjectSyncService>() as ProjectSyncMock;
 
     // Storage baseline
     store.initializeDatabase.mockResolvedValue(DB);
@@ -60,6 +72,15 @@ describe('ProjectService', () => {
 
     // XSRF baseline
     xsrf.getXsrfToken.mockReturnValue('token');
+
+    // Setup service baseline - default to server mode
+    setup.getMode.mockReturnValue('server');
+
+    // Offline storage baseline
+    offlineStorage.saveProjectCover.mockResolvedValue(undefined);
+
+    // Project sync baseline
+    projectSync.markPendingUpload.mockResolvedValue(undefined);
 
     // API baseline
     api.listUserProjects.mockReturnValue(apiOk(BASE));
@@ -90,6 +111,9 @@ describe('ProjectService', () => {
         { provide: ImagesService, useValue: imagesApi },
         { provide: StorageService, useValue: store },
         { provide: XsrfService, useValue: xsrf },
+        { provide: SetupService, useValue: setup },
+        { provide: OfflineStorageService, useValue: offlineStorage },
+        { provide: ProjectSyncService, useValue: projectSync },
       ],
     });
 
@@ -824,12 +848,128 @@ describe('ProjectService', () => {
       // Verify error was set with correct code
       expect(service.error()?.code).toBe('NETWORK_ERROR');
     });
+
+    it('clears the IndexedDB cache after successful delete', async () => {
+      // Set up API to succeed
+      imagesApi.deleteProjectCover.mockReturnValue(
+        apiOk({ message: 'Cover deleted' })
+      );
+      api.listUserProjects.mockReturnValue(apiOk(BASE));
+      offlineStorage.deleteProjectCover.mockResolvedValue(undefined);
+
+      await service.deleteProjectCover('alice', 'project-1');
+
+      // Should clear the cached cover
+      expect(offlineStorage.deleteProjectCover).toHaveBeenCalledWith(
+        'alice',
+        'project-1'
+      );
+    });
+
+    it('continues even if IndexedDB cache clear fails', async () => {
+      // Set up API to succeed
+      imagesApi.deleteProjectCover.mockReturnValue(
+        apiOk({ message: 'Cover deleted' })
+      );
+      api.listUserProjects.mockReturnValue(apiOk(BASE));
+      offlineStorage.deleteProjectCover.mockRejectedValue(
+        new Error('IndexedDB error')
+      );
+
+      // Should not throw - cache clear failure is non-fatal
+      await expect(
+        service.deleteProjectCover('alice', 'project-1')
+      ).resolves.not.toThrow();
+
+      // Should still have called the cache clear
+      expect(offlineStorage.deleteProjectCover).toHaveBeenCalledWith(
+        'alice',
+        'project-1'
+      );
+    });
   });
 
   // uploadProjectCover tests removed - the method uses http.post() directly instead of
   // the imagesApi service, making proper mocking complex. This functionality is already
   // thoroughly tested in component tests (home-tab.component.spec.ts and
   // edit-project-dialog.component.spec.ts) which properly mock the service method.
+
+  /* -------------------------------------------------------------- */
+  /* uploadProjectCover - offline mode                              */
+  /* -------------------------------------------------------------- */
+  describe('uploadProjectCover (offline mode)', () => {
+    beforeEach(() => {
+      // Reset mocks
+      setup.getMode.mockReset();
+      offlineStorage.saveProjectCover.mockReset();
+      projectSync.markPendingUpload.mockReset();
+    });
+
+    it('saves cover to IndexedDB when in offline mode', async () => {
+      // Configure offline mode
+      setup.getMode.mockReturnValue('offline');
+      offlineStorage.saveProjectCover.mockResolvedValue(undefined);
+      projectSync.markPendingUpload.mockResolvedValue(undefined);
+
+      const coverBlob = new Blob(['test cover'], { type: 'image/png' });
+
+      await service.uploadProjectCover('alice', 'project-1', coverBlob);
+
+      // Should save to offline storage
+      expect(offlineStorage.saveProjectCover).toHaveBeenCalledWith(
+        'alice',
+        'project-1',
+        coverBlob
+      );
+
+      // Should mark for sync
+      expect(projectSync.markPendingUpload).toHaveBeenCalledWith(
+        'alice/project-1',
+        'cover'
+      );
+
+      // Should not set error
+      expect(service.error()).toBeUndefined();
+    });
+
+    it('does not call API in offline mode', async () => {
+      // Configure offline mode
+      setup.getMode.mockReturnValue('offline');
+      offlineStorage.saveProjectCover.mockResolvedValue(undefined);
+      projectSync.markPendingUpload.mockResolvedValue(undefined);
+
+      const coverBlob = new Blob(['test cover'], { type: 'image/png' });
+
+      await service.uploadProjectCover('alice', 'project-1', coverBlob);
+
+      // Should NOT reload projects (which would call API)
+      expect(api.listUserProjects).not.toHaveBeenCalled();
+    });
+
+    it('does not save to offline storage in server mode', async () => {
+      // Configure server mode (default)
+      setup.getMode.mockReturnValue('server');
+
+      // Note: We can't easily test the full server mode flow because
+      // it uses http.post directly, but we can verify it doesn't use
+      // offline storage
+      offlineStorage.saveProjectCover.mockResolvedValue(undefined);
+
+      // This test is limited since we can't mock http.post easily
+      // but we can at least ensure offline storage is not used
+      // when we're in server mode. Since the http.post will fail
+      // without a proper mock, we expect the method to throw.
+      try {
+        const coverBlob = new Blob(['test cover'], { type: 'image/png' });
+        await service.uploadProjectCover('alice', 'project-1', coverBlob);
+      } catch {
+        // Expected to fail in server mode without proper http mock
+      }
+
+      // Should NOT use offline storage in server mode
+      expect(offlineStorage.saveProjectCover).not.toHaveBeenCalled();
+    });
+  });
 
   /* -------------------------------------------------------------- */
   /* clearCache                                                    */

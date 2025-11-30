@@ -59,7 +59,13 @@ projectRoutes.openapi(listProjectsRoute, async (c) => {
 
   return c.json(
     projects.map((p) => ({
-      ...p,
+      id: p.id,
+      version: p.version,
+      slug: p.slug,
+      title: p.title,
+      description: p.description,
+      username: p.username,
+      coverImage: p.coverImage ?? null,
       createdDate: new Date(p.createdDate).toISOString(),
       updatedDate: new Date(p.updatedDate).toISOString(),
     })),
@@ -139,9 +145,10 @@ projectRoutes.openapi(getProjectRoute, async (c) => {
       slug: project.slug,
       title: project.title,
       description: project.description,
+      username: project.username,
+      coverImage: project.coverImage ?? null,
       createdDate: new Date(project.createdDate).toISOString(),
       updatedDate: new Date(project.updatedDate).toISOString(),
-      username: project.username,
     },
     200
   );
@@ -233,9 +240,10 @@ projectRoutes.openapi(createProjectRoute, async (c) => {
       slug: project.slug,
       title: project.title,
       description: project.description,
+      username: user.username,
+      coverImage: project.coverImage ?? null,
       createdDate: new Date(project.createdDate).toISOString(),
       updatedDate: new Date(project.updatedDate).toISOString(),
-      username: user.username,
     },
     201
   );
@@ -329,9 +337,10 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
       slug: updated.slug,
       title: updated.title,
       description: updated.description,
+      username: project.username,
+      coverImage: updated.coverImage ?? null,
       createdDate: new Date(updated.createdDate).toISOString(),
       updatedDate: new Date(updated.updatedDate).toISOString(),
-      username: project.username,
     },
     200
   );

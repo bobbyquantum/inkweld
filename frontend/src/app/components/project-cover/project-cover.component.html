@@ -2,13 +2,17 @@
   @if (hasCover) {
     <img
       [src]="coverUrl"
-      [alt]="project.title + ' cover'"
+      [alt]="projectTitle + ' cover'"
       class="cover-image"
       (error)="$any($event.target).style.display = 'none'" />
-  } @else {
+  } @else if (project) {
     <div class="no-cover-container">
       <div class="centered-title">{{ project.title }}</div>
       <div class="author">{{ project.username }}</div>
+    </div>
+  } @else {
+    <div class="no-cover-container">
+      <div class="centered-title">Loading...</div>
     </div>
   }
 </div>

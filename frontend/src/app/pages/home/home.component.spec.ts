@@ -35,6 +35,8 @@ describe('HomeComponent', () => {
   const mockLoadingSignal = signal(false);
   const mockProjectsSignal = signal<Project[]>([]);
   const mockIsAuthenticated = signal(true);
+  const mockUserInitialized = signal(true);
+  const mockProjectInitialized = signal(true);
 
   const mockProjects: Project[] = [
     {
@@ -80,17 +82,21 @@ describe('HomeComponent', () => {
     userService = {
       currentUser: signal<User | undefined>(undefined),
       isAuthenticated: mockIsAuthenticated,
+      initialized: mockUserInitialized,
     } as unknown as MockedObject<UnifiedUserService>;
 
     // Reset mock signals once before all tests
     mockLoadingSignal.set(false);
     mockProjectsSignal.set([]);
     mockIsAuthenticated.set(true);
+    mockUserInitialized.set(true);
+    mockProjectInitialized.set(true);
 
     // Setup mock project service once
     projectService = {
       isLoading: mockLoadingSignal,
       projects: mockProjectsSignal,
+      initialized: mockProjectInitialized,
       loadProjects: vi.fn().mockResolvedValue(undefined),
     };
 

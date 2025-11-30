@@ -20,6 +20,12 @@ export const routes: Routes = [
     title: 'Setup',
   },
   {
+    path: 'reset',
+    loadComponent: () =>
+      import('./pages/reset/reset.component').then(m => m.ResetComponent),
+    title: 'Reset Data',
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./pages/home/home.component').then(m => m.HomeComponent),

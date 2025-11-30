@@ -86,14 +86,15 @@ export class ImageService {
 
   /**
    * Process project cover image
+   * Uses 1:1.6 portrait aspect ratio (1600x2560 at 300 DPI) to match frontend cropper
    */
   async processCoverImage(buffer: Buffer): Promise<Buffer> {
     return await this.processImage(buffer, {
-      width: 600,
-      height: 400,
-      fit: 'cover',
+      width: 1600,
+      height: 2560,
+      fit: 'inside', // Don't crop - image is already cropped by frontend
       format: 'jpeg',
-      quality: 85,
+      quality: 90,
     });
   }
 

@@ -28,7 +28,6 @@ function createDynamicConfiguration(setupService: SetupService): Configuration {
       // Always read dynamically from SetupService on every access
       const serverUrl = setupService.getServerUrl();
       const result = serverUrl || environment.apiUrl;
-      console.log('[Dynamic API Config] Using basePath:', result);
       return result;
     },
     set: function (value: string) {

@@ -10,8 +10,18 @@ import { ProjectPathParamsSchema } from '../schemas/common.schemas';
 
 const imageRoutes = new OpenAPIHono<AppContext>();
 
-// Apply auth middleware to all image routes
-imageRoutes.use('*', requireAuth);
+// Note: Auth is applied per-route using .use() middleware
+// GET routes for images are public (cover images should be viewable)
+// POST/DELETE routes require authentication
+
+// Apply auth middleware to POST and DELETE routes only
+imageRoutes.use('/:username/:slug/cover', async (c, next) => {
+  const method = c.req.method;
+  if (method === 'POST' || method === 'DELETE') {
+    return requireAuth(c, next);
+  }
+  return next();
+});
 
 // Schemas
 const MessageSchema = z

@@ -80,8 +80,8 @@ export class EditProjectDialogComponent implements OnInit {
   showCropper = false;
   pendingFileName = '';
 
-  // Project cover aspect ratio is 1.6:1 (width:height) which means 0.625 (height:width)
-  readonly coverAspectRatio = 1.6;
+  // Project cover aspect ratio is 2:3 (width:height) for portrait book covers
+  readonly coverAspectRatio = 1 / 1.6;
 
   ngOnInit(): void {
     this.project = this.dialogData;

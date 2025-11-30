@@ -39,10 +39,9 @@
   .cropper-container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
 
     ::ng-deep image-cropper {
-      max-height: 400px;
+      max-height: 50vh;
       margin: 0 auto;
       width: 100%;
 
@@ -56,52 +55,15 @@
       }
     }
   }
-
-  .preview-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    margin-top: 16px;
-
-    h4 {
-      margin: 0;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: rgba(0, 0, 0, 0.6);
-    }
-
-    .cover-preview-wrapper {
-      max-width: 200px;
-      border: 1px solid rgba(0, 0, 0, 0.12);
-      border-radius: 4px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-
-      .cropped-preview {
-        width: 100%;
-        height: auto;
-        display: block;
-      }
-    }
-  }
-
-  .cropper-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 8px;
-    padding-top: 16px;
-    border-top: 1px solid rgba(0, 0, 0, 0.12);
-  }
 }
 
-/* Left column: Cover image */
+/* Left column: Cover image (1:1.6 aspect ratio for portrait book cover) */
 .cover-column {
   background-color: rgba(0, 0, 0, 0.03);
   flex: 0 0 auto;
-  width: 220px;
-  min-height: 400px;
+  /* Height-based sizing: set height, width follows from aspect ratio */
+  height: 400px;
+  aspect-ratio: 1 / 1.6;
   position: relative;
   overflow: hidden;
 }
@@ -116,7 +78,7 @@
   .cover-preview {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Changed to contain to show full image without zooming */
+    object-fit: cover; /* Image is already correctly cropped, so cover fills perfectly */
     display: block;
   }
 
@@ -188,12 +150,8 @@ mat-form-field {
 }
 
 /* Loading indicator */
-mat-progress-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
+.placeholder-wrapper .loading-bar {
+  width: 80%;
 }
 
 /* Dark theme adjustments */
@@ -227,20 +185,6 @@ mat-progress-bar {
           border: 2px solid rgba(0, 170, 255, 0.9) !important;
         }
       }
-    }
-
-    .preview-section {
-      h4 {
-        color: rgba(255, 255, 255, 0.7);
-      }
-
-      .cover-preview-wrapper {
-        border-color: rgba(255, 255, 255, 0.12);
-      }
-    }
-
-    .cropper-actions {
-      border-top-color: rgba(255, 255, 255, 0.12);
     }
   }
 

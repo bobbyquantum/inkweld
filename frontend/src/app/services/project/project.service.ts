@@ -4,6 +4,9 @@ import { ImagesService, Project, ProjectsService } from '@inkweld/index';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
 import { XsrfService } from '../auth/xsrf.service';
+import { SetupService } from '../core/setup.service';
+import { OfflineStorageService } from '../offline/offline-storage.service';
+import { ProjectSyncService } from '../offline/project-sync.service';
 import { StorageService } from '../offline/storage.service';
 
 export class ProjectServiceError extends Error {
@@ -66,6 +69,9 @@ export class ProjectService {
   private readonly http = inject(HttpClient);
   private readonly storage = inject(StorageService);
   private readonly xsrfService = inject(XsrfService);
+  private readonly setupService = inject(SetupService);
+  private readonly offlineStorage = inject(OfflineStorageService);
+  private readonly projectSync = inject(ProjectSyncService);
 
   readonly projects = signal<Project[]>([]);
   readonly isLoading = signal(false);
@@ -468,6 +474,13 @@ export class ProjectService {
         )
       );
 
+      // Clear the cached cover from IndexedDB
+      try {
+        await this.offlineStorage.deleteProjectCover(username, slug);
+      } catch (cacheError) {
+        console.warn('Failed to clear cached cover image:', cacheError);
+      }
+
       // Update the project in the projects list if it exists to reflect no cover
       const currentProjects = this.projects();
       const projectIndex = currentProjects.findIndex(
@@ -502,10 +515,20 @@ export class ProjectService {
     this.error.set(undefined);
 
     try {
+      // In offline mode, save to IndexedDB and mark for sync
+      if (this.setupService.getMode() === 'offline') {
+        await this.offlineStorage.saveProjectCover(username, slug, coverImage);
+        await this.projectSync.markPendingUpload(
+          `${username}/${slug}`,
+          'cover'
+        );
+        return;
+      }
+
       const formData = new FormData();
       formData.append('cover', coverImage);
 
-      const url = `${this.imagesApi.configuration.basePath}/api/images/${username}/${slug}/cover`;
+      const url = `${this.imagesApi.configuration.basePath}/api/v1/projects/${username}/${slug}/cover`;
       await firstValueFrom(
         this.http
           .post(url, formData, {
@@ -516,6 +539,9 @@ export class ProjectService {
             catchError(err => throwError(() => this.formatError(err)))
           )
       );
+
+      // Cache the cover image to IndexedDB for offline access
+      await this.offlineStorage.saveProjectCover(username, slug, coverImage);
 
       // Refresh projects to get updated data
       await this.loadAllProjects();

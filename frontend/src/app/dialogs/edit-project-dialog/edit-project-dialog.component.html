@@ -4,7 +4,8 @@
     <div class="cropper-view">
       <h3 class="cropper-title">Crop Cover Image</h3>
       <p class="cropper-subtitle">
-        Adjust the selection to fit your project cover (1.6:1 ratio)
+        Adjust the selection to fit your project cover (1:1.6 ratio, recommended
+        1600×2560px)
       </p>
       <div class="cropper-container">
         <image-cropper
@@ -14,36 +15,16 @@
           [roundCropper]="false"
           format="png"
           output="blob"
-          [resizeToWidth]="800"
-          [cropperMinWidth]="200"
-          [cropperMinHeight]="125"
+          [resizeToWidth]="1600"
+          [resizeToHeight]="2560"
+          [cropperMinWidth]="400"
+          [cropperMinHeight]="640"
           [onlyScaleDown]="true"
           (imageCropped)="imageCropped($event)"
           (imageLoaded)="onImageLoaded($event)"
           (cropperReady)="onCropperReady()"
           (loadImageFailed)="onLoadImageFailed()">
         </image-cropper>
-        @if (croppedImage) {
-          <div class="preview-section">
-            <h4>Preview</h4>
-            <div class="cover-preview-wrapper">
-              <img
-                [src]="croppedImage"
-                alt="Cropped cover preview"
-                class="cropped-preview" />
-            </div>
-          </div>
-        }
-      </div>
-      <div class="cropper-actions">
-        <button mat-button (click)="cancelCropping()">Cancel</button>
-        <button
-          mat-raised-button
-          color="primary"
-          (click)="applyCroppedImage()"
-          [disabled]="!croppedBlob">
-          Apply
-        </button>
       </div>
     </div>
   } @else {
@@ -51,11 +32,7 @@
     <div class="dialog-layout">
       <!-- Left column: Cover image -->
       <div class="cover-column">
-        @if (isLoadingCover) {
-          <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-        }
-
-        @if (coverImageUrl) {
+        @if (coverImageUrl && !isLoadingCover) {
           <div class="cover-image-wrapper">
             <img
               [src]="coverImageUrl"
@@ -71,11 +48,17 @@
               <mat-icon>delete</mat-icon>
             </button>
           </div>
+        } @else if (isLoadingCover) {
+          <div class="placeholder-wrapper">
+            <mat-progress-bar
+              mode="indeterminate"
+              class="loading-bar"></mat-progress-bar>
+          </div>
         } @else {
           <div class="placeholder-wrapper">
             <mat-icon class="placeholder-icon">image</mat-icon>
             <p class="placeholder-text">No cover image</p>
-            <p class="placeholder-text">1.6:1 ratio</p>
+            <p class="placeholder-text">1:1.6 ratio</p>
           </div>
         }
       </div>
@@ -125,7 +108,16 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  @if (!showCropper) {
+  @if (showCropper) {
+    <button mat-button (click)="cancelCropping()">Cancel</button>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="applyCroppedImage()"
+      [disabled]="!croppedBlob">
+      Apply
+    </button>
+  } @else {
     <button mat-button mat-dialog-close>Cancel</button>
     <button
       mat-raised-button
