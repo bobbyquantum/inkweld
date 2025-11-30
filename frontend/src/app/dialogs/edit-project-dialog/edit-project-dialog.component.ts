@@ -22,6 +22,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { Project } from '@inkweld/index';
+import { UnifiedProjectService } from '@services/offline/unified-project.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectImportExportService } from '@services/project/project-import-export.service';
 import {
@@ -51,6 +52,7 @@ export class EditProjectDialogComponent implements OnInit {
   private dialogRef = inject(MatDialogRef<EditProjectDialogComponent>);
   private ProjectsService = inject(ProjectsService);
   private projectService = inject(ProjectService);
+  private unifiedProjectService = inject(UnifiedProjectService);
   private dialogData = inject<Project>(MAT_DIALOG_DATA);
   private snackBar = inject(MatSnackBar);
   private sanitizer = inject(DomSanitizer);
@@ -253,13 +255,14 @@ export class EditProjectDialogComponent implements OnInit {
       if (!updatedProject.slug) {
         throw new Error('Project slug is required');
       }
-      const response = await this.projectService.updateProject(
+      // Use UnifiedProjectService for update - handles both online and offline modes
+      const response = await this.unifiedProjectService.updateProject(
         updatedProject.username,
         updatedProject.slug,
         {
           title: updatedProject.title,
           description: updatedProject.description,
-        } as Project
+        }
       );
 
       // Handle cover image upload if we have a new image

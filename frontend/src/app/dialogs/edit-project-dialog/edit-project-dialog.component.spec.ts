@@ -20,6 +20,7 @@ import {
   vi,
 } from 'vitest';
 
+import { UnifiedProjectService } from '../../services/offline/unified-project.service';
 import { ProjectService } from '../../services/project/project.service';
 import { ProjectImportExportService } from '../../services/project/project-import-export.service';
 import { EditProjectDialogComponent } from './edit-project-dialog.component';
@@ -38,6 +39,7 @@ describe('EditProjectDialogComponent', () => {
   let snackBar: MockedObject<MatSnackBar>;
   let ProjectsService: MockedObject<ProjectsService>;
   let projectService: MockedObject<ProjectService>;
+  let unifiedProjectService: MockedObject<UnifiedProjectService>;
 
   const mockUser: User = {
     username: 'testuser',
@@ -97,6 +99,11 @@ describe('EditProjectDialogComponent', () => {
       updateProject: vi.fn().mockResolvedValue(mockProject),
     } as any;
 
+    // Mock UnifiedProjectService methods
+    unifiedProjectService = {
+      updateProject: vi.fn().mockResolvedValue(mockProject),
+    } as any;
+
     // Mock XSRF token cookie
     document.cookie = 'XSRF-TOKEN=test-token';
 
@@ -112,6 +119,7 @@ describe('EditProjectDialogComponent', () => {
         { provide: ProjectImportExportService, useValue: importExportService },
         { provide: ProjectsService, useValue: ProjectsService },
         { provide: ProjectService, useValue: projectService },
+        { provide: UnifiedProjectService, useValue: unifiedProjectService },
         { provide: MatSnackBar, useValue: snackBar },
       ],
     }).compileComponents();
@@ -487,7 +495,7 @@ describe('EditProjectDialogComponent', () => {
         'Close',
         expect.any(Object)
       );
-      expect(projectService.updateProject).not.toHaveBeenCalled();
+      expect(unifiedProjectService.updateProject).not.toHaveBeenCalled();
       expect(dialogRef.close).not.toHaveBeenCalled();
     });
 
@@ -501,7 +509,7 @@ describe('EditProjectDialogComponent', () => {
 
       await component.onSave();
 
-      expect(projectService.updateProject).toHaveBeenCalledWith(
+      expect(unifiedProjectService.updateProject).toHaveBeenCalledWith(
         mockUser.username,
         mockProject.slug,
         expect.objectContaining({
@@ -518,7 +526,7 @@ describe('EditProjectDialogComponent', () => {
 
       await component.onSave();
 
-      expect(projectService.updateProject).toHaveBeenCalled();
+      expect(unifiedProjectService.updateProject).toHaveBeenCalled();
       expect(projectService.uploadProjectCover).toHaveBeenCalledWith(
         mockProject.username,
         mockProject.slug,
@@ -539,7 +547,7 @@ describe('EditProjectDialogComponent', () => {
 
       await component.onSave();
 
-      expect(projectService.updateProject).toHaveBeenCalled();
+      expect(unifiedProjectService.updateProject).toHaveBeenCalled();
       expect(projectService.uploadProjectCover).not.toHaveBeenCalled();
       expect(dialogRef.close).toHaveBeenCalledWith(mockProject);
     });
@@ -552,7 +560,7 @@ describe('EditProjectDialogComponent', () => {
 
       await component.onSave();
 
-      expect(projectService.updateProject).toHaveBeenCalled();
+      expect(unifiedProjectService.updateProject).toHaveBeenCalled();
       expect(projectService.uploadProjectCover).toHaveBeenCalled();
       expect(snackBar.open).toHaveBeenCalledWith(
         expect.stringContaining(
@@ -566,12 +574,12 @@ describe('EditProjectDialogComponent', () => {
 
     it('should handle error during project update', async () => {
       const updateError = new Error('Update failed');
-      projectService.updateProject.mockRejectedValue(updateError);
+      unifiedProjectService.updateProject.mockRejectedValue(updateError);
       component.form.patchValue({ title: 'Valid Title' });
 
       await component.onSave();
 
-      expect(projectService.updateProject).toHaveBeenCalled();
+      expect(unifiedProjectService.updateProject).toHaveBeenCalled();
       expect(projectService.uploadProjectCover).not.toHaveBeenCalled();
       expect(snackBar.open).toHaveBeenCalledWith(
         `Failed to update project: ${updateError.message}`,

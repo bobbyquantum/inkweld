@@ -8,7 +8,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Project } from '@inkweld/index';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { environment } from '../../../environments/environment';
 import { SetupService } from '../../services/core/setup.service';
 import { OfflineStorageService } from '../../services/offline/offline-storage.service';
 import { ProjectCoverComponent } from './project-cover.component';
@@ -19,6 +18,7 @@ describe('ProjectCoverComponent', () => {
   let httpTestingController: HttpTestingController;
   let mockSetupService: {
     getMode: ReturnType<typeof vi.fn>;
+    getServerUrl: ReturnType<typeof vi.fn>;
   };
   let mockOfflineStorage: {
     getProjectCoverUrl: ReturnType<typeof vi.fn>;
@@ -61,6 +61,7 @@ describe('ProjectCoverComponent', () => {
   beforeEach(async () => {
     mockSetupService = {
       getMode: vi.fn().mockReturnValue('server'),
+      getServerUrl: vi.fn().mockReturnValue('http://localhost:8333'),
     };
     mockOfflineStorage = {
       getProjectCoverUrl: vi.fn().mockResolvedValue(null),
@@ -184,8 +185,9 @@ describe('ProjectCoverComponent', () => {
       // Wait for async loadCover to start the HTTP request
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      // Expect HTTP request
-      const expectedUrl = `${environment.apiUrl}/api/v1/projects/testuser/test-project/cover`;
+      // Expect HTTP request using the server URL from SetupService
+      const expectedUrl =
+        'http://localhost:8333/api/v1/projects/testuser/test-project/cover';
       const req = httpTestingController.expectOne(expectedUrl);
       expect(req.request.method).toBe('GET');
       expect(req.request.responseType).toBe('blob');
@@ -214,7 +216,8 @@ describe('ProjectCoverComponent', () => {
 
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      const expectedUrl = `${environment.apiUrl}/api/v1/projects/testuser/test-project/cover`;
+      const expectedUrl =
+        'http://localhost:8333/api/v1/projects/testuser/test-project/cover';
       const req = httpTestingController.expectOne(expectedUrl);
 
       // Respond with 404 error

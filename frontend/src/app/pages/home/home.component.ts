@@ -99,7 +99,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   async loadProjects() {
     // If we already have projects and are initialized, skip loading
-    if (this.projectService.initialized() && this.projectService.projects().length > 0) {
+    if (
+      this.projectService.initialized() &&
+      this.projectService.projects().length > 0
+    ) {
       return;
     }
 

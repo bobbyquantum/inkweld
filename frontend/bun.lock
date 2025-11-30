@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "inkweld-frontend",
@@ -19,6 +18,7 @@
         "@progress/jszip-esm": "1.0.4",
         "angular-split": "20.0.0",
         "date-fns": "4.1.0",
+        "fracticons": "^1.0.0",
         "lodash-es": "4.17.21",
         "nanoid": "5.1.6",
         "ngx-editor": "^19.0.0-beta.1",
@@ -910,6 +910,8 @@
     "follow-redirects": ["follow-redirects@1.15.11", "", {}, "sha512-deG2P0JfjrTxl50XGCDyfI97ZGVCxIpfKYmfyrQ54n5FO/0gfIES8C/Psl6kWVDolizcaaxZJnTS0QSMxvnsBQ=="],
 
     "forwarded": ["forwarded@0.2.0", "", {}, "sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow=="],
+
+    "fracticons": ["fracticons@1.0.0", "", {}, "sha512-vtbC05+EwI/sAc1Ul0YN7smvb5P3gtqpzE8EyJAFSNooz8CMZrHUPOIRpfTNxM4OYIuLxXFoVEEeTMUy+Pd++Q=="],
 
     "fresh": ["fresh@2.0.0", "", {}, "sha512-Rx/WycZ60HOaqLKAi6cHRKKI7zxWbJ31MhntmtwMoaTeF7XFH9hhBp8vITaMidfljRQ6eYWCKkaTK+ykVJHP2A=="],
 

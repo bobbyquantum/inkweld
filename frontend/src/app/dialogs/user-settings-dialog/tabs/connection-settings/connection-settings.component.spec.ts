@@ -23,6 +23,24 @@ describe('ConnectionSettingsComponent', () => {
   let router: MockedObject<Router>;
   let snackBar: MockedObject<MatSnackBar>;
 
+  // Mock window.location.reload globally to prevent unhandled errors from setTimeout
+  const originalLocation = window.location;
+  beforeAll(() => {
+    Object.defineProperty(window, 'location', {
+      value: { ...originalLocation, reload: vi.fn() },
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  afterAll(() => {
+    Object.defineProperty(window, 'location', {
+      value: originalLocation,
+      writable: true,
+      configurable: true,
+    });
+  });
+
   beforeEach(async () => {
     setupService = {
       getMode: vi.fn().mockReturnValue('offline'),
@@ -238,14 +256,6 @@ describe('ConnectionSettingsComponent', () => {
         projectStatuses: [],
       });
 
-      // Mock window.location.reload
-      const reloadSpy = vi.fn();
-      const originalLocation = window.location;
-      Object.defineProperty(window, 'location', {
-        value: { ...originalLocation, reload: reloadSpy },
-        writable: true,
-      });
-
       await component.authenticate();
 
       expect(setupService.configureServerMode).toHaveBeenCalledWith(
@@ -260,12 +270,6 @@ describe('ConnectionSettingsComponent', () => {
       );
       expect(component['showAuthForm']()).toBe(false);
       expect(snackBar.open).toHaveBeenCalled();
-
-      // Restore original location
-      Object.defineProperty(window, 'location', {
-        value: originalLocation,
-        writable: true,
-      });
     });
 
     it('should call loginToServer when in login mode', async () => {
@@ -283,25 +287,12 @@ describe('ConnectionSettingsComponent', () => {
         projectStatuses: [],
       });
 
-      // Mock window.location.reload
-      const originalLocation = window.location;
-      Object.defineProperty(window, 'location', {
-        value: { ...originalLocation, reload: vi.fn() },
-        writable: true,
-      });
-
       await component.authenticate();
 
       expect(migrationService.loginToServer).toHaveBeenCalledWith(
         'testuser',
         'password'
       );
-
-      // Restore original location
-      Object.defineProperty(window, 'location', {
-        value: originalLocation,
-        writable: true,
-      });
     });
 
     it('should show failure message when migration has failed projects', async () => {

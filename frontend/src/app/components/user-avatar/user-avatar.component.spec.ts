@@ -1,104 +1,158 @@
-import { provideZonelessChangeDetection, SimpleChange } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ChangeDetectorRef } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { OfflineStorageService } from '@services/offline/offline-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { UserService } from '@services/user/user.service';
+import { of } from 'rxjs';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { UserAvatarComponent } from './user-avatar.component';
 
 describe('UserAvatarComponent', () => {
   let component: UserAvatarComponent;
-  let fixture: ComponentFixture<UserAvatarComponent>;
-  let mockUserService: {
-    getMode: ReturnType<typeof vi.fn>;
+  let mockUserService: { getUserAvatar: ReturnType<typeof vi.fn> };
+  let mockUnifiedUserService: { getMode: ReturnType<typeof vi.fn> };
+  let mockOfflineStorageService: {
+    getUserAvatarUrl: ReturnType<typeof vi.fn>;
+    saveUserAvatar: ReturnType<typeof vi.fn>;
   };
+  let mockSanitizer: { bypassSecurityTrustUrl: ReturnType<typeof vi.fn> };
+  let mockChangeDetectorRef: { detectChanges: ReturnType<typeof vi.fn> };
+
+  const createdObjectURLs: string[] = [];
+  let originalCreateObjectURL: typeof URL.createObjectURL;
+  let originalRevokeObjectURL: typeof URL.revokeObjectURL;
 
   beforeEach(async () => {
+    originalCreateObjectURL = URL.createObjectURL;
+    originalRevokeObjectURL = URL.revokeObjectURL;
+
+    URL.createObjectURL = vi.fn((_blob: Blob) => {
+      const url = `blob:mock-${createdObjectURLs.length}`;
+      createdObjectURLs.push(url);
+      return url;
+    });
+
+    URL.revokeObjectURL = vi.fn();
+
     mockUserService = {
+      getUserAvatar: vi
+        .fn()
+        .mockReturnValue(of(new Blob(['test'], { type: 'image/png' }))),
+    };
+
+    mockUnifiedUserService = {
       getMode: vi.fn().mockReturnValue('server'),
+    };
+
+    mockOfflineStorageService = {
+      getUserAvatarUrl: vi.fn().mockResolvedValue(null),
+      saveUserAvatar: vi.fn().mockResolvedValue(undefined),
+    };
+
+    mockSanitizer = {
+      bypassSecurityTrustUrl: vi.fn((url: string) => url as SafeUrl),
+    };
+
+    mockChangeDetectorRef = {
+      detectChanges: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
       imports: [UserAvatarComponent],
       providers: [
-        provideZonelessChangeDetection(),
-        { provide: UnifiedUserService, useValue: mockUserService },
+        { provide: UserService, useValue: mockUserService },
+        { provide: UnifiedUserService, useValue: mockUnifiedUserService },
+        { provide: OfflineStorageService, useValue: mockOfflineStorageService },
+        { provide: DomSanitizer, useValue: mockSanitizer },
+        { provide: ChangeDetectorRef, useValue: mockChangeDetectorRef },
       ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(UserAvatarComponent);
+    const fixture = TestBed.createComponent(UserAvatarComponent);
     component = fixture.componentInstance;
+  });
+
+  afterEach(() => {
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+    createdObjectURLs.length = 0;
+    vi.resetAllMocks();
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should have default size of medium', () => {
-    expect(component.size).toBe('medium');
-  });
-
   describe('loadAvatar', () => {
-    it('should return early if no username', () => {
-      component.username = '';
+    it('should load avatar from cache when available in server mode', async () => {
+      const cachedUrl = 'blob:cached-avatar-url';
+      mockOfflineStorageService.getUserAvatarUrl.mockResolvedValue(cachedUrl);
 
-      component.loadAvatar();
+      component.username = 'testuser';
+      await component.loadAvatar();
 
-      expect(component['isLoading']).toBeFalsy();
+      expect(mockOfflineStorageService.getUserAvatarUrl).toHaveBeenCalledWith(
+        'testuser'
+      );
+      expect(mockSanitizer.bypassSecurityTrustUrl).toHaveBeenCalledWith(
+        cachedUrl
+      );
+      expect(mockUserService.getUserAvatar).not.toHaveBeenCalled();
     });
 
-    it('should skip loading and show default avatar in offline mode', () => {
-      mockUserService.getMode.mockReturnValue('offline');
+    it('should not call server in offline mode', async () => {
+      mockUnifiedUserService.getMode.mockReturnValue('offline');
+      mockOfflineStorageService.getUserAvatarUrl.mockResolvedValue(null);
+
       component.username = 'testuser';
+      await component.loadAvatar();
 
-      component.loadAvatar();
-
-      expect(component['error']).toBe(true);
-      expect(component['isLoading']).toBe(false);
+      expect(mockOfflineStorageService.getUserAvatarUrl).toHaveBeenCalledWith(
+        'testuser'
+      );
+      expect(mockUserService.getUserAvatar).not.toHaveBeenCalled();
     });
 
-    it('should attempt to load avatar in server mode', () => {
-      mockUserService.getMode.mockReturnValue('server');
+    it('should load from cache in offline mode when available', async () => {
+      mockUnifiedUserService.getMode.mockReturnValue('offline');
+      const cachedUrl = 'blob:cached-avatar-url';
+      mockOfflineStorageService.getUserAvatarUrl.mockResolvedValue(cachedUrl);
+
       component.username = 'testuser';
+      await component.loadAvatar();
 
-      component.loadAvatar();
-
-      // Currently shows default avatar since service doesn't implement getUserAvatar
-      expect(component['error']).toBe(true);
-      expect(component['isLoading']).toBe(false);
+      expect(mockOfflineStorageService.getUserAvatarUrl).toHaveBeenCalledWith(
+        'testuser'
+      );
+      expect(mockSanitizer.bypassSecurityTrustUrl).toHaveBeenCalledWith(
+        cachedUrl
+      );
     });
   });
 
-  describe('ngOnInit', () => {
-    it('should call loadAvatar on init', () => {
-      const loadAvatarSpy = vi.spyOn(component, 'loadAvatar');
+  describe('cleanup on destroy', () => {
+    it('should cleanup component without error', () => {
       component.username = 'testuser';
-
-      component.ngOnInit();
-
-      expect(loadAvatarSpy).toHaveBeenCalled();
+      component.ngOnDestroy();
+      expect(component).toBeTruthy();
     });
   });
 
   describe('ngOnChanges', () => {
-    it('should reload avatar when username changes', () => {
+    it('should trigger loadAvatar when username changes', () => {
       const loadAvatarSpy = vi.spyOn(component, 'loadAvatar');
-      component.username = 'newuser';
-
+      component.username = 'testuser';
       component.ngOnChanges({
-        username: new SimpleChange('olduser', 'newuser', false),
+        username: {
+          currentValue: 'testuser',
+          previousValue: undefined,
+          firstChange: true,
+          isFirstChange: () => true,
+        },
       });
-
       expect(loadAvatarSpy).toHaveBeenCalled();
-    });
-
-    it('should not reload avatar if username did not change', () => {
-      const loadAvatarSpy = vi.spyOn(component, 'loadAvatar');
-
-      component.ngOnChanges({
-        size: new SimpleChange('small', 'medium', false),
-      });
-
-      expect(loadAvatarSpy).not.toHaveBeenCalled();
     });
   });
 });

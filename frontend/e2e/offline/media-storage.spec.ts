@@ -60,7 +60,7 @@ async function checkMediaInIndexedDB(
       request.onupgradeneeded = event => {
         const db = (event.target as IDBOpenDBRequest).result;
         if (!db.objectStoreNames.contains('media')) {
-          db.createObjectStore('media');
+          db.createObjectStore('media', { keyPath: 'id' });
         }
       };
     });
@@ -263,8 +263,8 @@ test.describe('Offline Media Storage', () => {
       offlinePage: page,
     }) => {
       // Create a test blob and store it in IndexedDB
+      // Note: The app stores records with { id, blob, mimeType, size, createdAt } structure
       const stored = await page.evaluate(async () => {
-        // Create a simple blob
         const blob = new Blob(['test content'], { type: 'text/plain' });
 
         return new Promise<boolean>(resolve => {
@@ -275,7 +275,15 @@ test.describe('Offline Media Storage', () => {
             try {
               const tx = db.transaction('media', 'readwrite');
               const store = tx.objectStore('media');
-              const putRequest = store.put(blob, 'test-key');
+              // Use the same record format as the app
+              const record = {
+                id: 'test-key',
+                blob,
+                mimeType: blob.type || 'application/octet-stream',
+                size: blob.size,
+                createdAt: new Date().toISOString(),
+              };
+              const putRequest = store.put(record);
               putRequest.onsuccess = () => resolve(true);
               putRequest.onerror = () => resolve(false);
             } catch {
@@ -285,7 +293,7 @@ test.describe('Offline Media Storage', () => {
           request.onupgradeneeded = event => {
             const db = (event.target as IDBOpenDBRequest).result;
             if (!db.objectStoreNames.contains('media')) {
-              db.createObjectStore('media');
+              db.createObjectStore('media', { keyPath: 'id' });
             }
           };
         });
@@ -303,8 +311,10 @@ test.describe('Offline Media Storage', () => {
             const store = tx.objectStore('media');
             const getRequest = store.get('test-key');
             getRequest.onsuccess = () => {
-              const blob = getRequest.result as Blob | undefined;
-              resolve(!!blob && blob instanceof Blob);
+              const record = getRequest.result as
+                | { id: string; blob: Blob }
+                | undefined;
+              resolve(!!record && !!record.blob && record.blob instanceof Blob);
             };
             getRequest.onerror = () => resolve(false);
           };
@@ -394,7 +404,7 @@ test.describe('Offline Media Storage', () => {
     test('should use correct key pattern for project covers', async ({
       offlinePage: page,
     }) => {
-      // Store with the correct key pattern
+      // Store with the correct key pattern and record format
       const stored = await page.evaluate(async () => {
         const blob = new Blob(['cover image'], { type: 'image/png' });
 
@@ -406,8 +416,15 @@ test.describe('Offline Media Storage', () => {
             try {
               const tx = db.transaction('media', 'readwrite');
               const store = tx.objectStore('media');
-              // Key pattern: projectKey:mediaId
-              const putRequest = store.put(blob, 'testuser/test-project:cover');
+              // Record format matches app: { id, blob, mimeType, size, createdAt }
+              const record = {
+                id: 'testuser/test-project:cover',
+                blob,
+                mimeType: blob.type,
+                size: blob.size,
+                createdAt: new Date().toISOString(),
+              };
+              const putRequest = store.put(record);
               putRequest.onsuccess = () => resolve(true);
               putRequest.onerror = () => resolve(false);
             } catch {
@@ -417,7 +434,7 @@ test.describe('Offline Media Storage', () => {
           request.onupgradeneeded = event => {
             const db = (event.target as IDBOpenDBRequest).result;
             if (!db.objectStoreNames.contains('media')) {
-              db.createObjectStore('media');
+              db.createObjectStore('media', { keyPath: 'id' });
             }
           };
         });
@@ -436,7 +453,7 @@ test.describe('Offline Media Storage', () => {
     test('should use correct key pattern for user avatars', async ({
       offlinePage: page,
     }) => {
-      // Store avatar with correct key pattern
+      // Store avatar with correct key pattern and record format
       const stored = await page.evaluate(async () => {
         const blob = new Blob(['avatar image'], { type: 'image/png' });
 
@@ -448,8 +465,15 @@ test.describe('Offline Media Storage', () => {
             try {
               const tx = db.transaction('media', 'readwrite');
               const store = tx.objectStore('media');
-              // Key pattern: username/_user:avatar
-              const putRequest = store.put(blob, 'testuser/_user:avatar');
+              // Record format matches app: { id, blob, mimeType, size, createdAt }
+              const record = {
+                id: 'testuser/_user:avatar',
+                blob,
+                mimeType: blob.type,
+                size: blob.size,
+                createdAt: new Date().toISOString(),
+              };
+              const putRequest = store.put(record);
               putRequest.onsuccess = () => resolve(true);
               putRequest.onerror = () => resolve(false);
             } catch {
@@ -459,7 +483,7 @@ test.describe('Offline Media Storage', () => {
           request.onupgradeneeded = event => {
             const db = (event.target as IDBOpenDBRequest).result;
             if (!db.objectStoreNames.contains('media')) {
-              db.createObjectStore('media');
+              db.createObjectStore('media', { keyPath: 'id' });
             }
           };
         });
@@ -475,7 +499,7 @@ test.describe('Offline Media Storage', () => {
     test('should use correct key pattern for inline images', async ({
       offlinePage: page,
     }) => {
-      // Store inline image with correct key pattern
+      // Store inline image with correct key pattern and record format
       const stored = await page.evaluate(async () => {
         const blob = new Blob(['inline image'], { type: 'image/png' });
 
@@ -487,11 +511,15 @@ test.describe('Offline Media Storage', () => {
             try {
               const tx = db.transaction('media', 'readwrite');
               const store = tx.objectStore('media');
-              // Key pattern: projectKey:img-uuid
-              const putRequest = store.put(
+              // Record format matches app: { id, blob, mimeType, size, createdAt }
+              const record = {
+                id: 'testuser/test-project:img-abc123',
                 blob,
-                'testuser/test-project:img-abc123'
-              );
+                mimeType: blob.type,
+                size: blob.size,
+                createdAt: new Date().toISOString(),
+              };
+              const putRequest = store.put(record);
               putRequest.onsuccess = () => resolve(true);
               putRequest.onerror = () => resolve(false);
             } catch {
@@ -501,7 +529,7 @@ test.describe('Offline Media Storage', () => {
           request.onupgradeneeded = event => {
             const db = (event.target as IDBOpenDBRequest).result;
             if (!db.objectStoreNames.contains('media')) {
-              db.createObjectStore('media');
+              db.createObjectStore('media', { keyPath: 'id' });
             }
           };
         });

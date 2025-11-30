@@ -84,16 +84,11 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
 
   @Input() selectedCategory:
     | 'general'
-    | 'account'
     | 'connection'
     | 'project-tree'
     | 'project' = 'general';
-  previousCategory:
-    | 'general'
-    | 'account'
-    | 'connection'
-    | 'project-tree'
-    | 'project' = 'general';
+  previousCategory: 'general' | 'connection' | 'project-tree' | 'project' =
+    'general';
   isMobile = false;
   private destroyed = new Subject<void>();
 
@@ -119,20 +114,14 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
   }
 
   selectCategory(
-    category: 'general' | 'account' | 'connection' | 'project-tree' | 'project'
+    category: 'general' | 'connection' | 'project-tree' | 'project'
   ) {
     this.previousCategory = this.selectedCategory;
     this.selectedCategory = category;
   }
 
   getAnimationState() {
-    const categories = [
-      'general',
-      'account',
-      'connection',
-      'project-tree',
-      'project',
-    ];
+    const categories = ['general', 'connection', 'project-tree', 'project'];
     const currentIndex = categories.indexOf(this.selectedCategory);
     const previousIndex = categories.indexOf(this.previousCategory);
     const isMovingDown = currentIndex > previousIndex;

@@ -11,7 +11,6 @@ import {
 } from '@angular/core';
 import { Project } from '@inkweld/index';
 
-import { environment } from '../../../environments/environment';
 import { SetupService } from '../../services/core/setup.service';
 import { OfflineStorageService } from '../../services/offline/offline-storage.service';
 
@@ -133,9 +132,12 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
    * Fetch cover image from server API
    */
   private async fetchCoverFromServer(project: Project): Promise<Blob | null> {
-    const baseUrl = environment.production
-      ? window.location.origin
-      : environment.apiUrl;
+    const baseUrl = this.setupService.getServerUrl();
+
+    // If no server URL is configured (offline mode), don't try to fetch
+    if (!baseUrl) {
+      return null;
+    }
 
     const url = `${baseUrl}/api/v1/projects/${project.username}/${project.slug}/cover`;
 

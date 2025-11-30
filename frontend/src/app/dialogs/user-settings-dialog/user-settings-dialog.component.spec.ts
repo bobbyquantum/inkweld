@@ -15,13 +15,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 class MockGeneralSettingsComponent {}
 
 @Component({
-  selector: 'app-account-settings',
-  standalone: true,
-  template: '<div>Account Settings</div>',
-})
-class MockAccountSettingsComponent {}
-
-@Component({
   selector: 'app-project-tree-settings',
   standalone: true,
   template: '<div>Project Tree Settings</div>',
@@ -63,7 +56,6 @@ describe('UserSettingsDialogComponent', () => {
       imports: [
         MatDialogModule,
         MockGeneralSettingsComponent,
-        MockAccountSettingsComponent,
         MockProjectTreeSettingsComponent,
         MockProjectSettingsComponent,
       ],
@@ -76,16 +68,16 @@ describe('UserSettingsDialogComponent', () => {
               General
             </button>
             <button
-              (click)="selectCategory('account')"
-              [attr.aria-selected]="selectedCategory === 'account'">
-              Account
+              (click)="selectCategory('connection')"
+              [attr.aria-selected]="selectedCategory === 'connection'">
+              Connection
             </button>
           </nav>
           <div class="settings-content">
             @if (selectedCategory === 'general') {
               <app-general-settings />
-            } @else if (selectedCategory === 'account') {
-              <app-account-settings />
+            } @else if (selectedCategory === 'connection') {
+              <div class="connection-settings">Connection Settings</div>
             } @else if (selectedCategory === 'project') {
               <app-project-settings />
             } @else if (selectedCategory === 'project-tree') {
@@ -121,29 +113,29 @@ describe('UserSettingsDialogComponent', () => {
   });
 
   it('should change category when selectCategory is called', () => {
-    component.selectCategory('account');
-    expect(component.selectedCategory).toBe('account');
+    component.selectCategory('connection');
+    expect(component.selectedCategory).toBe('connection');
     expect(component.previousCategory).toBe('general');
   });
 
   it('should return correct animation state', () => {
-    component.selectCategory('account');
+    component.selectCategory('connection');
     const animationState = component.getAnimationState();
-    expect(animationState.value).toBe('account');
+    expect(animationState.value).toBe('connection');
     expect(animationState.params.enterTransform).toBe('100%');
     expect(animationState.params.leaveTransform).toBe('-100%');
   });
 
-  it('should return correct animation state when moving from general to account', () => {
-    component.selectCategory('account');
+  it('should return correct animation state when moving from general to connection', () => {
+    component.selectCategory('connection');
     const animationState = component.getAnimationState();
-    expect(animationState.value).toBe('account');
+    expect(animationState.value).toBe('connection');
     expect(animationState.params.enterTransform).toBe('100%');
     expect(animationState.params.leaveTransform).toBe('-100%');
   });
 
-  it('should return correct animation state when moving from account to general', () => {
-    component.selectCategory('account');
+  it('should return correct animation state when moving from connection to general', () => {
+    component.selectCategory('connection');
     component.selectCategory('general');
     const animationState = component.getAnimationState();
     expect(animationState.value).toBe('general');
@@ -159,23 +151,21 @@ describe('UserSettingsDialogComponent', () => {
       fixture.debugElement.query(By.css('app-general-settings'))
     ).toBeTruthy();
 
-    // Now switch to account
-    component.selectCategory('account');
+    // Now switch to connection
+    component.selectCategory('connection');
     fixture.detectChanges();
     await fixture.whenStable(); // Wait for animations and async operations
-    expect(fixture.debugElement.query(By.css('p'))).toBeTruthy();
     expect(
-      (fixture.debugElement.query(By.css('p')).nativeElement as HTMLElement)
-        .textContent
-    ).toContain('Account settings content goes here');
+      fixture.debugElement.query(By.css('.connection-settings'))
+    ).toBeTruthy();
   });
 
   it('should have correct aria-selected attribute for nav items', () => {
     // Test component state instead of DOM to avoid ExpressionChangedAfterItHasBeenCheckedError
     expect(component.selectedCategory).toBe('general');
 
-    component.selectCategory('account');
-    expect(component.selectedCategory).toBe('account');
+    component.selectCategory('connection');
+    expect(component.selectedCategory).toBe('connection');
 
     component.selectCategory('general');
     expect(component.selectedCategory).toBe('general');
@@ -186,7 +176,7 @@ describe('UserSettingsDialogComponent', () => {
       By.css('.settings-nav button')
     );
     (navItems[1].nativeElement as HTMLElement).click();
-    expect(component.selectedCategory).toBe('account');
+    expect(component.selectedCategory).toBe('connection');
 
     (navItems[0].nativeElement as HTMLElement).click();
     expect(component.selectedCategory).toBe('general');
@@ -204,7 +194,7 @@ describe('UserSettingsDialogComponent', () => {
 
   describe('dialog data', () => {
     it('should initialize with category from dialog data', async () => {
-      const dialogData = { selectedCategory: 'account' };
+      const dialogData = { selectedCategory: 'connection' };
 
       @Component({
         selector: 'app-test-wrapper-data',
@@ -232,7 +222,7 @@ describe('UserSettingsDialogComponent', () => {
       const componentWithData = fixtureWithData.componentInstance;
       fixtureWithData.detectChanges();
 
-      expect(componentWithData.selectedCategory).toBe('account');
+      expect(componentWithData.selectedCategory).toBe('connection');
     });
   });
 });

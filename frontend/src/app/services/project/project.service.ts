@@ -416,8 +416,23 @@ export class ProjectService {
   async getProjectCover(username: string, slug: string): Promise<Blob> {
     this.error.set(undefined);
 
+    // In offline mode, load from IndexedDB cache only
+    if (this.setupService.getMode() === 'offline') {
+      const cachedCover = await this.offlineStorage.getProjectCover(
+        username,
+        slug
+      );
+      if (cachedCover) {
+        return cachedCover;
+      }
+      throw new ProjectServiceError(
+        'PROJECT_NOT_FOUND',
+        'Cover image not found'
+      );
+    }
+
     try {
-      return await firstValueFrom(
+      const blob = await firstValueFrom(
         this.imagesApi.getProjectCover(username, slug).pipe(
           retry(MAX_RETRIES),
           catchError((error: unknown) => {
@@ -430,6 +445,15 @@ export class ProjectService {
           })
         )
       );
+
+      // Cache the cover for offline access
+      try {
+        await this.offlineStorage.saveProjectCover(username, slug, blob);
+      } catch (cacheError) {
+        console.warn('Failed to cache project cover:', cacheError);
+      }
+
+      return blob;
     } catch (err: unknown) {
       // Add type annotation
       // For cover images, a 404 is expected when no cover image exists yet
@@ -466,6 +490,12 @@ export class ProjectService {
     this.error.set(undefined);
 
     try {
+      // In offline mode, just delete from IndexedDB cache
+      if (this.setupService.getMode() === 'offline') {
+        await this.offlineStorage.deleteProjectCover(username, slug);
+        return;
+      }
+
       // Assume delete returns void or similar
       await firstValueFrom(
         this.imagesApi.deleteProjectCover(username, slug).pipe(
