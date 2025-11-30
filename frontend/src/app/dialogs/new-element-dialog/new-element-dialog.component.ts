@@ -1,7 +1,13 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
 import {
-  FormControl,
-  FormGroup,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
+import {
+  FormBuilder,
   FormsModule,
   ReactiveFormsModule,
   Validators,
@@ -15,20 +21,16 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { ProjectElementDto } from '../../../api-client/model/project-element-dto';
-import { ProjectStateService } from '../../services/project-state.service';
-import { WorldbuildingService } from '../../services/worldbuilding.service';
+import { ElementType } from '../../../api-client';
+import { ProjectStateService } from '../../services/project/project-state.service';
+import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 
-interface NewElementForm {
-  name: FormControl<string>;
-  type: FormControl<ProjectElementDto.TypeEnum>;
-}
 export interface NewElementDialogResult {
   name: string;
-  type: ProjectElementDto.TypeEnum;
+  type: ElementType;
 }
 interface ElementTypeOption {
-  type: ProjectElementDto.TypeEnum;
+  type: ElementType;
   label: string;
   icon: string;
   description: string;
@@ -40,6 +42,7 @@ interface ElementTypeOption {
   templateUrl: './new-element-dialog.component.html',
   styleUrls: ['./new-element-dialog.component.scss'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
     FormsModule,
@@ -59,24 +62,25 @@ export class NewElementDialogComponent {
   );
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly projectState = inject(ProjectStateService);
+  private readonly fb = inject(FormBuilder);
 
   // Step control
   currentStep = signal<1 | 2>(1);
-  selectedType = signal<ProjectElementDto.TypeEnum | null>(null);
+  selectedType = signal<ElementType | null>(null);
   searchQuery = signal('');
 
   // Element type options (starts with document types, worldbuilding loaded dynamically)
   elementTypeOptions = signal<ElementTypeOption[]>([
     // Document types (always available)
     {
-      type: ProjectElementDto.TypeEnum.Folder,
+      type: ElementType.Folder,
       label: 'Folder',
       icon: 'folder',
       description: 'Organize your documents and worldbuilding elements',
       category: 'document',
     },
     {
-      type: ProjectElementDto.TypeEnum.Item,
+      type: ElementType.Item,
       label: 'Document',
       icon: 'description',
       description: 'Create a narrative document or chapter',
@@ -110,24 +114,12 @@ export class NewElementDialogComponent {
     )
   );
 
-  readonly form: FormGroup<NewElementForm>;
+  readonly form = this.fb.group({
+    name: ['', [Validators.required]],
+    type: [ElementType.Item as ElementType, [Validators.required]],
+  });
 
   constructor() {
-    // Initialize form
-    this.form = new FormGroup<NewElementForm>({
-      name: new FormControl('', {
-        nonNullable: true,
-        validators: [Validators.required],
-      }),
-      type: new FormControl<ProjectElementDto.TypeEnum>(
-        ProjectElementDto.TypeEnum.Item,
-        {
-          nonNullable: true,
-          validators: [Validators.required],
-        }
-      ),
-    });
-
     // Load worldbuilding types from project schema library
     effect(() => {
       const project = this.projectState.project();
@@ -160,63 +152,97 @@ export class NewElementDialogComponent {
       console.log('[NewElementDialog] Loaded library:', library);
 
       const schemasMap = library.get('schemas');
-      if (!schemasMap) {
-        console.warn('[NewElementDialog] No schemas in library');
+
+      // Auto-load default templates if library is empty
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      if (!schemasMap || (schemasMap as any).size === 0) {
+        console.log(
+          '[NewElementDialog] Schema library empty, auto-loading default templates'
+        );
+        await this.worldbuildingService.autoLoadDefaultTemplates(
+          projectKey,
+          username,
+          slug
+        );
+
+        // Reload library after auto-loading
+        const reloadedLibrary =
+          await this.worldbuildingService.loadSchemaLibrary(
+            projectKey,
+            username,
+            slug
+          );
+        const reloadedSchemas = reloadedLibrary.get('schemas');
+
+        if (!reloadedSchemas) {
+          console.warn('[NewElementDialog] No schemas after auto-load');
+          return;
+        }
+
+        // Continue with the reloaded schemas
+        this.buildWorldbuildingOptions(reloadedSchemas);
         return;
       }
 
       console.log('[NewElementDialog] Found schemas map');
-
-      const worldbuildingOptions: ElementTypeOption[] = [];
-
-      // Iterate through available schemas
-      // Y.Map iteration requires any types for dynamic schema structure
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      (schemasMap as any).forEach((schemaData: any) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        const type = schemaData.get('type');
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        const name = schemaData.get('name');
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        const icon = schemaData.get('icon');
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        const description = schemaData.get('description');
-
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const schemaInfo = { type, name, icon, description };
-        console.log('[NewElementDialog] Found schema:', schemaInfo);
-
-        worldbuildingOptions.push({
-          type: type as ProjectElementDto.TypeEnum,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          label: name,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          icon: icon,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          description: description,
-          category: 'worldbuilding',
-        });
-      });
-
-      console.log(
-        '[NewElementDialog] Built worldbuilding options:',
-        worldbuildingOptions
-      );
-
-      // Update options with both document types and loaded worldbuilding types
-      this.elementTypeOptions.set([
-        ...this.elementTypeOptions().filter(
-          (opt: ElementTypeOption) => opt.category === 'document'
-        ),
-        ...worldbuildingOptions,
-      ]);
-
-      console.log(
-        `[NewElementDialog] Loaded ${worldbuildingOptions.length} worldbuilding types from schema library`
-      );
+      this.buildWorldbuildingOptions(schemasMap);
     } catch (error) {
       console.error('[NewElementDialog] Error loading schemas:', error);
     }
+  }
+
+  /**
+   * Build worldbuilding type options from schemas map
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private buildWorldbuildingOptions(schemasMap: any): void {
+    const worldbuildingOptions: ElementTypeOption[] = [];
+
+    // Iterate through available schemas
+    // Y.Map iteration requires any types for dynamic schema structure
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    schemasMap.forEach((schemaData: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const type = schemaData.get('type');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const name = schemaData.get('name');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const icon = schemaData.get('icon');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const description = schemaData.get('description');
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const schemaInfo = { type, name, icon, description };
+      console.log('[NewElementDialog] Found schema:', schemaInfo);
+
+      worldbuildingOptions.push({
+        type: type as ElementType,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        label: name,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        icon: icon,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        description: description,
+        category: 'worldbuilding',
+      });
+    });
+
+    console.log(
+      '[NewElementDialog] Built worldbuilding options:',
+      worldbuildingOptions
+    );
+
+    // Update options with both document types and loaded worldbuilding types
+    this.elementTypeOptions.set([
+      ...this.elementTypeOptions().filter(
+        (opt: ElementTypeOption) => opt.category === 'document'
+      ),
+      ...worldbuildingOptions,
+    ]);
+
+    console.log(
+      `[NewElementDialog] Loaded ${worldbuildingOptions.length} worldbuilding types from schema library`
+    );
   }
 
   onCancel = (): void => {
@@ -226,15 +252,15 @@ export class NewElementDialogComponent {
   onCreate = (): void => {
     if (this.form.valid) {
       const result: NewElementDialogResult = {
-        name: this.form.controls.name.value,
-        type: this.form.controls.type.value,
+        name: this.form.controls.name.value!,
+        type: this.form.controls.type.value!,
       };
       this.dialogRef.close(result);
     }
   };
 
   // Step 1: Select type
-  selectType(type: ProjectElementDto.TypeEnum): void {
+  selectType(type: ElementType): void {
     this.selectedType.set(type);
     this.form.controls.type.setValue(type);
     this.nextStep();

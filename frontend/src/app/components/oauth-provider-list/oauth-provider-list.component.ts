@@ -1,16 +1,18 @@
 import {
   Component,
+  EventEmitter,
   inject,
   Input,
   NgZone,
   OnInit,
+  Output,
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { AuthService } from '@inkweld/index';
+import { AuthenticationService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
@@ -108,7 +110,7 @@ import { environment } from '../../../environments/environment';
   ],
 })
 export class OAuthProviderListComponent implements OnInit {
-  private authService = inject(AuthService);
+  private AuthenticationService = inject(AuthenticationService);
   private snackBar = inject(MatSnackBar);
   private ngZone = inject(NgZone);
 
@@ -117,6 +119,7 @@ export class OAuthProviderListComponent implements OnInit {
    * If false, it's assumed to be in the sign-in context.
    */
   @Input() isRegisterContext = false;
+  @Output() loaded = new EventEmitter<void>();
 
   isLoadingProviders = signal(false);
   enabledProviders = signal<string[]>([]);
@@ -167,9 +170,13 @@ export class OAuthProviderListComponent implements OnInit {
     this.isLoadingProviders.set(true);
 
     try {
-      const providers: string[] = await firstValueFrom(
-        this.authService.authControllerGetOAuthProviders()
+      const response = await firstValueFrom(
+        this.AuthenticationService.listOAuthProviders()
       );
+      // Extract enabled provider names from the response
+      const providers = Object.entries(response.providers)
+        .filter(([, enabled]) => enabled)
+        .map(([name]) => name);
       this.enabledProviders.set(providers);
 
       // Update individual provider signals
@@ -184,6 +191,7 @@ export class OAuthProviderListComponent implements OnInit {
       });
     } finally {
       this.isLoadingProviders.set(false);
+      this.loaded.emit();
     }
   }
 }

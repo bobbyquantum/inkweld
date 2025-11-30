@@ -1,7 +1,7 @@
 import { CdkDragEnd } from '@angular/cdk/drag-drop';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { ProjectDto } from '@inkweld/index';
+import { Project } from '@inkweld/index';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BookshelfComponent } from './bookshelf.component';
@@ -15,7 +15,7 @@ vi.mock('@components/project-card/project-card.component', () => ({
 
 describe('BookshelfComponent', () => {
   let component: BookshelfComponent;
-  let mockProjects: ProjectDto[];
+  let mockProjects: Project[];
 
   beforeEach(() => {
     // Configure TestBed for injection context
@@ -50,7 +50,7 @@ describe('BookshelfComponent', () => {
         description: 'Test project 3',
         username: 'testuser',
       },
-    ] as ProjectDto[];
+    ] as Project[];
 
     // Create component within injection context
     component = TestBed.runInInjectionContext(() => new BookshelfComponent());
@@ -252,6 +252,42 @@ describe('BookshelfComponent', () => {
       // Assert
       expect(component.projectSelected.emit).not.toHaveBeenCalled();
       expect(component.scrollToCard).not.toHaveBeenCalled();
+    });
+
+    it('should not emit or scroll when recently scrolled', () => {
+      // Setup
+      const selectedProject = mockProjects[0];
+      vi.spyOn(component.projectSelected, 'emit');
+      vi.spyOn(component, 'scrollToCard');
+      component['recentlyScrolled'] = true;
+
+      // Execute
+      component.selectProject(selectedProject);
+
+      // Assert
+      expect(component.projectSelected.emit).not.toHaveBeenCalled();
+      expect(component.scrollToCard).not.toHaveBeenCalled();
+    });
+
+    it('should set recentlyScrolled flag when scrolling to non-active card', () => {
+      // Setup
+      vi.useFakeTimers();
+      const nonActiveProject = mockProjects[1];
+      vi.spyOn(component, 'scrollToCard');
+      component['activeCardIndex'].set(0);
+      component['recentlyScrolled'] = false;
+
+      // Execute
+      component.selectProject(nonActiveProject);
+
+      // Assert - should set flag immediately
+      expect(component['recentlyScrolled']).toBe(true);
+
+      // Assert - should reset flag after timeout
+      vi.advanceTimersByTime(600);
+      expect(component['recentlyScrolled']).toBe(false);
+
+      vi.useRealTimers();
     });
   });
 
@@ -723,7 +759,7 @@ describe('BookshelfComponent', () => {
         slug: 'unknown',
         description: 'Not in array',
         username: 'testuser',
-      } as ProjectDto;
+      } as Project;
 
       vi.spyOn(component, 'scrollToCard');
       vi.spyOn(component.projectSelected, 'emit');
@@ -816,19 +852,8 @@ describe('BookshelfComponent', () => {
 
   describe('Full lifecycle initialization', () => {
     beforeEach(() => {
-      // Mock Angular's effect() function
-      vi.mock('@angular/core', async () => {
-        const originalModule = await vi.importActual('@angular/core');
-        return {
-          ...originalModule,
-          effect: vi.fn().mockImplementation(fn => {
-            fn();
-            return {
-              destroy: vi.fn(),
-            };
-          }),
-        };
-      });
+      // Note: vi.mock must be at top level, not inside tests
+      // We'll spy on the effect instead
     });
 
     afterEach(() => {

@@ -20,10 +20,16 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { ProjectAPIService } from '@inkweld/api/project-api.service';
-import { ProjectDto } from '@inkweld/model/project-dto';
-import { ProjectService } from '@services/project.service';
-import { ProjectImportExportService } from '@services/project-import-export.service';
+import { ProjectsService } from '@inkweld/api/projects.service';
+import { Project } from '@inkweld/index';
+import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { ProjectService } from '@services/project/project.service';
+import { ProjectImportExportService } from '@services/project/project-import-export.service';
+import {
+  ImageCroppedEvent,
+  ImageCropperComponent,
+  LoadedImage,
+} from 'ngx-image-cropper';
 
 @Component({
   selector: 'app-edit-project-dialog',
@@ -38,14 +44,16 @@ import { ProjectImportExportService } from '@services/project-import-export.serv
     MatButtonModule,
     MatProgressBarModule,
     MatIconModule,
+    ImageCropperComponent,
   ],
 })
 export class EditProjectDialogComponent implements OnInit {
   readonly importExportService = inject(ProjectImportExportService);
   private dialogRef = inject(MatDialogRef<EditProjectDialogComponent>);
-  private projectAPIService = inject(ProjectAPIService);
+  private ProjectsService = inject(ProjectsService);
   private projectService = inject(ProjectService);
-  private dialogData = inject<ProjectDto>(MAT_DIALOG_DATA);
+  private unifiedProjectService = inject(UnifiedProjectService);
+  private dialogData = inject<Project>(MAT_DIALOG_DATA);
   private snackBar = inject(MatSnackBar);
   private sanitizer = inject(DomSanitizer);
 
@@ -59,10 +67,23 @@ export class EditProjectDialogComponent implements OnInit {
 
   isSaving = false;
   isLoadingCover = false;
-  project!: ProjectDto;
+  project!: Project;
   coverImage?: Blob;
   coverImageUrl?: SafeUrl;
   private hasCoverImage = false;
+
+  // Image cropper properties
+  imageChangedEvent: Event | null = null;
+  croppedImage: SafeUrl | null = null;
+  croppedBlob: Blob | null = null;
+  isCropperReady = false;
+  hasImageLoaded = false;
+  hasLoadFailed = false;
+  showCropper = false;
+  pendingFileName = '';
+
+  // Project cover aspect ratio is 2:3 (width:height) for portrait book covers
+  readonly coverAspectRatio = 1 / 1.6;
 
   ngOnInit(): void {
     this.project = this.dialogData;
@@ -113,15 +134,69 @@ export class EditProjectDialogComponent implements OnInit {
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
       if (this.isValidImageFile(file)) {
-        this.coverImage = file;
-        this.coverImageUrl = this.sanitizer.bypassSecurityTrustUrl(
-          URL.createObjectURL(file)
-        );
+        this.resetCropperState();
+        this.imageChangedEvent = event;
+        this.pendingFileName = file.name;
+        this.showCropper = true;
       } else {
-        this.showError(
-          'Invalid image file. Please select a JPEG or PNG file with 1.6:1 aspect ratio.'
-        );
+        this.showError('Invalid image file. Please select a JPEG or PNG file.');
       }
+    }
+  }
+
+  imageCropped(event: ImageCroppedEvent): void {
+    if (event.objectUrl && event.blob) {
+      this.croppedImage = this.sanitizer.bypassSecurityTrustUrl(
+        event.objectUrl
+      );
+      this.croppedBlob = event.blob;
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onImageLoaded(image: LoadedImage): void {
+    this.hasImageLoaded = true;
+  }
+
+  onCropperReady(): void {
+    this.isCropperReady = true;
+  }
+
+  onLoadImageFailed(): void {
+    this.hasLoadFailed = true;
+    this.showCropper = false;
+    this.showError('Failed to load image. Please try another file.');
+  }
+
+  resetCropperState(): void {
+    this.imageChangedEvent = null;
+    this.croppedImage = null;
+    this.croppedBlob = null;
+    this.hasImageLoaded = false;
+    this.isCropperReady = false;
+    this.hasLoadFailed = false;
+    this.pendingFileName = '';
+  }
+
+  applyCroppedImage(): void {
+    if (this.croppedBlob && this.croppedImage) {
+      // Create a File from the cropped blob
+      const file = new File([this.croppedBlob], this.pendingFileName, {
+        type: this.croppedBlob.type || 'image/png',
+      });
+      this.coverImage = file;
+      this.coverImageUrl = this.croppedImage;
+      this.showCropper = false;
+      this.resetCropperState();
+    }
+  }
+
+  cancelCropping(): void {
+    this.showCropper = false;
+    this.resetCropperState();
+    // Reset the file input
+    if (this.coverImageInput) {
+      this.coverImageInput.nativeElement.value = '';
     }
   }
 
@@ -171,7 +246,7 @@ export class EditProjectDialogComponent implements OnInit {
       }
 
       const formValues = this.form.value as FormValues;
-      const updatedProject: ProjectDto = {
+      const updatedProject: Project = {
         ...this.project,
         title: formValues.title,
         description: formValues.description,
@@ -180,13 +255,14 @@ export class EditProjectDialogComponent implements OnInit {
       if (!updatedProject.slug) {
         throw new Error('Project slug is required');
       }
-      const response = await this.projectService.updateProject(
+      // Use UnifiedProjectService for update - handles both online and offline modes
+      const response = await this.unifiedProjectService.updateProject(
         updatedProject.username,
         updatedProject.slug,
         {
           title: updatedProject.title,
           description: updatedProject.description,
-        } as ProjectDto
+        }
       );
 
       // Handle cover image upload if we have a new image

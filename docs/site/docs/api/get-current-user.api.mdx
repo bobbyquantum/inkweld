@@ -1,0 +1,101 @@
+---
+id: get-current-user
+title: 'getCurrentUser'
+description: 'getCurrentUser'
+sidebar_label: 'getCurrentUser'
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVD1v2zAQ/SsEpxZwLTvOUGhKmgaFi6IoimYyMtDU2aJDkQxJKTEE//feUYwr1x67dBJ1n+/eO7LnUWwDL1f8IYAP/HHCrQMvorJmWfGSbyHetd6DiRTAJ9xDcNYEwKSeX81m9KkgSK8cJWFKjmftkCCtifhLccI5rWQqXuwCBfc8yBoaQae4d4Dpdr0DGTHReYIS1dBKVaOYEL0yW36YcGpiRAMXnZcdaG+1FmuNtuhbwEBEoPTFEgjZ2w7GzdfWahCGvGCozEXngah6bpUn94rgj8D+yUTC4VU0TsPbkCnqw/xqMU4o+c7WprKUmg1f0cA+J0uGn2JucrmptA0f46dRR4jz5FFFap3kR9AE+3o2Pxf1u41MtLFGJUlBqP6dsuC99RfI/4vBIeyUr5zKbw1LR2alpO2r+Gi0e/L8zGt7nPH6fEbigBkcdGNb818PiM7T0c6ucQOxtvmCE2ARa/wphFNFNy9o70KRFhVPHb0M5arnractq2N0ZVFoK4WubYjlx8WClvW04zdyswo60NY19B4MlfgBJ1RmYxMheYKleXoBXbHbH0ssRP2GIvPpbDo7K31n6fpaeqU6YNLDcHjxKiKvzGkRN9Y3VI29+9Sa90SWQ6SNSLrlC4STs7e3KrNy0ueoV4TXWGBVle58IqHPjK1wMRRBnufbGhK3pCJRQwF9vxYBHrw+HMj83ILfox2PnfBqeIZWj1i4BlEhCiL6CfYkupTgSJ1O6JaAnC0hcXlU8sv9LxT/N7Th/kY=
+sidebar_class_name: 'get api-method'
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
+
+<Heading
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'getCurrentUser'}
+></Heading>
+
+<MethodEndpoint
+  method={'get'}
+  path={'/api/v1/users/me'}
+  context={'endpoint'}
+></MethodEndpoint>
+
+getCurrentUser
+
+<ParamsDetails parameters={undefined}></ParamsDetails>
+
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{
+    '200': {
+      description: 'Current user',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              username: { type: 'string' },
+              name: { type: 'string', nullable: true },
+              email: { type: 'string' },
+              approved: { type: 'boolean' },
+              enabled: { type: 'boolean' },
+            },
+            required: ['id', 'username', 'enabled'],
+            example: {
+              id: 'user-123',
+              username: 'johndoe',
+              name: 'John Doe',
+              email: 'john@example.com',
+              approved: true,
+              enabled: true,
+            },
+            title: 'User',
+          },
+        },
+      },
+    },
+    '401': {
+      description: 'Not authenticated',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+    '404': {
+      description: 'User not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

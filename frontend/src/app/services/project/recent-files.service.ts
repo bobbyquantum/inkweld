@@ -1,0 +1,93 @@
+import { inject, Injectable, signal } from '@angular/core';
+import { Element } from '@inkweld/index';
+
+import { LoggerService } from '../core/logger.service';
+import { SettingsService } from '../core/settings.service';
+
+interface RecentFile {
+  id: string;
+  name: string;
+  type: string;
+  timestamp: number;
+  projectUser: string;
+  projectSlug: string;
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class RecentFilesService {
+  readonly recentFiles = signal<RecentFile[]>([]);
+
+  private readonly MAX_RECENT_FILES = 10;
+  private readonly STORAGE_KEY = 'recentFiles';
+
+  private readonly settingsService = inject(SettingsService);
+  private readonly logger = inject(LoggerService);
+
+  constructor() {
+    this.loadRecentFiles();
+  }
+
+  addRecentFile(file: Element, username: string, slug: string): void {
+    const currentFiles = [...this.recentFiles()];
+
+    // Remove the file if it already exists
+    const filteredFiles = currentFiles.filter(f => f.id !== file.id);
+
+    // Create a new recent file entry
+    const recentFile: RecentFile = {
+      id: file.id,
+      name: file.name,
+      type: file.type,
+      timestamp: Date.now(),
+      projectUser: username,
+      projectSlug: slug,
+    };
+
+    // Add the file to the beginning of the array
+    const newFiles = [recentFile, ...filteredFiles].slice(
+      0,
+      this.MAX_RECENT_FILES
+    );
+
+    // Update the signal and save to storage
+    this.recentFiles.set(newFiles);
+    this.saveRecentFiles();
+    this.logger.debug(
+      'RecentFiles',
+      'Recent files after adding',
+      this.recentFiles()
+    );
+  }
+
+  getRecentFilesForProject(username: string, slug: string): RecentFile[] {
+    const filteredFiles = this.recentFiles().filter(
+      file => file.projectUser === username && file.projectSlug === slug
+    );
+    return filteredFiles;
+  }
+
+  clearRecentFiles(): void {
+    this.recentFiles.set([]);
+    this.saveRecentFiles();
+  }
+
+  private loadRecentFiles(): void {
+    const files = this.settingsService.getSetting<RecentFile[]>(
+      this.STORAGE_KEY,
+      []
+    );
+    this.logger.debug('RecentFiles', 'Loaded recent files from storage', files);
+    this.recentFiles.set(files);
+  }
+
+  private saveRecentFiles(): void {
+    this.logger.debug(
+      'RecentFiles',
+      'Saving recent files to storage',
+      this.recentFiles()
+    );
+    this.settingsService.setSetting(this.STORAGE_KEY, this.recentFiles());
+  }
+}

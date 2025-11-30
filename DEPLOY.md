@@ -1,12 +1,13 @@
 # Deployment Guide
 
-This guide explains how to deploy Inkweld using the pre-built Docker images from the CI/CD pipeline.
+This guide explains how to deploy the new Hono-based `/backend` using the pre-built Docker images from the CI/CD pipeline. The Docker image bundles the Bun runtime, compiled API entrypoint (`dist/bun-runner.js`), and the LevelDB dependencies required for Yjs. Host the Angular frontend separately (e.g., Vercel, Netlify, Cloudflare Pages) and point it at the backend URL via `CLIENT_URL` / `PUBLIC_URL`.
 
 ## Overview
 
 The deployment setup consists of:
 
-- `Dockerfile.deploy` - A deployment dockerfile that pulls the pre-built image from GitHub Container Registry
+- `backend/Dockerfile` - Multi-stage build that compiles the Bun runtime target
+- `Dockerfile.deploy` - A deployment dockerfile that pulls the pre-built image from GitHub Container Registry and adds ops-specific tweaks
 - `compose.deploy.yaml` - A docker compose file for production deployment
 - `deploy.sh` - Bash deployment script (Linux/macOS)
 - `deploy.ps1` - PowerShell deployment script (Windows)
@@ -22,6 +23,7 @@ The deployment setup consists of:
 ### Option 1: Using the Deployment Script (Recommended)
 
 **Linux/macOS:**
+
 ```bash
 # Set your GitHub username
 export GITHUB_REPOSITORY_OWNER=bobbyquantum
@@ -34,6 +36,7 @@ IMAGE_TAG=v1.0.0 PORT=8080 ./deploy.sh
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 # Deploy with parameters
 .\deploy.ps1 -GitHubRepositoryOwner bobbyquantum
@@ -85,8 +88,9 @@ The deployment supports the following environment variables:
 - `IMAGE_TAG` - Image tag to deploy (default: `latest`)
 - `PORT` - Port to expose the application on (default: `8333`)
 - `PUBLIC_URL` - Public URL where the app will be accessible
-- `CLIENT_URL` - Client URL (usually same as PUBLIC_URL)
+- `CLIENT_URL` - Client URL / SPA origin (defaults to `http://localhost:4200` for dev)
 - `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins
+- `SESSION_SECRET` - Secret used to sign session cookies
 - `LOCAL_USERS_ENABLED` - Enable local user authentication (default: `true`)
 - `GITHUB_ENABLED` - Enable GitHub OAuth (default: `false`)
 - `GITHUB_CLIENT_ID` - GitHub OAuth client ID
@@ -104,6 +108,7 @@ PORT=8333
 PUBLIC_URL=https://your-domain.com
 CLIENT_URL=https://your-domain.com
 ALLOWED_ORIGINS=https://your-domain.com
+SESSION_SECRET=a-long-random-string
 LOCAL_USERS_ENABLED=true
 GITHUB_ENABLED=true
 GITHUB_CLIENT_ID=your-github-client-id
@@ -119,16 +124,19 @@ docker compose -f compose.deploy.yaml --env-file .env up -d
 ## Managing the Deployment
 
 ### View Logs
+
 ```bash
 docker compose -f compose.deploy.yaml logs -f
 ```
 
 ### Stop the Application
+
 ```bash
 docker compose -f compose.deploy.yaml down
 ```
 
 ### Update to Latest Version
+
 ```bash
 # Pull the latest image
 docker pull ghcr.io/bobbyquantum/inkweld:latest
@@ -154,6 +162,17 @@ The deployment uses a Docker volume `inkweld_data` to persist:
 
 This data will persist across container restarts and updates.
 
+## Cloudflare Workers & Durable Objects
+
+The backend can also run entirely on Cloudflare Workers via Wrangler:
+
+1. Copy `backend/wrangler.toml.example` to `wrangler.toml` and configure the D1 + Durable Object bindings.
+2. Provision D1 databases with `npx wrangler d1 create inkweld_dev` (and production equivalents).
+3. Deploy using `cd backend && bun run deploy:dev` (or `deploy:prod`).
+4. Update the frontend environment to target the Worker URL (e.g., `https://inkweld-api.your-domain.workers.dev`).
+
+Use `bun run logs:dev` / `bun run logs:prod` to stream Worker logs, and `bun run dev:worker` for local development.
+
 ## Security Considerations
 
 1. Always use specific image tags in production instead of `latest`
@@ -165,20 +184,26 @@ This data will persist across container restarts and updates.
 ## Troubleshooting
 
 ### Image Not Found
+
 If you get "image not found" errors, ensure:
+
 1. The GitHub repository owner is correct
 2. The image tag exists
 3. You have access to the GitHub Container Registry
 4. The CI/CD pipeline has successfully built and pushed the image
 
 ### Permission Issues
+
 If you encounter permission issues:
+
 1. Ensure Docker has proper permissions
 2. Check that the data volume has correct ownership
 3. Verify the `bun` user can write to `/data`
 
 ### Port Conflicts
+
 If port 8333 is already in use:
+
 1. Change the `PORT` environment variable
 2. Update the port mapping in docker compose
-3. Restart the deployment 
+3. Restart the deployment

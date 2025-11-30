@@ -28,12 +28,12 @@ import {
 } from '@angular/router';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import { ProjectDto, ProjectElementDto } from '@inkweld/index';
-import { DocumentService } from '@services/document.service';
-import { ProjectImportExportService } from '@services/project-import-export.service';
-import { ProjectStateService } from '@services/project-state.service';
-import { SettingsService } from '@services/settings.service';
-import { UnifiedProjectService } from '@services/unified-project.service';
+import { Element, ElementType, Project } from '@inkweld/index';
+import { SettingsService } from '@services/core/settings.service';
+import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { DocumentService } from '@services/project/document.service';
+import { ProjectImportExportService } from '@services/project/project-import-export.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 import {
   AngularSplitModule,
   SplitGutterDirective,
@@ -43,8 +43,8 @@ import { Subject, Subscription, takeUntil } from 'rxjs';
 
 import { DocumentElementEditorComponent } from '../../components/document-element-editor/document-element-editor.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { DialogGatewayService } from '../../services/dialog-gateway.service';
-import { RecentFilesService } from '../../services/recent-files.service';
+import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
+import { RecentFilesService } from '../../services/project/recent-files.service';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
 @Component({
@@ -121,7 +121,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     effect(() => {
-      const project = this.projectState.project() as ProjectDto | null;
+      const project = this.projectState.project() as Project | null;
       if (project) {
         this.title.setTitle(`${project.title}`);
       }
@@ -202,7 +202,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
         void this.projectState.loadProject(username, slug);
 
         // Ensure we're starting with tab index 0 (home tab)
-        this.projectState.selectedTabIndex.set(0);
+        this.projectState.selectTab(0);
       }
     });
 
@@ -279,7 +279,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     localStorage.setItem('splitSize', this.splitSize.toString());
   }
 
-  onDocumentOpened = (element: ProjectElementDto) => {
+  onDocumentOpened = (element: Element) => {
     this.projectState.openDocument(element);
     if (this.isMobile()) {
       void this.sidenav.close();
@@ -287,7 +287,8 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     // Navigate to document/folder route on mobile
     const project = this.projectState.project();
     if (project) {
-      const typeRoute = element.type === 'FOLDER' ? 'folder' : 'document';
+      const typeRoute =
+        element.type === ElementType.Folder ? 'folder' : 'document';
       void this.router.navigate([
         '/',
         project.username,
@@ -312,7 +313,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   };
 
   setSelectedTabIndex(index: number): void {
-    this.projectState.selectedTabIndex.set(index);
+    this.projectState.selectTab(index);
   }
 
   onImportClicked = (): void => {
@@ -511,7 +512,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   goHome(): void {
     const project = this.projectState.project();
     if (project) {
-      this.projectState.selectedTabIndex.set(0);
+      this.projectState.selectTab(0);
       void this.router.navigate(['/', project.username, project.slug]);
     }
   }

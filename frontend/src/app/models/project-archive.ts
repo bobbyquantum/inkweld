@@ -1,3 +1,5 @@
+import { ElementType } from '../../api-client';
+
 /**
  * Represents the structure of an exported project archive
  */
@@ -16,8 +18,8 @@ export interface ProjectArchive {
   elements: Array<{
     id?: string;
     name: string;
-    type: 'FOLDER' | 'ITEM';
-    position: number;
+    type: ElementType;
+    order: number; // Use 'order' to match API
     level: number;
     version?: number;
     expandable?: boolean;

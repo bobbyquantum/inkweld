@@ -1,6 +1,7 @@
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import {
-  AfterViewInit,
+  AfterViewChecked,
+  ChangeDetectorRef,
   Component,
   computed,
   effect,
@@ -19,9 +20,9 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DocumentService } from '@services/document.service';
-import { ProjectStateService } from '@services/project-state.service';
-import { SettingsService } from '@services/settings.service';
+import { SettingsService } from '@services/core/settings.service';
+import { DocumentService } from '@services/project/document.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
 
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
@@ -49,7 +50,7 @@ import { SnapshotPanelComponent } from '../snapshot-panel/snapshot-panel.compone
   ],
 })
 export class DocumentElementEditorComponent
-  implements OnInit, OnDestroy, AfterViewInit, OnChanges
+  implements OnInit, OnChanges, OnDestroy, AfterViewChecked
 {
   private documentService = inject(DocumentService);
   private projectState = inject(ProjectStateService);
@@ -104,24 +105,16 @@ export class DocumentElementEditorComponent
     '#ff00ff',
   ];
   private idFormatted = false;
+  private collaborationSetup = false;
+  protected editorKey = 0; // Increments when switching tabs to force ngx-editor recreation
+  private cdr = inject(ChangeDetectorRef);
+
   readonly syncState = computed(() => {
-    const state = this.documentService.getSyncStatusSignal(
-      this.documentIdSignal()
-    )();
-    console.log(
-      `[DocumentEditor] computed syncState: ${state} for ${this.documentIdSignal()}`
-    );
-    return state;
+    return this.documentService.getSyncStatusSignal(this.documentIdSignal())();
   });
-  // Reactive word count from DocumentService
+
   readonly wordCount = computed(() => {
-    const count = this.documentService.getWordCountSignal(
-      this.documentIdSignal()
-    )();
-    console.log(
-      `[DocumentEditor] computed wordCount: ${count} for ${this.documentIdSignal()}`
-    );
-    return count;
+    return this.documentService.getWordCountSignal(this.documentIdSignal())();
   });
 
   constructor() {
@@ -129,40 +122,140 @@ export class DocumentElementEditorComponent
       const isLoading = this.projectState.isLoading();
       if (!isLoading && !this.idFormatted) {
         this.ensureProperDocumentId();
-        if (this.idFormatted && this.editor && this.editor.view) {
-          this.setupCollaboration();
-        }
+        // ngAfterViewChecked will handle setupCollaboration once editor.view is ready
       }
     });
   }
 
   ngOnInit(): void {
+    console.log('[DocumentEditor] ngOnInit - documentId:', this.documentId);
     this.ensureProperDocumentId();
-    this.editor = new Editor({ history: true });
+
+    // Only create editor if we have a valid documentId
+    // Otherwise, ngOnChanges will create it when documentId is set by routing
+    if (this.documentId && this.documentId !== 'invalid') {
+      console.log(
+        '[DocumentEditor] ngOnInit - creating editor for',
+        this.documentId
+      );
+      this.editor = new Editor({ history: true });
+      this.editorKey++; // Force template refresh
+      console.log(
+        '[DocumentEditor] ngOnInit - editor created, doc size:',
+        this.editor.view?.state.doc.content.size
+      );
+    } else {
+      console.log(
+        '[DocumentEditor] ngOnInit - waiting for valid documentId from routing'
+      );
+    }
 
     // Add custom styles for lint plugin
     this.addLintStyles();
   }
 
-  ngAfterViewInit(): void {
-    this.setupCollaboration();
+  ngAfterViewChecked(): void {
+    // This runs after every view check, but we use collaborationSetup flag to only setup once
+    // This catches both initial load and when ngx-editor is recreated via editorKey change
+    if (
+      this.documentId &&
+      this.documentId !== 'invalid' &&
+      !this.collaborationSetup &&
+      this.editor.view // Ensure the view is actually initialized
+    ) {
+      // Validate documentId format before proceeding
+      const parts = this.documentId.split(':');
+      if (parts.length !== 3 || parts.some(part => !part.trim())) {
+        console.error(
+          `[DocumentEditor] Invalid documentId format: "${this.documentId}"`
+        );
+        return;
+      }
+
+      console.log(
+        '[DocumentEditor] ngAfterViewChecked - calling setupCollaboration:',
+        this.documentId
+      );
+
+      // CRITICAL: Set flag IMMEDIATELY to prevent multiple calls
+      this.collaborationSetup = true;
+
+      // Use requestAnimationFrame to ensure the view is fully rendered before setup
+      requestAnimationFrame(() => {
+        this.documentService
+          .setupCollaboration(this.editor, this.documentId)
+          .then(() => {
+            console.log(
+              `[DocumentEditor] setupCollaboration complete, editor doc size: ${this.editor.view.state.doc.nodeSize}`
+            );
+            // Force change detection to update the view
+            this.cdr.detectChanges();
+          })
+          .catch((error: unknown) => {
+            console.error(
+              `[DocumentEditor] Failed to setup collaboration for ${this.documentId}:`,
+              error
+            );
+            // Reset flag on error to allow retry
+            this.collaborationSetup = false;
+          });
+      });
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['documentId'] && !changes['documentId'].firstChange) {
       const prevDocId = changes['documentId'].previousValue as string;
+      const newDocId = changes['documentId'].currentValue as string;
+
+      console.log('[DocumentEditor] ngOnChanges - switching tabs', {
+        prevDocId,
+        newDocId,
+      });
+
+      // CRITICAL: Destroy editor FIRST before disconnecting
+      // This prevents Yjs awareness cleanup from trying to update a live editor
       if (prevDocId && prevDocId !== 'invalid') {
+        console.log('[DocumentEditor] ngOnChanges - destroying old editor');
+        this.editor.destroy();
         this.documentService.disconnect(prevDocId);
       }
-      this.idFormatted = false;
-      this.ensureProperDocumentId();
-      this.setupCollaboration();
+
+      // Only setup new connection if we have a valid new documentId
+      // (not empty, not 'invalid', and not just username:slug:)
+      if (newDocId && newDocId !== 'invalid' && !newDocId.endsWith(':')) {
+        this.idFormatted = false;
+        this.collaborationSetup = false; // Reset collaboration flag
+
+        // Recreate editor instance for the new document
+        console.log(
+          '[DocumentEditor] ngOnChanges - creating new editor for tab'
+        );
+        this.editor = new Editor({ history: true });
+        this.editorKey++; // Force template refresh
+        console.log(
+          '[DocumentEditor] ngOnChanges - new editor created, doc size:',
+          this.editor.view?.state.doc.content.size
+        );
+
+        this.ensureProperDocumentId();
+
+        // DO NOT call setupCollaboration here!
+        // The editorKey increment will cause the template to recreate ngx-editor,
+        // which will trigger ngAfterViewInit again, and it will call setupCollaboration
+        // when the view is actually ready.
+      }
     }
   }
 
   ngOnDestroy(): void {
+    // Destroy editor FIRST before disconnecting
+    // This prevents awareness cleanup from trying to update a destroyed editor
     this.editor.destroy();
-    if (!this.zenMode && this.documentId !== 'invalid') {
+
+    // Now disconnect from Yjs - this will trigger awareness cleanup
+    // but the editor is already destroyed so it won't crash
+    if (!this.zenMode && this.documentId !== 'invalid' && this.documentId) {
       this.documentService.disconnect(this.documentId);
     }
 
@@ -176,8 +269,8 @@ export class DocumentElementEditorComponent
         if (styleElement && styleElement.parentNode) {
           styleElement.parentNode.removeChild(styleElement);
         }
-      } catch (error) {
-        console.log('[DocumentEditor] Error removing lint styles:', error);
+      } catch {
+        // Ignore errors when removing lint styles
       }
     }
   }
@@ -205,22 +298,6 @@ export class DocumentElementEditorComponent
     }
   }
 
-  private setupCollaboration(): void {
-    if (this.documentId === 'invalid') return;
-    const isFormatted = this.ensureProperDocumentId();
-    if (!isFormatted) return;
-    setTimeout(() => {
-      this.documentService
-        .setupCollaboration(this.editor, this.documentId)
-        .catch(error => {
-          console.error(
-            `[DocumentEditor] Failed to setup collaboration for ${this.documentId}:`,
-            error
-          );
-        });
-    }, 0);
-  }
-
   /**
    * Add global styles for the lint plugin decorations
    * This ensures the CSS is properly applied to the editor instance
@@ -232,9 +309,6 @@ export class DocumentElementEditorComponent
       typeof document === 'undefined' ||
       !document.head
     ) {
-      console.log(
-        '[DocumentEditor] Skipping lint styles in non-browser environment'
-      );
       return;
     }
 
@@ -332,23 +406,18 @@ export class DocumentElementEditorComponent
 
     // Add to document head
     document.head.appendChild(style);
-    console.log('[DocumentEditor] Added lint plugin styles to document');
 
-    // Add event handlers for accept/reject buttons
+    // Add event handlers for accept/reject buttons (can be used for analytics later)
     document.addEventListener('lint-accept', ((event: Event) => {
       const customEvent = event as CustomEvent<unknown>;
-      console.log(
-        '[DocumentEditor] Lint suggestion accepted:',
-        customEvent.detail
-      );
+      // Suggestion accepted - could add analytics here
+      void customEvent;
     }) as EventListener);
 
     document.addEventListener('lint-reject', ((event: Event) => {
       const customEvent = event as CustomEvent<unknown>;
-      console.log(
-        '[DocumentEditor] Lint suggestion rejected:',
-        customEvent.detail
-      );
+      // Suggestion rejected - could add analytics here
+      void customEvent;
     }) as EventListener);
   }
 
@@ -370,7 +439,7 @@ export class DocumentElementEditorComponent
 
     // Check if cursor is inside any suggestion
     for (const suggestion of pluginState.suggestions) {
-      if (suggestion.from <= cursorPos && cursorPos <= suggestion.to) {
+      if (suggestion.startPos <= cursorPos && cursorPos <= suggestion.endPos) {
         return true;
       }
     }

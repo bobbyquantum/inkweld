@@ -1,0 +1,82 @@
+---
+id: get-user-avatar
+title: 'getUserAvatar'
+description: 'getUserAvatar'
+sidebar_label: 'getUserAvatar'
+hide_title: true
+hide_table_of_contents: true
+api: eJx9UsGO0zAQ/RVrTiBFmyzdA/KtIA6VOCAkTtUeXGfaeHFsM55kWVX5dzxJC+yGxRdb9ntvPG/eGdicMug9fMtIGe4riAnJsIth14KGE7K8bEfDhqCCZMj0yILV+zNk22FvQJ+BnxIWfGZy4VSALWZLLolQuRaNUIgwVUD4Y3CERZ1pwFeRFcybhuHPjRNEMtzBdC9COcWQMUv9d00j21pMmevfbQyMgQXmenPCOpWf6v81cYzUm0KAgwuGnmAqq4K75m5danFIhcjqGIfQPq9nUvLOzrbWD1kI/ygbDw9oWUwmGQK7pTMkirT+3fTMyv0FVmzBn6ZPHv+iwjao+aiitQMJoZDZsaDgk7x8vXg5tzi9HMrLFJQEdPESjzkUZSIaapNcPd7WMrBc6+vc6t8DKBfjNTkD+ULpmJOuax+t8V3MrN9vNptVej7Ls2pxRB9TXyxVi9KcAheOcXbn0s4ufH9E36rtl10RknqLyO1Nc9OspD9G780hSuJHVJZwOTyS42KySt6whEDU1JsPQ3hbDPoFlw0bfg==
+sidebar_class_name: 'get api-method'
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
+
+<Heading
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'getUserAvatar'}
+></Heading>
+
+<MethodEndpoint
+  method={'get'}
+  path={'/api/v1/users/:username/avatar'}
+  context={'endpoint'}
+></MethodEndpoint>
+
+getUserAvatar
+
+<Heading
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
+
+<ParamsDetails
+  parameters={[
+    {
+      schema: { type: 'string', description: 'Username' },
+      required: true,
+      description: 'Username',
+      name: 'username',
+      in: 'path',
+    },
+  ]}
+></ParamsDetails>
+
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{
+    '200': {
+      description: 'User avatar',
+      content: {
+        'image/png': { schema: { type: 'string', format: 'binary' } },
+      },
+    },
+    '404': {
+      description: 'Avatar not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

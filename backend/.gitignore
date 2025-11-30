@@ -1,0 +1,16 @@
+node_modules
+dist
+.env
+.env.local
+*.log
+coverage
+.DS_Store
+data
+dist-worker
+
+# Auto-generated files
+src/.frontend-imports-generated.ts
+
+# Wrangler
+.wrangler/
+wrangler.toml

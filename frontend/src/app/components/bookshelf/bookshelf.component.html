@@ -10,6 +10,7 @@
     class="projects-grid bookshelf">
     @for (project of projects; track project.slug; let i = $index) {
       <div
+        data-testid="project-card"
         (click)="selectProject(project)"
         (keyup.enter)="selectProject(project)"
         tabindex="0"

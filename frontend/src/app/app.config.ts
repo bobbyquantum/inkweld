@@ -12,7 +12,7 @@ import { isDevMode } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, RouteReuseStrategy } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
-import { XsrfService } from '@services/xsrf.service';
+import { XsrfService } from '@services/auth/xsrf.service';
 
 import { ThemeService } from '../themes/theme.service';
 import { routes } from './app.routes';

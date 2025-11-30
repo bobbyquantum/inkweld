@@ -23,7 +23,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ProjectElement } from '../../models/project-element';
-import { ProjectStateService } from '../../services/project-state.service';
+import { ProjectStateService } from '../../services/project/project-state.service';
 import { TreeNodeIconComponent } from '../project-tree/components/tree-node-icon/tree-node-icon.component';
 
 type ViewMode = 'grid' | 'list';

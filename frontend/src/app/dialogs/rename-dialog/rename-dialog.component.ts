@@ -26,6 +26,7 @@ export interface RenameDialogData {
           [formControl]="nameControl"
           cdkFocusInitial
           (keyup.enter)="onConfirm()"
+          data-testid="rename-input"
           placeholder="Enter name" />
         @if (nameControl.hasError('required') && nameControl.touched) {
           <mat-error>Name is required</mat-error>
@@ -38,6 +39,7 @@ export interface RenameDialogData {
         mat-button
         color="primary"
         [disabled]="!nameControl.valid"
+        data-testid="rename-confirm-button"
         (click)="onConfirm()">
         Rename
       </button>

@@ -3,10 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router } from '@angular/router';
-import { UserService, UserServiceError } from '@services/user.service';
-import { XsrfService } from '@services/xsrf.service';
+import { XsrfService } from '@services/auth/xsrf.service';
+import { UserService, UserServiceError } from '@services/user/user.service';
 import { of } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 
@@ -52,7 +51,7 @@ describe('WelcomeComponent', () => {
     } as unknown as MockedObject<BreakpointObserver>;
 
     await TestBed.configureTestingModule({
-      imports: [WelcomeComponent, NoopAnimationsModule],
+      imports: [WelcomeComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: HttpClient, useValue: httpClient },
@@ -84,10 +83,136 @@ describe('WelcomeComponent', () => {
     expect(logoElement.alt).toBe('Inkweld Logo');
   });
 
+  describe('onUsernameChange', () => {
+    it('should clear passwordError when username changes', () => {
+      component.passwordError = 'Some error';
+      component.onUsernameChange();
+      expect(component.passwordError).toBeNull();
+    });
+
+    it('should clear lastAttemptedUsername when username is different', () => {
+      component.lastAttemptedUsername = 'olduser';
+      component.username = 'newuser';
+      component.onUsernameChange();
+      expect(component.lastAttemptedUsername).toBe('');
+    });
+
+    it('should not clear lastAttemptedUsername when username matches', () => {
+      component.lastAttemptedUsername = 'sameuser';
+      component.username = 'sameuser';
+      component.onUsernameChange();
+      expect(component.lastAttemptedUsername).toBe('sameuser');
+    });
+  });
+
+  describe('onPasswordChange', () => {
+    it('should clear passwordError when password changes', () => {
+      component.passwordError = 'Some error';
+      component.onPasswordChange();
+      expect(component.passwordError).toBeNull();
+    });
+
+    it('should clear lastAttemptedPassword when password is different', () => {
+      component.lastAttemptedPassword = 'oldpass';
+      component.password = 'newpass';
+      component.onPasswordChange();
+      expect(component.lastAttemptedPassword).toBe('');
+    });
+
+    it('should not clear lastAttemptedPassword when password matches', () => {
+      component.lastAttemptedPassword = 'samepass';
+      component.password = 'samepass';
+      component.onPasswordChange();
+      expect(component.lastAttemptedPassword).toBe('samepass');
+    });
+  });
+
+  describe('isFormValid', () => {
+    it('should return false when username is empty', () => {
+      component.username = '';
+      component.password = 'testpass';
+      expect(component.isFormValid()).toBe(false);
+    });
+
+    it('should return false when password is empty', () => {
+      component.username = 'testuser';
+      component.password = '';
+      expect(component.isFormValid()).toBe(false);
+    });
+
+    it('should return false when username is whitespace only', () => {
+      component.username = '   ';
+      component.password = 'testpass';
+      expect(component.isFormValid()).toBe(false);
+    });
+
+    it('should return false when password is whitespace only', () => {
+      component.username = 'testuser';
+      component.password = '   ';
+      expect(component.isFormValid()).toBe(false);
+    });
+
+    it('should return false when password matches last failed attempt', () => {
+      component.username = 'testuser';
+      component.password = 'failedpass';
+      component.lastAttemptedPassword = 'failedpass';
+      expect(component.isFormValid()).toBe(false);
+    });
+
+    it('should return true when password is different from last failed attempt', () => {
+      component.username = 'testuser';
+      component.password = 'newpass';
+      component.lastAttemptedPassword = 'failedpass';
+      expect(component.isFormValid()).toBe(true);
+    });
+
+    it('should return true when all fields are valid', () => {
+      component.username = 'testuser';
+      component.password = 'testpass';
+      component.lastAttemptedPassword = '';
+      expect(component.isFormValid()).toBe(true);
+    });
+  });
+
+  describe('isLoginButtonDisabled', () => {
+    it('should return true when form is invalid', () => {
+      component.username = '';
+      component.password = '';
+      component.isLoggingIn = false;
+      component.providersLoaded = true;
+      expect(component.isLoginButtonDisabled()).toBe(true);
+    });
+
+    it('should return true when logging in', () => {
+      component.username = 'testuser';
+      component.password = 'testpass';
+      component.isLoggingIn = true;
+      component.providersLoaded = true;
+      expect(component.isLoginButtonDisabled()).toBe(true);
+    });
+
+    it('should return true when providers not loaded', () => {
+      component.username = 'testuser';
+      component.password = 'testpass';
+      component.isLoggingIn = false;
+      component.providersLoaded = false;
+      expect(component.isLoginButtonDisabled()).toBe(true);
+    });
+
+    it('should return false when form is valid, not logging in, and providers loaded', () => {
+      component.username = 'testuser';
+      component.password = 'testpass';
+      component.isLoggingIn = false;
+      component.providersLoaded = true;
+      expect(component.isLoginButtonDisabled()).toBe(false);
+    });
+  });
+
   describe('onLogin', () => {
     beforeEach(() => {
       component.username = 'testuser';
       component.password = 'testpass';
+      component.providersLoaded = true;
     });
 
     it('should handle successful login', async () => {
@@ -96,6 +221,32 @@ describe('WelcomeComponent', () => {
       await component.onLogin();
 
       expect(userService.login).toHaveBeenCalledWith('testuser', 'testpass');
+    });
+
+    it('should set isLoggingIn to true during login', async () => {
+      userService.login.mockImplementation(
+        () =>
+          new Promise(resolve => {
+            expect(component.isLoggingIn).toBe(true);
+            resolve();
+          })
+      );
+
+      await component.onLogin();
+
+      expect(component.isLoggingIn).toBe(false);
+    });
+
+    it('should set passwordError and not call service when form is invalid', async () => {
+      component.username = '';
+      component.password = '';
+
+      await component.onLogin();
+
+      expect(component.passwordError).toBe(
+        'Please enter both username and password.'
+      );
+      expect(userService.login).not.toHaveBeenCalled();
     });
 
     it('should show error message for invalid credentials', async () => {
@@ -112,6 +263,37 @@ describe('WelcomeComponent', () => {
           panelClass: ['error-snackbar'],
         }
       );
+    });
+
+    it('should set lastAttemptedUsername and lastAttemptedPassword on LOGIN_FAILED', async () => {
+      const error = new UserServiceError('LOGIN_FAILED', 'Login failed');
+      userService.login.mockRejectedValue(error);
+
+      await component.onLogin();
+
+      expect(component.lastAttemptedUsername).toBe('testuser');
+      expect(component.lastAttemptedPassword).toBe('testpass');
+    });
+
+    it('should set passwordError on LOGIN_FAILED', async () => {
+      const error = new UserServiceError('LOGIN_FAILED', 'Login failed');
+      userService.login.mockRejectedValue(error);
+
+      await component.onLogin();
+
+      expect(component.passwordError).toBe(
+        'Invalid username or password. Please check your credentials.'
+      );
+    });
+
+    it('should redirect to approval-pending on ACCOUNT_PENDING', async () => {
+      const error = new UserServiceError('ACCOUNT_PENDING', 'Account pending');
+      userService.login.mockRejectedValue(error);
+
+      await component.onLogin();
+
+      expect(router.navigate).toHaveBeenCalledWith(['/approval-pending']);
+      expect(component.passwordError).toBeNull();
     });
 
     it('should show error message for other UserServiceError', async () => {
@@ -136,6 +318,23 @@ describe('WelcomeComponent', () => {
         'Close',
         { duration: 5000 }
       );
+    });
+  });
+
+  describe('onProvidersLoaded', () => {
+    it('should set providersLoaded to true after timeout', async () => {
+      vi.useFakeTimers();
+
+      component.providersLoaded = false;
+      component.onProvidersLoaded();
+
+      expect(component.providersLoaded).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(component.providersLoaded).toBe(true);
+
+      vi.useRealTimers();
     });
   });
 });

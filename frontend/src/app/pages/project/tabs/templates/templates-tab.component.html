@@ -76,7 +76,10 @@
 
     <div class="templates-grid">
       @for (template of templates(); track template.type) {
-        <mat-card class="template-card" [class.built-in]="template.isBuiltIn">
+        <mat-card
+          class="template-card"
+          [class.built-in]="template.isBuiltIn"
+          data-testid="template-card">
           <mat-card-header>
             <mat-icon mat-card-avatar>{{ template.icon }}</mat-icon>
             <mat-card-title>{{ template.label }}</mat-card-title>
@@ -93,6 +96,7 @@
               mat-icon-button
               [matMenuTriggerFor]="templateMenu"
               class="template-menu-button"
+              data-testid="template-menu-button"
               aria-label="Template actions">
               <mat-icon>more_vert</mat-icon>
             </button>
@@ -104,12 +108,18 @@
                   <span>Edit</span>
                 </button>
               }
-              <button mat-menu-item (click)="cloneTemplate(template)">
+              <button
+                mat-menu-item
+                (click)="cloneTemplate(template)"
+                data-testid="clone-template-button">
                 <mat-icon>content_copy</mat-icon>
                 <span>Clone</span>
               </button>
               @if (!template.isBuiltIn) {
-                <button mat-menu-item (click)="deleteTemplate(template)">
+                <button
+                  mat-menu-item
+                  (click)="deleteTemplate(template)"
+                  data-testid="delete-template-button">
                   <mat-icon>delete</mat-icon>
                   <span>Delete</span>
                 </button>

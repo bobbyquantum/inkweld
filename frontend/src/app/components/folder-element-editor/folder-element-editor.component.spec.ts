@@ -3,11 +3,11 @@ import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { ElementType } from '@inkweld/index';
 import { vi } from 'vitest';
 
 import { ProjectElement } from '../../models/project-element';
-import { ProjectStateService } from '../../services/project-state.service';
+import { ProjectStateService } from '../../services/project/project-state.service';
 import { FolderElementEditorComponent } from './folder-element-editor.component';
 
 // Mock component for TreeNodeIcon
@@ -30,9 +30,10 @@ describe('FolderElementEditorComponent', () => {
     {
       id: 'folder1',
       name: 'Test Folder',
-      type: 'FOLDER',
+      type: ElementType.Folder,
       level: 0,
-      position: 0,
+      order: 0,
+      parentId: null,
       expandable: true,
       expanded: true,
       visible: true,
@@ -42,9 +43,10 @@ describe('FolderElementEditorComponent', () => {
     {
       id: 'item1',
       name: 'Test Item 1',
-      type: 'ITEM',
+      type: ElementType.Item,
       level: 1,
-      position: 1,
+      order: 1,
+      parentId: 'folder1',
       expandable: false,
       expanded: false,
       visible: true,
@@ -54,9 +56,10 @@ describe('FolderElementEditorComponent', () => {
     {
       id: 'item2',
       name: 'Test Item 2',
-      type: 'ITEM',
+      type: ElementType.Item,
       level: 1,
-      position: 2,
+      order: 2,
+      parentId: 'folder1',
       expandable: false,
       expanded: false,
       visible: true,
@@ -76,11 +79,7 @@ describe('FolderElementEditorComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [
-        NoopAnimationsModule,
-        FolderElementEditorComponent,
-        MockTreeNodeIconComponent,
-      ],
+      imports: [FolderElementEditorComponent, MockTreeNodeIconComponent],
       declarations: [],
       providers: [
         provideZonelessChangeDetection(),
@@ -137,6 +136,20 @@ describe('FolderElementEditorComponent', () => {
     component.onDrop(dropEvent);
 
     expect(mockProjectStateService.updateElements).toHaveBeenCalled();
+  });
+
+  it('should not update elements when dropped in same position', () => {
+    const dropEvent = {
+      previousIndex: 0,
+      currentIndex: 0,
+      container: {
+        data: component.childElements(),
+      },
+    } as unknown as CdkDragDrop<ProjectElement[]>;
+
+    component.onDrop(dropEvent);
+
+    expect(mockProjectStateService.updateElements).not.toHaveBeenCalled();
   });
 
   it('should create a new element', () => {

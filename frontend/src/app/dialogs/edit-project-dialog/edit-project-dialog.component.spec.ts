@@ -5,8 +5,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ProjectDto, UserDto } from '@inkweld/index';
+import { ProjectsService } from '@inkweld/api/projects.service';
+import { Project, User } from '@inkweld/index';
+import { LoadedImage } from 'ngx-image-cropper';
 import { of } from 'rxjs';
 import {
   afterEach,
@@ -19,9 +20,9 @@ import {
   vi,
 } from 'vitest';
 
-import { ProjectAPIService } from '../../../api-client/api/project-api.service';
-import { ProjectService } from '../../services/project.service';
-import { ProjectImportExportService } from '../../services/project-import-export.service';
+import { UnifiedProjectService } from '../../services/offline/unified-project.service';
+import { ProjectService } from '../../services/project/project.service';
+import { ProjectImportExportService } from '../../services/project/project-import-export.service';
 import { EditProjectDialogComponent } from './edit-project-dialog.component';
 
 // Helper to create a mock File object
@@ -36,15 +37,18 @@ describe('EditProjectDialogComponent', () => {
   let dialogRef: MockedObject<MatDialogRef<EditProjectDialogComponent>>;
   let importExportService: MockedObject<ProjectImportExportService>;
   let snackBar: MockedObject<MatSnackBar>;
-  let projectAPIService: MockedObject<ProjectAPIService>;
+  let ProjectsService: MockedObject<ProjectsService>;
   let projectService: MockedObject<ProjectService>;
+  let unifiedProjectService: MockedObject<UnifiedProjectService>;
 
-  const mockUser: UserDto = {
+  const mockUser: User = {
     username: 'testuser',
     name: 'Test User',
+    id: '1',
+    enabled: true,
   };
 
-  const mockProject: ProjectDto = {
+  const mockProject: Project = {
     id: '123',
     title: 'Test Project',
     description: 'Test Description',
@@ -83,7 +87,7 @@ describe('EditProjectDialogComponent', () => {
       open: vi.fn(),
     } as any;
 
-    projectAPIService = {
+    ProjectsService = {
       projectControllerUpdateProject: vi.fn().mockReturnValue(of(mockProject)),
     } as any;
 
@@ -95,15 +99,16 @@ describe('EditProjectDialogComponent', () => {
       updateProject: vi.fn().mockResolvedValue(mockProject),
     } as any;
 
+    // Mock UnifiedProjectService methods
+    unifiedProjectService = {
+      updateProject: vi.fn().mockResolvedValue(mockProject),
+    } as any;
+
     // Mock XSRF token cookie
     document.cookie = 'XSRF-TOKEN=test-token';
 
     await TestBed.configureTestingModule({
-      imports: [
-        EditProjectDialogComponent,
-        ReactiveFormsModule,
-        NoopAnimationsModule,
-      ],
+      imports: [EditProjectDialogComponent, ReactiveFormsModule],
       providers: [
         provideZonelessChangeDetection(),
         FormBuilder,
@@ -112,8 +117,9 @@ describe('EditProjectDialogComponent', () => {
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockProject },
         { provide: ProjectImportExportService, useValue: importExportService },
-        { provide: ProjectAPIService, useValue: projectAPIService },
+        { provide: ProjectsService, useValue: ProjectsService },
         { provide: ProjectService, useValue: projectService },
+        { provide: UnifiedProjectService, useValue: unifiedProjectService },
         { provide: MatSnackBar, useValue: snackBar },
       ],
     }).compileComponents();
@@ -157,6 +163,13 @@ describe('EditProjectDialogComponent', () => {
     expect(component.form.get('description')?.value).toBe(
       mockProject.description
     );
+  });
+
+  describe('onCancel', () => {
+    it('should close the dialog without returning data', () => {
+      component.onCancel();
+      expect(dialogRef.close).toHaveBeenCalledWith();
+    });
   });
 
   describe('loadCoverImage on init', () => {
@@ -257,7 +270,7 @@ describe('EditProjectDialogComponent', () => {
       mockEvent = { target: inputElement } as unknown as Event;
     });
 
-    it('should set coverImage and coverImageUrl for valid file', () => {
+    it('should activate cropper for valid file', () => {
       // Simulate file selection
       Object.defineProperty(inputElement, 'files', {
         value: [mockCoverFile],
@@ -266,8 +279,9 @@ describe('EditProjectDialogComponent', () => {
 
       component.onCoverImageSelected(mockEvent);
 
-      expect(component.coverImage).toBe(mockCoverFile);
-      expect(component.coverImageUrl).toBeDefined();
+      expect(component.showCropper).toBe(true);
+      expect(component.imageChangedEvent).toBe(mockEvent);
+      expect(component.pendingFileName).toBe('cover.png');
       expect(snackBar.open).not.toHaveBeenCalled();
     });
 
@@ -280,7 +294,7 @@ describe('EditProjectDialogComponent', () => {
 
       component.onCoverImageSelected(mockEvent);
 
-      expect(component.coverImage).not.toBe(invalidFile); // Should not be set
+      expect(component.showCropper).toBe(false);
       expect(snackBar.open).toHaveBeenCalledWith(
         expect.stringContaining('Invalid image file'),
         'Close',
@@ -293,14 +307,90 @@ describe('EditProjectDialogComponent', () => {
         value: [], // No files selected
         writable: false,
       });
-      const initialCoverImage = component.coverImage;
-      const initialCoverUrl = component.coverImageUrl;
 
       component.onCoverImageSelected(mockEvent);
 
-      expect(component.coverImage).toBe(initialCoverImage);
-      expect(component.coverImageUrl).toBe(initialCoverUrl);
+      expect(component.showCropper).toBe(false);
+      expect(component.imageChangedEvent).toBeNull();
       expect(snackBar.open).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('image cropper functionality', () => {
+    it('should apply cropped image correctly', () => {
+      const croppedBlob = new Blob(['cropped data'], { type: 'image/png' });
+      component.croppedBlob = croppedBlob;
+      component.pendingFileName = 'test.png';
+      component.croppedImage = 'blob:test-url' as any;
+      component.showCropper = true;
+
+      component.applyCroppedImage();
+
+      expect(component.coverImage).toBeDefined();
+      expect(component.coverImage instanceof File).toBe(true);
+      expect(component.coverImageUrl).toBe('blob:test-url');
+      expect(component.showCropper).toBe(false);
+    });
+
+    it('should cancel cropping and reset state', () => {
+      component.showCropper = true;
+      component.imageChangedEvent = {} as Event;
+      component.croppedBlob = new Blob();
+      component.croppedImage = 'test' as any;
+
+      // Mock the coverImageInput
+      const coverInput = document.createElement('input');
+      coverInput.type = 'file';
+      component.coverImageInput = { nativeElement: coverInput };
+
+      component.cancelCropping();
+
+      expect(component.showCropper).toBe(false);
+      expect(component.imageChangedEvent).toBeNull();
+      expect(component.croppedBlob).toBeNull();
+      expect(component.croppedImage).toBeNull();
+    });
+
+    it('should reset cropper state correctly', () => {
+      component.imageChangedEvent = {} as Event;
+      component.croppedImage = 'test' as any;
+      component.croppedBlob = new Blob();
+      component.hasImageLoaded = true;
+      component.isCropperReady = true;
+      component.pendingFileName = 'test.png';
+
+      component.resetCropperState();
+
+      expect(component.imageChangedEvent).toBeNull();
+      expect(component.croppedImage).toBeNull();
+      expect(component.croppedBlob).toBeNull();
+      expect(component.hasImageLoaded).toBe(false);
+      expect(component.isCropperReady).toBe(false);
+      expect(component.pendingFileName).toBe('');
+    });
+
+    it('should handle image load failure', () => {
+      component.showCropper = true;
+
+      component.onLoadImageFailed();
+
+      expect(component.hasLoadFailed).toBe(true);
+      expect(component.showCropper).toBe(false);
+      expect(snackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to load image'),
+        'Close',
+        expect.any(Object)
+      );
+    });
+
+    it('should set hasImageLoaded when image loads', () => {
+      component.onImageLoaded({} as LoadedImage);
+      expect(component.hasImageLoaded).toBe(true);
+    });
+
+    it('should set isCropperReady when cropper is ready', () => {
+      component.onCropperReady();
+      expect(component.isCropperReady).toBe(true);
     });
   });
 
@@ -405,7 +495,7 @@ describe('EditProjectDialogComponent', () => {
         'Close',
         expect.any(Object)
       );
-      expect(projectService.updateProject).not.toHaveBeenCalled();
+      expect(unifiedProjectService.updateProject).not.toHaveBeenCalled();
       expect(dialogRef.close).not.toHaveBeenCalled();
     });
 
@@ -419,7 +509,7 @@ describe('EditProjectDialogComponent', () => {
 
       await component.onSave();
 
-      expect(projectService.updateProject).toHaveBeenCalledWith(
+      expect(unifiedProjectService.updateProject).toHaveBeenCalledWith(
         mockUser.username,
         mockProject.slug,
         expect.objectContaining({
@@ -436,7 +526,7 @@ describe('EditProjectDialogComponent', () => {
 
       await component.onSave();
 
-      expect(projectService.updateProject).toHaveBeenCalled();
+      expect(unifiedProjectService.updateProject).toHaveBeenCalled();
       expect(projectService.uploadProjectCover).toHaveBeenCalledWith(
         mockProject.username,
         mockProject.slug,
@@ -457,7 +547,7 @@ describe('EditProjectDialogComponent', () => {
 
       await component.onSave();
 
-      expect(projectService.updateProject).toHaveBeenCalled();
+      expect(unifiedProjectService.updateProject).toHaveBeenCalled();
       expect(projectService.uploadProjectCover).not.toHaveBeenCalled();
       expect(dialogRef.close).toHaveBeenCalledWith(mockProject);
     });
@@ -470,7 +560,7 @@ describe('EditProjectDialogComponent', () => {
 
       await component.onSave();
 
-      expect(projectService.updateProject).toHaveBeenCalled();
+      expect(unifiedProjectService.updateProject).toHaveBeenCalled();
       expect(projectService.uploadProjectCover).toHaveBeenCalled();
       expect(snackBar.open).toHaveBeenCalledWith(
         expect.stringContaining(
@@ -484,12 +574,12 @@ describe('EditProjectDialogComponent', () => {
 
     it('should handle error during project update', async () => {
       const updateError = new Error('Update failed');
-      projectService.updateProject.mockRejectedValue(updateError);
+      unifiedProjectService.updateProject.mockRejectedValue(updateError);
       component.form.patchValue({ title: 'Valid Title' });
 
       await component.onSave();
 
-      expect(projectService.updateProject).toHaveBeenCalled();
+      expect(unifiedProjectService.updateProject).toHaveBeenCalled();
       expect(projectService.uploadProjectCover).not.toHaveBeenCalled();
       expect(snackBar.open).toHaveBeenCalledWith(
         `Failed to update project: ${updateError.message}`,

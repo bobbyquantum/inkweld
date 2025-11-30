@@ -3,17 +3,17 @@ import '@angular/compiler'; // Required for JIT compilation in tests
 
 import { getTestBed } from '@angular/core/testing';
 import {
-  BrowserDynamicTestingModule,
-  platformBrowserDynamicTesting,
-} from '@angular/platform-browser-dynamic/testing';
+  BrowserTestingModule,
+  platformBrowserTesting,
+} from '@angular/platform-browser/testing';
 import { vi } from 'vitest';
 
 // Initialize Angular testing environment for zoneless mode
 // Only initialize if not already initialized (prevents errors in watch mode)
 if (!getTestBed().platform) {
   getTestBed().initTestEnvironment(
-    BrowserDynamicTestingModule,
-    platformBrowserDynamicTesting(),
+    BrowserTestingModule,
+    platformBrowserTesting(),
     {
       errorOnUnknownElements: true,
       errorOnUnknownProperties: true,
@@ -49,10 +49,12 @@ vi.mock('nanoid', () => {
 // Mock y-indexeddb
 vi.mock('y-indexeddb', () => {
   return {
-    IndexeddbPersistence: class {
+    IndexeddbPersistence: class IndexeddbPersistence {
       whenSynced = Promise.resolve();
       constructor(_name: string, _doc: any) {}
-      destroy() { return Promise.resolve(); }
+      destroy() {
+        return Promise.resolve();
+      }
     },
   };
 });
@@ -70,18 +72,86 @@ vi.mock('y-websocket', () => {
   };
 });
 
-// Mock File.arrayBuffer for jsdom
-Object.defineProperty(File.prototype, 'arrayBuffer', {
-  value: function () {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsArrayBuffer(this);
-    });
-  },
-});
+// Mock File.arrayBuffer for jsdom (only if not already defined)
+if (!File.prototype.arrayBuffer) {
+  Object.defineProperty(File.prototype, 'arrayBuffer', {
+    value: function () {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(this);
+      });
+    },
+  });
+}
 
 // Mock URL.createObjectURL and URL.revokeObjectURL for jsdom environment
-(global as any).URL.createObjectURL = vi.fn(() => 'blob:mock-url');
-(global as any).URL.revokeObjectURL = vi.fn();
+(globalThis as any).URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+(globalThis as any).URL.revokeObjectURL = vi.fn();
+
+// Mock localStorage for jsdom environment
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString();
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+    get length() {
+      return Object.keys(store).length;
+    },
+    key: (index: number) => {
+      const keys = Object.keys(store);
+      return keys[index] || null;
+    },
+  };
+})();
+
+Object.defineProperty(globalThis, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});
+
+Object.defineProperty(globalThis, 'sessionStorage', {
+  value: localStorageMock,
+  writable: true,
+});
+
+// Mock matchMedia for Angular CDK BreakpointObserver
+// This is required for components using BreakpointObserver (dialogs, responsive components)
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(), // deprecated
+    removeListener: vi.fn(), // deprecated
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
+// Mock window.location.reload for tests that trigger page reloads
+// (e.g., connection-settings component after server mode switch)
+Object.defineProperty(window, 'location', {
+  writable: true,
+  value: {
+    ...window.location,
+    reload: vi.fn(),
+    href: window.location?.href || 'http://localhost/',
+    origin: window.location?.origin || 'http://localhost',
+    pathname: window.location?.pathname || '/',
+    search: window.location?.search || '',
+    hash: window.location?.hash || '',
+  },
+});

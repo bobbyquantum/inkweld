@@ -1,10 +1,20 @@
-import { Component, inject, Input, signal } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  inject,
+  Input,
+  Output,
+  signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { Router, RouterModule } from '@angular/router';
-import { UserService } from '@services/user.service';
+import { Project } from '@inkweld/index';
+import { UserService } from '@services/user/user.service';
+
+import { ProjectCoverComponent } from '../project-cover/project-cover.component';
 
 export interface NavItem {
   label: string;
@@ -22,6 +32,7 @@ export interface NavItem {
     MatIconModule,
     MatButtonModule,
     RouterModule,
+    ProjectCoverComponent,
   ],
   templateUrl: './side-nav.component.html',
   styleUrls: ['./side-nav.component.scss'],
@@ -32,15 +43,14 @@ export class SideNavComponent {
 
   @Input() isOpen = signal(false);
   @Input() isMobile = false;
+  @Input() projects: Project[] = [];
+  @Input() selectedProject: Project | null = null;
+
+  @Output() projectSelected = new EventEmitter<Project>();
 
   get navItems(): NavItem[] {
     const username = this.userService.currentUser()?.username;
     return [
-      {
-        label: 'Bookshelf',
-        icon: 'collections_bookmark',
-        route: '/home',
-      },
       {
         label: 'Profile',
         icon: 'person',
@@ -55,10 +65,13 @@ export class SideNavComponent {
     } else if (item.route) {
       void this.router.navigate([item.route]);
     }
+  }
 
-    // Close menu on mobile after navigation
-    if (this.isMobile) {
-      this.isOpen.set(false);
-    }
+  toggleNav(): void {
+    this.isOpen.set(!this.isOpen());
+  }
+
+  onProjectClick(project: Project): void {
+    this.projectSelected.emit(project);
   }
 }

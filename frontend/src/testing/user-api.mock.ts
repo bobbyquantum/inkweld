@@ -2,15 +2,15 @@ import { vi } from 'vitest';
 
 import { HttpHeaders, HttpParameterCodec } from "@angular/common/http";
 import { Configuration } from "@inkweld/configuration";
-import { UserDto, UserControllerCheckUsernameAvailability200Response, UserRegisterDto } from "@inkweld/index";
+import { User, UsernameAvailability, RegisterRequest } from "@inkweld/index";
 import { Observable } from "rxjs";
 
 export const userServiceMock = {
   defaultHeaders: new HttpHeaders(),
   configuration: new Configuration(),
   encoder: {} as HttpParameterCodec,
-  userControllerCheckUsernameAvailability: vi.fn<(username: string) => Observable<UserControllerCheckUsernameAvailability200Response>>(),
-  userControllerGetMe: vi.fn<() => Observable<UserDto>>(),
-  userControllerGetOAuthProviders: vi.fn<() => Observable<string[]>>(),
-  userControllerRegister: vi.fn<(dto: UserRegisterDto) => Observable<UserDto>>()
+  checkUsernameAvailability: vi.fn<(username: string) => Observable<UsernameAvailability>>(),
+  getCurrentUser: vi.fn<() => Observable<User>>(),
+  listOAuthProviders: vi.fn<() => Observable<string[]>>(),
+  registerUser: vi.fn<(dto: RegisterRequest) => Observable<User>>()
 };

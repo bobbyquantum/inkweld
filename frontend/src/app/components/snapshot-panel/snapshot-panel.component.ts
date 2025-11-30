@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   Component,
   inject,
@@ -14,9 +13,9 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DocumentSnapshotService } from '@services/document-snapshot.service';
+import { DocumentSnapshotService } from '@services/project/document-snapshot.service';
 
-import { SnapshotDto } from '../../../api-client';
+import { DocumentSnapshot } from '../../../api-client';
 import {
   CreateSnapshotDialogComponent,
   CreateSnapshotDialogData,
@@ -36,7 +35,6 @@ import {
   selector: 'app-snapshot-panel',
   standalone: true,
   imports: [
-    CommonModule,
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
@@ -57,7 +55,7 @@ export class SnapshotPanelComponent implements OnInit {
   loading = signal(false);
 
   /** Snapshots list */
-  snapshots = signal<SnapshotDto[]>([]);
+  snapshots = signal<DocumentSnapshot[]>([]);
 
   /** Error message */
   error = signal<string | null>(null);
@@ -85,7 +83,7 @@ export class SnapshotPanelComponent implements OnInit {
       })
       .subscribe({
         next: result => {
-          this.snapshots.set(result.snapshots || []);
+          this.snapshots.set(result);
           this.loading.set(false);
         },
         error: err => {
@@ -116,8 +114,10 @@ export class SnapshotPanelComponent implements OnInit {
       this.loading.set(true);
       this.snapshotService
         .createSnapshot(this.documentId(), {
+          documentId: this.documentId(),
           name: result.name,
           description: result.description,
+          yDocState: '', // TODO: Get actual yDoc state from editor
         })
         .subscribe({
           next: snapshot => {
@@ -144,7 +144,7 @@ export class SnapshotPanelComponent implements OnInit {
   /**
    * Open dialog to restore a snapshot
    */
-  async restoreSnapshot(snapshot: SnapshotDto) {
+  async restoreSnapshot(snapshot: DocumentSnapshot) {
     const dialogRef = this.dialog.open<
       RestoreSnapshotDialogComponent,
       RestoreSnapshotDialogData,
@@ -186,17 +186,24 @@ export class SnapshotPanelComponent implements OnInit {
 
   /**
    * Preview snapshot as HTML in new window/tab
+   * TODO: Backend API now returns SnapshotWithContent (yDocState), not HTML
+   * Need to render yDocState to HTML on frontend or add HTML rendering to backend
    */
-  previewSnapshot(snapshot: SnapshotDto) {
+  previewSnapshot(snapshot: DocumentSnapshot) {
     this.snapshotService
       .previewSnapshot(this.documentId(), snapshot.id)
       .subscribe({
-        next: html => {
-          const previewWindow = window.open('', '_blank');
-          if (previewWindow) {
-            previewWindow.document.write(html);
-            previewWindow.document.close();
-          }
+        next: snapshotContent => {
+          // TODO: Render yDocState to HTML
+          // For now, show a message that preview is not available
+          this.snackBar.open(
+            'Preview feature needs implementation (backend returns yDocState, not HTML)',
+            'OK',
+            {
+              duration: 5000,
+            }
+          );
+          console.log('Snapshot content:', snapshotContent);
         },
         error: err => {
           console.error('Failed to preview snapshot:', err);
@@ -210,7 +217,7 @@ export class SnapshotPanelComponent implements OnInit {
   /**
    * Delete a snapshot
    */
-  deleteSnapshot(snapshot: SnapshotDto) {
+  deleteSnapshot(snapshot: DocumentSnapshot) {
     if (
       !confirm(
         `Are you sure you want to delete the snapshot "${snapshot.name}"? This cannot be undone.`
@@ -247,7 +254,7 @@ export class SnapshotPanelComponent implements OnInit {
   /**
    * Format word count with commas
    */
-  formatWordCount(count: number | undefined): string {
+  formatWordCount(count: number | null | undefined): string {
     return count?.toLocaleString() ?? '0';
   }
 

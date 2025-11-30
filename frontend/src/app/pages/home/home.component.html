@@ -43,7 +43,7 @@
         <div class="right-section"></div>
       } @else {
         <!-- Normal mode: Hamburger/Logo + Search icon + User menu -->
-        <!-- Left section: Hamburger + Logo -->
+        <!-- Left section: Hamburger (mobile) + Logo -->
         <div class="left-section">
           @if (isAuthenticated() && isMobile) {
             <button
@@ -96,7 +96,7 @@
             </button>
           }
 
-          @if (isAuthenticated() && projectService.projects().length > 0) {
+          @if (isAuthenticated()) {
             <button
               mat-button
               (click)="openNewProjectDialog()"
@@ -137,35 +137,29 @@
 
   <!-- Main content area with side nav -->
   <div class="main-layout" [class.has-sidenav]="isAuthenticated()">
-    <!-- Side navigation -->
+    <!-- Side navigation with project list -->
     @if (isAuthenticated()) {
-      <app-side-nav [isOpen]="sideNavOpen" [isMobile]="isMobile">
+      <app-side-nav
+        [isOpen]="sideNavOpen"
+        [isMobile]="isMobile"
+        [projects]="filteredProjects()"
+        [selectedProject]="selectedProject"
+        (projectSelected)="selectProject($event)">
       </app-side-nav>
+      @if (isMobile && sideNavOpen()) {
+        <div
+          class="side-nav-overlay"
+          (click)="toggleSideNav()"
+          (keydown.enter)="toggleSideNav()"
+          (keydown.escape)="toggleSideNav()"
+          tabindex="0"
+          role="button"
+          aria-label="Close navigation"></div>
+      }
     }
 
-    <!-- Main content section -->
+    <!-- Main content section - responsive cover grid -->
     <div class="main-content">
-      <!-- Floating view mode toggle -->
-      @if (isAuthenticated() && projectService.projects().length > 0) {
-        <div class="floating-view-toggle">
-          <mat-button-toggle-group
-            [value]="viewMode()"
-            (change)="setViewMode($event.value)"
-            class="view-toggle"
-            aria-label="View mode">
-            <mat-button-toggle value="tiles" aria-label="Tiles view">
-              <mat-icon>grid_view</mat-icon>
-            </mat-button-toggle>
-            <mat-button-toggle value="bookshelf" aria-label="Bookshelf view">
-              <mat-icon>auto_stories</mat-icon>
-            </mat-button-toggle>
-            <mat-button-toggle value="list" aria-label="List view">
-              <mat-icon>view_list</mat-icon>
-            </mat-button-toggle>
-          </mat-button-toggle-group>
-        </div>
-      }
-
       @if (!isAuthenticated()) {
         <!-- Content for unauthenticated users -->
         <div class="welcome-content">
@@ -245,9 +239,9 @@
           </div>
         </div>
       } @else {
-        <!-- Content for authenticated users (existing project management) -->
+        <!-- Content for authenticated users - responsive cover grid -->
         @if (isLoading()) {
-          <div class="loading-state">
+          <div class="loading-state" data-testid="loading-projects">
             <mat-spinner diameter="40" />
             <p>Loading projects...</p>
           </div>
@@ -266,112 +260,39 @@
             <mat-icon class="empty-icon">add_circle_outline</mat-icon>
             <h2>Create Your First Project</h2>
             <p>Get started by creating a new project</p>
-            <button mat-button (click)="openNewProjectDialog()">
+            <button
+              mat-button
+              data-testid="create-first-project-button"
+              (click)="openNewProjectDialog()">
               Create Project
             </button>
           </div>
+        } @else if (filteredProjects().length === 0 && searchControl.value) {
+          <div class="empty-search-results">
+            <mat-icon>search_off</mat-icon>
+            <h3>No projects found</h3>
+            <p>Try a different search term</p>
+          </div>
         } @else {
-          @if (filteredProjects().length === 0 && searchControl.value) {
-            <div class="empty-search-results">
-              <mat-icon>search_off</mat-icon>
-              <h3>No projects found</h3>
-              <p>Try a different search term</p>
-            </div>
-          } @else {
-            <!-- Bookshelf view -->
-            @if (viewMode() === 'bookshelf') {
-              <app-bookshelf
-                [projects]="filteredProjects()"
-                (projectSelected)="selectProject($event)">
-              </app-bookshelf>
-            }
-
-            <!-- Tiles view -->
-            @if (viewMode() === 'tiles') {
-              <div class="tiles-view">
-                @for (project of filteredProjects(); track project.id) {
-                  <div
-                    class="project-tile"
-                    (click)="selectProject(project)"
-                    (keyup.enter)="selectProject(project)"
-                    tabindex="0"
-                    role="button">
-                    <div class="tile-cover-container">
-                      <img
-                        [src]="getCoverUrl(project)"
-                        [alt]="project.title + ' cover'"
-                        [title]="project.title"
-                        class="tile-cover"
-                        (error)="$any($event.target).style.display = 'none'" />
-                      <div
-                        class="tile-cover-placeholder"
-                        [style.display]="'flex'">
-                        <mat-icon>auto_stories</mat-icon>
-                      </div>
-                    </div>
-                    <div class="tile-info">
-                      <h3>{{ project.title }}</h3>
-                      <p class="tile-author">by {{ project.username }}</p>
-                      @if (project.description) {
-                        <p class="tile-description">
-                          {{ project.description }}
-                        </p>
-                      }
-                    </div>
-                  </div>
-                }
+          <!-- Responsive cover grid -->
+          <div class="covers-grid">
+            @for (project of filteredProjects(); track project.id) {
+              <div
+                class="cover-item"
+                data-testid="project-card"
+                [class.selected]="selectedProject?.id === project.id"
+                (click)="selectProject(project)"
+                (keyup.enter)="selectProject(project)"
+                tabindex="0"
+                role="button"
+                [title]="project.title"
+                [attr.aria-label]="'Open project ' + project.title">
+                <app-project-card [project]="project"></app-project-card>
               </div>
             }
-
-            <!-- List view -->
-            @if (viewMode() === 'list') {
-              <div class="list-view">
-                @for (project of filteredProjects(); track project.id) {
-                  <div
-                    class="project-list-item"
-                    (click)="selectProject(project)"
-                    (keyup.enter)="selectProject(project)"
-                    tabindex="0"
-                    role="button">
-                    <img
-                      [src]="getCoverUrl(project)"
-                      [alt]="project.title + ' cover'"
-                      [title]="project.title"
-                      class="list-cover"
-                      (error)="$any($event.target).style.display = 'none'" />
-                    <div
-                      class="list-cover-placeholder"
-                      [style.display]="'flex'">
-                      <mat-icon>auto_stories</mat-icon>
-                    </div>
-                    <div class="list-info">
-                      <h3>{{ project.title }}</h3>
-                      <p class="list-author">by {{ project.username }}</p>
-                      @if (project.description) {
-                        <p class="list-description">
-                          {{ project.description }}
-                        </p>
-                      }
-                    </div>
-                    <mat-icon class="list-arrow">chevron_right</mat-icon>
-                  </div>
-                }
-              </div>
-            }
-          }
+          </div>
         }
       }
     </div>
   </div>
 </div>
-
-<!-- Mobile overlay when side nav is open -->
-@if (isAuthenticated() && isMobile && sideNavOpen()) {
-  <div
-    class="side-nav-overlay"
-    (click)="toggleSideNav()"
-    (keyup.enter)="toggleSideNav()"
-    tabindex="0"
-    role="button"
-    aria-label="Close navigation menu"></div>
-}

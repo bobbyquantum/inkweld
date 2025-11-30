@@ -1,35 +1,37 @@
 services:
-  inkweld-server:
-    image: inkweld:latest
+  inkweld-backend:
+    container_name: inkweld-backend
     build:
       context: .
-      dockerfile: server/Dockerfile
+      dockerfile: backend/Dockerfile
     environment:
-      # Database Configuration - SQLite mode
-      - DB_TYPE=sqlite
-      - DB_PATH=/data/sqlite.db
-      - DB_LOGGING=false
-
-      # Server Configuration
-      - PORT=8333
+      - NODE_ENV=production
+      - PORT=${PORT:-8333}
       - HOST=0.0.0.0
       - PUBLIC_URL=${PUBLIC_URL:-http://localhost:8333}
-      - CLIENT_URL=${CLIENT_URL:-http://localhost:8333}
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:4200}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:8333}
-
-      # Auth Configuration
+      - DB_TYPE=${DB_TYPE:-sqlite}
+      - DB_PATH=${DB_PATH:-/data/sqlite.db}
+      - DB_LOGGING=${DB_LOGGING:-false}
+      - DATA_PATH=${DATA_PATH:-/data/yjs}
+      - SESSION_SECRET=${SESSION_SECRET:-change-me}
       - LOCAL_USERS_ENABLED=${LOCAL_USERS_ENABLED:-true}
       - GITHUB_ENABLED=${GITHUB_ENABLED:-false}
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
       - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
       - USER_APPROVAL_REQUIRED=${USER_APPROVAL_REQUIRED:-true}
-
-      # Yjs data path
-      - DATA_PATH=/data/yjs
     volumes:
       - inkweld_data:/data
     ports:
       - "${PORT:-8333}:8333"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 volumes:
   inkweld_data:

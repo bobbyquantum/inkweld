@@ -30,33 +30,12 @@
   gap: 16px;
 }
 
-.cover-image-container {
+.cover-image-wrapper {
   flex-shrink: 0;
   width: 80px;
   height: 128px; // 1:1.6 aspect ratio
   border-radius: 4px;
   overflow: hidden;
-  background-color: rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cover-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.cover-placeholder {
-  border: 2px dashed rgba(255, 255, 255, 0.3);
-
-  mat-icon {
-    font-size: 32px;
-    width: 32px;
-    height: 32px;
-    opacity: 0.5;
-  }
 }
 
 .project-info {

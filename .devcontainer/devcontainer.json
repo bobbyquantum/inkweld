@@ -1,17 +1,82 @@
 {
-  "name": "Inkweld Devcontainer",
-  "image": "mcr.microsoft.com/vscode/devcontainers/universal:linux",
-  "forwardPorts": [4200, 8333],
-  "features": {
-    "ghcr.io/lumenpink/devcontainer-features/bun:0": {}
+  "name": "Inkweld Dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
   },
+  "forwardPorts": [4200, 8333, 3000],
+  "portsAttributes": {
+    "4200": { "label": "Angular Frontend", "onAutoForward": "notify" },
+    "8333": { "label": "Hono Backend", "onAutoForward": "notify" },
+    "3000": { "label": "Docs Site", "onAutoForward": "notify" }
+  },
+
+  // Run install-all after container creation
+  "postCreateCommand": "npm run install-all",
+
+  // Environment variables for development
+  "containerEnv": {
+    "NODE_ENV": "development",
+    "DB_TYPE": "sqlite",
+    "DB_PATH": "/workspaces/inkweld/backend/data/dev.sqlite",
+    "DATA_PATH": "/workspaces/inkweld/backend/data/yjs",
+    "SESSION_SECRET": "dev-session-secret-change-in-prod",
+    "LOCAL_USERS_ENABLED": "true",
+    "GITHUB_ENABLED": "false",
+    "USER_APPROVAL_REQUIRED": "false"
+  },
+
+  // VS Code customizations
   "customizations": {
     "vscode": {
       "extensions": [
+        // Core editing
         "editorconfig.editorconfig",
-        "orta.vscode-jest",
-        "dbaeumer.vscode-eslint"
-      ]
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+
+        // Angular development
+        "angular.ng-template",
+
+        // Testing
+        "vitest.explorer",
+        "ms-playwright.playwright",
+
+        // Backend/API
+        "oven.bun-vscode",
+
+        // Docker & deployment
+        "ms-azuretools.vscode-docker",
+
+        // Database
+        "qwtel.sqlite-viewer",
+
+        // Git
+        "eamodio.gitlens",
+        "mhutchie.git-graph"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[html]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[scss]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[json]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "eslint.validate": ["typescript", "javascript"],
+        "typescript.preferences.importModuleSpecifier": "relative",
+        "angular.forceStrictTemplates": true
+      }
     }
-  }
+  },
+
+  // Run as non-root user
+  "remoteUser": "vscode"
 }

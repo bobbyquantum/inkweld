@@ -5,19 +5,29 @@
       "path": "."
     },
     {
-      "name": "⚙️ Server",
-      "path": "server"
+      "name": "⚙️ Backend",
+      "path": "backend"
     },
     {
       "name": "🎨 Frontend",
       "path": "frontend"
+    },
+    {
+      "name": "📚 Docs",
+      "path": "docs"
     }
   ],
   "settings": {
     "files.exclude": {
       "frontend/": true,
-      "server/": true
+      "backend/": true,
+      "docs/": true
     },
+    // Coverage Gutters configuration for multi-root workspace
+    "coverage-gutters.coverageBaseDir": "**",
+    "coverage-gutters.showLineCoverage": true,
+    "coverage-gutters.showRulerCoverage": true,
+    "coverage-gutters.showGutterCoverage": true,
     "typescript.tsdk": "🎨 Frontend/frontend/node_modules/typescript/lib",
     "[typescript]": {
       "editor.defaultFormatter": "dbaeumer.vscode-eslint",
@@ -27,11 +37,12 @@
       "editor.defaultFormatter": "esbenp.prettier-vscode",
       "editor.formatOnSave": true
     },
-    "jest.disabledWorkspaceFolders": ["✨ Root", "⚙️ Server", "🎨 Frontend"],
+    "jest.disabledWorkspaceFolders": ["✨ Root", "⚙️ Backend", "🎨 Frontend"],
     "github-actions.workflows.pinned.workflows": [
       ".github/workflows/ci.yml",
       "✨ Root/.github/workflows/ci.yml"
     ],
-    "github-actions.workflows.pinned.refresh.enabled": true
+    "github-actions.workflows.pinned.refresh.enabled": true,
+    "powershell.cwd": "✨ Root"
   }
 }

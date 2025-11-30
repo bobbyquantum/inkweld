@@ -11,6 +11,12 @@
       "type": "LOCATION",
       "name": "Location",
       "file": "location.json"
+    },
+    {
+      "id": "wb-item-v1",
+      "type": "WB_ITEM",
+      "name": "Item",
+      "file": "wb_item.json"
     }
   ]
 }

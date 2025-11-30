@@ -1,13 +1,19 @@
 import {
+  ChangeDetectorRef,
   Component,
   inject,
   Input,
   OnChanges,
+  OnDestroy,
   OnInit,
   SimpleChanges,
 } from '@angular/core';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { UnifiedUserService } from '@services/unified-user.service';
+import { OfflineStorageService } from '@services/offline/offline-storage.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
+import { UserService } from '@services/user/user.service';
+import { generateFracticonDataURL } from 'fracticons';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-user-avatar',
@@ -16,16 +22,23 @@ import { UnifiedUserService } from '@services/unified-user.service';
   templateUrl: './user-avatar.component.html',
   styleUrls: ['./user-avatar.component.scss'],
 })
-export class UserAvatarComponent implements OnInit, OnChanges {
-  private userService = inject(UnifiedUserService);
+export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
+  private unifiedUserService = inject(UnifiedUserService);
+  private userService = inject(UserService);
+  private offlineStorage = inject(OfflineStorageService);
   private sanitizer = inject(DomSanitizer);
+  private cdr = inject(ChangeDetectorRef);
 
   @Input() username!: string;
   @Input() size: 'small' | 'medium' | 'large' = 'medium';
 
   protected avatarUrl: SafeUrl | undefined;
+  protected fallbackAvatarUrl: string | undefined;
   protected isLoading = false;
   protected error = false;
+
+  private currentObjectUrl: string | undefined;
+  private avatarSubscription: Subscription | undefined;
 
   ngOnInit() {
     void this.loadAvatar();
@@ -37,31 +50,119 @@ export class UserAvatarComponent implements OnInit, OnChanges {
     }
   }
 
-  public loadAvatar() {
-    console.log('Loading avatar for user:', this.username);
+  ngOnDestroy() {
+    this.cleanup();
+  }
+
+  private cleanup(): void {
+    // Revoke object URL to prevent memory leaks
+    if (this.currentObjectUrl) {
+      URL.revokeObjectURL(this.currentObjectUrl);
+      this.currentObjectUrl = undefined;
+    }
+    // Cancel any pending subscription
+    if (this.avatarSubscription) {
+      this.avatarSubscription.unsubscribe();
+      this.avatarSubscription = undefined;
+    }
+  }
+
+  private generateFallbackAvatar(): void {
     if (!this.username) return;
 
-    // Skip avatar loading in offline mode
-    const mode = this.userService.getMode();
+    // Generate a deterministic fractal avatar based on username
+    const size = this.size === 'small' ? 64 : this.size === 'medium' ? 96 : 256;
+    this.fallbackAvatarUrl = generateFracticonDataURL(this.username, {
+      size,
+      circular: true,
+    });
+  }
+
+  public async loadAvatar() {
+    if (!this.username) return;
+
+    // Clean up previous resources
+    this.cleanup();
+
+    // Always generate fallback avatar first
+    this.generateFallbackAvatar();
+
+    const mode = this.unifiedUserService.getMode();
+
+    // In offline mode, try to load from IndexedDB cache
     if (mode === 'offline') {
-      console.log('Skipping avatar loading in offline mode');
-      this.error = true; // Show default avatar
+      await this.loadFromOfflineCache();
       return;
     }
 
+    // In server mode, first try local cache, then fall back to server
     this.isLoading = true;
     this.error = false;
+    this.avatarUrl = undefined;
+
+    // First try to load from local cache (faster and works if server is slow)
+    const cachedUrl = await this.offlineStorage.getUserAvatarUrl(this.username);
+    if (cachedUrl) {
+      this.avatarUrl = this.sanitizer.bypassSecurityTrustUrl(cachedUrl);
+      this.error = false;
+      this.isLoading = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    // Try to load avatar from server
+    this.avatarSubscription = this.userService
+      .getUserAvatar(this.username)
+      .subscribe({
+        next: (blob: Blob) => {
+          void (async () => {
+            if (blob && blob.size > 0) {
+              // Cache the avatar locally for offline access
+              await this.offlineStorage.saveUserAvatar(this.username, blob);
+              this.currentObjectUrl = URL.createObjectURL(blob);
+              this.avatarUrl = this.sanitizer.bypassSecurityTrustUrl(
+                this.currentObjectUrl
+              );
+              this.error = false;
+            } else {
+              // Empty blob means no avatar, use fallback
+              this.error = true;
+            }
+            this.isLoading = false;
+            this.cdr.detectChanges();
+          })();
+        },
+        error: () => {
+          this.error = true;
+          this.isLoading = false;
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  /**
+   * Load avatar from IndexedDB cache (for offline mode)
+   */
+  private async loadFromOfflineCache(): Promise<void> {
+    this.isLoading = true;
+    this.error = false;
+    this.avatarUrl = undefined;
 
     try {
-      // Only try to load avatars in server mode
-      // For now, we'll just show default avatars since UnifiedUserService
-      // doesn't have getUserAvatar method yet
-      this.error = true; // Show default avatar for now
-    } catch (error) {
-      console.error('Error loading avatar:', error);
+      const url = await this.offlineStorage.getUserAvatarUrl(this.username);
+      if (url) {
+        this.avatarUrl = this.sanitizer.bypassSecurityTrustUrl(url);
+        this.error = false;
+      } else {
+        // No cached avatar, use fallback
+        this.error = true;
+      }
+    } catch (err) {
+      console.warn('Failed to load avatar from cache:', err);
       this.error = true;
     } finally {
       this.isLoading = false;
+      this.cdr.detectChanges();
     }
   }
 }

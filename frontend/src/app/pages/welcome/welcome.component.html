@@ -63,7 +63,8 @@
 
         <div class="oauth-container">
           <app-oauth-provider-list
-            [isRegisterContext]="false"></app-oauth-provider-list>
+            [isRegisterContext]="false"
+            (loaded)="onProvidersLoaded()"></app-oauth-provider-list>
         </div>
 
         <button

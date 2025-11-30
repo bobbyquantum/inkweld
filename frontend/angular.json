@@ -91,16 +91,34 @@
             "buildTarget": "inkweld-frontend:build:development",
             "tsConfig": "tsconfig.spec.json",
             "runner": "vitest",
-            "codeCoverage": true,
-            "codeCoverageReporters": ["html", "lcov", "text"],
-            "codeCoverageExclude": ["**/src/api-client/*", "node_modules/*"],
-            "setupFiles": ["setup-vitest.ts"]
+            "setupFiles": ["setup-vitest.ts"],
+            "coverage": true,
+            "coverageInclude": ["src/**/*.ts"],
+            "coverageExclude": [
+              "**/*.spec.ts",
+              "**/setup-vitest.ts",
+              "**/e2e/**",
+              "**/testing/**",
+              "**/environments/**",
+              "**/*.config.ts",
+              "**/*.d.ts",
+              "**/main.ts",
+              "**/app.routes.ts",
+              "**/api-client/**"
+            ],
+            "coverageReporters": ["text", "html", "lcov"],
+            "coverageThresholds": {
+              "statements": 80,
+              "functions": 80,
+              "lines": 80,
+              "branches": 60
+            }
           }
         },
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
+            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html", "e2e/**/*.ts"]
           }
         },
         "e2e": {

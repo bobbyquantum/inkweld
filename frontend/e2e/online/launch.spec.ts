@@ -1,0 +1,102 @@
+/**
+ * Application Launch Tests - Online Mode
+ *
+ * Tests that verify the app launches correctly in server mode
+ * with proper authentication and API connectivity.
+ */
+import { expect, test } from './fixtures';
+
+test.describe('Online Application Launch', () => {
+  test('anonymous user sees welcome page content', async ({
+    anonymousPage: page,
+  }) => {
+    await page.goto('/');
+
+    // Unauthenticated users should stay on the home page
+    await expect(page).toHaveURL('/');
+
+    // Home page should have the app title
+    await expect(page).toHaveTitle(/Home/);
+
+    // Should see the welcome content for unauthenticated users
+    await expect(page.locator('h1')).toContainText('Welcome to InkWeld');
+
+    // Should see login and register buttons in the header
+    await expect(page.locator('button:has-text("Login")')).toBeVisible();
+    await expect(page.locator('button:has-text("Register")')).toBeVisible();
+
+    // Should see feature cards
+    await expect(
+      page.getByRole('heading', { name: 'Write & Organize' })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Collaborate' })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Version Control' })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Share & Publish' })
+    ).toBeVisible();
+  });
+
+  test('authenticated user sees home page with projects', async ({
+    authenticatedPage,
+  }) => {
+    // The authenticatedPage fixture already navigates to '/'
+    await expect(authenticatedPage).toHaveURL('/');
+
+    // Home page should have the app title
+    await expect(authenticatedPage).toHaveTitle(/Home/);
+
+    // Should have auth token
+    const token = await authenticatedPage.evaluate(() => {
+      return localStorage.getItem('auth_token');
+    });
+    expect(token).toBeTruthy();
+  });
+
+  test('server mode persists across page refresh', async ({
+    authenticatedPage: page,
+  }) => {
+    // Get initial config
+    const configBefore = await page.evaluate(() => {
+      return localStorage.getItem('inkweld-app-config');
+    });
+    const parsedBefore = JSON.parse(configBefore!);
+    expect(parsedBefore.mode).toBe('server');
+
+    // Refresh the page
+    await page.reload();
+
+    // Wait for app to reinitialize
+    await page.waitForTimeout(1000);
+
+    // Verify config is still server mode
+    const configAfter = await page.evaluate(() => {
+      return localStorage.getItem('inkweld-app-config');
+    });
+    const parsedAfter = JSON.parse(configAfter!);
+    expect(parsedAfter.mode).toBe('server');
+  });
+
+  test('should handle browser back/forward navigation', async ({
+    authenticatedPage: page,
+  }) => {
+    // Navigate through pages
+    await page.goto('/');
+    await page.goto('/create-project');
+
+    // Go back
+    await page.goBack();
+    await expect(page).toHaveURL('/');
+
+    // Go forward
+    await page.goForward();
+    await expect(page).toHaveURL('/create-project');
+
+    // Go back again
+    await page.goBack();
+    await expect(page).toHaveURL('/');
+  });
+});

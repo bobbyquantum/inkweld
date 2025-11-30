@@ -5,11 +5,10 @@ This directory contains static assets for the Inkweld project.
 ## Directory Structure
 
 - **demo_covers/** - Sample book cover images used for demo screenshots
-- **screenshots/** - Project screenshots for README and documentation (committed to repo)
 
 ## Generating Screenshots
 
-Screenshots are generated using Playwright e2e tests but are **not run by default** to keep regular test runs fast.
+Screenshots are generated using Playwright e2e tests and are saved directly to `docs/site/static/img/` for use in the Docusaurus documentation site. Screenshots are **not run by default** to keep regular test runs fast.
 
 To generate/update screenshots:
 
@@ -41,12 +40,12 @@ $env:GENERATE_SCREENSHOTS="true"; npm run e2e
 
 ### Generated Screenshots
 
-The following screenshots are created in `assets/screenshots/` and **committed to the repository** for use in README and documentation:
+The following screenshots are created in `docs/site/static/img/` and **committed to the repository** for use in Docusaurus documentation:
 
-- `bookshelf-desktop.png` - Desktop view of the project bookshelf/dashboard
-- `bookshelf-mobile.png` - Mobile view of the project bookshelf/dashboard
-- `editor-desktop.png` - Desktop view of the project editor
-- `editor-mobile.png` - Mobile view of the project editor
+- `bookshelf-desktop.png` / `bookshelf-desktop-dark.png` - Desktop bookshelf views
+- `bookshelf-mobile.png` / `bookshelf-mobile-dark.png` - Mobile bookshelf views  
+- `editor-desktop.png` / `editor-desktop-dark.png` - Desktop editor views
+- `editor-mobile.png` / `editor-mobile-dark.png` - Mobile editor views
 
 ## Demo Covers
 

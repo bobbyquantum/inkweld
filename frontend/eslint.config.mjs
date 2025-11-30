@@ -9,7 +9,7 @@ import vitest from 'eslint-plugin-vitest';
 
 export default tseslint.config(
   {
-    files: ['src/app/**/*.ts', 'src/themes/**/*.ts'],
+    files: ['src/app/**/*.ts', 'src/themes/**/*.ts', 'e2e/**/*.ts'],
     extends: [
       eslint.configs.recommended,
       ...tseslint.configs.recommendedTypeChecked,
@@ -39,6 +39,13 @@ export default tseslint.config(
       ],
       'unused-imports/no-unused-imports': 'error',
       '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
       '@typescript-eslint/member-ordering': ['off'],
@@ -75,6 +82,13 @@ export default tseslint.config(
         },
       ],
       'unused-imports/no-unused-imports': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
       '@typescript-eslint/unbound-method': 'off',

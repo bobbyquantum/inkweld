@@ -34,5 +34,20 @@
   },
   "[jsonc]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  },
+  // Coverage Gutters configuration
+  // Include glob patterns to find lcov.info in various locations
+  "coverage-gutters.coverageFileNames": [
+    "lcov.info",
+    "coverage/lcov.info",
+    "coverage/*/lcov.info"
+  ],
+  "coverage-gutters.coverageBaseDir": "**",
+  "coverage-gutters.showLineCoverage": true,
+  "coverage-gutters.showRulerCoverage": true,
+  "coverage-gutters.showGutterCoverage": true,
+  "coverage-gutters.highlightdark": "rgba(255, 64, 64, 0.3)",
+  "coverage-gutters.highlightlight": "rgba(255, 64, 64, 0.3)",
+  "coverage-gutters.partialHighlightDark": "rgba(255, 255, 64, 0.3)",
+  "coverage-gutters.partialHighlightLight": "rgba(255, 255, 64, 0.3)"
 }

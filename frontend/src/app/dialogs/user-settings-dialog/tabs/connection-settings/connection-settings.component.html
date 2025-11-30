@@ -1,0 +1,333 @@
+<div class="connection-settings">
+  <h3>Connection Settings</h3>
+
+  <!-- Current Connection Status -->
+  <mat-card class="status-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon
+          class="status-icon"
+          [class.online]="currentMode === 'server'"
+          [class.offline]="currentMode === 'offline'">
+          {{ currentMode === 'server' ? 'cloud_done' : 'cloud_off' }}
+        </mat-icon>
+        Current Mode:
+        {{ currentMode === 'server' ? 'Online (Server)' : 'Offline' }}
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (currentMode === 'server') {
+        <p class="server-url">
+          <strong>Server URL:</strong> {{ currentServerUrl }}
+        </p>
+      }
+      @if (currentMode === 'offline') {
+        <p class="offline-info">
+          You are currently working offline. Your data is stored locally on this
+          device.
+        </p>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Switch to Offline Mode (when in server mode) -->
+  @if (currentMode === 'server') {
+    <mat-card class="mode-card">
+      <mat-card-header>
+        <mat-card-title>Switch to Offline Mode</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p>
+          Work without a server connection. Your data will be stored locally on
+          this device.
+        </p>
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="switchToOfflineMode()">
+          <mat-icon>cloud_off</mat-icon>
+          Switch to Offline Mode
+        </button>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Switch to Server Mode or Change Server -->
+  <mat-card class="mode-card">
+    <mat-card-header>
+      <mat-card-title>
+        {{ currentMode === 'offline' ? 'Connect to Server' : 'Change Server' }}
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (currentMode === 'offline') {
+        <p>
+          Connect to an Inkweld server to sync your data and collaborate with
+          others.
+        </p>
+
+        <!-- Offline Projects Info -->
+        @if (offlineProjectsCount() > 0) {
+          <div
+            class="offline-projects-info"
+            data-testid="offline-projects-info">
+            <mat-icon color="primary">folder</mat-icon>
+            <strong
+              >{{ offlineProjectsCount() }} offline project{{
+                offlineProjectsCount() === 1 ? '' : 's'
+              }}</strong
+            >
+            will be migrated to the server after authentication.
+          </div>
+        }
+      }
+      @if (currentMode === 'server') {
+        <p>Change to a different Inkweld server.</p>
+      }
+
+      <mat-form-field class="full-width">
+        <mat-label>Server URL</mat-label>
+        <input
+          matInput
+          [(ngModel)]="newServerUrl"
+          placeholder="https://inkweld.example.com"
+          [disabled]="isConnecting() || showAuthForm()"
+          type="url"
+          data-testid="server-url-input" />
+        @if (connectionError()) {
+          <mat-error>{{ connectionError() }}</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="button-group">
+        <button
+          mat-stroked-button
+          (click)="testConnection()"
+          [disabled]="isConnecting() || !newServerUrl.trim() || showAuthForm()">
+          @if (isConnecting()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          }
+          @if (!isConnecting()) {
+            <mat-icon>check_circle</mat-icon>
+          }
+          Test Connection
+        </button>
+
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="startMigration()"
+          [disabled]="isConnecting() || !newServerUrl.trim() || showAuthForm()"
+          data-testid="connect-to-server-button">
+          @if (isConnecting()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          }
+          @if (!isConnecting()) {
+            <mat-icon>cloud_upload</mat-icon>
+          }
+          {{
+            currentMode === 'offline' ? 'Connect to Server' : 'Change Server'
+          }}
+        </button>
+      </div>
+
+      <!-- Authentication Form for Migration -->
+      @if (showAuthForm()) {
+        <div class="auth-form" data-testid="auth-form">
+          <h4>
+            {{
+              authMode() === 'login'
+                ? 'Log in to Server'
+                : 'Register New Account'
+            }}
+          </h4>
+          <p class="auth-description">
+            {{
+              authMode() === 'login'
+                ? 'Log in with your existing server account to migrate your offline projects.'
+                : 'Create a new account on the server to migrate your offline projects.'
+            }}
+          </p>
+
+          <mat-form-field class="full-width">
+            <mat-label>Username</mat-label>
+            <input
+              matInput
+              [value]="username()"
+              (input)="username.set($any($event.target).value)"
+              [disabled]="isAuthenticating()"
+              type="text"
+              aria-label="Username"
+              data-testid="auth-username-input" />
+          </mat-form-field>
+
+          <mat-form-field class="full-width">
+            <mat-label>Password</mat-label>
+            <input
+              matInput
+              [value]="password()"
+              (input)="password.set($any($event.target).value)"
+              [disabled]="isAuthenticating()"
+              type="password"
+              aria-label="Password"
+              data-testid="auth-password-input" />
+          </mat-form-field>
+
+          @if (authMode() === 'register') {
+            <mat-form-field class="full-width">
+              <mat-label>Confirm Password</mat-label>
+              <input
+                matInput
+                [value]="confirmPassword()"
+                (input)="confirmPassword.set($any($event.target).value)"
+                [disabled]="isAuthenticating()"
+                type="password"
+                aria-label="Confirm Password"
+                data-testid="auth-confirm-password-input" />
+            </mat-form-field>
+          }
+
+          @if (authError()) {
+            <div class="auth-error">
+              <mat-icon>error</mat-icon>
+              {{ authError() }}
+            </div>
+          }
+
+          <div class="auth-actions">
+            <button
+              mat-button
+              (click)="cancelMigration()"
+              [disabled]="isAuthenticating()">
+              Cancel
+            </button>
+
+            <button
+              mat-button
+              (click)="toggleAuthMode()"
+              [disabled]="isAuthenticating()"
+              data-testid="toggle-auth-mode-button">
+              {{
+                authMode() === 'login'
+                  ? 'Need an account? Register'
+                  : 'Have an account? Log in'
+              }}
+            </button>
+
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="authenticate()"
+              [disabled]="isAuthenticating() || !username() || !password()"
+              data-testid="authenticate-button">
+              @if (isAuthenticating()) {
+                <mat-spinner diameter="20"></mat-spinner>
+                Migrating...
+              }
+              @if (!isAuthenticating()) {
+                {{
+                  authMode() === 'login'
+                    ? 'Log In & Migrate'
+                    : 'Register & Migrate'
+                }}
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Migration Progress -->
+      @if (migrationState().status === MigrationStatus.InProgress) {
+        <div class="migration-progress">
+          <h4>
+            <mat-icon class="spinning">sync</mat-icon>
+            Migrating Projects...
+          </h4>
+
+          <mat-progress-bar mode="determinate" [value]="migrationProgress()">
+          </mat-progress-bar>
+
+          <p class="progress-text">
+            {{ migrationState().completedProjects }} of
+            {{ migrationState().totalProjects }} projects migrated
+          </p>
+
+          @if (migrationState().currentProject) {
+            <p class="current-project">
+              Currently migrating:
+              <strong>{{ migrationState().currentProject }}</strong>
+            </p>
+          }
+
+          <!-- Project Status List -->
+          <div class="project-statuses">
+            @for (
+              projectStatus of migrationState().projectStatuses;
+              track projectStatus.projectSlug
+            ) {
+              <div
+                class="project-status"
+                [class]="projectStatus.status.toLowerCase()">
+                @if (projectStatus.status === MigrationStatus.Completed) {
+                  <mat-icon class="status-icon">check_circle</mat-icon>
+                }
+                @if (projectStatus.status === MigrationStatus.InProgress) {
+                  <mat-spinner diameter="16" class="status-icon"></mat-spinner>
+                }
+                @if (projectStatus.status === MigrationStatus.Failed) {
+                  <mat-icon class="status-icon">error</mat-icon>
+                }
+                @if (projectStatus.status === MigrationStatus.NotStarted) {
+                  <mat-icon class="status-icon">pending</mat-icon>
+                }
+                <span class="project-title">{{
+                  projectStatus.projectTitle
+                }}</span>
+                @if (projectStatus.error) {
+                  <span class="error-message">{{ projectStatus.error }}</span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Migration Complete -->
+      @if (migrationState().status === MigrationStatus.Completed) {
+        <div class="migration-complete">
+          <mat-icon class="success-icon">check_circle</mat-icon>
+          <h4>Migration Complete!</h4>
+          <p>
+            Successfully migrated
+            {{ migrationState().completedProjects }} project(s) to the server.
+          </p>
+        </div>
+      }
+
+      <!-- Migration Failed -->
+      @if (migrationState().status === MigrationStatus.Failed) {
+        <div class="migration-failed">
+          <mat-icon class="error-icon">error</mat-icon>
+          <h4>Migration Completed with Errors</h4>
+          <p>
+            {{ migrationState().completedProjects }} project(s) succeeded,
+            {{ migrationState().failedProjects }} failed.
+          </p>
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Warning about data -->
+  <mat-card class="warning-card">
+    <mat-card-content>
+      <div class="warning-content">
+        <mat-icon>warning</mat-icon>
+        <div>
+          <strong>Important:</strong> Switching modes or servers may require you
+          to log in again. Make sure to save any unsaved work before switching.
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -4,13 +4,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { DialogGatewayService } from '@services/dialog-gateway.service';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import {
   ProjectFile,
   ProjectFileService,
-} from '@services/project-file.service';
-import { ProjectStateService } from '@services/project-state.service';
+} from '@services/project/project-file.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 import { of, throwError } from 'rxjs';
 import { Mock, vi } from 'vitest';
 
@@ -80,7 +79,6 @@ describe('ProjectFilesTabComponent', () => {
         MatButtonModule,
         MatIconModule,
         MatProgressSpinnerModule,
-        NoopAnimationsModule,
         ProjectFilesTabComponent,
         MockFileListComponent,
       ],

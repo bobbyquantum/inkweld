@@ -1,6 +1,10 @@
 <div class="dialog-header">
   <h2 mat-dialog-title>Settings</h2>
-  <button mat-icon-button mat-dialog-close class="close-button">
+  <button
+    mat-icon-button
+    mat-dialog-close
+    class="close-button"
+    data-testid="settings-close-button">
     <mat-icon>close</mat-icon>
   </button>
 </div>
@@ -23,14 +27,15 @@
       <a
         mat-list-item
         role="tab"
-        (click)="selectCategory('account')"
-        (keydown.enter)="selectCategory('account')"
-        [attr.aria-selected]="selectedCategory === 'account'"
-        [class.active]="selectedCategory === 'account'"
+        (click)="selectCategory('connection')"
+        (keydown.enter)="selectCategory('connection')"
+        [attr.aria-selected]="selectedCategory === 'connection'"
+        [class.active]="selectedCategory === 'connection'"
         tabindex="1"
-        aria-label="Account settings">
-        <mat-icon matListItemIcon>account_circle</mat-icon>
-        <span matListItemTitle>Account</span>
+        aria-label="Connection settings"
+        data-testid="connection-tab">
+        <mat-icon matListItemIcon>cloud</mat-icon>
+        <span matListItemTitle>Connection</span>
       </a>
       <a
         mat-list-item
@@ -67,8 +72,8 @@
         @case ('general') {
           <app-general-settings />
         }
-        @case ('account') {
-          <p>Account settings content goes here</p>
+        @case ('connection') {
+          <app-connection-settings />
         }
         @case ('project-tree') {
           <app-project-tree-settings />

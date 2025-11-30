@@ -22,12 +22,15 @@ import {
   Router,
   RouterModule,
 } from '@angular/router';
-import { ProjectElementDto } from '@inkweld/index';
-import { DocumentService } from '@services/document.service';
-import { AppTab, ProjectStateService } from '@services/project-state.service';
+import { Element, ElementType } from '@inkweld/index';
+import { DocumentService } from '@services/project/document.service';
+import {
+  AppTab,
+  ProjectStateService,
+} from '@services/project/project-state.service';
 import { filter, Subject, Subscription, takeUntil } from 'rxjs';
 
-import { DialogGatewayService } from '../../../services/dialog-gateway.service';
+import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
 
 @Component({
   selector: 'app-tab-interface',
@@ -244,7 +247,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
 
     // Check if we are at the project root (home tab)
     if (!tabId && !systemRoute) {
-      this.projectState.selectedTabIndex.set(0);
+      this.projectState.selectTab(0);
       return;
     }
 
@@ -279,13 +282,13 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     }
     if (tabIndex !== -1) {
       const newIndex = tabIndex + 1; // +1 to account for home tab
-      this.projectState.selectedTabIndex.set(newIndex);
+      this.projectState.selectTab(newIndex);
     }
   }
 
   onTabChange(index: number): void {
     // Update the project state - navigation will be handled by the effect
-    this.projectState.selectedTabIndex.set(index);
+    this.projectState.selectTab(index);
 
     // Trigger change detection
     this.cdr.detectChanges();
@@ -312,7 +315,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     this.projectState.closeTab(index - 1);
   }
 
-  openDocument(document: ProjectElementDto): void {
+  openDocument(document: Element): void {
     const project = this.projectState.project();
     if (!project) return;
 
@@ -381,15 +384,15 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
 
     if (tab.type === 'worldbuilding' && tab.elementType) {
       const iconMap: Record<string, string> = {
-        [ProjectElementDto.TypeEnum.Character]: 'person',
-        [ProjectElementDto.TypeEnum.Location]: 'place',
-        [ProjectElementDto.TypeEnum.WbItem]: 'category',
-        [ProjectElementDto.TypeEnum.Map]: 'map',
-        [ProjectElementDto.TypeEnum.Relationship]: 'diversity_1',
-        [ProjectElementDto.TypeEnum.Philosophy]: 'auto_stories',
-        [ProjectElementDto.TypeEnum.Culture]: 'groups',
-        [ProjectElementDto.TypeEnum.Species]: 'pets',
-        [ProjectElementDto.TypeEnum.Systems]: 'settings',
+        ['CHARACTER']: 'person',
+        ['LOCATION']: 'place',
+        ['WB_ITEM']: 'category',
+        ['MAP']: 'map',
+        ['RELATIONSHIP']: 'diversity_1',
+        ['PHILOSOPHY']: 'auto_stories',
+        ['CULTURE']: 'groups',
+        ['SPECIES']: 'pets',
+        ['SYSTEMS']: 'settings',
       };
 
       // Check if it's a built-in type
@@ -419,12 +422,12 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
 
     const newName = await this.dialogGateway.openRenameDialog({
       currentName: tab.element.name,
-      title: `Rename ${tab.element.type === 'FOLDER' ? 'Folder' : 'Document'}`,
+      title: `Rename ${tab.element.type === ElementType.Folder ? 'Folder' : 'Document'}`,
     });
 
     if (newName) {
       // Use the project state service to rename the element
-      this.projectState.renameNode(tab.element, newName);
+      void this.projectState.renameNode(tab.element, newName);
     }
   }
 }

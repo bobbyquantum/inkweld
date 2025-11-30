@@ -1,12 +1,11 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { ProjectDto } from '@inkweld/index';
-import { DocumentService } from '@services/document.service';
-import { ProjectStateService } from '@services/project-state.service';
+import { Project } from '@inkweld/index';
+import { DocumentService } from '@services/project/document.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 import { BehaviorSubject, of } from 'rxjs';
 import { vi } from 'vitest';
 
@@ -47,7 +46,7 @@ describe('FolderTabComponent', () => {
     createdDate: new Date().toISOString(),
     updatedDate: new Date().toISOString(),
     id: '123',
-  } as ProjectDto;
+  } as Project;
 
   // Mock route params
   let paramsSubject: BehaviorSubject<any>;
@@ -78,7 +77,6 @@ describe('FolderTabComponent', () => {
       imports: [
         RouterTestingModule,
         FolderTabComponent,
-        NoopAnimationsModule,
         MockFolderElementEditorComponent,
       ],
       providers: [

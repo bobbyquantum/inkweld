@@ -28,6 +28,7 @@
     <mat-tree-node
       cdkDrag
       [cdkDragData]="node"
+      [attr.data-testid]="'element-' + node.name"
       (mousedown)="onNodeDown(node)"
       (touchstart)="onNodeDown(node)"
       (cdkDragMoved)="dragMove($event)"

@@ -7,7 +7,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTabsModule } from '@angular/material/tabs';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   ActivatedRoute,
   convertToParamMap,
@@ -15,17 +14,18 @@ import {
   Router,
   RouterModule,
 } from '@angular/router';
-import { ProjectDto, ProjectElementDto } from '@inkweld/index';
+import { ElementType } from '@inkweld/index';
+import { Element, Project } from '@inkweld/index';
 import { of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { DocumentSyncState } from '../../../models/document-sync-state';
-import { DialogGatewayService } from '../../../services/dialog-gateway.service';
-import { DocumentService } from '../../../services/document.service';
+import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
+import { DocumentService } from '../../../services/project/document.service';
 import {
   AppTab,
   ProjectStateService,
-} from '../../../services/project-state.service';
+} from '../../../services/project/project-state.service';
 import { TabInterfaceComponent } from './tab-interface.component';
 
 describe('TabInterfaceComponent', () => {
@@ -44,28 +44,30 @@ describe('TabInterfaceComponent', () => {
     username: 'testuser',
     slug: 'test-project',
     title: 'Test Project',
-  } as ProjectDto;
+  } as Project;
 
-  const mockDocuments: ProjectElementDto[] = [
+  const mockDocuments: Element[] = [
     {
       id: 'doc1',
       name: 'Document 1',
-      type: 'ITEM',
+      type: ElementType.Item,
       level: 0,
-      position: 0,
+      order: 0,
       version: 1,
       expandable: false,
       metadata: {},
+      parentId: null,
     },
     {
       id: 'doc2',
       name: 'Document 2',
-      type: 'FOLDER',
+      type: ElementType.Folder,
       level: 0,
-      position: 1,
+      order: 1,
       version: 1,
       expandable: true,
       metadata: {},
+      parentId: null,
     },
   ];
 
@@ -93,7 +95,7 @@ describe('TabInterfaceComponent', () => {
   const setupMockServices = () => {
     // Initialize signals
     const projectSignal = signal(mockProject);
-    const openDocumentsSignal = signal<ProjectElementDto[]>([...mockDocuments]);
+    const openDocumentsSignal = signal<Element[]>([...mockDocuments]);
     const openTabsSignal = signal<AppTab[]>([...mockTabs]);
     const selectedTabIndexSignal = signal<number>(0);
     const isLoadingSignal = signal<boolean>(false);
@@ -110,6 +112,7 @@ describe('TabInterfaceComponent', () => {
       closeTab: vi.fn(),
       renameNode: vi.fn(),
       openSystemTab: vi.fn(),
+      selectTab: vi.fn((index: number) => selectedTabIndexSignal.set(index)),
     };
 
     // Mock document service
@@ -172,7 +175,6 @@ describe('TabInterfaceComponent', () => {
         CdkContextMenuTrigger,
         CdkMenu,
         CdkMenuItem,
-        NoopAnimationsModule,
       ],
       providers: [
         provideZonelessChangeDetection(),
@@ -204,12 +206,9 @@ describe('TabInterfaceComponent', () => {
   });
 
   it('should change tab when onTabChange is called', () => {
-    const selectedTabIndexSpy = vi.spyOn(
-      projectStateService.selectedTabIndex as any,
-      'set'
-    );
+    const selectTabSpy = vi.spyOn(projectStateService as any, 'selectTab');
     component.onTabChange(1);
-    expect(selectedTabIndexSpy).toHaveBeenCalledWith(1);
+    expect(selectTabSpy).toHaveBeenCalledWith(1);
   });
 
   it('should close a tab when closeTab is called', () => {
@@ -328,16 +327,13 @@ describe('TabInterfaceComponent', () => {
 
     (component as any)['route'] = mockRoute as any;
 
-    // Mock selectedTabIndex.set method
-    const selectedTabIndexSpy = vi.spyOn(
-      projectStateService.selectedTabIndex as any,
-      'set'
-    );
+    // Mock selectTab method
+    const selectTabSpy = vi.spyOn(projectStateService as any, 'selectTab');
 
     component.updateSelectedTabFromUrl();
 
     // Should set tab index to document index + 1 (for home tab)
-    expect(selectedTabIndexSpy).toHaveBeenCalled();
+    expect(selectTabSpy).toHaveBeenCalled();
   });
 
   it('should set selectedTabIndex to 0 when URL has no tabId', () => {
@@ -359,16 +355,13 @@ describe('TabInterfaceComponent', () => {
 
     (component as any)['route'] = mockRoute as any;
 
-    // Mock selectedTabIndex.set method
-    const selectedTabIndexSpy = vi.spyOn(
-      projectStateService.selectedTabIndex as any,
-      'set'
-    );
+    // Mock selectTab method
+    const selectTabSpy = vi.spyOn(projectStateService as any, 'selectTab');
 
     component.updateSelectedTabFromUrl();
 
     // Should set tab index to 0 (home tab)
-    expect(selectedTabIndexSpy).toHaveBeenCalledWith(0);
+    expect(selectTabSpy).toHaveBeenCalledWith(0);
   });
 
   it('should handle router navigation events', () => {

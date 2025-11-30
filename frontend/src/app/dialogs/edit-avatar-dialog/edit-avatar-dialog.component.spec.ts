@@ -1,7 +1,10 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
-import { UserService } from '@services/user.service';
+import { SetupService } from '@services/core/setup.service';
+import { OfflineStorageService } from '@services/offline/offline-storage.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
+import { UserService } from '@services/user/user.service';
 import { ImageCroppedEvent, LoadedImage } from 'ngx-image-cropper';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
@@ -11,12 +14,24 @@ import { EditAvatarDialogComponent } from './edit-avatar-dialog.component';
 describe('EditAvatarDialogComponent', () => {
   let component: EditAvatarDialogComponent;
   let fixture: ComponentFixture<EditAvatarDialogComponent>;
-  let userServiceMock: any;
-  let dialogRefMock: any;
+  let userServiceMock: { uploadAvatar: ReturnType<typeof vi.fn> };
+  let dialogRefMock: { close: ReturnType<typeof vi.fn> };
+  let setupServiceMock: { getMode: ReturnType<typeof vi.fn> };
+  let offlineStorageMock: { saveUserAvatar: ReturnType<typeof vi.fn> };
+  let unifiedUserServiceMock: {
+    currentUser: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     userServiceMock = { uploadAvatar: vi.fn() };
     dialogRefMock = { close: vi.fn() };
+    setupServiceMock = { getMode: vi.fn().mockReturnValue('server') };
+    offlineStorageMock = {
+      saveUserAvatar: vi.fn().mockResolvedValue(undefined),
+    };
+    unifiedUserServiceMock = {
+      currentUser: vi.fn().mockReturnValue({ username: 'testuser' }),
+    };
 
     await TestBed.configureTestingModule({
       imports: [EditAvatarDialogComponent],
@@ -24,6 +39,9 @@ describe('EditAvatarDialogComponent', () => {
         provideZonelessChangeDetection(),
         { provide: UserService, useValue: userServiceMock },
         { provide: MatDialogRef, useValue: dialogRefMock },
+        { provide: SetupService, useValue: setupServiceMock },
+        { provide: OfflineStorageService, useValue: offlineStorageMock },
+        { provide: UnifiedUserService, useValue: unifiedUserServiceMock },
       ],
     }).compileComponents();
 
@@ -47,8 +65,8 @@ describe('EditAvatarDialogComponent', () => {
   });
 
   it('resetState should clear state', () => {
-    component.imageChangedEvent = {} as any;
-    component.croppedImage = 'url' as any;
+    component.imageChangedEvent = {} as Event;
+    component.croppedImage = 'url' as unknown as typeof component.croppedImage;
     component.croppedBlob = new Blob();
     component.hasImageLoaded = true;
     component.isCropperReady = true;
@@ -68,7 +86,9 @@ describe('EditAvatarDialogComponent', () => {
     component.imageCropped(event);
     expect(component.croppedBlob).toBe(blob);
     // sanitized URL has based string
-    const sanitized: any = component.croppedImage;
+    const sanitized = component.croppedImage as {
+      changingThisBreaksApplicationSecurity: string;
+    };
     expect(sanitized.changingThisBreaksApplicationSecurity).toContain('url');
   });
 
@@ -83,7 +103,7 @@ describe('EditAvatarDialogComponent', () => {
   });
 
   it('onLoadImageFailed should set hasLoadFailed to true and alert', () => {
-    vi.spyOn(window, 'alert');
+    vi.spyOn(window, 'alert').mockImplementation(() => {});
     component.onLoadImageFailed();
     expect(component.hasLoadFailed).toBeTruthy();
     expect(window.alert).toHaveBeenCalledWith(
@@ -97,14 +117,37 @@ describe('EditAvatarDialogComponent', () => {
       expect(userServiceMock.uploadAvatar).not.toHaveBeenCalled();
     });
 
-    it('should upload avatar and close dialog on success', async () => {
+    it('should upload avatar and close dialog on success in server mode', async () => {
       const blob = new Blob([''], { type: 'image/png' });
       component.croppedBlob = blob;
       component.fileName = 'test.png';
+      setupServiceMock.getMode.mockReturnValue('server');
       userServiceMock.uploadAvatar.mockReturnValue(of(null));
+
       await component.submit();
+
       expect(userServiceMock.uploadAvatar).toHaveBeenCalledWith(
-        new File([blob], 'test.png', { type: blob.type })
+        expect.any(File)
+      );
+      expect(offlineStorageMock.saveUserAvatar).toHaveBeenCalledWith(
+        'testuser',
+        blob
+      );
+      expect(dialogRefMock.close).toHaveBeenCalledWith(true);
+    });
+
+    it('should save to offline storage only in offline mode', async () => {
+      const blob = new Blob([''], { type: 'image/png' });
+      component.croppedBlob = blob;
+      component.fileName = 'test.png';
+      setupServiceMock.getMode.mockReturnValue('offline');
+
+      await component.submit();
+
+      expect(userServiceMock.uploadAvatar).not.toHaveBeenCalled();
+      expect(offlineStorageMock.saveUserAvatar).toHaveBeenCalledWith(
+        'testuser',
+        blob
       );
       expect(dialogRefMock.close).toHaveBeenCalledWith(true);
     });
@@ -113,11 +156,14 @@ describe('EditAvatarDialogComponent', () => {
       const blob = new Blob([''], { type: 'image/png' });
       component.croppedBlob = blob;
       component.fileName = 'test.png';
+      setupServiceMock.getMode.mockReturnValue('server');
       userServiceMock.uploadAvatar.mockReturnValue(
         throwError(() => new Error('err'))
       );
-      vi.spyOn(window, 'alert');
+      vi.spyOn(window, 'alert').mockImplementation(() => {});
+
       await component.submit();
+
       expect(window.alert).toHaveBeenCalledWith(
         'Failed to upload avatar. Please try again.'
       );

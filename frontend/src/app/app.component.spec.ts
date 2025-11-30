@@ -9,9 +9,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { By } from '@angular/platform-browser';
 import { Event, Router } from '@angular/router';
-import { Configuration, UserAPIService } from '@inkweld/index';
-import { SetupService } from '@services/setup.service';
-import { UnifiedUserService } from '@services/unified-user.service';
+import { Configuration, UsersService } from '@inkweld/index';
+import { SetupService } from '@services/core/setup.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 import { Subject } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 
@@ -70,7 +70,7 @@ describe('AppComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClientTesting(),
-        { provide: UserAPIService, useValue: userServiceMock },
+        { provide: UsersService, useValue: userServiceMock },
         { provide: UnifiedUserService, useValue: unifiedUserService },
         { provide: SetupService, useValue: setupService },
         {
@@ -234,6 +234,80 @@ describe('AppComponent', () => {
       expect(buttons[1]?.nativeElement.textContent.trim()).toBe(
         'Continue Offline'
       );
+    });
+  });
+
+  describe('App Initialization', () => {
+    it('should redirect to setup when app is not configured', async () => {
+      setupService.checkConfiguration.mockReturnValue(false);
+      const router = TestBed.inject(Router);
+
+      // Call ngOnInit which triggers initializeApp
+      component.ngOnInit();
+      await fixture.whenStable();
+
+      expect(router.navigate).toHaveBeenCalledWith(['/setup']);
+    });
+
+    it('should redirect to setup on initialization error', async () => {
+      unifiedUserService.initialize.mockRejectedValue(
+        new Error('Initialization failed')
+      );
+      const router = TestBed.inject(Router);
+
+      // Call ngOnInit which triggers initializeApp
+      component.ngOnInit();
+      await fixture.whenStable();
+
+      expect(router.navigate).toHaveBeenCalledWith(['/setup']);
+    });
+
+    it('should initialize in server mode by default', () => {
+      // The component already initializes during beforeEach with server mode
+      // Since initialization completes without error, verify the component state
+      expect((component as any).offlineMode()).toBe(false);
+    });
+
+    it('should skip user loading on registration pages', async () => {
+      const router = TestBed.inject(Router);
+      Object.defineProperty(router, 'url', {
+        value: '/register',
+        writable: true,
+      });
+
+      component.ngOnInit();
+      await fixture.whenStable();
+
+      // Should not call initialize when on registration page
+      expect(unifiedUserService.initialize).not.toHaveBeenCalled();
+    });
+
+    it('should skip user loading on welcome page', async () => {
+      const router = TestBed.inject(Router);
+      Object.defineProperty(router, 'url', {
+        value: '/welcome',
+        writable: true,
+      });
+
+      component.ngOnInit();
+      await fixture.whenStable();
+
+      // Should not call initialize when on welcome page
+      expect(unifiedUserService.initialize).not.toHaveBeenCalled();
+    });
+
+    it('should skip user loading on approval-pending page', async () => {
+      const router = TestBed.inject(Router);
+      Object.defineProperty(router, 'url', {
+        value: '/approval-pending',
+        writable: true,
+      });
+
+      component.ngOnInit();
+      await fixture.whenStable();
+
+      // Should not call initialize when on approval-pending page
+      expect(unifiedUserService.initialize).not.toHaveBeenCalled();
     });
   });
 });

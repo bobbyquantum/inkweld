@@ -1,0 +1,116 @@
+---
+id: list-user-projects
+title: 'listUserProjects'
+description: 'listUserProjects'
+sidebar_label: 'listUserProjects'
+hide_title: true
+hide_table_of_contents: true
+api: eJylVE1vGjEQ/SuWT61EslB6qLglaVQhoSqKygnlYHYH1onXduxZCFrtf+/M7kL47OcFjD3v8ebNRyVRLaMczeRDcM+QYpRPPek8BIXa2XEmR9LoiNMIYRfRkwGidzYCISv5qd/nrwxiGrRnGIEmBBJuIUoCCv+OTJ1FsMgA5b3RafM/yXNkVCVjmkOh+IQbD8SjQlAbwmmEIu7duzkz0gNxk1rUrRad7cVEDNouKeZQ2tTq1xK2ooTOSI9eaAiy7sloyuUfUDxOrhZBg83M5gIRajTwe6bOVNGG10fPp2hbGqPmzIyhhEts+7fEyUWwqvgLOW5tqW47XM2FW0EYF2p5luXXsu4YKzSDBVnX0AVQCNlX+jjHt3ChUNQlMqOAK9Sk4ZLUhomuBIc22frsP6knipq3pelYa+7511IHyHhYqM26VtkWes/kw+QO9TztGmOrn7hrpv/cH5xO0XeHQpWYc2OlTPIPE3RhUiAEF079Oc60DSPZ8KYK33Z0B5U3VjRH4dK0DAx473t5zy+P3Z7YJnmY3ZnFUgDmjpfOEhrJCnP6kSivk9Ug2dsjBKOe4s1VyTIYCsoR/ShJjEuVyV3E0ZfhcHhaWn6m+ViBcb4gH0XLJGvKUduFayzpchjblzWYTNw8jImI/68lGVz3r/sn1HeOZ8Dx5lxB15Z0WAeN5KzwRiH3HrOJD7el/ch2eVJaqKZy7YQ2rgi2Rez5cn4rILxhQry6nXK2oeo8m1FzaBY9aCu/2+1sDT9X1VxFmAZT13xNGzFs6J6OKxV0O8uzJ6LNQWXkDxv9Ahsue5qC5+qslCmbHX3chuzlrpLf7n9Q+X8C60s5EQ==
+sidebar_class_name: 'get api-method'
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
+
+<Heading
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'listUserProjects'}
+></Heading>
+
+<MethodEndpoint
+  method={'get'}
+  path={'/api/v1/projects'}
+  context={'endpoint'}
+></MethodEndpoint>
+
+listUserProjects
+
+<ParamsDetails parameters={undefined}></ParamsDetails>
+
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{
+    '200': {
+      description: 'List of user projects',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  description: 'Unique project identifier',
+                },
+                slug: {
+                  type: 'string',
+                  description: 'URL-friendly project identifier',
+                },
+                title: { type: 'string', description: 'Project title' },
+                description: {
+                  type: 'string',
+                  nullable: true,
+                  description: 'Project description',
+                },
+                username: {
+                  type: 'string',
+                  description: 'Project owner username',
+                },
+                coverImage: {
+                  type: 'string',
+                  nullable: true,
+                  description: 'Cover image URL',
+                },
+                createdDate: {
+                  type: 'string',
+                  format: 'date-time',
+                  description: 'Project creation date',
+                },
+                updatedDate: {
+                  type: 'string',
+                  format: 'date-time',
+                  description: 'Last update date',
+                },
+              },
+              required: [
+                'id',
+                'slug',
+                'title',
+                'username',
+                'createdDate',
+                'updatedDate',
+              ],
+              title: 'Project',
+            },
+          },
+        },
+      },
+    },
+    '401': {
+      description: 'Not authenticated',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

@@ -8,11 +8,37 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 
 **Inkweld** is a collaborative creative writing platform built with:
 
-- **Frontend**: Angular 19 (standalone components, modern control flow)
+- **Frontend**: Angular 20 (standalone components, modern control flow)
 - **Backend**: NestJS 10 running on Bun
 - **Database**: PostgreSQL or SQLite (TypeORM) + LevelDB (per-project document storage)
 - **Real-time**: Yjs + WebSocket for collaborative editing
 - **Testing**: Jest (unit) + Playwright (e2e)
+
+---
+
+## AI Development Tools
+
+### Model Context Protocol (MCP)
+
+This project is configured with the **Angular CLI MCP Server**, which enables AI assistants to access real-time Angular documentation and best practices directly from angular.dev.
+
+**Configuration**: The MCP server is configured in `.vscode/mcp.json` and provides the following tools:
+
+- `get_best_practices` - Retrieves current Angular coding standards
+- `search_documentation` - Searches angular.dev in real-time
+- `list_projects` - Analyzes workspace structure
+- `find_examples` (experimental) - Searches curated Angular code examples
+- `modernize` (experimental) - Provides migration instructions for upgrading code
+
+**Benefits**:
+- AI assistants have access to up-to-date Angular documentation
+- Reduces reliance on potentially outdated training data
+- Project-aware guidance based on actual workspace structure
+- Official Angular patterns and best practices
+
+**Restart Required**: After MCP configuration changes, restart VS Code or your AI assistant to enable the integration.
+
+For more information, visit: https://angular.dev/ai/mcp
 
 ---
 
@@ -23,9 +49,10 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 - **Test Coverage Required**: Before completing any code change, ensure test coverage exists
 - **All Tests Must Pass**: Run tests before submitting changes
 - **Test Frameworks**:
-  - Frontend: Jest (unit), Playwright (e2e)
-  - Backend: Jest
-  - **Never use Jasmine** - this project uses Jest exclusively
+  - Frontend: Jest (unit), Playwright (e2e) - **USE `npm test` NOT `bun test`**
+  - Backend: Jest - uses Bun runtime
+  - **Never use Jasmine** - this project uses Vitest exclusively
+- **CRITICAL**: Always run frontend tests with `npm test` - Bun's test runner is incompatible with Angular tests
 
 ### 2. Linting & Formatting
 
@@ -44,11 +71,11 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 
 ---
 
-## Frontend Architecture (Angular 19)
+## Frontend Architecture (Angular 20)
 
 ### Technology Stack
 
-- **Framework**: Angular 19 with standalone components
+- **Framework**: Angular 20 with standalone components
 - **Dependency Injection**: Use `inject()` syntax, **NOT constructor injection**
 - **Control Flow**: Use `@if`, `@for`, `@switch` directives (not `*ngIf`, `*ngFor`, `*ngSwitch`)
 - **Modules**: Everything is standalone - no NgModules
@@ -359,7 +386,7 @@ cd server && bun run generate:angular-client
 
 ### Before Submitting Changes
 
-1. ✅ All tests pass (`npm test` in both frontend and server)
+1. ✅ All tests pass (`npm test` in both frontend and backend)
 2. ✅ Linting passes (`npm run lint`)
 3. ✅ Code is properly formatted
 4. ✅ New features have test coverage
@@ -381,9 +408,9 @@ cd server && bun run generate:angular-client
 - **Getting Started**: [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
 - **CI/CD Pipeline**: [docs/CI_CD.md](docs/CI_CD.md)
 - **E2E Testing**: [frontend/e2e/BEST_PRACTICES.md](frontend/e2e/BEST_PRACTICES.md)
-- **Admin CLI**: [server/ADMIN_CLI.md](server/ADMIN_CLI.md)
-- **API Documentation**: <http://localhost:8333/api> (when server is running)
-- **OpenAPI Spec**: [server/openapi.json](server/openapi.json)
+- **Admin CLI**: [backend/ADMIN_CLI.md](backend/ADMIN_CLI.md)
+- **API Documentation**: <http://localhost:8333/api> (served by the Hono backend)
+- **OpenAPI Spec**: [backend/openapi.json](backend/openapi.json)
 
 ---
 

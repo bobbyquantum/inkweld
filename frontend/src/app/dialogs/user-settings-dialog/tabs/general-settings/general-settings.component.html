@@ -7,39 +7,3 @@
     <mat-option value="dark-theme">Dark</mat-option>
   </mat-select>
 </mat-form-field>
-
-<!-- Avatar Section -->
-<div class="avatar-section">
-  <h3>Profile Avatar</h3>
-  <div class="avatar-container">
-    @if (avatarUrl) {
-      <img [src]="avatarUrl" alt="User avatar" class="avatar-preview" />
-    }
-    @if (!avatarUrl) {
-      <div class="avatar-placeholder">
-        <mat-icon>account_circle</mat-icon>
-      </div>
-    }
-  </div>
-  <div class="avatar-actions">
-    <button
-      mat-stroked-button
-      (click)="fileInput.click()"
-      [disabled]="isUploadingAvatar">
-      <mat-icon>upload</mat-icon>
-      {{ isUploadingAvatar ? 'Uploading...' : 'Upload Avatar' }}
-    </button>
-    @if (avatarUrl) {
-      <button mat-stroked-button color="warn" (click)="deleteAvatar()">
-        <mat-icon>delete</mat-icon>
-        Remove Avatar
-      </button>
-    }
-    <input
-      #fileInput
-      type="file"
-      (change)="onFileSelected($event)"
-      accept="image/*"
-      style="display: none" />
-  </div>
-</div>

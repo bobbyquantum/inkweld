@@ -9,45 +9,39 @@ import {
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterModule } from '@angular/router';
-import { BookshelfComponent } from '@components/bookshelf/bookshelf.component';
+import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { SideNavComponent } from '@components/side-nav/side-nav.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
-import { ProjectDto } from '@inkweld/index';
-import { ProjectServiceError } from '@services/project.service';
-import { UnifiedProjectService } from '@services/unified-project.service';
-import { UnifiedUserService } from '@services/unified-user.service';
+import { Project } from '@inkweld/index';
+import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { ProjectServiceError } from '@services/project/project.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 import { Subject } from 'rxjs';
 import { debounceTime, takeUntil } from 'rxjs/operators';
 
-type ViewMode = 'tiles' | 'bookshelf' | 'list';
-
 @Component({
   selector: 'app-home',
+  standalone: true,
   imports: [
-    UserMenuComponent,
-    BookshelfComponent,
-    SideNavComponent,
-    MatToolbarModule,
-    MatIconModule,
     MatButtonModule,
-    MatButtonToggleModule,
-    MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
-    RouterModule,
-    MatDialogModule,
+    MatFormFieldModule,
     MatProgressSpinnerModule,
     ReactiveFormsModule,
+    RouterModule,
+    ProjectCardComponent,
+    UserMenuComponent,
+    SideNavComponent,
   ],
   templateUrl: './home.component.html',
-  styleUrls: ['./home.component.scss'],
+  styleUrl: './home.component.scss',
 })
 export class HomeComponent implements OnInit, OnDestroy {
   dialog = inject(MatDialog);
@@ -58,12 +52,11 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   // Component state
   loadError = false;
-  selectedProject: ProjectDto | null = null;
+  selectedProject: Project | null = null;
   isMobile = false;
   searchControl = new FormControl('');
   sideNavOpen = signal(true); // Open by default on desktop
   mobileSearchActive = signal(false); // Track mobile search mode
-  viewMode = signal<ViewMode>('bookshelf'); // Default to bookshelf view
 
   protected user = this.userService.currentUser;
   protected isLoading = this.projectService.isLoading;
@@ -105,6 +98,14 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   async loadProjects() {
+    // If we already have projects and are initialized, skip loading
+    if (
+      this.projectService.initialized() &&
+      this.projectService.projects().length > 0
+    ) {
+      return;
+    }
+
     // Only load projects if user is authenticated
     if (!this.isAuthenticated()) {
       return;
@@ -159,31 +160,15 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
-  setViewMode(mode: ViewMode): void {
-    this.viewMode.set(mode);
-  }
-
-  getCoverUrl(project: ProjectDto): string {
-    const baseUrl =
-      window.location.hostname === 'localhost'
-        ? 'http://localhost:8333'
-        : window.location.origin;
-    return `${baseUrl}/api/v1/projects/${project.username}/${project.slug}/cover`;
-  }
-
-  selectProject(project: ProjectDto) {
-    // Add logging to debug project navigation
+  selectProject(project: Project) {
     console.log('[HomeComponent] selectProject called with:', {
       project: {
         username: project.username,
         slug: project.slug,
         title: project.title,
       },
-      fullProject: project,
     });
 
-    // Force complete route reload by using onSameUrlNavigation: 'reload' option
-    // and ensuring we're navigating with a unique navigationId
     void this.router.navigate([project.username || '', project.slug || ''], {
       onSameUrlNavigation: 'reload',
       skipLocationChange: false,

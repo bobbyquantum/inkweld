@@ -17,8 +17,8 @@ RUN apt-get update && \
 # Set deployment-specific environment variables
 ENV NODE_ENV=production
 ENV DB_TYPE=sqlite
-ENV DB_PATH=/tmp/sqlite.db
-ENV DATA_PATH=/tmp
+ENV DB_PATH=/data/sqlite.db
+ENV DATA_PATH=/data/yjs
 ENV DB_LOGGING=false
 ENV PORT=8333
 ENV HOST=0.0.0.0
@@ -26,21 +26,20 @@ ENV HOST=0.0.0.0
 ENV SESSION_SECRET=your-secure-session-secret-change-this
 ENV ALLOWED_ORIGINS=https://inkweld.onrender.com
 
-# Create necessary directories with proper permissions in tmp
-RUN mkdir -p /tmp/yjs && \
-    chown -R bun:bun /tmp/yjs
+# Create necessary directories with proper permissions
+RUN mkdir -p /data/yjs && \
+    chown -R bun:bun /data
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8333/health || exit 1
 
 # Volume for persistent data (though /tmp will be used for transient deployment)
-VOLUME ["/tmp"]
+VOLUME ["/data"]
 
 # Expose port
 EXPOSE 8333
 
-# Change to server directory before running to ensure relative paths work correctly
-WORKDIR /app/server
+WORKDIR /app
 # Start the application
-CMD ["bun", "dist/src/main.js"] 
+CMD ["bun", "dist/bun-runner.js"]

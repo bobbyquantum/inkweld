@@ -4,8 +4,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 
 import { FileSizePipe } from '../../pipes/file-size.pipe';
-import { DialogGatewayService } from '../../services/dialog-gateway.service';
-import { ProjectFile } from '../../services/project-file.service';
+import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
+import { ProjectFile } from '../../services/project/project-file.service';
 
 @Component({
   selector: 'app-file-list',

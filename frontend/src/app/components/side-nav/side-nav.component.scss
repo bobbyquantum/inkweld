@@ -1,23 +1,64 @@
+// Dark mode variables (default)
+:host {
+  --nav-bg: rgba(18, 18, 18, 0.65);
+  --nav-border: rgba(255, 255, 255, 0.1);
+  --nav-text: rgba(255, 255, 255, 0.9);
+  --nav-text-hover: rgba(255, 255, 255, 1);
+  --nav-text-secondary: rgba(255, 255, 255, 0.7);
+  --nav-text-muted: rgba(255, 255, 255, 0.5);
+  --nav-hover-bg: rgba(255, 255, 255, 0.08);
+  --nav-tile-bg: rgba(255, 255, 255, 0.05);
+  --nav-tile-hover-bg: rgba(255, 255, 255, 0.12);
+  --nav-active-bg: rgba(63, 81, 181, 0.2);
+  --nav-active-border: rgba(63, 81, 181, 0.4);
+  --nav-active-text: #6e8be8;
+  --nav-scrollbar-thumb: rgba(255, 255, 255, 0.2);
+  --nav-scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
+  --placeholder-gradient-start: #3a3a3a;
+  --placeholder-gradient-end: #2a2a2a;
+}
+
+// Light mode overrides - use semi-transparent white for glass effect
+:host-context(body:not(.dark-theme)) {
+  --nav-bg: rgba(255, 255, 255, 0.7);
+  --nav-border: rgba(0, 0, 0, 0.1);
+  --nav-text: rgba(0, 0, 0, 0.87);
+  --nav-text-hover: rgba(0, 0, 0, 1);
+  --nav-text-secondary: rgba(0, 0, 0, 0.6);
+  --nav-text-muted: rgba(0, 0, 0, 0.54);
+  --nav-hover-bg: rgba(0, 0, 0, 0.04);
+  --nav-tile-bg: rgba(0, 0, 0, 0.03);
+  --nav-tile-hover-bg: rgba(0, 0, 0, 0.08);
+  --nav-active-bg: rgba(63, 81, 181, 0.15);
+  --nav-active-border: rgba(63, 81, 181, 0.3);
+  --nav-active-text: #3f51b5;
+  --nav-scrollbar-thumb: rgba(0, 0, 0, 0.2);
+  --nav-scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
+  --placeholder-gradient-start: #e0e0e0;
+  --placeholder-gradient-end: #f5f5f5;
+}
+
 .side-nav-container {
   height: 100%;
   position: relative;
-  z-index: 10; // Above bookshelf content
+  z-index: 10;
 
   &.mobile {
     .side-nav {
       position: fixed;
       left: 0;
-      top: 56px; // Below header
+      top: 56px;
       bottom: 0;
-      z-index: 99; // High z-index for mobile overlay
-      background-color: rgb(18, 18, 18); // Solid background for mobile too
-      transform: translateX(-100%); // Hidden by default
+      z-index: 99;
+      background-color: var(--nav-bg);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      backdrop-filter: blur(20px) saturate(180%);
+      transform: translateX(-100%);
       transition: transform 0.3s ease;
 
-      // Show when isOpen is true (which removes collapsed class)
       &:not(.collapsed) {
         transform: translateX(0);
-        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+        box-shadow: 2px 0 16px rgba(0, 0, 0, 0.25);
       }
     }
   }
@@ -25,55 +66,47 @@
 
 .side-nav {
   height: 100%;
-  width: 240px;
-  background-color: rgb(18, 18, 18); // Solid background instead of rgba
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  width: 260px;
+  background-color: var(--nav-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-right: 1px solid var(--nav-border);
   transition: width 0.3s ease;
-  overflow-y: auto; // Allow scrolling if needed
+  overflow-y: auto;
   overflow-x: hidden;
-  z-index: 10; // Above bookshelf content
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
 
-  &.collapsed {
-    width: 72px;
-
-    .nav-item {
-      justify-content: center;
-      padding: 0 16px;
-
-      span {
-        display: none;
-      }
-    }
-  }
-
-  mat-nav-list {
-    padding-top: 16px; // More space at top to prevent clipping
+  .nav-items {
+    padding-top: 16px;
+    flex-shrink: 0;
   }
 
   .nav-item {
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--nav-text);
     border-radius: 8px;
-    margin: 4px 8px;
-    padding: 12px 16px;
+    margin: 4px 12px;
+    padding: 10px 14px;
     height: auto;
-    min-height: 48px;
+    min-height: 44px;
     transition: all 0.2s ease;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 14px;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.08);
-      color: rgba(255, 255, 255, 1);
+      background-color: var(--nav-hover-bg);
+      color: var(--nav-text-hover);
     }
 
     &.active {
-      background-color: rgba(63, 81, 181, 0.2);
-      color: #3f51b5;
+      background-color: var(--nav-active-bg);
+      color: var(--nav-active-text);
 
       mat-icon {
-        color: #3f51b5;
+        color: var(--nav-active-text);
       }
     }
 
@@ -86,6 +119,158 @@
       font-size: 14px;
       font-weight: 500;
       white-space: nowrap;
+    }
+  }
+}
+
+.projects-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: 4px;
+  border-top: 1px solid var(--nav-border);
+  padding-top: 4px;
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    color: var(--nav-text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    mat-icon {
+      font-size: 16px;
+      height: 16px;
+      width: 16px;
+    }
+  }
+
+  .project-tiles {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--nav-scrollbar-thumb);
+      border-radius: 3px;
+
+      &:hover {
+        background-color: var(--nav-scrollbar-thumb-hover);
+      }
+    }
+  }
+
+  .project-tile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: var(--nav-tile-bg);
+
+    &:hover {
+      background-color: var(--nav-tile-hover-bg);
+
+      .tile-cover {
+        transform: scale(1.05);
+      }
+    }
+
+    &:focus {
+      outline: 2px solid rgba(63, 81, 181, 0.5);
+      outline-offset: 2px;
+    }
+
+    &.selected {
+      background-color: var(--nav-active-bg);
+      border: 1px solid var(--nav-active-border);
+
+      .tile-title {
+        color: var(--nav-active-text);
+      }
+    }
+
+    .tile-cover {
+      flex-shrink: 0;
+      width: 36px;
+      height: 48px;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s ease;
+
+      app-project-cover {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      ::ng-deep .cover-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      ::ng-deep .placeholder-cover {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(
+          135deg,
+          var(--placeholder-gradient-start) 0%,
+          var(--placeholder-gradient-end) 100%
+        );
+        font-size: 16px;
+        color: var(--nav-text-muted);
+      }
+    }
+
+    .tile-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .tile-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--nav-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.3;
+    }
+
+    .tile-author {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--nav-text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.2;
     }
   }
 }
