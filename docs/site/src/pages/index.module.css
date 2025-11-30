@@ -1,0 +1,125 @@
+/**
+ * CSS files with the .module.css suffix will be treated as CSS modules
+ * and scoped locally.
+ */
+
+.heroBanner {
+  padding: 6rem 0 4rem;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%);
+}
+
+@media screen and (max-width: 996px) {
+  .heroBanner {
+    padding: 3rem 1rem;
+  }
+}
+
+.heroContent {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+@media screen and (max-width: 996px) {
+  .heroContent {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+.heroText {
+  text-align: left;
+}
+
+@media screen and (max-width: 996px) {
+  .heroText {
+    text-align: center;
+  }
+}
+
+.heroSubtitle {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  margin: 1.5rem 0 2rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+@media screen and (max-width: 996px) {
+  .buttons {
+    justify-content: center;
+  }
+}
+
+.heroMeta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+@media screen and (max-width: 996px) {
+  .heroMeta {
+    justify-content: center;
+  }
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-radius: 2rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: white;
+}
+
+.heroImage {
+  position: relative;
+}
+
+@media screen and (max-width: 996px) {
+  .heroImage {
+    order: -1;
+  }
+}
+
+.screenshot {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Show light screenshot in light mode, hide in dark mode */
+.screenshotLight {
+  display: block !important;
+}
+
+html[data-theme='dark'] .screenshotLight {
+  display: none !important;
+}
+
+/* Hide dark screenshot in light mode, show in dark mode */
+.screenshotDark {
+  display: none !important;
+}
+
+html[data-theme='dark'] .screenshotDark {
+  display: block !important;
+}

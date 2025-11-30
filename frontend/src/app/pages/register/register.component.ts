@@ -7,12 +7,10 @@ import {
 } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { KeyValuePipe } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import {
-  AfterViewInit,
   ChangeDetectorRef,
   Component,
-  effect,
   ElementRef,
   inject,
   OnDestroy,
@@ -41,11 +39,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
 import { OAuthProviderListComponent } from '@components/oauth-provider-list/oauth-provider-list.component';
-import { UserAPIService, UserRegisterDto } from '@inkweld/index';
-import { RecaptchaService } from '@services/recaptcha.service';
-import { SystemConfigService } from '@services/system-config.service';
-import { UserService } from '@services/user.service';
-import { XsrfService } from '@services/xsrf.service';
+import {
+  AuthenticationService,
+  UsernameAvailability,
+  UsersService,
+} from '@inkweld/index';
+import { XsrfService } from '@services/auth/xsrf.service';
+import { SystemConfigService } from '@services/core/system-config.service';
+import { UserService } from '@services/user/user.service';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 
 @Component({
@@ -68,22 +69,20 @@ import { firstValueFrom, Subject, takeUntil } from 'rxjs';
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss',
 })
-export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
-  private userService = inject(UserAPIService);
+export class RegisterComponent implements OnInit, OnDestroy {
+  private httpClient = inject(HttpClient);
+  private usersApiService = inject(UsersService);
+  private authService = inject(AuthenticationService);
+  private userService = inject(UserService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private xsrfService = inject(XsrfService);
-  private authService = inject(UserService);
   private fb = inject(FormBuilder);
   private systemConfigService = inject(SystemConfigService);
-  private recaptchaService = inject(RecaptchaService);
   private overlay = inject(Overlay);
   private overlayPositionBuilder = inject(OverlayPositionBuilder);
   private viewContainerRef = inject(ViewContainerRef);
   private changeDetectorRef = inject(ChangeDetectorRef);
-
-  @ViewChild('recaptchaElement', { static: false })
-  recaptchaElement?: ElementRef<HTMLDivElement>;
 
   @ViewChild('passwordField', { static: false, read: ElementRef })
   passwordField?: ElementRef<HTMLInputElement>;
@@ -98,12 +97,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
   usernameSuggestions: string[] | undefined = [];
   usernameAvailability: 'available' | 'unavailable' | 'unknown' = 'unknown';
   serverValidationErrors: { [key: string]: string[] } = {};
-
-  // Captcha-related properties
-  captchaWidgetId?: number;
-  captchaToken?: string;
-  captchaError = false;
-  captchaLoading = false;
+  providersLoaded = false;
 
   // Password focus state for showing requirements callout
   isPasswordFocused = false;
@@ -134,32 +128,7 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private destroy$ = new Subject<void>();
 
-  constructor() {
-    // React to system config changes - this will trigger when config loads
-    effect(() => {
-      const isEnabled = this.systemConfigService.isCaptchaEnabled();
-      const isLoaded = this.systemConfigService.isConfigLoaded();
-
-      // Only try to initialize captcha if config is loaded, captcha is enabled, and we haven't already initialized
-      if (isLoaded && isEnabled && !this.captchaWidgetId) {
-        // Use setTimeout to allow Angular to update the DOM first
-        setTimeout(() => {
-          if (this.recaptchaElement) {
-            this.initializeCaptcha();
-          }
-        }, 0);
-      }
-    });
-  }
-
-  // Computed properties for captcha
-  get isCaptchaEnabled() {
-    return this.systemConfigService.isCaptchaEnabled();
-  }
-
-  get captchaSiteKey() {
-    return this.systemConfigService.captchaSiteKey();
-  }
+  constructor() {}
 
   get usernameControl() {
     return this.registerForm.get('username');
@@ -209,11 +178,6 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       .subscribe((password: string) => {
         this.updatePasswordRequirements(password);
       });
-
-    // Initialize captcha loading state if captcha is enabled
-    if (this.isCaptchaEnabled) {
-      this.captchaLoading = true;
-    }
   }
 
   ngOnDestroy(): void {
@@ -316,45 +280,62 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  // Handle providers loaded event
+  onProvidersLoaded(): void {
+    // Wrap in setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.providersLoaded = true;
+    });
+  }
+
   // Check if username is available
   async checkUsernameAvailability(): Promise<void> {
     const username = this.registerForm.get('username')?.value as string;
 
     if (!username || username.length < 3) {
-      this.usernameAvailability = 'unknown';
-      this.usernameSuggestions = [];
+      setTimeout(() => {
+        this.usernameAvailability = 'unknown';
+        this.usernameSuggestions = [];
+      });
       return;
     }
 
     try {
+      // Note: API client doesn't support username query parameter, so we call HttpClient directly
       const response = await firstValueFrom(
-        this.userService.userControllerCheckUsernameAvailability(username)
+        this.httpClient.get<UsernameAvailability>(
+          `/api/v1/users/check-username?username=${encodeURIComponent(username)}`
+        )
       );
 
-      if (response.available) {
-        this.usernameAvailability = 'available';
-        this.usernameSuggestions = [];
-        this.registerForm.get('username')?.setErrors(null);
-      } else {
-        this.usernameAvailability = 'unavailable';
-        this.usernameSuggestions = response.suggestions || [];
-        // Set error on the form control to trigger Material's error state
-        this.registerForm.get('username')?.setErrors({ usernameTaken: true });
-      }
+      setTimeout(() => {
+        if (response.available) {
+          this.usernameAvailability = 'available';
+          this.usernameSuggestions = [];
+          this.registerForm.get('username')?.setErrors(null);
+        } else {
+          this.usernameAvailability = 'unavailable';
+          this.usernameSuggestions = response.suggestions || [];
+          // Set error on the form control to trigger Material's error state
+          this.registerForm.get('username')?.setErrors({ usernameTaken: true });
+        }
+      });
     } catch (error: unknown) {
-      this.usernameAvailability = 'unknown';
-      this.usernameSuggestions = [];
-      if (error instanceof HttpErrorResponse) {
-        this.snackBar.open(
-          `Error checking username: ${error.message}`,
-          'Close',
-          { duration: 3000 }
-        );
-      } else {
-        this.snackBar.open('Error checking username availability', 'Close', {
-          duration: 3000,
-        });
-      }
+      setTimeout(() => {
+        this.usernameAvailability = 'unknown';
+        this.usernameSuggestions = [];
+        if (error instanceof HttpErrorResponse) {
+          this.snackBar.open(
+            `Error checking username: ${error.message}`,
+            'Close',
+            { duration: 3000 }
+          );
+        } else {
+          this.snackBar.open('Error checking username availability', 'Close', {
+            duration: 3000,
+          });
+        }
+      });
     }
   }
 
@@ -411,7 +392,6 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
   async onRegister(): Promise<void> {
     // Clear any previous server validation errors
     this.serverValidationErrors = {};
-    this.captchaError = false;
 
     // Mark all fields as touched to trigger validation display
     this.registerForm.markAllAsTouched();
@@ -426,22 +406,9 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    // Check captcha if enabled
-    if (this.isCaptchaEnabled) {
-      this.captchaToken = this.recaptchaService.getResponse(
-        this.captchaWidgetId
-      );
-      if (!this.captchaToken) {
-        this.captchaError = true;
-        this.snackBar.open(
-          'Please complete the captcha verification',
-          'Close',
-          {
-            duration: 3000,
-          }
-        );
-        return;
-      }
+    // Ensure providers are loaded before allowing registration
+    if (!this.providersLoaded) {
+      return;
     }
 
     // Set loading state
@@ -454,35 +421,35 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
         confirmPassword: string;
       };
 
-      const registerRequest: UserRegisterDto = {
+      const registerRequest = {
         username: formValues.username,
         password: formValues.password,
-        captchaToken: this.captchaToken,
       };
 
       const response = await firstValueFrom(
-        this.userService.userControllerRegister(
-          this.xsrfService.getXsrfToken(),
-          registerRequest
-        )
+        this.authService.registerUser(registerRequest)
       );
 
       // Check if approval is required
       if (response.requiresApproval) {
-        // Clear any cached user to prevent automatic authentication attempts
-        await this.authService.clearCurrentUser();
-
         // Redirect to dedicated pending approval page
         void this.router.navigate(['/approval-pending'], {
           queryParams: {
-            username: response.username,
-            name: response.name,
-            userId: response.userId,
+            username: response.user.username,
+            name: response.user.name || response.user.username,
+            userId: response.user.id,
           },
         });
       } else {
-        // Automatically log in after successful registration
-        await this.authService.loadCurrentUser();
+        // Store authentication token for subsequent requests
+        if (response.token) {
+          localStorage.setItem('auth_token', response.token);
+        }
+
+        // Set the user in the user service so isAuthenticated() returns true
+        if (response.user) {
+          await this.userService.setCurrentUser(response.user);
+        }
 
         this.snackBar.open('Registration successful!', 'Close', {
           duration: 3000,
@@ -490,12 +457,6 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
         void this.router.navigate(['/']);
       }
     } catch (error: unknown) {
-      // Reset captcha on error
-      if (this.isCaptchaEnabled && this.captchaWidgetId !== undefined) {
-        this.recaptchaService.reset(this.captchaWidgetId);
-        this.captchaToken = undefined;
-      }
-
       if (error instanceof HttpErrorResponse) {
         // Handle validation errors from the server
         if (
@@ -608,36 +569,5 @@ export class RegisterComponent implements OnInit, OnDestroy, AfterViewInit {
     this.snackBar.open('Please fix the validation errors', 'Close', {
       duration: 5000,
     });
-  }
-
-  ngAfterViewInit(): void {
-    // Try to initialize captcha if everything is ready
-    if (
-      this.systemConfigService.isConfigLoaded() &&
-      this.isCaptchaEnabled &&
-      this.recaptchaElement &&
-      !this.captchaWidgetId
-    ) {
-      this.initializeCaptcha();
-    }
-  }
-
-  private initializeCaptcha(): void {
-    if (!this.recaptchaElement || this.captchaWidgetId) {
-      return;
-    }
-
-    this.captchaLoading = true;
-
-    void this.recaptchaService
-      .render(this.recaptchaElement.nativeElement, this.captchaSiteKey)
-      .then(widgetId => {
-        this.captchaWidgetId = widgetId;
-        this.captchaLoading = false;
-      })
-      .catch(error => {
-        console.error('[RegisterComponent] Failed to render reCAPTCHA:', error);
-        this.captchaLoading = false;
-      });
   }
 }

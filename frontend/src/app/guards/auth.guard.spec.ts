@@ -11,9 +11,9 @@ import {
   RouterStateSnapshot,
   UrlTree,
 } from '@angular/router';
-import { UserDto } from '@inkweld/index';
-import { SetupService } from '@services/setup.service';
-import { UnifiedUserService } from '@services/unified-user.service';
+import { User } from '@inkweld/index';
+import { SetupService } from '@services/core/setup.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 import { Mock, vi } from 'vitest';
 
 import { authGuard } from './auth.guard';
@@ -22,14 +22,14 @@ describe('authGuard', () => {
   let router: Router;
   let setupService: SetupService;
   let unifiedUserService: UnifiedUserService;
-  let mockCurrentUser: WritableSignal<UserDto | undefined>;
+  let mockCurrentUser: WritableSignal<User | undefined>;
   let mockIsAuthenticated: WritableSignal<boolean>;
 
   const executeGuard: CanActivateFn = (...args) =>
     TestBed.runInInjectionContext(() => authGuard(...args));
 
   beforeEach(() => {
-    mockCurrentUser = signal<UserDto | undefined>(undefined);
+    mockCurrentUser = signal<User | undefined>(undefined);
     mockIsAuthenticated = signal<boolean>(false);
 
     // Create mock services
@@ -100,9 +100,11 @@ describe('authGuard', () => {
   });
 
   it('should allow access when user is authenticated in server mode', async () => {
-    const user: UserDto = {
+    const user: User = {
       username: 'test',
       name: 'Test User',
+      id: 'test-id',
+      enabled: true,
     };
     mockCurrentUser.set(user);
     mockIsAuthenticated.set(true);
@@ -158,5 +160,35 @@ describe('authGuard', () => {
     );
     expect(result).toBe(welcomeUrlTree);
     expect(router.createUrlTree).toHaveBeenCalledWith(['/welcome']);
+  });
+
+  it('should redirect to welcome when user is not authenticated after initialization in server mode', async () => {
+    mockCurrentUser.set(undefined);
+    (unifiedUserService.hasCachedUser as Mock).mockResolvedValue(true);
+    (unifiedUserService.initialize as Mock).mockResolvedValue(undefined);
+    mockIsAuthenticated.set(false); // Not authenticated after initialization
+
+    const welcomeUrlTree = new UrlTree();
+    (router.createUrlTree as Mock).mockReturnValue(welcomeUrlTree);
+
+    const result = await executeGuard(
+      {} as ActivatedRouteSnapshot,
+      {} as RouterStateSnapshot
+    );
+    expect(result).toBe(welcomeUrlTree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/welcome']);
+  });
+
+  it('should redirect to setup when mode is null', async () => {
+    (setupService.getMode as Mock).mockReturnValue(null);
+    const setupUrlTree = new UrlTree();
+    (router.createUrlTree as Mock).mockReturnValue(setupUrlTree);
+
+    const result = await executeGuard(
+      {} as ActivatedRouteSnapshot,
+      {} as RouterStateSnapshot
+    );
+    expect(result).toBe(setupUrlTree);
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/setup']);
   });
 });

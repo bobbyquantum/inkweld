@@ -29,14 +29,14 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { Router } from '@angular/router';
-import { ProjectElementDto } from '@inkweld/index';
-import { ProjectStateService } from '@services/project-state.service';
-import { SettingsService } from '@services/settings.service';
+import { Element, ElementType } from '@inkweld/index';
+import { SettingsService } from '@services/core/settings.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 
 import { ProjectElement } from '../../models/project-element';
-import { isWorldbuildingType } from '../../models/worldbuilding-schemas';
-import { DialogGatewayService } from '../../services/dialog-gateway.service';
-import { LoggerService } from '../../services/logger.service';
+import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
+import { LoggerService } from '../../services/core/logger.service';
+import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
 
 /**
@@ -130,7 +130,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
   private recentTouchNodeId: string | null = null;
   private touchTimeout: number | null = null;
 
-  @Output() documentOpened = new EventEmitter<ProjectElementDto>();
+  @Output() documentOpened = new EventEmitter<Element>();
 
   constructor() {
     this.dataSource = new ArrayDataSource<ProjectElement>([]);
@@ -411,7 +411,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
       this.currentDropLevel
     );
 
-    this.projectStateService.moveElement(
+    void this.projectStateService.moveElement(
       node.id,
       insertIndex,
       this.currentDropLevel
@@ -432,7 +432,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     });
 
     if (newName) {
-      this.projectStateService.renameNode(node, newName);
+      void this.projectStateService.renameNode(node, newName);
     }
   }
 
@@ -452,7 +452,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     if (result) {
       // Close any open editor tab for this file before deleting
       this.projectStateService.closeTabByElementId(node.id);
-      this.projectStateService.deleteElement(node.id);
+      void this.projectStateService.deleteElement(node.id);
     }
   }
 
@@ -480,13 +480,14 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
    * @param node The node to open.
    */
   public onOpenDocument(node: ProjectElement) {
-    // Convert ProjectElement back to ProjectElementDto
-    const dto: ProjectElementDto = {
+    // Convert ProjectElement back to Element
+    const dto: Element = {
       id: node.id ?? '',
       name: node.name,
       type: node.type,
+      parentId: null, // TODO: Get actual parentId from node if available
       level: node.level,
-      position: node.position,
+      order: node.order,
       version: 0,
       expandable: node.expandable || false,
       metadata: {},
@@ -498,7 +499,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     const project = this.projectStateService.project();
     if (project?.username && project?.slug) {
       let typeRoute: string;
-      if (dto.type === 'FOLDER') {
+      if (dto.type === ElementType.Folder) {
         typeRoute = 'folder';
       } else if (isWorldbuildingType(dto.type)) {
         typeRoute = 'worldbuilding';

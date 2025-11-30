@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "🚀 Start Frontend",
+      "label": "Dev Frontend",
       "type": "shell",
       "command": "cd frontend && bun run start",
       "isBackground": true,
@@ -14,12 +14,16 @@
           "beginsPattern": "Application bundle generation complete",
           "endsPattern": "Watch mode enabled. Watching for file changes..."
         }
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
       }
     },
     {
-      "label": "🚀 Start Backend",
+      "label": "Dev Backend",
       "type": "shell",
-      "command": "cd server && bun run start:dev",
+      "command": "cd backend && bun run dev",
       "isBackground": true,
       "problemMatcher": {
         "owner": "typescript",
@@ -27,70 +31,132 @@
         "background": {
           "activeOnStart": true,
           "beginsPattern": ".",
-          "endsPattern": "Nest application successfully started"
+          "endsPattern": "Ready on"
         }
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
       }
     },
     {
-      "label": "🧪 Test Backend",
+      "label": "Dev Docs",
       "type": "shell",
-      "command": "bun run test -- --coverage-reporter=lcov",
-      "options": {
-        "cwd": "${workspaceFolder}/server"
-      },
+      "command": "cd docs/site && npm start",
+      "isBackground": true,
       "problemMatcher": {
-        "owner": "bun",
-        "fileLocation": ["relative", "${workspaceFolder}"],
-        "pattern": [
-          {
-            // Match the test file header: "example.test.js:"
-            "regexp": "^(.+\\.test\\.(?:js|ts|jsx|tsx)):",
-            "file": 1
-          },
-          {
-            // Match failing test lines prefixed with ✕
-            "regexp": "^✕ (.+) \\[(\\d+\\.\\d+ms)\\]$",
-            "message": 1,
-            "severity": 1
-          },
-          {
-            // Match passing test lines (optional)
-            "regexp": "^✓ (.+) \\[(\\d+\\.\\d+ms)\\]$",
-            "message": 1
-          },
-          {
-            // Capture stack trace locations: "at src/foo.test.ts:10:5"
-            "regexp": "^\\s*at (.+):(\\d+):(\\d+)",
-            "file": 1,
-            "line": 2,
-            "column": 3
-          }
-        ]
+        "owner": "typescript",
+        "pattern": "$tsc",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Docusaurus website is running"
+        }
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": false
       }
     },
     {
-      "label": "Lint Backend",
+      "label": "Test Frontend",
       "type": "shell",
-      "command": "bun run lint",
-      "options": {
-        "cwd": "${workspaceFolder}/server"
-      },
-      "problemMatcher": "$eslint-stylish"
-    },
-    {
-      "label": "Lint Frontend",
-      "type": "shell",
-      "command": "bun run lint:fix",
+      "command": "npm test",
       "options": {
         "cwd": "${workspaceFolder}/frontend"
       },
-      "problemMatcher": "$eslint-stylish"
+      "problemMatcher": {
+        "owner": "jest",
+        "fileLocation": ["relative", "${workspaceFolder}/frontend"],
+        "pattern": {
+          "regexp": "^\\s*●\\s+(.*)$",
+          "message": 1
+        }
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      }
     },
     {
-      "label": "Lint All",
-      "dependsOn": ["Lint Backend", "Lint Frontend"],
-      "dependsOrder": "sequence",
-      "problemMatcher": ["$eslint-stylish"]
+      "label": "Test Backend",
+      "type": "shell",
+      "command": "bun test",
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": {
+        "owner": "bun",
+        "fileLocation": ["relative", "${workspaceFolder}/backend"],
+        "pattern": {
+          "regexp": "^(.+\\.test\\.(?:js|ts|jsx|tsx)):(\\d+):(\\d+): (.+)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "message": 4
+        }
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      }
+    },
+    {
+      "label": "Lint Fix All",
+      "type": "shell",
+      "command": "cd frontend && npm run lint:fix && cd ../backend && bun run lint:fix && cd ../docs/site && npm run format",
+      "problemMatcher": "$eslint-stylish",
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      }
+    },
+    {
+      "label": "Coverage Frontend",
+      "type": "shell",
+      "command": "npm test",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Coverage Backend",
+      "type": "shell",
+      "command": "bun test --coverage",
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Coverage All",
+      "dependsOn": ["Coverage Frontend", "Coverage Backend"],
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      }
     }
   ]
 }

@@ -1,0 +1,239 @@
+---
+id: lint-paragraph
+title: 'lintParagraph'
+description: 'lintParagraph'
+sidebar_label: 'lintParagraph'
+hide_title: true
+hide_table_of_contents: true
+api: eJzdV01v4zgM/SuCTrtANkm33cVubp2ihwDFbNF2TsWgYGzW1tSWPJKcNgjy35eUHMcfaXqYOU1RtIklPZLvUSS9lR4yJxeP8kZpr3Qmv06kqdCCV0YvU7mQBS3cgoXMQpXLibT4vUbnP5l0IxdbmRjtUXv+CFVVqCScnH1zRvMzl+RYAn/ymwoJzqy+YeIJp7Jsxyt0vFq1Fg5bnbfs0USW8HaDOvO0eDH/9++JxDcoq4L3POTKCfoF4cIj4fHNT+lMii6xqmJnwjYUrYmwR3gjVijIveQFU7mbkLkNQ47NH6xBAimWKjmK/2oVMygCDsMHbAEZKO08WyhwjcVRC7ouWYTCvHK4mCr6PpG5ynIW5OBAuzQ2H8CFeRZFVFIweuI1Oid3u6ibshQq2ak6esaw986RNa98sMUZcRfFJoAI4SqjXVTsz/mc//Ud4TOCttWFd4T5k5LDWJUpDcXTySwZU7I/d5CeVUiMtWSFtrkODFgLG0JRHkv3sUvOg/VPleluJRFXaLsJMx96dc/HBB1T/IDV8uQnWmssu4Y6/RDzYoh5rdP3EVvqOOdPJzdfpdM0hnvzqnzet9EQiumPGHF1llGmYSoO+gRK2MpTBDwFTPKWJdgxNp1gVlpvCduUJTENcccp0CvKEZWinU7HJeX6rSpAQ5f1rueDG3fIl4PKQ3VGTPaiH3neuapXPcqGV9J5drCb9vtq99SH/JH7EOX7kNEvDgWQF2sUa6MSHNF6H6pnBy4QCe4j4MsOKDeE0lhKUZ1Bdqw63AVE8WxsEK5rbijcYal1pMN8cPeuL8y7EsTOMOScxTC1TY4neNMZiGsNiss06KyGDL0xRb83tFuO9IZ9S0C7Zn4ae8NYj9TZfrl8L23aCEbtIzaMpn9cHGsZS72GQqWimSt+XteIN/500uhYF4RJktoyC6NbHpZLaqLE+YiwaGIQ9HWsNE3EZ+OIPxsvoKa8I1EotmD1F4r5r/n5OObL5SgJaw1rUAWswvjxyxAwuv3DAbpEnxuerKkHhACAB1s5g0rN1mczUDM+wXeKiELL0/lW1pYGR5l7Xy1ms8IkUOR0evHP+fn5yP0bXhYpz3OmolvqRUSSO3KaCb07jPDXe1p6I/j7Y3UzJHcn4Waq3c+mFL/SzyZo0BC01C+vWKTi8nZJ+zmm6OjZdD6dj9y/MgUlheFXECroCdXc8GE/XlPX9VS3S0YTv32q9e9skrksIaSKhhIb2kWX956VNkE4sBlhqlC3A83bRpJHykSup+sz+hOLLwtDJDL3vL7drsDhF1vsdvyYWLX0UvRIH9dgVchs+ka4ORJdNij5gps4WXC6//EQWzuVwDrQOkz93WR/4jJJsPIn937tJNftf/cPtHnVvKaVJuUzFvgFg/8uJM8fVdv2w7Nt215oPWLyz/8N6+/z
+sidebar_class_name: 'post api-method'
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
+
+<Heading
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'lintParagraph'}
+></Heading>
+
+<MethodEndpoint
+  method={'post'}
+  path={'/api/v1/ai/lint'}
+  context={'endpoint'}
+></MethodEndpoint>
+
+lintParagraph
+
+<Heading
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
+
+<ParamsDetails parameters={undefined}></ParamsDetails>
+
+<RequestSchema
+  title={'Body'}
+  body={{
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            paragraph: {
+              type: 'string',
+              maxLength: 4096,
+              example: 'This is a sample text.',
+              description: 'The paragraph text to be checked',
+            },
+            style: {
+              type: 'string',
+              example: 'academic',
+              description: 'The writing style to check against',
+            },
+            level: {
+              type: 'string',
+              enum: ['low', 'medium', 'high'],
+              example: 'medium',
+              description: 'The level of linting strictness',
+            },
+          },
+          required: ['paragraph', 'style', 'level'],
+          title: 'LintRequest',
+        },
+      },
+    },
+  }}
+></RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{
+    '200': {
+      description: 'Lint results',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              original_paragraph: {
+                type: 'string',
+                description: 'The original paragraph',
+              },
+              corrections: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    start_pos: {
+                      type: 'number',
+                      example: 0,
+                      description: 'Start position of the error',
+                    },
+                    end_pos: {
+                      type: 'number',
+                      example: 4,
+                      description: 'End position of the error',
+                    },
+                    original_text: {
+                      type: 'string',
+                      example: 'This',
+                      description: 'The original text with the error',
+                    },
+                    corrected_text: {
+                      type: 'string',
+                      example: 'This',
+                      description: 'The suggested correction',
+                    },
+                    error_type: {
+                      type: 'string',
+                      example: 'grammar',
+                      description: 'Type of error',
+                    },
+                    recommendation: {
+                      type: 'string',
+                      example: 'Consider...',
+                      description: 'Explanation of the correction',
+                    },
+                  },
+                  required: [
+                    'start_pos',
+                    'end_pos',
+                    'original_text',
+                    'corrected_text',
+                    'error_type',
+                    'recommendation',
+                  ],
+                  title: 'Correction',
+                },
+                description: 'List of corrections',
+              },
+              style_recommendations: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    suggestion: {
+                      type: 'string',
+                      example: 'Use active voice',
+                      description: 'Style suggestion',
+                    },
+                    reason: {
+                      type: 'string',
+                      example: 'Active voice is more engaging',
+                      description: 'Reason for the suggestion',
+                    },
+                  },
+                  required: ['suggestion', 'reason'],
+                  title: 'StyleRecommendation',
+                },
+                description: 'List of style recommendations',
+              },
+              source: {
+                type: 'string',
+                enum: ['openai', 'languagetool'],
+                example: 'openai',
+                description: 'The linting service source',
+              },
+            },
+            required: [
+              'original_paragraph',
+              'corrections',
+              'style_recommendations',
+              'source',
+            ],
+            title: 'LintResponse',
+          },
+        },
+      },
+    },
+    '400': {
+      description: 'Invalid request',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'LintError',
+          },
+        },
+      },
+    },
+    '401': {
+      description: 'Not authenticated',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'LintError',
+          },
+        },
+      },
+    },
+    '503': {
+      description: 'AI linting service unavailable',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'LintError',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

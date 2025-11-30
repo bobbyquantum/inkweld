@@ -1,0 +1,129 @@
+---
+id: delete-project
+title: 'deleteProject'
+description: 'deleteProject'
+sidebar_label: 'deleteProject'
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVLFu2zAQ/RWCUwO4kRxnKLS5RQYDbRoU6BR4YKizRZfiseTRaWD433uU5MSOEqRDl0yiju8e792RbydJraOsbuVNwA1oinI5keghKDLoFrWsZA0WCIZ9OZFeBdVyJOS8nYy6gVbJaifpwQPjIwXj1gyEP6r1Noc22LgagWM1RB2Mz+Qc/xkhOCaT+4kM8DuZAHwihQSvIiey+1QyPUVMRnhFDfP8W0Htw0eHW7CjigaZItq0fruqE/RjZcPfUVXLTBQ9uggxF3ZRlvnzMlnf75oZNDoCRxmqvLdGd0MpNjHjXxCKd4cRhTxCMv1pLcSo1jDuyP5E4O0jcHnUqqN0+f1wL0RMWnN4lWxuEhnquvqtR/4YpDJ/PuGynI7FXiMJlahheVnW/5QLIWB4W2wPO5U6pMq5E91SoNYp5IQjlVd5Z6RxNtY473rE83Tm/eu7fP3COp7lCpN71xr3z9/2c9tjy2vwyQ87I+S3XclCeVNsp4UfHLSoDtZUVIMV8P/24JcpWE5qiHxVFBa1sg1Gqj7NZrORG33N23yB2KnQt9xX0TN1jmLcCrsWDZoW7tc92FrMbxZMlM/rSabn5Xk5ov6C1qo7zO95C0IH6Bf3wRB3WniraIWhzWziw+fkzrhLfwFqnSZ9
+sidebar_class_name: 'delete api-method'
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
+
+<Heading
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'deleteProject'}
+></Heading>
+
+<MethodEndpoint
+  method={'delete'}
+  path={'/api/v1/projects/:username/:slug'}
+  context={'endpoint'}
+></MethodEndpoint>
+
+deleteProject
+
+<Heading
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
+
+<ParamsDetails
+  parameters={[
+    {
+      schema: { type: 'string', example: 'johndoe', description: 'Username' },
+      required: true,
+      description: 'Username',
+      name: 'username',
+      in: 'path',
+    },
+    {
+      schema: {
+        type: 'string',
+        example: 'my-novel',
+        description: 'Project slug',
+      },
+      required: true,
+      description: 'Project slug',
+      name: 'slug',
+      in: 'path',
+    },
+  ]}
+></ParamsDetails>
+
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{
+    '200': {
+      description: 'Project deleted',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { message: { type: 'string' } },
+            required: ['message'],
+            example: { message: 'Operation successful' },
+            title: 'MessageResponse',
+          },
+        },
+      },
+    },
+    '401': {
+      description: 'Not authenticated',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+    '403': {
+      description: 'Access denied',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+    '404': {
+      description: 'Project not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

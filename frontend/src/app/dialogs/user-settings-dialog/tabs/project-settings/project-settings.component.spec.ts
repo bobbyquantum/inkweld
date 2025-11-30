@@ -3,8 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { SettingsService } from '@services/settings.service';
+import { SettingsService } from '@services/core/settings.service';
 
 import { ProjectSettingsComponent } from './project-settings.component';
 
@@ -41,7 +40,6 @@ describe('ProjectSettingsComponent', () => {
         FormsModule,
         MatCheckboxModule,
         MatFormFieldModule, // Added
-        NoopAnimationsModule,
       ],
       providers: [provideZonelessChangeDetection(), SettingsService],
     }).compileComponents();
@@ -95,6 +93,33 @@ describe('ProjectSettingsComponent', () => {
       expect(JSON.parse(localStorageMock['userSettings'])).toEqual({
         zenModeFullscreen: true, // Updated check (should reset to default)
       });
+    });
+  });
+
+  describe('useTabsDesktop', () => {
+    it('should return default value (true) when setting is not set', () => {
+      expect(component.useTabsDesktop).toBe(true);
+    });
+
+    it('should return stored value when setting exists', () => {
+      localStorageMock['userSettings'] = JSON.stringify({
+        useTabsDesktop: false,
+      });
+      fixture = TestBed.createComponent(ProjectSettingsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+      expect(component.useTabsDesktop).toBe(false);
+    });
+
+    it('should update setting when value is set', () => {
+      component.useTabsDesktop = false;
+      expect(settingsService.getSetting('useTabsDesktop', true)).toBe(false);
+    });
+
+    it('should reset to default (true) when non-boolean value is set', () => {
+      // @ts-expect-error Testing invalid type
+      component.useTabsDesktop = 'invalid';
+      expect(settingsService.getSetting('useTabsDesktop', true)).toBe(true);
     });
   });
 });

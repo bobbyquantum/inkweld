@@ -10,7 +10,7 @@ import { from, Observable, switchMap, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
-import { XsrfService } from '../services/xsrf.service';
+import { XsrfService } from '../services/auth/xsrf.service';
 
 @Injectable()
 export class CsrfInterceptor implements HttpInterceptor {

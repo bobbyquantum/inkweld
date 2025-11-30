@@ -1,30 +1,16 @@
-import { ProjectElementDto } from '../../api-client/model/project-element-dto';
+import { Element } from '../../api-client/model/element';
 
-export interface ProjectElement {
-  id: string;
-  name: string;
-  type: ProjectElementDto['type']; // Use type from DTO
-  level: number;
-  position: number;
-  expandable: boolean;
-  expanded?: boolean;
-  visible?: boolean;
-  version: number; // Add version property, make non-nullable
-  metadata: { [key: string]: string }; // Add metadata property to interface, use object type
+// ProjectElement extends the API type with UI-only fields
+export interface ProjectElement extends Element {
+  expanded?: boolean; // UI state: whether folder is expanded
+  visible?: boolean; // UI state: whether element is visible in tree
 }
 
-// map DTO to frontend model
-export function mapDtoToProjectElement(dto: ProjectElementDto): ProjectElement {
+// Map API DTO to frontend model - mainly adds UI state
+export function mapDtoToProjectElement(dto: Element): ProjectElement {
   return {
-    id: dto.id,
-    name: dto.name || '',
-    type: dto.type || 'ITEM',
-    level: dto.level || 0, // Default to level 0
-    position: dto.position || 0,
-    expandable: dto.type === 'FOLDER',
+    ...dto,
     expanded: false,
     visible: true,
-    metadata: dto.metadata,
-    version: dto.version, // Map version from DTO
   };
 }

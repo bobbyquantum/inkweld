@@ -1,0 +1,279 @@
+/**
+ * Interactive setup wizard for first-time Inkweld users
+ * Helps configure the application if no .env file is found
+ */
+
+import { existsSync, writeFileSync } from 'fs';
+import { join } from 'path';
+import { homedir, platform } from 'os';
+import { randomBytes } from 'crypto';
+
+interface SetupAnswers {
+  port: string;
+  dbPath: string;
+  sessionSecret: string;
+  userApprovalRequired: boolean;
+  openaiApiKey?: string;
+}
+
+/**
+ * Get the configuration directory path based on OS
+ */
+function getConfigDir(): string {
+  const home = homedir();
+  const plat = platform();
+
+  switch (plat) {
+    case 'win32':
+      return join(process.env.APPDATA || join(home, 'AppData', 'Roaming'), 'Inkweld');
+    case 'darwin':
+      return join(home, '.inkweld');
+    case 'linux':
+    default:
+      return join(home, '.inkweld');
+  }
+}
+
+/**
+ * Check for .env file in multiple locations
+ * Priority: 1. Current directory, 2. Config directory, 3. None (need setup)
+ */
+export function findEnvFile(): string | null {
+  // Check current directory
+  const localEnv = join(process.cwd(), '.env');
+  if (existsSync(localEnv)) {
+    console.log(`✅ Found .env in current directory: ${localEnv}`);
+    return localEnv;
+  }
+
+  // Check user config directory
+  const configDir = getConfigDir();
+  const configEnv = join(configDir, '.env');
+  if (existsSync(configEnv)) {
+    console.log(`✅ Found .env in config directory: ${configEnv}`);
+    return configEnv;
+  }
+
+  return null;
+}
+
+/**
+ * Generate a secure random session secret
+ */
+function generateSessionSecret(): string {
+  return randomBytes(32).toString('hex');
+}
+
+/**
+ * Prompt user for input (works in terminal)
+ */
+async function prompt(question: string, defaultValue?: string): Promise<string> {
+  const readline = await import('readline');
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    const displayQuestion = defaultValue
+      ? `${question} (default: ${defaultValue}): `
+      : `${question}: `;
+
+    rl.question(displayQuestion, (answer) => {
+      rl.close();
+      resolve(answer.trim() || defaultValue || '');
+    });
+  });
+}
+
+/**
+ * Prompt for yes/no question
+ */
+async function promptYesNo(question: string, defaultValue: boolean = true): Promise<boolean> {
+  const defaultText = defaultValue ? 'Y/n' : 'y/N';
+  const answer = await prompt(`${question} (${defaultText})`);
+
+  if (!answer) return defaultValue;
+
+  const normalized = answer.toLowerCase();
+  return normalized === 'y' || normalized === 'yes';
+}
+
+/**
+ * Run the interactive setup wizard
+ */
+export async function runSetupWizard(): Promise<string> {
+  console.log('\n╔═══════════════════════════════════════════════════════╗');
+  console.log('║                                                       ║');
+  console.log('║       Welcome to Inkweld Setup Wizard!                ║');
+  console.log('║                                                       ║');
+  console.log('╚═══════════════════════════════════════════════════════╝\n');
+
+  console.log("Let's configure your Inkweld installation.\n");
+
+  const configDir = getConfigDir();
+  const defaultDbPath = join(configDir, 'inkweld.db');
+  const defaultDataPath = join(configDir, 'data');
+
+  // Ask for data directory
+  const dataPath = await prompt('Data storage directory', defaultDataPath);
+
+  const answers: SetupAnswers = {
+    port: await prompt('Port to run on', '8333'),
+    dbPath: await prompt('Database file path', defaultDbPath),
+    sessionSecret: generateSessionSecret(),
+    userApprovalRequired: await promptYesNo(
+      'Require admin approval for new user registrations?',
+      false
+    ),
+  };
+
+  // Optional: OpenAI API key
+  const useOpenAI = await promptYesNo(
+    'Configure OpenAI API key for AI features? (optional)',
+    false
+  );
+
+  if (useOpenAI) {
+    answers.openaiApiKey = await prompt('OpenAI API key');
+  }
+
+  // Determine where to save the .env file
+  console.log('\nWhere would you like to save the configuration?\n');
+  console.log(`1. User config directory (${getConfigDir()}/.env)`);
+  console.log('2. Current directory (./.env)');
+
+  const saveLocation = await prompt('Choose location (1 or 2)', '1');
+  const useConfigDir = saveLocation === '1';
+
+  let envPath: string;
+  if (useConfigDir) {
+    const configDir = getConfigDir();
+    // Create config directory if it doesn't exist
+    if (!existsSync(configDir)) {
+      const fs = await import('fs/promises');
+      await fs.mkdir(configDir, { recursive: true });
+    }
+    envPath = join(configDir, '.env');
+  } else {
+    envPath = join(process.cwd(), '.env');
+  }
+
+  // Generate .env content
+  const envContent = `# Inkweld Configuration
+# Generated by setup wizard on ${new Date().toISOString()}
+
+# Server Configuration
+PORT=${answers.port}
+NODE_ENV=production
+
+# Database Configuration
+DB_TYPE=sqlite
+DB_PATH=${answers.dbPath}
+
+# Session Secret (keep this secure!)
+SESSION_SECRET=${answers.sessionSecret}
+
+# User Registration
+USER_APPROVAL_REQUIRED=${answers.userApprovalRequired}
+
+# CORS Configuration
+ALLOWED_ORIGINS=http://localhost:${answers.port}
+
+# Data Storage
+DATA_PATH=${dataPath}
+
+# Frontend Configuration (set API_URL for custom backend location)
+# API_URL=http://localhost:${answers.port}
+
+# Optional: OpenAI API Key (for AI linting and image generation)
+${answers.openaiApiKey ? `OPENAI_API_KEY=${answers.openaiApiKey}` : '# OPENAI_API_KEY=your-key-here'}
+
+# Optional: GitHub OAuth (uncomment and configure if needed)
+# GITHUB_ENABLED=true
+# GITHUB_CLIENT_ID=your-github-client-id
+# GITHUB_CLIENT_SECRET=your-github-client-secret
+# GITHUB_CALLBACK_URL=http://localhost:${answers.port}/api/auth/github/callback
+`;
+
+  // Write the .env file
+  writeFileSync(envPath, envContent, 'utf-8');
+
+  console.log(`\n✅ Configuration saved to: ${envPath}\n`);
+
+  // Create database and data directories if needed
+  if (answers.dbPath !== ':memory:') {
+    const { dirname } = await import('path');
+    const { mkdir } = await import('fs/promises');
+    const dbDir = dirname(answers.dbPath);
+
+    try {
+      await mkdir(dbDir, { recursive: true });
+      console.log(`✅ Created database directory: ${dbDir}`);
+    } catch (error) {
+      console.warn(`⚠️  Could not create database directory: ${error}`);
+    }
+  }
+
+  // Create data directory
+  try {
+    const { mkdir } = await import('fs/promises');
+    await mkdir(dataPath, { recursive: true });
+    console.log(`✅ Created data directory: ${dataPath}\n`);
+  } catch (error) {
+    console.warn(`⚠️  Could not create data directory: ${error}\n`);
+  }
+
+  console.log('🚀 Starting Inkweld...\n');
+
+  // Offer to open in browser
+  const openBrowser = await promptYesNo('Open Inkweld in your browser after starting?', true);
+
+  if (openBrowser) {
+    // Store the preference for later
+    (globalThis as { __openBrowserOnStart?: boolean; __serverPort?: string }).__openBrowserOnStart =
+      true;
+    (globalThis as { __openBrowserOnStart?: boolean; __serverPort?: string }).__serverPort =
+      answers.port;
+  }
+
+  return envPath;
+}
+
+/**
+ * Check if setup is needed and run wizard if necessary
+ */
+export async function checkAndRunSetup(): Promise<void> {
+  console.log('[setup-wizard] Checking for configuration...');
+
+  const existingEnv = findEnvFile();
+
+  if (existingEnv) {
+    // Load the existing .env file
+    console.log(`[setup-wizard] Loading configuration from: ${existingEnv}`);
+    const dotenv = await import('dotenv');
+    dotenv.config({ path: existingEnv });
+    return;
+  }
+
+  // No .env found - run interactive setup wizard
+  console.log('\n⚠️  No configuration file found.\n');
+
+  const shouldSetup = await promptYesNo('Would you like to run the setup wizard?', true);
+
+  if (!shouldSetup) {
+    console.log('\n❌ Setup cancelled. Exiting...\n');
+    console.log('You can manually create a .env file or run setup later.\n');
+    process.exit(1);
+  }
+
+  const envPath = await runSetupWizard();
+
+  console.log(`[setup-wizard] Configuration created at: ${envPath}`);
+
+  // Load the newly created .env file
+  const dotenv = await import('dotenv');
+  dotenv.config({ path: envPath });
+
+  console.log('[setup-wizard] Configuration loaded successfully');
+}

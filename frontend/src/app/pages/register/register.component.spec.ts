@@ -3,17 +3,16 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import {
-  UserAPIService,
-  UserControllerCheckUsernameAvailability200Response,
-  UserDto,
+  AuthenticationService,
+  User,
+  UsernameAvailability,
+  UsersService,
 } from '@inkweld/index';
-import { RecaptchaService } from '@services/recaptcha.service';
-import { SystemConfigService } from '@services/system-config.service';
-import { UserService } from '@services/user.service';
-import { XsrfService } from '@services/xsrf.service';
+import { XsrfService } from '@services/auth/xsrf.service';
+import { SystemConfigService } from '@services/core/system-config.service';
+import { UserService } from '@services/user/user.service';
 import { of, throwError } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 
@@ -29,11 +28,11 @@ describe('RegisterComponent', () => {
   let httpClient: MockedObject<HttpClient>;
   let router: MockedObject<Router>;
   let snackBar: MockedObject<MatSnackBar>;
-  let userService: MockedObject<UserAPIService>;
+  let userService: MockedObject<UsersService>;
+  let authService: MockedObject<AuthenticationService>;
   let xsrfService: MockedObject<XsrfService>;
   let userAuthService: MockedObject<UserService>;
   let systemConfigService: MockedObject<SystemConfigService>;
-  let recaptchaService: MockedObject<RecaptchaService>;
 
   beforeEach(async () => {
     httpClient = {
@@ -52,9 +51,13 @@ describe('RegisterComponent', () => {
     } as unknown as MockedObject<MatSnackBar>;
 
     userService = {
-      userControllerRegister: vi.fn(),
-      userControllerCheckUsernameAvailability: vi.fn(),
-    } as unknown as MockedObject<UserAPIService>;
+      checkUsernameAvailability: vi.fn(),
+    } as unknown as MockedObject<UsersService>;
+
+    authService = {
+      registerUser: vi.fn(),
+      listOAuthProviders: vi.fn().mockReturnValue(of({ providers: [] })),
+    } as unknown as MockedObject<AuthenticationService>;
 
     xsrfService = {
       getXsrfToken: vi.fn().mockReturnValue('mock-xsrf-token'),
@@ -70,24 +73,18 @@ describe('RegisterComponent', () => {
       captchaSiteKey: vi.fn().mockReturnValue('test-site-key'),
     } as unknown as MockedObject<SystemConfigService>;
 
-    recaptchaService = {
-      render: vi.fn().mockResolvedValue(0),
-      getResponse: vi.fn().mockReturnValue('test-captcha-token'),
-      reset: vi.fn(),
-    } as unknown as MockedObject<RecaptchaService>;
-
     await TestBed.configureTestingModule({
-      imports: [RegisterComponent, NoopAnimationsModule, ReactiveFormsModule],
+      imports: [RegisterComponent, ReactiveFormsModule],
       providers: [
         provideZonelessChangeDetection(),
         { provide: HttpClient, useValue: httpClient },
         { provide: Router, useValue: router },
         { provide: MatSnackBar, useValue: snackBar },
-        { provide: UserAPIService, useValue: userService },
+        { provide: UsersService, useValue: userService },
+        { provide: AuthenticationService, useValue: authService },
         { provide: XsrfService, useValue: xsrfService },
         { provide: UserService, useValue: userAuthService },
         { provide: SystemConfigService, useValue: systemConfigService },
-        { provide: RecaptchaService, useValue: recaptchaService },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -202,37 +199,44 @@ describe('RegisterComponent', () => {
   });
 
   describe('username availability', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      vi.useRealTimers();
+    });
+
     it('should check username availability when username is valid', async () => {
-      const checkUsernameAvailabilityMock =
-        userService.userControllerCheckUsernameAvailability as any;
-      const mockResponse: UserControllerCheckUsernameAvailability200Response = {
+      const mockResponse: UsernameAvailability = {
         available: true,
         suggestions: [],
       };
-      checkUsernameAvailabilityMock.mockReturnValue(of(mockResponse));
+      httpClient.get.mockReturnValue(of(mockResponse));
 
       component.registerForm.get('username')?.setValue('testuser');
       await component.checkUsernameAvailability();
+      vi.runAllTimers();
 
-      expect(
-        userService.userControllerCheckUsernameAvailability
-      ).toHaveBeenCalledWith('testuser');
+      expect(httpClient.get).toHaveBeenCalledWith(
+        '/api/v1/users/check-username?username=testuser'
+      );
       expect(component.usernameAvailability).toBe('available');
       expect(component.usernameSuggestions).toEqual([]);
       expect(component.registerForm.get('username')?.errors).toBeNull();
     });
 
     it('should mark username as unavailable when taken', async () => {
-      const checkUsernameAvailabilityMock =
-        userService.userControllerCheckUsernameAvailability as any;
-      const mockResponse: UserControllerCheckUsernameAvailability200Response = {
+      const mockResponse: UsernameAvailability = {
         available: false,
         suggestions: ['testuser1', 'testuser2'],
       };
-      checkUsernameAvailabilityMock.mockReturnValue(of(mockResponse));
+      httpClient.get.mockReturnValue(of(mockResponse));
 
       component.registerForm.get('username')?.setValue('testuser');
       await component.checkUsernameAvailability();
+      vi.runAllTimers();
 
       expect(component.usernameAvailability).toBe('unavailable');
       expect(component.usernameSuggestions).toEqual(['testuser1', 'testuser2']);
@@ -245,43 +249,40 @@ describe('RegisterComponent', () => {
       component.registerForm.get('username')?.setValue('te');
       await component.checkUsernameAvailability();
 
-      expect(
-        userService.userControllerCheckUsernameAvailability
-      ).not.toHaveBeenCalled();
+      expect(userService.checkUsernameAvailability).not.toHaveBeenCalled();
       expect(component.usernameAvailability).toBe('unknown');
     });
 
     it('should handle username availability check error', async () => {
-      const checkUsernameAvailabilityMock =
-        userService.userControllerCheckUsernameAvailability as any;
-      checkUsernameAvailabilityMock.mockReturnValue(
+      vi.useFakeTimers();
+      httpClient.get.mockReturnValue(
         throwError(() => new Error('Network error'))
       );
 
       component.registerForm.get('username')?.setValue('testuser');
       await component.checkUsernameAvailability();
+      vi.runAllTimers();
 
       expect(component.usernameAvailability).toBe('unknown');
       expect(snackBar.open).toHaveBeenCalled();
+      vi.useRealTimers();
     });
 
     it('should select a suggested username', () => {
-      const checkUsernameAvailabilityMock =
-        userService.userControllerCheckUsernameAvailability as any;
-      const mockResponse: UserControllerCheckUsernameAvailability200Response = {
+      const mockResponse: UsernameAvailability = {
         available: true,
         suggestions: [],
       };
-      checkUsernameAvailabilityMock.mockReturnValue(of(mockResponse));
+      httpClient.get.mockReturnValue(of(mockResponse));
 
       component.selectSuggestion('suggested_username');
 
       expect(component.registerForm.get('username')?.value).toBe(
         'suggested_username'
       );
-      expect(
-        userService.userControllerCheckUsernameAvailability
-      ).toHaveBeenCalledWith('suggested_username');
+      expect(httpClient.get).toHaveBeenCalledWith(
+        '/api/v1/users/check-username?username=suggested_username'
+      );
     });
   });
 
@@ -377,6 +378,7 @@ describe('RegisterComponent', () => {
       component.registerForm.get('password')?.setValue('Test123@');
       component.registerForm.get('confirmPassword')?.setValue('Test123@');
       component.usernameAvailability = 'available';
+      component.providersLoaded = true; // Simulate providers loaded
     });
 
     it('should not submit if form is invalid', async () => {
@@ -385,7 +387,7 @@ describe('RegisterComponent', () => {
 
       await component.onRegister();
 
-      expect(userService.userControllerRegister).not.toHaveBeenCalled();
+      expect(authService.registerUser).not.toHaveBeenCalled();
     });
 
     it('should show error for password mismatch', async () => {
@@ -398,28 +400,28 @@ describe('RegisterComponent', () => {
         'Close',
         expect.any(Object)
       );
-      expect(userService.userControllerRegister).not.toHaveBeenCalled();
+      expect(authService.registerUser).not.toHaveBeenCalled();
     });
 
     it('should successfully register user', async () => {
-      const registerUserMock = userService.userControllerRegister as any;
+      const registerUserMock = authService.registerUser as any;
 
-      const mockUser: UserDto = {
+      const mockUser: User = {
+        id: '1',
         username: 'testuser',
         name: '',
+        enabled: true,
       };
 
       registerUserMock.mockReturnValue(of(mockUser));
 
       await component.onRegister();
 
-      expect(userService.userControllerRegister).toHaveBeenCalledWith(
-        'mock-xsrf-token',
-        {
-          username: 'testuser',
-          password: 'Test123@',
-        }
-      );
+      expect(authService.registerUser).toHaveBeenCalledWith({
+        username: 'testuser',
+        password: 'Test123@',
+        captchaToken: undefined,
+      });
 
       expect(snackBar.open).toHaveBeenCalledWith(
         'Registration successful!',
@@ -427,12 +429,11 @@ describe('RegisterComponent', () => {
         expect.any(Object)
       );
 
-      expect(userAuthService.loadCurrentUser).toHaveBeenCalled();
       expect(router.navigate).toHaveBeenCalledWith(['/']);
     });
 
     it('should handle registration error', async () => {
-      const registerUserMock = userService.userControllerRegister as any;
+      const registerUserMock = authService.registerUser as any;
       const errorResponse = new HttpErrorResponse({
         error: 'Registration failed',
         status: 400,
@@ -451,7 +452,7 @@ describe('RegisterComponent', () => {
     });
 
     it('should handle unknown registration error', async () => {
-      const registerUserMock = userService.userControllerRegister as any;
+      const registerUserMock = authService.registerUser as any;
       registerUserMock.mockReturnValue(
         throwError(() => new Error('Unknown error'))
       );
@@ -467,12 +468,14 @@ describe('RegisterComponent', () => {
     });
 
     it('should reset isRegistering flag after registration attempt', async () => {
-      const registerUserMock = userService.userControllerRegister as any;
+      const registerUserMock = authService.registerUser as any;
 
       // Success case
-      const mockUser: UserDto = {
+      const mockUser: User = {
+        id: '1',
         username: 'testuser',
         name: '',
+        enabled: true,
       };
 
       registerUserMock.mockReturnValue(of(mockUser));

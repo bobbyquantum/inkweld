@@ -1,7 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MockedObject, vi } from 'vitest';
 
 import { FileUploadComponent } from './file-upload.component';
@@ -20,7 +19,7 @@ describe('FileUploadComponent', () => {
     dialogRef = { close: vi.fn() } as any;
 
     await TestBed.configureTestingModule({
-      imports: [FileUploadComponent, NoopAnimationsModule],
+      imports: [FileUploadComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: MatDialogRef, useValue: dialogRef },

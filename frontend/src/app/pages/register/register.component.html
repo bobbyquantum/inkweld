@@ -100,38 +100,20 @@
             <mat-error>{{ getConfirmPasswordErrorMessage() }}</mat-error>
           </mat-form-field>
 
-          @if (isCaptchaEnabled) {
-            <div class="captcha-container">
-              <div class="captcha-wrapper">
-                <div #recaptchaElement class="recaptcha-element"></div>
-                @if (captchaLoading) {
-                  <div class="captcha-loading-overlay">
-                    <mat-spinner diameter="20"></mat-spinner>
-                    <span>Loading verification...</span>
-                  </div>
-                }
-              </div>
-              @if (captchaError) {
-                <div class="captcha-error">
-                  <mat-icon color="warn">error</mat-icon>
-                  <span>Please complete the captcha verification</span>
-                </div>
-              }
-            </div>
-          }
-
           <button
             mat-raised-button
             color="primary"
             type="submit"
-            [disabled]="registerForm.invalid || isRegistering"
+            [disabled]="
+              registerForm.invalid || isRegistering || !providersLoaded
+            "
             class="register-button"
             data-testid="register-button">
             @if (!isRegistering) {
               <span>Register</span>
             }
             @if (isRegistering) {
-              <span>Registering...</span>
+              <span>Creating account...</span>
             }
           </button>
         </form>
@@ -140,7 +122,8 @@
 
         <div class="oauth-container">
           <app-oauth-provider-list
-            [isRegisterContext]="true"></app-oauth-provider-list>
+            [isRegisterContext]="true"
+            (loaded)="onProvidersLoaded()"></app-oauth-provider-list>
         </div>
 
         <button

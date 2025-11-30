@@ -4,7 +4,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { UserService } from '@services/user.service';
+import { SetupService } from '@services/core/setup.service';
+import { OfflineStorageService } from '@services/offline/offline-storage.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
+import { UserService } from '@services/user/user.service';
 import {
   ImageCroppedEvent,
   ImageCropperComponent,
@@ -28,6 +31,9 @@ import { firstValueFrom } from 'rxjs';
 export class EditAvatarDialogComponent {
   protected dialogRef = inject(MatDialogRef<EditAvatarDialogComponent>);
   private userService = inject(UserService);
+  private unifiedUserService = inject(UnifiedUserService);
+  private setupService = inject(SetupService);
+  private offlineStorage = inject(OfflineStorageService);
   private sanitizer = inject(DomSanitizer);
 
   imageChangedEvent: Event | null = null;
@@ -86,10 +92,25 @@ export class EditAvatarDialogComponent {
     }
     this.isSubmitting = true;
     try {
-      const file = new File([this.croppedBlob], this.fileName, {
-        type: this.croppedBlob.type || 'image/png',
-      });
-      await firstValueFrom(this.userService.uploadAvatar(file));
+      const mode = this.setupService.getMode();
+      const username = this.unifiedUserService.currentUser()?.username;
+
+      if (!username) {
+        throw new Error('No user logged in');
+      }
+
+      if (mode === 'offline') {
+        // In offline mode, save directly to IndexedDB
+        await this.offlineStorage.saveUserAvatar(username, this.croppedBlob);
+      } else {
+        // In server mode, upload to server and cache locally
+        const file = new File([this.croppedBlob], this.fileName, {
+          type: this.croppedBlob.type || 'image/png',
+        });
+        await firstValueFrom(this.userService.uploadAvatar(file));
+        // Also cache locally for offline access
+        await this.offlineStorage.saveUserAvatar(username, this.croppedBlob);
+      }
       this.dialogRef.close(true);
     } catch (error) {
       console.error('Failed to upload avatar:', error);

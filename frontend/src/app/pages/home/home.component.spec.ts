@@ -3,16 +3,16 @@ import { HttpClient } from '@angular/common/http';
 import { provideLocationMocks } from '@angular/common/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   ActivatedRoute,
   convertToParamMap,
   provideRouter,
   Router,
 } from '@angular/router';
-import { ProjectDto, UserDto } from '@inkweld/index';
-import { UnifiedProjectService } from '@services/unified-project.service';
-import { UnifiedUserService } from '@services/unified-user.service';
+import { Project, User } from '@inkweld/index';
+import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { ProjectServiceError } from '@services/project/project.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 import { ThemeService } from '@themes/theme.service';
 import { of } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
@@ -33,7 +33,32 @@ describe('HomeComponent', () => {
   let router: MockedObject<Router>;
 
   const mockLoadingSignal = signal(false);
-  const mockProjectsSignal = signal<ProjectDto[]>([]);
+  const mockProjectsSignal = signal<Project[]>([]);
+  const mockIsAuthenticated = signal(true);
+  const mockUserInitialized = signal(true);
+  const mockProjectInitialized = signal(true);
+
+  const mockProjects: Project[] = [
+    {
+      id: '1',
+      title: 'Test Project',
+      slug: 'test-project',
+      username: 'testuser',
+      description: 'A test project description',
+      createdDate: '2024-01-01',
+      updatedDate: '2024-01-01',
+    },
+    {
+      id: '2',
+      title: 'Another Project',
+      slug: 'another-project',
+      username: 'testuser',
+      description: 'Another description',
+      createdDate: '2024-01-02',
+      updatedDate: '2024-01-02',
+      coverImage: 'cover.jpg',
+    },
+  ];
 
   beforeEach(async () => {
     themeService = {
@@ -55,23 +80,28 @@ describe('HomeComponent', () => {
     router = { navigate: vi.fn() } as unknown as MockedObject<Router>;
 
     userService = {
-      currentUser: signal<UserDto | undefined>(undefined),
-      isAuthenticated: signal(true),
+      currentUser: signal<User | undefined>(undefined),
+      isAuthenticated: mockIsAuthenticated,
+      initialized: mockUserInitialized,
     } as unknown as MockedObject<UnifiedUserService>;
 
     // Reset mock signals once before all tests
     mockLoadingSignal.set(false);
     mockProjectsSignal.set([]);
+    mockIsAuthenticated.set(true);
+    mockUserInitialized.set(true);
+    mockProjectInitialized.set(true);
 
     // Setup mock project service once
     projectService = {
       isLoading: mockLoadingSignal,
       projects: mockProjectsSignal,
+      initialized: mockProjectInitialized,
       loadProjects: vi.fn().mockResolvedValue(undefined),
     };
 
     await TestBed.configureTestingModule({
-      imports: [HomeComponent, NoopAnimationsModule],
+      imports: [HomeComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([
@@ -122,7 +152,7 @@ describe('HomeComponent', () => {
       name: 'Test Project',
       slug: 'test-project',
       username: 'testuser',
-    } as unknown as ProjectDto;
+    } as unknown as Project;
     component.selectProject(project);
     expect(router.navigate).toHaveBeenCalledWith(['testuser', 'test-project'], {
       onSameUrlNavigation: 'reload',
@@ -164,5 +194,161 @@ describe('HomeComponent', () => {
 
     // Verify that router.navigate was called with the correct route
     expect(router.navigate).toHaveBeenCalledWith(['/create-project']);
+  });
+
+  describe('loadProjects', () => {
+    it('should not load projects when user is not authenticated', async () => {
+      mockIsAuthenticated.set(false);
+
+      await component.loadProjects();
+
+      expect(projectService.loadProjects).not.toHaveBeenCalled();
+    });
+
+    it('should handle session expired error without setting loadError', async () => {
+      const sessionError = new ProjectServiceError(
+        'SESSION_EXPIRED',
+        'Session expired'
+      );
+      projectService.loadProjects = vi.fn().mockRejectedValue(sessionError);
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await component.loadProjects();
+
+      expect(component.loadError).toBe(false);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('side navigation', () => {
+    it('should toggle side nav', () => {
+      component.sideNavOpen.set(true);
+      component.toggleSideNav();
+      expect(component.sideNavOpen()).toBe(false);
+
+      component.toggleSideNav();
+      expect(component.sideNavOpen()).toBe(true);
+    });
+
+    it('should close side nav on mobile breakpoint', () => {
+      breakpointObserver.observe.mockReturnValue(
+        of({ matches: true, breakpoints: {} })
+      );
+      component.sideNavOpen.set(true);
+
+      component.ngOnInit();
+
+      expect(component.sideNavOpen()).toBe(false);
+    });
+
+    it('should open side nav on desktop breakpoint', () => {
+      breakpointObserver.observe.mockReturnValue(
+        of({ matches: false, breakpoints: {} })
+      );
+      component.sideNavOpen.set(false);
+
+      component.ngOnInit();
+
+      expect(component.sideNavOpen()).toBe(true);
+    });
+  });
+
+  describe('mobile search', () => {
+    it('should toggle mobile search mode', () => {
+      expect(component.mobileSearchActive()).toBe(false);
+
+      component.toggleMobileSearch();
+      expect(component.mobileSearchActive()).toBe(true);
+
+      component.toggleMobileSearch();
+      expect(component.mobileSearchActive()).toBe(false);
+    });
+
+    it('should clear search when closing mobile search', () => {
+      component.searchControl.setValue('test query');
+      component.mobileSearchActive.set(true);
+
+      component.toggleMobileSearch();
+
+      expect(component.searchControl.value).toBe('');
+    });
+  });
+
+  describe('filteredProjects', () => {
+    it('should return all projects when no search term', () => {
+      mockProjectsSignal.set(mockProjects);
+      component.ngOnInit();
+
+      expect(component['filteredProjects']()).toEqual(mockProjects);
+    });
+
+    it('should filter projects by title', () => {
+      mockProjectsSignal.set(mockProjects);
+      component.ngOnInit();
+
+      // Directly set the search term signal (bypassing debounce for testing)
+      // Use exact match that only matches one project
+      component['searchTerm'].set('Test Project');
+
+      const filtered = component['filteredProjects']();
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].title).toBe('Test Project');
+    });
+
+    it('should filter projects by slug', () => {
+      mockProjectsSignal.set(mockProjects);
+      component.ngOnInit();
+
+      component['searchTerm'].set('another');
+
+      const filtered = component['filteredProjects']();
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].slug).toBe('another-project');
+    });
+
+    it('should filter projects by description', () => {
+      mockProjectsSignal.set(mockProjects);
+      component.ngOnInit();
+
+      component['searchTerm'].set('description');
+
+      const filtered = component['filteredProjects']();
+      expect(filtered.length).toBe(2); // Both have "description" in their description
+    });
+
+    it('should filter projects by username', () => {
+      mockProjectsSignal.set(mockProjects);
+      component.ngOnInit();
+
+      component['searchTerm'].set('testuser');
+
+      const filtered = component['filteredProjects']();
+      expect(filtered.length).toBe(2);
+    });
+  });
+
+  describe('navigation', () => {
+    it('should navigate to login page', () => {
+      component.navigateToLogin();
+      expect(router.navigate).toHaveBeenCalledWith(['/welcome']);
+    });
+
+    it('should navigate to register page', () => {
+      component.navigateToRegister();
+      expect(router.navigate).toHaveBeenCalledWith(['/register']);
+    });
+  });
+
+  describe('cleanup', () => {
+    it('should complete destroy$ on ngOnDestroy', () => {
+      const nextSpy = vi.spyOn(component['destroy$'], 'next');
+      const completeSpy = vi.spyOn(component['destroy$'], 'complete');
+
+      component.ngOnDestroy();
+
+      expect(nextSpy).toHaveBeenCalled();
+      expect(completeSpy).toHaveBeenCalled();
+    });
   });
 });

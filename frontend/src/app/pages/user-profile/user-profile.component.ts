@@ -14,10 +14,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
-import { UserDto } from '@inkweld/index';
-import { DialogGatewayService } from '@services/dialog-gateway.service';
-import { UnifiedProjectService } from '@services/unified-project.service';
-import { UnifiedUserService } from '@services/unified-user.service';
+import { User } from '@inkweld/index';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 import { Subject, takeUntil } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
@@ -48,7 +48,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   @ViewChild(UserAvatarComponent) private avatarComponent!: UserAvatarComponent;
 
   username: string | null = null;
-  profileUser: UserDto | null = null;
+  profileUser: User | null = null;
   isMobile = false;
   isLoading = true;
   loadError = false;

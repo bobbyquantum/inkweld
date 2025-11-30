@@ -19,7 +19,7 @@ Inkweld v0.1.0 is the first public release of this collaborative creative writin
 - **Document Management**: Hierarchical organization of projects, documents, and elements (folders, files)
 - **Rich Text Editor**: ProseMirror-based editor with advanced formatting options
 - **Offline Support**: IndexedDB storage for offline editing with automatic sync when reconnected
-- **Worldbuilding Templates**: Character and location templates with real-time collaboration
+- **Worldbuilding Templates**: Character and location templates with real-time collaboration *(Note: Not yet ported to new Hono backend on feature/new-backend branch)*
 - **Version History**: Track changes and revert to previous versions (via Yjs history)
 
 #### Content Export
@@ -62,7 +62,7 @@ Inkweld v0.1.0 is the first public release of this collaborative creative writin
 ### Technical Stack
 
 - **Frontend**: Angular 20 with standalone components, signals, and modern control flow
-- **Backend**: NestJS 10 running on Bun runtime
+- **Backend**: Hono + Bun/Node/Cloudflare Workers multi-runtime
 - **Database**: TypeORM with PostgreSQL/SQLite + LevelDB for document storage
 - **Real-time**: Yjs for CRDTs, WebSocket for synchronization
 - **Storage**: Per-project LevelDB instances for Yjs documents
@@ -74,7 +74,7 @@ Inkweld v0.1.0 is the first public release of this collaborative creative writin
 - CI/CD documentation (docs/CI_CD.md)
 - E2E testing best practices (frontend/e2e/BEST_PRACTICES.md)
 - AI agent instructions (AGENTS.md, .github/copilot-instructions.md)
-- Admin CLI documentation (server/ADMIN_CLI.md)
+- Admin CLI documentation (backend/ADMIN_CLI.md)
 
 ### Community
 

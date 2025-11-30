@@ -1,32 +1,31 @@
-import { CommonModule } from '@angular/common';
-import {
-  Component,
-  computed,
-  effect,
-  EventEmitter,
-  inject,
-  Output,
-  signal,
-} from '@angular/core';
+import { Component, EventEmitter, inject, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterModule } from '@angular/router';
-import { ProjectAPIService } from '@inkweld/api/project-api.service';
-import { DialogGatewayService } from '@services/dialog-gateway.service';
-import { ProjectService } from '@services/project.service';
-import { ProjectImportExportService } from '@services/project-import-export.service';
-import { ProjectStateService } from '@services/project-state.service';
-import { catchError, of } from 'rxjs';
+import { ProjectsService } from '@inkweld/api/projects.service';
+import { ElementType } from '@inkweld/index';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { ProjectService } from '@services/project/project.service';
+import { ProjectImportExportService } from '@services/project/project-import-export.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 
-import { RecentFilesService } from '../../../../services/recent-files.service';
+import { ProjectCoverComponent } from '../../../../components/project-cover/project-cover.component';
+import { RecentFilesService } from '../../../../services/project/recent-files.service';
 
 @Component({
   selector: 'app-home-tab',
   templateUrl: './home-tab.component.html',
-  styleUrls: ['./home-tab.component.scss'],
+  styleUrl: './home-tab.component.scss',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, RouterModule],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    RouterModule,
+    MatMenuModule,
+    ProjectCoverComponent,
+  ],
 })
 export class HomeTabComponent {
   @Output() importRequested = new EventEmitter<void>();
@@ -36,57 +35,12 @@ export class HomeTabComponent {
   protected readonly recentFilesService = inject(RecentFilesService);
   protected readonly importExportService = inject(ProjectImportExportService);
   protected readonly dialogGateway = inject(DialogGatewayService);
-  protected readonly projectApi = inject(ProjectAPIService);
+  protected readonly projectApi = inject(ProjectsService);
   protected readonly snackBar = inject(MatSnackBar);
   // Router for navigation
   protected readonly router = inject(Router);
 
-  // Cover image state
-  protected readonly coverImageUrl = signal<string | null>(null);
-  protected readonly coverImageLoading = signal<boolean>(false);
-  protected readonly showCoverPlaceholder = computed(
-    () => !this.coverImageUrl() && !this.coverImageLoading()
-  );
-
-  constructor() {
-    // Load cover image when project changes
-    effect(() => {
-      const project = this.projectState.project();
-      if (project) {
-        void this.loadCoverImage(project.username, project.slug);
-      }
-    });
-  }
-
-  /**
-   * Loads the cover image for the current project
-   */
-  private async loadCoverImage(username: string, slug: string): Promise<void> {
-    this.coverImageLoading.set(true);
-    this.coverImageUrl.set(null);
-
-    console.log('[HomeTab] Loading cover image for:', username, slug);
-
-    try {
-      const coverBlob = await this.projectService.getProjectCover(
-        username,
-        slug
-      );
-      const coverUrl = URL.createObjectURL(coverBlob);
-      console.log('[HomeTab] Cover image loaded successfully');
-      this.coverImageUrl.set(coverUrl);
-      this.coverImageLoading.set(false);
-    } catch (error) {
-      // Image doesn't exist or failed to load (404 is expected for projects without covers)
-      if (error instanceof Error && error.message === 'Cover image not found') {
-        console.log('[HomeTab] No cover image set for this project');
-      } else {
-        console.error('[HomeTab] Failed to load cover image:', error);
-      }
-      this.coverImageUrl.set(null);
-      this.coverImageLoading.set(false);
-    }
-  }
+  constructor() {}
 
   onRecentDocumentClick(documentId: string): void {
     const elements = this.projectState.elements();
@@ -95,7 +49,8 @@ export class HomeTabComponent {
       this.projectState.openDocument(element);
       const project = this.projectState.project();
       if (project) {
-        const typeRoute = element.type === 'FOLDER' ? 'folder' : 'document';
+        const typeRoute =
+          element.type === ElementType.Folder ? 'folder' : 'document';
         void this.router.navigate([
           '/',
           project.username,
@@ -194,29 +149,31 @@ export class HomeTabComponent {
     const imageBlob = this.base64ToBlob(imageData);
 
     // Upload the cover image
-    this.projectApi
-      .coverControllerUploadCover(username, slug, imageBlob)
-      .pipe(
-        catchError((error: unknown) => {
-          console.error('Error uploading cover image:', error);
-          this.snackBar.open('Failed to save cover image', 'Close', {
-            duration: 5000,
-          });
-          return of(null);
-        })
-      )
-      .subscribe((response: unknown) => {
-        if (response) {
-          console.log('Cover image uploaded successfully');
-          this.snackBar.open('Cover image saved successfully', 'Close', {
-            duration: 3000,
-          });
-          // Reload the cover image
-          const project = this.projectState.project();
-          if (project) {
-            void this.loadCoverImage(project.username, project.slug);
-          }
+    this.projectService
+      .uploadProjectCover(username, slug, imageBlob)
+      .then(async () => {
+        console.log('Cover image uploaded successfully');
+        this.snackBar.open('Cover image saved successfully', 'Close', {
+          duration: 3000,
+        });
+
+        // Refresh the project to get the updated cover image
+        try {
+          const updatedProject =
+            await this.projectService.getProjectByUsernameAndSlug(
+              username,
+              slug
+            );
+          this.projectState.updateProject(updatedProject);
+        } catch (error) {
+          console.error('Failed to refresh project after cover upload:', error);
         }
+      })
+      .catch((error: unknown) => {
+        console.error('Error uploading cover image:', error);
+        this.snackBar.open('Failed to save cover image', 'Close', {
+          duration: 5000,
+        });
       });
   }
 

@@ -1,0 +1,121 @@
+# ========================================
+# Wrangler Configuration Example
+# ========================================
+#
+# SETUP INSTRUCTIONS:
+# 1. Copy this file to wrangler.toml:
+#    cp wrangler.toml.example wrangler.toml
+#
+# 2. Create D1 databases:
+#    npx wrangler d1 create inkweld_dev
+#    npx wrangler d1 create inkweld_prod
+#
+# 3. Update the database_id values in [env.dev.d1_databases] and [env.production.d1_databases]
+#
+# 4. Login to Cloudflare:
+#    npx wrangler login
+#
+# 5. Deploy:
+#    bun run deploy:dev
+#    bun run deploy:prod
+# ========================================
+
+name = "inkweld-backend"
+main = "src/cloudflare-runner.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Account ID (set via environment variable or wrangler login)
+# account_id = ""
+
+# Workers configuration
+workers_dev = true
+
+[build]
+command = ""
+# Environment variables (sensitive values should be set via wrangler secret)
+[vars]
+NODE_ENV = "production"
+PORT = "8333"
+DB_TYPE = "d1"
+ALLOWED_ORIGINS = "http://localhost:4200,https://inkweld.app"
+USER_APPROVAL_REQUIRED = "false"
+GITHUB_ENABLED = "false"
+RECAPTCHA_ENABLED = "false"
+
+# Database binding (Cloudflare D1)
+# For local dev (wrangler dev), uncomment and set database_id:
+# Create a D1 database with: npx wrangler d1 create inkweld_dev
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "inkweld_dev"
+# database_id = "your-database-id-here"
+
+# R2 bucket for file storage (covers, avatars, etc.)
+# Uncomment and configure when ready to use R2
+# [[r2_buckets]]
+# binding = "STORAGE"
+# bucket_name = "inkweld-storage"
+
+# KV namespace for session storage (alternative to D1)
+# Uncomment and configure for session management
+# [[kv_namespaces]]
+# binding = "SESSIONS"
+# id = "your-kv-namespace-id"
+
+# Durable Objects for Yjs document collaboration
+# Uncomment and configure when implementing Yjs collaboration
+# [[durable_objects.bindings]]
+# name = "YJS_DOCUMENTS"
+# class_name = "YjsDocument"
+# script_name = "inkweld-backend"
+
+# [[migrations]]
+# tag = "v1"
+# new_classes = ["YjsDocument"]
+
+# Secrets (set via: wrangler secret put SECRET_NAME)
+# - SESSION_SECRET
+# - DB_PATH (if using local SQLite in dev)
+# - GITHUB_CLIENT_ID (if GitHub OAuth enabled)
+# - GITHUB_CLIENT_SECRET (if GitHub OAuth enabled)
+# - RECAPTCHA_SITE_KEY (if reCAPTCHA enabled)
+# - RECAPTCHA_SECRET_KEY (if reCAPTCHA enabled)
+
+# Development configuration
+[env.dev]
+name = "inkweld-backend-dev"
+[env.dev.vars]
+NODE_ENV = "development"
+PORT = "8333"
+DB_TYPE = "d1"
+ALLOWED_ORIGINS = "http://localhost:4200,https://inkweld.app"
+USER_APPROVAL_REQUIRED = "false"
+GITHUB_ENABLED = "false"
+RECAPTCHA_ENABLED = "false"
+
+# Uncomment and set your D1 database ID:
+# Create with: npx wrangler d1 create inkweld_dev
+# Then get ID with: npx wrangler d1 list
+# [[env.dev.d1_databases]]
+# binding = "DB"
+# database_name = "inkweld_dev"
+# database_id = "your-dev-database-id-here"
+
+# Production configuration
+[env.production]
+name = "inkweld-backend-prod"
+[env.production.vars]
+NODE_ENV = "production"
+PORT = "8333"
+DB_TYPE = "d1"
+ALLOWED_ORIGINS = "https://inkweld.app"
+USER_APPROVAL_REQUIRED = "true"
+GITHUB_ENABLED = "false"
+RECAPTCHA_ENABLED = "false"
+
+# Uncomment and set your production D1 database ID:
+# [[env.production.d1_databases]]
+# binding = "DB"
+# database_name = "inkweld_prod"
+# database_id = "your-prod-database-id-here"

@@ -13,10 +13,10 @@ import {
   WritableSignal,
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ProjectAPIService } from '@inkweld/index';
-import { ProjectStateService } from '@services/project-state.service';
-import { SettingsService } from '@services/settings.service';
+import { ElementType } from '@inkweld/index';
+import { ProjectsService } from '@inkweld/index';
+import { SettingsService } from '@services/core/settings.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 import {
   afterEach,
   beforeEach,
@@ -29,7 +29,7 @@ import {
 
 import { projectServiceMock } from '../../../testing/project-api.mock';
 import { ProjectElement } from '../../models/project-element';
-import { DialogGatewayService } from '../../services/dialog-gateway.service';
+import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectTreeComponent } from './project-tree.component';
 
 describe('ProjectTreeComponent', () => {
@@ -47,13 +47,14 @@ describe('ProjectTreeComponent', () => {
   const mockDto: ProjectElement = {
     id: '1',
     name: 'Test Element',
-    type: 'FOLDER',
-    position: 0,
+    type: ElementType.Folder,
+    order: 0,
     level: 1,
     expandable: false,
     version: 0,
     metadata: {},
     visible: true,
+    parentId: null,
   };
 
   const setupTestBed = async () => {
@@ -109,12 +110,12 @@ describe('ProjectTreeComponent', () => {
     } as unknown as MockedObject<DialogGatewayService>;
 
     await TestBed.configureTestingModule({
-      imports: [ProjectTreeComponent, NoopAnimationsModule],
+      imports: [ProjectTreeComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: SettingsService, useValue: settingsService },
         { provide: ProjectStateService, useValue: projectStateService },
-        { provide: ProjectAPIService, useValue: projectServiceMock },
+        { provide: ProjectsService, useValue: projectServiceMock },
         provideHttpClient(),
         { provide: DialogGatewayService, useValue: dialogGatewayService },
       ],
@@ -168,7 +169,7 @@ describe('ProjectTreeComponent', () => {
       currentIndex: 1,
       item: {
         data: invalid
-          ? { ...mockDto, id: undefined, position: undefined }
+          ? { ...mockDto, id: undefined, order: undefined }
           : mockDto,
       } as CdkDrag<ProjectElement>,
       container: {
@@ -245,17 +246,18 @@ describe('ProjectTreeComponent', () => {
     const createTestNode = (
       id: string,
       level: number,
-      position: number = 0
+      order: number = 0
     ): ProjectElement => ({
       id,
       name: `Test Node ${id}`,
-      type: 'FOLDER',
+      type: ElementType.Folder,
       level,
-      position,
       expandable: false,
       version: 0,
       metadata: {},
+      parentId: null,
       visible: true,
+      order,
     });
 
     beforeEach(() => {
@@ -513,13 +515,14 @@ describe('ProjectTreeComponent', () => {
     const createFileNode = (): ProjectElement => ({
       id: '2',
       name: 'Test File',
-      type: 'ITEM',
-      position: 0,
+      type: ElementType.Item,
+      order: 0,
       level: 1,
       expandable: false,
       version: 0,
       metadata: {},
       visible: true,
+      parentId: null,
     });
 
     beforeEach(() => {

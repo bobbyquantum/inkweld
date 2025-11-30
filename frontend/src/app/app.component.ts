@@ -5,8 +5,8 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterOutlet } from '@angular/router';
 
 import { ThemeService } from '../themes/theme.service';
-import { SetupService } from './services/setup.service';
-import { UnifiedUserService } from './services/unified-user.service';
+import { SetupService } from './services/core/setup.service';
+import { UnifiedUserService } from './services/user/unified-user.service';
 
 @Component({
   selector: 'app-root',

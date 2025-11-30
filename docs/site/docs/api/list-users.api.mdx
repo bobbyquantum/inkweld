@@ -1,0 +1,87 @@
+---
+id: list-users
+title: 'listUsers'
+description: 'listUsers'
+sidebar_label: 'listUsers'
+hide_title: true
+hide_table_of_contents: true
+api: eJyFVE1v2zAM/SuGThuQxUlzGXJa1w1Dhh2KbT0FOSg2EyuVJVWi3WaG//tI2UmczkNPtvnx+Eg+uhEo90Es1+IhgA9iMxHWgZeorFnlYim0Cti5JsJDcNYEoPhG3Mxm/MghZF45jqfoe7lXRiLkCecldpdUfW5mDYJBTpHOaZXFEukhcF4jQlZAKfkNjw4IyW4PkCElOs+EUHVVO7hLmPReHilKIZTh7XSVD2ICemX2op1EVCNLGHWOO8heaS23mmzoK6BAakDpUQjq2NsahsW31mqQhr1gGGbU2fLQnyrl2b1m+gOyl0zaGrzI0mk4NRmjPsxvFsOEpTjYwuSWU3vDdzIkX6Klpx9jPvVw08yWYsifWx0w7jtHhVw6aiiSRotyOApTlVt20T7kHv7r+KX+jDsjHokLwoj71ZBOius49BUH+Fdomwv5s3aj3H/2Wif4litc63x4FSVgYXnke4iCk1jQRyqdSut5emJDjzpKd00i9jznAtEt01TbTOrCBlx+XCx4XdeVfrA7yaEGbV1JF5R0SKIl6srsbBxI38LKPD6DzpPb+xUBcb0OZD6dTWf/QN9ZFrDlY68hyTx0L89eIek2cVrizvqS0ZJ3nyvzPq6JmJYy3mwvoXjpp2FcVThvCuEFU8JTUe+x/aYf1JrEpZjsvFdq3AnPg31Ns5UBHrxuWzY/VeCPZKfXWnrVXd96Q5gFyJyGwtN9BAoRt1kGjvdRS13FP8Xrvw4P8Ly7b19/06b/AvkDuD4=
+sidebar_class_name: 'get api-method'
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
+
+<Heading
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'listUsers'}
+></Heading>
+
+<MethodEndpoint
+  method={'get'}
+  path={'/api/v1/users'}
+  context={'endpoint'}
+></MethodEndpoint>
+
+listUsers
+
+<ParamsDetails parameters={undefined}></ParamsDetails>
+
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{
+    '200': {
+      description: 'Paginated list of users',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              users: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    username: { type: 'string' },
+                    name: { type: 'string', nullable: true },
+                    email: { type: 'string' },
+                    approved: { type: 'boolean' },
+                    enabled: { type: 'boolean' },
+                  },
+                  required: ['id', 'username', 'enabled'],
+                  example: {
+                    id: 'user-123',
+                    username: 'johndoe',
+                    name: 'John Doe',
+                    email: 'john@example.com',
+                    approved: true,
+                    enabled: true,
+                  },
+                  title: 'User',
+                },
+              },
+              total: { type: 'number' },
+              page: { type: 'number' },
+              pageSize: { type: 'number' },
+              totalPages: { type: 'number' },
+            },
+            required: ['users', 'total', 'page', 'pageSize', 'totalPages'],
+            title: 'PaginatedUsersResponse',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

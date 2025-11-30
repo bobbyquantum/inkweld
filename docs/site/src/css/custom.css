@@ -1,0 +1,58 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* Inkweld brand colors - red and black theme - v2 */
+:root {
+  --ifm-color-primary: #dc2626;
+  --ifm-color-primary-dark: #c62020;
+  --ifm-color-primary-darker: #b91c1c;
+  --ifm-color-primary-darkest: #991b1b;
+  --ifm-color-primary-light: #ef4444;
+  --ifm-color-primary-lighter: #f87171;
+  --ifm-color-primary-lightest: #fca5a5;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(220, 38, 38, 0.1);
+  --ifm-navbar-background-color: #ffffff;
+  --ifm-background-color: #ffffff;
+  --ifm-footer-background-color: #1a1a1a;
+}
+
+/* Dark mode with refined red accents */
+[data-theme='dark'] {
+  --ifm-color-primary: #ef4444;
+  --ifm-color-primary-dark: #dc2626;
+  --ifm-color-primary-darker: #b91c1c;
+  --ifm-color-primary-darkest: #991b1b;
+  --ifm-color-primary-light: #f87171;
+  --ifm-color-primary-lighter: #fca5a5;
+  --ifm-color-primary-lightest: #fecaca;
+  --docusaurus-highlighted-code-line-bg: rgba(239, 68, 68, 0.15);
+  --ifm-navbar-background-color: #0a0a0a;
+  --ifm-background-color: #0a0a0a;
+  --ifm-background-surface-color: #1a1a1a;
+  --ifm-footer-background-color: #000000;
+  --ifm-card-background-color: #1a1a1a;
+}
+
+/* Fix Mermaid diagram visibility in dark mode with light background */
+[data-theme='dark'] .mermaid,
+[data-theme='dark'] .mermaid svg {
+  background-color: #ffffff !important;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+[data-theme='dark'] pre.mermaid {
+  background-color: #ffffff !important;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+/* Keep light mode diagrams as-is */
+[data-theme='light'] .mermaid {
+  margin: 1rem 0;
+}

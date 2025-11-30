@@ -1,17 +1,3 @@
-<mat-card class="project-card" appearance="outlined">
-  @if (hasCover()) {
-    <!-- Only show cover image if available -->
-    <div class="cover-container">
-      <img
-        [src]="getCoverUrl()"
-        [alt]="project.title + ' cover'"
-        class="cover-image" />
-    </div>
-  } @else {
-    <!-- Show title and author if no cover -->
-    <div class="no-cover-container">
-      <div class="centered-title">{{ project.title }}</div>
-      <div class="author">{{ project.username }}</div>
-    </div>
-  }
+<mat-card class="project-card" appearance="outlined" data-testid="project-card">
+  <app-project-cover [project]="project" variant="card"></app-project-cover>
 </mat-card>

@@ -6,11 +6,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
-import { ProjectElementDto } from '@inkweld/model/project-element-dto';
-import { DocumentService } from '@services/document.service';
-import { ProjectStateService } from '@services/project-state.service';
+import { Element, ElementType } from '@inkweld/index';
+import { DocumentService } from '@services/project/document.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 import { Mock, vi } from 'vitest';
 
 import { DocumentSyncState } from '../../../../models/document-sync-state';
@@ -33,36 +32,39 @@ describe('DocumentsListTabComponent', () => {
     description: 'Test description',
   };
 
-  const mockElements: ProjectElementDto[] = [
+  const mockElements: Element[] = [
     {
       id: 'doc1',
       name: 'Document 1',
-      type: 'ITEM',
+      type: ElementType.Item,
       level: 0,
-      position: 0,
+      order: 0,
       version: 1,
       expandable: false,
       metadata: {},
+      parentId: null,
     },
     {
       id: 'doc2',
       name: 'Document 2',
-      type: 'FOLDER',
+      type: ElementType.Folder,
       level: 0,
-      position: 1,
+      order: 1,
       version: 1,
       expandable: true,
       metadata: {},
+      parentId: 'folder1',
     },
     {
       id: 'doc3',
       name: 'Document 3',
-      type: 'ITEM',
+      type: ElementType.Item,
       level: 0,
-      position: 2,
+      order: 2,
       version: 1,
       expandable: false,
       metadata: {},
+      parentId: null,
     },
   ];
 
@@ -92,7 +94,6 @@ describe('DocumentsListTabComponent', () => {
         MatTableModule,
         MatProgressSpinnerModule,
         MatTooltipModule,
-        NoopAnimationsModule,
         DocumentsListTabComponent,
       ],
       providers: [
@@ -117,7 +118,9 @@ describe('DocumentsListTabComponent', () => {
 
   it('should filter and display only ITEM type elements as documents', () => {
     // Manually set documents for test
-    component.documents.set(mockElements.filter(el => el.type === 'ITEM'));
+    component.documents.set(
+      mockElements.filter(el => el.type === ElementType.Item)
+    );
 
     const docs = component.documents();
     expect(docs.length).toBe(2);
@@ -157,7 +160,7 @@ describe('DocumentsListTabComponent', () => {
     expect(projectStateService.openDocument).toHaveBeenCalled();
     const newDocArg = (projectStateService.openDocument as Mock).mock
       .calls[0][0];
-    expect(newDocArg.type).toBe(ProjectElementDto.TypeEnum.Item);
+    expect(newDocArg.type).toBe(ElementType.Item);
     expect(newDocArg.name).toBe('New Document');
   });
 

@@ -131,6 +131,7 @@
               <div class="desktop-open-toolbar">
                 <button
                   mat-button
+                  data-testid="back-to-project-button"
                   (click)="goHome()"
                   aria-label="Home"
                   [class.active]="projectState.selectedTabIndex() === 0">
@@ -139,6 +140,7 @@
                 </button>
                 <button
                   mat-icon-button
+                  data-testid="add-element-button"
                   (click)="projectState.showNewElementDialog()"
                   aria-label="Add">
                   <mat-icon>add</mat-icon>

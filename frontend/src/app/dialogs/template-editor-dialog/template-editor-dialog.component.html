@@ -3,14 +3,18 @@
   Edit Template
 </h2>
 
-<mat-dialog-content class="dialog-content">
+<mat-dialog-content class="dialog-content" data-testid="template-editor-dialog">
   <!-- Basic Information Section -->
   <section class="section">
     <h3>Basic Information</h3>
     <form [formGroup]="basicForm">
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Template Name</mat-label>
-        <input matInput formControlName="name" placeholder="e.g., Character" />
+        <input
+          matInput
+          formControlName="name"
+          data-testid="template-name-input"
+          placeholder="e.g., Character" />
         @if (basicForm.get('name')?.hasError('required')) {
           <mat-error>Name is required</mat-error>
         }
@@ -18,7 +22,7 @@
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Icon</mat-label>
-        <mat-select formControlName="icon">
+        <mat-select formControlName="icon" data-testid="template-icon-input">
           @for (icon of availableIcons; track icon) {
             <mat-option [value]="icon">
               <mat-icon>{{ icon }}</mat-icon>
@@ -33,6 +37,7 @@
         <textarea
           matInput
           formControlName="description"
+          data-testid="template-description-input"
           placeholder="Describe this template..."
           rows="3"></textarea>
       </mat-form-field>
@@ -43,7 +48,11 @@
   <section class="section">
     <div class="section-header">
       <h3>Tabs</h3>
-      <button mat-raised-button color="primary" (click)="addTab()">
+      <button
+        mat-raised-button
+        color="primary"
+        data-testid="add-tab-button"
+        (click)="addTab()">
         <mat-icon>add</mat-icon>
         Add Tab
       </button>
@@ -101,6 +110,7 @@
                 <mat-label>Tab Label</mat-label>
                 <input
                   matInput
+                  data-testid="tab-label-input"
                   [value]="currentTab.label"
                   (input)="
                     updateTab(selectedTabIndex(), {
@@ -133,6 +143,7 @@
                   <button
                     mat-raised-button
                     color="accent"
+                    data-testid="add-field-button"
                     (click)="addField(selectedTabIndex())">
                     <mat-icon>add</mat-icon>
                     Add Field
@@ -153,11 +164,12 @@
                     ">
                     @for (
                       field of currentTab.fields;
-                      track field.key;
+                      track field.id;
                       let j = $index
                     ) {
                       <mat-expansion-panel class="field-panel">
-                        <mat-expansion-panel-header>
+                        <mat-expansion-panel-header
+                          data-testid="field-expansion-header">
                           <mat-panel-title>
                             <mat-icon
                               class="drag-handle"
@@ -180,6 +192,7 @@
                             <mat-label>Field Key</mat-label>
                             <input
                               matInput
+                              data-testid="field-key-input"
                               [value]="field.key"
                               (input)="
                                 updateField(selectedTabIndex(), j, {
@@ -195,6 +208,7 @@
                             <mat-label>Field Label</mat-label>
                             <input
                               matInput
+                              data-testid="field-label-input"
                               [value]="field.label"
                               (input)="
                                 updateField(selectedTabIndex(), j, {
@@ -210,6 +224,7 @@
                             <mat-label>Field Type</mat-label>
                             <mat-select
                               [value]="field.type"
+                              data-testid="field-type-select"
                               (selectionChange)="
                                 updateField(selectedTabIndex(), j, {
                                   type: $event.value,
@@ -281,6 +296,7 @@
     mat-raised-button
     color="primary"
     (click)="save()"
+    data-testid="save-template-button"
     [disabled]="basicForm.invalid || isSaving()">
     @if (isSaving()) {
       <span>Saving...</span>

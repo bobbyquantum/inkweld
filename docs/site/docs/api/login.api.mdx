@@ -1,0 +1,148 @@
+---
+id: login
+title: 'login'
+description: 'login'
+sidebar_label: 'login'
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vt9v0zAQ/lciP4HU9ccKCPJENyaUamLT2ACp6oOb3Bqvjh1sp1up8r9z5yRrugYmpIk+tK599+W77+582TLHl5aFMzYpXArKiZg7oRWb95jOwfg/UcJCJvVSKNZjBn4WYN2JTjYs3LJYK4dutOR5Lmv3wZ1FDNyzcQoZp5Xb5IAwenEHsUOc3BC+E2DptLBgFM+gZWmdEWqJlplQ56CWLmXhqMcSsLERuScZspvGr8fggWe5JM87napEAyvxKdzae22Sf8W9bPzauA3Y6HjMyrKSQhhISL5iR+TxmaihE867npN6V5V06Ft521wrW8V/PBzSzz4J7xTYIo7B2ttCIvYLyZ0hIF92qt1JwXFX2KDxamtywBEjIy2e5yA6klI7d1cCHv6pRFQhJV8QIWcKQENUQchOCJTN6DW0H77QWgJXdAqKYDoPnyRcUG20st54zlvqVEF6qyMqmnZ0j1XaRMWmuBF88js1fW/zsYbrxzpjbf4UaotxHXlTcdQZFJHTK1DPJ3r6/Trge1dAUHm2kw2babr4HIsLMY1ufkWjLyKykbp6G59G76JV/uPb6fRDv9/vbA7WUDnsiqoP6rZ4MxwddkKk1lyKJIgRkBhyaV+uGcAYbTpq5UkQldl+emtXNlGBXwY6jgtDDq1MnNHJQZTjwygncawL5YJEWJ/TAAFzUAmyCaq08xe8A/5/2OXTomtmSgYu1dQpubaeKKdLmQ14Lgbr0YDqctDYYimtwdDIwqlhqElS5/JwgAYxlykChO/H43HHTYbHQQJrkDrPUL+gQmIlxkbaXe0G29ku1M6G3U2V/ZnQY0Ldaq9pLUKkVvcgk2ByGaEfEa/YjPrD/vCA46mma0zT1F0DFXu1uDfCUQ3kkrtbbTJCC16dFOq1H3EYcsZ96muijVR74I95dvDgBggl/IXnJdzWis+woATxHNFFg6rjTwWGGpG0ZLLdLriFGyPLkrZRNINvAjNcrrkR1S08myN0CjyhQYCJWsHGh+cL9+iaiJC5LIjQQRGXvcYDOwJy91fbeat8Li++XqPxon43yXRCPobf03sLfoeM0WsNefsW8HtbJrlaFn4csgqTPr8BJ6ciFg==
+sidebar_class_name: 'post api-method'
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
+
+<Heading as={'h1'} className={'openapi__heading'} children={'login'}></Heading>
+
+<MethodEndpoint
+  method={'post'}
+  path={'/api/v1/auth/login'}
+  context={'endpoint'}
+></MethodEndpoint>
+
+login
+
+<Heading
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
+
+<ParamsDetails parameters={undefined}></ParamsDetails>
+
+<RequestSchema
+  title={'Body'}
+  body={{
+    content: {
+      'application/json': {
+        schema: {
+          type: 'object',
+          properties: {
+            username: {
+              type: 'string',
+              minLength: 1,
+              description: 'Username',
+              example: 'johndoe',
+            },
+            password: {
+              type: 'string',
+              minLength: 1,
+              description: 'Password',
+              example: 'password123',
+            },
+          },
+          required: ['username', 'password'],
+          title: 'LoginRequest',
+        },
+      },
+    },
+  }}
+></RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{
+    '200': {
+      description: 'Login successful',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                description: 'Login status message',
+                example: 'Login successful',
+              },
+              user: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  username: { type: 'string' },
+                  name: { type: 'string', nullable: true },
+                  email: { type: 'string' },
+                  approved: { type: 'boolean' },
+                  enabled: { type: 'boolean' },
+                },
+                required: ['id', 'username', 'enabled'],
+                example: {
+                  id: 'user-123',
+                  username: 'johndoe',
+                  name: 'John Doe',
+                  email: 'john@example.com',
+                  approved: true,
+                  enabled: true,
+                },
+                title: 'User',
+              },
+              token: {
+                type: 'string',
+                description: 'JWT authentication token',
+                example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+              },
+            },
+            required: ['user', 'token'],
+            title: 'LoginResponse',
+          },
+        },
+      },
+    },
+    '401': {
+      description: 'Invalid credentials',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+    '403': {
+      description: 'Account disabled or pending approval',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: { error: { type: 'string' } },
+            required: ['error'],
+            example: { error: 'An error occurred' },
+            title: 'ErrorResponse',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

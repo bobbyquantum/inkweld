@@ -10,12 +10,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FileListComponent } from '@components/file-list/file-list.component';
-import { DialogGatewayService } from '@services/dialog-gateway.service';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import {
   ProjectFile,
   ProjectFileService,
-} from '@services/project-file.service';
-import { ProjectStateService } from '@services/project-state.service';
+} from '@services/project/project-file.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 import { firstValueFrom, Subject } from 'rxjs';
 
 @Component({

@@ -1,0 +1,130 @@
+---
+id: download-project-file
+title: 'downloadProjectFile'
+description: 'downloadProjectFile'
+sidebar_label: 'downloadProjectFile'
+hide_title: true
+hide_table_of_contents: true
+api: eJzdVE1v2zAM/SuGThvgxs7Sw+BbO2xAgKHoZaeiB8VmYmWyqEl0siDIfx+pJM0yJ1t7nS/WB/n4Hilyq9BD0GTQTRtVqQbXzqJuHgMuoaYvxoLKFelFVNWTkm1Uz7nyOugOCIIcb1WsW+i0qraKNh4YJlIwbsGe8FN33srRElvXoKA1EOtgvMTk828RgmMwtctVgB+9CcBEKPRw1TJX6Vep/nRixMJrahnndYS6zY3DFdgBo4P2LNp+8W9WZ9YvzA67t7NqsO47cDTyzXzATPKfvS5ZJ9MTJ0I2fxjk61mwokcXubhM7kNZyu8CXo2OmBu7H1dsp723pk5PqMCagG5YFuhO7q4rnmPoNPurmXE6bNSOv1zdluNh6AekTPfUcjyJw4qvxl9G8bgQF2dSJHb0QR48mb1UCAHD3wty57JklWFd9yGk6Of8PqfrDmLUC67MWWmeDiE4x2QoAUomk8uL5tsr6XYsfI69+68E7/5EuzxyeLq0KBNpAUmFvNRKFdqbYjUu/N42FtVxBBSVtFwxlwnF69+fOlusjpOqD5ZhWiJfFYXFWtsWI1UfJ5PJQOZXuc4a4BmBXnoy2yOljjFujimPB5FT930NtsnuHqcMJPH2IONROSoH0J/QWj1DGbwrbitul7RYB0NcjsxbTdIggpa9u+/de07dLy5l9fU=
+sidebar_class_name: 'get api-method'
+info_path: docs/api/inkweld-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from '@theme/ApiExplorer/MethodEndpoint';
+import ParamsDetails from '@theme/ParamsDetails';
+import RequestSchema from '@theme/RequestSchema';
+import StatusCodes from '@theme/StatusCodes';
+import OperationTabs from '@theme/OperationTabs';
+import TabItem from '@theme/TabItem';
+import Heading from '@theme/Heading';
+
+<Heading
+  as={'h1'}
+  className={'openapi__heading'}
+  children={'downloadProjectFile'}
+></Heading>
+
+<MethodEndpoint
+  method={'get'}
+  path={'/api/v1/projects/:username/:slug/files/:storedName'}
+  context={'endpoint'}
+></MethodEndpoint>
+
+downloadProjectFile
+
+<Heading
+  id={'request'}
+  as={'h2'}
+  className={'openapi-tabs__heading'}
+  children={'Request'}
+></Heading>
+
+<ParamsDetails
+  parameters={[
+    {
+      schema: { type: 'string', example: 'johndoe', description: 'Username' },
+      required: true,
+      description: 'Username',
+      name: 'username',
+      in: 'path',
+    },
+    {
+      schema: {
+        type: 'string',
+        example: 'my-novel',
+        description: 'Project slug',
+      },
+      required: true,
+      description: 'Project slug',
+      name: 'slug',
+      in: 'path',
+    },
+    {
+      schema: {
+        type: 'string',
+        example: 'document.pdf',
+        description: 'File name',
+      },
+      required: true,
+      description: 'File name',
+      name: 'storedName',
+      in: 'path',
+    },
+  ]}
+></ParamsDetails>
+
+<RequestSchema title={'Body'} body={undefined}></RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{
+    '200': {
+      description: 'File content',
+      content: {
+        'application/octet-stream': {
+          schema: { type: 'string', format: 'binary' },
+        },
+      },
+    },
+    '401': {
+      description: 'Not authenticated',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'FileError',
+          },
+        },
+      },
+    },
+    '404': {
+      description: 'File not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'FileError',
+          },
+        },
+      },
+    },
+  }}
+></StatusCodes>

@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -8,13 +7,13 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 
-import { SnapshotDto } from '../../../api-client';
+import { DocumentSnapshot } from '../../../api-client';
 
 /**
  * Data passed to the RestoreSnapshotDialog
  */
 export interface RestoreSnapshotDialogData {
-  snapshot: SnapshotDto;
+  snapshot: DocumentSnapshot;
   currentWordCount?: number;
 }
 
@@ -25,7 +24,7 @@ export interface RestoreSnapshotDialogData {
 @Component({
   selector: 'app-restore-snapshot-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule],
+  imports: [MatDialogModule, MatButtonModule, MatIconModule],
   templateUrl: './restore-snapshot-dialog.component.html',
   styleUrl: './restore-snapshot-dialog.component.scss',
 })

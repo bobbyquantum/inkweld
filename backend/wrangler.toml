@@ -1,0 +1,128 @@
+name = "inkweld-backend"
+main = "src/cloudflare-runner.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Account ID (set via environment variable or wrangler login)
+# account_id = ""
+
+# Workers configuration
+workers_dev = true
+
+[build]
+command = ""
+# Environment variables (sensitive values should be set via wrangler secret)
+[vars]
+NODE_ENV = "development"
+PORT = "8333"
+DB_TYPE = "d1"
+ALLOWED_ORIGINS = "http://localhost:4200,https://inkweld.app"
+USER_APPROVAL_REQUIRED = "false"
+GITHUB_ENABLED = "false"
+RECAPTCHA_ENABLED = "false"
+SESSION_SECRET = "local-dev-session-secret-for-testing-minimum-32-chars"
+
+# Database binding (Cloudflare D1)
+# For local development (wrangler dev --local), this binding is used
+# For remote D1 access, set your actual database_id in wrangler.toml.local
+[[d1_databases]]
+binding = "DB"
+database_name = "inkweld_local"
+database_id = "local-dev-placeholder"
+
+# R2 bucket for file storage (covers, avatars, exports, etc.)
+# Create dev bucket: npx wrangler r2 bucket create inkweld-storage-dev
+# Create prod bucket: npx wrangler r2 bucket create inkweld-storage
+# Note: Actual bucket configurations are in wrangler.toml.local (gitignored)
+# [[r2_buckets]]
+# binding = "STORAGE"
+# bucket_name = "inkweld-storage"
+
+# KV namespace for session storage (alternative to D1)
+# Uncomment and configure for session management
+# [[kv_namespaces]]
+# binding = "SESSIONS"
+# id = "your-kv-namespace-id"
+
+# Durable Objects for Yjs project collaboration
+# One DO per project (username:slug) manages all documents + elements
+[[durable_objects.bindings]]
+name = "YJS_PROJECTS"
+class_name = "YjsProject"
+script_name = "inkweld-backend"
+
+# Migrations for Durable Objects
+# For fresh installs, only v1 is needed
+# For existing installations that had YjsDocument, v2 handles the transition
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["YjsProject"]
+
+# Uncomment this for existing deployments that need to delete YjsDocument class
+# [[migrations]]
+# tag = "v2"
+# deleted_classes = ["YjsDocument"]
+
+# Secrets (set via: wrangler secret put SECRET_NAME)
+# - SESSION_SECRET
+# - DB_PATH (if using local SQLite in dev)
+# - GITHUB_CLIENT_ID (if GitHub OAuth enabled)
+# - GITHUB_CLIENT_SECRET (if GitHub OAuth enabled)
+# - RECAPTCHA_SITE_KEY (if reCAPTCHA enabled)
+# - RECAPTCHA_SECRET_KEY (if reCAPTCHA enabled)
+
+# Development configuration
+[env.dev]
+name = "inkweld-backend-dev"
+[env.dev.vars]
+NODE_ENV = "development"
+PORT = "8333"
+DB_TYPE = "d1"
+ALLOWED_ORIGINS = "http://localhost:4200,https://inkweld.app"
+USER_APPROVAL_REQUIRED = "false"
+GITHUB_ENABLED = "false"
+RECAPTCHA_ENABLED = "false"
+
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "inkweld_dev"
+database_id = "df33e068-25af-4d8c-b0d9-c6ad97b9ea1c"
+
+[[env.dev.r2_buckets]]
+binding = "STORAGE"
+bucket_name = "inkweld-storage-dev"
+
+[[env.dev.durable_objects.bindings]]
+name = "YJS_PROJECTS"
+class_name = "YjsProject"
+script_name = "inkweld-backend-dev"
+
+# Production configuration
+[env.production]
+name = "inkweld-backend-prod"
+[env.production.vars]
+NODE_ENV = "production"
+PORT = "8333"
+DB_TYPE = "d1"
+ALLOWED_ORIGINS = "https://inkweld.app"
+USER_APPROVAL_REQUIRED = "true"
+GITHUB_ENABLED = "false"
+RECAPTCHA_ENABLED = "false"
+
+# [[env.production.d1_databases]]
+# binding = "DB"
+# database_name = "inkweld_prod"
+# database_id = "your-prod-database-id-here"  # Uncomment and set for production
+
+# [[env.production.r2_buckets]]
+# binding = "STORAGE"
+# bucket_name = "inkweld-storage"  # Uncomment and set for production
+
+[[env.production.durable_objects.bindings]]
+name = "YJS_DOCUMENTS"
+class_name = "YjsDocument"
+script_name = "inkweld-backend-prod"
+
+# [[env.production.r2_buckets]]
+# binding = "STORAGE"
+# bucket_name = "inkweld-storage"  # Uncomment when ready for production

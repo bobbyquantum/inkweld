@@ -1,52 +1,45 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { Correction } from '@inkweld/model/correction';
 import { vi } from 'vitest';
 
-import { CorrectionDto } from '../../../api-client/model/correction-dto';
-import { ExtendedCorrectionDto } from './correction-dto.extension';
 import { LintStorageService } from './lint-storage.service';
 
 describe('LintStorageService', () => {
   let service: LintStorageService;
-  let localStorageSpy: Record<string, any>;
+  let getItemSpy: any;
+  let setItemSpy: any;
 
-  const mockCorrection: CorrectionDto = {
-    from: 0,
-    to: 5,
-    suggestion: 'test suggestion',
-    error: '',
+  const mockCorrection: Correction = {
+    startPos: 0,
+    endPos: 5,
+    originalText: 'original text',
+    correctedText: 'test suggestion',
+    errorType: 'spelling',
+    recommendation: 'test recommendation',
   };
 
-  const mockExtendedCorrection: ExtendedCorrectionDto = {
+  const mockExtendedCorrection: any = {
     ...mockCorrection,
     text: 'original text',
   };
 
   beforeEach(() => {
-    // Mock localStorage
-    localStorageSpy = {
-      getItem: vi.spyOn(Storage.prototype, 'getItem'),
-      setItem: vi.spyOn(Storage.prototype, 'setItem'),
-      removeItem: vi.spyOn(Storage.prototype, 'removeItem'),
-      clear: vi.spyOn(Storage.prototype, 'clear'),
-    };
+    // Clear localStorage before each test
+    localStorage.clear();
+
+    // Spy on the global localStorage methods (not the prototype)
+    getItemSpy = vi.spyOn(localStorage, 'getItem');
+    setItemSpy = vi.spyOn(localStorage, 'setItem');
 
     TestBed.configureTestingModule({
       providers: [provideZonelessChangeDetection()],
     });
     service = TestBed.inject(LintStorageService);
-
-    // Clear localStorage before each test
-    localStorage.clear();
-    // Reset spies
-    Object.values(localStorageSpy).forEach(spy => spy.mockClear());
-    // Re-initialize the service to load fresh state
-    (service as any).rejectedSuggestions = new Set();
-    (service as any).loadRejectedSuggestions();
   });
 
   afterEach(() => {
-    // Restore original localStorage methods
+    // Restore spies
     vi.restoreAllMocks();
   });
 
@@ -71,7 +64,7 @@ describe('LintStorageService', () => {
     service.rejectSuggestion(mockCorrection);
 
     expect(service.isSuggestionRejected(mockCorrection)).toBe(true);
-    expect(localStorageSpy['setItem']).toHaveBeenCalledWith(
+    expect(setItemSpy).toHaveBeenCalledWith(
       'lint-rejected-suggestions',
       JSON.stringify([id])
     );
@@ -80,20 +73,18 @@ describe('LintStorageService', () => {
   it('should load rejected suggestions from localStorage on init', () => {
     const id1 = '0-5-test1';
     const id2 = '10-15-test2';
-    localStorageSpy['getItem'].mockReturnValue(JSON.stringify([id1, id2]));
+    getItemSpy.mockReturnValue(JSON.stringify([id1, id2]));
 
     // Re-create service to trigger constructor logic
     service = new LintStorageService();
 
     expect((service as any).rejectedSuggestions.has(id1)).toBe(true);
     expect((service as any).rejectedSuggestions.has(id2)).toBe(true);
-    expect(localStorageSpy['getItem']).toHaveBeenCalledWith(
-      'lint-rejected-suggestions'
-    );
+    expect(getItemSpy).toHaveBeenCalledWith('lint-rejected-suggestions');
   });
 
   it('should handle errors when loading from localStorage', () => {
-    localStorageSpy['getItem'].mockImplementation(() => {
+    getItemSpy.mockImplementation(() => {
       throw new Error('Storage error');
     });
     const consoleErrorSpy = vi
@@ -112,7 +103,7 @@ describe('LintStorageService', () => {
   });
 
   it('should handle errors when saving to localStorage', () => {
-    localStorageSpy['setItem'].mockImplementation(() => {
+    setItemSpy.mockImplementation(() => {
       throw new Error('Storage error');
     });
     const consoleErrorSpy = vi
@@ -137,5 +128,31 @@ describe('LintStorageService', () => {
     document.dispatchEvent(event);
 
     expect(rejectSpy).toHaveBeenCalledWith(mockCorrection);
+  });
+
+  it('should log acceptance when lint-correction-accept event is dispatched', () => {
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const event = new CustomEvent('lint-correction-accept', {
+      detail: mockCorrection,
+    });
+
+    document.dispatchEvent(event);
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[LintStorage] Suggestion accepted:',
+      mockCorrection.correctedText
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('should clear all rejected suggestions', () => {
+    // First add a suggestion
+    service.rejectSuggestion(mockCorrection);
+    expect(service.isSuggestionRejected(mockCorrection)).toBe(true);
+
+    // Clear all suggestions
+    service.clearRejectedSuggestions();
+
+    expect(service.isSuggestionRejected(mockCorrection)).toBe(false);
   });
 });

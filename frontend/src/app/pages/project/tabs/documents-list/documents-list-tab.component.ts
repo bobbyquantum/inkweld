@@ -13,9 +13,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
-import { ProjectElementDto } from '@inkweld/index';
-import { DocumentService } from '@services/document.service';
-import { ProjectStateService } from '@services/project-state.service';
+import { Element, ElementType } from '@inkweld/index';
+import { DocumentService } from '@services/project/document.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 import { format } from 'date-fns';
 
 import { DocumentSyncState } from '../../../../models/document-sync-state';
@@ -41,7 +41,7 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
   protected readonly DocumentSyncState = DocumentSyncState;
 
   // Use signals for reactive updates
-  documents = signal<ProjectElementDto[]>([]);
+  documents = signal<Element[]>([]);
   isLoading = signal<boolean>(true);
   error = signal<string | null>(null);
 
@@ -56,7 +56,9 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
   private readonly elementsEffect = effect(() => {
     // This will run whenever elements signal changes
     const elements = this.projectState.elements();
-    this.documents.set(elements.filter(element => element.type === 'ITEM'));
+    this.documents.set(
+      elements.filter(element => element.type === ElementType.Item)
+    );
     this.isLoading.set(false);
   });
 
@@ -75,7 +77,9 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
 
     // Initial loading of documents
     const elements = this.projectState.elements();
-    this.documents.set(elements.filter(element => element.type === 'ITEM'));
+    this.documents.set(
+      elements.filter(element => element.type === ElementType.Item)
+    );
     this.isLoading.set(false);
   }
 
@@ -130,22 +134,23 @@ export class DocumentsListTabComponent implements OnInit, OnDestroy {
     }
   }
 
-  openDocumentAsHtml(document: ProjectElementDto): void {
+  openDocumentAsHtml(document: Element): void {
     // Implement HTML preview functionality
     console.log('Opening document as HTML:', document);
   }
 
-  openDocument(document: ProjectElementDto): void {
+  openDocument(document: Element): void {
     this.projectState.openDocument(document);
   }
 
   createNewDocument(): void {
-    const newDocument: ProjectElementDto = {
+    const newDocument: Element = {
       id: 'new',
       name: 'New Document',
-      type: ProjectElementDto.TypeEnum.Item,
+      type: ElementType.Item,
+      parentId: null,
       level: 0,
-      position: 0,
+      order: 0,
       expandable: false,
       version: 0,
       metadata: {},

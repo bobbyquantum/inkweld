@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { ProjectElementDto } from '@inkweld/index';
+import { ElementType } from '@inkweld/index';
 
 @Component({
   selector: 'app-tree-node-icon',
@@ -25,16 +25,16 @@ export class TreeNodeIconComponent {
     }
 
     const typeMap: Record<string, string> = {
-      [ProjectElementDto.TypeEnum.Character]: 'person',
-      [ProjectElementDto.TypeEnum.Location]: 'place',
-      [ProjectElementDto.TypeEnum.WbItem]: 'category',
-      [ProjectElementDto.TypeEnum.Map]: 'map',
-      [ProjectElementDto.TypeEnum.Relationship]: 'diversity_1',
-      [ProjectElementDto.TypeEnum.Philosophy]: 'auto_stories',
-      [ProjectElementDto.TypeEnum.Culture]: 'groups',
-      [ProjectElementDto.TypeEnum.Species]: 'pets',
-      [ProjectElementDto.TypeEnum.Systems]: 'settings',
-      [ProjectElementDto.TypeEnum.Item]: 'description',
+      ['CHARACTER']: 'person',
+      ['LOCATION']: 'place',
+      ['WB_ITEM']: 'category',
+      ['MAP']: 'map',
+      ['RELATIONSHIP']: 'diversity_1',
+      ['PHILOSOPHY']: 'auto_stories',
+      ['CULTURE']: 'groups',
+      ['SPECIES']: 'pets',
+      ['SYSTEMS']: 'settings',
+      [ElementType.Item]: 'description',
       IMAGE: 'image', // Legacy type not in enum
     };
 

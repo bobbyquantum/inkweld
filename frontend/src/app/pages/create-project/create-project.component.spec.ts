@@ -13,16 +13,15 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import {
   ActivatedRoute,
   convertToParamMap,
   provideRouter,
   Router,
 } from '@angular/router';
-import { ProjectDto } from '@inkweld/index';
-import { UnifiedProjectService } from '@services/unified-project.service';
-import { UnifiedUserService } from '@services/unified-user.service';
+import { Project } from '@inkweld/index';
+import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 import { of } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 
@@ -42,9 +41,11 @@ describe('CreateProjectComponent', () => {
     email: 'test@example.com',
     firstName: 'Test',
     lastName: 'User',
+    id: 'test-id',
+    enabled: true,
   };
 
-  const mockProject: ProjectDto = {
+  const mockProject: Project = {
     id: '1',
     title: 'Test Project',
     slug: 'test-project',
@@ -82,7 +83,6 @@ describe('CreateProjectComponent', () => {
         MatInputModule,
         MatCardModule,
         MatProgressBarModule,
-        NoopAnimationsModule,
       ],
       providers: [
         provideZonelessChangeDetection(),
@@ -233,7 +233,7 @@ describe('CreateProjectComponent', () => {
       description: 'Test Description',
     });
 
-    const incompleteProject = { id: '123' } as ProjectDto;
+    const incompleteProject = { id: '123' } as Project;
     projectService.createProject.mockResolvedValue(incompleteProject);
 
     await component.onSubmit();

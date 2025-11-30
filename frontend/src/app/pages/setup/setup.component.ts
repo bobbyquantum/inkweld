@@ -9,10 +9,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { ConfigService } from '@inkweld/index';
+import { ConfigurationService } from '@inkweld/index';
 
-import { SetupService } from '../../services/setup.service';
-import { UnifiedUserService } from '../../services/unified-user.service';
+import { SetupService } from '../../services/core/setup.service';
+import { UnifiedUserService } from '../../services/user/unified-user.service';
 
 type AppMode = 'ONLINE' | 'OFFLINE' | 'BOTH';
 
@@ -47,7 +47,7 @@ interface SystemFeaturesResponse {
 export class SetupComponent implements OnInit {
   private setupService = inject(SetupService);
   private unifiedUserService = inject(UnifiedUserService);
-  private configService = inject(ConfigService);
+  private ConfigurationService = inject(ConfigurationService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
 
@@ -62,14 +62,22 @@ export class SetupComponent implements OnInit {
   protected displayName = '';
 
   ngOnInit(): void {
-    void this.loadSystemConfig();
+    // Check if there's already a configured server
+    const existingServerUrl = this.setupService.getServerUrl();
+    if (existingServerUrl) {
+      // If already configured, try to load system config from that server
+      void this.loadSystemConfig();
+    } else {
+      // No server configured yet, skip loading and use defaults
+      this.configLoading.set(false);
+      console.info('No server configured yet, using default setup options');
+    }
   }
 
   private async loadSystemConfig(): Promise<void> {
     try {
-      const systemFeatures = await this.configService
-        .configControllerGetSystemFeatures()
-        .toPromise();
+      const systemFeatures =
+        await this.ConfigurationService.getAppConfiguration().toPromise();
 
       if (systemFeatures) {
         // Use type assertion to a safe interface

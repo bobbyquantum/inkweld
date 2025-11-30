@@ -1,9 +1,9 @@
-import { CorrectionDto } from '../../../api-client/model/correction-dto';
+import { Correction } from '../../../api-client/model/correction';
 
 /**
- * Extended CorrectionDto interface for internal use in the lint system
+ * Extended correction interface for internal use in the lint system
  */
-export interface ExtendedCorrectionDto extends CorrectionDto {
+export interface ExtendedCorrectionDto extends Correction {
   /**
    * The text content that this correction applies to
    */
@@ -13,4 +13,14 @@ export interface ExtendedCorrectionDto extends CorrectionDto {
    * Reason for the correction (sometimes used instead of 'error')
    */
   reason?: string;
+
+  /**
+   * Start position (ProseMirror coordinate, adjusted from startPos)
+   */
+  from?: number;
+
+  /**
+   * End position (ProseMirror coordinate, adjusted from endPos)
+   */
+  to?: number;
 }

@@ -19,13 +19,13 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "🚀 NestJS Server",
+      "name": "🚀 Hono Backend",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "bun:dev"],
-      "cwd": "${workspaceFolder}/server",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/backend",
       "console": "integratedTerminal",
       "sourceMaps": true,
-      "resolveSourceMapLocations": ["${workspaceFolder}/server/**/*.ts"]
+      "resolveSourceMapLocations": ["${workspaceFolder}/backend/**/*.ts"]
     },
     {
       "type": "node",
@@ -47,7 +47,7 @@
   "compounds": [
     {
       "name": "🌐 Full",
-      "configurations": ["🎨 Frontend", "🚀 NestJS Server"],
+      "configurations": ["🎨 Frontend", "🚀 Hono Backend"],
       "stopAll": true
     }
   ]

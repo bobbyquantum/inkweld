@@ -1,0 +1,44 @@
+.dynamic-worldbuilding-editor {
+  height: calc(100vh - 98px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  @media (max-width: 759px) {
+    height: calc(100vh - 82px);
+  }
+
+  form {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .template-editor-controls {
+    padding: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    flex-shrink: 0;
+  }
+
+  mat-tab-group {
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .tab-content {
+    padding: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1rem;
+    min-height: 0;
+  }
+
+  .field-container { grid-column: span 12; }
+  .full-width { width: 100%; }
+  .array-field { width: 100%; margin-bottom: 1rem; }
+  .array-item { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; }
+  .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; }
+}

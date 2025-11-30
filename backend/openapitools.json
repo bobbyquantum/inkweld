@@ -1,0 +1,34 @@
+{
+  "$schema": "./node_modules/@openapitools/openapi-generator-cli/config.schema.json",
+  "spaces": 2,
+  "generator-cli": {
+    "version": "7.17.0",
+    "generators": {
+      "angular-client": {
+        "generatorName": "typescript-angular",
+        "output": "../frontend/src/api-client",
+        "inputSpec": "openapi.json",
+        "additionalProperties": {
+          "fileNaming": "kebab-case",
+          "modelFileSuffix": "",
+          "sortParamsByRequiredFlag": true,
+          "ensureUniqueParams": true,
+          "sortOperations": true,
+          "sortTags": true,
+          "ngVersion": "20.0.0",
+          "zonejsVersion": "0.15.0",
+          "ngPackagrVersion": "20.0.0",
+          "serviceSuffix": "Service",
+          "serviceFileSuffix": ".service",
+          "removeOperationIdPrefix": true,
+          "withSeparateModelsAndApi": true,
+          "apiModulePrefix": "",
+          "modelPropertyNaming": "camelCase",
+          "stringEnums": true,
+          "enumNameSuffix": "",
+          "useSingleRequestParameter": false
+        }
+      }
+    }
+  }
+}

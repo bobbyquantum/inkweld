@@ -15,6 +15,30 @@ Root (npm) → Frontend (bun+npm) + Backend (bun)
 
 **Critical**: Frontend dev server uses Node.js (`npm start`), but backend uses Bun (`bun run start:dev`).
 
+## AI Development Tools
+
+### Model Context Protocol (MCP)
+
+This project is configured with the **Angular CLI MCP Server**, which enables AI assistants to access real-time Angular documentation and best practices directly from angular.dev.
+
+**Configuration**: The MCP server is configured in `.vscode/mcp.json` and provides the following tools:
+
+- `get_best_practices` - Retrieves current Angular coding standards
+- `search_documentation` - Searches angular.dev in real-time
+- `list_projects` - Analyzes workspace structure
+- `find_examples` (experimental) - Searches curated Angular code examples
+- `modernize` (experimental) - Provides migration instructions for upgrading code
+
+**Benefits**:
+- AI assistants have access to up-to-date Angular documentation
+- Reduces reliance on potentially outdated training data
+- Project-aware guidance based on actual workspace structure
+- Official Angular patterns and best practices
+
+**Restart Required**: After MCP configuration changes, restart VS Code or your AI assistant to enable the integration.
+
+For more information, visit: https://angular.dev/ai/mcp
+
 ## Code Quality Rules (Non-Negotiable)
 
 ### 1. Testing Requirements
@@ -164,7 +188,7 @@ cd frontend && npm test        # Jest
 cd frontend && npm run e2e     # Playwright
 
 # Backend only
-cd server && bun test
+cd backend && bun test
 ```
 
 ### API Client Generation
@@ -172,7 +196,7 @@ cd server && bun test
 When backend API changes:
 
 ```bash
-cd server
+cd backend
 bun run generate:openapi        # Updates openapi.json
 bun run generate:angular-client # Regenerates frontend/src/api-client/
 ```
@@ -183,9 +207,9 @@ The API client is **auto-generated** - never edit files in `frontend/src/api-cli
 
 ### Adding a New API Endpoint
 
-1. Create/modify controller in `server/src/*/`
+1. Create/modify route/handler in `backend/src/*/`
 2. Add Swagger decorators (`@ApiOperation`, `@ApiResponse`, etc.)
-3. Run `bun run generate:angular-client` from `server/`
+3. Run `bun run generate:angular-client` from `backend/`
 4. Use generated types in frontend services
 5. Write controller tests using Jest + Supertest
 6. Update e2e mock API handlers if needed
@@ -225,7 +249,7 @@ The API client is **auto-generated** - never edit files in `frontend/src/api-cli
 - Projects belong to users (`user.username/project.slug`)
 - Projects contain **elements** (hierarchical: folders, files, documents)
 - Documents can have worldbuilding templates (character, location, etc.)
-- File storage in `server/data/<username>/<project-slug>/`
+- File storage in `backend/data/<username>/<project-slug>/`
 
 ### Worldbuilding Features
 
@@ -244,7 +268,7 @@ The API client is **auto-generated** - never edit files in `frontend/src/api-cli
 
 ### Backend Environment Variables
 
-Key variables (see `server/.env.example`):
+Key variables (see `backend/.env.example`):
 
 - `DB_TYPE`: `postgres` or `sqlite` (defaults to postgres)
 - `PORT`: Server port (default 8333)
@@ -304,8 +328,8 @@ Key variables (see `server/.env.example`):
 ### Configuration
 
 - `frontend/angular.json` - Angular workspace config
-- `server/nest-cli.json` - NestJS config
-- `server/openapi.json` - API specification (generated)
+- `backend/wrangler.toml` - Cloudflare Workers bindings/config
+- `backend/openapi.json` - API specification (generated)
 - `.vscode/tasks.json` - VS Code tasks for build/run
 
 ### Critical Services (Frontend)
@@ -327,7 +351,7 @@ Key variables (see `server/.env.example`):
 1. **Tests are mandatory** - no merging without passing tests
 2. **Lint rules are enforced** - ask before disabling
 3. **Frontend uses `inject()`** - no constructor DI
-4. **Backend runs on Bun** - not Node.js
+4. **Backend targets Bun** - Node.js & Workers builds exist, but Bun is preferred during development
 5. **Use modern Angular control flow** - `@if`, `@for`, `@switch`
 6. **E2E tests use fixtures** - `authenticatedPage`, etc.
 7. **API client is generated** - don't edit manually
