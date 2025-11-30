@@ -140,3 +140,18 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 });
+
+// Mock window.location.reload for tests that trigger page reloads
+// (e.g., connection-settings component after server mode switch)
+Object.defineProperty(window, 'location', {
+  writable: true,
+  value: {
+    ...window.location,
+    reload: vi.fn(),
+    href: window.location?.href || 'http://localhost/',
+    origin: window.location?.origin || 'http://localhost',
+    pathname: window.location?.pathname || '/',
+    search: window.location?.search || '',
+    hash: window.location?.hash || '',
+  },
+});
