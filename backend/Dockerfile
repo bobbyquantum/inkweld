@@ -27,8 +27,13 @@ RUN bun install --frozen-lockfile \
   && env npm_config_build_from_source=true ../.bin/node-gyp-build \
   && cd ../..
 
-# Copy source and build
+# Copy source
 COPY backend .
+
+# Copy frontend dist from frontend-builder stage (needed for frontend-assets.ts imports)
+COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
+
+# Build (now has access to frontend dist for embedding)
 RUN bun run build
 
 # Runtime image
