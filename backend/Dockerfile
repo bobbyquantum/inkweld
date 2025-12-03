@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # Frontend builder stage (Angular)
-FROM oven/bun:1.3.1 AS frontend-builder
+FROM oven/bun:1.3.3 AS frontend-builder
 WORKDIR /app/frontend
 
 COPY frontend/bun.lock frontend/package.json ./
@@ -11,7 +11,7 @@ COPY frontend .
 RUN bun run build
 
 # Backend builder stage (Bun runtime)
-FROM oven/bun:1.3.1 AS backend-builder
+FROM oven/bun:1.3.3 AS backend-builder
 WORKDIR /app/backend
 
 # Build prerequisites for native modules (better-sqlite3, sharp/libvips, etc.)
@@ -37,7 +37,7 @@ COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 RUN bun run build
 
 # Runtime image
-FROM oven/bun:1.3.1 AS backend-runtime
+FROM oven/bun:1.3.3 AS backend-runtime
 WORKDIR /app/backend
 
 ENV NODE_ENV=production \
