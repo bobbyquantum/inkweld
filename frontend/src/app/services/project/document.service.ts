@@ -226,7 +226,7 @@ export class DocumentService {
     } finally {
       // Clean up temporary resources
       try {
-        await provider.destroy();
+        provider.destroy();
         ydoc.destroy();
       } catch (error) {
         this.logger.warn(
