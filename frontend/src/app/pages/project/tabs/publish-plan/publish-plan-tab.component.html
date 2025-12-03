@@ -1,0 +1,266 @@
+@if (workingPlan; as plan) {
+  <div class="publish-plan-container">
+    <!-- Header with save/discard actions -->
+    <header class="plan-header">
+      <div class="header-left">
+        <mat-icon class="header-icon">publish</mat-icon>
+        <h2>{{ plan.name }}</h2>
+      </div>
+      <div class="header-actions">
+        @if (hasChanges()) {
+          <button mat-button (click)="discardChanges()">
+            <mat-icon>undo</mat-icon>
+            Discard
+          </button>
+          <button mat-flat-button color="primary" (click)="saveChanges()">
+            <mat-icon>save</mat-icon>
+            Save Changes
+          </button>
+        }
+      </div>
+    </header>
+
+    <div class="plan-content">
+      <!-- Book Metadata Section -->
+      <mat-expansion-panel
+        [expanded]="metadataExpanded()"
+        (opened)="metadataExpanded.set(true)"
+        (closed)="metadataExpanded.set(false)">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <mat-icon>menu_book</mat-icon>
+            Book Metadata
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <div class="form-grid">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Plan Name</mat-label>
+            <input matInput [value]="plan.name" (input)="updateName($event)" />
+            <mat-hint>Internal name for this export configuration</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Format</mat-label>
+            <mat-select
+              [value]="plan.format"
+              (selectionChange)="updateFormatSelect($event)">
+              @for (format of formats; track format) {
+                <mat-option [value]="format">{{
+                  getFormatDisplayName(format)
+                }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Book Title</mat-label>
+            <input
+              matInput
+              [value]="plan.metadata.title"
+              (input)="updateMetadata('title', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Author</mat-label>
+            <input
+              matInput
+              [value]="plan.metadata.author"
+              (input)="updateMetadata('author', $event)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Language</mat-label>
+            <input
+              matInput
+              [value]="plan.metadata.language"
+              (input)="updateMetadata('language', $event)" />
+            <mat-hint>e.g., en, es, fr</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Description</mat-label>
+            <textarea
+              matInput
+              [value]="plan.metadata.description ?? ''"
+              (input)="updateMetadata('description', $event)"
+              rows="3"></textarea>
+          </mat-form-field>
+        </div>
+      </mat-expansion-panel>
+
+      <!-- Contents Section -->
+      <mat-expansion-panel
+        [expanded]="itemsExpanded()"
+        (opened)="itemsExpanded.set(true)"
+        (closed)="itemsExpanded.set(false)">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <mat-icon>list</mat-icon>
+            Contents
+            <span class="item-count">{{ plan.items.length }} items</span>
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <!-- Add Content Toolbar -->
+        <div class="add-content-toolbar">
+          <mat-form-field appearance="outline" class="element-picker">
+            <mat-label>Add document to publication</mat-label>
+            <mat-select
+              #elementSelect
+              (selectionChange)="
+                onElementSelected($event); elementSelect.value = null
+              ">
+              @for (element of documentElements(); track element.id) {
+                <mat-option [value]="element.id">
+                  <mat-icon>{{ getElementIcon(element) }}</mat-icon>
+                  {{ element.name }}
+                </mat-option>
+              }
+            </mat-select>
+            <mat-hint>Select a document to add it to the publication</mat-hint>
+          </mat-form-field>
+
+          <button
+            mat-stroked-button
+            (click)="addTableOfContents()"
+            matTooltip="Add Table of Contents">
+            <mat-icon>toc</mat-icon>
+            Add TOC
+          </button>
+        </div>
+
+        <!-- Content Items List -->
+        @if (plan.items.length === 0) {
+          <div class="empty-state">
+            <mat-icon>library_books</mat-icon>
+            <p>No items added yet</p>
+            <p class="hint">
+              Use the dropdown above to add documents to your publication
+            </p>
+          </div>
+        } @else {
+          <div
+            class="items-list"
+            cdkDropList
+            [cdkDropListData]="plan.items"
+            (cdkDropListDropped)="dropItem($event)">
+            @for (item of plan.items; track item.id; let i = $index) {
+              <div class="content-item" cdkDrag>
+                <mat-icon class="drag-handle" cdkDragHandle
+                  >drag_indicator</mat-icon
+                >
+                <span class="item-order">{{ i + 1 }}</span>
+                <mat-icon class="item-icon">{{ getItemIcon(item) }}</mat-icon>
+                <span class="item-name">{{ getItemLabel(item) }}</span>
+                <div class="item-actions">
+                  <button
+                    mat-icon-button
+                    (click)="moveItemUp(i)"
+                    [disabled]="i === 0"
+                    matTooltip="Move up">
+                    <mat-icon>arrow_upward</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    (click)="moveItemDown(i)"
+                    [disabled]="i === plan.items.length - 1"
+                    matTooltip="Move down">
+                    <mat-icon>arrow_downward</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    (click)="removeItem(item.id)"
+                    matTooltip="Remove item">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </mat-expansion-panel>
+
+      <!-- Options Section -->
+      <mat-expansion-panel
+        [expanded]="optionsExpanded()"
+        (opened)="optionsExpanded.set(true)"
+        (closed)="optionsExpanded.set(false)">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <mat-icon>settings</mat-icon>
+            Options
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <div class="options-grid">
+          <mat-checkbox
+            [checked]="plan.options.includeToc"
+            (change)="updateOptionCheckbox('includeToc', $event)">
+            Include Table of Contents
+          </mat-checkbox>
+
+          <mat-checkbox
+            [checked]="plan.options.includeCover"
+            (change)="updateOptionCheckbox('includeCover', $event)">
+            Include Cover Page
+          </mat-checkbox>
+
+          @if (plan.options.includeCover) {
+            <div class="cover-image-section">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Cover Image</mat-label>
+                <input
+                  matInput
+                  [value]="plan.options.coverImage ?? projectCoverImage() ?? ''"
+                  (input)="updateOption('coverImage', $event)"
+                  placeholder="Uses project cover by default" />
+                <mat-hint>Leave blank to use the project cover image</mat-hint>
+              </mat-form-field>
+              @if (projectCoverImage(); as coverUrl) {
+                <div class="cover-preview">
+                  <img [src]="coverUrl" alt="Cover preview" />
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </mat-expansion-panel>
+
+      <!-- Generate Button -->
+      <div class="generate-section">
+        @if (isGenerating()) {
+          <button
+            mat-flat-button
+            color="primary"
+            class="generate-button"
+            disabled>
+            <mat-icon class="spinning">sync</mat-icon>
+            Generating...
+          </button>
+        } @else {
+          <button
+            mat-flat-button
+            color="primary"
+            class="generate-button"
+            (click)="generatePublication()"
+            [disabled]="plan.items.length === 0">
+            <mat-icon>download</mat-icon>
+            Generate {{ plan.format }}
+          </button>
+        }
+        @if (plan.items.length === 0) {
+          <p class="generate-hint">
+            Add at least one document to generate the publication
+          </p>
+        }
+      </div>
+    </div>
+  </div>
+} @else {
+  <div class="publish-plan-container loading">
+    <mat-icon>hourglass_empty</mat-icon>
+    <p>Loading publish plan...</p>
+  </div>
+}

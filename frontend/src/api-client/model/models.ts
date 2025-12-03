@@ -12,8 +12,6 @@ export * from './document-error';
 export * from './document-snapshot';
 export * from './element';
 export * from './element-error';
-export * from './epub-error';
-export * from './epub-response';
 export * from './error-response';
 export * from './file-error';
 export * from './health-response';

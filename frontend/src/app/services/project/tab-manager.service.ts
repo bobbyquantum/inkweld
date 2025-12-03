@@ -1,6 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { Element, ElementType } from '@inkweld/index';
 
+import { PublishPlan } from '../../models/publish-plan';
 import { LoggerService } from '../core/logger.service';
 
 /**
@@ -12,13 +13,15 @@ export interface AppTab {
   /** Display name for the tab */
   name: string;
   /** Type of tab content */
-  type: 'document' | 'folder' | 'system' | 'worldbuilding';
+  type: 'document' | 'folder' | 'system' | 'worldbuilding' | 'publishPlan';
   /** For system tabs, specifies the system view type */
   systemType?: 'documents-list' | 'project-files' | 'templates-list' | 'home';
   /** The element associated with this tab (for document/folder/worldbuilding tabs) */
   element?: Element;
   /** The element type (for filtering/display purposes) */
   elementType?: ElementType;
+  /** The publish plan associated with this tab (for publishPlan tabs) */
+  publishPlan?: PublishPlan;
 }
 
 /**
@@ -208,6 +211,69 @@ export class TabManagerService {
   }
 
   /**
+   * Opens a publish plan tab for editing.
+   *
+   * @param plan - The publish plan to open
+   * @returns Information about the opened tab
+   */
+  openPublishPlanTab(plan: PublishPlan): OpenTabResult {
+    const tabs = this.openTabs();
+    const tabId = `publish-plan-${plan.id}`;
+
+    // Check if tab already exists
+    const existingIndex = tabs.findIndex(t => t.id === tabId);
+    if (existingIndex !== -1) {
+      // Update the plan reference in case it changed
+      const updatedTabs = [...tabs];
+      updatedTabs[existingIndex] = {
+        ...updatedTabs[existingIndex],
+        publishPlan: plan,
+        name: plan.name,
+      };
+      this.openTabs.set(updatedTabs);
+
+      // Set index+1 for home tab offset
+      this.selectedTabIndex.set(existingIndex + 1);
+
+      this.logger.debug(
+        'TabManager',
+        `Selected existing publish plan tab "${plan.name}" at index ${existingIndex + 1}`
+      );
+
+      return {
+        tab: updatedTabs[existingIndex],
+        wasCreated: false,
+        index: existingIndex,
+      };
+    }
+
+    // Create new publish plan tab
+    const newTab: AppTab = {
+      id: tabId,
+      name: plan.name,
+      type: 'publishPlan',
+      publishPlan: plan,
+    };
+
+    const newTabs = [...tabs, newTab];
+    this.openTabs.set(newTabs);
+
+    const newIndex = newTabs.length - 1;
+    this.selectedTabIndex.set(newIndex + 1);
+
+    this.logger.debug(
+      'TabManager',
+      `Created publish plan tab "${plan.name}" at index ${newIndex + 1}`
+    );
+
+    return {
+      tab: newTab,
+      wasCreated: true,
+      index: newIndex,
+    };
+  }
+
+  /**
    * Closes a tab at the specified index.
    *
    * @param index - The index of the tab to close (0-based, in the tabs array)
@@ -376,15 +442,28 @@ export class TabManagerService {
    * Validates tabs against current elements and removes invalid ones.
    *
    * @param currentElements - The current list of valid elements
+   * @param currentPlans - The current list of valid publish plans (optional)
    * @returns The list of valid tabs that were kept
    */
-  validateAndFilterTabs(currentElements: Element[]): AppTab[] {
+  validateAndFilterTabs(
+    currentElements: Element[],
+    currentPlans?: PublishPlan[]
+  ): AppTab[] {
     const tabs = this.openTabs();
 
     const validTabs = tabs.filter(tab => {
       // Always keep system tabs
       if (tab.type === 'system') {
         return true;
+      }
+
+      // For publish plan tabs, verify the plan still exists
+      if (tab.type === 'publishPlan') {
+        if (!currentPlans) return true; // If no plans provided, keep the tab
+        return (
+          tab.publishPlan &&
+          currentPlans.some(p => p.id === tab.publishPlan!.id)
+        );
       }
 
       // For document/folder/worldbuilding tabs, verify element exists
@@ -435,5 +514,55 @@ export class TabManagerService {
     const tabs = this.openTabs();
     const index = tabs.findIndex(t => t.id === elementId);
     return index !== -1 ? index + 1 : -1; // +1 for home tab offset
+  }
+
+  /**
+   * Finds the tab index for a given publish plan ID.
+   *
+   * @param planId - The publish plan ID to find
+   * @returns The index (with home offset) or -1 if not found
+   */
+  findPublishPlanTabIndex(planId: string): number {
+    const tabs = this.openTabs();
+    const index = tabs.findIndex(
+      t => t.type === 'publishPlan' && t.publishPlan?.id === planId
+    );
+    return index !== -1 ? index + 1 : -1; // +1 for home tab offset
+  }
+
+  /**
+   * Gets a publish plan tab by plan ID.
+   *
+   * @param planId - The publish plan ID to find
+   * @returns The tab or undefined if not found
+   */
+  getTabByPublishPlanId(planId: string): AppTab | undefined {
+    const tabs = this.openTabs();
+    return tabs.find(
+      t => t.type === 'publishPlan' && t.publishPlan?.id === planId
+    );
+  }
+
+  /**
+   * Updates a publish plan tab with new plan data.
+   * Useful when plan name or content changes.
+   *
+   * @param plan - The updated publish plan
+   */
+  updatePublishPlanTab(plan: PublishPlan): void {
+    const tabs = this.openTabs();
+    const index = tabs.findIndex(
+      t => t.type === 'publishPlan' && t.publishPlan?.id === plan.id
+    );
+
+    if (index !== -1) {
+      const updatedTabs = [...tabs];
+      updatedTabs[index] = {
+        ...updatedTabs[index],
+        name: plan.name,
+        publishPlan: plan,
+      };
+      this.openTabs.set(updatedTabs);
+    }
   }
 }

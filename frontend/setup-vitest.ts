@@ -86,6 +86,20 @@ if (!File.prototype.arrayBuffer) {
   });
 }
 
+// Mock Blob.text for jsdom (only if not already defined)
+if (!Blob.prototype.text) {
+  Object.defineProperty(Blob.prototype, 'text', {
+    value: function () {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsText(this);
+      });
+    },
+  });
+}
+
 // Mock URL.createObjectURL and URL.revokeObjectURL for jsdom environment
 (globalThis as any).URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 (globalThis as any).URL.revokeObjectURL = vi.fn();

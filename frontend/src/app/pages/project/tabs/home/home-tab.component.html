@@ -102,5 +102,51 @@
         </p>
       }
     </div>
+
+    <div class="home-column">
+      <div class="home-column-header">
+        <h3>Publish Plans</h3>
+        <button
+          mat-icon-button
+          (click)="createPublishPlan()"
+          aria-label="Create new publish plan">
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+      @if (projectState.publishPlans().length > 0) {
+        <div class="publish-plans-list">
+          @for (plan of projectState.publishPlans(); track plan.id) {
+            <div class="publish-plan-item">
+              <div
+                tabindex="0"
+                class="plan-content"
+                role="button"
+                (keydown)="onPublishPlanKeydown($event, plan)"
+                (click)="openPublishPlan(plan)">
+                <mat-icon>menu_book</mat-icon>
+                <div class="plan-info">
+                  <span class="plan-name">{{ plan.name }}</span>
+                  <span class="plan-format">{{ plan.format }}</span>
+                </div>
+              </div>
+              <button
+                mat-icon-button
+                class="delete-plan-btn"
+                (click)="deletePublishPlan($event, plan)"
+                (keydown)="onDeletePublishPlanKeydown($event, plan)"
+                [attr.aria-label]="'Delete ' + plan.name">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="no-publish-plans">
+          <mat-icon>info</mat-icon>
+          No publish plans yet. Create one to export your project as EPUB or
+          PDF.
+        </p>
+      }
+    </div>
   </div>
 </div>

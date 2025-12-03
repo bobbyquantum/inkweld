@@ -2,6 +2,7 @@ import { Element } from '@inkweld/index';
 import { Observable } from 'rxjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { PublishPlan } from '../../models/publish-plan';
 
 /**
  * Configuration for connecting to a sync provider
@@ -94,6 +95,31 @@ export interface IElementSyncProvider {
    * Emits connection errors, sync errors, etc.
    */
   errors$: Observable<string>;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Publish Plans
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get the current publish plans array.
+   * Returns an empty array if not connected.
+   */
+  getPublishPlans(): PublishPlan[];
+
+  /**
+   * Observable stream of publish plan changes.
+   * Emits whenever plans are added, removed, or modified
+   * (either locally or from remote sync).
+   */
+  publishPlans$: Observable<PublishPlan[]>;
+
+  /**
+   * Update the entire publish plans array.
+   * The provider handles merging/conflict resolution.
+   *
+   * @param plans The new publish plans array
+   */
+  updatePublishPlans(plans: PublishPlan[]): void;
 }
 
 /**

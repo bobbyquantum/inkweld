@@ -16,7 +16,6 @@ import snapshotRoutes from '../routes/snapshot.routes';
 import documentRoutes from '../routes/document.routes';
 import elementRoutes from '../routes/element.routes';
 import fileRoutes from '../routes/file.routes';
-import epubRoutes from '../routes/epub.routes';
 import lintRoutes from '../routes/lint.routes';
 import aiImageRoutes from '../routes/ai-image.routes';
 import mcpRoutes from '../routes/mcp.routes';
@@ -34,12 +33,11 @@ export function registerCommonRoutes(app: any): void {
   // User management
   app.route('/api/v1/users', userRoutes);
 
-  // Project routes (projects, documents, elements, files, epub, images)
+  // Project routes (projects, documents, elements, files, images)
   app.route('/api/v1/projects', projectRoutes);
   app.route('/api/v1/projects', documentRoutes);
   app.route('/api/v1/projects', elementRoutes);
   app.route('/api/v1/projects', fileRoutes);
-  app.route('/api/v1/projects', epubRoutes);
   app.route('/api/v1/projects', imageRoutes);
 
   // Snapshots have their own base path to avoid conflicts

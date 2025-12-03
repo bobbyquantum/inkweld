@@ -43,6 +43,10 @@ import { Subject, Subscription, takeUntil } from 'rxjs';
 
 import { DocumentElementEditorComponent } from '../../components/document-element-editor/document-element-editor.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
+import {
+  createDefaultPublishPlan,
+  PublishPlan,
+} from '../../models/publish-plan';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { RecentFilesService } from '../../services/project/recent-files.service';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
@@ -340,10 +344,35 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   public onPublishClick(): void {
     const project = this.projectState.project();
-    console.log('Publishing project:', project);
-    if (project) {
-      void this.projectState.publishProject(project);
+    if (!project) return;
+
+    // Get existing plans or create a default one
+    const plans = this.projectState.getPublishPlans();
+    let plan: PublishPlan;
+
+    if (plans.length > 0) {
+      // Open the first/default plan
+      plan = plans[0];
+    } else {
+      // Create a default publish plan
+      plan = createDefaultPublishPlan(
+        project.title,
+        project.username // Author name defaults to username
+      );
+      this.projectState.createPublishPlan(plan);
     }
+
+    // Open the publish plan tab
+    this.projectState.openPublishPlan(plan);
+
+    // Navigate to the publish plan
+    void this.router.navigate([
+      '/',
+      project.username,
+      project.slug,
+      'publish-plan',
+      plan.id,
+    ]);
   }
 
   public onShowDocumentList(): void {
