@@ -67,9 +67,7 @@ describe('PublishingProgressDialogComponent', () => {
       ],
     }).compileComponents();
 
-    const fixture = TestBed.createComponent(
-      PublishingProgressDialogComponent
-    );
+    const fixture = TestBed.createComponent(PublishingProgressDialogComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

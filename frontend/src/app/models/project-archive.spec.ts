@@ -1,9 +1,9 @@
-import {
-  ProjectArchiveErrorType,
-  ProjectArchiveError,
-  ProjectArchive,
-} from './project-archive';
 import { ElementType } from '../../api-client';
+import {
+  ProjectArchive,
+  ProjectArchiveError,
+  ProjectArchiveErrorType,
+} from './project-archive';
 
 describe('project-archive models', () => {
   describe('ProjectArchiveErrorType enum', () => {
@@ -16,11 +16,15 @@ describe('project-archive models', () => {
     });
 
     it('should have DuplicateProject type', () => {
-      expect(ProjectArchiveErrorType.DuplicateProject).toBe('DUPLICATE_PROJECT');
+      expect(ProjectArchiveErrorType.DuplicateProject).toBe(
+        'DUPLICATE_PROJECT'
+      );
     });
 
     it('should have ValidationFailed type', () => {
-      expect(ProjectArchiveErrorType.ValidationFailed).toBe('VALIDATION_FAILED');
+      expect(ProjectArchiveErrorType.ValidationFailed).toBe(
+        'VALIDATION_FAILED'
+      );
     });
 
     it('should have FileSystemError type', () => {

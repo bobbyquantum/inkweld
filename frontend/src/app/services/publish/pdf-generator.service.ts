@@ -273,10 +273,7 @@ export class PdfGeneratorService {
         );
         content.push(...itemContent);
 
-        if (
-          item.type === PublishPlanItemType.Element &&
-          (item as ElementItem).isChapter
-        ) {
+        if (item.type === PublishPlanItemType.Element && item.isChapter) {
           chapterNumber++;
         }
       } catch (error) {
@@ -306,17 +303,17 @@ export class PdfGeneratorService {
     switch (item.type) {
       case PublishPlanItemType.Element:
         return this.processElementItem(
-          item as ElementItem,
+          item,
           elements,
           plan.options,
           chapterNumber
         );
 
       case PublishPlanItemType.Separator:
-        return this.processSeparator(item as SeparatorItem, plan.options);
+        return this.processSeparator(item, plan.options);
 
       case PublishPlanItemType.Frontmatter:
-        return this.processFrontmatter(item as FrontmatterItem, plan.metadata);
+        return this.processFrontmatter(item, plan.metadata);
 
       case PublishPlanItemType.TableOfContents:
         // TOC is handled differently in PDF - we'll add it as a placeholder

@@ -104,9 +104,7 @@ export class MarkdownGeneratorService {
       result.stats = {
         wordCount: mdContent.split(/\s+/).filter(Boolean).length,
         chapterCount: plan.items.filter(
-          i =>
-            i.type === PublishPlanItemType.Element &&
-            (i as ElementItem).isChapter
+          i => i.type === PublishPlanItemType.Element && i.isChapter
         ).length,
         documentCount: plan.items.filter(
           i => i.type === PublishPlanItemType.Element
@@ -160,10 +158,7 @@ export class MarkdownGeneratorService {
       );
       sections.push(content);
 
-      if (
-        item.type === PublishPlanItemType.Element &&
-        (item as ElementItem).isChapter
-      ) {
+      if (item.type === PublishPlanItemType.Element && item.isChapter) {
         chapterNumber++;
       }
     }
@@ -196,18 +191,13 @@ export class MarkdownGeneratorService {
   ): Promise<string> {
     switch (item.type) {
       case PublishPlanItemType.Element:
-        return this.processElement(
-          item as ElementItem,
-          elements,
-          options,
-          chapterNumber
-        );
+        return this.processElement(item, elements, options, chapterNumber);
 
       case PublishPlanItemType.Separator:
-        return this.processSeparator(item as SeparatorItem, options);
+        return this.processSeparator(item, options);
 
       case PublishPlanItemType.Frontmatter:
-        return this.processFrontmatter(item as FrontmatterItem);
+        return this.processFrontmatter(item);
 
       case PublishPlanItemType.TableOfContents:
         return '## Table of Contents\n\n[TOC]';

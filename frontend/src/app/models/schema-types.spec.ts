@@ -1,10 +1,10 @@
 import {
-  FieldType,
-  FieldLayout,
-  FieldValidation,
-  FieldSchema,
-  TabSchema,
   ElementTypeSchema,
+  FieldLayout,
+  FieldSchema,
+  FieldType,
+  FieldValidation,
+  TabSchema,
 } from './schema-types';
 
 describe('schema-types', () => {
@@ -154,9 +154,7 @@ describe('schema-types', () => {
             {
               key: 'basic',
               label: 'Basic Info',
-              fields: [
-                { key: 'name', label: 'Name', type: FieldType.TEXT },
-              ],
+              fields: [{ key: 'name', label: 'Name', type: FieldType.TEXT }],
             },
           ],
           defaultValues: { name: 'New Character' },

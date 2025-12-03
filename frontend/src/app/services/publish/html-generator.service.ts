@@ -113,9 +113,7 @@ export class HtmlGeneratorService {
       result.stats = {
         wordCount: this.countWords(htmlContent),
         chapterCount: plan.items.filter(
-          i =>
-            i.type === PublishPlanItemType.Element &&
-            (i as ElementItem).isChapter
+          i => i.type === PublishPlanItemType.Element && i.isChapter
         ).length,
         documentCount: plan.items.filter(
           i => i.type === PublishPlanItemType.Element
@@ -190,10 +188,7 @@ export class HtmlGeneratorService {
       );
       sections.push(content);
 
-      if (
-        item.type === PublishPlanItemType.Element &&
-        (item as ElementItem).isChapter
-      ) {
+      if (item.type === PublishPlanItemType.Element && item.isChapter) {
         chapterNumber++;
       }
     }
@@ -214,18 +209,13 @@ export class HtmlGeneratorService {
   ): Promise<string> {
     switch (item.type) {
       case PublishPlanItemType.Element:
-        return this.processElement(
-          item as ElementItem,
-          elements,
-          plan.options,
-          chapterNumber
-        );
+        return this.processElement(item, elements, plan.options, chapterNumber);
 
       case PublishPlanItemType.Separator:
-        return this.processSeparator(item as SeparatorItem, plan.options);
+        return this.processSeparator(item, plan.options);
 
       case PublishPlanItemType.Frontmatter:
-        return this.processFrontmatter(item as FrontmatterItem, plan.metadata);
+        return this.processFrontmatter(item, plan.metadata);
 
       case PublishPlanItemType.TableOfContents:
         return '<nav class="toc"><h2>Table of Contents</h2></nav>';

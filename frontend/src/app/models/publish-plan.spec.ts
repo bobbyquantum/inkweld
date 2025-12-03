@@ -1,15 +1,15 @@
 import {
-  PublishFormat,
-  PublishPlanItemType,
-  SeparatorStyle,
-  FrontmatterType,
   BackmatterType,
   ChapterNumbering,
-  PublishPhase,
-  DEFAULT_PUBLISH_OPTIONS,
-  DEFAULT_PUBLISH_METADATA,
   createDefaultPublishPlan,
   createQuickExportPlan,
+  DEFAULT_PUBLISH_METADATA,
+  DEFAULT_PUBLISH_OPTIONS,
+  FrontmatterType,
+  PublishFormat,
+  PublishPhase,
+  PublishPlanItemType,
+  SeparatorStyle,
 } from './publish-plan';
 
 describe('publish-plan models', () => {
@@ -183,7 +183,7 @@ describe('publish-plan models', () => {
       const plan = createQuickExportPlan('Title', 'Author', []);
 
       const tocItem = plan.items.find(
-        (item) => item.type === PublishPlanItemType.TableOfContents
+        item => item.type === PublishPlanItemType.TableOfContents
       );
       expect(tocItem).toBeDefined();
     });
@@ -193,7 +193,7 @@ describe('publish-plan models', () => {
       const plan = createQuickExportPlan('Title', 'Author', elementIds);
 
       const elementItems = plan.items.filter(
-        (item) => item.type === PublishPlanItemType.Element
+        item => item.type === PublishPlanItemType.Element
       );
       expect(elementItems.length).toBe(3);
     });
@@ -202,7 +202,7 @@ describe('publish-plan models', () => {
       const plan = createQuickExportPlan('Title', 'Author', ['doc-1']);
 
       const elementItem = plan.items.find(
-        (item) => item.type === PublishPlanItemType.Element
+        item => item.type === PublishPlanItemType.Element
       );
       expect((elementItem as any).isChapter).toBe(true);
     });
@@ -211,7 +211,7 @@ describe('publish-plan models', () => {
       const plan = createQuickExportPlan('Title', 'Author', ['doc-1']);
 
       const elementItem = plan.items.find(
-        (item) => item.type === PublishPlanItemType.Element
+        item => item.type === PublishPlanItemType.Element
       );
       expect((elementItem as any).includeChildren).toBe(false);
     });

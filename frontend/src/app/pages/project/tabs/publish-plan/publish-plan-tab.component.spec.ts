@@ -8,13 +8,8 @@ import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  BackmatterType,
   createDefaultPublishPlan,
-  FrontmatterType,
-  PublishFormat,
   PublishPlan,
-  PublishPlanItemType,
-  SeparatorStyle,
 } from '../../../../models/publish-plan';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import { PublishService } from '../../../../services/publish/publish.service';
@@ -52,7 +47,10 @@ describe('PublishPlanTabComponent', () => {
     };
 
     mockPublishService = {
-      publish: vi.fn().mockResolvedValue({ success: true, stats: { wordCount: 1000, chapterCount: 5 } }),
+      publish: vi.fn().mockResolvedValue({
+        success: true,
+        stats: { wordCount: 1000, chapterCount: 5 },
+      }),
     };
 
     mockSnackBar = {

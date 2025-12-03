@@ -93,14 +93,12 @@ describe('MarkdownGeneratorService', () => {
     };
 
     documentServiceMock = {
-      getDocumentContent: vi
-        .fn()
-        .mockResolvedValue([
-          {
-            nodeName: 'paragraph',
-            children: ['Sample document text content.'],
-          },
-        ]),
+      getDocumentContent: vi.fn().mockResolvedValue([
+        {
+          nodeName: 'paragraph',
+          children: ['Sample document text content.'],
+        },
+      ]),
     };
 
     projectStateMock = {
