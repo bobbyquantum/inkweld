@@ -1,3 +1,17 @@
+/**
+ * Vitest Setup File for Angular Tests
+ *
+ * ⚠️  IMPORTANT: Do not run vitest directly!
+ *
+ * This project uses `npm test` (which runs `ng test`) to properly configure:
+ * - Path aliases (@inkweld/*, @services/*, @components/*, etc.)
+ * - Angular JIT compilation
+ * - Proper test environment setup
+ *
+ * Running `npx vitest` directly will fail with import resolution errors.
+ * Always use: npm test
+ */
+
 import 'fake-indexeddb/auto';
 import '@angular/compiler'; // Required for JIT compilation in tests
 
@@ -81,6 +95,20 @@ if (!File.prototype.arrayBuffer) {
         reader.onload = () => resolve(reader.result);
         reader.onerror = reject;
         reader.readAsArrayBuffer(this);
+      });
+    },
+  });
+}
+
+// Mock Blob.text for jsdom (only if not already defined)
+if (!Blob.prototype.text) {
+  Object.defineProperty(Blob.prototype, 'text', {
+    value: function () {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsText(this);
       });
     },
   });

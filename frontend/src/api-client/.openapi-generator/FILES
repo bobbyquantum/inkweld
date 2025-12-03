@@ -9,7 +9,6 @@ api/authentication.service.ts
 api/configuration.service.ts
 api/documents.service.ts
 api/elements.service.ts
-api/export.service.ts
 api/files.service.ts
 api/health.service.ts
 api/images.service.ts
@@ -37,8 +36,6 @@ model/document-snapshot.ts
 model/document.ts
 model/element-error.ts
 model/element.ts
-model/epub-error.ts
-model/epub-response.ts
 model/error-response.ts
 model/file-error.ts
 model/health-response.ts

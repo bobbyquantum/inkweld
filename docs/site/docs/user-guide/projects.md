@@ -122,8 +122,60 @@ Access settings from the project menu:
 
 - **Project details** - Edit title, description, slug
 - **Collaborators** - Invite team members (coming soon)
-- **Export** - Download your project data
+- **Publishing** - Configure and run export plans
 - **Delete** - Permanently remove the project
+
+## Publishing Your Work
+
+### Export Formats
+
+Inkweld supports multiple export formats:
+
+- **EPUB** - E-book format for Kindle, Kobo, Apple Books, and more
+- **PDF** - Print-ready documents with professional formatting
+- **HTML** - Web-ready single-page exports
+- **Markdown** - Plain text format for maximum portability
+
+### Creating a Publish Plan
+
+1. Open your project and go to the **Home** tab
+2. Click **"New Publish Plan"** in the Publishing section
+3. Configure your export:
+   - **Name**: Give your plan a descriptive name
+   - **Format**: Choose EPUB, PDF, HTML, or Markdown
+   - **Metadata**: Set title, author, description, and language
+   - **Options**: Configure table of contents, chapter numbering, and styling
+
+### Adding Content to Your Plan
+
+1. Open your publish plan
+2. Use **"Add Content"** to include:
+   - **Documents**: Add chapters and scenes from your project
+   - **Frontmatter**: Title pages, copyright notices, dedications
+   - **Backmatter**: Author bio, acknowledgments, appendices
+   - **Table of Contents**: Auto-generated navigation
+   - **Separators**: Scene breaks and chapter dividers
+3. **Drag and drop** to reorder items
+4. **Save** your plan for reuse
+
+### Generating Your Export
+
+1. Open your publish plan
+2. Click **"Generate"**
+3. Wait for processing (happens in your browser)
+4. Download the finished file
+
+All exports happen client-side—your content never leaves your device during generation.
+
+### Quick Export
+
+For simple exports without creating a plan:
+
+1. Go to the **Home** tab
+2. Click **"Quick Export"**
+3. Select documents to include
+4. Choose a format
+5. Download immediately
 
 ## Tips for Organization
 

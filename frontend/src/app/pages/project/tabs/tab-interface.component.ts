@@ -123,6 +123,15 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
             project.slug,
             tab.systemType, // 'documents-list' or 'project-files'
           ]);
+        } else if (tab.type === 'publishPlan') {
+          // Publish plan tab
+          void this.router.navigate([
+            '/',
+            project.username,
+            project.slug,
+            'publish-plan',
+            tab.publishPlan?.id || tab.id.replace('publishPlan-', ''),
+          ]);
         } else {
           // Document or folder tab
           void this.router.navigate([
@@ -217,8 +226,9 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     let currentRoute = this.route.root;
     let tabId: string | null = null;
     let systemRoute: string | null = null;
+    let publishPlanId: string | null = null;
 
-    // First check if we're on a system route
+    // First check if we're on a system route or publish-plan route
     const url = this.router.url;
     const project = this.projectState.project();
     if (project) {
@@ -229,11 +239,19 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
         systemRoute = 'project-files';
       } else if (url === `${projectBaseUrl}/templates-list`) {
         systemRoute = 'templates-list';
+      } else if (url.startsWith(`${projectBaseUrl}/publish-plan/`)) {
+        // Extract publish plan ID from URL
+        const urlParts = url.split('/');
+        publishPlanId = urlParts[urlParts.length - 1];
+        // Remove any query params
+        if (publishPlanId.includes('?')) {
+          publishPlanId = publishPlanId.split('?')[0];
+        }
       }
     }
 
-    // If not a system route, check for tabId param
-    if (!systemRoute) {
+    // If not a system route or publish-plan route, check for tabId param
+    if (!systemRoute && !publishPlanId) {
       while (currentRoute.firstChild) {
         currentRoute = currentRoute.firstChild;
         if (
@@ -246,7 +264,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     }
 
     // Check if we are at the project root (home tab)
-    if (!tabId && !systemRoute) {
+    if (!tabId && !systemRoute && !publishPlanId) {
       this.projectState.selectTab(0);
       return;
     }
@@ -274,8 +292,35 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
             tab => tab.type === 'system' && tab.systemType === systemRoute
           );
       }
+    } else if (publishPlanId) {
+      // Find the publish plan tab by plan ID
+      tabIndex = this.projectState
+        .openTabs()
+        .findIndex(
+          tab =>
+            tab.type === 'publishPlan' &&
+            (tab.publishPlan?.id === publishPlanId ||
+              tab.id === `publish-plan-${publishPlanId}`)
+        );
+
+      // If publish plan tab not found, try to create it
+      if (tabIndex === -1) {
+        const plan = this.projectState.getPublishPlan(publishPlanId);
+        if (plan) {
+          this.projectState.openPublishPlan(plan);
+          // Re-find the tab index after creating
+          tabIndex = this.projectState
+            .openTabs()
+            .findIndex(
+              tab =>
+                tab.type === 'publishPlan' &&
+                (tab.publishPlan?.id === publishPlanId ||
+                  tab.id === `publish-plan-${publishPlanId}`)
+            );
+        }
+      }
     } else if (tabId) {
-      // Find tab with the specific ID
+      // Find tab with the specific ID (for document/folder tabs)
       tabIndex = this.projectState
         .openTabs()
         .findIndex(tab => tab.id === tabId);
@@ -376,6 +421,10 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
         return 'description';
       }
       return 'article';
+    }
+
+    if (tab.type === 'publishPlan') {
+      return 'publish';
     }
 
     if (tab.type === 'folder') {

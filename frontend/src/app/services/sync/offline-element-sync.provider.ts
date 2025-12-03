@@ -1,8 +1,11 @@
 import { inject, Injectable } from '@angular/core';
 import { Element } from '@inkweld/index';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { IndexeddbPersistence } from 'y-indexeddb';
+import * as Y from 'yjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { PublishPlan } from '../../models/publish-plan';
 import { LoggerService } from '../core/logger.service';
 import { OfflineProjectElementsService } from '../offline/offline-project-elements.service';
 import {
@@ -34,11 +37,16 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
   private currentUsername: string | null = null;
   private currentSlug: string | null = null;
 
+  // Publish plans storage (uses same Yjs + IndexedDB pattern as elements)
+  private plansDoc: Y.Doc | null = null;
+  private plansProvider: IndexeddbPersistence | null = null;
+
   // State subjects
   private readonly syncStateSubject = new BehaviorSubject<DocumentSyncState>(
     DocumentSyncState.Unavailable
   );
   private readonly elementsSubject = new BehaviorSubject<Element[]>([]);
+  private readonly publishPlansSubject = new BehaviorSubject<PublishPlan[]>([]);
   private readonly errorsSubject = new Subject<string>();
 
   // Public observables
@@ -46,6 +54,8 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
     this.syncStateSubject.asObservable();
   readonly elements$: Observable<Element[]> =
     this.elementsSubject.asObservable();
+  readonly publishPlans$: Observable<PublishPlan[]> =
+    this.publishPlansSubject.asObservable();
   readonly errors$: Observable<string> = this.errorsSubject.asObservable();
 
   /**
@@ -66,6 +76,9 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
     try {
       // Load elements from offline service
       await this.offlineService.loadElements(username, slug);
+
+      // Set up publish plans storage
+      await this.setupPublishPlansStorage(username, slug);
 
       this.currentUsername = username;
       this.currentSlug = slug;
@@ -94,6 +107,35 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
   }
 
   /**
+   * Set up Yjs + IndexedDB storage for publish plans.
+   */
+  private async setupPublishPlansStorage(
+    username: string,
+    slug: string
+  ): Promise<void> {
+    const docId = `${username}:${slug}:publishPlans`;
+
+    this.plansDoc = new Y.Doc();
+    this.plansProvider = new IndexeddbPersistence(docId, this.plansDoc);
+
+    await this.plansProvider.whenSynced;
+
+    // Set up observer
+    const plansArray = this.plansDoc.getArray<PublishPlan>('plans');
+    plansArray.observe(() => {
+      this.publishPlansSubject.next(plansArray.toArray());
+    });
+
+    // Load initial data
+    this.publishPlansSubject.next(plansArray.toArray());
+
+    this.logger.debug(
+      'OfflineSync',
+      `Loaded ${plansArray.length} publish plans from IndexedDB`
+    );
+  }
+
+  /**
    * Disconnect from offline storage.
    */
   disconnect(): void {
@@ -112,12 +154,23 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
       );
     }
 
+    // Clean up publish plans storage
+    if (this.plansDoc) {
+      this.plansDoc.destroy();
+      this.plansDoc = null;
+    }
+    if (this.plansProvider) {
+      void this.plansProvider.destroy();
+      this.plansProvider = null;
+    }
+
     this.currentUsername = null;
     this.currentSlug = null;
     this.connected = false;
 
     // Reset state
     this.elementsSubject.next([]);
+    this.publishPlansSubject.next([]);
     this.syncStateSubject.next(DocumentSyncState.Unavailable);
   }
 
@@ -156,5 +209,35 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
         this.logger.error('OfflineSync', 'Failed to save elements', error);
         this.errorsSubject.next('Failed to save elements offline');
       });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Publish Plans
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  getPublishPlans(): PublishPlan[] {
+    return this.publishPlansSubject.getValue();
+  }
+
+  /**
+   * Update publish plans in offline storage.
+   */
+  updatePublishPlans(plans: PublishPlan[]): void {
+    if (!this.connected || !this.plansDoc) {
+      this.logger.warn(
+        'OfflineSync',
+        'Cannot update publish plans - not connected'
+      );
+      return;
+    }
+
+    const plansArray = this.plansDoc.getArray<PublishPlan>('plans');
+
+    this.plansDoc.transact(() => {
+      plansArray.delete(0, plansArray.length);
+      plansArray.insert(0, plans);
+    });
+
+    this.logger.debug('OfflineSync', `Saved ${plans.length} publish plans`);
   }
 }

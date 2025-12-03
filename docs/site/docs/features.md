@@ -75,6 +75,18 @@ Control who has access to your writing projects.
 - **Admin controls**: Manage users and approve registrations
 - **Session management**: Secure authentication with session-based login
 
+## Publishing & Export
+
+Export your work in multiple professional formats.
+
+- **EPUB export**: Create e-books ready for Kindle, Kobo, and other readers
+- **PDF export**: Generate print-ready documents with customizable formatting
+- **HTML export**: Create web-ready versions of your work
+- **Markdown export**: Export to plain Markdown for maximum portability
+- **Publish plans**: Save export configurations for consistent output
+- **Customizable output**: Control chapter numbering, table of contents, metadata, and styling
+- **Client-side generation**: Exports happen in your browser—no server upload needed
+
 ## Technical Highlights
 
 For those interested in what's under the hood:

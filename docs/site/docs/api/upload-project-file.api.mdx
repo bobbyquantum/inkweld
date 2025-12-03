@@ -5,7 +5,7 @@ description: 'uploadProjectFile'
 sidebar_label: 'uploadProjectFile'
 hide_title: true
 hide_table_of_contents: true
-api: eJzdVctu2zAQ/BWCpxZwIvlxKHRLX4CBogiK9tIgB5paWXQpkuXDqWv437tL2akdOUkPPQUQIIvanZ3ZsXa33DrwIipr5jWveHLaivra2xXI+FFp4CMexTLw6obTY+C3I+6EFx1E8HS85UG20AlebXncOECQEL0yS8yEX6Jzmo5WtjW1JbQagvTKUUU8/xbAGwTjuxH38DMpD0gj+gSPRo54viHXvyeKIpyILeL8G6Fuc2HsGvSA0V47Czotn2d1En3PbP90xOqWgIKzJmALkdikLOl2CkYNZr0DULOQpIQQmqT1BsGkNRFMpCzhnFYym1asAqWe0WwXRAwTnSeLo+oL9wyf6kxtZeqw0qWrm6FfB3YNcT04F9TvY1CTugX4Y9BxOZk9hMpqKZMpwxabiPwQqpf/XsRnWE7KyfSiHOP1tSyrfF2WZfn9EcYsqg5CxGy+OzH1hu//QlnDSX30LKqYq/UgX/YOIgSBzM55+Nn2rcGurxU26v85B95b/3RTrgzLUcxKmbzP1U/pfcivsRVBLGHQir7EkW7yKKfcSx6fkxyZSLFFjaTt5WmeDTUfvnuD2hubzIvSvHuIdm4r4AJoLa0MZ0MWQXOu4oVwqliPC9cHh6I6jOmiorFYNHmL4PcGfn3YIMlrTG1jdFVRaCuFbhG0ejOdTgfKPtFrVgPObutoTrEeKc9YZRqbW7fXNTc/7kDX7Op6jkBUrwcZX+K0GEC/s1qLhaV1uAYmPfQ/7ryK6ABzWsTG+o7Q2Ku3ybzGbv0B7ap/og==
+api: eJzdVk1P4zAQ/SuWTyAVkrastMqN/ZIqrXYRC5dFHNxkQgyObWyn0I3633fGSUu/gBXaE1KlOo7nzXtvHI9bbiw4EaTRk4JnvLHKiOLMmVvIwzepgA94EDeeZ1ecHj2/HnArnKghgKPplvu8glrwrOVhbgFBfHBS32AkPIraKpq6NZUuDKEV4HMnLWXE+UsPTiMYXwy4g/tGOkAawTXw7MoBj3/I9WlG0gorQoU4/0aonh9pMwO1w6jXzrxqbl5ntbF6xax/WmN1TUDeGu3RQiQ2SlP62wQjg1lXASiYb/IcvC8bpeYIlhsdQAeKEtYqmceiJbeeQvdoNlMihoHWUYmD7BJ3DF9ypjB5U2OmY1uUu/VasiuJ67JyXv5ZB9VNPQW3DjpMRyfbUFEtRTKp2XQekB9CdfK/iPAKy1E6Gh+lQ/xdpGkWf8dpmv5+hjELsgYfMJovNop6xfstFDVs5MeaBRlitg7kvK8gQhDIyb4a/jCdNej6TKJR/69y4JxxL5tyqllcxUyeN87F7Jv0vsbXaIUXN7BjRZdiTTfVKIasJA/3SQ5MNKFCjaTt/Wk+2dW8/O41ai9No9+Z5g/7tvYE5eGBqxieuzNwHYX3pHuxjbavG2Ljqwy1Smt8FEHne8YTYWUyGya2W+yTdtmeFklL/WCRlLF/4kkT7et6Z+MUBlch2CxJlMmFqhA2+zgej3e0fafXrADsWsbSCd0XInYXqUsTzeuVTfTdA6iCnZ5NEIjydSDDYzwnd6A/G6XE1NBFYAYsd9ANHpwMWANmlQilcTWhsYNPjT6ko5oMqIV+6iq9X2z5cfSObaRalTfAY0gQGJskHfvkQ9ubeYX7SBLrYbdJoqE4zNY6ftb32HJ5KSHfKLRtp8LDpVOLBU3fN+DmOI/DmXBSTMkdNL6QnsZYyFIov93X26dNzQ/O+x10yNbuIHtV9JNCU8OeCdXQEw7vYL5+X6E7ypvyb9023sChu9Vc47oKsI+76EX36hSvGzasBe18zLTPVtv/7OevC/xq/gLFdoW+
 sidebar_class_name: 'post api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
@@ -27,7 +27,7 @@ import Heading from '@theme/Heading';
 
 <MethodEndpoint
   method={'post'}
-  path={'/api/v1/projects/:username/:slug/files'}
+  path={'/api/v1/projects/{username}/{slug}/files'}
   context={'endpoint'}
 ></MethodEndpoint>
 
@@ -138,6 +138,25 @@ uploadProjectFile
     },
     '404': {
       description: 'Project not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'FileError',
+          },
+        },
+      },
+    },
+    '500': {
+      description: 'Internal server error',
       content: {
         'application/json': {
           schema: {

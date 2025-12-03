@@ -7,6 +7,7 @@ import { BehaviorSubject, of, Subject } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { PublishPlan } from '../../models/publish-plan';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
@@ -25,10 +26,12 @@ import { RecentFilesService } from './recent-files.service';
  */
 function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
   _elementsSubject: BehaviorSubject<Element[]>;
+  _publishPlansSubject: BehaviorSubject<PublishPlan[]>;
   _syncStateSubject: BehaviorSubject<DocumentSyncState>;
   _errorsSubject: Subject<string>;
 } {
   const elementsSubject = new BehaviorSubject<Element[]>([]);
+  const publishPlansSubject = new BehaviorSubject<PublishPlan[]>([]);
   const syncStateSubject = new BehaviorSubject<DocumentSyncState>(
     DocumentSyncState.Unavailable
   );
@@ -36,6 +39,7 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
 
   return {
     _elementsSubject: elementsSubject,
+    _publishPlansSubject: publishPlansSubject,
     _syncStateSubject: syncStateSubject,
     _errorsSubject: errorsSubject,
 
@@ -44,15 +48,21 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     isConnected: vi.fn().mockReturnValue(true),
     getSyncState: vi.fn(() => syncStateSubject.getValue()),
     getElements: vi.fn(() => elementsSubject.getValue()),
+    getPublishPlans: vi.fn(() => publishPlansSubject.getValue()),
     updateElements: vi.fn((elements: Element[]) => {
       elementsSubject.next(elements);
+    }),
+    updatePublishPlans: vi.fn((plans: PublishPlan[]) => {
+      publishPlansSubject.next(plans);
     }),
 
     syncState$: syncStateSubject.asObservable(),
     elements$: elementsSubject.asObservable(),
+    publishPlans$: publishPlansSubject.asObservable(),
     errors$: errorsSubject.asObservable(),
   } as MockedObject<IElementSyncProvider> & {
     _elementsSubject: BehaviorSubject<Element[]>;
+    _publishPlansSubject: BehaviorSubject<PublishPlan[]>;
     _syncStateSubject: BehaviorSubject<DocumentSyncState>;
     _errorsSubject: Subject<string>;
   };

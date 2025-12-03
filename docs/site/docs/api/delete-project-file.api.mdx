@@ -5,7 +5,7 @@ description: 'deleteProjectFile'
 sidebar_label: 'deleteProjectFile'
 hide_title: true
 hide_table_of_contents: true
-api: eJzdVctu2zAQ/BWCpxZwLbvOodAtfQEGiiBo0VOQA0NRFl2Ky/Lh1DD8792lZDuObDcFeupJFLk7OzNarjYcnPIiarDzipe8UkZFdethqWT8rI3iIx7FIvDyjtNr4Pcj7oQXLYZ52t7wIBvVCl5ueFw7hSAhem0XmKl+idYZ2lpCYysgtEoF6bWjirj/PShvEYxvR9yrn0l7hTSiT+ps5IjnR8nTYUdThBOxQZyXEWrXbyyslBkw6rWzYNLiz6yOovfM+re/Z1WBTK2yceyqesCM/GcvM+sQeuAUAcNvBn7dE1ZwYAN+XCT3djKhxwm8rjcqFpKUKoQ6GbNGLAk2ImVKEs4ZLXM3FctAmSdkwwM5honOU+9F3dVtEVIs1GV/LvE4ZvytO2Q72O2RZ3f7cig/6pjBP2bcr70ZmEE5V5Pp0I4biEyk2KBskouI/8wG5T34yyZcW5ajGEiZvM/Vj/l9ysfnpHclnggnV3PKXvPVmRZAVNd3vEUPakj2v9K+fY52ah7i6GvgMCxJBt2kkhfC6WI1LXqLQlHuRlRR0kgoapqguH56FTFitZukyRuEaWJ0ZVEYkMI0EGL5bjabDXR+oWO8CzjDwNHMYB1SvtHa1pCN7FXO7Y9HZSp2fTtHIKrXgUzHk/FkAP0BjBEPQL+FlWLSq27x6HXE78GcEbEG3xIae/U+2dfo3W+6gy51
+api: eJzdVU1P4zAQ/SuRTyB1Sbuw0io3WLpSJYQQu5wQBzdxGoNjG38Uqij/fWcc07SksGy1J061nZk3b95MZxqiNDPUcSVnBclIwQRz7Mqoe5a7n1wwMiKOLizJbgleLbkbEU0NrcHM4HNDbF6xmpKsIW6lGYBYZ7hcgCd7prUW+HSvKlkoRCuYzQ3XGBHebywzEsBIOyKGPXpuGNBwxrM3LUck/GTE9y8cLTR1FeB8jFC9+iLVkokBo5h7YoVf/J3VlvWaWbz9O6tC5b5m0h3pohwwQ/2Tj4nVm/acnALzy4Fed4hltZIWigvkvo7H+LMDr+uNIrE+z5m1pRdiBVi5kg4ooxPVWvA8dFN6b9FzR9pqjoqBozbYe453cWuApAv2vj7v8dhm/Kv7mLzAtlua3a7DQfqOuwB+HnCvoxjggT4n48lQjkvlEupdBWljuoD432RgxijzvginMglWicpzb0yIvs1vGj6/lXoXYiNxVDW4rHM+eaMFAFXHjpegQam8/GS5f9vV/jNID0aNSGDiLJnpKHymvNvXaLv2AIz8SvVLAtPACZKRlGqeLidpbA2bNi+juU0bnIVtWuLugMt6CLXg3qnZLRFvBCBVzuksTYXKqaiUddn34+PjQaoX+BnGAIxvpXFcxrqEYcZlqYKWMdGZfHhiokhOr2YAhPE6kMnR+Gg8gP6hhKBzhRtxyZLcsO7wZLiDkiRaUFcqUyNacnDm5SHOYg1MaxpKHodtp1Dysh2igFuh1tV27NmlAAwzGbCCDk1U9hbaiiPrSdczQV04ZhurL4vLJigc7v2gBzlQRQRqmjm17MaItsXnR8/MCt7huKSG0zlqBWUouMUzVLmkwr7eK03f8eTgOrbXYbKxmnfmFB+pxDG9pMLjDY4PbLW5xnFJ7hX/1RLeg0Nc9nvG39y2+wTvC9begXXFaAHNjOXoDE5hlWm34ToYNtj467/n+fRi+nsK/+s/F8BmRQ==
 sidebar_class_name: 'delete api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
@@ -27,7 +27,7 @@ import Heading from '@theme/Heading';
 
 <MethodEndpoint
   method={'delete'}
-  path={'/api/v1/projects/:username/:slug/files/:storedName'}
+  path={'/api/v1/projects/{username}/{slug}/files/{storedName}'}
   context={'endpoint'}
 ></MethodEndpoint>
 
@@ -120,6 +120,25 @@ deleteProjectFile
     },
     '404': {
       description: 'File or project not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'FileError',
+          },
+        },
+      },
+    },
+    '500': {
+      description: 'Internal server error',
       content: {
         'application/json': {
           schema: {

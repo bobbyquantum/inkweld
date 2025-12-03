@@ -1,0 +1,97 @@
+<h2 mat-dialog-title data-testid="publish-complete-dialog-title">
+  <mat-icon class="success-icon">check_circle</mat-icon>
+  Published Successfully!
+</h2>
+
+<mat-dialog-content>
+  <div class="file-info" data-testid="file-info">
+    <mat-icon class="format-icon">{{ formatIcon }}</mat-icon>
+    <div class="file-details">
+      <div class="filename" data-testid="filename">{{ file().filename }}</div>
+      <div class="meta">
+        <span class="format" data-testid="format-name">{{ formatName }}</span>
+        <span class="separator">•</span>
+        <span class="size" data-testid="file-size">{{
+          fileSizeFormatted
+        }}</span>
+      </div>
+    </div>
+  </div>
+
+  @if (isOnline) {
+    <div class="sharing-section">
+      <h3>Share Settings</h3>
+
+      <mat-form-field appearance="outline" class="share-select">
+        <mat-label>Who can access</mat-label>
+        <mat-select
+          [value]="sharePermission()"
+          (selectionChange)="onPermissionChange($event.value)"
+          [disabled]="updating()">
+          @for (option of shareOptions; track option.value) {
+            <mat-option
+              [value]="option.value"
+              [disabled]="option.disabled"
+              [matTooltip]="option.tooltip || ''">
+              <mat-icon>{{ option.icon }}</mat-icon>
+              {{ option.label }}
+              @if (option.disabled) {
+                <span class="coming-soon">(Coming soon)</span>
+              }
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      @if (canShare) {
+        <div class="share-link-row">
+          <input
+            type="text"
+            readonly
+            [value]="shareUrl || ''"
+            class="share-url-input" />
+          <button
+            mat-icon-button
+            (click)="copyShareLink()"
+            matTooltip="Copy link">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="offline-notice" data-testid="offline-notice">
+      <mat-icon>cloud_off</mat-icon>
+      <span>Sharing options available when online</span>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="viewFiles()" data-testid="view-files-button">
+    <mat-icon>folder</mat-icon>
+    View Published Files
+  </button>
+  <button mat-button (click)="download()" data-testid="download-button">
+    <mat-icon>download</mat-icon>
+    Download
+  </button>
+  @if (canShare) {
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="copyShareLink()"
+      data-testid="copy-link-button">
+      <mat-icon>share</mat-icon>
+      Copy Link
+    </button>
+  } @else {
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="close()"
+      data-testid="done-button">
+      Done
+    </button>
+  }
+</mat-dialog-actions>

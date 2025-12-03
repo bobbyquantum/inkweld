@@ -155,7 +155,9 @@ describe('ProjectComponent', () => {
       closeTab: vi.fn(),
       openDocument: vi.fn(),
       openSystemTab: vi.fn(),
-      publishProject: vi.fn().mockResolvedValue(undefined),
+      getPublishPlans: vi.fn().mockReturnValue([]),
+      createPublishPlan: vi.fn(),
+      openPublishPlan: vi.fn(),
       showEditProjectDialog: vi.fn(),
       showNewElementDialog: vi.fn(),
     };
@@ -397,11 +399,29 @@ describe('ProjectComponent', () => {
   });
 
   describe('publish project', () => {
-    it('should publish project when onPublishClick is called', () => {
+    it('should open publish plan when onPublishClick is called', () => {
       component.onPublishClick();
-      expect(projectStateService.publishProject).toHaveBeenCalledWith(
-        mockProject
+
+      // Should create a new publish plan since none exist
+      expect(projectStateService.createPublishPlan).toHaveBeenCalled();
+      expect(projectStateService.openPublishPlan).toHaveBeenCalled();
+      expect(router.navigate).toHaveBeenCalled();
+    });
+
+    it('should open existing publish plan when one exists', () => {
+      const existingPlan = { id: 'plan-1', name: 'Test Plan' };
+      (projectStateService as any).getPublishPlans = vi
+        .fn()
+        .mockReturnValue([existingPlan]);
+
+      component.onPublishClick();
+
+      // Should open existing plan, not create a new one
+      expect(projectStateService.createPublishPlan).not.toHaveBeenCalled();
+      expect(projectStateService.openPublishPlan).toHaveBeenCalledWith(
+        existingPlan
       );
+      expect(router.navigate).toHaveBeenCalled();
     });
   });
 

@@ -63,7 +63,7 @@ Inkweld v0.1.0 is the first public release of this collaborative creative writin
 
 - **Frontend**: Angular 20 with standalone components, signals, and modern control flow
 - **Backend**: Hono + Bun/Node/Cloudflare Workers multi-runtime
-- **Database**: TypeORM with PostgreSQL/SQLite + LevelDB for document storage
+- **Database**: Drizzle ORM with SQLite/D1 + LevelDB for document storage
 - **Real-time**: Yjs for CRDTs, WebSocket for synchronization
 - **Storage**: Per-project LevelDB instances for Yjs documents
 

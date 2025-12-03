@@ -68,8 +68,9 @@ class DocumentSnapshotService {
       metadata?: Record<string, any>;
     }
   ): Promise<DocumentSnapshot> {
+    const id = crypto.randomUUID();
     const newSnapshot: InsertDocumentSnapshot = {
-      id: crypto.randomUUID(),
+      id,
       documentId: data.documentId,
       projectId: data.projectId,
       userId: data.userId,
@@ -84,8 +85,8 @@ class DocumentSnapshotService {
 
     await db.insert(documentSnapshots).values(newSnapshot);
 
-    const created = await this.findById(db, newSnapshot.id);
-    if (!created) {
+    const created = await this.findById(db, id);
+    if (created === undefined) {
       throw new Error('Failed to create document snapshot');
     }
     return created;

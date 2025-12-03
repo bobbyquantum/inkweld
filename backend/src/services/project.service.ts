@@ -83,8 +83,9 @@ class ProjectService {
       userId: string;
     }
   ): Promise<Project> {
+    const id = crypto.randomUUID();
     const newProject: InsertProject = {
-      id: crypto.randomUUID(),
+      id,
       slug: data.slug,
       title: data.title,
       description: data.description || null,
@@ -96,8 +97,8 @@ class ProjectService {
 
     await db.insert(projects).values(newProject);
 
-    const created = await this.findById(db, newProject.id);
-    if (!created) {
+    const created = await this.findById(db, id);
+    if (created === undefined) {
       throw new Error('Failed to create project');
     }
     return created;

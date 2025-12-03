@@ -5,7 +5,7 @@ description: 'getSystemFeatures'
 sidebar_label: 'getSystemFeatures'
 hide_title: true
 hide_table_of_contents: true
-api: eJytVV1v2jAU/SuWnzaJNjCkbeKNsn6w0o+1dJtaVZNJLsStY7u2A0WI/757kxRooNM0LQ9gO/a5955zfLPgQUw879zxntFjOcmdCNJoft/gxkI56Se8wycQruc+QHYEIuQOPG9w/LVGexx3FvxDs0l/CfjYSVuAdHh5hI2rMyx+FaTBcR5ABzoorFUyLl5ED55OL7iPU8gEjcLcAuKZ0QPEAQ9aR+kFWcYWciB1kHqysXVkjAJBQeBZZFbhWnA5NGoZ/kghpOBYt79nzQwcJEyVWEx6JqZCKjHCw8sGRulnYgLHoCti/ks0SZhssgLdChsLG+L0L1gATUeSf8/KQa97OeyddCmHFzTMwMsApzDfAPbBEdsbuPzjAPrP3XjYpedrfPv96ml+kn5q3Zz1D4/Pv/06+/kgb0/TPq9HX0elOOwR5mxsHIuVRGfseZkAmwolk5Ly5ZJ895RLR5XerYq+r8NeQa8k7rXpCmwHE4klvLgwyFCUUB24hkD6+0Jza89MAjtL13lGGVycD/rnh7hwcXRUjQ4uhieU0ZqdYqWeYndteZZhlNr1WNL+schVuAY3BXcust2JrKKkIdhOFCkTC5UaHzrtJt7KetgvJSjzBSrTCMuCYdYBmtLmSqAKUuPrkFuiK6NMctyN+TqDWlyt+P+T08ZC+TetJpIMQ4gKkPz2ImohkIYZo4h+S+/1Vd91Ide3ZS3dG7nfr3WvNbYlPfXEd/W/DGsxVXOk2yhCipNIWBlNW1EpZjRe7y8Jp2674LlTuwT73G63twQb0GuWwBSUsRneiko6vsQipB6bQoiqmL5+nIFKWPeSrhrFK0Fa+839bS/0jMJGY4i+KfrPQTmYOVm0QItmIAcQGnt3kOv35AWLmWaiaH+68CQRwKpev8HPq1ArqwR4DhECy8LhBQ+LijuU10rKulV+G5A/HKwYxGqJJNq3WIyEhxunlktafsrBYX+6w+FUOFm0TpwhfgoiQaaI8kdqYbwbx2BJLjRDTvlsfXiI1ZW0x4dDNMRv1rB7+Q==
+api: eJytVMFS2zAQ/RWNTu1MipPm0skNKNDMpNApMD0wPSj2OhbIkpDWDhmP/727thtCEnpqDo4kS++t3nvrRqJaRTl7kOfO5npVBYXaWfl7JJ2HfjLP5EyuAG83EaG8BIVVgChHkp7e2UjjWSM/j8f8l0FMg/YdyEz2R0Q+nBHpG5KRpDmCRT6ovDc67V4kj5FPNzKmBZSKR7jxQHhu+Qgp0kEfuDzUPbfSC21R29XO1qVzBhSTwIsqvaE1DBWM9ir8VQAWEMTp/JN3awiQCdNjCR2FqpU2akmH2xGxzEu1giuwgzD/hU0zplhtQQ9pvf/uMtghixj4rsRlq5K9u7lezK8vaOHm8nIYnd3cfWMXt+X0K/sFnb6qLkpi2XOo5f25qgzeQqghXKvyeCFblgLRz5LEuFSZwkWcTccUjH3arz2oiB2qsAQr0AkfgHTxlVEIQlt6jZUXuQslV1LRbqo3uFqZn/BcaZLv3xbkysR3PVBZSRRqAGTZwwDKjMLCWjBjlG3LUf/L97CTtmOZeDXsnYrJFNTYibXXUS3/9ss91ngl3cANXcnNoLCgSaK8TupJ0luY5K/7e5m5zRtZBXPMpi/T6fTApgW/FhnUYJwvqVEHw2RLl9A2d538w2Xm9mkNJhOnP+YExHw9yORkfHKYgHNnKOGORaspdQH6wTrorvc8RYB9ZzTx4ayyHzkBniotVdd3tksiCyCGj8yOPm+otgFBeMGEgHWX606HZtCOTPWaq570HyXSjwZbBem2LBLva5qlinAfTNvy8nMFYUPrNKxV0F3P0ozwC1AZKcWSP8GGWy1NwbNdFIaK6zn44rGqW2uvLu4oEH8AnLj05g==
 sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
@@ -58,25 +58,6 @@ getSystemFeatures
                 example: true,
                 description: 'Whether AI-powered image generation is available',
               },
-              captcha: {
-                type: 'object',
-                properties: {
-                  enabled: {
-                    type: 'boolean',
-                    example: true,
-                    description: 'Whether reCAPTCHA is enabled',
-                  },
-                  siteKey: {
-                    type: 'string',
-                    example: '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI',
-                    description:
-                      'reCAPTCHA site key for client-side validation',
-                  },
-                },
-                required: ['enabled'],
-                description: 'ReCaptcha configuration for registration',
-                title: 'CaptchaSettings',
-              },
               appMode: {
                 type: 'string',
                 enum: ['ONLINE', 'OFFLINE', 'BOTH'],
@@ -98,7 +79,6 @@ getSystemFeatures
             required: [
               'aiLinting',
               'aiImageGeneration',
-              'captcha',
               'appMode',
               'userApprovalRequired',
             ],

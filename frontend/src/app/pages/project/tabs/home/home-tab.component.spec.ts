@@ -66,6 +66,7 @@ describe('HomeTabComponent', () => {
     // Initialize signals for ProjectStateService
     const projectSignal = signal(mockProject);
     const elementsSignal = signal<Element[]>([]);
+    const publishPlansSignal = signal<any[]>([]);
 
     // Mock Router
     mockRouter = {
@@ -76,10 +77,14 @@ describe('HomeTabComponent', () => {
     projectStateService = {
       project: projectSignal,
       elements: elementsSignal,
+      publishPlans: publishPlansSignal,
       openDocument: vi.fn(),
-      publishProject: vi.fn().mockResolvedValue(undefined),
       showEditProjectDialog: vi.fn(),
       openSystemTab: vi.fn(),
+      getPublishPlans: vi.fn().mockReturnValue([]),
+      createPublishPlan: vi.fn(),
+      openPublishPlan: vi.fn(),
+      deletePublishPlan: vi.fn(),
     };
 
     recentFilesService = {
@@ -244,11 +249,32 @@ describe('HomeTabComponent', () => {
     expect(component.importRequested.emit).toHaveBeenCalled();
   });
 
-  it('should publish project when publish button is clicked', () => {
+  it('should open publish plan when publish button is clicked', () => {
+    // No plans exist initially, so a new one should be created
+    (projectStateService as any).getPublishPlans = vi.fn().mockReturnValue([]);
+
     component.onPublishClick();
-    expect(projectStateService.publishProject).toHaveBeenCalledWith(
-      mockProject
+
+    // Should create a new publish plan since none exist
+    expect(projectStateService.createPublishPlan).toHaveBeenCalled();
+    expect(projectStateService.openPublishPlan).toHaveBeenCalled();
+    expect(mockRouter.navigate).toHaveBeenCalled();
+  });
+
+  it('should open existing publish plan when one exists', () => {
+    const existingPlan = { id: 'plan-1', name: 'Test Plan' };
+    (projectStateService as any).getPublishPlans = vi
+      .fn()
+      .mockReturnValue([existingPlan]);
+
+    component.onPublishClick();
+
+    // Should open existing plan, not create a new one
+    expect(projectStateService.createPublishPlan).not.toHaveBeenCalled();
+    expect(projectStateService.openPublishPlan).toHaveBeenCalledWith(
+      existingPlan
     );
+    expect(mockRouter.navigate).toHaveBeenCalled();
   });
 
   it('should display recent files when available', () => {

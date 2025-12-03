@@ -5,8 +5,8 @@
 Inkweld is a **collaborative creative writing platform** with a monorepo structure:
 
 - **Frontend**: Angular 20 standalone components (port 4200, runs on Node.js)
-- **Backend**: NestJS 10 on Bun runtime (port 8333)
-- **Database**: TypeORM (PostgreSQL/SQLite) + per-project LevelDB for Yjs documents
+- **Backend**: Hono on Bun runtime (port 8333)
+- **Database**: Drizzle ORM (SQLite/D1) + per-project LevelDB for Yjs documents
 - **Real-time**: Yjs CRDTs via WebSocket for collaborative editing
 
 ```
@@ -156,7 +156,7 @@ import { Request, Response } from "express";
 
 ### Session-Based Authentication
 
-- Session store uses TypeORM (`express-session` + `typeorm-store`)
+- Session store uses signed cookies (Hono cookie middleware)
 - httpOnly cookies with CSRF protection
 - No JWT tokens (intentional design choice)
 - GitHub OAuth is optional (configurable via env vars)

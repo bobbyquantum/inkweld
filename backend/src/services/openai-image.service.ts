@@ -95,7 +95,7 @@ export class OpenAIImageService {
 
       const responseDto: ImageResponseDto = {
         created: res.created,
-        data: res.data.map((img) => ({
+        data: (res.data ?? []).map((img) => ({
           b64_json: img.b64_json,
           url: img.url,
           revised_prompt: img.revised_prompt,

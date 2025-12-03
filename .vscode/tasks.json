@@ -42,7 +42,7 @@
     {
       "label": "Dev Docs",
       "type": "shell",
-      "command": "cd docs/site && npm start",
+      "command": "cd docs/site && bun start",
       "isBackground": true,
       "problemMatcher": {
         "owner": "typescript",

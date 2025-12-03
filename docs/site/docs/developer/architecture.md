@@ -22,11 +22,11 @@ graph TB
         Hono["Hono API +<br/>WebSocket Handler"]
 
         subgraph Storage["Storage Layer"]
-            TypeORM["TypeORM/DB<br/>(Users/Meta)"]
+            Drizzle["Drizzle ORM/DB<br/>(Users/Meta)"]
             YjsLevel["Yjs + LevelDB<br/>(Document CRDTs)"]
         end
 
-        Hono --> TypeORM
+        Hono --> Drizzle
         Hono --> YjsLevel
     end
 
@@ -84,7 +84,7 @@ export class MyComponent {
 
 - **Runtime**: Bun (JavaScript runtime built for speed)
 - **Framework**: Hono (lightweight web framework)
-- **Database**: PostgreSQL or SQLite via TypeORM
+- **Database**: SQLite or D1 via Drizzle ORM
 - **Document Storage**: LevelDB (per-project instances)
 - **Real-Time**: Native WebSocket support
 - **Testing**: Bun's built-in test runner
@@ -111,7 +111,7 @@ app.get('/ws/:projectId', async (c) => {
 - **auth/** - Session-based authentication
 - **routes/** - HTTP endpoints
 - **services/** - Business logic layer
-- **db/** - Database connection and TypeORM setup
+- **db/** - Drizzle ORM schema and database setup
 - **durable-objects/** - (Cloudflare Workers deployment only)
 
 ## Real-Time Collaboration (Yjs)
@@ -183,7 +183,7 @@ Benefits:
 
 ## Database Schema
 
-### TypeORM Entities
+### Drizzle ORM Schema
 
 ```mermaid
 %%{init: {'theme':'neutral'}}%%

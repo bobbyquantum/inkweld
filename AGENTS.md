@@ -10,7 +10,7 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 
 - **Frontend**: Angular 20 (standalone components, modern control flow)
 - **Backend**: NestJS 10 running on Bun
-- **Database**: PostgreSQL or SQLite (TypeORM) + LevelDB (per-project document storage)
+- **Database**: SQLite/D1 (Drizzle ORM) + LevelDB (per-project document storage)
 - **Real-time**: Yjs + WebSocket for collaborative editing
 - **Testing**: Jest (unit) + Playwright (e2e)
 
@@ -124,9 +124,9 @@ src/app/
 ### Technology Stack
 
 - **Runtime**: Bun (NOT Node.js)
-- **Framework**: NestJS 10
-- **Database**: TypeORM with PostgreSQL/SQLite + LevelDB (Yjs documents)
-- **Auth**: Passport with session-based authentication
+- **Framework**: Hono (lightweight, runs on Bun and Cloudflare Workers)
+- **Database**: Drizzle ORM with SQLite/D1 + LevelDB (Yjs documents)
+- **Auth**: Session-based authentication with signed cookies
 - **Testing**: Jest
 - **Package Manager**: Bun
 
@@ -135,7 +135,7 @@ src/app/
 - **Run on Bun**: Use `bun` commands, not `npm` or `node`
 - **Type Imports**: Import Request/Response types using `import type`, not regular import
 - **Per-Project LevelDB**: Each project has its own LevelDB instance for document storage
-- **Session Management**: Uses TypeORM session store for authentication
+- **Session Management**: Uses signed cookies for session authentication
 
 ### Directory Structure
 
@@ -151,11 +151,11 @@ src/
 
 ### Backend Best Practices
 
-- Follow NestJS dependency injection patterns
-- Use decorators appropriately (`@Injectable()`, `@Controller()`, etc.)
-- Keep modules focused and well-separated
+- Follow Hono middleware patterns
+- Use OpenAPI/Zod for request/response validation
+- Keep routes focused and well-separated
 - Handle errors gracefully with proper HTTP status codes
-- Use TypeORM best practices for database operations
+- Use Drizzle ORM best practices for database operations
 
 ---
 
