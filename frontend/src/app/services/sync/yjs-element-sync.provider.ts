@@ -6,6 +6,7 @@ import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { PublishPlan } from '../../models/publish-plan';
 import { LoggerService } from '../core/logger.service';
 import {
   IElementSyncProvider,
@@ -69,6 +70,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     DocumentSyncState.Unavailable
   );
   private readonly elementsSubject = new BehaviorSubject<Element[]>([]);
+  private readonly publishPlansSubject = new BehaviorSubject<PublishPlan[]>([]);
   private readonly errorsSubject = new Subject<string>();
 
   // Public observables
@@ -76,6 +78,8 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.syncStateSubject.asObservable();
   readonly elements$: Observable<Element[]> =
     this.elementsSubject.asObservable();
+  readonly publishPlans$: Observable<PublishPlan[]> =
+    this.publishPlansSubject.asObservable();
   readonly errors$: Observable<string> = this.errorsSubject.asObservable();
 
   /**
@@ -214,6 +218,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
     // Reset state
     this.elementsSubject.next([]);
+    this.publishPlansSubject.next([]);
     this.syncStateSubject.next(DocumentSyncState.Unavailable);
   }
 
@@ -251,6 +256,45 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.logger.debug(
       'YjsSync',
       `Yjs doc now contains ${elementsArray.length} elements`
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Publish Plans
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  getPublishPlans(): PublishPlan[] {
+    return this.publishPlansSubject.getValue();
+  }
+
+  /**
+   * Update publish plans in the Yjs document.
+   * Changes propagate to all connected clients.
+   */
+  updatePublishPlans(plans: PublishPlan[]): void {
+    if (!this.doc) {
+      this.logger.warn(
+        'YjsSync',
+        'Cannot update publish plans - not connected'
+      );
+      return;
+    }
+
+    this.logger.debug(
+      'YjsSync',
+      `Writing ${plans.length} publish plans to Yjs`
+    );
+
+    const plansArray = this.doc.getArray<PublishPlan>('publishPlans');
+
+    this.doc.transact(() => {
+      plansArray.delete(0, plansArray.length);
+      plansArray.insert(0, plans);
+    });
+
+    this.logger.debug(
+      'YjsSync',
+      `Yjs doc now contains ${plansArray.length} publish plans`
     );
   }
 
@@ -435,25 +479,42 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   private setupDocumentObserver(): void {
     if (!this.doc) return;
 
+    // Elements observer
     const elementsArray = this.doc.getArray<Element>('elements');
-
     elementsArray.observe(() => {
       const elements = elementsArray.toArray();
       this.logger.debug('YjsSync', `Elements changed: ${elements.length}`);
       this.elementsSubject.next(elements);
     });
+
+    // Publish plans observer
+    const plansArray = this.doc.getArray<PublishPlan>('publishPlans');
+    plansArray.observe(() => {
+      const plans = plansArray.toArray();
+      this.logger.debug('YjsSync', `Publish plans changed: ${plans.length}`);
+      this.publishPlansSubject.next(plans);
+    });
   }
 
   /**
-   * Load elements from the Yjs document and emit them.
+   * Load elements and publish plans from the Yjs document and emit them.
    */
   private loadElementsFromDoc(): void {
     if (!this.doc) return;
 
+    // Load elements
     const elementsArray = this.doc.getArray<Element>('elements');
     const elements = elementsArray.toArray();
-
     this.logger.debug('YjsSync', `Loaded ${elements.length} elements from Yjs`);
     this.elementsSubject.next(elements);
+
+    // Load publish plans
+    const plansArray = this.doc.getArray<PublishPlan>('publishPlans');
+    const plans = plansArray.toArray();
+    this.logger.debug(
+      'YjsSync',
+      `Loaded ${plans.length} publish plans from Yjs`
+    );
+    this.publishPlansSubject.next(plans);
   }
 }

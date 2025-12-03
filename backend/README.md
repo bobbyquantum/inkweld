@@ -6,8 +6,8 @@ This is the new Hono-based backend for Inkweld, designed to be easier to deploy 
 
 - Built with [Hono](https://hono.dev/) - A lightweight, fast web framework
 - Runs on Bun runtime (also compatible with Node.js, Deno, Cloudflare Workers)
-- TypeORM for database operations (PostgreSQL/SQLite)
-- Session-based authentication with TypeORM session store
+- Drizzle ORM for database operations (SQLite/D1)
+- Session-based authentication with signed cookies
 - Zod for request validation
 - WebSocket support for real-time collaboration (Yjs)
 - LevelDB for per-project document storage
@@ -136,8 +136,8 @@ bun start
 ```
 backend/
 ├── src/
-│   ├── config/          # Configuration (env, database)
-│   ├── entities/        # TypeORM entities (User, Project, Session, DocumentSnapshot)
+│   ├── config/          # Configuration (env)
+│   ├── db/              # Drizzle schema and database setup
 │   ├── middleware/      # Middleware (auth, session, CSRF, error handling)
 │   ├── routes/          # API routes
 │   │   ├── auth.routes.ts
@@ -216,8 +216,8 @@ backend/
 
 ### ✅ Fully Implemented
 - Complete project structure
-- Database configuration (TypeORM with PostgreSQL/SQLite + Drizzle for Workers)
-- Session management with TypeORM store
+- Database configuration (Drizzle ORM with SQLite/D1)
+- Session management with signed cookies
 - Authentication (login, logout, session-based, GitHub OAuth)
 - User management (register, search, profile, avatars)
 - Project CRUD operations (create, read, update, delete)

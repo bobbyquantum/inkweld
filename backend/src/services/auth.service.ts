@@ -3,7 +3,7 @@ import { sign, verify } from 'hono/jwt';
 import { config } from '../config/env.js';
 import { userService } from './user.service.js';
 import type { User } from '../db/schema/users.js';
-import type { DatabaseInstance } from '../middleware/database.middleware.js';
+import type { DatabaseInstance } from '../types/context.js';
 
 const TOKEN_EXPIRY = 30 * 24 * 60 * 60; // 30 days in seconds
 
@@ -149,7 +149,7 @@ class AuthService {
     }
 
     try {
-      return await userService.findById(db, session.userId);
+      return (await userService.findById(db, session.userId)) ?? null;
     } catch (err) {
       console.error('Failed to get user from session:', err);
       return null;

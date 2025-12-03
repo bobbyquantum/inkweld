@@ -5,7 +5,7 @@ description: 'listProjectFiles'
 sidebar_label: 'listProjectFiles'
 hide_title: true
 hide_table_of_contents: true
-api: eJzdVctu2zAQ/BWCpxZwLPlxKHRLX4CBoMihvTTIgZZWFl2KZMmlU9fwv3dJWalcOUl7LSBA1nJ3ODNLrg/cWHACpdGrihdcSY+3zmyhxI9SgecTjmLjeXHHu+/7CbfCiRYQXAwfuC8baAUvDhz3FgjDo5N6Q5XwQ7RWxdDWNLoyQLEKfOmkjRtS/IsHpwmMHyfcwfcgHRALdAGezJzw9Cp4+B2RMcMKbAjn7wi1+yttdqBGjE7imVdh8zKrs+xHZqevAav7COSt0Z4sJGLzPI+vc7Ab8p6ZmtUn40ujETTGRGGtkmVqU7b1MfuCTOGc2Md9EVo/iJt15EgL1sVmo+w4dGSfM6kyZWiJwdRW9cioeBxY3zsvfw6xdGjX4IZYs3y+vIgQK5nUbL1HokVQwSojqvcCXyA3z+eLq3xGz+c8L9IzzfP86/iMJUCGsgWPVM2PZ22964ygDqHEhDw4/5R7jOnLfDbu1yeDTARsyKHYGwL795490Rtwzrjn9V9rlrKYKcvgXNr9nN+HtEyqvdjASHW3xUB21JtKeK95OdbcH3hN2msT9H+l+fgn2oVpSIOvMXFSbiBJiNe74JmwMtvNMtsl+6zop1NWxGmQ9Xeaort+cAanqLRBtEWWKVMK1RiPxZvFYjHSdROXWQU0soyNd5J1SGm0SF2bZNxJ1Up/ewBVsevbFQHF/TqQ2ZSuyAj6nVFKrE38E9gBKx10Px6cRPKfWSWwNq6NaOzV26Bfk1e/AHHgIZc=
+api: eJzdVd9P2zAQ/lcsP4FUSFqYNOWNbWyqhCY0wcsQD25yaQyObWyn0EX933eXH5CSAhuPSJXqOOfP3/fd5a7mxoITQRo9z3jClfTh3JkbSMN3qcDzCQ9i6Xlyxdvn6wm3wokSAjjarrlPCygFT2oe1hYQwwcn9RJPwoMoraKtG1PozADuZeBTJy1diPuXHpxGML6ZcAd3lXSALIKr4MXICW/+El497UiKsCIUiPNvhMr1gTYrUCNGnXjmVbV8m9VW9COz7mnA6pqAvDXao4VIbBbH9LcNdobeM5OzvDM+NTqADhQorFUybdIU3XiK3iFTOCfWdG+A0g/2zYI44gvrKNlBthxasq+ZlJm0KpHBoc3ykVFUDqzPnZd/hli6KhfghljTeHa8E4FOMqnZYh2QFkJVVhmRfRPhDXKzeHZ0EE/xdxHHSfM7jOP497jGGkAWZAk+4Gm+2UrrVWsEZijI0CAP6h9jNxR+HE/H+fppAhNVKNAhyg2C/X/OXsgNOGfc6/pPNGuimEnTyrnm9m1+p81rVO3FEkaq2ysGsklvc4T3mo/HmvuC16g9N5X+YJo/7fou5ygPO41i2HBW4FoKH0n35jnajimADb8wNCGW0EigtpbwSFgZraaRbYN9VPddeRPV1AY3Ud/NWvPakVE5hYeLEGwSRcqkQhXGh+Tz0dHRSNkZvWYZYLM2lrpRl4amqUqdm8a6Ttdc396DytjJ+RyB6L4WZHqIzWEE/dUoJRaGxt8KWOqgXdw7GTADzCoRcuNKQmN7Xyq9T/3JItNS6KcO2rjF+g+j92vrpsfcBngIEeLiaKBWRzbUnZdXWESSSE/bCmn8xGUymHNJN1nyfhSTbXS0rhfCw6VTmw1t31Xg1riPy5VwUizIHPQ9k57WmMZcKP98mtVPFc33fnXls88Gk3enin76aJo9K6EqesLlLayHU5om87vufzZj38GhneXXGFeAyLB0yIv21Umagg2DQ6Mvmcrssfh/nF7gF/MX7wcm9w==
 sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
@@ -27,7 +27,7 @@ import Heading from '@theme/Heading';
 
 <MethodEndpoint
   method={'get'}
-  path={'/api/v1/projects/:username/:slug/files'}
+  path={'/api/v1/projects/{username}/{slug}/files'}
   context={'endpoint'}
 ></MethodEndpoint>
 
@@ -122,6 +122,25 @@ listProjectFiles
     },
     '404': {
       description: 'Project not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'FileError',
+          },
+        },
+      },
+    },
+    '500': {
+      description: 'Internal server error',
       content: {
         'application/json': {
           schema: {

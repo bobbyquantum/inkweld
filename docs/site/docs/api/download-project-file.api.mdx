@@ -5,7 +5,7 @@ description: 'downloadProjectFile'
 sidebar_label: 'downloadProjectFile'
 hide_title: true
 hide_table_of_contents: true
-api: eJzdVE1v2zAM/SuGThvgxs7Sw+BbO2xAgKHoZaeiB8VmYmWyqEl0siDIfx+pJM0yJ1t7nS/WB/n4Hilyq9BD0GTQTRtVqQbXzqJuHgMuoaYvxoLKFelFVNWTkm1Uz7nyOugOCIIcb1WsW+i0qraKNh4YJlIwbsGe8FN33srRElvXoKA1EOtgvMTk828RgmMwtctVgB+9CcBEKPRw1TJX6Vep/nRixMJrahnndYS6zY3DFdgBo4P2LNp+8W9WZ9YvzA67t7NqsO47cDTyzXzATPKfvS5ZJ9MTJ0I2fxjk61mwokcXubhM7kNZyu8CXo2OmBu7H1dsp723pk5PqMCagG5YFuhO7q4rnmPoNPurmXE6bNSOv1zdluNh6AekTPfUcjyJw4qvxl9G8bgQF2dSJHb0QR48mb1UCAHD3wty57JklWFd9yGk6Of8PqfrDmLUC67MWWmeDiE4x2QoAUomk8uL5tsr6XYsfI69+68E7/5EuzxyeLq0KBNpAUmFvNRKFdqbYjUu/N42FtVxBBSVtFwxlwnF69+fOlusjpOqD5ZhWiJfFYXFWtsWI1UfJ5PJQOZXuc4a4BmBXnoy2yOljjFujimPB5FT930NtsnuHqcMJPH2IONROSoH0J/QWj1DGbwrbitul7RYB0NcjsxbTdIggpa9u+/de07dLy5l9fU=
+api: eJzdVU1v2zAM/SuGTi2Q1snaAYNv3dANAYaiGNZT0YNiM7FaWVIlOm1g+L+PlJ2vJtm6HJtLJJl8JB+lx0ZYB16ismZciEwU9sVoK4tbbx8hx+9KgxgIlLMgsnvB2yAeBsJJLytA8HzciJCXUEmRNQIXDggmoFdmRp7wKiun+ejRlqawjFZAyL1yHJPO7wJ4Q2CiHQgPz7XyQImgr+Gg5UDEv0zU6xPFFk5iSTjvS6hanBk7B72TUV97EnQ9+3dWW9arzPrd/2dV2LyuwOC5K6Y7mTH/yfvIWpuuc0JL5jc7fD0wVnDWBGouJfdpOOS/PXi5NUi5kftyRXbSOa3yeIVSmyPgGZUFsuJvhyueWl9J8hcTZaRfiJZ+A3E5HO2GvrGYyBpLisdxqOKD8R8De+yJayfcJHJ0ni88qq5U8N76vzfkyiTRKrF5Xnsfo2/ndx0/VxCCnFFntlpz34cgjlFhBGQmo8uq5ssDdBsqfGpr88EK/rzvfo2pPHrLOqEnPQffpfCR6m7fou2XWlLV0rISzyBWwS80E6l0Kp2PUtfZhrRZSl+bNqw1bTplbabN6pG35N6R2Yl07TUhlYguS1Ntc6lLGzD7cnFxsVPpT/6cFEDyaB3LUd+WKBbKTG2ksq9zbJ5eQBfJ1e2YgDheBzI6H54Pd6C/Wa3lxPLMmZOikFLExYtXSB1JnJbI2sBoycnX2pyy1jnKtJKx472YLdlLlvrb87cVbNVuhFdMCZpUj9AiE03P7T3dK8V5j7pLE/mlZbYxXLJeziPHcb+WUiKEeWSgppnIAHdety0fP9dAwpbd03IuvZITZosaUajAa2ryVOrwVrmb9ZUXJ7/6+3WabAy/vTX1h9IsuBapa97R8gkWm4OSx9BR8d+MuSNy6MfpkfE359kxwdcNax/IugRZ0HXmdnQGV3kODjdcD441fgKrV/rj+je97j9r1jEE
 sidebar_class_name: 'get api-method'
 info_path: docs/api/inkweld-api
 custom_edit_url: null
@@ -27,7 +27,7 @@ import Heading from '@theme/Heading';
 
 <MethodEndpoint
   method={'get'}
-  path={'/api/v1/projects/:username/:slug/files/:storedName'}
+  path={'/api/v1/projects/{username}/{slug}/files/{storedName}'}
   context={'endpoint'}
 ></MethodEndpoint>
 
@@ -109,6 +109,25 @@ downloadProjectFile
     },
     '404': {
       description: 'File not found',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              error: {
+                type: 'string',
+                example: 'An error occurred',
+                description: 'Error message',
+              },
+            },
+            required: ['error'],
+            title: 'FileError',
+          },
+        },
+      },
+    },
+    '500': {
+      description: 'Internal server error',
       content: {
         'application/json': {
           schema: {

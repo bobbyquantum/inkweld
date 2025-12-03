@@ -121,3 +121,92 @@
   color: var(--mat-hint-color);
   font-style: italic;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Publish Plans
+// ─────────────────────────────────────────────────────────────────────────────
+
+.home-column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h3 {
+    margin: 0;
+  }
+}
+
+.publish-plans-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.publish-plan-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+
+  &:hover,
+  &:focus-within {
+    background-color: var(--mat-hover-color);
+  }
+}
+
+.plan-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+
+  &:focus {
+    outline: 2px solid var(--mat-primary-color);
+    outline-offset: -2px;
+  }
+}
+
+.plan-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-format {
+  font-size: 0.85em;
+  color: var(--mat-hint-color);
+}
+
+.delete-plan-btn {
+  opacity: 0;
+  transition: opacity 0.2s;
+
+  .publish-plan-item:hover &,
+  .publish-plan-item:focus-within & {
+    opacity: 1;
+  }
+
+  &:focus {
+    opacity: 1;
+  }
+}
+
+.no-publish-plans {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mat-hint-color);
+  font-style: italic;
+}

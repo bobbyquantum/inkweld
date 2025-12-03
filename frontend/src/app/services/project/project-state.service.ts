@@ -1,16 +1,11 @@
 import { computed, inject, Injectable, OnDestroy, signal } from '@angular/core';
-import {
-  Element,
-  ElementType,
-  ExportService,
-  Project,
-  ProjectsService,
-} from '@inkweld/index';
+import { Element, ElementType, Project, ProjectsService } from '@inkweld/index';
 import { ProjectElement } from 'app/models/project-element';
 import { nanoid } from 'nanoid';
 import { firstValueFrom, Subscription } from 'rxjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { PublishPlan } from '../../models/publish-plan';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
@@ -59,7 +54,6 @@ export type { AppTab, ValidDropLevels };
 export class ProjectStateService implements OnDestroy {
   // Injected services
   private readonly projectsService = inject(ProjectsService);
-  private readonly exportService = inject(ExportService);
   private readonly unifiedProjectService = inject(UnifiedProjectService);
   private readonly setupService = inject(SetupService);
   private readonly offlineElementsService = inject(
@@ -84,6 +78,7 @@ export class ProjectStateService implements OnDestroy {
   // Core state signals
   readonly project = signal<Project | undefined>(undefined);
   readonly elements = signal<Element[]>([]);
+  readonly publishPlans = signal<PublishPlan[]>([]);
   readonly isLoading = signal<boolean>(false);
   readonly isSaving = signal<boolean>(false);
   readonly error = signal<string | undefined>(undefined);
@@ -257,6 +252,13 @@ export class ProjectStateService implements OnDestroy {
       })
     );
 
+    // Publish plans changes
+    this.providerSubscriptions.push(
+      this.syncProvider.publishPlans$.subscribe(plans => {
+        this.publishPlans.set(plans);
+      })
+    );
+
     // Sync state changes
     this.providerSubscriptions.push(
       this.syncProvider.syncState$.subscribe(state => {
@@ -296,8 +298,9 @@ export class ProjectStateService implements OnDestroy {
     // Close all tabs
     this.tabManager.clearAllTabs();
 
-    // Clear elements and expansion state
+    // Clear elements, publish plans, and expansion state
     this.elements.set([]);
+    this.publishPlans.set([]);
     this.expandedNodeIds.set(new Set());
 
     // Clear error state
@@ -445,6 +448,102 @@ export class ProjectStateService implements OnDestroy {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Publish Plan Operations
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get all publish plans for the current project.
+   */
+  getPublishPlans(): PublishPlan[] {
+    return this.publishPlans();
+  }
+
+  /**
+   * Get a specific publish plan by ID.
+   */
+  getPublishPlan(planId: string): PublishPlan | undefined {
+    return this.publishPlans().find(p => p.id === planId);
+  }
+
+  /**
+   * Update all publish plans (used internally by sync).
+   */
+  updatePublishPlans(plans: PublishPlan[]): void {
+    if (!this.syncProvider) {
+      this.logger.warn(
+        'ProjectState',
+        'Cannot update publish plans - no sync provider'
+      );
+      return;
+    }
+
+    this.syncProvider.updatePublishPlans(plans);
+  }
+
+  /**
+   * Create a new publish plan.
+   */
+  createPublishPlan(plan: PublishPlan): void {
+    const plans = [...this.publishPlans(), plan];
+    this.updatePublishPlans(plans);
+    this.logger.info('ProjectState', `Created publish plan: ${plan.name}`);
+  }
+
+  /**
+   * Update an existing publish plan.
+   */
+  updatePublishPlan(plan: PublishPlan): void {
+    const plans = this.publishPlans();
+    const index = plans.findIndex(p => p.id === plan.id);
+
+    if (index === -1) {
+      this.logger.warn('ProjectState', `Plan not found: ${plan.id}`);
+      return;
+    }
+
+    const updatedPlan = { ...plan, updatedAt: new Date().toISOString() };
+    const updatedPlans = [...plans];
+    updatedPlans[index] = updatedPlan;
+    this.updatePublishPlans(updatedPlans);
+
+    // Update any open tab for this plan
+    this.tabManager.updatePublishPlanTab(updatedPlan);
+
+    this.logger.info('ProjectState', `Updated publish plan: ${plan.name}`);
+  }
+
+  /**
+   * Delete a publish plan.
+   */
+  deletePublishPlan(planId: string): void {
+    const plans = this.publishPlans();
+    const plan = plans.find(p => p.id === planId);
+
+    if (!plan) {
+      this.logger.warn('ProjectState', `Plan not found: ${planId}`);
+      return;
+    }
+
+    const updatedPlans = plans.filter(p => p.id !== planId);
+    this.updatePublishPlans(updatedPlans);
+
+    // Close any open tab for this plan
+    this.tabManager.closeTabById(`publishPlan-${planId}`);
+
+    this.logger.info('ProjectState', `Deleted publish plan: ${plan.name}`);
+  }
+
+  /**
+   * Open a publish plan in a tab.
+   */
+  openPublishPlan(plan: PublishPlan): void {
+    const result = this.tabManager.openPublishPlanTab(plan);
+    if (result.wasCreated) {
+      void this.saveOpenedDocumentsToCache();
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Tree Navigation
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -585,22 +684,6 @@ export class ProjectStateService implements OnDestroy {
   ): void {
     if (!documentId || !state) return;
     this.docSyncState.set(state);
-  }
-
-  async publishProject(project: Project): Promise<void> {
-    try {
-      const response = await firstValueFrom(
-        this.exportService.exportProjectAsEpub(project.username, project.slug)
-      );
-      this.logger.info(
-        'ProjectState',
-        'Project published successfully',
-        response
-      );
-    } catch (error) {
-      this.logger.error('ProjectState', 'Failed to publish project', error);
-      this.error.set('Failed to publish project. Please try again later.');
-    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

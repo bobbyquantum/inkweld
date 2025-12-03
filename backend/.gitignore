@@ -11,6 +11,9 @@ dist-worker
 # Auto-generated files
 src/.frontend-imports-generated.ts
 
+# TypeScript build info
+*.tsbuildinfo
+
 # Wrangler
 .wrangler/
 wrangler.toml

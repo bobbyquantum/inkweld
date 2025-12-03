@@ -162,6 +162,83 @@ export class DocumentService {
   }
 
   /**
+   * Gets document content as ProseMirror-compatible JSON.
+   *
+   * This is the single abstraction point for retrieving document content.
+   * It handles both connected documents (via active Yjs connection) and
+   * offline documents (via IndexedDB persistence).
+   *
+   * Use this method instead of directly accessing Yjs or IndexedDB.
+   *
+   * @param documentId - The full document ID (username:slug:elementId)
+   * @returns Promise resolving to the document content as JSON, or null if not found
+   */
+  async getDocumentContent(documentId: string): Promise<unknown> {
+    // First try: Active connection
+    const connection = this.connections.get(documentId);
+    if (connection) {
+      this.logger.debug(
+        'DocumentService',
+        `Getting content from active connection: ${documentId}`
+      );
+      return connection.type.toJSON();
+    }
+
+    // Second try: Load from IndexedDB
+    this.logger.debug(
+      'DocumentService',
+      `Loading content from IndexedDB: ${documentId}`
+    );
+    return this.loadContentFromIndexedDB(documentId);
+  }
+
+  /**
+   * Loads document content directly from IndexedDB.
+   *
+   * Creates a temporary Yjs document and IndexedDB provider to read
+   * the persisted content, then immediately cleans up.
+   *
+   * @param documentId - The full document ID
+   * @returns Promise resolving to the document content, or null if empty/not found
+   */
+  private async loadContentFromIndexedDB(documentId: string): Promise<unknown> {
+    const ydoc = new Y.Doc();
+    const provider = new IndexeddbPersistence(documentId, ydoc);
+
+    try {
+      await provider.whenSynced;
+      const fragment = ydoc.getXmlFragment('prosemirror');
+
+      if (fragment.length === 0) {
+        this.logger.debug(
+          'DocumentService',
+          `Document ${documentId} has no content in IndexedDB`
+        );
+        return null;
+      }
+
+      const content = fragment.toJSON();
+      this.logger.debug(
+        'DocumentService',
+        `Loaded content from IndexedDB: ${documentId}`
+      );
+      return content;
+    } finally {
+      // Clean up temporary resources
+      try {
+        await provider.destroy();
+        ydoc.destroy();
+      } catch (error) {
+        this.logger.warn(
+          'DocumentService',
+          `Error cleaning up temp IndexedDB provider for ${documentId}`,
+          error
+        );
+      }
+    }
+  }
+
+  /**
    * Imports content into a document, replacing existing content.
    * This will propagate changes to all connected users and update IndexedDB.
    * @param documentId - The document ID to import into

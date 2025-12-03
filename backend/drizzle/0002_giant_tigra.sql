@@ -1,0 +1,20 @@
+CREATE TABLE `published_files` (
+	`id` text PRIMARY KEY NOT NULL,
+	`project_id` text NOT NULL,
+	`filename` text NOT NULL,
+	`format` text NOT NULL,
+	`mime_type` text NOT NULL,
+	`size` integer NOT NULL,
+	`plan_name` text NOT NULL,
+	`share_permission` text DEFAULT 'private' NOT NULL,
+	`share_token` text,
+	`meta_title` text NOT NULL,
+	`meta_author` text NOT NULL,
+	`meta_subtitle` text,
+	`meta_language` text,
+	`meta_item_count` integer DEFAULT 0 NOT NULL,
+	`meta_word_count` integer,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE cascade
+);

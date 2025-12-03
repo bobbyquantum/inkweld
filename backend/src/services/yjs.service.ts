@@ -1,3 +1,4 @@
+// @ts-expect-error - y-leveldb has types but package.json exports aren't properly configured
 import { LeveldbPersistence } from 'y-leveldb';
 import * as Y from 'yjs';
 import * as syncProtocol from 'y-protocols/sync';
