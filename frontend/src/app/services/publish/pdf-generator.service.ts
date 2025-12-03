@@ -857,7 +857,7 @@ export class PdfGeneratorService {
         title: {
           fontSize: 28,
           bold: true,
-          font: 'Helvetica',
+          font: 'Roboto',
         },
         subtitle: {
           fontSize: 18,
