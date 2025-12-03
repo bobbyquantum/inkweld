@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.20
 
 # Frontend builder stage (Angular)
 FROM oven/bun:1.3.3 AS frontend-builder
