@@ -71,7 +71,7 @@ Inkweld is ideal for:
 ```mermaid
 flowchart TD
     Frontend[Angular 20 PWA] -->|REST + WebSocket| Backend[Hono API (Bun/Node/Workers)]
-    Backend -->|TypeORM/Drizzle| Database[(Postgres / SQLite / D1)]
+    Backend -->|Drizzle ORM| Database[(SQLite / D1)]
     Backend -->|Yjs persistence| Realtime[(LevelDB / Durable Objects)]
     Backend -->|OpenAPI spec| APIClient[Generated SDK]
     Frontend -.->|imports at build| APIClient

@@ -22,17 +22,45 @@ import {
   PdfResult,
 } from './pdf-generator.service';
 
-// Mock pdfmake
-vi.mock('pdfmake/build/pdfmake', () => ({
-  default: {
+// Mock pdfmake - must define fonts that the service uses (Times, Helvetica)
+vi.mock('pdfmake/build/pdfmake', () => {
+  const mockPdfMake = {
     vfs: {},
+    fonts: {
+      // Define the fonts that pdf-generator.service.ts uses
+      Times: {
+        normal: 'Times-Roman',
+        bold: 'Times-Bold',
+        italics: 'Times-Italic',
+        bolditalics: 'Times-BoldItalic',
+      },
+      Helvetica: {
+        normal: 'Helvetica',
+        bold: 'Helvetica-Bold',
+        italics: 'Helvetica-Oblique',
+        bolditalics: 'Helvetica-BoldOblique',
+      },
+      Courier: {
+        normal: 'Courier',
+        bold: 'Courier-Bold',
+        italics: 'Courier-Oblique',
+        bolditalics: 'Courier-BoldOblique',
+      },
+      Roboto: {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf',
+      },
+    },
     createPdf: vi.fn().mockImplementation(() => ({
       getBlob: (callback: (blob: Blob) => void) => {
         callback(new Blob(['pdf content'], { type: 'application/pdf' }));
       },
     })),
-  },
-}));
+  };
+  return { default: mockPdfMake };
+});
 
 vi.mock('pdfmake/build/vfs_fonts', () => ({
   default: { vfs: {} },

@@ -63,8 +63,9 @@ class UserService {
     // Use explicit autoApprove option if provided, otherwise fallback to config
     const shouldAutoApprove = options?.autoApprove ?? !config.userApprovalRequired;
 
+    const id = crypto.randomUUID();
     const newUser: InsertUser = {
-      id: crypto.randomUUID(),
+      id,
       username: data.username,
       email: data.email,
       password: hashedPassword,
@@ -76,8 +77,8 @@ class UserService {
     await db.insert(users).values(newUser);
 
     // Return the created user
-    const created = await this.findById(db, newUser.id);
-    if (!created) {
+    const created = await this.findById(db, id);
+    if (created === undefined) {
       throw new Error('Failed to create user');
     }
     return created;
@@ -115,8 +116,9 @@ class UserService {
       return updated;
     } else {
       // Create new user
+      const id = crypto.randomUUID();
       const newUser: InsertUser = {
-        id: crypto.randomUUID(),
+        id,
         githubId: data.githubId,
         username: data.username,
         email: data.email,
@@ -127,8 +129,8 @@ class UserService {
 
       await db.insert(users).values(newUser);
 
-      const created = await this.findById(db, newUser.id);
-      if (!created) {
+      const created = await this.findById(db, id);
+      if (created === undefined) {
         throw new Error('Failed to create user');
       }
       return created;

@@ -14,8 +14,8 @@ export enum RuntimePlatform {
  * Detect the current runtime platform
  */
 export function detectRuntime(): RuntimePlatform {
-  // Check for Cloudflare Workers
-  // @ts-expect-error - global types may not be available
+  // Check for Cloudflare Workers - these globals only exist in Workers runtime
+  // @ts-expect-error - WebSocketPair and caches are Cloudflare Workers globals
   if (typeof WebSocketPair !== 'undefined' && typeof caches !== 'undefined') {
     return RuntimePlatform.CLOUDFLARE_WORKERS;
   }

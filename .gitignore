@@ -7,3 +7,6 @@ api-client/node_modules
 backend/data
 backend/test-data
 backend/node_modules
+
+# TypeScript build info
+*.tsbuildinfo

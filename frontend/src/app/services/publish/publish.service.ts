@@ -4,7 +4,8 @@
  * This service coordinates the full publishing workflow:
  * 1. Sync verification - ensure all documents are available locally
  * 2. Content generation - create the output file (EPUB, etc.)
- * 3. Download - provide the final file to the user
+ * 3. Persist - save the file locally and to server
+ * 4. Download - optionally provide the file to the user
  *
  * Provides unified progress tracking across all phases with detailed
  * status updates for user feedback.
@@ -20,6 +21,13 @@ import {
   type PublishResult,
   type PublishStats,
 } from '../../models/publish-plan';
+import {
+  CreatePublishedFileRequest,
+  getMimeTypeForFormat,
+  PublishedFile,
+  SharePermission,
+} from '../../models/published-file';
+import { ProjectStateService } from '../project/project-state.service';
 import { EpubGeneratorService, EpubPhase } from './epub-generator.service';
 import { HtmlGeneratorService, HtmlPhase } from './html-generator.service';
 import {
@@ -29,6 +37,7 @@ import {
 import { PdfGeneratorService, PdfPhase } from './pdf-generator.service';
 import { ProjectSyncService, SyncPhase } from './project-sync.service';
 import { PublishPlanService } from './publish-plan.service';
+import { PublishedFilesService } from './published-files.service';
 
 /**
  * Overall publishing phase
@@ -89,6 +98,12 @@ export interface PublishOptions {
 
   /** Custom filename for the output (without extension) */
   filename?: string;
+
+  /** Skip automatic download (useful when showing dialog) */
+  skipDownload?: boolean;
+
+  /** Auto-save the published file to storage */
+  saveFile?: boolean;
 }
 
 /**
@@ -100,6 +115,12 @@ export interface PublishingResult {
 
   /** The result data if successful */
   result?: PublishResult;
+
+  /** The generated file blob */
+  blob?: Blob;
+
+  /** Saved published file record (if saveFile option was true) */
+  savedFile?: PublishedFile;
 
   /** Error message if failed */
   error?: string;
@@ -124,6 +145,8 @@ export class PublishService {
   private readonly pdfGenerator = inject(PdfGeneratorService);
   private readonly htmlGenerator = inject(HtmlGeneratorService);
   private readonly markdownGenerator = inject(MarkdownGeneratorService);
+  private readonly publishedFilesService = inject(PublishedFilesService);
+  private readonly projectState = inject(ProjectStateService);
 
   // Progress tracking
   private readonly _progress$ = new BehaviorSubject<PublishingProgress>({
@@ -201,16 +224,38 @@ export class PublishService {
 
       const duration = Date.now() - startTime;
 
-      if (result.success && result.result) {
-        // Trigger download
+      if (result.success && result.result && result.result.file) {
+        const blob = result.result.file;
+        const filename =
+          options.filename ||
+          result.result.filename ||
+          this.generateFilename(plan);
+
+        // Finalize phase
         this.updateProgress({
           phase: PublishingPhase.FINALIZING,
-          overallProgress: 98,
-          message: 'Preparing download...',
+          overallProgress: 95,
+          message: 'Saving published file...',
           cancellable: false,
         });
 
-        this.triggerDownload(result.result, plan, options.filename);
+        // Save file if requested (default: true)
+        let savedFile: PublishedFile | undefined;
+        if (options.saveFile !== false) {
+          savedFile = await this.savePublishedFile(plan, blob, filename);
+        }
+
+        // Trigger download unless skipped
+        if (!options.skipDownload) {
+          this.updateProgress({
+            phase: PublishingPhase.FINALIZING,
+            overallProgress: 98,
+            message: 'Preparing download...',
+            cancellable: false,
+          });
+
+          this.triggerDownload(result.result, plan, options.filename);
+        }
 
         this.updateProgress({
           phase: PublishingPhase.COMPLETE,
@@ -222,6 +267,8 @@ export class PublishService {
         return {
           success: true,
           result: result.result,
+          blob,
+          savedFile,
           stats: result.stats,
           duration,
         };
@@ -885,6 +932,51 @@ export class PublishService {
       markdown: 'text/markdown',
     };
     return mimeTypes[format] || 'application/octet-stream';
+  }
+
+  /**
+   * Save the published file to storage
+   */
+  private async savePublishedFile(
+    plan: PublishPlan,
+    blob: Blob,
+    filename: string
+  ): Promise<PublishedFile | undefined> {
+    try {
+      const project = this.projectState.project();
+      if (!project) {
+        return undefined;
+      }
+
+      const projectKey = `${project.username}/${project.slug}`;
+
+      const request: CreatePublishedFileRequest = {
+        filename,
+        format: plan.format,
+        mimeType: getMimeTypeForFormat(plan.format),
+        planName: plan.name,
+        sharePermission: SharePermission.Private,
+        metadata: {
+          title: plan.metadata.title,
+          author: plan.metadata.author,
+          subtitle: plan.metadata.subtitle,
+          language: plan.metadata.language,
+          itemCount: plan.items.filter(
+            i => i.type === PublishPlanItemType.Element
+          ).length,
+        },
+      };
+
+      return await this.publishedFilesService.savePublishedFile(
+        projectKey,
+        blob,
+        request
+      );
+    } catch (error) {
+      // Don't fail the publish if saving fails
+      console.error('Failed to save published file:', error);
+      return undefined;
+    }
   }
 
   /**

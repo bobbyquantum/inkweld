@@ -15,6 +15,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDialog } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,10 +23,15 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ElementType } from '@inkweld/index';
-import { Subscription } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 
+import {
+  PublishCompleteDialogComponent,
+  PublishCompleteDialogData,
+  PublishCompleteDialogResult,
+} from '../../../../dialogs/publish-complete-dialog/publish-complete-dialog.component';
 import {
   BackmatterType,
   ChapterNumbering,
@@ -37,8 +43,12 @@ import {
   PublishPlanItemType,
   SeparatorStyle,
 } from '../../../../models/publish-plan';
+import { PublishedFile } from '../../../../models/published-file';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
-import { PublishService } from '../../../../services/publish/publish.service';
+import {
+  PublishingResult,
+  PublishService,
+} from '../../../../services/publish/publish.service';
 
 @Component({
   selector: 'app-publish-plan-tab',
@@ -60,6 +70,8 @@ import { PublishService } from '../../../../services/publish/publish.service';
 })
 export class PublishPlanTabComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private dialog = inject(MatDialog);
   private projectState = inject(ProjectStateService);
   private publishService = inject(PublishService);
   private snackBar = inject(MatSnackBar);
@@ -482,10 +494,58 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
         duration: 2000,
       });
 
-      // Call the publish service
-      const result = await this.publishService.publish(plan.id);
+      // Call the publish service with skipDownload so dialog can handle it
+      const result: PublishingResult = await this.publishService.publish(
+        plan.id,
+        {
+          skipDownload: true, // Let dialog handle download
+        }
+      );
 
-      if (result.success) {
+      // Extract typed values for type narrowing
+      const savedFile: PublishedFile | undefined = result.savedFile;
+      const blob: Blob | undefined = result.blob;
+
+      if (result.success && savedFile && blob) {
+        // Show completion dialog
+        const currentProject = this.projectState.project();
+        if (!currentProject) {
+          throw new Error('No active project');
+        }
+        const projectKey = `${currentProject.username}/${currentProject.slug}`;
+
+        const dialogData: PublishCompleteDialogData = {
+          file: savedFile,
+          projectKey,
+          blob,
+        };
+
+        const dialogRef = this.dialog.open<
+          PublishCompleteDialogComponent,
+          PublishCompleteDialogData,
+          PublishCompleteDialogResult
+        >(PublishCompleteDialogComponent, {
+          data: dialogData,
+          width: '480px',
+          disableClose: false,
+        });
+
+        const dialogResult = await firstValueFrom(dialogRef.afterClosed());
+
+        // Handle dialog action
+        if (dialogResult?.action === 'view-files') {
+          // Navigate to published files tab
+          const parts = projectKey.split('/');
+          void this.router.navigate([
+            '/project',
+            parts[0],
+            parts[1],
+            'tab',
+            'published-files',
+          ]);
+        }
+      } else if (result.success) {
+        // Success but no savedFile (saveFile option was false)
         const stats = result.stats;
         const message = stats
           ? `${plan.format} generated: ${stats.wordCount.toLocaleString()} words, ${stats.chapterCount} chapters`

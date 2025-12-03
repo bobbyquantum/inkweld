@@ -19,6 +19,8 @@ import fileRoutes from '../routes/file.routes';
 import lintRoutes from '../routes/lint.routes';
 import aiImageRoutes from '../routes/ai-image.routes';
 import mcpRoutes from '../routes/mcp.routes';
+import { publishedFileRoutes } from '../routes/published-file.routes';
+import { shareRoutes } from '../routes/share.routes';
 
 /**
  * Register common API routes that work in all runtime environments
@@ -52,4 +54,10 @@ export function registerCommonRoutes(app: any): void {
   app.route('/api/v1/ai/lint', lintRoutes);
   app.route('/api/v1/ai/image', aiImageRoutes);
   app.route('/api/v1/ai/mcp', mcpRoutes);
+
+  // Published files (exports/publishing)
+  app.route('/api/v1/projects', publishedFileRoutes);
+
+  // Public share endpoints (no auth required)
+  app.route('/api/v1/share', shareRoutes);
 }
