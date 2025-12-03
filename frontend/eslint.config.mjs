@@ -5,7 +5,7 @@ import angular from 'angular-eslint';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import unusedImportsPlugin from 'eslint-plugin-unused-imports';
 import simpleImportSortPlugin from 'eslint-plugin-simple-import-sort';
-import vitest from 'eslint-plugin-vitest';
+import vitest from '@vitest/eslint-plugin';
 
 export default tseslint.config(
   {
