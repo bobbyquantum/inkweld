@@ -293,7 +293,7 @@ describe('PublishingProgressDialogComponent', () => {
   });
 
   describe('progress subscription', () => {
-    it('should auto-close on COMPLETE after delay', async () => {
+    it('should auto-close on COMPLETE after delay', () => {
       vi.useFakeTimers();
 
       // Emit complete progress
@@ -342,7 +342,7 @@ describe('PublishingProgressDialogComponent', () => {
   });
 
   describe('error handling', () => {
-    it('should handle publish failure', async () => {
+    it('should handle publish failure', () => {
       publishServiceMock.publish.mockResolvedValue({ success: false });
 
       // Re-initialize to trigger publish
@@ -355,7 +355,7 @@ describe('PublishingProgressDialogComponent', () => {
       expect(publishServiceMock.publish).toHaveBeenCalled();
     });
 
-    it('should handle publish exception', async () => {
+    it('should handle publish exception', () => {
       publishServiceMock.publish.mockRejectedValue(new Error('Network error'));
 
       // Re-initialize to trigger publish

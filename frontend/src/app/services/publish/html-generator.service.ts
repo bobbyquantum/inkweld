@@ -205,7 +205,7 @@ export class HtmlGeneratorService {
     elements: Element[],
     plan: PublishPlan,
     chapterNumber: number,
-    result: HtmlResult
+    _result: HtmlResult
   ): Promise<string> {
     switch (item.type) {
       case PublishPlanItemType.Element:

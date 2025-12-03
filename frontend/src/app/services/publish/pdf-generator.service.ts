@@ -580,10 +580,11 @@ export class PdfGeneratorService {
     const children = this.getChildren(node);
 
     switch (nodeName) {
-      case 'paragraph':
+      case 'paragraph': {
         const textParts = children.flatMap(c => this.extractText(c));
         if (textParts.length === 0) return [];
         return [{ text: textParts, style: 'body', margin: [0, 0, 0, 10] }];
+      }
 
       case 'heading': {
         const level = this.getAttr(node, 'level', 1);
@@ -667,7 +668,8 @@ export class PdfGeneratorService {
 
     // Text node with marks
     if (nodeName === 'text' || !nodeName) {
-      const text = String((node as Record<string, unknown>)['text'] || '');
+      const rawText = (node as Record<string, unknown>)['text'];
+      const text = typeof rawText === 'string' ? rawText : '';
       if (marks.length === 0) return [text];
 
       const styled: ContentText = { text };
@@ -917,7 +919,7 @@ export class PdfGeneratorService {
           resolve(blob);
         });
       } catch (error) {
-        reject(error);
+        reject(error instanceof Error ? error : new Error(String(error)));
       }
     });
   }
@@ -936,7 +938,10 @@ export class PdfGeneratorService {
             if (typeof t === 'string') {
               count += t.split(/\s+/).filter(Boolean).length;
             } else if (typeof t === 'object' && t && 'text' in t) {
-              count += String(t.text).split(/\s+/).filter(Boolean).length;
+              const tText = (t as { text: unknown }).text;
+              count += (typeof tText === 'string' ? tText : '')
+                .split(/\s+/)
+                .filter(Boolean).length;
             }
           }
         }

@@ -1,10 +1,5 @@
 import { computed, inject, Injectable, OnDestroy, signal } from '@angular/core';
-import {
-  Element,
-  ElementType,
-  Project,
-  ProjectsService,
-} from '@inkweld/index';
+import { Element, ElementType, Project, ProjectsService } from '@inkweld/index';
 import { ProjectElement } from 'app/models/project-element';
 import { nanoid } from 'nanoid';
 import { firstValueFrom, Subscription } from 'rxjs';

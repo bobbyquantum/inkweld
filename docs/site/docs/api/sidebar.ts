@@ -188,18 +188,6 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Export',
-      items: [
-        {
-          type: 'doc',
-          id: 'api/export-project-as-epub',
-          label: 'exportProjectAsEpub',
-          className: 'api-method post',
-        },
-      ],
-    },
-    {
-      type: 'category',
       label: 'Images',
       items: [
         {

@@ -480,11 +480,13 @@ export class PublishService {
         case PublishFormat.MARKDOWN:
           this.generateMarkdown(plan, cancelled$, resolve);
           break;
-        default:
+        default: {
+          const unsupportedFormat: string = plan.format;
           resolve({
             success: false,
-            error: `Unsupported format: ${plan.format}`,
+            error: `Unsupported format: ${unsupportedFormat}`,
           });
+        }
       }
     });
   }
