@@ -11,11 +11,11 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    // Set reasonable test timeout (5 seconds instead of vitest's default)
+    // Set reasonable test timeout (1 second instead of vitest's default)
     // This prevents hanging tests from blocking CI for too long
-    testTimeout: 5000,
+    testTimeout: 1000,
 
     // Hook timeout for beforeEach, afterEach, etc.
-    hookTimeout: 10000,
+    hookTimeout: 3000,
   },
 });

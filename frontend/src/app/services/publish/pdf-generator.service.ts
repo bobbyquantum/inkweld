@@ -31,6 +31,17 @@ import { ProjectStateService } from '../project/project-state.service';
 // Initialize pdfmake with fonts
 pdfMake.vfs = pdfFonts.vfs;
 
+// Define fonts - the default vfs_fonts package only includes Roboto
+// Using Roboto for all text to ensure fonts are available
+pdfMake.fonts = {
+  Roboto: {
+    normal: 'Roboto-Regular.ttf',
+    bold: 'Roboto-Medium.ttf',
+    italics: 'Roboto-Italic.ttf',
+    bolditalics: 'Roboto-MediumItalic.ttf',
+  },
+};
+
 /**
  * Progress information for PDF generation
  */
@@ -868,7 +879,7 @@ export class PdfGeneratorService {
         body: {
           fontSize: options.fontSize || 12,
           lineHeight: options.lineHeight || 1.5,
-          font: 'Times',
+          font: 'Roboto',
         },
         heading1: {
           fontSize: 20,
@@ -905,7 +916,7 @@ export class PdfGeneratorService {
         },
       },
       defaultStyle: {
-        font: 'Times',
+        font: 'Roboto',
         fontSize: 12,
       },
     };

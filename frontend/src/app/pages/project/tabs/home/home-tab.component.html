@@ -109,14 +109,15 @@
         <button
           mat-icon-button
           (click)="createPublishPlan()"
-          aria-label="Create new publish plan">
+          aria-label="Create new publish plan"
+          data-testid="create-publish-plan-button">
           <mat-icon>add</mat-icon>
         </button>
       </div>
       @if (projectState.publishPlans().length > 0) {
-        <div class="publish-plans-list">
+        <div class="publish-plans-list" data-testid="publish-plans-list">
           @for (plan of projectState.publishPlans(); track plan.id) {
-            <div class="publish-plan-item">
+            <div class="publish-plan-item" data-testid="publish-plan-item">
               <div
                 tabindex="0"
                 class="plan-content"
@@ -134,14 +135,15 @@
                 class="delete-plan-btn"
                 (click)="deletePublishPlan($event, plan)"
                 (keydown)="onDeletePublishPlanKeydown($event, plan)"
-                [attr.aria-label]="'Delete ' + plan.name">
+                [attr.aria-label]="'Delete ' + plan.name"
+                data-testid="delete-plan-button">
                 <mat-icon>delete</mat-icon>
               </button>
             </div>
           }
         </div>
       } @else {
-        <p class="no-publish-plans">
+        <p class="no-publish-plans" data-testid="no-publish-plans">
           <mat-icon>info</mat-icon>
           No publish plans yet. Create one to export your project as EPUB or
           PDF.

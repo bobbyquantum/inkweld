@@ -1,9 +1,9 @@
-<h2 mat-dialog-title class="dialog-title">
+<h2 mat-dialog-title class="dialog-title" data-testid="publishing-dialog-title">
   @if (progress$ | async; as progress) {
     <mat-icon [class]="'phase-icon phase-' + progress.phase">
       {{ getPhaseIcon(progress.phase) }}
     </mat-icon>
-    <span>{{ getPhaseName(progress.phase) }}</span>
+    <span data-testid="phase-name">{{ getPhaseName(progress.phase) }}</span>
   } @else {
     <mat-icon class="phase-icon">hourglass_empty</mat-icon>
     <span>Publishing</span>
@@ -12,9 +12,10 @@
 
 <mat-dialog-content>
   @if (progress$ | async; as progress) {
-    <div class="progress-container">
+    <div class="progress-container" data-testid="progress-container">
       <!-- Main progress bar -->
       <mat-progress-bar
+        data-testid="progress-bar"
         [mode]="isFinalPhase(progress.phase) ? 'determinate' : 'buffer'"
         [value]="progress.overallProgress"
         [bufferValue]="progress.overallProgress + 5"
@@ -23,8 +24,10 @@
         "></mat-progress-bar>
 
       <div class="progress-info">
-        <span class="progress-message">{{ progress.message }}</span>
-        <span class="progress-percent"
+        <span class="progress-message" data-testid="progress-message">{{
+          progress.message
+        }}</span>
+        <span class="progress-percent" data-testid="progress-percent"
           >{{ progress.overallProgress | number: '1.0-0' }}%</span
         >
       </div>
@@ -62,15 +65,17 @@
 
       <!-- Error message -->
       @if (progress.error) {
-        <div class="error-container">
+        <div class="error-container" data-testid="error-container">
           <mat-icon color="warn">error</mat-icon>
-          <span class="error-message">{{ progress.error }}</span>
+          <span class="error-message" data-testid="error-message">{{
+            progress.error
+          }}</span>
         </div>
       }
 
       <!-- Success message -->
       @if (progress.phase === PublishingPhase.COMPLETE) {
-        <div class="success-container">
+        <div class="success-container" data-testid="success-container">
           <mat-icon color="primary">check_circle</mat-icon>
           <span class="success-message">Your file has been downloaded!</span>
         </div>
@@ -82,12 +87,19 @@
 <mat-dialog-actions align="end">
   @if (progress$ | async; as progress) {
     @if (isFinalPhase(progress.phase)) {
-      <button mat-button color="primary" (click)="onClose()">Close</button>
+      <button
+        mat-button
+        color="primary"
+        (click)="onClose()"
+        data-testid="close-button">
+        Close
+      </button>
     } @else {
       <button
         mat-button
         (click)="onCancel()"
-        [disabled]="!progress.cancellable">
+        [disabled]="!progress.cancellable"
+        data-testid="cancel-button">
         Cancel
       </button>
     }

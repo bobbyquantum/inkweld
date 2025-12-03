@@ -447,10 +447,7 @@ export class PublishService {
           return elementItem.elementId;
         });
 
-      // Start sync
-      void this.projectSyncService.syncDocuments(elementIds);
-
-      // Monitor progress
+      // Set up progress subscription BEFORE starting sync to avoid race condition
       const progressSub = this.projectSyncService.progress$
         .pipe(takeUntil(cancelled$))
         .subscribe(syncProgress => {
@@ -490,6 +487,9 @@ export class PublishService {
         progressSub.unsubscribe();
         resolve({ success: false, cancelled: true });
       });
+
+      // Start sync AFTER setting up subscription
+      void this.projectSyncService.syncDocuments(elementIds);
     });
   }
 

@@ -13,6 +13,7 @@ import { LintApiService } from '../../components/lint/lint-api.service';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { SetupService } from '../core/setup.service';
 import { SystemConfigService } from '../core/system-config.service';
+import { UnifiedUserService } from '../user/unified-user.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 
@@ -61,6 +62,7 @@ describe('DocumentService', () => {
   let mockEditor: DeepMockProxy<Editor>;
   let mockSetupService: DeepMockProxy<SetupService>;
   let mockSystemConfigService: DeepMockProxy<SystemConfigService>;
+  let mockUnifiedUserService: DeepMockProxy<UnifiedUserService>;
 
   const testDocumentId = 'testuser:test-project:test-doc';
 
@@ -144,6 +146,17 @@ describe('DocumentService', () => {
       refreshSystemFeatures: vi.fn(),
     } as unknown as DeepMockProxy<SystemConfigService>;
 
+    // Mock UnifiedUserService to prevent real API calls
+    mockUnifiedUserService = {
+      currentUser: vi.fn().mockReturnValue({
+        id: 'test-user-id',
+        username: 'testuser',
+        name: 'Test User',
+        enabled: true,
+      }),
+      isAuthenticated: vi.fn().mockReturnValue(true),
+    } as unknown as DeepMockProxy<UnifiedUserService>;
+
     // Configure TestBed and inject service
     TestBed.configureTestingModule({
       providers: [
@@ -155,6 +168,7 @@ describe('DocumentService', () => {
         { provide: LintApiService, useValue: mockLintApiService },
         { provide: SetupService, useValue: mockSetupService },
         { provide: SystemConfigService, useValue: mockSystemConfigService },
+        { provide: UnifiedUserService, useValue: mockUnifiedUserService },
       ],
     });
 

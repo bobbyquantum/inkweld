@@ -1,18 +1,25 @@
 @if (workingPlan; as plan) {
-  <div class="publish-plan-container">
+  <div class="publish-plan-container" data-testid="publish-plan-container">
     <!-- Header with save/discard actions -->
     <header class="plan-header">
       <div class="header-left">
         <mat-icon class="header-icon">publish</mat-icon>
-        <h2>{{ plan.name }}</h2>
+        <h2 data-testid="plan-name-display">{{ plan.name }}</h2>
       </div>
       <div class="header-actions">
         @if (hasChanges()) {
-          <button mat-button (click)="discardChanges()">
+          <button
+            mat-button
+            (click)="discardChanges()"
+            data-testid="discard-changes-button">
             <mat-icon>undo</mat-icon>
             Discard
           </button>
-          <button mat-flat-button color="primary" (click)="saveChanges()">
+          <button
+            mat-flat-button
+            color="primary"
+            (click)="saveChanges()"
+            data-testid="save-changes-button">
             <mat-icon>save</mat-icon>
             Save Changes
           </button>
@@ -36,7 +43,11 @@
         <div class="form-grid">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Plan Name</mat-label>
-            <input matInput [value]="plan.name" (input)="updateName($event)" />
+            <input
+              matInput
+              [value]="plan.name"
+              (input)="updateName($event)"
+              data-testid="plan-name-input" />
             <mat-hint>Internal name for this export configuration</mat-hint>
           </mat-form-field>
 
@@ -44,7 +55,8 @@
             <mat-label>Format</mat-label>
             <mat-select
               [value]="plan.format"
-              (selectionChange)="updateFormatSelect($event)">
+              (selectionChange)="updateFormatSelect($event)"
+              data-testid="format-select">
               @for (format of formats; track format) {
                 <mat-option [value]="format">{{
                   getFormatDisplayName(format)
@@ -58,7 +70,8 @@
             <input
               matInput
               [value]="plan.metadata.title"
-              (input)="updateMetadata('title', $event)" />
+              (input)="updateMetadata('title', $event)"
+              data-testid="book-title-input" />
           </mat-form-field>
 
           <mat-form-field appearance="outline">
@@ -66,7 +79,8 @@
             <input
               matInput
               [value]="plan.metadata.author"
-              (input)="updateMetadata('author', $event)" />
+              (input)="updateMetadata('author', $event)"
+              data-testid="author-input" />
           </mat-form-field>
 
           <mat-form-field appearance="outline">
@@ -108,11 +122,14 @@
             <mat-label>Add document to publication</mat-label>
             <mat-select
               #elementSelect
+              data-testid="add-document-select"
               (selectionChange)="
                 onElementSelected($event); elementSelect.value = null
               ">
               @for (element of documentElements(); track element.id) {
-                <mat-option [value]="element.id">
+                <mat-option
+                  [value]="element.id"
+                  [attr.data-testid]="'document-option-' + element.id">
                   <mat-icon>{{ getElementIcon(element) }}</mat-icon>
                   {{ element.name }}
                 </mat-option>
@@ -124,7 +141,8 @@
           <button
             mat-stroked-button
             (click)="addTableOfContents()"
-            matTooltip="Add Table of Contents">
+            matTooltip="Add Table of Contents"
+            data-testid="add-toc-button">
             <mat-icon>toc</mat-icon>
             Add TOC
           </button>
@@ -132,7 +150,7 @@
 
         <!-- Content Items List -->
         @if (plan.items.length === 0) {
-          <div class="empty-state">
+          <div class="empty-state" data-testid="empty-content-state">
             <mat-icon>library_books</mat-icon>
             <p>No items added yet</p>
             <p class="hint">
@@ -142,37 +160,46 @@
         } @else {
           <div
             class="items-list"
+            data-testid="content-items-list"
             cdkDropList
             [cdkDropListData]="plan.items"
             (cdkDropListDropped)="dropItem($event)">
             @for (item of plan.items; track item.id; let i = $index) {
-              <div class="content-item" cdkDrag>
+              <div
+                class="content-item"
+                cdkDrag
+                [attr.data-testid]="'content-item-' + i">
                 <mat-icon class="drag-handle" cdkDragHandle
                   >drag_indicator</mat-icon
                 >
                 <span class="item-order">{{ i + 1 }}</span>
                 <mat-icon class="item-icon">{{ getItemIcon(item) }}</mat-icon>
-                <span class="item-name">{{ getItemLabel(item) }}</span>
+                <span class="item-name" data-testid="item-name">{{
+                  getItemLabel(item)
+                }}</span>
                 <div class="item-actions">
                   <button
                     mat-icon-button
                     (click)="moveItemUp(i)"
                     [disabled]="i === 0"
-                    matTooltip="Move up">
+                    matTooltip="Move up"
+                    data-testid="move-up-button">
                     <mat-icon>arrow_upward</mat-icon>
                   </button>
                   <button
                     mat-icon-button
                     (click)="moveItemDown(i)"
                     [disabled]="i === plan.items.length - 1"
-                    matTooltip="Move down">
+                    matTooltip="Move down"
+                    data-testid="move-down-button">
                     <mat-icon>arrow_downward</mat-icon>
                   </button>
                   <button
                     mat-icon-button
                     color="warn"
                     (click)="removeItem(item.id)"
-                    matTooltip="Remove item">
+                    matTooltip="Remove item"
+                    data-testid="remove-item-button">
                     <mat-icon>delete</mat-icon>
                   </button>
                 </div>
@@ -235,7 +262,8 @@
             mat-flat-button
             color="primary"
             class="generate-button"
-            disabled>
+            disabled
+            data-testid="generate-button-loading">
             <mat-icon class="spinning">sync</mat-icon>
             Generating...
           </button>
@@ -245,13 +273,14 @@
             color="primary"
             class="generate-button"
             (click)="generatePublication()"
-            [disabled]="plan.items.length === 0">
+            [disabled]="plan.items.length === 0"
+            data-testid="generate-button">
             <mat-icon>download</mat-icon>
             Generate {{ plan.format }}
           </button>
         }
         @if (plan.items.length === 0) {
-          <p class="generate-hint">
+          <p class="generate-hint" data-testid="generate-hint">
             Add at least one document to generate the publication
           </p>
         }

@@ -1,17 +1,19 @@
-<h2 mat-dialog-title>
+<h2 mat-dialog-title data-testid="publish-complete-dialog-title">
   <mat-icon class="success-icon">check_circle</mat-icon>
   Published Successfully!
 </h2>
 
 <mat-dialog-content>
-  <div class="file-info">
+  <div class="file-info" data-testid="file-info">
     <mat-icon class="format-icon">{{ formatIcon }}</mat-icon>
     <div class="file-details">
-      <div class="filename">{{ file().filename }}</div>
+      <div class="filename" data-testid="filename">{{ file().filename }}</div>
       <div class="meta">
-        <span class="format">{{ formatName }}</span>
+        <span class="format" data-testid="format-name">{{ formatName }}</span>
         <span class="separator">•</span>
-        <span class="size">{{ fileSizeFormatted }}</span>
+        <span class="size" data-testid="file-size">{{
+          fileSizeFormatted
+        }}</span>
       </div>
     </div>
   </div>
@@ -58,7 +60,7 @@
       }
     </div>
   } @else {
-    <div class="offline-notice">
+    <div class="offline-notice" data-testid="offline-notice">
       <mat-icon>cloud_off</mat-icon>
       <span>Sharing options available when online</span>
     </div>
@@ -66,20 +68,30 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="viewFiles()">
+  <button mat-button (click)="viewFiles()" data-testid="view-files-button">
     <mat-icon>folder</mat-icon>
     View Published Files
   </button>
-  <button mat-button (click)="download()">
+  <button mat-button (click)="download()" data-testid="download-button">
     <mat-icon>download</mat-icon>
     Download
   </button>
   @if (canShare) {
-    <button mat-flat-button color="primary" (click)="copyShareLink()">
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="copyShareLink()"
+      data-testid="copy-link-button">
       <mat-icon>share</mat-icon>
       Copy Link
     </button>
   } @else {
-    <button mat-flat-button color="primary" (click)="close()">Done</button>
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="close()"
+      data-testid="done-button">
+      Done
+    </button>
   }
 </mat-dialog-actions>
