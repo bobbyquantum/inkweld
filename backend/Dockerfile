@@ -1,4 +1,12 @@
 # syntax=docker/dockerfile:1.20
+#
+# Inkweld Backend Dockerfile
+# Uses Bun's --compile flag to create a single-file executable with embedded native modules.
+# This produces a ~200MB image instead of ~1.5GB.
+#
+# The key challenge is native module embedding: node-gyp-build dynamically resolves .node
+# files at runtime, but Bun's compiler needs static requires to embed them. We patch
+# classic-level/binding.js to directly require the N-API prebuild before compilation.
 
 # Frontend builder stage (Angular)
 FROM oven/bun:1.3.3 AS frontend-builder
@@ -10,35 +18,44 @@ RUN bun install --frozen-lockfile
 COPY frontend .
 RUN bun run build
 
-# Backend builder stage (Bun runtime)
+# Backend builder stage - produces a single compiled binary
 FROM oven/bun:1.3.3 AS backend-builder
 WORKDIR /app/backend
 
-# Build prerequisites for native modules (classic-level, better-sqlite3, etc.)
-# node-gyp is needed to compile native addons from source
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/* \
-  && bun add -g node-gyp
+# Build tools for better-sqlite3 (the only native module that needs compilation)
+# Other native modules (classic-level, bcrypt) use prebuilds
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  python3 make g++ && \
+  rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
 COPY backend/bun.lock backend/package.json ./
-ENV CLASSIC_LEVEL_FORCE_BUILD=1
-RUN bun install --frozen-lockfile \
-  && cd node_modules/classic-level \
-  && env npm_config_build_from_source=true ../.bin/node-gyp-build \
-  && cd ../..
+RUN bun install --frozen-lockfile
 
-# Copy source
+# Copy source and build scripts
 COPY backend .
 
-# Copy frontend dist from frontend-builder stage
+# Patch native modules for Bun binary compilation:
+# This modifies classic-level/binding.js to directly require the Linux glibc prebuild
+# instead of using node-gyp-build's runtime resolution. This allows Bun to statically
+# analyze and embed the .node file in the compiled binary.
+RUN bun scripts/patch-native-modules.ts patch linux-x64-glibc
+
+# Copy frontend dist (for embedding if desired)
 COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 
-# Build TypeScript to JavaScript
-RUN bun run build
+# Build TypeScript and compile to single binary
+# The --compile flag creates a standalone executable with embedded Bun runtime
+# The patched native module is embedded because it's now a static require
+RUN bun run build && \
+  bun build --compile --minify --sourcemap \
+  --target=bun-linux-x64 \
+  ./src/bun-runner.ts \
+  --outfile ./inkweld-server
 
-# Runtime image - use slim debian with just bun binary
+# Runtime image - minimal with just the binary
 FROM debian:bookworm-slim AS backend-runtime
-WORKDIR /app/backend
+WORKDIR /app
 
 ENV NODE_ENV=production \
   PORT=8333 \
@@ -49,21 +66,15 @@ ENV NODE_ENV=production \
   DB_LOGGING=false \
   FRONTEND_DIST=/app/frontend
 
-# Install minimal runtime dependencies & create non-root user
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates unzip && \
+# Install only runtime dependencies (curl for healthcheck, ca-certs for HTTPS)
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends curl ca-certificates && \
   rm -rf /var/lib/apt/lists/* && \
   adduser --disabled-password --gecos "" inkweld && \
-  mkdir -p /data && chown -R inkweld:inkweld /data
+  mkdir -p /data && chown -R inkweld:inkweld /data /app
 
-# Install Bun runtime directly (smaller than using full bun image)
-RUN curl -fsSL https://bun.sh/install | bash && \
-  mv /root/.bun/bin/bun /usr/local/bin/bun && \
-  rm -rf /root/.bun
-
-# Copy only what's needed to run
-COPY --from=backend-builder --chown=inkweld:inkweld /app/backend/dist ./dist
-COPY --from=backend-builder --chown=inkweld:inkweld /app/backend/node_modules ./node_modules
-COPY --from=backend-builder --chown=inkweld:inkweld /app/backend/package.json ./
+# Copy only the compiled binary and drizzle migrations (required for DB setup)
+COPY --from=backend-builder --chown=inkweld:inkweld /app/backend/inkweld-server ./
 COPY --from=backend-builder --chown=inkweld:inkweld /app/backend/drizzle ./drizzle
 COPY --from=frontend-builder --chown=inkweld:inkweld /app/frontend/dist/browser ${FRONTEND_DIST}
 
@@ -74,4 +85,4 @@ EXPOSE 8333
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8333/api/v1/health || exit 1
 
-CMD ["bun", "dist/bun-runner.js"]
+CMD ["./inkweld-server"]
