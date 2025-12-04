@@ -15,12 +15,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest] #, windows-latest, macos-latest
-
+  # ===========================================
+  # Lint - Check code formatting
+  # ===========================================
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
@@ -35,13 +35,149 @@ jobs:
       - name: Check code formatting
         run: bun run lint
 
-      - name: Run tests
-        run: bun run test
-
-  docker-publish:
-    needs: test
+  # ===========================================
+  # Unit Tests - Frontend (Vitest)
+  # ===========================================
+  test-frontend:
+    name: Unit Tests (Frontend)
     runs-on: ubuntu-latest
-    # Only run on pushes to main branch, not on PRs
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun run install-all
+
+      - name: Run frontend tests
+        run: cd frontend && npm test
+
+  # ===========================================
+  # Unit Tests - Backend (Bun)
+  # ===========================================
+  test-backend:
+    name: Unit Tests (Backend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun run install-all
+
+      - name: Run backend tests
+        run: cd backend && bun test
+
+  # ===========================================
+  # E2E Tests - Offline (Mock API)
+  # ===========================================
+  e2e-offline:
+    name: E2E (Offline)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun run install-all
+
+      - name: Install Playwright browsers
+        run: cd frontend && npx playwright install --with-deps chromium
+
+      - name: Run offline e2e tests
+        run: cd frontend && npm run e2e:offline:ci
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-offline
+          path: frontend/playwright-report/
+          retention-days: 7
+
+  # ===========================================
+  # E2E Tests - Online (Real Backend)
+  # ===========================================
+  e2e-online:
+    name: E2E (Online)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun run install-all
+
+      - name: Install Playwright browsers
+        run: cd frontend && npx playwright install --with-deps chromium
+
+      - name: Run online e2e tests
+        run: cd frontend && npm run e2e:online:ci
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-online
+          path: frontend/playwright-report/
+          retention-days: 7
+
+  # ===========================================
+  # E2E Tests - Docker (Binary Build)
+  # ===========================================
+  e2e-docker:
+    name: E2E (Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install dependencies
+        run: bun run install-all
+
+      - name: Install Playwright browsers
+        run: cd frontend && npx playwright install --with-deps chromium
+
+      - name: Run Docker e2e tests
+        run: cd frontend && npm run e2e:docker:ci
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-docker
+          path: frontend/playwright-report/
+          retention-days: 7
+
+  # ===========================================
+  # Docker Publish - Only on main branch
+  # ===========================================
+  docker-publish:
+    name: Docker Publish
+    needs: [lint, test-frontend, test-backend, e2e-offline, e2e-online, e2e-docker]
+    runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:

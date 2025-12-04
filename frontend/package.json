@@ -33,7 +33,11 @@
     "e2e:wrangler:ui": "playwright test --config=playwright.wrangler.config.ts --ui",
     "e2e:wrangler:debug": "playwright test --config=playwright.wrangler.config.ts --debug",
     "e2e:cloudflare": "playwright test --config=playwright.cloudflare.config.ts",
-    "e2e:cloudflare:ui": "playwright test --config=playwright.cloudflare.config.ts --ui"
+    "e2e:cloudflare:ui": "playwright test --config=playwright.cloudflare.config.ts --ui",
+    "e2e:docker": "playwright test --config=playwright.docker.config.ts",
+    "e2e:docker:ui": "playwright test --config=playwright.docker.config.ts --ui",
+    "e2e:docker:debug": "playwright test --config=playwright.docker.config.ts --debug",
+    "e2e:docker:ci": "playwright test --config=playwright.docker.config.ts --reporter=list"
   },
   "private": true,
   "dependencies": {
