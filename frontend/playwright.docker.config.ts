@@ -22,8 +22,8 @@ import { defineConfig, devices } from '@playwright/test';
  *   - Production build problems
  */
 export default defineConfig({
-  // Use Docker-specific tests that import from Docker fixtures
-  testDir: './e2e/docker',
+  // Reuse the online tests - Docker serves both frontend and API on port 8333
+  testDir: './e2e/online',
 
   /* Run tests in files in parallel */
   fullyParallel: false, // Sequential for database state management
