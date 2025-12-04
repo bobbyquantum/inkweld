@@ -7,14 +7,18 @@ const CONTAINER_NAME = 'inkweld-e2e-test';
  *
  * Stops and removes the test container.
  */
-export default async function globalTeardown(): Promise<void> {
+export default function globalTeardown(): void {
   console.log('\n🐳 Docker E2E Teardown');
   console.log('=====================\n');
 
   // Check if we should keep the container running for debugging
   if (process.env['DOCKER_E2E_KEEP_CONTAINER']) {
-    console.log('⚠️  DOCKER_E2E_KEEP_CONTAINER is set - leaving container running');
-    console.log(`   To stop manually: docker stop ${CONTAINER_NAME} && docker rm ${CONTAINER_NAME}`);
+    console.log(
+      '⚠️  DOCKER_E2E_KEEP_CONTAINER is set - leaving container running'
+    );
+    console.log(
+      `   To stop manually: docker stop ${CONTAINER_NAME} && docker rm ${CONTAINER_NAME}`
+    );
     console.log(`   Container URL: http://localhost:8333\n`);
     return;
   }
@@ -36,7 +40,7 @@ export default async function globalTeardown(): Promise<void> {
     execSync(`docker stop ${CONTAINER_NAME}`, { stdio: 'pipe' });
     execSync(`docker rm ${CONTAINER_NAME}`, { stdio: 'pipe' });
     console.log('✅ Container stopped and removed\n');
-  } catch (error) {
+  } catch {
     console.warn(`⚠️  Could not stop container (may already be stopped)`);
   }
 }

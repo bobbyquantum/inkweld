@@ -1,4 +1,4 @@
-import { execSync, spawn, type ChildProcess } from 'child_process';
+import { execSync } from 'child_process';
 import * as path from 'path';
 
 const CONTAINER_NAME = 'inkweld-e2e-test';
@@ -126,9 +126,11 @@ export default async function globalSetup(): Promise<void> {
         { encoding: 'utf-8' }
       ).trim();
       // Status might have quotes on some platforms, strip them
-      const cleanStatus = status.replace(/['"]/g, '');
+      const cleanStatus = status.replace(/['"]/, '');
       if (cleanStatus !== 'running') {
-        console.error(`\n❌ Container stopped unexpectedly (status: ${cleanStatus})`);
+        console.error(
+          `\n❌ Container stopped unexpectedly (status: ${cleanStatus})`
+        );
         const logs = execSync(`docker logs ${CONTAINER_NAME}`, {
           encoding: 'utf-8',
         });
@@ -151,7 +153,9 @@ export default async function globalSetup(): Promise<void> {
   }
 
   // Timeout - show logs and fail
-  console.error(`\n\n❌ Container health check timed out after ${HEALTH_CHECK_TIMEOUT / 1000}s`);
+  console.error(
+    `\n\n❌ Container health check timed out after ${HEALTH_CHECK_TIMEOUT / 1000}s`
+  );
   try {
     const logs = execSync(`docker logs ${CONTAINER_NAME}`, {
       encoding: 'utf-8',
