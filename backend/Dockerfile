@@ -23,8 +23,6 @@ ENV CLASSIC_LEVEL_FORCE_BUILD=1
 RUN bun install --frozen-lockfile \
   && cd node_modules/classic-level \
   && env npm_config_build_from_source=true ../.bin/node-gyp-build \
-  && cd ../leveldown \
-  && env npm_config_build_from_source=true ../.bin/node-gyp-build \
   && cd ../..
 
 # Copy source
