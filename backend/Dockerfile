@@ -30,14 +30,14 @@ RUN bun install --frozen-lockfile \
 # Copy source
 COPY backend .
 
-# Copy frontend dist from frontend-builder stage (needed for frontend-assets.ts imports)
+# Copy frontend dist from frontend-builder stage
 COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 
-# Build (now has access to frontend dist for embedding)
+# Build TypeScript to JavaScript
 RUN bun run build
 
-# Runtime image
-FROM oven/bun:1.3.3 AS backend-runtime
+# Runtime image - use slim debian with just bun binary
+FROM debian:bookworm-slim AS backend-runtime
 WORKDIR /app/backend
 
 ENV NODE_ENV=production \
@@ -49,18 +49,22 @@ ENV NODE_ENV=production \
   DB_LOGGING=false \
   FRONTEND_DIST=/app/frontend
 
-# Install runtime dependencies & create non-root user
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/* && \
+# Install minimal runtime dependencies & create non-root user
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates unzip && \
+  rm -rf /var/lib/apt/lists/* && \
   adduser --disabled-password --gecos "" inkweld && \
   mkdir -p /data && chown -R inkweld:inkweld /data
 
-# Copy build artifacts and runtime deps
+# Install Bun runtime directly (smaller than using full bun image)
+RUN curl -fsSL https://bun.sh/install | bash && \
+  mv /root/.bun/bin/bun /usr/local/bin/bun && \
+  rm -rf /root/.bun
+
+# Copy only what's needed to run
 COPY --from=backend-builder --chown=inkweld:inkweld /app/backend/dist ./dist
 COPY --from=backend-builder --chown=inkweld:inkweld /app/backend/node_modules ./node_modules
-COPY --from=backend-builder --chown=inkweld:inkweld /app/backend/package.json ./package.json
+COPY --from=backend-builder --chown=inkweld:inkweld /app/backend/package.json ./
 COPY --from=backend-builder --chown=inkweld:inkweld /app/backend/drizzle ./drizzle
-COPY --from=backend-builder --chown=inkweld:inkweld /app/backend/src ./src
-COPY --from=backend-builder --chown=inkweld:inkweld /app/backend/admin-cli.ts ./admin-cli.ts
 COPY --from=frontend-builder --chown=inkweld:inkweld /app/frontend/dist/browser ${FRONTEND_DIST}
 
 USER inkweld
@@ -68,6 +72,6 @@ VOLUME ["/data"]
 EXPOSE 8333
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8333/health || exit 1
+  CMD curl -f http://localhost:8333/api/v1/health || exit 1
 
 CMD ["bun", "dist/bun-runner.js"]
