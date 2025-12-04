@@ -6,7 +6,7 @@ services:
   # PostgreSQL for production-like database testing
   # Enable by setting DB_TYPE=postgres in devcontainer.json
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: inkweld-dev-postgres
     environment:
       POSTGRES_USER: inkweld
