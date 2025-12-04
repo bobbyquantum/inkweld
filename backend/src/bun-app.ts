@@ -199,13 +199,16 @@ app.get('/api/openapi.json', (c) => {
 });
 
 if (spaEnabled) {
-  if (hasEmbeddedFrontend && embeddedFrontendFiles) {
-    console.log(`[SPA] Using embedded frontend (${embeddedFrontendFiles.size} files)`);
-    const spaHandler = createEmbeddedSpaHandler(embeddedFrontendFiles, SPA_BYPASS_PREFIXES);
-    app.get('*', spaHandler);
-  } else if (hasExternalFrontend && frontendDistPath) {
+  // Prefer external frontend (FRONTEND_DIST) over embedded when both are available
+  // This is important for Docker where FRONTEND_DIST points to the full built frontend
+  // while the embedded frontend may only have index.html without JS bundles
+  if (hasExternalFrontend && frontendDistPath) {
     console.log(`[SPA] Using external frontend from: ${frontendDistPath}`);
     const spaHandler = createSpaHandler(frontendDistPath, SPA_BYPASS_PREFIXES);
+    app.get('*', spaHandler);
+  } else if (hasEmbeddedFrontend && embeddedFrontendFiles) {
+    console.log(`[SPA] Using embedded frontend (${embeddedFrontendFiles.size} files)`);
+    const spaHandler = createEmbeddedSpaHandler(embeddedFrontendFiles, SPA_BYPASS_PREFIXES);
     app.get('*', spaHandler);
   }
 }

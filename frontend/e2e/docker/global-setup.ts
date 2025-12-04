@@ -3,7 +3,7 @@ import * as path from 'path';
 
 const CONTAINER_NAME = 'inkweld-e2e-test';
 const DOCKER_PORT = 8333;
-const HEALTH_CHECK_URL = `http://localhost:${DOCKER_PORT}/health`;
+const HEALTH_CHECK_URL = `http://localhost:${DOCKER_PORT}/api/v1/health`;
 const HEALTH_CHECK_TIMEOUT = 180000; // 3 minutes for image build + startup
 const HEALTH_CHECK_INTERVAL = 2000;
 
@@ -122,11 +122,13 @@ export default async function globalSetup(): Promise<void> {
     // Check if container is still running
     try {
       const status = execSync(
-        `docker inspect -f '{{.State.Status}}' ${CONTAINER_NAME}`,
+        `docker inspect -f "{{.State.Status}}" ${CONTAINER_NAME}`,
         { encoding: 'utf-8' }
       ).trim();
-      if (status !== 'running') {
-        console.error(`\n❌ Container stopped unexpectedly (status: ${status})`);
+      // Status might have quotes on some platforms, strip them
+      const cleanStatus = status.replace(/['"]/g, '');
+      if (cleanStatus !== 'running') {
+        console.error(`\n❌ Container stopped unexpectedly (status: ${cleanStatus})`);
         const logs = execSync(`docker logs ${CONTAINER_NAME}`, {
           encoding: 'utf-8',
         });
