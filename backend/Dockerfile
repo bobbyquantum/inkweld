@@ -14,8 +14,10 @@ RUN bun run build
 FROM oven/bun:1.3.3 AS backend-builder
 WORKDIR /app/backend
 
-# Build prerequisites for native modules (better-sqlite3, sharp/libvips, etc.)
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+# Build prerequisites for native modules (classic-level, better-sqlite3, etc.)
+# node-gyp is needed to compile native addons from source
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/* \
+  && bun add -g node-gyp
 
 # Install dependencies
 COPY backend/bun.lock backend/package.json ./
