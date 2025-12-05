@@ -1,8 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import {
-  AdminService as ApiAdminService,
   AdminListUsers200ResponseInner,
+  AdminService as ApiAdminService,
 } from '@inkweld/index';
 import { catchError, firstValueFrom, throwError } from 'rxjs';
 

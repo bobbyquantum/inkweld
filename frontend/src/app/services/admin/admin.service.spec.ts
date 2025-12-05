@@ -1,8 +1,5 @@
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AdminService as ApiAdminService } from '@inkweld/index';
@@ -142,9 +139,13 @@ describe('AdminService', () => {
         status: 401,
         statusText: 'Unauthorized',
       });
-      apiMock.adminListPendingUsers.mockReturnValue(throwError(() => httpError));
+      apiMock.adminListPendingUsers.mockReturnValue(
+        throwError(() => httpError)
+      );
 
-      await expect(service.listPendingUsers()).rejects.toThrow(AdminServiceError);
+      await expect(service.listPendingUsers()).rejects.toThrow(
+        AdminServiceError
+      );
       expect(service.error()?.code).toBe('UNAUTHORIZED');
     });
   });
@@ -176,7 +177,9 @@ describe('AdminService', () => {
       });
       apiMock.adminApproveUser.mockReturnValue(throwError(() => httpError));
 
-      await expect(service.approveUser('999')).rejects.toThrow(AdminServiceError);
+      await expect(service.approveUser('999')).rejects.toThrow(
+        AdminServiceError
+      );
       expect(service.error()?.code).toBe('NOT_FOUND');
     });
   });
@@ -252,7 +255,9 @@ describe('AdminService', () => {
       const result = await service.setUserAdmin('2', true);
 
       expect(result.isAdmin).toBe(true);
-      expect(apiMock.adminSetUserAdmin).toHaveBeenCalledWith('2', { isAdmin: true });
+      expect(apiMock.adminSetUserAdmin).toHaveBeenCalledWith('2', {
+        isAdmin: true,
+      });
     });
 
     it('should revoke admin status', async () => {
@@ -266,7 +271,9 @@ describe('AdminService', () => {
       const result = await service.setUserAdmin('1', false);
 
       expect(result.isAdmin).toBe(false);
-      expect(apiMock.adminSetUserAdmin).toHaveBeenCalledWith('1', { isAdmin: false });
+      expect(apiMock.adminSetUserAdmin).toHaveBeenCalledWith('1', {
+        isAdmin: false,
+      });
     });
 
     it('should handle errors', async () => {
@@ -276,7 +283,9 @@ describe('AdminService', () => {
       });
       apiMock.adminSetUserAdmin.mockReturnValue(throwError(() => httpError));
 
-      await expect(service.setUserAdmin('1', true)).rejects.toThrow(AdminServiceError);
+      await expect(service.setUserAdmin('1', true)).rejects.toThrow(
+        AdminServiceError
+      );
       expect(loggerMock.error).toHaveBeenCalledWith(
         'AdminService',
         'Failed to set user admin status',
@@ -327,7 +336,9 @@ describe('AdminService', () => {
   describe('error handling', () => {
     it('should handle network errors', async () => {
       const networkError = new HttpErrorResponse({
-        error: new ErrorEvent('Network error', { message: 'Connection failed' }),
+        error: new ErrorEvent('Network error', {
+          message: 'Connection failed',
+        }),
         status: 0,
       });
       apiMock.adminListUsers.mockReturnValue(throwError(() => networkError));
@@ -367,7 +378,9 @@ describe('AdminService', () => {
       });
       apiMock.adminApproveUser.mockReturnValue(throwError(() => httpError));
 
-      await expect(service.approveUser('999')).rejects.toThrow(AdminServiceError);
+      await expect(service.approveUser('999')).rejects.toThrow(
+        AdminServiceError
+      );
       expect(service.error()?.code).toBe('NOT_FOUND');
       expect(service.error()?.message).toBe('User not found');
     });

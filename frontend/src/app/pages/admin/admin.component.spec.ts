@@ -1,16 +1,16 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
 import { User } from '@inkweld/model/user';
+import { AdminService, AdminUser } from '@services/admin/admin.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
-import { AdminService, AdminUser } from '@services/admin/admin.service';
-import { UnifiedUserService } from '@services/user/unified-user.service';
 import { AdminComponent } from './admin.component';
 
 const TEST_USERS: AdminUser[] = [
@@ -92,11 +92,19 @@ describe('AdminComponent', () => {
       error: signal<Error | undefined>(undefined),
       listUsers: vi.fn().mockResolvedValue(TEST_USERS),
       listPendingUsers: vi.fn().mockResolvedValue(PENDING_USERS),
-      approveUser: vi.fn().mockResolvedValue({ ...PENDING_USERS[0], approved: true }),
+      approveUser: vi
+        .fn()
+        .mockResolvedValue({ ...PENDING_USERS[0], approved: true }),
       rejectUser: vi.fn().mockResolvedValue(undefined),
-      enableUser: vi.fn().mockResolvedValue({ ...TEST_USERS[2], enabled: true }),
-      disableUser: vi.fn().mockResolvedValue({ ...TEST_USERS[1], enabled: false }),
-      setUserAdmin: vi.fn().mockResolvedValue({ ...TEST_USERS[1], isAdmin: true }),
+      enableUser: vi
+        .fn()
+        .mockResolvedValue({ ...TEST_USERS[2], enabled: true }),
+      disableUser: vi
+        .fn()
+        .mockResolvedValue({ ...TEST_USERS[1], enabled: false }),
+      setUserAdmin: vi
+        .fn()
+        .mockResolvedValue({ ...TEST_USERS[1], isAdmin: true }),
       deleteUser: vi.fn().mockResolvedValue(undefined),
     };
 
@@ -174,7 +182,9 @@ describe('AdminComponent', () => {
 
     it('should compute active users (approved and enabled)', () => {
       expect(component.activeUsers().length).toBe(2); // admin and user1
-      expect(component.activeUsers().every(u => u.approved && u.enabled)).toBe(true);
+      expect(component.activeUsers().every(u => u.approved && u.enabled)).toBe(
+        true
+      );
     });
 
     it('should compute disabled users (approved but not enabled)', () => {
@@ -191,7 +201,10 @@ describe('AdminComponent', () => {
   describe('approveUser', () => {
     beforeEach(() => {
       adminServiceMock.approveUser.mockReset();
-      adminServiceMock.approveUser.mockResolvedValue({ ...PENDING_USERS[0], approved: true });
+      adminServiceMock.approveUser.mockResolvedValue({
+        ...PENDING_USERS[0],
+        approved: true,
+      });
       adminServiceMock.listUsers.mockResolvedValue(TEST_USERS);
       adminServiceMock.listPendingUsers.mockResolvedValue([]);
     });
@@ -207,7 +220,9 @@ describe('AdminComponent', () => {
       adminServiceMock.approveUser.mockRejectedValueOnce(new Error('Failed'));
 
       // Should not throw
-      await expect(component.approveUser(PENDING_USERS[0])).resolves.not.toThrow();
+      await expect(
+        component.approveUser(PENDING_USERS[0])
+      ).resolves.not.toThrow();
       expect(adminServiceMock.approveUser).toHaveBeenCalledWith('4');
     });
   });
@@ -242,7 +257,10 @@ describe('AdminComponent', () => {
   describe('enableUser', () => {
     beforeEach(() => {
       adminServiceMock.enableUser.mockReset();
-      adminServiceMock.enableUser.mockResolvedValue({ ...TEST_USERS[2], enabled: true });
+      adminServiceMock.enableUser.mockResolvedValue({
+        ...TEST_USERS[2],
+        enabled: true,
+      });
       adminServiceMock.listUsers.mockResolvedValue(TEST_USERS);
       adminServiceMock.listPendingUsers.mockResolvedValue([]);
     });

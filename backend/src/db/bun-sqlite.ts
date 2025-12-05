@@ -101,9 +101,9 @@ async function applyMissingColumns(): Promise<void> {
     const columns = sqlite
       .query<{ name: string }, []>("PRAGMA table_info(users)")
       .all();
-    
+
     const hasIsAdmin = columns.some(col => col.name === 'isAdmin');
-    
+
     if (!hasIsAdmin) {
       console.log('[drizzle] Adding isAdmin column to users table...');
       sqlite.exec('ALTER TABLE users ADD COLUMN isAdmin INTEGER DEFAULT 0 NOT NULL');
