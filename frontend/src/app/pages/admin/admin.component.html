@@ -1,12 +1,12 @@
-<div class="admin-container">
+<div class="admin-container" data-testid="admin-page">
   <!-- Header -->
-  <header class="admin-header">
+  <header class="admin-header" data-testid="admin-header">
     <div class="header-content">
       <div class="header-left">
-        <a routerLink="/" class="back-link">
+        <a routerLink="/" class="back-link" data-testid="admin-back-link">
           <mat-icon>arrow_back</mat-icon>
         </a>
-        <h1>Admin Dashboard</h1>
+        <h1 data-testid="admin-title">Admin Dashboard</h1>
       </div>
       <div class="header-right">
         @if (currentUser()) {
@@ -19,49 +19,64 @@
   <!-- Main content -->
   <main class="admin-content">
     @if (isLoading()) {
-      <div class="loading-container">
+      <div class="loading-container" data-testid="admin-loading">
         <mat-spinner diameter="48"></mat-spinner>
         <p>Loading users...</p>
       </div>
     } @else if (error()) {
-      <div class="error-container">
+      <div class="error-container" data-testid="admin-error">
         <mat-icon>error</mat-icon>
-        <p>{{ error()!.message }}</p>
-        <button mat-raised-button color="primary" (click)="loadUsers()">
+        <p data-testid="admin-error-message">{{ error()!.message }}</p>
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="loadUsers()"
+          data-testid="admin-retry-button">
           Retry
         </button>
       </div>
     } @else {
       <!-- Stats cards -->
-      <div class="stats-row">
-        <mat-card class="stat-card">
+      <div class="stats-row" data-testid="admin-stats-row">
+        <mat-card class="stat-card" data-testid="stat-total-users">
           <mat-card-content>
-            <div class="stat-value">{{ users().length }}</div>
+            <div class="stat-value" data-testid="stat-total-users-value">
+              {{ users().length }}
+            </div>
             <div class="stat-label">Total Users</div>
           </mat-card-content>
         </mat-card>
-        <mat-card class="stat-card pending">
+        <mat-card class="stat-card pending" data-testid="stat-pending-users">
           <mat-card-content>
-            <div class="stat-value">{{ pendingUsers().length }}</div>
+            <div class="stat-value" data-testid="stat-pending-users-value">
+              {{ pendingUsers().length }}
+            </div>
             <div class="stat-label">Pending Approval</div>
           </mat-card-content>
         </mat-card>
-        <mat-card class="stat-card">
+        <mat-card class="stat-card" data-testid="stat-active-users">
           <mat-card-content>
-            <div class="stat-value">{{ activeUsers().length }}</div>
+            <div class="stat-value" data-testid="stat-active-users-value">
+              {{ activeUsers().length }}
+            </div>
             <div class="stat-label">Active Users</div>
           </mat-card-content>
         </mat-card>
-        <mat-card class="stat-card">
+        <mat-card class="stat-card" data-testid="stat-admin-users">
           <mat-card-content>
-            <div class="stat-value">{{ adminUsers().length }}</div>
+            <div class="stat-value" data-testid="stat-admin-users-value">
+              {{ adminUsers().length }}
+            </div>
             <div class="stat-label">Admins</div>
           </mat-card-content>
         </mat-card>
       </div>
 
       <!-- Tabs -->
-      <mat-tab-group [(selectedIndex)]="selectedTab" animationDuration="200ms">
+      <mat-tab-group
+        [(selectedIndex)]="selectedTab"
+        animationDuration="200ms"
+        data-testid="admin-tabs">
         <!-- Pending Users Tab -->
         <mat-tab>
           <ng-template mat-tab-label>
@@ -69,23 +84,27 @@
             <span>Pending ({{ pendingUsers().length }})</span>
           </ng-template>
 
-          <div class="tab-content">
+          <div class="tab-content" data-testid="pending-users-tab">
             @if (pendingUsers().length === 0) {
-              <div class="empty-state">
+              <div class="empty-state" data-testid="pending-users-empty">
                 <mat-icon>check_circle</mat-icon>
                 <p>No pending user registrations</p>
               </div>
             } @else {
-              <div class="user-list">
+              <div class="user-list" data-testid="pending-users-list">
                 @for (user of pendingUsers(); track user.id) {
-                  <mat-card class="user-card">
+                  <mat-card
+                    class="user-card"
+                    [attr.data-testid]="'pending-user-card-' + user.username">
                     <mat-card-content>
                       <div class="user-info">
                         <app-user-avatar
                           [username]="user.username"
                           size="medium"></app-user-avatar>
                         <div class="user-details">
-                          <span class="user-name">{{ user.username }}</span>
+                          <span class="user-name" data-testid="user-name">{{
+                            user.username
+                          }}</span>
                           <span class="user-username"
                             >&#64;{{ user.username }}</span
                           >
@@ -93,7 +112,9 @@
                             <span class="user-email">{{ user.email }}</span>
                           }
                         </div>
-                        <mat-chip [ngClass]="getUserStatus(user).cssClass">
+                        <mat-chip
+                          [ngClass]="getUserStatus(user).cssClass"
+                          data-testid="user-status-chip">
                           {{ getUserStatus(user).label }}
                         </mat-chip>
                       </div>
@@ -102,7 +123,8 @@
                           mat-raised-button
                           color="primary"
                           (click)="approveUser(user)"
-                          matTooltip="Approve this user">
+                          matTooltip="Approve this user"
+                          [attr.data-testid]="'approve-user-' + user.username">
                           <mat-icon>check</mat-icon>
                           Approve
                         </button>
@@ -110,7 +132,8 @@
                           mat-button
                           color="warn"
                           (click)="rejectUser(user)"
-                          matTooltip="Reject and delete this user">
+                          matTooltip="Reject and delete this user"
+                          [attr.data-testid]="'reject-user-' + user.username">
                           <mat-icon>close</mat-icon>
                           Reject
                         </button>
@@ -130,23 +153,27 @@
             <span>All Users ({{ users().length }})</span>
           </ng-template>
 
-          <div class="tab-content">
+          <div class="tab-content" data-testid="all-users-tab">
             @if (users().length === 0) {
-              <div class="empty-state">
+              <div class="empty-state" data-testid="all-users-empty">
                 <mat-icon>people_outline</mat-icon>
                 <p>No users found</p>
               </div>
             } @else {
-              <div class="user-list">
+              <div class="user-list" data-testid="all-users-list">
                 @for (user of users(); track user.id) {
-                  <mat-card class="user-card">
+                  <mat-card
+                    class="user-card"
+                    [attr.data-testid]="'user-card-' + user.username">
                     <mat-card-content>
                       <div class="user-info">
                         <app-user-avatar
                           [username]="user.username"
                           size="medium"></app-user-avatar>
                         <div class="user-details">
-                          <span class="user-name">{{ user.username }}</span>
+                          <span class="user-name" data-testid="user-name">{{
+                            user.username
+                          }}</span>
                           <span class="user-username"
                             >&#64;{{ user.username }}</span
                           >
@@ -154,7 +181,9 @@
                             <span class="user-email">{{ user.email }}</span>
                           }
                         </div>
-                        <mat-chip [ngClass]="getUserStatus(user).cssClass">
+                        <mat-chip
+                          [ngClass]="getUserStatus(user).cssClass"
+                          data-testid="user-status-chip">
                           {{ getUserStatus(user).label }}
                         </mat-chip>
                       </div>
@@ -164,7 +193,10 @@
                             mat-button
                             color="primary"
                             (click)="approveUser(user)"
-                            matTooltip="Approve this user">
+                            matTooltip="Approve this user"
+                            [attr.data-testid]="
+                              'approve-user-' + user.username
+                            ">
                             <mat-icon>check</mat-icon>
                             Approve
                           </button>
@@ -176,7 +208,10 @@
                               mat-button
                               (click)="disableUser(user)"
                               [disabled]="isCurrentUser(user)"
-                              matTooltip="Disable this user">
+                              matTooltip="Disable this user"
+                              [attr.data-testid]="
+                                'disable-user-' + user.username
+                              ">
                               <mat-icon>block</mat-icon>
                               Disable
                             </button>
@@ -185,7 +220,10 @@
                               mat-button
                               color="primary"
                               (click)="enableUser(user)"
-                              matTooltip="Enable this user">
+                              matTooltip="Enable this user"
+                              [attr.data-testid]="
+                                'enable-user-' + user.username
+                              ">
                               <mat-icon>check_circle</mat-icon>
                               Enable
                             </button>
@@ -195,14 +233,18 @@
                         <button
                           mat-icon-button
                           [matMenuTriggerFor]="userMenu"
-                          matTooltip="More actions">
+                          matTooltip="More actions"
+                          [attr.data-testid]="'user-menu-' + user.username">
                           <mat-icon>more_vert</mat-icon>
                         </button>
                         <mat-menu #userMenu="matMenu">
                           <button
                             mat-menu-item
                             (click)="toggleAdmin(user)"
-                            [disabled]="isCurrentUser(user)">
+                            [disabled]="isCurrentUser(user)"
+                            [attr.data-testid]="
+                              'toggle-admin-' + user.username
+                            ">
                             <mat-icon>{{
                               user.isAdmin
                                 ? 'remove_moderator'
@@ -216,7 +258,8 @@
                             mat-menu-item
                             (click)="deleteUser(user)"
                             [disabled]="isCurrentUser(user)"
-                            class="delete-action">
+                            class="delete-action"
+                            [attr.data-testid]="'delete-user-' + user.username">
                             <mat-icon>delete</mat-icon>
                             <span>Delete User</span>
                           </button>

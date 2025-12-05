@@ -8,6 +8,7 @@ import { Database as BunDatabase } from 'bun:sqlite';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import * as schema from './schema';
+import { config } from '../config/env.js';
 
 let db: ReturnType<typeof drizzle> | null = null;
 let sqlite: BunDatabase | null = null;
@@ -20,6 +21,9 @@ export async function setupBunDatabase(dbPath: string): Promise<ReturnType<typeo
   db = drizzle(sqlite, { schema });
 
   await runMigrations(db);
+
+  // Seed default admin if configured
+  await seedDefaultAdmin(db);
 
   return db;
 }
@@ -98,11 +102,9 @@ async function applyMissingColumns(): Promise<void> {
 
   // Check and add isAdmin column if it doesn't exist
   try {
-    const columns = sqlite
-      .query<{ name: string }, []>("PRAGMA table_info(users)")
-      .all();
+    const columns = sqlite.query<{ name: string }, []>('PRAGMA table_info(users)').all();
 
-    const hasIsAdmin = columns.some(col => col.name === 'isAdmin');
+    const hasIsAdmin = columns.some((col) => col.name === 'isAdmin');
 
     if (!hasIsAdmin) {
       console.log('[drizzle] Adding isAdmin column to users table...');
@@ -111,5 +113,59 @@ async function applyMissingColumns(): Promise<void> {
     }
   } catch (error) {
     console.warn('[drizzle] Could not check/add isAdmin column:', error);
+  }
+}
+
+/**
+ * Seed default admin user if configured via environment variables.
+ * This is useful for:
+ * - Initial deployment bootstrapping (first admin)
+ * - E2E testing (pre-configured admin user)
+ *
+ * Only creates the user if DEFAULT_ADMIN_USERNAME and DEFAULT_ADMIN_PASSWORD are set.
+ * If the user already exists, it ensures they have admin privileges.
+ */
+async function seedDefaultAdmin(database: ReturnType<typeof drizzle>): Promise<void> {
+  if (!config.defaultAdmin.enabled) {
+    return;
+  }
+
+  const { username, password } = config.defaultAdmin;
+
+  // Import userService dynamically to avoid circular dependency
+  const { userService } = await import('../services/user.service.js');
+
+  try {
+    // Check if user already exists
+    const existingUser = await userService.findByUsername(database, username);
+
+    if (existingUser) {
+      // Ensure existing user is admin, approved, and enabled
+      if (!existingUser.isAdmin || !existingUser.approved || !existingUser.enabled) {
+        await userService.setUserAdmin(database, existingUser.id, true);
+        await userService.approveUser(database, existingUser.id);
+        await userService.setUserEnabled(database, existingUser.id, true);
+        console.log(`[seed] Updated existing user "${username}" to admin status`);
+      }
+    } else {
+      // Create new admin user
+      const newUser = await userService.create(
+        database,
+        {
+          username,
+          password,
+          email: `${username}@localhost`,
+          name: username,
+        },
+        { autoApprove: true }
+      );
+
+      // Set as admin
+      await userService.setUserAdmin(database, newUser.id, true);
+      console.log(`[seed] Created default admin user "${username}"`);
+    }
+  } catch (error) {
+    console.error('[seed] Failed to seed default admin:', error);
+    // Don't throw - this shouldn't prevent the app from starting
   }
 }

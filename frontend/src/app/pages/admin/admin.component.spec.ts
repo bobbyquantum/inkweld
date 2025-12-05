@@ -142,8 +142,8 @@ describe('AdminComponent', () => {
   });
 
   describe('ngOnInit', () => {
-    it('should load users on init', async () => {
-      await component.ngOnInit();
+    it('should load users on init', () => {
+      component.ngOnInit();
 
       expect(adminServiceMock.listUsers).toHaveBeenCalled();
       expect(adminServiceMock.listPendingUsers).toHaveBeenCalled();

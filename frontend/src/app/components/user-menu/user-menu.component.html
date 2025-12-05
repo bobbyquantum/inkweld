@@ -43,7 +43,10 @@
       <mat-divider></mat-divider>
       <div class="menu-actions">
         @if (isAdmin()) {
-          <button mat-menu-item routerLink="/admin">
+          <button
+            mat-menu-item
+            routerLink="/admin"
+            data-testid="admin-menu-link">
             <mat-icon>admin_panel_settings</mat-icon>
             <span>Admin</span>
           </button>

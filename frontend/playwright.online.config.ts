@@ -82,6 +82,9 @@ export default defineConfig({
         USER_APPROVAL_REQUIRED: 'false',
         GITHUB_ENABLED: 'false',
         DATA_PATH: './test-data/e2e',
+        // Default admin for e2e tests
+        DEFAULT_ADMIN_USERNAME: 'e2e-admin',
+        DEFAULT_ADMIN_PASSWORD: 'E2eAdminPassword123!',
       },
     },
     {

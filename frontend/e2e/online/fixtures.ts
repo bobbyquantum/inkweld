@@ -9,6 +9,14 @@ import { Page, test as base } from '@playwright/test';
  * The backend runs with an in-memory SQLite database for test isolation.
  */
 
+/**
+ * Default admin credentials (must match playwright.online.config.ts)
+ */
+export const DEFAULT_ADMIN = {
+  username: 'e2e-admin',
+  password: 'E2eAdminPassword123!',
+};
+
 export type OnlineTestFixtures = {
   /**
    * Anonymous page (no authentication).
@@ -21,6 +29,13 @@ export type OnlineTestFixtures = {
    * Creates and logs in a unique test user via the real backend.
    */
   authenticatedPage: Page;
+
+  /**
+   * Admin user page.
+   * Logs in the pre-seeded admin user (e2e-admin).
+   * Use this for testing admin functionality.
+   */
+  adminPage: Page;
 
   /**
    * Offline mode page (configured for offline storage).
@@ -109,6 +124,62 @@ export const test = base.extend<OnlineTestFixtures>({
     // Store credentials for potential later use
     // @ts-expect-error - Dynamic property for test context
     page.testCredentials = { username, password };
+
+    await use(page);
+
+    // Cleanup
+    await context.close();
+  },
+
+  // Admin user page (uses pre-seeded admin)
+  adminPage: async ({ browser }, use) => {
+    // Create a new context for isolation
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    // Login as the pre-seeded admin user (created by DEFAULT_ADMIN_USERNAME/PASSWORD env vars)
+    const token = await authenticateUser(
+      page,
+      DEFAULT_ADMIN.username,
+      DEFAULT_ADMIN.password,
+      false // login, not register
+    );
+
+    // Set up app configuration with auth token
+    await page.addInitScript((authToken: string) => {
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          mode: 'server',
+          serverUrl: 'http://localhost:8333',
+        })
+      );
+
+      localStorage.setItem('auth_token', authToken);
+    }, token);
+
+    // Navigate to the app with config and token already set
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    // Wait for the app to fully initialize
+    await page.waitForFunction(
+      () => {
+        return (
+          !window.location.pathname.includes('setup') &&
+          !window.location.pathname.includes('welcome')
+        );
+      },
+      { timeout: 10000 }
+    );
+
+    // Store admin credentials for potential later use
+    // @ts-expect-error - Dynamic property for test context
+    page.testCredentials = {
+      username: DEFAULT_ADMIN.username,
+      password: DEFAULT_ADMIN.password,
+      isAdmin: true,
+    };
 
     await use(page);
 

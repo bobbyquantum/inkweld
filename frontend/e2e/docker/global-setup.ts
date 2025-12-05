@@ -78,6 +78,11 @@ export default async function globalSetup(): Promise<void> {
     // Don't restrict origins in test mode
     '-e',
     'ALLOWED_ORIGINS=*',
+    // Default admin for admin e2e tests
+    '-e',
+    'DEFAULT_ADMIN_USERNAME=e2e-admin',
+    '-e',
+    'DEFAULT_ADMIN_PASSWORD=E2eAdminPassword123!',
     'inkweld-inkweld-backend',
   ];
 

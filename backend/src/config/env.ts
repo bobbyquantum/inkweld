@@ -90,6 +90,13 @@ export const config = {
     apiKey: process.env.OPENAI_API_KEY || '',
     enabled: !!process.env.OPENAI_API_KEY,
   },
+
+  // Default admin (for bootstrapping and testing)
+  defaultAdmin: {
+    username: process.env.DEFAULT_ADMIN_USERNAME || '',
+    password: process.env.DEFAULT_ADMIN_PASSWORD || '',
+    enabled: !!(process.env.DEFAULT_ADMIN_USERNAME && process.env.DEFAULT_ADMIN_PASSWORD),
+  },
 } as const;
 
 export type Config = typeof config;
