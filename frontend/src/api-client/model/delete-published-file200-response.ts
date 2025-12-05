@@ -9,13 +9,7 @@
  */
 
 
-export interface User { 
-    id: string;
-    username: string;
-    name?: string | null;
-    email?: string;
-    approved?: boolean;
-    enabled: boolean;
-    isAdmin?: boolean;
+export interface DeletePublishedFile200Response { 
+    message: string;
 }
 

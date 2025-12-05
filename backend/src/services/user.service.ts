@@ -163,6 +163,13 @@ class UserService {
   }
 
   /**
+   * Reject/unapprove user (admin only)
+   */
+  async rejectUser(db: DatabaseInstance, userId: string): Promise<void> {
+    await db.update(users).set({ approved: false }).where(eq(users.id, userId));
+  }
+
+  /**
    * Enable/disable user (admin only)
    */
   async setUserEnabled(db: DatabaseInstance, userId: string, enabled: boolean): Promise<void> {
@@ -170,10 +177,31 @@ class UserService {
   }
 
   /**
+   * Set user admin status (admin only)
+   */
+  async setUserAdmin(db: DatabaseInstance, userId: string, isAdmin: boolean): Promise<void> {
+    await db.update(users).set({ isAdmin }).where(eq(users.id, userId));
+  }
+
+  /**
+   * Delete user (admin only)
+   */
+  async deleteUser(db: DatabaseInstance, userId: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, userId));
+  }
+
+  /**
    * List all users (admin only)
    */
   async listAll(db: DatabaseInstance): Promise<User[]> {
     return db.select().from(users).orderBy(users.username);
+  }
+
+  /**
+   * List pending users awaiting approval (admin only)
+   */
+  async listPending(db: DatabaseInstance): Promise<User[]> {
+    return db.select().from(users).where(eq(users.approved, false)).orderBy(users.username);
   }
 
   /**

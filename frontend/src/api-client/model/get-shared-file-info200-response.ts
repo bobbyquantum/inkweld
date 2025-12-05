@@ -9,13 +9,12 @@
  */
 
 
-export interface User { 
-    id: string;
-    username: string;
-    name?: string | null;
-    email?: string;
-    approved?: boolean;
-    enabled: boolean;
-    isAdmin?: boolean;
+export interface GetSharedFileInfo200Response { 
+    filename: string;
+    format: string;
+    size: number;
+    title: string;
+    author: string;
+    createdAt: string;
 }
 

@@ -58,6 +58,8 @@ async function runMigrations(database: ReturnType<typeof drizzle>): Promise<void
       .get();
 
     if (result) {
+      // Tables exist - check if we need to apply any missing columns
+      await applyMissingColumns();
       console.log('[drizzle] Database tables already exist, skipping migrations');
       migrationsApplied = true;
       return;
@@ -84,5 +86,30 @@ async function runMigrations(database: ReturnType<typeof drizzle>): Promise<void
     }
     console.error('[drizzle] Failed to run migrations:', error);
     throw error;
+  }
+}
+
+/**
+ * Apply any missing columns to existing databases.
+ * This handles incremental schema changes without full migrations.
+ */
+async function applyMissingColumns(): Promise<void> {
+  if (!sqlite) return;
+
+  // Check and add isAdmin column if it doesn't exist
+  try {
+    const columns = sqlite
+      .query<{ name: string }, []>("PRAGMA table_info(users)")
+      .all();
+    
+    const hasIsAdmin = columns.some(col => col.name === 'isAdmin');
+    
+    if (!hasIsAdmin) {
+      console.log('[drizzle] Adding isAdmin column to users table...');
+      sqlite.exec('ALTER TABLE users ADD COLUMN isAdmin INTEGER DEFAULT 0 NOT NULL');
+      console.log('[drizzle] Added isAdmin column successfully');
+    }
+  } catch (error) {
+    console.warn('[drizzle] Could not check/add isAdmin column:', error);
   }
 }

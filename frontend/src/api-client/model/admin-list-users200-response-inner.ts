@@ -9,13 +9,13 @@
  */
 
 
-export interface User { 
+export interface AdminListUsers200ResponseInner { 
     id: string;
     username: string;
-    name?: string | null;
-    email?: string;
-    approved?: boolean;
+    email: string;
+    approved: boolean;
     enabled: boolean;
-    isAdmin?: boolean;
+    isAdmin: boolean;
+    githubId: string | null;
 }
 

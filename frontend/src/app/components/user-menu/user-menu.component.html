@@ -42,6 +42,12 @@
       </div>
       <mat-divider></mat-divider>
       <div class="menu-actions">
+        @if (isAdmin()) {
+          <button mat-menu-item routerLink="/admin">
+            <mat-icon>admin_panel_settings</mat-icon>
+            <span>Admin</span>
+          </button>
+        }
         <button mat-menu-item (click)="onSettings()">
           <mat-icon>settings</mat-icon>
           <span>Settings</span>

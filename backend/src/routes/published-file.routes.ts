@@ -124,7 +124,9 @@ const createPublishedFileRoute = createRoute({
       content: {
         'multipart/form-data': {
           schema: z.object({
-            file: z.instanceof(File).openapi({ description: 'The published file' }),
+            file: z
+              .any()
+              .openapi({ type: 'string', format: 'binary', description: 'The published file' }),
             metadata: z.string().openapi({ description: 'JSON metadata string' }),
           }),
         },
@@ -278,7 +280,7 @@ const getPublishedFileRoute = createRoute({
   },
   responses: {
     200: {
-      content: { '*/*': { schema: z.instanceof(Uint8Array) } },
+      content: { '*/*': { schema: z.any().openapi({ type: 'string', format: 'binary' }) } },
       description: 'File content',
     },
     401: {

@@ -198,6 +198,7 @@ authRoutes.openapi(loginRoute, async (c) => {
         email: user.email || undefined,
         approved: user.approved,
         enabled: user.enabled,
+        isAdmin: user.isAdmin,
       },
       token, // Return JWT token for client to store
     },

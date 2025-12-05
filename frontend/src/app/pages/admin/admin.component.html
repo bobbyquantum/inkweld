@@ -1,0 +1,235 @@
+<div class="admin-container">
+  <!-- Header -->
+  <header class="admin-header">
+    <div class="header-content">
+      <div class="header-left">
+        <a routerLink="/" class="back-link">
+          <mat-icon>arrow_back</mat-icon>
+        </a>
+        <h1>Admin Dashboard</h1>
+      </div>
+      <div class="header-right">
+        @if (currentUser()) {
+          <app-user-menu [user]="currentUser()"></app-user-menu>
+        }
+      </div>
+    </div>
+  </header>
+
+  <!-- Main content -->
+  <main class="admin-content">
+    @if (isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="48"></mat-spinner>
+        <p>Loading users...</p>
+      </div>
+    } @else if (error()) {
+      <div class="error-container">
+        <mat-icon>error</mat-icon>
+        <p>{{ error()!.message }}</p>
+        <button mat-raised-button color="primary" (click)="loadUsers()">
+          Retry
+        </button>
+      </div>
+    } @else {
+      <!-- Stats cards -->
+      <div class="stats-row">
+        <mat-card class="stat-card">
+          <mat-card-content>
+            <div class="stat-value">{{ users().length }}</div>
+            <div class="stat-label">Total Users</div>
+          </mat-card-content>
+        </mat-card>
+        <mat-card class="stat-card pending">
+          <mat-card-content>
+            <div class="stat-value">{{ pendingUsers().length }}</div>
+            <div class="stat-label">Pending Approval</div>
+          </mat-card-content>
+        </mat-card>
+        <mat-card class="stat-card">
+          <mat-card-content>
+            <div class="stat-value">{{ activeUsers().length }}</div>
+            <div class="stat-label">Active Users</div>
+          </mat-card-content>
+        </mat-card>
+        <mat-card class="stat-card">
+          <mat-card-content>
+            <div class="stat-value">{{ adminUsers().length }}</div>
+            <div class="stat-label">Admins</div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Tabs -->
+      <mat-tab-group [(selectedIndex)]="selectedTab" animationDuration="200ms">
+        <!-- Pending Users Tab -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon>pending</mat-icon>
+            <span>Pending ({{ pendingUsers().length }})</span>
+          </ng-template>
+
+          <div class="tab-content">
+            @if (pendingUsers().length === 0) {
+              <div class="empty-state">
+                <mat-icon>check_circle</mat-icon>
+                <p>No pending user registrations</p>
+              </div>
+            } @else {
+              <div class="user-list">
+                @for (user of pendingUsers(); track user.id) {
+                  <mat-card class="user-card">
+                    <mat-card-content>
+                      <div class="user-info">
+                        <app-user-avatar
+                          [username]="user.username"
+                          size="medium"></app-user-avatar>
+                        <div class="user-details">
+                          <span class="user-name">{{ user.username }}</span>
+                          <span class="user-username"
+                            >&#64;{{ user.username }}</span
+                          >
+                          @if (user.email) {
+                            <span class="user-email">{{ user.email }}</span>
+                          }
+                        </div>
+                        <mat-chip [ngClass]="getUserStatus(user).cssClass">
+                          {{ getUserStatus(user).label }}
+                        </mat-chip>
+                      </div>
+                      <div class="user-actions">
+                        <button
+                          mat-raised-button
+                          color="primary"
+                          (click)="approveUser(user)"
+                          matTooltip="Approve this user">
+                          <mat-icon>check</mat-icon>
+                          Approve
+                        </button>
+                        <button
+                          mat-button
+                          color="warn"
+                          (click)="rejectUser(user)"
+                          matTooltip="Reject and delete this user">
+                          <mat-icon>close</mat-icon>
+                          Reject
+                        </button>
+                      </div>
+                    </mat-card-content>
+                  </mat-card>
+                }
+              </div>
+            }
+          </div>
+        </mat-tab>
+
+        <!-- All Users Tab -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon>people</mat-icon>
+            <span>All Users ({{ users().length }})</span>
+          </ng-template>
+
+          <div class="tab-content">
+            @if (users().length === 0) {
+              <div class="empty-state">
+                <mat-icon>people_outline</mat-icon>
+                <p>No users found</p>
+              </div>
+            } @else {
+              <div class="user-list">
+                @for (user of users(); track user.id) {
+                  <mat-card class="user-card">
+                    <mat-card-content>
+                      <div class="user-info">
+                        <app-user-avatar
+                          [username]="user.username"
+                          size="medium"></app-user-avatar>
+                        <div class="user-details">
+                          <span class="user-name">{{ user.username }}</span>
+                          <span class="user-username"
+                            >&#64;{{ user.username }}</span
+                          >
+                          @if (user.email) {
+                            <span class="user-email">{{ user.email }}</span>
+                          }
+                        </div>
+                        <mat-chip [ngClass]="getUserStatus(user).cssClass">
+                          {{ getUserStatus(user).label }}
+                        </mat-chip>
+                      </div>
+                      <div class="user-actions">
+                        @if (!user.approved) {
+                          <button
+                            mat-button
+                            color="primary"
+                            (click)="approveUser(user)"
+                            matTooltip="Approve this user">
+                            <mat-icon>check</mat-icon>
+                            Approve
+                          </button>
+                        }
+
+                        @if (user.approved) {
+                          @if (user.enabled) {
+                            <button
+                              mat-button
+                              (click)="disableUser(user)"
+                              [disabled]="isCurrentUser(user)"
+                              matTooltip="Disable this user">
+                              <mat-icon>block</mat-icon>
+                              Disable
+                            </button>
+                          } @else {
+                            <button
+                              mat-button
+                              color="primary"
+                              (click)="enableUser(user)"
+                              matTooltip="Enable this user">
+                              <mat-icon>check_circle</mat-icon>
+                              Enable
+                            </button>
+                          }
+                        }
+
+                        <button
+                          mat-icon-button
+                          [matMenuTriggerFor]="userMenu"
+                          matTooltip="More actions">
+                          <mat-icon>more_vert</mat-icon>
+                        </button>
+                        <mat-menu #userMenu="matMenu">
+                          <button
+                            mat-menu-item
+                            (click)="toggleAdmin(user)"
+                            [disabled]="isCurrentUser(user)">
+                            <mat-icon>{{
+                              user.isAdmin
+                                ? 'remove_moderator'
+                                : 'admin_panel_settings'
+                            }}</mat-icon>
+                            <span>{{
+                              user.isAdmin ? 'Remove Admin' : 'Make Admin'
+                            }}</span>
+                          </button>
+                          <button
+                            mat-menu-item
+                            (click)="deleteUser(user)"
+                            [disabled]="isCurrentUser(user)"
+                            class="delete-action">
+                            <mat-icon>delete</mat-icon>
+                            <span>Delete User</span>
+                          </button>
+                        </mat-menu>
+                      </div>
+                    </mat-card-content>
+                  </mat-card>
+                }
+              </div>
+            }
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    }
+  </main>
+</div>

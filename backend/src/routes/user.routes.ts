@@ -72,6 +72,7 @@ userRoutes.openapi(getCurrentUserRoute, async (c) => {
       email: user.email || undefined,
       enabled: user.enabled,
       approved: user.approved,
+      isAdmin: user.isAdmin,
     },
     200
   );
