@@ -17,7 +17,7 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
-import { AdminListUsers200ResponseInner } from '../model/admin-list-users200-response-inner';
+import { AdminListPendingUsers200ResponseInner } from '../model/admin-list-pending-users200-response-inner';
 // @ts-ignore
 import { AdminSetUserAdminRequest } from '../model/admin-set-user-admin-request';
 // @ts-ignore
@@ -49,9 +49,9 @@ export class AdminService extends BaseService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public adminApproveUser(userId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AdminListUsers200ResponseInner>;
-    public adminApproveUser(userId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AdminListUsers200ResponseInner>>;
-    public adminApproveUser(userId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AdminListUsers200ResponseInner>>;
+    public adminApproveUser(userId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AdminListPendingUsers200ResponseInner>;
+    public adminApproveUser(userId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AdminListPendingUsers200ResponseInner>>;
+    public adminApproveUser(userId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AdminListPendingUsers200ResponseInner>>;
     public adminApproveUser(userId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (userId === null || userId === undefined) {
             throw new Error('Required parameter userId was null or undefined when calling adminApproveUser.');
@@ -84,7 +84,7 @@ export class AdminService extends BaseService {
 
         let localVarPath = `/api/v1/admin/users/${this.configuration.encodeParam({name: "userId", value: userId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/approve`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<AdminListUsers200ResponseInner>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<AdminListPendingUsers200ResponseInner>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -161,9 +161,9 @@ export class AdminService extends BaseService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public adminDisableUser(userId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AdminListUsers200ResponseInner>;
-    public adminDisableUser(userId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AdminListUsers200ResponseInner>>;
-    public adminDisableUser(userId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AdminListUsers200ResponseInner>>;
+    public adminDisableUser(userId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AdminListPendingUsers200ResponseInner>;
+    public adminDisableUser(userId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AdminListPendingUsers200ResponseInner>>;
+    public adminDisableUser(userId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AdminListPendingUsers200ResponseInner>>;
     public adminDisableUser(userId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (userId === null || userId === undefined) {
             throw new Error('Required parameter userId was null or undefined when calling adminDisableUser.');
@@ -196,7 +196,7 @@ export class AdminService extends BaseService {
 
         let localVarPath = `/api/v1/admin/users/${this.configuration.encodeParam({name: "userId", value: userId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/disable`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<AdminListUsers200ResponseInner>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<AdminListPendingUsers200ResponseInner>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -217,9 +217,9 @@ export class AdminService extends BaseService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public adminEnableUser(userId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AdminListUsers200ResponseInner>;
-    public adminEnableUser(userId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AdminListUsers200ResponseInner>>;
-    public adminEnableUser(userId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AdminListUsers200ResponseInner>>;
+    public adminEnableUser(userId: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AdminListPendingUsers200ResponseInner>;
+    public adminEnableUser(userId: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AdminListPendingUsers200ResponseInner>>;
+    public adminEnableUser(userId: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AdminListPendingUsers200ResponseInner>>;
     public adminEnableUser(userId: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (userId === null || userId === undefined) {
             throw new Error('Required parameter userId was null or undefined when calling adminEnableUser.');
@@ -252,7 +252,7 @@ export class AdminService extends BaseService {
 
         let localVarPath = `/api/v1/admin/users/${this.configuration.encodeParam({name: "userId", value: userId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/enable`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<AdminListUsers200ResponseInner>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<AdminListPendingUsers200ResponseInner>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -272,9 +272,9 @@ export class AdminService extends BaseService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public adminListPendingUsers(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<AdminListUsers200ResponseInner>>;
-    public adminListPendingUsers(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<AdminListUsers200ResponseInner>>>;
-    public adminListPendingUsers(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<AdminListUsers200ResponseInner>>>;
+    public adminListPendingUsers(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<AdminListPendingUsers200ResponseInner>>;
+    public adminListPendingUsers(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<AdminListPendingUsers200ResponseInner>>>;
+    public adminListPendingUsers(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<AdminListPendingUsers200ResponseInner>>>;
     public adminListPendingUsers(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
@@ -304,59 +304,7 @@ export class AdminService extends BaseService {
 
         let localVarPath = `/api/v1/admin/users/pending`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<Array<AdminListUsers200ResponseInner>>('get', `${basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                responseType: <any>responseType_,
-                ...(withCredentials ? { withCredentials } : {}),
-                headers: localVarHeaders,
-                observe: observe,
-                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
-                reportProgress: reportProgress
-            }
-        );
-    }
-
-    /**
-     * List all users
-     * Get a list of all users (admin only)
-     * @endpoint get /api/v1/admin/users
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     */
-    public adminListUsers(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<AdminListUsers200ResponseInner>>;
-    public adminListUsers(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<AdminListUsers200ResponseInner>>>;
-    public adminListUsers(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<AdminListUsers200ResponseInner>>>;
-    public adminListUsers(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-
-        let localVarHeaders = this.defaultHeaders;
-
-        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
-            'application/json'
-        ]);
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
-
-        const localVarTransferCache: boolean = options?.transferCache ?? true;
-
-
-        let responseType_: 'text' | 'json' | 'blob' = 'json';
-        if (localVarHttpHeaderAcceptSelected) {
-            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
-                responseType_ = 'text';
-            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
-                responseType_ = 'json';
-            } else {
-                responseType_ = 'blob';
-            }
-        }
-
-        let localVarPath = `/api/v1/admin/users`;
-        const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<Array<AdminListUsers200ResponseInner>>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<Array<AdminListPendingUsers200ResponseInner>>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -434,9 +382,9 @@ export class AdminService extends BaseService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public adminSetUserAdmin(userId: string, adminSetUserAdminRequest?: AdminSetUserAdminRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AdminListUsers200ResponseInner>;
-    public adminSetUserAdmin(userId: string, adminSetUserAdminRequest?: AdminSetUserAdminRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AdminListUsers200ResponseInner>>;
-    public adminSetUserAdmin(userId: string, adminSetUserAdminRequest?: AdminSetUserAdminRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AdminListUsers200ResponseInner>>;
+    public adminSetUserAdmin(userId: string, adminSetUserAdminRequest?: AdminSetUserAdminRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AdminListPendingUsers200ResponseInner>;
+    public adminSetUserAdmin(userId: string, adminSetUserAdminRequest?: AdminSetUserAdminRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AdminListPendingUsers200ResponseInner>>;
+    public adminSetUserAdmin(userId: string, adminSetUserAdminRequest?: AdminSetUserAdminRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AdminListPendingUsers200ResponseInner>>;
     public adminSetUserAdmin(userId: string, adminSetUserAdminRequest?: AdminSetUserAdminRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (userId === null || userId === undefined) {
             throw new Error('Required parameter userId was null or undefined when calling adminSetUserAdmin.');
@@ -478,7 +426,7 @@ export class AdminService extends BaseService {
 
         let localVarPath = `/api/v1/admin/users/${this.configuration.encodeParam({name: "userId", value: userId, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/set-admin`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<AdminListUsers200ResponseInner>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<AdminListPendingUsers200ResponseInner>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 body: adminSetUserAdminRequest,

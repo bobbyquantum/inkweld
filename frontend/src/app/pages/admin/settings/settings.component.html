@@ -1,0 +1,33 @@
+<div class="settings-container">
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <mat-icon>error</mat-icon>
+        <p>{{ error()?.message }}</p>
+        <button mat-raised-button color="primary" (click)="loadConfig()">
+          Retry
+        </button>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <mat-card class="setting-card">
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Require User Approval</span>
+          </div>
+          <mat-slide-toggle
+            [checked]="userApprovalRequired()"
+            (change)="toggleUserApproval($event.checked)"
+            [disabled]="isSaving()"
+            color="primary"
+            data-testid="setting-toggle-user-approval"></mat-slide-toggle>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

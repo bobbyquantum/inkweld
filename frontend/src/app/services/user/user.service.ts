@@ -206,8 +206,7 @@ export class UserService {
   }
 
   async clearCurrentUser(): Promise<void> {
-    // Clear JWT token from localStorage
-    localStorage.removeItem('inkweld-app-config');
+    // Clear JWT token from localStorage (but keep app config for setup)
     localStorage.removeItem('auth_token');
 
     if (this.storage.isAvailable()) {
@@ -282,16 +281,18 @@ export class UserService {
         // Check for specific login failure case
         const errorBody = httpError.error as
           | {
-              message: string;
-              error: string;
-              statusCode: number;
+              message?: string;
+              error?: string;
+              statusCode?: number;
             }
           | undefined;
 
+        // Handle both formats: { error: 'Invalid credentials' } and legacy NestJS format
         if (
-          errorBody?.message === 'Invalid username or password' &&
-          errorBody.error === 'Unauthorized' &&
-          errorBody.statusCode === 401
+          errorBody?.error === 'Invalid credentials' ||
+          errorBody?.message === 'Invalid credentials' ||
+          (errorBody?.message === 'Invalid username or password' &&
+            errorBody.error === 'Unauthorized')
         ) {
           return new UserServiceError(
             'LOGIN_FAILED',

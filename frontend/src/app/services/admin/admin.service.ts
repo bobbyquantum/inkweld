@@ -1,12 +1,11 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
-import {
-  AdminListUsers200ResponseInner,
-  AdminService as ApiAdminService,
-} from '@inkweld/index';
+import { AdminService as ApiAdminService } from '@inkweld/index';
 import { catchError, firstValueFrom, throwError } from 'rxjs';
 
+import { environment } from '../../../environments/environment';
 import { LoggerService } from '../core/logger.service';
+import { SetupService } from '../core/setup.service';
 
 export class AdminServiceError extends Error {
   constructor(
@@ -23,42 +22,102 @@ export class AdminServiceError extends Error {
   }
 }
 
-// Re-export the generated type with a cleaner alias
-export type AdminUser = AdminListUsers200ResponseInner;
+// Admin user type - extends User with admin-specific fields that are only returned for admins
+export interface AdminUser {
+  id: string;
+  username: string;
+  name?: string | null;
+  email?: string;
+  enabled: boolean;
+  approved?: boolean;
+  isAdmin?: boolean;
+  githubId?: string | null;
+}
+
+export interface PaginatedUsersResponse {
+  users: AdminUser[];
+  total: number;
+  hasMore: boolean;
+}
+
+export interface ListUsersOptions {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class AdminService {
   private readonly apiService = inject(ApiAdminService);
+  private readonly http = inject(HttpClient);
+  private readonly setupService = inject(SetupService);
   private readonly logger = inject(LoggerService);
+
+  private get basePath(): string {
+    return environment.production
+      ? ''
+      : (this.setupService.getServerUrl() ?? '');
+  }
 
   readonly users = signal<AdminUser[]>([]);
   readonly pendingUsers = signal<AdminUser[]>([]);
+  readonly totalUsers = signal(0);
+  readonly hasMoreUsers = signal(false);
   readonly isLoading = signal(false);
+  readonly isLoadingMore = signal(false);
   readonly error = signal<AdminServiceError | undefined>(undefined);
 
   /**
-   * Fetch all users (admin only)
+   * Fetch all users with pagination and search (admin only)
+   * Uses /api/v1/users which returns full details for admin users
    */
-  async listUsers(): Promise<AdminUser[]> {
-    this.isLoading.set(true);
+  async listUsers(options?: ListUsersOptions): Promise<PaginatedUsersResponse> {
+    const isLoadMore = (options?.offset ?? 0) > 0;
+
+    if (isLoadMore) {
+      this.isLoadingMore.set(true);
+    } else {
+      this.isLoading.set(true);
+    }
     this.error.set(undefined);
 
     try {
+      // Build query params
+      const params = new URLSearchParams();
+      if (options?.search) params.set('search', options.search);
+      if (options?.limit) params.set('limit', options.limit.toString());
+      if (options?.offset) params.set('offset', options.offset.toString());
+
+      const queryString = params.toString();
+      // Use the standard users endpoint - admins get full details automatically
+      const url = `${this.basePath}/api/v1/users${queryString ? `?${queryString}` : ''}`;
+
       const response = await firstValueFrom(
-        this.apiService
-          .adminListUsers()
+        this.http
+          .get<PaginatedUsersResponse>(url, { withCredentials: true })
           .pipe(catchError(this.handleError.bind(this)))
       );
 
-      this.users.set(response);
+      if (isLoadMore) {
+        // Append to existing users
+        this.users.update(current => [...current, ...response.users]);
+      } else {
+        // Replace users
+        this.users.set(response.users);
+      }
+
+      this.totalUsers.set(response.total);
+      this.hasMoreUsers.set(response.hasMore);
+
       return response;
     } catch (error) {
       this.logger.error('AdminService', 'Failed to list users', error);
       throw error;
     } finally {
       this.isLoading.set(false);
+      this.isLoadingMore.set(false);
     }
   }
 
@@ -248,7 +307,13 @@ export class AdminService {
   private handleError(error: HttpErrorResponse) {
     let serviceError: AdminServiceError;
 
-    if (error.error instanceof ErrorEvent) {
+    if (error.status === 0) {
+      // Network error (connection refused, CORS, offline, etc.)
+      serviceError = new AdminServiceError(
+        'NETWORK_ERROR',
+        'Unable to connect to server'
+      );
+    } else if (error.error instanceof ErrorEvent) {
       // Client-side error
       serviceError = new AdminServiceError(
         'NETWORK_ERROR',

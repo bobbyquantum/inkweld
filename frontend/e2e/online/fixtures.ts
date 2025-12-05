@@ -438,70 +438,16 @@ export async function createOfflineProject(
  * Helper to open user settings
  */
 export async function openUserSettings(page: Page): Promise<void> {
-  // Debug: Check localStorage and mode
-  const appMode = await getAppMode(page);
-  const offlineUser = await page.evaluate(() => {
-    return localStorage.getItem('inkweld-offline-user');
-  });
-  console.log('[DEBUG] App mode:', appMode);
-  console.log('[DEBUG] Offline user in localStorage:', offlineUser);
-
-  // Check if user menu component is in the DOM at all
-  const userMenuExists = await page.locator('app-user-menu').count();
-  console.log('[DEBUG] User menu component count:', userMenuExists);
-
-  // Check if the button with data-testid exists
-  const testidButtonExists = await page
-    .locator('[data-testid="user-menu-button"]')
-    .count();
-  console.log('[DEBUG] Button with data-testid count:', testidButtonExists);
-
-  // Check all buttons in the user menu component
-  if (userMenuExists > 0) {
-    const userMenuButtons = await page
-      .locator('app-user-menu button')
-      .allTextContents();
-    console.log('[DEBUG] Buttons inside user-menu component:', userMenuButtons);
-
-    const userMenuHtml = await page.locator('app-user-menu').innerHTML();
-    console.log('[DEBUG] User menu HTML:', userMenuHtml.substring(0, 500));
-  }
-
   // Look for user menu button by data-testid only (no fallback)
   const userMenuButton = page.locator('[data-testid="user-menu-button"]');
 
   // Wait for button to be visible
-  try {
-    await userMenuButton.waitFor({ state: 'visible', timeout: 10000 });
-  } catch {
-    // Debug: Take screenshot and log page state
-    await page.screenshot({ path: 'test-results/debug-no-user-menu.png' });
-    const buttons = await page.locator('button').allTextContents();
-    console.log('[DEBUG] Available buttons:', buttons);
-
-    throw new Error('User menu button not found. See debug screenshot.');
-  }
-
+  await userMenuButton.waitFor({ state: 'visible', timeout: 10000 });
   await userMenuButton.click();
 
   // Click settings option
   const settingsOption = page.getByRole('menuitem', { name: /settings/i });
-  try {
-    await settingsOption.waitFor({ state: 'visible', timeout: 10000 });
-  } catch {
-    // Debug: Check if menu opened
-    const menuItems = await page
-      .locator('[role="menuitem"], [role="menu"] button')
-      .allTextContents();
-    console.log('[DEBUG] Available menu items:', menuItems);
-    await page.screenshot({
-      path: 'test-results/debug-no-settings-menuitem.png',
-    });
-    throw new Error(
-      'Settings menu item not found after clicking user menu. See debug screenshot.'
-    );
-  }
-
+  await settingsOption.waitFor({ state: 'visible', timeout: 10000 });
   await settingsOption.click();
 }
 

@@ -13,6 +13,8 @@ interface SetupAnswers {
   dbPath: string;
   sessionSecret: string;
   userApprovalRequired: boolean;
+  adminUsername?: string;
+  adminPassword?: string;
   openaiApiKey?: string;
 }
 
@@ -128,6 +130,21 @@ export async function runSetupWizard(): Promise<string> {
     ),
   };
 
+  // Admin user setup
+  console.log('\n--- Admin User Setup ---');
+  const createAdmin = await promptYesNo('Create a default admin user?', true);
+
+  if (createAdmin) {
+    answers.adminUsername = await prompt('Admin username', 'admin');
+    answers.adminPassword = await prompt('Admin password (min 6 characters)');
+
+    // Validate password length
+    while (answers.adminPassword && answers.adminPassword.length < 6) {
+      console.log('⚠️  Password must be at least 6 characters');
+      answers.adminPassword = await prompt('Admin password (min 6 characters)');
+    }
+  }
+
   // Optional: OpenAI API key
   const useOpenAI = await promptYesNo(
     'Configure OpenAI API key for AI features? (optional)',
@@ -176,6 +193,9 @@ SESSION_SECRET=${answers.sessionSecret}
 
 # User Registration
 USER_APPROVAL_REQUIRED=${answers.userApprovalRequired}
+
+# Default Admin User
+${answers.adminUsername && answers.adminPassword ? `DEFAULT_ADMIN_USERNAME=${answers.adminUsername}\nDEFAULT_ADMIN_PASSWORD=${answers.adminPassword}` : '# DEFAULT_ADMIN_USERNAME=admin\n# DEFAULT_ADMIN_PASSWORD=your-secure-password'}
 
 # CORS Configuration
 ALLOWED_ORIGINS=http://localhost:${answers.port}

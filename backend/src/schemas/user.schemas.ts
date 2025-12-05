@@ -38,9 +38,7 @@ export const PaginatedUsersResponseSchema = z
   .object({
     users: z.array(UserSchema),
     total: z.number(),
-    page: z.number(),
-    pageSize: z.number(),
-    totalPages: z.number(),
+    hasMore: z.boolean(),
   })
   .openapi('PaginatedUsersResponse');
 

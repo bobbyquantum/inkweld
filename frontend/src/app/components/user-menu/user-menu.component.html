@@ -55,10 +55,17 @@
           <mat-icon>settings</mat-icon>
           <span>Settings</span>
         </button>
-        <button mat-menu-item (click)="onLogout()">
-          <mat-icon>exit_to_app</mat-icon>
-          <span>Log out</span>
-        </button>
+        @if (setupService.getMode() === 'server') {
+          <button mat-menu-item (click)="onLogout()">
+            <mat-icon>exit_to_app</mat-icon>
+            <span>Log out</span>
+          </button>
+        } @else {
+          <button mat-menu-item routerLink="/reset">
+            <mat-icon>restart_alt</mat-icon>
+            <span>Reset App</span>
+          </button>
+        }
       </div>
     }
   </mat-menu>

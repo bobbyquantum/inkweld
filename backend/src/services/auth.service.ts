@@ -28,17 +28,22 @@ class AuthService {
     // In Hono Workers, c.env is the raw Cloudflare env bindings object
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const env = (c as any).env;
+    // Support both DATABASE_KEY (new) and SESSION_SECRET (legacy)
     const envSecret =
-      env && typeof env.SESSION_SECRET === 'string' ? env.SESSION_SECRET : undefined;
+      env && typeof env.DATABASE_KEY === 'string'
+        ? env.DATABASE_KEY
+        : env && typeof env.SESSION_SECRET === 'string'
+          ? env.SESSION_SECRET
+          : undefined;
 
     if (envSecret && envSecret.length >= 32) {
       return envSecret;
     }
 
     // Fall back to config (Bun/Node.js with process.env)
-    const configSecret = config.session.secret;
+    const configSecret = config.databaseKey;
     if (!configSecret || configSecret.length < 32) {
-      throw new Error('SESSION_SECRET must be at least 32 characters for secure cookie signing');
+      throw new Error('DATABASE_KEY must be at least 32 characters for secure cookie signing');
     }
     return configSecret;
   }

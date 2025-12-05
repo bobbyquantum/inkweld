@@ -1,0 +1,54 @@
+.settings-container {
+  max-width: 600px;
+}
+
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+}
+
+.error-card {
+  mat-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: var(--mat-sys-error);
+    }
+
+    p {
+      color: var(--mat-sys-on-surface-variant);
+    }
+  }
+}
+
+.setting-card {
+  mat-card-content {
+    padding: 8px 16px;
+  }
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.setting-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.setting-label {
+  font-weight: 500;
+  color: var(--mat-sys-on-surface);
+}

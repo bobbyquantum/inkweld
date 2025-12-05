@@ -22,6 +22,7 @@ import mcpRoutes from '../routes/mcp.routes';
 import { publishedFileRoutes } from '../routes/published-file.routes';
 import { shareRoutes } from '../routes/share.routes';
 import adminRoutes from '../routes/admin.routes';
+import { adminConfigRoutes } from '../routes/admin-config.routes';
 
 /**
  * Register common API routes that work in all runtime environments
@@ -38,6 +39,7 @@ export function registerCommonRoutes(app: any): void {
 
   // Admin routes (requires admin role)
   app.route('/api/v1/admin', adminRoutes);
+  app.route('/api/v1/admin/config', adminConfigRoutes);
 
   // Project routes (projects, documents, elements, files, images)
   app.route('/api/v1/projects', projectRoutes);

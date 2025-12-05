@@ -9,7 +9,7 @@
  */
 
 
-export interface AdminListUsers200ResponseInner { 
+export interface AdminListPendingUsers200ResponseInner { 
     id: string;
     username: string;
     email: string;

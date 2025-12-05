@@ -1,5 +1,8 @@
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AdminService as ApiAdminService } from '@inkweld/index';
@@ -7,7 +10,13 @@ import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { LoggerService } from '../core/logger.service';
-import { AdminService, AdminServiceError, AdminUser } from './admin.service';
+import { SetupService } from '../core/setup.service';
+import {
+  AdminService,
+  AdminServiceError,
+  AdminUser,
+  PaginatedUsersResponse,
+} from './admin.service';
 
 const TEST_USERS: AdminUser[] = [
   {
@@ -30,6 +39,12 @@ const TEST_USERS: AdminUser[] = [
   },
 ];
 
+const PAGINATED_RESPONSE: PaginatedUsersResponse = {
+  users: TEST_USERS,
+  total: TEST_USERS.length,
+  hasMore: false,
+};
+
 const PENDING_USERS: AdminUser[] = [
   {
     id: '3',
@@ -44,6 +59,7 @@ const PENDING_USERS: AdminUser[] = [
 
 describe('AdminService', () => {
   let service: AdminService;
+  let httpMock: HttpTestingController;
   let apiMock: {
     adminListUsers: Mock;
     adminListPendingUsers: Mock;
@@ -72,6 +88,10 @@ describe('AdminService', () => {
       error: vi.fn(),
     };
 
+    const setupServiceMock = {
+      getServerUrl: vi.fn().mockReturnValue(''),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -80,46 +100,101 @@ describe('AdminService', () => {
         AdminService,
         { provide: ApiAdminService, useValue: apiMock },
         { provide: LoggerService, useValue: loggerMock },
+        { provide: SetupService, useValue: setupServiceMock },
       ],
     });
 
     service = TestBed.inject(AdminService);
+    httpMock = TestBed.inject(HttpTestingController);
   });
 
   describe('listUsers', () => {
     it('should fetch all users and update state', async () => {
-      apiMock.adminListUsers.mockReturnValue(of(TEST_USERS));
+      const promise = service.listUsers();
 
-      const result = await service.listUsers();
+      const req = httpMock.expectOne('/api/v1/users');
+      expect(req.request.method).toBe('GET');
+      req.flush(PAGINATED_RESPONSE);
 
-      expect(result).toEqual(TEST_USERS);
+      const result = await promise;
+
+      expect(result).toEqual(PAGINATED_RESPONSE);
       expect(service.users()).toEqual(TEST_USERS);
+      expect(service.totalUsers()).toBe(TEST_USERS.length);
+      expect(service.hasMoreUsers()).toBe(false);
       expect(service.isLoading()).toBe(false);
       expect(service.error()).toBeUndefined();
     });
 
     it('should set isLoading during fetch', async () => {
-      apiMock.adminListUsers.mockReturnValue(of(TEST_USERS));
-
       const promise = service.listUsers();
       // isLoading is set synchronously before await
       expect(service.isLoading()).toBe(true);
+
+      const req = httpMock.expectOne('/api/v1/users');
+      req.flush(PAGINATED_RESPONSE);
 
       await promise;
       expect(service.isLoading()).toBe(false);
     });
 
     it('should handle errors and set error state', async () => {
-      const httpError = new HttpErrorResponse({
-        status: 403,
-        statusText: 'Forbidden',
-      });
-      apiMock.adminListUsers.mockReturnValue(throwError(() => httpError));
+      const promise = service.listUsers();
 
-      await expect(service.listUsers()).rejects.toThrow(AdminServiceError);
+      const req = httpMock.expectOne('/api/v1/users');
+      req.flush('Forbidden', { status: 403, statusText: 'Forbidden' });
+
+      await expect(promise).rejects.toThrow(AdminServiceError);
       expect(service.error()?.code).toBe('FORBIDDEN');
       expect(service.isLoading()).toBe(false);
       expect(loggerMock.error).toHaveBeenCalled();
+    });
+
+    it('should support search parameter', async () => {
+      const promise = service.listUsers({ search: 'admin' });
+
+      const req = httpMock.expectOne('/api/v1/users?search=admin');
+      expect(req.request.method).toBe('GET');
+      req.flush(PAGINATED_RESPONSE);
+
+      await promise;
+    });
+
+    it('should support pagination parameters', async () => {
+      const promise = service.listUsers({ limit: 10, offset: 20 });
+
+      const req = httpMock.expectOne('/api/v1/users?limit=10&offset=20');
+      expect(req.request.method).toBe('GET');
+      req.flush(PAGINATED_RESPONSE);
+
+      await promise;
+    });
+
+    it('should append users when loading more (offset > 0)', async () => {
+      // First, set some initial users
+      service['users'].set(TEST_USERS);
+
+      const moreUsers: AdminUser[] = [
+        {
+          id: '4',
+          username: 'user3',
+          email: 'user3@example.com',
+          isAdmin: false,
+          enabled: true,
+          approved: true,
+          githubId: null,
+        },
+      ];
+
+      const promise = service.listUsers({ offset: 2 });
+
+      const req = httpMock.expectOne('/api/v1/users?offset=2');
+      req.flush({ users: moreUsers, total: 3, hasMore: false });
+
+      await promise;
+
+      // Should have appended the new users
+      expect(service.users().length).toBe(TEST_USERS.length + 1);
     });
   });
 
@@ -335,38 +410,33 @@ describe('AdminService', () => {
 
   describe('error handling', () => {
     it('should handle network errors', async () => {
-      const networkError = new HttpErrorResponse({
-        error: new ErrorEvent('Network error', {
-          message: 'Connection failed',
-        }),
-        status: 0,
-      });
-      apiMock.adminListUsers.mockReturnValue(throwError(() => networkError));
+      const promise = service.listUsers();
 
-      await expect(service.listUsers()).rejects.toThrow(AdminServiceError);
+      const req = httpMock.expectOne('/api/v1/users');
+      req.error(new ProgressEvent('error'), { status: 0 });
+
+      await expect(promise).rejects.toThrow(AdminServiceError);
       expect(service.error()?.code).toBe('NETWORK_ERROR');
     });
 
     it('should handle 401 unauthorized', async () => {
-      const httpError = new HttpErrorResponse({
-        status: 401,
-        statusText: 'Unauthorized',
-      });
-      apiMock.adminListUsers.mockReturnValue(throwError(() => httpError));
+      const promise = service.listUsers();
 
-      await expect(service.listUsers()).rejects.toThrow(AdminServiceError);
+      const req = httpMock.expectOne('/api/v1/users');
+      req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+      await expect(promise).rejects.toThrow(AdminServiceError);
       expect(service.error()?.code).toBe('UNAUTHORIZED');
       expect(service.error()?.message).toBe('Not authenticated');
     });
 
     it('should handle 403 forbidden', async () => {
-      const httpError = new HttpErrorResponse({
-        status: 403,
-        statusText: 'Forbidden',
-      });
-      apiMock.adminListUsers.mockReturnValue(throwError(() => httpError));
+      const promise = service.listUsers();
 
-      await expect(service.listUsers()).rejects.toThrow(AdminServiceError);
+      const req = httpMock.expectOne('/api/v1/users');
+      req.flush('Forbidden', { status: 403, statusText: 'Forbidden' });
+
+      await expect(promise).rejects.toThrow(AdminServiceError);
       expect(service.error()?.code).toBe('FORBIDDEN');
       expect(service.error()?.message).toBe('Admin access required');
     });
@@ -386,26 +456,29 @@ describe('AdminService', () => {
     });
 
     it('should handle generic server errors with custom message', async () => {
-      const httpError = new HttpErrorResponse({
-        status: 500,
-        statusText: 'Internal Server Error',
-        error: { error: 'Custom error message' },
-      });
-      apiMock.adminListUsers.mockReturnValue(throwError(() => httpError));
+      const promise = service.listUsers();
 
-      await expect(service.listUsers()).rejects.toThrow(AdminServiceError);
+      const req = httpMock.expectOne('/api/v1/users');
+      req.flush(
+        { error: 'Custom error message' },
+        { status: 500, statusText: 'Internal Server Error' }
+      );
+
+      await expect(promise).rejects.toThrow(AdminServiceError);
       expect(service.error()?.code).toBe('SERVER_ERROR');
       expect(service.error()?.message).toBe('Custom error message');
     });
 
     it('should handle generic server errors without custom message', async () => {
-      const httpError = new HttpErrorResponse({
+      const promise = service.listUsers();
+
+      const req = httpMock.expectOne('/api/v1/users');
+      req.flush('Internal Server Error', {
         status: 500,
         statusText: 'Internal Server Error',
       });
-      apiMock.adminListUsers.mockReturnValue(throwError(() => httpError));
 
-      await expect(service.listUsers()).rejects.toThrow(AdminServiceError);
+      await expect(promise).rejects.toThrow(AdminServiceError);
       expect(service.error()?.code).toBe('SERVER_ERROR');
       expect(service.error()?.message).toBe('An unexpected error occurred');
     });

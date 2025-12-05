@@ -43,41 +43,6 @@ export const adminRoutes = new OpenAPIHono<AppContext>();
 adminRoutes.use('*', requireAdmin);
 
 // Routes
-const listUsersRoute = createRoute({
-  method: 'get',
-  path: '/users',
-  tags: ['Admin'],
-  summary: 'List all users',
-  description: 'Get a list of all users (admin only)',
-  operationId: 'adminListUsers',
-  responses: {
-    200: {
-      description: 'List of users',
-      content: {
-        'application/json': {
-          schema: AdminUserListSchema,
-        },
-      },
-    },
-    401: {
-      description: 'Unauthorized',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-    403: {
-      description: 'Forbidden - Admin access required',
-      content: {
-        'application/json': {
-          schema: ErrorResponseSchema,
-        },
-      },
-    },
-  },
-});
-
 const listPendingUsersRoute = createRoute({
   method: 'get',
   path: '/users/pending',
@@ -399,13 +364,6 @@ const deleteUserRoute = createRoute({
 });
 
 // Route handlers
-
-// List all users
-adminRoutes.openapi(listUsersRoute, async (c) => {
-  const db = c.get('db');
-  const users = await userService.listAll(db);
-  return c.json(users.map(formatUserResponse), 200);
-});
 
 // List pending users
 adminRoutes.openapi(listPendingUsersRoute, async (c) => {

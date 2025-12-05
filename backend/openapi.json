@@ -215,22 +215,14 @@
           "total": {
             "type": "number"
           },
-          "page": {
-            "type": "number"
-          },
-          "pageSize": {
-            "type": "number"
-          },
-          "totalPages": {
-            "type": "number"
+          "hasMore": {
+            "type": "boolean"
           }
         },
         "required": [
           "users",
           "total",
-          "page",
-          "pageSize",
-          "totalPages"
+          "hasMore"
         ]
       },
       "UsernameAvailability": {
@@ -1575,6 +1567,40 @@
           "Users"
         ],
         "operationId": "listUsers",
+        "summary": "List users",
+        "description": "Get a paginated list of users. Admins see all users with full details (including pending/disabled). Regular users only see active (approved+enabled) users with limited info.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Search by username or email"
+            },
+            "required": false,
+            "description": "Search by username or email",
+            "name": "search",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Number of results per page (default: 20)"
+            },
+            "required": false,
+            "description": "Number of results per page (default: 20)",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Offset for pagination (default: 0)"
+            },
+            "required": false,
+            "description": "Offset for pagination (default: 0)",
+            "name": "offset",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Paginated list of users",
@@ -1595,6 +1621,8 @@
           "Users"
         ],
         "operationId": "searchUsers",
+        "summary": "Search users",
+        "description": "Search users by username or name. Admins see all users, regular users only see active users.",
         "responses": {
           "200": {
             "description": "Search results",
@@ -1761,84 +1789,6 @@
           },
           "404": {
             "description": "User or avatar not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/admin/users": {
-      "get": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "List all users",
-        "description": "Get a list of all users (admin only)",
-        "operationId": "adminListUsers",
-        "responses": {
-          "200": {
-            "description": "List of users",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "username": {
-                        "type": "string"
-                      },
-                      "email": {
-                        "type": "string"
-                      },
-                      "approved": {
-                        "type": "boolean"
-                      },
-                      "enabled": {
-                        "type": "boolean"
-                      },
-                      "isAdmin": {
-                        "type": "boolean"
-                      },
-                      "githubId": {
-                        "type": "string",
-                        "nullable": true
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "username",
-                      "email",
-                      "approved",
-                      "enabled",
-                      "isAdmin",
-                      "githubId"
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Admin access required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2456,6 +2406,584 @@
           },
           "404": {
             "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/keys": {
+      "get": {
+        "tags": [
+          "Admin Config"
+        ],
+        "summary": "List available config keys",
+        "description": "Get metadata about all available configuration keys",
+        "operationId": "adminListConfigKeys",
+        "responses": {
+          "200": {
+            "description": "List of config keys with metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "type": "string",
+                        "enum": [
+                          "auth",
+                          "ai",
+                          "github",
+                          "general"
+                        ]
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "encrypted": {
+                        "type": "boolean"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "string",
+                          "boolean"
+                        ]
+                      },
+                      "envVar": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "category",
+                      "description",
+                      "encrypted",
+                      "type",
+                      "envVar"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config": {
+      "get": {
+        "tags": [
+          "Admin Config"
+        ],
+        "summary": "Get all config values",
+        "description": "Get all configuration values with their sources",
+        "operationId": "adminGetAllConfig",
+        "responses": {
+          "200": {
+            "description": "All config values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "type": "string",
+                        "enum": [
+                          "auth",
+                          "ai",
+                          "github",
+                          "general"
+                        ]
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "encrypted": {
+                        "type": "boolean"
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "database",
+                          "environment",
+                          "default"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "value",
+                      "category",
+                      "encrypted",
+                      "source"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/category/{category}": {
+      "get": {
+        "tags": [
+          "Admin Config"
+        ],
+        "summary": "Get config by category",
+        "description": "Get configuration values for a specific category",
+        "operationId": "adminGetConfigByCategory",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "auth",
+                "ai",
+                "github",
+                "general"
+              ]
+            },
+            "required": true,
+            "name": "category",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config values for category",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "type": "string",
+                        "enum": [
+                          "auth",
+                          "ai",
+                          "github",
+                          "general"
+                        ]
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "encrypted": {
+                        "type": "boolean"
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "database",
+                          "environment",
+                          "default"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "value",
+                      "category",
+                      "encrypted",
+                      "source"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/{key}": {
+      "get": {
+        "tags": [
+          "Admin Config"
+        ],
+        "summary": "Get a config value",
+        "description": "Get a single configuration value by key",
+        "operationId": "adminGetConfig",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "key",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config value",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string",
+                      "enum": [
+                        "auth",
+                        "ai",
+                        "github",
+                        "general"
+                      ]
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "encrypted": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "database",
+                        "environment",
+                        "default"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "value",
+                    "category",
+                    "encrypted",
+                    "source"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid config key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin Config"
+        ],
+        "summary": "Set a config value",
+        "description": "Set a configuration value (stores in database, overrides env)",
+        "operationId": "adminSetConfig",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "key",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "value"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Config value updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string",
+                      "enum": [
+                        "auth",
+                        "ai",
+                        "github",
+                        "general"
+                      ]
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "encrypted": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "database",
+                        "environment",
+                        "default"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "value",
+                    "category",
+                    "encrypted",
+                    "source"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid config key or value",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin Config"
+        ],
+        "summary": "Delete a config value",
+        "description": "Remove a config value from database (reverts to env/default)",
+        "operationId": "adminDeleteConfig",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "key",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config value deleted, showing reverted value",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string",
+                      "enum": [
+                        "auth",
+                        "ai",
+                        "github",
+                        "general"
+                      ]
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "encrypted": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "database",
+                        "environment",
+                        "default"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "value",
+                    "category",
+                    "encrypted",
+                    "source"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid config key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
             "content": {
               "application/json": {
                 "schema": {

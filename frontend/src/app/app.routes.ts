@@ -39,6 +39,29 @@ export const routes: Routes = [
       import('./pages/admin/admin.component').then(m => m.AdminComponent),
     title: 'Admin Dashboard',
     canActivate: [adminGuard],
+    children: [
+      {
+        path: '',
+        redirectTo: 'users',
+        pathMatch: 'full',
+      },
+      {
+        path: 'users',
+        loadComponent: () =>
+          import('./pages/admin/users/users.component').then(
+            m => m.AdminUsersComponent
+          ),
+        title: 'Admin - Users',
+      },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import('./pages/admin/settings/settings.component').then(
+            m => m.AdminSettingsComponent
+          ),
+        title: 'Admin - Settings',
+      },
+    ],
   },
   {
     path: 'create-project',

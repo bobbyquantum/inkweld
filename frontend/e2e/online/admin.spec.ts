@@ -12,8 +12,8 @@ async function navigateToAdminViaMenu(page: Page): Promise<void> {
   await page.locator('[data-testid="user-menu-button"]').click();
   // Click admin link
   await page.locator('[data-testid="admin-menu-link"]').click();
-  // Wait for admin page to load
-  await page.waitForURL('**/admin');
+  // Wait for admin page to load (may redirect to /admin/users)
+  await page.waitForURL('**/admin/**');
   await page.waitForLoadState('networkidle');
 }
 
@@ -71,46 +71,39 @@ test.describe('Admin Dashboard', () => {
   });
 
   test.describe('Dashboard Display', () => {
-    test('should display admin dashboard with stats', async ({ adminPage }) => {
+    test('should display admin dashboard with tabs', async ({ adminPage }) => {
       await navigateToAdminViaMenu(adminPage);
 
-      // Wait for loading to complete
+      // Wait for loading to complete - tabs should be visible
       await adminPage
-        .locator('[data-testid="admin-stats-row"]')
+        .locator('[data-testid="admin-tabs"]')
         .waitFor({ state: 'visible', timeout: 10000 });
 
-      // Check stats cards are displayed
-      await expect(
-        adminPage.locator('[data-testid="stat-total-users"]')
-      ).toBeVisible();
-      await expect(
-        adminPage.locator('[data-testid="stat-pending-users"]')
-      ).toBeVisible();
-      await expect(
-        adminPage.locator('[data-testid="stat-active-users"]')
-      ).toBeVisible();
-      await expect(
-        adminPage.locator('[data-testid="stat-admin-users"]')
-      ).toBeVisible();
+      // Check tab labels are displayed (using role-based selectors since mat-tab doesn't pass data-testid to rendered element)
+      const pendingTab = adminPage.getByRole('tab', { name: /pending/i });
+      const allUsersTab = adminPage.getByRole('tab', { name: /all users/i });
+
+      await expect(pendingTab).toBeVisible();
+      await expect(allUsersTab).toBeVisible();
     });
 
-    test('should show at least 1 admin user in stats', async ({
-      adminPage,
-    }) => {
+    test('should show at least 1 user in stats', async ({ adminPage }) => {
       await navigateToAdminViaMenu(adminPage);
 
-      // Wait for stats to load
+      // Wait for tabs to load
       await adminPage
-        .locator('[data-testid="stat-admin-users-value"]')
+        .locator('[data-testid="admin-tabs"]')
         .waitFor({ state: 'visible', timeout: 10000 });
 
-      // Get the admin count
-      const adminCount = await adminPage
-        .locator('[data-testid="stat-admin-users-value"]')
-        .textContent();
+      // Get the total user count from "All Users" tab label
+      const allUsersTab = adminPage.getByRole('tab', { name: /all users/i });
+      const totalUsersText = await allUsersTab.textContent();
 
-      // Should have at least 1 admin (the e2e-admin user)
-      expect(parseInt(adminCount || '0')).toBeGreaterThanOrEqual(1);
+      // Should have at least 1 user (the e2e-admin user)
+      // Text is like "All Users (1)"
+      const match = totalUsersText?.match(/\((\d+)\)/);
+      const count = match ? parseInt(match[1]) : 0;
+      expect(count).toBeGreaterThanOrEqual(1);
     });
 
     test('should display tabs for pending and all users', async ({
@@ -207,8 +200,8 @@ test.describe('Admin Dashboard', () => {
       // Click admin link
       await adminPage.locator('[data-testid="admin-menu-link"]').click();
 
-      // Should navigate to admin page
-      await adminPage.waitForURL('**/admin');
+      // Should navigate to admin page (redirects to /admin/users)
+      await adminPage.waitForURL('**/admin/**');
       await expect(
         adminPage.locator('[data-testid="admin-page"]')
       ).toBeVisible();
@@ -283,5 +276,89 @@ test.describe('Admin User Management', () => {
         await expect(disableButton).toBeDisabled();
       }
     }
+  });
+});
+
+test.describe('Admin Settings', () => {
+  test('should display settings page with user approval toggle', async ({
+    adminPage,
+  }) => {
+    await navigateToAdminViaMenu(adminPage);
+
+    // Navigate to settings
+    await adminPage.locator('[data-testid="admin-nav-settings"]').click();
+    await adminPage.waitForURL('**/admin/settings');
+
+    // Wait for settings to load
+    const toggle = adminPage.locator(
+      '[data-testid="setting-toggle-user-approval"]'
+    );
+    await expect(toggle).toBeVisible({ timeout: 10000 });
+  });
+
+  test('should toggle user approval setting and persist', async ({
+    adminPage,
+  }) => {
+    await navigateToAdminViaMenu(adminPage);
+
+    // Navigate to settings
+    await adminPage.locator('[data-testid="admin-nav-settings"]').click();
+    await adminPage.waitForURL('**/admin/settings');
+
+    // Wait for toggle to be visible
+    const toggle = adminPage.locator(
+      '[data-testid="setting-toggle-user-approval"]'
+    );
+    await expect(toggle).toBeVisible({ timeout: 10000 });
+
+    // Get the initial state by checking if the toggle has the checked class
+    // mat-slide-toggle adds class 'mat-mdc-slide-toggle-checked' when on
+    const isInitiallyChecked = await toggle.evaluate(el =>
+      el.classList.contains('mat-mdc-slide-toggle-checked')
+    );
+
+    // Click the toggle to change it
+    await toggle.click();
+
+    // Wait for the save to complete (snackbar appears)
+    const snackbar = adminPage.locator('text=Setting saved');
+    await snackbar.waitFor({ state: 'visible', timeout: 5000 });
+
+    // Verify the toggle changed state
+    const isNowChecked = await toggle.evaluate(el =>
+      el.classList.contains('mat-mdc-slide-toggle-checked')
+    );
+    expect(isNowChecked).toBe(!isInitiallyChecked);
+
+    // Wait for snackbar to disappear before navigating
+    await snackbar.waitFor({ state: 'hidden', timeout: 5000 });
+
+    // Navigate away and back to verify persistence (instead of reload which loses session)
+    await adminPage.locator('[data-testid="admin-nav-users"]').click();
+    await adminPage.waitForURL('**/admin/users');
+    await adminPage.locator('[data-testid="admin-nav-settings"]').click();
+    await adminPage.waitForURL('**/admin/settings');
+
+    // Wait for toggle to load again
+    await expect(toggle).toBeVisible({ timeout: 10000 });
+
+    // Verify the setting persisted
+    const isPersistedChecked = await toggle.evaluate(el =>
+      el.classList.contains('mat-mdc-slide-toggle-checked')
+    );
+    expect(isPersistedChecked).toBe(!isInitiallyChecked);
+
+    // Toggle back to restore original state
+    await toggle.click();
+
+    // Wait for the save to complete
+    await snackbar.waitFor({ state: 'visible', timeout: 5000 });
+    await snackbar.waitFor({ state: 'hidden', timeout: 5000 });
+
+    // Verify restored
+    const isRestoredChecked = await toggle.evaluate(el =>
+      el.classList.contains('mat-mdc-slide-toggle-checked')
+    );
+    expect(isRestoredChecked).toBe(isInitiallyChecked);
   });
 });

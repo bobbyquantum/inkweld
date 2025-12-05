@@ -17,15 +17,13 @@ import { CustomHttpParameterCodec }                          from '../encoder';
 import { Observable }                                        from 'rxjs';
 
 // @ts-ignore
+import { AdminGetAllConfig200ResponseValue } from '../model/admin-get-all-config200-response-value';
+// @ts-ignore
+import { AdminListConfigKeys200ResponseInner } from '../model/admin-list-config-keys200-response-inner';
+// @ts-ignore
+import { AdminSetConfigRequest } from '../model/admin-set-config-request';
+// @ts-ignore
 import { ErrorResponse } from '../model/error-response';
-// @ts-ignore
-import { Message } from '../model/message';
-// @ts-ignore
-import { PaginatedUsersResponse } from '../model/paginated-users-response';
-// @ts-ignore
-import { User } from '../model/user';
-// @ts-ignore
-import { UsernameAvailability } from '../model/username-availability';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS }                     from '../variables';
@@ -37,21 +35,27 @@ import { BaseService } from '../api.base.service';
 @Injectable({
   providedIn: 'root'
 })
-export class UsersService extends BaseService {
+export class AdminConfigService extends BaseService {
 
     constructor(protected httpClient: HttpClient, @Optional() @Inject(BASE_PATH) basePath: string|string[], @Optional() configuration?: Configuration) {
         super(basePath, configuration);
     }
 
     /**
-     * @endpoint get /api/v1/users/check-username
+     * Delete a config value
+     * Remove a config value from database (reverts to env/default)
+     * @endpoint delete /api/v1/admin/config/{key}
+     * @param key 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public checkUsernameAvailability(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<UsernameAvailability>;
-    public checkUsernameAvailability(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<UsernameAvailability>>;
-    public checkUsernameAvailability(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<UsernameAvailability>>;
-    public checkUsernameAvailability(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public adminDeleteConfig(key: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AdminGetAllConfig200ResponseValue>;
+    public adminDeleteConfig(key: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AdminGetAllConfig200ResponseValue>>;
+    public adminDeleteConfig(key: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AdminGetAllConfig200ResponseValue>>;
+    public adminDeleteConfig(key: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (key === null || key === undefined) {
+            throw new Error('Required parameter key was null or undefined when calling adminDeleteConfig.');
+        }
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -78,9 +82,9 @@ export class UsersService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/users/check-username`;
+        let localVarPath = `/api/v1/admin/config/${this.configuration.encodeParam({name: "key", value: key, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<UsernameAvailability>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<AdminGetAllConfig200ResponseValue>('delete', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -94,14 +98,16 @@ export class UsersService extends BaseService {
     }
 
     /**
-     * @endpoint post /api/v1/users/avatar/delete
+     * Get all config values
+     * Get all configuration values with their sources
+     * @endpoint get /api/v1/admin/config
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public deleteUserAvatar(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Message>;
-    public deleteUserAvatar(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Message>>;
-    public deleteUserAvatar(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Message>>;
-    public deleteUserAvatar(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public adminGetAllConfig(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<{ [key: string]: AdminGetAllConfig200ResponseValue; }>;
+    public adminGetAllConfig(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<{ [key: string]: AdminGetAllConfig200ResponseValue; }>>;
+    public adminGetAllConfig(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<{ [key: string]: AdminGetAllConfig200ResponseValue; }>>;
+    public adminGetAllConfig(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -128,9 +134,9 @@ export class UsersService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/users/avatar/delete`;
+        let localVarPath = `/api/v1/admin/config`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<Message>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<{ [key: string]: AdminGetAllConfig200ResponseValue; }>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -144,14 +150,20 @@ export class UsersService extends BaseService {
     }
 
     /**
-     * @endpoint get /api/v1/users/me
+     * Get a config value
+     * Get a single configuration value by key
+     * @endpoint get /api/v1/admin/config/{key}
+     * @param key 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getCurrentUser(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<User>;
-    public getCurrentUser(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<User>>;
-    public getCurrentUser(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<User>>;
-    public getCurrentUser(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public adminGetConfig(key: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AdminGetAllConfig200ResponseValue>;
+    public adminGetConfig(key: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AdminGetAllConfig200ResponseValue>>;
+    public adminGetConfig(key: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AdminGetAllConfig200ResponseValue>>;
+    public adminGetConfig(key: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (key === null || key === undefined) {
+            throw new Error('Required parameter key was null or undefined when calling adminGetConfig.');
+        }
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -178,9 +190,9 @@ export class UsersService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/users/me`;
+        let localVarPath = `/api/v1/admin/config/${this.configuration.encodeParam({name: "key", value: key, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<User>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<AdminGetAllConfig200ResponseValue>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -194,71 +206,20 @@ export class UsersService extends BaseService {
     }
 
     /**
-     * @endpoint get /api/v1/users/{username}/avatar
-     * @param username Username
+     * Get config by category
+     * Get configuration values for a specific category
+     * @endpoint get /api/v1/admin/config/category/{category}
+     * @param category 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public getUserAvatar(username: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'image/png' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Blob>;
-    public getUserAvatar(username: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'image/png' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Blob>>;
-    public getUserAvatar(username: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'image/png' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Blob>>;
-    public getUserAvatar(username: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'image/png' | 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (username === null || username === undefined) {
-            throw new Error('Required parameter username was null or undefined when calling getUserAvatar.');
+    public adminGetConfigByCategory(category: 'auth' | 'ai' | 'github' | 'general', observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<{ [key: string]: AdminGetAllConfig200ResponseValue; }>;
+    public adminGetConfigByCategory(category: 'auth' | 'ai' | 'github' | 'general', observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<{ [key: string]: AdminGetAllConfig200ResponseValue; }>>;
+    public adminGetConfigByCategory(category: 'auth' | 'ai' | 'github' | 'general', observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<{ [key: string]: AdminGetAllConfig200ResponseValue; }>>;
+    public adminGetConfigByCategory(category: 'auth' | 'ai' | 'github' | 'general', observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (category === null || category === undefined) {
+            throw new Error('Required parameter category was null or undefined when calling adminGetConfigByCategory.');
         }
-
-        let localVarHeaders = this.defaultHeaders;
-
-        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
-            'image/png',
-            'application/json'
-        ]);
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
-
-        const localVarTransferCache: boolean = options?.transferCache ?? true;
-
-
-        let localVarPath = `/api/v1/users/${this.configuration.encodeParam({name: "username", value: username, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}/avatar`;
-        const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request('get', `${basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                responseType: "blob",
-                ...(withCredentials ? { withCredentials } : {}),
-                headers: localVarHeaders,
-                observe: observe,
-                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
-                reportProgress: reportProgress
-            }
-        );
-    }
-
-    /**
-     * List users
-     * Get a paginated list of users. Admins see all users with full details (including pending/disabled). Regular users only see active (approved+enabled) users with limited info.
-     * @endpoint get /api/v1/users
-     * @param search Search by username or email
-     * @param limit Number of results per page (default: 20)
-     * @param offset Offset for pagination (default: 0)
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     */
-    public listUsers(search?: string, limit?: string, offset?: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PaginatedUsersResponse>;
-    public listUsers(search?: string, limit?: string, offset?: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PaginatedUsersResponse>>;
-    public listUsers(search?: string, limit?: string, offset?: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PaginatedUsersResponse>>;
-    public listUsers(search?: string, limit?: string, offset?: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-
-        let localVarQueryParameters = new HttpParams({encoder: this.encoder});
-        localVarQueryParameters = this.addToHttpParams(localVarQueryParameters,
-          <any>search, 'search');
-        localVarQueryParameters = this.addToHttpParams(localVarQueryParameters,
-          <any>limit, 'limit');
-        localVarQueryParameters = this.addToHttpParams(localVarQueryParameters,
-          <any>offset, 'offset');
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -285,62 +246,9 @@ export class UsersService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/users`;
+        let localVarPath = `/api/v1/admin/config/category/${this.configuration.encodeParam({name: "category", value: category, in: "path", style: "simple", explode: false, dataType: "'auth' | 'ai' | 'github' | 'general'", dataFormat: undefined})}`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<PaginatedUsersResponse>('get', `${basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                params: localVarQueryParameters,
-                responseType: <any>responseType_,
-                ...(withCredentials ? { withCredentials } : {}),
-                headers: localVarHeaders,
-                observe: observe,
-                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
-                reportProgress: reportProgress
-            }
-        );
-    }
-
-    /**
-     * Search users
-     * Search users by username or name. Admins see all users, regular users only see active users.
-     * @endpoint get /api/v1/users/search
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     */
-    public searchUsers(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PaginatedUsersResponse>;
-    public searchUsers(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PaginatedUsersResponse>>;
-    public searchUsers(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PaginatedUsersResponse>>;
-    public searchUsers(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-
-        let localVarHeaders = this.defaultHeaders;
-
-        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
-            'application/json'
-        ]);
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
-
-        const localVarTransferCache: boolean = options?.transferCache ?? true;
-
-
-        let responseType_: 'text' | 'json' | 'blob' = 'json';
-        if (localVarHttpHeaderAcceptSelected) {
-            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
-                responseType_ = 'text';
-            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
-                responseType_ = 'json';
-            } else {
-                responseType_ = 'blob';
-            }
-        }
-
-        let localVarPath = `/api/v1/users/search`;
-        const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<PaginatedUsersResponse>('get', `${basePath}${localVarPath}`,
+        return this.httpClient.request<{ [key: string]: AdminGetAllConfig200ResponseValue; }>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,
@@ -354,14 +262,16 @@ export class UsersService extends BaseService {
     }
 
     /**
-     * @endpoint post /api/v1/users/avatar
+     * List available config keys
+     * Get metadata about all available configuration keys
+     * @endpoint get /api/v1/admin/config/keys
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public uploadUserAvatar(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Message>;
-    public uploadUserAvatar(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Message>>;
-    public uploadUserAvatar(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Message>>;
-    public uploadUserAvatar(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public adminListConfigKeys(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<AdminListConfigKeys200ResponseInner>>;
+    public adminListConfigKeys(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<AdminListConfigKeys200ResponseInner>>>;
+    public adminListConfigKeys(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<AdminListConfigKeys200ResponseInner>>>;
+    public adminListConfigKeys(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -388,11 +298,78 @@ export class UsersService extends BaseService {
             }
         }
 
-        let localVarPath = `/api/v1/users/avatar`;
+        let localVarPath = `/api/v1/admin/config/keys`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<Message>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<Array<AdminListConfigKeys200ResponseInner>>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                ...(localVarTransferCache !== undefined ? { transferCache: localVarTransferCache } : {}),
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * Set a config value
+     * Set a configuration value (stores in database, overrides env)
+     * @endpoint put /api/v1/admin/config/{key}
+     * @param key 
+     * @param adminSetConfigRequest 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public adminSetConfig(key: string, adminSetConfigRequest?: AdminSetConfigRequest, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<AdminGetAllConfig200ResponseValue>;
+    public adminSetConfig(key: string, adminSetConfigRequest?: AdminSetConfigRequest, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<AdminGetAllConfig200ResponseValue>>;
+    public adminSetConfig(key: string, adminSetConfigRequest?: AdminSetConfigRequest, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<AdminGetAllConfig200ResponseValue>>;
+    public adminSetConfig(key: string, adminSetConfigRequest?: AdminSetConfigRequest, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (key === null || key === undefined) {
+            throw new Error('Required parameter key was null or undefined when calling adminSetConfig.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'application/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/api/v1/admin/config/${this.configuration.encodeParam({name: "key", value: key, in: "path", style: "simple", explode: false, dataType: "string", dataFormat: undefined})}`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<AdminGetAllConfig200ResponseValue>('put', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                body: adminSetConfigRequest,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

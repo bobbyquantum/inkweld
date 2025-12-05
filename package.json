@@ -6,10 +6,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "install-all": "cd frontend && bun install --save-text-lockfile && cd ../backend && bun install && cd ../docs/site && bun install",
-    "install:frontend": "cd frontend && bun install --save-text-lockfile",
-    "install:backend": "cd backend && bun install",
-    "install:docs": "cd docs/site && bun install",
+    "postinstall": "cd frontend && bun install --save-text-lockfile && cd ../backend && bun install && cd ../docs/site && bun install",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && bun run start",
     "dev:backend": "cd backend && bun run dev",

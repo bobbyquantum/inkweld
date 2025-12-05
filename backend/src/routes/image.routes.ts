@@ -4,7 +4,7 @@ import { requireAuth } from '../middleware/auth';
 import { imageService } from '../services/image.service';
 import { getStorageService } from '../services/storage.service';
 import { projectService } from '../services/project.service';
-import { HTTPException } from 'hono/http-exception';
+import { UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '../errors';
 import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
 
@@ -97,7 +97,7 @@ imageRoutes.openapi(uploadCoverRoute, async (c) => {
   const userId = c.get('user')?.id;
 
   if (!userId) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError('Not authenticated');
   }
 
   // Get the uploaded file
@@ -105,18 +105,18 @@ imageRoutes.openapi(uploadCoverRoute, async (c) => {
   const file = body['cover'] as File;
 
   if (!file) {
-    throw new HTTPException(400, { message: 'No file uploaded' });
+    throw new BadRequestError('No file uploaded');
   }
 
   // Verify project ownership
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== userId) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError('Access denied');
   }
 
   // Read file buffer
@@ -125,7 +125,7 @@ imageRoutes.openapi(uploadCoverRoute, async (c) => {
   // Validate image
   const validation = await imageService.validateImage(buffer);
   if (!validation.valid) {
-    throw new HTTPException(400, { message: validation.error || 'Invalid image' });
+    throw new BadRequestError(validation.error || 'Invalid image');
   }
 
   // Process image
@@ -180,12 +180,12 @@ imageRoutes.openapi(getCoverRoute, async (c) => {
   const exists = await storage.projectFileExists(username, slug, 'cover.jpg');
 
   if (!exists) {
-    throw new HTTPException(404, { message: 'Cover image not found' });
+    throw new NotFoundError('Cover image not found');
   }
 
   const data = await storage.readProjectFile(username, slug, 'cover.jpg');
   if (!data) {
-    throw new HTTPException(404, { message: 'Cover image not found' });
+    throw new NotFoundError('Cover image not found');
   }
 
   const uint8Array = data instanceof Buffer ? new Uint8Array(data) : new Uint8Array(data);
@@ -249,24 +249,24 @@ imageRoutes.openapi(deleteCoverRoute, async (c) => {
   const userId = c.get('user')?.id;
 
   if (!userId) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError('Not authenticated');
   }
 
   // Verify project ownership
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== userId) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError('Access denied');
   }
 
   const exists = await storage.projectFileExists(username, slug, 'cover.jpg');
 
   if (!exists) {
-    throw new HTTPException(404, { message: 'Cover image not found' });
+    throw new NotFoundError('Cover image not found');
   }
 
   await storage.deleteProjectFile(username, slug, 'cover.jpg');

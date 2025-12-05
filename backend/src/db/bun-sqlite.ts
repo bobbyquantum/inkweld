@@ -2,7 +2,7 @@
  * Database initialization for Bun runtime using native bun:sqlite
  * This file can ONLY be imported in Bun-specific code paths
  */
-import { drizzle } from 'drizzle-orm/bun-sqlite';
+import { drizzle, BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import { Database as BunDatabase } from 'bun:sqlite';
 import { existsSync } from 'node:fs';
@@ -10,11 +10,11 @@ import { join } from 'node:path';
 import * as schema from './schema';
 import { config } from '../config/env.js';
 
-let db: ReturnType<typeof drizzle> | null = null;
+let db: BunSQLiteDatabase<typeof schema> | null = null;
 let sqlite: BunDatabase | null = null;
 let migrationsApplied = false;
 
-export async function setupBunDatabase(dbPath: string): Promise<ReturnType<typeof drizzle>> {
+export async function setupBunDatabase(dbPath: string): Promise<BunSQLiteDatabase<typeof schema>> {
   if (db) return db;
 
   sqlite = new BunDatabase(dbPath);
@@ -28,16 +28,16 @@ export async function setupBunDatabase(dbPath: string): Promise<ReturnType<typeo
   return db;
 }
 
-export function getBunDatabase(): ReturnType<typeof drizzle> {
+export function getBunDatabase(): BunSQLiteDatabase<typeof schema> {
   if (!db) {
     throw new Error('Bun database not initialized. Call setupBunDatabase() first.');
   }
   return db;
 }
 
-export type BunDatabaseInstance = ReturnType<typeof drizzle>;
+export type BunDatabaseInstance = BunSQLiteDatabase<typeof schema>;
 
-async function runMigrations(database: ReturnType<typeof drizzle>): Promise<void> {
+async function runMigrations(database: BunDatabaseInstance): Promise<void> {
   if (migrationsApplied) {
     return;
   }
@@ -52,30 +52,9 @@ async function runMigrations(database: ReturnType<typeof drizzle>): Promise<void
     return;
   }
 
-  // Check if tables already exist by querying sqlite_master
-  try {
-    const result = sqlite
-      ?.query<
-        { name: string },
-        []
-      >("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
-      .get();
-
-    if (result) {
-      // Tables exist - check if we need to apply any missing columns
-      await applyMissingColumns();
-      console.log('[drizzle] Database tables already exist, skipping migrations');
-      migrationsApplied = true;
-      return;
-    }
-  } catch {
-    // If we can't check, proceed with migrations
-    console.log('[drizzle] Could not check existing tables, attempting migrations');
-  }
-
   try {
     // Drizzle's migrate function handles tracking which migrations have been applied
-    // It will only run migrations that haven't been applied yet
+    // It will only run migrations that haven't been applied yet via __drizzle_migrations table
     await migrate(database, { migrationsFolder });
     migrationsApplied = true;
     console.log('[drizzle] Migrations completed successfully');
@@ -91,16 +70,41 @@ async function runMigrations(database: ReturnType<typeof drizzle>): Promise<void
     console.error('[drizzle] Failed to run migrations:', error);
     throw error;
   }
+
+  // Apply any missing columns for incremental schema changes
+  await applyMissingColumns();
 }
 
 /**
  * Apply any missing columns to existing databases.
- * This handles incremental schema changes without full migrations.
+ * This is a LEGACY fallback for databases that were created before proper migrations.
+ * New schema changes should ONLY use Drizzle migrations.
+ *
+ * @deprecated This should eventually be removed once all databases are migrated properly.
  */
 async function applyMissingColumns(): Promise<void> {
   if (!sqlite) return;
 
-  // Check and add isAdmin column if it doesn't exist
+  // Only apply manual column fixes if Drizzle migrations haven't been set up yet
+  // Check if __drizzle_migrations table exists - if it does, migrations handle schema
+  try {
+    const migrationsTable = sqlite
+      .query<
+        { name: string },
+        []
+      >("SELECT name FROM sqlite_master WHERE type='table' AND name='__drizzle_migrations'")
+      .get();
+
+    if (migrationsTable) {
+      // Drizzle migrations are managing the schema, don't apply manual fixes
+      return;
+    }
+  } catch {
+    // Continue with legacy fixes if we can't check
+  }
+
+  // LEGACY: Check and add isAdmin column if it doesn't exist
+  // This is only for very old databases that predate the migration system
   try {
     const columns = sqlite.query<{ name: string }, []>('PRAGMA table_info(users)').all();
 
@@ -125,7 +129,7 @@ async function applyMissingColumns(): Promise<void> {
  * Only creates the user if DEFAULT_ADMIN_USERNAME and DEFAULT_ADMIN_PASSWORD are set.
  * If the user already exists, it ensures they have admin privileges.
  */
-async function seedDefaultAdmin(database: ReturnType<typeof drizzle>): Promise<void> {
+async function seedDefaultAdmin(database: BunDatabaseInstance): Promise<void> {
   if (!config.defaultAdmin.enabled) {
     return;
   }

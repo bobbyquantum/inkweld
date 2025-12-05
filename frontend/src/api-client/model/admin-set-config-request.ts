@@ -7,12 +7,9 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { User } from './user';
 
 
-export interface PaginatedUsersResponse { 
-    users: Array<User>;
-    total: number;
-    hasMore: boolean;
+export interface AdminSetConfigRequest { 
+    value: string;
 }
 

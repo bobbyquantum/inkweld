@@ -3,6 +3,7 @@
 README.md
 api.base.service.ts
 api.module.ts
+api/admin-config.service.ts
 api/admin.service.ts
 api/ai-image-generation.service.ts
 api/api.ts
@@ -25,7 +26,10 @@ configuration.ts
 encoder.ts
 git_push.sh
 index.ts
-model/admin-list-users200-response-inner.ts
+model/admin-get-all-config200-response-value.ts
+model/admin-list-config-keys200-response-inner.ts
+model/admin-list-pending-users200-response-inner.ts
+model/admin-set-config-request.ts
 model/admin-set-user-admin-request.ts
 model/ai-image-error.ts
 model/ai-image-status.ts

@@ -1,12 +1,10 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, optionalAuth } from '../middleware/auth';
 import { type AppContext } from '../types/context';
-import { users as usersTable } from '../db/schema/users';
 import { userService } from '../services/user.service';
 import { fileStorageService } from '../services/file-storage.service';
 import { imageService } from '../services/image.service';
-import { like, or } from 'drizzle-orm';
 import { UserSchema, PaginatedUsersResponseSchema } from '../schemas/user.schemas';
 import { ErrorResponseSchema } from '../schemas/common.schemas';
 
@@ -15,6 +13,8 @@ const userRoutes = new OpenAPIHono<AppContext>();
 // Apply auth middleware to protected routes
 userRoutes.use('/me', requireAuth);
 userRoutes.use('/avatar', requireAuth);
+// Optional auth for user list - admins get full details, others get limited info
+userRoutes.use('/', optionalAuth);
 
 // Get current user route
 const getCurrentUserRoute = createRoute({
@@ -78,12 +78,25 @@ userRoutes.openapi(getCurrentUserRoute, async (c) => {
   );
 });
 
+// Query parameters for user list
+const ListUsersQuerySchema = z.object({
+  search: z.string().optional().openapi({ description: 'Search by username or email' }),
+  limit: z.string().optional().openapi({ description: 'Number of results per page (default: 20)' }),
+  offset: z.string().optional().openapi({ description: 'Offset for pagination (default: 0)' }),
+});
+
 // Get users route
 const getUsersRoute = createRoute({
   method: 'get',
   path: '/',
   tags: ['Users'],
   operationId: 'listUsers',
+  summary: 'List users',
+  description:
+    'Get a paginated list of users. Admins see all users with full details (including pending/disabled). Regular users only see active (approved+enabled) users with limited info.',
+  request: {
+    query: ListUsersQuerySchema,
+  },
   responses: {
     200: {
       content: {
@@ -97,34 +110,53 @@ const getUsersRoute = createRoute({
 });
 
 userRoutes.openapi(getUsersRoute, async (c) => {
-  const page = parseInt(c.req.query('page') || '1', 10);
-  const pageSize = parseInt(c.req.query('pageSize') || '10', 10);
+  const search = c.req.query('search');
+  const limit = parseInt(c.req.query('limit') || '20', 10);
+  const offset = parseInt(c.req.query('offset') || '0', 10);
 
   const db = c.get('db');
+  const currentUser = c.get('user');
+  const isAdmin = currentUser?.isAdmin ?? false;
 
-  const allUsers = await db
-    .select()
-    .from(usersTable)
-    .limit(pageSize)
-    .offset((page - 1) * pageSize);
+  // Use the service with activeOnly for non-admins
+  const result = await userService.listAll(db, {
+    search,
+    limit,
+    offset,
+    activeOnly: !isAdmin, // Non-admins only see approved+enabled users
+  });
 
-  const totalCount = await db.select().from(usersTable);
-  const total = totalCount.length;
-
-  return c.json(
-    {
-      users: allUsers
-        .filter((u): u is typeof u & { username: string } => u.username !== null)
-        .map((u) => ({
+  // Format users based on admin status
+  const formattedUsers = result.users
+    .filter((u): u is typeof u & { username: string } => u.username !== null)
+    .map((u) => {
+      if (isAdmin) {
+        // Admins get full details
+        return {
+          id: u.id,
+          username: u.username,
+          name: u.name,
+          email: u.email ?? undefined,
+          enabled: u.enabled,
+          approved: u.approved,
+          isAdmin: u.isAdmin,
+        };
+      } else {
+        // Regular users get limited info
+        return {
           id: u.id,
           username: u.username,
           name: u.name,
           enabled: u.enabled,
-        })),
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
+        };
+      }
+    });
+
+  return c.json(
+    {
+      users: formattedUsers,
+      total: result.total,
+      hasMore: result.hasMore,
     },
     200
   );
@@ -136,6 +168,9 @@ const searchUsersRoute = createRoute({
   path: '/search',
   tags: ['Users'],
   operationId: 'searchUsers',
+  summary: 'Search users',
+  description:
+    'Search users by username or name. Admins see all users, regular users only see active users.',
   responses: {
     200: {
       content: {
@@ -150,39 +185,50 @@ const searchUsersRoute = createRoute({
 
 userRoutes.openapi(searchUsersRoute, async (c) => {
   const term = c.req.query('term') || '';
-  const page = parseInt(c.req.query('page') || '1', 10);
-  const pageSize = parseInt(c.req.query('pageSize') || '10', 10);
+  const limit = parseInt(c.req.query('limit') || '20', 10);
+  const offset = parseInt(c.req.query('offset') || '0', 10);
 
   const db = c.get('db');
+  const currentUser = c.get('user');
+  const isAdmin = currentUser?.isAdmin ?? false;
 
-  const searchTerm = `%${term}%`;
-  const foundUsers = await db
-    .select()
-    .from(usersTable)
-    .where(or(like(usersTable.username, searchTerm), like(usersTable.name, searchTerm)))
-    .limit(pageSize)
-    .offset((page - 1) * pageSize);
+  // Use the service with activeOnly for non-admins
+  const result = await userService.listAll(db, {
+    search: term,
+    limit,
+    offset,
+    activeOnly: !isAdmin,
+  });
 
-  const totalResults = await db
-    .select()
-    .from(usersTable)
-    .where(or(like(usersTable.username, searchTerm), like(usersTable.name, searchTerm)));
-  const total = totalResults.length;
-
-  return c.json(
-    {
-      users: foundUsers
-        .filter((u): u is typeof u & { username: string } => u.username !== null)
-        .map((u) => ({
+  // Format users based on admin status
+  const formattedUsers = result.users
+    .filter((u): u is typeof u & { username: string } => u.username !== null)
+    .map((u) => {
+      if (isAdmin) {
+        return {
+          id: u.id,
+          username: u.username,
+          name: u.name,
+          email: u.email ?? undefined,
+          enabled: u.enabled,
+          approved: u.approved,
+          isAdmin: u.isAdmin,
+        };
+      } else {
+        return {
           id: u.id,
           username: u.username,
           name: u.name,
           enabled: u.enabled,
-        })),
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
+        };
+      }
+    });
+
+  return c.json(
+    {
+      users: formattedUsers,
+      total: result.total,
+      hasMore: result.hasMore,
     },
     200
   );

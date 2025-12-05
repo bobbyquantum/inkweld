@@ -1,6 +1,7 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { authService } from '../services/auth.service.js';
 import { userService } from '../services/user.service.js';
+import { configService } from '../services/config.service.js';
 import { config } from '../config/env.js';
 import { type AppContext } from '../types/context.js';
 import {
@@ -53,16 +54,11 @@ authRoutes.openapi(registerRoute, async (c) => {
   const db = c.get('db');
   const { username, password, email, name } = c.req.valid('json');
 
-  // Check USER_APPROVAL_REQUIRED from both context env (Workers) and config (Bun)
-  // In Workers, c.env contains wrangler.toml [vars]
-  // In Bun, config reads from process.env
-  const envApprovalRequired = (c.env as Record<string, string>)?.USER_APPROVAL_REQUIRED;
-  const userApprovalRequired =
-    envApprovalRequired !== undefined
-      ? envApprovalRequired !== 'false'
-      : config.userApprovalRequired;
+  // Check USER_APPROVAL_REQUIRED from database config (set via admin UI)
+  // configService reads database first, then environment, then defaults
+  const userApprovalRequired = await configService.getBoolean(db, 'USER_APPROVAL_REQUIRED');
 
-  // Create user with auto-approve based on env
+  // Create user with auto-approve based on config
   try {
     const newUser = await userService.create(
       db,

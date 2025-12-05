@@ -4,7 +4,7 @@ import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { userService } from '../services/user.service';
 import { documentSnapshotService } from '../services/document-snapshot.service';
-import { HTTPException } from 'hono/http-exception';
+import { UnauthorizedError, ForbiddenError, NotFoundError } from '../errors';
 import { type AppContext } from '../types/context';
 import {
   DocumentSnapshotSchema,
@@ -73,18 +73,18 @@ snapshotRoutes.openapi(getSnapshotsRoute, async (c) => {
   const slug = c.req.param('slug');
   const contextUser = c.get('user');
   if (!contextUser) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError();
   }
   const userId = contextUser.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== userId) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError();
   }
 
   const snapshots = await documentSnapshotService.findByProjectId(db, project.id);
@@ -152,24 +152,24 @@ snapshotRoutes.openapi(getSnapshotRoute, async (c) => {
   const snapshotId = c.req.param('snapshotId');
   const contextUser = c.get('user');
   if (!contextUser) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError();
   }
   const userId = contextUser.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== userId) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError();
   }
 
   const snapshot = await documentSnapshotService.findById(db, snapshotId);
 
   if (!snapshot || snapshot.projectId !== project.id) {
-    throw new HTTPException(404, { message: 'Snapshot not found' });
+    throw new NotFoundError('Snapshot not found');
   }
 
   const response = {
@@ -248,7 +248,7 @@ snapshotRoutes.openapi(createSnapshotRoute, async (c) => {
   const slug = c.req.param('slug');
   const contextUser = c.get('user');
   if (!contextUser) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError();
   }
   const userId = contextUser.id;
   const body = await c.req.json();
@@ -257,16 +257,16 @@ snapshotRoutes.openapi(createSnapshotRoute, async (c) => {
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== userId) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError();
   }
 
   const user = await userService.findById(db, userId);
   if (!user) {
-    throw new HTTPException(404, { message: 'User not found' });
+    throw new NotFoundError('User not found');
   }
 
   const snapshot = await documentSnapshotService.create(db, {
@@ -349,24 +349,24 @@ snapshotRoutes.openapi(deleteSnapshotRoute, async (c) => {
   const snapshotId = c.req.param('snapshotId');
   const contextUser = c.get('user');
   if (!contextUser) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError();
   }
   const userId = contextUser.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== userId) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError();
   }
 
   const snapshot = await documentSnapshotService.findById(db, snapshotId);
 
   if (!snapshot || snapshot.projectId !== project.id) {
-    throw new HTTPException(404, { message: 'Snapshot not found' });
+    throw new NotFoundError('Snapshot not found');
   }
 
   await documentSnapshotService.delete(db, snapshotId);
@@ -437,24 +437,24 @@ snapshotRoutes.openapi(restoreSnapshotRoute, async (c) => {
   const snapshotId = c.req.param('snapshotId');
   const contextUser = c.get('user');
   if (!contextUser) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError();
   }
   const userId = contextUser.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== userId) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError();
   }
 
   const snapshot = await documentSnapshotService.findById(db, snapshotId);
 
   if (!snapshot || snapshot.projectId !== project.id) {
-    throw new HTTPException(404, { message: 'Snapshot not found' });
+    throw new NotFoundError('Snapshot not found');
   }
 
   return c.json({ message: 'Snapshot can be restored', snapshotId: snapshot.id }, 200);
@@ -514,24 +514,24 @@ snapshotRoutes.openapi(previewSnapshotRoute, async (c) => {
   const snapshotId = c.req.param('snapshotId');
   const contextUser = c.get('user');
   if (!contextUser) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError();
   }
   const userId = contextUser.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== userId) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError();
   }
 
   const snapshot = await documentSnapshotService.findById(db, snapshotId);
 
   if (!snapshot || snapshot.projectId !== project.id) {
-    throw new HTTPException(404, { message: 'Snapshot not found' });
+    throw new NotFoundError('Snapshot not found');
   }
 
   const response = {

@@ -59,9 +59,15 @@ export const config = {
     // SQLite/D1 only - Postgres support removed
   },
 
-  // Session
+  // Database encryption key (used for encrypting sensitive config values)
+  // Also used for session cookie signing
+  databaseKey:
+    process.env.DATABASE_KEY ||
+    process.env.SESSION_SECRET ||
+    'fallback-secret-change-in-production',
+
+  // Session (uses databaseKey for signing)
   session: {
-    secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     secure: process.env.NODE_ENV === 'production',
     domain: process.env.COOKIE_DOMAIN,
