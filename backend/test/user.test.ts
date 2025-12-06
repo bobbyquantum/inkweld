@@ -409,7 +409,7 @@ describe('User Routes', () => {
         approved: true,
         enabled: true,
         isAdmin: true,
-      }
+      },
     ]);
   });
 
