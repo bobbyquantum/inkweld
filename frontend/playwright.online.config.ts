@@ -35,7 +35,7 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
 
   /* Test timeout - longer for full-stack tests */
-  timeout: 15000,
+  timeout: 20000,
 
   /* Expect timeout */
   expect: {
