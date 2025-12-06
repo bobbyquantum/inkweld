@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 
+import { adminGuard } from './guards/admin.guard';
 import { authGuard } from './guards/auth.guard';
 import { CanDeactivateProjectGuard } from './guards/can-deactivate-project.guard';
 import { ProjectComponent } from './pages/project/project.component';
@@ -31,6 +32,36 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/home/home.component').then(m => m.HomeComponent),
     title: 'Home',
+  },
+  {
+    path: 'admin',
+    loadComponent: () =>
+      import('./pages/admin/admin.component').then(m => m.AdminComponent),
+    title: 'Admin Dashboard',
+    canActivate: [adminGuard],
+    children: [
+      {
+        path: '',
+        redirectTo: 'users',
+        pathMatch: 'full',
+      },
+      {
+        path: 'users',
+        loadComponent: () =>
+          import('./pages/admin/users/users.component').then(
+            m => m.AdminUsersComponent
+          ),
+        title: 'Admin - Users',
+      },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import('./pages/admin/settings/settings.component').then(
+            m => m.AdminSettingsComponent
+          ),
+        title: 'Admin - Settings',
+      },
+    ],
   },
   {
     path: 'create-project',

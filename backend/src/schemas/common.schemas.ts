@@ -44,6 +44,7 @@ export const UserSchema = z
     email: z.string().optional(),
     approved: z.boolean().optional(),
     enabled: z.boolean(),
+    isAdmin: z.boolean().optional(),
   })
   .openapi('User', {
     example: {
@@ -53,5 +54,6 @@ export const UserSchema = z
       email: 'john@example.com',
       approved: true,
       enabled: true,
+      isAdmin: false,
     },
   });

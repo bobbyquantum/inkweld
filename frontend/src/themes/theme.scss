@@ -397,3 +397,18 @@ mat-toolbar {
   display: flex;
   align-items: center;
 }
+
+/* Glass effect for mat-toolbar */
+mat-toolbar.mat-toolbar {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dark-theme mat-toolbar.mat-toolbar {
+  background: rgba(30, 33, 34, 0.75) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}

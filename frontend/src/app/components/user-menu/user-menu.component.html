@@ -42,14 +42,30 @@
       </div>
       <mat-divider></mat-divider>
       <div class="menu-actions">
+        @if (isAdmin()) {
+          <button
+            mat-menu-item
+            routerLink="/admin"
+            data-testid="admin-menu-link">
+            <mat-icon>admin_panel_settings</mat-icon>
+            <span>Admin</span>
+          </button>
+        }
         <button mat-menu-item (click)="onSettings()">
           <mat-icon>settings</mat-icon>
           <span>Settings</span>
         </button>
-        <button mat-menu-item (click)="onLogout()">
-          <mat-icon>exit_to_app</mat-icon>
-          <span>Log out</span>
-        </button>
+        @if (setupService.getMode() === 'server') {
+          <button mat-menu-item (click)="onLogout()">
+            <mat-icon>exit_to_app</mat-icon>
+            <span>Log out</span>
+          </button>
+        } @else {
+          <button mat-menu-item routerLink="/reset">
+            <mat-icon>restart_alt</mat-icon>
+            <span>Reset App</span>
+          </button>
+        }
       </div>
     }
   </mat-menu>

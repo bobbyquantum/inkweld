@@ -96,7 +96,7 @@ const tokenRoute = createRoute({
 csrfRoutes.openapi(tokenRoute, async (c) => {
   try {
     // Get the secret from config
-    const secret = config.session.secret || 'inkweld-csrf-secret';
+    const secret = config.databaseKey || 'inkweld-csrf-secret';
 
     // Generate a token using our cross-platform function
     const token = await generateCSRFToken(secret);

@@ -1,5 +1,5 @@
 import { MiddlewareHandler } from 'hono';
-import { HTTPException } from 'hono/http-exception';
+import { ForbiddenError } from '../errors';
 import { config } from '../config/env.js';
 
 // Simple CSRF token storage (in production, use Redis or similar)
@@ -36,20 +36,20 @@ export function setupCSRF(): MiddlewareHandler {
     const session = req.session;
 
     if (!session) {
-      throw new HTTPException(403, { message: 'CSRF validation failed: no session' });
+      throw new ForbiddenError('CSRF validation failed: no session');
     }
 
     // Get CSRF token from header
     const token = c.req.header('x-csrf-token');
 
     if (!token) {
-      throw new HTTPException(403, { message: 'CSRF token missing' });
+      throw new ForbiddenError('CSRF token missing');
     }
 
     // Verify token
     const storedToken = session.csrfToken;
     if (!storedToken || token !== storedToken) {
-      throw new HTTPException(403, { message: 'CSRF token invalid' });
+      throw new ForbiddenError('CSRF token invalid');
     }
 
     await next();

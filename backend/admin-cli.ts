@@ -253,6 +253,19 @@ class D1AdminCLI {
     return { ...user, enabled: false };
   }
 
+  async setAdmin(identifier: string, isAdmin: boolean): Promise<User> {
+    const user = await this.findUser(identifier);
+    if (!user) {
+      throw new Error(`User not found: ${identifier}`);
+    }
+
+    await this.executeWrangler(
+      `UPDATE users SET isAdmin = ${isAdmin ? 1 : 0} WHERE id = '${user.id}'`
+    );
+
+    return { ...user, isAdmin };
+  }
+
   async deleteUser(identifier: string): Promise<void> {
     const user = await this.findUser(identifier);
     if (!user) {
@@ -315,7 +328,8 @@ class D1AdminCLI {
   formatUserInfo(user: User): string {
     const status = user.approved ? (user.enabled ? 'Active' : 'Disabled') : 'Pending';
     const auth = user.githubId ? ' [GitHub]' : ' [Local]';
-    return `${user.username} (${user.id}) - ${status}${auth} - ${user.email || 'No email'}`;
+    const admin = user.isAdmin ? ' [Admin]' : '';
+    return `${user.username} (${user.id}) - ${status}${auth}${admin} - ${user.email || 'No email'}`;
   }
 }
 
@@ -512,6 +526,21 @@ class AdminCLI {
     return updated[0];
   }
 
+  async setAdmin(identifier: string, isAdmin: boolean): Promise<User> {
+    const user = await this.findUser(identifier);
+    if (!user) {
+      throw new Error(`User not found: ${identifier}`);
+    }
+
+    const updated = await this.db
+      .update(users)
+      .set({ isAdmin })
+      .where(eq(users.id, user.id))
+      .returning();
+
+    return updated[0];
+  }
+
   async deleteUser(identifier: string): Promise<void> {
     const user = await this.findUser(identifier);
     if (!user) {
@@ -647,8 +676,9 @@ class AdminCLI {
   formatUserInfo(user: User): string {
     const status = user.approved ? (user.enabled ? 'Active' : 'Disabled') : 'Pending';
     const auth = user.githubId ? ' [GitHub]' : ' [Local]';
+    const admin = user.isAdmin ? ' [Admin]' : '';
 
-    return `${user.username} (${user.id}) - ${status}${auth} - ${user.email || 'No email'}`;
+    return `${user.username} (${user.id}) - ${status}${auth}${admin} - ${user.email || 'No email'}`;
   }
 
   async formatProjectInfo(projectId: string): Promise<string> {
@@ -742,6 +772,7 @@ COMMANDS:
   users reject <username|id>      Reject and delete a pending user
   users enable <username|id>      Enable a user account
   users disable <username|id>     Disable a user account
+  users set-admin <username|id> <true|false>  Grant or revoke admin privileges
   users delete <username|id>      Delete a user account
   projects list                   List all projects with owners
   disk usage                      Show disk usage report (SQLite only)
@@ -755,6 +786,7 @@ EXAMPLES:
   bun run admin-cli.ts stats
   bun run admin-cli.ts --verbose debug
   bun run admin-cli.ts users approve alice
+  bun run admin-cli.ts users set-admin alice true
 
   # D1 Database (set DB_TYPE=d1 in .env)
   DB_TYPE=d1 bun run admin-cli.ts stats                    # Local D1 dev
@@ -900,9 +932,9 @@ async function showDockerDeployment() {
     console.log('📝 Configuration saved to .env file');
     console.log('');
     console.log('To build and run manually:');
-    console.log('  $ docker build -t inkweld/backend:local -f backend/Dockerfile .');
+    console.log('  $ docker build -t inkweld:local .');
     console.log(
-      '  $ docker run -d -p 8333:8333 -v inkweld_data:/data --env-file backend/.env --name inkweld-backend inkweld/backend:local'
+      '  $ docker run -d -p 8333:8333 -v inkweld_data:/data --env-file .env --name inkweld inkweld:local'
     );
     console.log('');
   }
@@ -1023,10 +1055,10 @@ async function buildAndRunDocker(config: Record<string, string>): Promise<void> 
   // Check if we're in the backend directory
   const isInBackend = process.cwd().endsWith('backend');
   const projectRoot = isInBackend ? path.join(process.cwd(), '..') : process.cwd();
-  const dockerfilePath = path.join(projectRoot, 'backend', 'Dockerfile');
+  const dockerfilePath = path.join(projectRoot, 'Dockerfile');
 
   if (!fs.existsSync(dockerfilePath)) {
-    console.error('❌ Could not find backend/Dockerfile');
+    console.error('❌ Could not find Dockerfile');
     console.log('   Make sure you run this from the project root or backend directory');
     return;
   }
@@ -1034,7 +1066,7 @@ async function buildAndRunDocker(config: Record<string, string>): Promise<void> 
   try {
     // Build the image
     console.log('Building image (this may take a few minutes)...');
-    execSync(`docker build -t inkweld/backend:local -f ${dockerfilePath} ${projectRoot}`, {
+    execSync(`docker build -t inkweld:local ${projectRoot}`, {
       stdio: 'inherit',
       cwd: projectRoot,
     });
@@ -1232,10 +1264,10 @@ async function showDockerComposeDeployment() {
   console.log('  • Named volumes for data persistence');
   console.log('');
   console.log('Step 2: Create .env file (if not exists)');
-  console.log('  $ cp backend/.env.example backend/.env');
+  console.log('  $ cp .env.example .env');
   console.log('');
   console.log('Step 3: Generate secrets');
-  console.log('  Edit backend/.env and set:');
+  console.log('  Edit .env and set:');
   console.log('  • SESSION_SECRET (32+ characters)');
   console.log('  • POSTGRES_PASSWORD');
   console.log('  • DATABASE_URL');
@@ -1404,7 +1436,7 @@ async function handleDebug(cli: AdminCLI | D1AdminCLI) {
 async function handleUserCommands(cli: AdminCLI | D1AdminCLI, args: string[]) {
   if (args.length === 0) {
     console.error(
-      'User command requires a subcommand: list, pending, approve, reject, enable, disable, delete'
+      'User command requires a subcommand: list, pending, approve, reject, enable, disable, set-admin, delete'
     );
     return;
   }
@@ -1448,6 +1480,15 @@ async function handleUserCommands(cli: AdminCLI | D1AdminCLI, args: string[]) {
         return;
       }
       await disableUser(cli, args[1]);
+      break;
+
+    case 'set-admin':
+      if (args.length < 3) {
+        console.error('set-admin command requires a username or ID and true/false');
+        console.log('Usage: user set-admin <username|id> <true|false>');
+        return;
+      }
+      await setAdmin(cli, args[1], args[2].toLowerCase() === 'true');
       break;
 
     case 'delete':
@@ -1559,6 +1600,15 @@ async function disableUser(cli: AdminCLI | D1AdminCLI, identifier: string) {
 
   const user = await cli.disableUser(identifier);
   console.log(`User disabled: ${cli.formatUserInfo(user)}`);
+}
+
+async function setAdmin(cli: AdminCLI | D1AdminCLI, identifier: string, isAdmin: boolean) {
+  console.log(
+    `${isAdmin ? '👑' : '👤'} Setting admin status for user: ${identifier} to ${isAdmin}`
+  );
+
+  const user = await cli.setAdmin(identifier, isAdmin);
+  console.log(`User updated: ${cli.formatUserInfo(user)}`);
 }
 
 async function deleteUser(cli: AdminCLI | D1AdminCLI, identifier: string) {

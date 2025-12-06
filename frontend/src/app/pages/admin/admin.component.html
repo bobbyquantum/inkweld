@@ -1,0 +1,43 @@
+<mat-sidenav-container class="admin-container" data-testid="admin-page">
+  <mat-sidenav mode="side" opened class="admin-sidenav">
+    <div class="sidenav-header">
+      <a routerLink="/" class="back-link" data-testid="admin-back-link">
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+      <span class="sidenav-title">Admin</span>
+    </div>
+
+    <mat-nav-list>
+      <a
+        mat-list-item
+        routerLink="users"
+        routerLinkActive="active"
+        data-testid="admin-nav-users">
+        <mat-icon matListItemIcon>people</mat-icon>
+        <span matListItemTitle>Users</span>
+      </a>
+      <a
+        mat-list-item
+        routerLink="settings"
+        routerLinkActive="active"
+        data-testid="admin-nav-settings">
+        <mat-icon matListItemIcon>settings</mat-icon>
+        <span matListItemTitle>Settings</span>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="admin-content">
+    <header class="admin-header" data-testid="admin-header">
+      <div class="header-right">
+        @if (currentUser()) {
+          <app-user-menu [user]="currentUser()"></app-user-menu>
+        }
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <router-outlet></router-outlet>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

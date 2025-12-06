@@ -30,6 +30,7 @@ This project is configured with the **Angular CLI MCP Server**, which enables AI
 - `modernize` (experimental) - Provides migration instructions for upgrading code
 
 **Benefits**:
+
 - AI assistants have access to up-to-date Angular documentation
 - Reduces reliance on potentially outdated training data
 - Project-aware guidance based on actual workspace structure
@@ -167,7 +168,7 @@ import { Request, Response } from "express";
 
 ```bash
 # Install all dependencies (from root)
-npm run install-all
+bun install
 
 # Start both frontend and backend
 npm start  # Runs concurrently
@@ -268,9 +269,9 @@ The API client is **auto-generated** - never edit files in `frontend/src/api-cli
 
 ### Backend Environment Variables
 
-Key variables (see `backend/.env.example`):
+Key variables (see `.env.example` at project root):
 
-- `DB_TYPE`: `postgres` or `sqlite` (defaults to postgres)
+- `DB_TYPE`: `sqlite` or `d1` (defaults to sqlite)
 - `PORT`: Server port (default 8333)
 - `SESSION_SECRET`: Session encryption key
 - `DATA_PATH`: Base path for project data (default `./data`)
@@ -295,7 +296,7 @@ Key variables (see `backend/.env.example`):
 
 ### Common Issues
 
-- **Module resolution errors**: Run `npm run install-all` from root
+- **Module resolution errors**: Run `bun install` from root
 - **Build failures**: Clear caches with `rm -rf .angular node_modules && npm install`
 - **Test failures**: Run single test with `npm test -- <pattern>` to isolate issues
 - **Lint errors**: Run `npm run lint:fix` to auto-fix

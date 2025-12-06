@@ -109,7 +109,12 @@ if (isCompiled) {
 const frontendDistPath = process.env.FRONTEND_DIST;
 const hasEmbeddedFrontend = embeddedFrontendFiles && embeddedFrontendFiles.size > 0;
 const hasExternalFrontend = frontendDistPath && existsSync(join(frontendDistPath, 'index.html'));
-const spaEnabled = hasEmbeddedFrontend || hasExternalFrontend;
+// SPA is enabled only if frontend assets exist AND serving is not disabled
+const spaEnabled = config.serveFrontend && (hasEmbeddedFrontend || hasExternalFrontend);
+
+if (!config.serveFrontend) {
+  console.log('[SPA] Frontend serving disabled via SERVE_FRONTEND=false');
+}
 
 const SPA_BYPASS_PREFIXES = ['/api', '/health', '/lint', '/image', '/mcp'];
 

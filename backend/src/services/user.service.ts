@@ -1,10 +1,24 @@
 import bcrypt from 'bcryptjs';
-import { eq } from 'drizzle-orm';
+import { eq, like, or, asc, and } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import { users, User, InsertUser } from '../db/schema';
-import { config } from '../config/env.js';
+import { configService } from './config.service';
 
 const SALT_ROUNDS = 10;
+
+export interface PaginatedUsersResult {
+  users: User[];
+  total: number;
+  hasMore: boolean;
+}
+
+export interface ListUsersOptions {
+  search?: string;
+  limit?: number;
+  offset?: number;
+  /** If true, only return users who are approved AND enabled */
+  activeOnly?: boolean;
+}
 
 class UserService {
   /**
@@ -60,8 +74,10 @@ class UserService {
   ): Promise<User> {
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
 
-    // Use explicit autoApprove option if provided, otherwise fallback to config
-    const shouldAutoApprove = options?.autoApprove ?? !config.userApprovalRequired;
+    // Use explicit autoApprove option if provided, otherwise check database config
+    // configService reads from database first, then environment, then defaults
+    const userApprovalRequired = await configService.getBoolean(db, 'USER_APPROVAL_REQUIRED');
+    const shouldAutoApprove = options?.autoApprove ?? !userApprovalRequired;
 
     const id = crypto.randomUUID();
     const newUser: InsertUser = {
@@ -163,6 +179,13 @@ class UserService {
   }
 
   /**
+   * Reject/unapprove user (admin only)
+   */
+  async rejectUser(db: DatabaseInstance, userId: string): Promise<void> {
+    await db.update(users).set({ approved: false }).where(eq(users.id, userId));
+  }
+
+  /**
    * Enable/disable user (admin only)
    */
   async setUserEnabled(db: DatabaseInstance, userId: string, enabled: boolean): Promise<void> {
@@ -170,10 +193,84 @@ class UserService {
   }
 
   /**
-   * List all users (admin only)
+   * Set user admin status (admin only)
    */
-  async listAll(db: DatabaseInstance): Promise<User[]> {
-    return db.select().from(users).orderBy(users.username);
+  async setUserAdmin(db: DatabaseInstance, userId: string, isAdmin: boolean): Promise<void> {
+    await db.update(users).set({ isAdmin }).where(eq(users.id, userId));
+  }
+
+  /**
+   * Delete user (admin only)
+   */
+  async deleteUser(db: DatabaseInstance, userId: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, userId));
+  }
+
+  /**
+   * List users with pagination and search
+   * If activeOnly is true, only returns approved+enabled users (for non-admins)
+   */
+  async listAll(db: DatabaseInstance, options?: ListUsersOptions): Promise<PaginatedUsersResult> {
+    const limit = options?.limit ?? 50;
+    const offset = options?.offset ?? 0;
+    const search = options?.search?.trim().toLowerCase();
+    const activeOnly = options?.activeOnly ?? false;
+
+    // Build base conditions
+    const conditions: ReturnType<typeof eq>[] = [];
+
+    // If activeOnly, filter to only approved and enabled users
+    if (activeOnly) {
+      conditions.push(eq(users.approved, true));
+      conditions.push(eq(users.enabled, true));
+    }
+
+    // Build query with optional search
+    let query = db.select().from(users);
+
+    // Build where clause
+    let whereClause: ReturnType<typeof and> | ReturnType<typeof or> | undefined;
+
+    if (search) {
+      const searchPattern = `%${search}%`;
+      const searchCondition = or(
+        like(users.username, searchPattern),
+        like(users.email, searchPattern)
+      );
+
+      if (conditions.length > 0) {
+        // Combine activeOnly conditions with search
+        const activeCondition = and(...conditions);
+        whereClause = and(activeCondition, searchCondition);
+      } else {
+        whereClause = searchCondition;
+      }
+    } else if (conditions.length > 0) {
+      whereClause = and(...conditions);
+    }
+
+    if (whereClause) {
+      query = query.where(whereClause) as typeof query;
+    }
+
+    // Get paginated results
+    const result = await query.orderBy(asc(users.username)).limit(limit).offset(offset);
+
+    // Get total count with same filters using Drizzle's $count method
+    const total = await db.$count(users, whereClause);
+
+    return {
+      users: result,
+      total,
+      hasMore: offset + result.length < total,
+    };
+  }
+
+  /**
+   * List pending users awaiting approval (admin only)
+   */
+  async listPending(db: DatabaseInstance): Promise<User[]> {
+    return db.select().from(users).where(eq(users.approved, false)).orderBy(users.username);
   }
 
   /**

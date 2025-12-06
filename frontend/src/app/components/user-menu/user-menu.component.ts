@@ -1,4 +1,4 @@
-import { Component, inject, Input } from '@angular/core';
+import { Component, computed, inject, Input } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,6 +10,12 @@ import { SetupService } from '@services/core/setup.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
+
+// Extended user interface that includes isAdmin
+// This will be properly typed once the API client is regenerated
+interface AdminUser extends User {
+  isAdmin?: boolean;
+}
 
 @Component({
   selector: 'app-user-menu',
@@ -32,6 +38,16 @@ export class UserMenuComponent {
 
   @Input() user: User | undefined = undefined;
   @Input() miniMode = false;
+
+  // Check if current user is an admin (only in server mode)
+  protected isAdmin = computed(() => {
+    const mode = this.setupService.getMode();
+    if (mode !== 'server') {
+      return false;
+    }
+    const currentUser = this.userService.currentUser() as AdminUser | undefined;
+    return currentUser?.isAdmin === true;
+  });
 
   async onLogout() {
     try {

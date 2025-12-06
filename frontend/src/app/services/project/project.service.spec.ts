@@ -1,5 +1,9 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ImagesService } from '@inkweld/api/images.service';
@@ -50,6 +54,7 @@ type ProjectSyncMock = DeepMockProxy<ProjectSyncService>;
 describe('ProjectService', () => {
   let service: ProjectService;
   let api: ApiMock;
+  let httpMock: HttpTestingController;
   let imagesApi: ImagesMock;
   let store: StoreMock;
   let xsrf: XsrfMock;
@@ -106,6 +111,7 @@ describe('ProjectService', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(),
+        provideHttpClientTesting(),
         ProjectService,
         { provide: ProjectsService, useValue: api },
         { provide: ImagesService, useValue: imagesApi },
@@ -118,6 +124,7 @@ describe('ProjectService', () => {
     });
 
     service = TestBed.inject(ProjectService);
+    httpMock = TestBed.inject(HttpTestingController);
   });
 
   it('loads projects from API when cache is empty', async () => {
@@ -949,25 +956,31 @@ describe('ProjectService', () => {
     it('does not save to offline storage in server mode', async () => {
       // Configure server mode (default)
       setup.getMode.mockReturnValue('server');
-
-      // Note: We can't easily test the full server mode flow because
-      // it uses http.post directly, but we can verify it doesn't use
-      // offline storage
       offlineStorage.saveProjectCover.mockResolvedValue(undefined);
 
-      // This test is limited since we can't mock http.post easily
-      // but we can at least ensure offline storage is not used
-      // when we're in server mode. Since the http.post will fail
-      // without a proper mock, we expect the method to throw.
-      try {
-        const coverBlob = new Blob(['test cover'], { type: 'image/png' });
-        await service.uploadProjectCover('alice', 'project-1', coverBlob);
-      } catch {
-        // Expected to fail in server mode without proper http mock
-      }
+      const coverBlob = new Blob(['test cover'], { type: 'image/png' });
 
-      // Should NOT use offline storage in server mode
-      expect(offlineStorage.saveProjectCover).not.toHaveBeenCalled();
+      // Start the upload (don't await yet)
+      const uploadPromise = service.uploadProjectCover(
+        'alice',
+        'project-1',
+        coverBlob
+      );
+
+      // Mock the HTTP response - find the pending request and respond
+      const req = httpMock.expectOne(
+        req =>
+          req.url.includes('/api/v1/projects/alice/project-1/cover') &&
+          req.method === 'POST'
+      );
+      req.flush({ message: 'Cover uploaded' });
+
+      // Now await the upload to complete
+      await uploadPromise;
+
+      // In server mode, saveProjectCover IS called (for caching)
+      // but markPendingUpload should NOT be called (that's offline-only)
+      expect(projectSync.markPendingUpload).not.toHaveBeenCalled();
     });
   });
 

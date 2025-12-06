@@ -9,6 +9,14 @@ import { Page, test as base } from '@playwright/test';
  * The backend runs with an in-memory SQLite database for test isolation.
  */
 
+/**
+ * Default admin credentials (must match playwright.online.config.ts)
+ */
+export const DEFAULT_ADMIN = {
+  username: 'e2e-admin',
+  password: 'E2eAdminPassword123!',
+};
+
 export type OnlineTestFixtures = {
   /**
    * Anonymous page (no authentication).
@@ -21,6 +29,13 @@ export type OnlineTestFixtures = {
    * Creates and logs in a unique test user via the real backend.
    */
   authenticatedPage: Page;
+
+  /**
+   * Admin user page.
+   * Logs in the pre-seeded admin user (e2e-admin).
+   * Use this for testing admin functionality.
+   */
+  adminPage: Page;
 
   /**
    * Offline mode page (configured for offline storage).
@@ -109,6 +124,62 @@ export const test = base.extend<OnlineTestFixtures>({
     // Store credentials for potential later use
     // @ts-expect-error - Dynamic property for test context
     page.testCredentials = { username, password };
+
+    await use(page);
+
+    // Cleanup
+    await context.close();
+  },
+
+  // Admin user page (uses pre-seeded admin)
+  adminPage: async ({ browser }, use) => {
+    // Create a new context for isolation
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    // Login as the pre-seeded admin user (created by DEFAULT_ADMIN_USERNAME/PASSWORD env vars)
+    const token = await authenticateUser(
+      page,
+      DEFAULT_ADMIN.username,
+      DEFAULT_ADMIN.password,
+      false // login, not register
+    );
+
+    // Set up app configuration with auth token
+    await page.addInitScript((authToken: string) => {
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          mode: 'server',
+          serverUrl: 'http://localhost:8333',
+        })
+      );
+
+      localStorage.setItem('auth_token', authToken);
+    }, token);
+
+    // Navigate to the app with config and token already set
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    // Wait for the app to fully initialize
+    await page.waitForFunction(
+      () => {
+        return (
+          !window.location.pathname.includes('setup') &&
+          !window.location.pathname.includes('welcome')
+        );
+      },
+      { timeout: 10000 }
+    );
+
+    // Store admin credentials for potential later use
+    // @ts-expect-error - Dynamic property for test context
+    page.testCredentials = {
+      username: DEFAULT_ADMIN.username,
+      password: DEFAULT_ADMIN.password,
+      isAdmin: true,
+    };
 
     await use(page);
 
@@ -367,70 +438,16 @@ export async function createOfflineProject(
  * Helper to open user settings
  */
 export async function openUserSettings(page: Page): Promise<void> {
-  // Debug: Check localStorage and mode
-  const appMode = await getAppMode(page);
-  const offlineUser = await page.evaluate(() => {
-    return localStorage.getItem('inkweld-offline-user');
-  });
-  console.log('[DEBUG] App mode:', appMode);
-  console.log('[DEBUG] Offline user in localStorage:', offlineUser);
-
-  // Check if user menu component is in the DOM at all
-  const userMenuExists = await page.locator('app-user-menu').count();
-  console.log('[DEBUG] User menu component count:', userMenuExists);
-
-  // Check if the button with data-testid exists
-  const testidButtonExists = await page
-    .locator('[data-testid="user-menu-button"]')
-    .count();
-  console.log('[DEBUG] Button with data-testid count:', testidButtonExists);
-
-  // Check all buttons in the user menu component
-  if (userMenuExists > 0) {
-    const userMenuButtons = await page
-      .locator('app-user-menu button')
-      .allTextContents();
-    console.log('[DEBUG] Buttons inside user-menu component:', userMenuButtons);
-
-    const userMenuHtml = await page.locator('app-user-menu').innerHTML();
-    console.log('[DEBUG] User menu HTML:', userMenuHtml.substring(0, 500));
-  }
-
   // Look for user menu button by data-testid only (no fallback)
   const userMenuButton = page.locator('[data-testid="user-menu-button"]');
 
   // Wait for button to be visible
-  try {
-    await userMenuButton.waitFor({ state: 'visible', timeout: 10000 });
-  } catch {
-    // Debug: Take screenshot and log page state
-    await page.screenshot({ path: 'test-results/debug-no-user-menu.png' });
-    const buttons = await page.locator('button').allTextContents();
-    console.log('[DEBUG] Available buttons:', buttons);
-
-    throw new Error('User menu button not found. See debug screenshot.');
-  }
-
+  await userMenuButton.waitFor({ state: 'visible', timeout: 10000 });
   await userMenuButton.click();
 
   // Click settings option
   const settingsOption = page.getByRole('menuitem', { name: /settings/i });
-  try {
-    await settingsOption.waitFor({ state: 'visible', timeout: 10000 });
-  } catch {
-    // Debug: Check if menu opened
-    const menuItems = await page
-      .locator('[role="menuitem"], [role="menu"] button')
-      .allTextContents();
-    console.log('[DEBUG] Available menu items:', menuItems);
-    await page.screenshot({
-      path: 'test-results/debug-no-settings-menuitem.png',
-    });
-    throw new Error(
-      'Settings menu item not found after clicking user menu. See debug screenshot.'
-    );
-  }
-
+  await settingsOption.waitFor({ state: 'visible', timeout: 10000 });
   await settingsOption.click();
 }
 

@@ -35,21 +35,33 @@ RUN bun install --frozen-lockfile
 # Copy source and build scripts
 COPY backend .
 
+# Determine target architecture for native module patching and Bun compilation
+ARG TARGETARCH
+
 # Patch native modules for Bun binary compilation:
 # This modifies classic-level/binding.js to directly require the Linux glibc prebuild
 # instead of using node-gyp-build's runtime resolution. This allows Bun to statically
 # analyze and embed the .node file in the compiled binary.
-RUN bun scripts/patch-native-modules.ts patch linux-x64-glibc
+RUN PATCH_TARGET=$([ "${TARGETARCH}" = "arm64" ] && echo "linux-arm64-glibc" || echo "linux-x64-glibc") && \
+  echo "Patching native modules for: $PATCH_TARGET" && \
+  bun scripts/patch-native-modules.ts patch $PATCH_TARGET
 
 # Copy frontend dist (for embedding if desired)
 COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 
+# Generate frontend imports file for binary embedding
+# This scans the frontend dist and creates TypeScript imports with { type: 'file' }
+# so Bun can embed all frontend assets in the compiled binary
+RUN bun scripts/generate-frontend-imports.ts
+
 # Build TypeScript and compile to single binary
 # The --compile flag creates a standalone executable with embedded Bun runtime
 # The patched native module is embedded because it's now a static require
-RUN bun run build && \
+RUN BUN_TARGET=$([ "${TARGETARCH}" = "arm64" ] && echo "bun-linux-arm64" || echo "bun-linux-x64") && \
+  echo "Compiling with target: $BUN_TARGET" && \
+  bun run build && \
   bun build --compile --minify --sourcemap \
-  --target=bun-linux-x64 \
+  --target=$BUN_TARGET \
   ./src/bun-runner.ts \
   --outfile ./inkweld-server
 
