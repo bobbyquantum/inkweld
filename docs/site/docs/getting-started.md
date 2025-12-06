@@ -18,10 +18,10 @@ sidebar_position: 2
 ```bash
  git clone https://github.com/bobbyquantum/inkweld.git
  cd inkweld
- bun run install-all
+ bun install
 ```
 
-The `install-all` script installs root tools, the Angular frontend, and the Bun backend in one go.
+This installs all dependencies for the root, Angular frontend, and Bun backend.
 
 ## Configure environment files
 

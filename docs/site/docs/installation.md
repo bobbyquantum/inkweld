@@ -40,7 +40,7 @@ cd inkweld
 ### 2. Install Dependencies
 
 ```bash
-bun run install-all
+bun install
 ```
 
 This installs packages for both frontend and backend.

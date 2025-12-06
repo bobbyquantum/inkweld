@@ -603,7 +603,7 @@ graph TD
 ### NPM Scripts (Root)
 
 ```bash
-npm run install-all   # Install all dependencies
+bun install          # Install all dependencies
 npm start            # Start dev servers
 npm test             # Run all tests
 npm run lint         # Lint all code

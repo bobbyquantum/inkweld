@@ -167,7 +167,7 @@ import { Request, Response } from "express";
 
 ```bash
 # Install all dependencies (from root)
-npm run install-all
+bun install
 
 # Start both frontend and backend
 npm start  # Runs concurrently
@@ -295,7 +295,7 @@ Key variables (see `.env.example` at project root):
 
 ### Common Issues
 
-- **Module resolution errors**: Run `npm run install-all` from root
+- **Module resolution errors**: Run `bun install` from root
 - **Build failures**: Clear caches with `rm -rf .angular node_modules && npm install`
 - **Test failures**: Run single test with `npm test -- <pattern>` to isolate issues
 - **Lint errors**: Run `npm run lint:fix` to auto-fix

@@ -30,7 +30,7 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun run install-all
+        run: bun install
 
       - name: Check code formatting
         run: bun run lint
@@ -50,7 +50,7 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun run install-all
+        run: bun install
 
       - name: Run frontend tests
         run: cd frontend && npm test
@@ -70,7 +70,7 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun run install-all
+        run: bun install
 
       - name: Run backend tests
         run: cd backend && bun test
@@ -90,7 +90,7 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun run install-all
+        run: bun install
 
       - name: Install Playwright browsers
         run: cd frontend && npx playwright install --with-deps chromium
@@ -121,7 +121,7 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun run install-all
+        run: bun install
 
       - name: Install Playwright browsers
         run: cd frontend && npx playwright install --with-deps chromium
@@ -155,7 +155,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Install dependencies
-        run: bun run install-all
+        run: bun install
 
       - name: Install Playwright browsers
         run: cd frontend && npx playwright install --with-deps chromium

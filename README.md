@@ -96,10 +96,10 @@ flowchart TD
 2. **Install dependencies:**
 
     ```bash
-    npm run install-all
+    bun install
     ```
 
-    > This script installs dependencies for both the frontend and backend using the appropriate package managers.
+    > This installs dependencies for both the frontend and backend.
 
 3. **Set up environment variables:**
 
@@ -226,7 +226,7 @@ npm test
 
 This will execute the unit tests for both the frontend and backend projects.
 
-> **Note:** If you encounter module resolution errors, run `npm run install-all` from the repository root to ensure all dependencies are installed.
+> **Note:** If you encounter module resolution errors, run `bun install` from the repository root to ensure all dependencies are installed.
 
 ---
 
