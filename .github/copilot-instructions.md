@@ -30,6 +30,7 @@ This project is configured with the **Angular CLI MCP Server**, which enables AI
 - `modernize` (experimental) - Provides migration instructions for upgrading code
 
 **Benefits**:
+
 - AI assistants have access to up-to-date Angular documentation
 - Reduces reliance on potentially outdated training data
 - Project-aware guidance based on actual workspace structure
