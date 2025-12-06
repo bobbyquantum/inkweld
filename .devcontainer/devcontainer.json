@@ -38,8 +38,6 @@
         // Angular development
         "angular.ng-template",
 
-        // Testing
-        "vitest.explorer",
         "ms-playwright.playwright",
 
         // Backend/API

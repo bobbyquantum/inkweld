@@ -142,90 +142,57 @@ export class NewElementDialogComponent {
         username,
         slug
       );
-      const projectKey = `${username}:${slug}`;
-      const library = await this.worldbuildingService.loadSchemaLibrary(
-        projectKey,
+
+      // Check if library is empty and auto-load defaults if needed
+      const isEmpty = await this.worldbuildingService.hasNoSchemas(
         username,
         slug
       );
 
-      console.log('[NewElementDialog] Loaded library:', library);
-
-      const schemasMap = library.get('schemas');
-
-      // Auto-load default templates if library is empty
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      if (!schemasMap || (schemasMap as any).size === 0) {
+      if (isEmpty) {
         console.log(
           '[NewElementDialog] Schema library empty, auto-loading default templates'
         );
-        await this.worldbuildingService.autoLoadDefaultTemplates(
-          projectKey,
-          username,
-          slug
-        );
+        await this.worldbuildingService.loadDefaults(username, slug);
+      }
 
-        // Reload library after auto-loading
-        const reloadedLibrary =
-          await this.worldbuildingService.loadSchemaLibrary(
-            projectKey,
-            username,
-            slug
-          );
-        const reloadedSchemas = reloadedLibrary.get('schemas');
+      // Get all schemas as plain objects
+      const schemas = await this.worldbuildingService.getAllSchemas(
+        username,
+        slug
+      );
 
-        if (!reloadedSchemas) {
-          console.warn('[NewElementDialog] No schemas after auto-load');
-          return;
-        }
-
-        // Continue with the reloaded schemas
-        this.buildWorldbuildingOptions(reloadedSchemas);
+      if (schemas.length === 0) {
+        console.warn('[NewElementDialog] No schemas found');
         return;
       }
 
-      console.log('[NewElementDialog] Found schemas map');
-      this.buildWorldbuildingOptions(schemasMap);
+      console.log('[NewElementDialog] Found schemas:', schemas.length);
+      this.buildWorldbuildingOptions(schemas);
     } catch (error) {
       console.error('[NewElementDialog] Error loading schemas:', error);
     }
   }
 
   /**
-   * Build worldbuilding type options from schemas map
+   * Build worldbuilding type options from schemas array
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private buildWorldbuildingOptions(schemasMap: any): void {
+  private buildWorldbuildingOptions(
+    schemas: { type: string; name: string; icon: string; description: string }[]
+  ): void {
     const worldbuildingOptions: ElementTypeOption[] = [];
 
-    // Iterate through available schemas
-    // Y.Map iteration requires any types for dynamic schema structure
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    schemasMap.forEach((schemaData: any) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const type = schemaData.get('type');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const name = schemaData.get('name');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const icon = schemaData.get('icon');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const description = schemaData.get('description');
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const schemaInfo = { type, name, icon, description };
-      console.log('[NewElementDialog] Found schema:', schemaInfo);
+    for (const schema of schemas) {
+      console.log('[NewElementDialog] Found schema:', schema);
 
       worldbuildingOptions.push({
-        type: type as ElementType,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        label: name,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        icon: icon,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        description: description,
+        type: schema.type as ElementType,
+        label: schema.name,
+        icon: schema.icon,
+        description: schema.description,
         category: 'worldbuilding',
       });
-    });
+    }
 
     console.log(
       '[NewElementDialog] Built worldbuilding options:',

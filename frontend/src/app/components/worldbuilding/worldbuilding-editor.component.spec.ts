@@ -6,7 +6,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
-import * as Y from 'yjs';
 
 import { Element, ElementType } from '../../../api-client';
 import { ElementTypeSchema } from '../../models/schema-types';
@@ -88,11 +87,12 @@ describe('WorldbuildingEditorComponent', () => {
 
   beforeEach(async () => {
     worldbuildingService = mockDeep<WorldbuildingService>();
-    const mockYMap = new Y.Map();
-    worldbuildingService.setupCollaboration.mockResolvedValue(mockYMap);
-    worldbuildingService.loadSchemaFromElement.mockReturnValue(
+
+    // Mock the new abstraction methods
+    worldbuildingService.getEmbeddedSchema.mockResolvedValue(
       mockCharacterSchema
     );
+    worldbuildingService.updateEmbeddedSchema.mockResolvedValue();
     worldbuildingService.getWorldbuildingData.mockResolvedValue({
       id: 'test-element-123',
       type: 'character',
@@ -101,14 +101,7 @@ describe('WorldbuildingEditorComponent', () => {
     } as Record<string, unknown>);
     worldbuildingService.observeChanges.mockResolvedValue(() => {});
     worldbuildingService.saveWorldbuildingData.mockResolvedValue();
-
-    // Set up connections mock
-    const mockYDoc = new Y.Doc();
-    const connectionsMap = new Map();
-    connectionsMap.set('test-element-123', { ydoc: mockYDoc });
-    Object.defineProperty(worldbuildingService, 'connections', {
-      get: () => connectionsMap,
-    });
+    worldbuildingService.initializeWorldbuildingElement.mockResolvedValue();
 
     mockDialog = {
       open: vi.fn().mockReturnValue({
@@ -244,7 +237,7 @@ describe('WorldbuildingEditorComponent', () => {
     it('should handle schema with no tabs gracefully', () => {
       const emptySchema: ElementTypeSchema = {
         ...mockCharacterSchema,
-        tabs: undefined as any,
+        tabs: undefined as unknown as ElementTypeSchema['tabs'],
       };
       // Should not throw
       component['buildFormFromSchema'](emptySchema);
@@ -314,11 +307,16 @@ describe('WorldbuildingEditorComponent', () => {
       mockDialog.open.mockReturnValue({
         afterClosed: () => of(updatedSchema),
       });
-      worldbuildingService.embedSchemaInElement.mockImplementation(() => {});
 
       await component.editEmbeddedTemplate();
 
-      expect(worldbuildingService.embedSchemaInElement).toHaveBeenCalled();
+      // Should use the abstraction method
+      expect(worldbuildingService.updateEmbeddedSchema).toHaveBeenCalledWith(
+        'test-element-123',
+        updatedSchema,
+        'testuser',
+        'test-project'
+      );
       expect(component['schema']()).toEqual(updatedSchema);
     });
   });
@@ -349,21 +347,21 @@ describe('WorldbuildingEditorComponent', () => {
     it('should load schema and data on element load', async () => {
       await component['loadElementData']('test-element-123');
 
-      expect(worldbuildingService.setupCollaboration).toHaveBeenCalledWith(
+      // Should use the abstraction method
+      expect(worldbuildingService.getEmbeddedSchema).toHaveBeenCalledWith(
         'test-element-123',
         'testuser',
         'test-project'
       );
-      expect(worldbuildingService.loadSchemaFromElement).toHaveBeenCalled();
       expect(worldbuildingService.getWorldbuildingData).toHaveBeenCalledWith(
         'test-element-123'
       );
     });
 
     it('should handle missing schema by initializing element', async () => {
-      worldbuildingService.loadSchemaFromElement
-        .mockReturnValueOnce(null)
-        .mockReturnValueOnce(mockCharacterSchema);
+      worldbuildingService.getEmbeddedSchema
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(mockCharacterSchema);
 
       await component['loadElementData']('test-element-123');
 
@@ -376,7 +374,7 @@ describe('WorldbuildingEditorComponent', () => {
       const consoleSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      worldbuildingService.setupCollaboration.mockRejectedValue(
+      worldbuildingService.getEmbeddedSchema.mockRejectedValue(
         new Error('Connection failed')
       );
 
@@ -403,22 +401,25 @@ describe('WorldbuildingEditorComponent', () => {
       const mockUnsubscribe = vi.fn();
       component['unsubscribeObserver'] = mockUnsubscribe;
 
-      await component['setupRealtimeSync']('new-element-456');
+      await component['setupRealtimeSync']('test-element-123');
 
       expect(mockUnsubscribe).toHaveBeenCalled();
     });
   });
 
   describe('saveData', () => {
-    it('should save form data through worldbuilding service', async () => {
+    beforeEach(() => {
       component['buildFormFromSchema'](mockCharacterSchema);
-      component.form.patchValue({ name: 'Test Name', age: 25 });
+    });
+
+    it('should save form data to service', async () => {
+      component.form.patchValue({ name: 'Test Name', age: 30 });
 
       await component['saveData']();
 
       expect(worldbuildingService.saveWorldbuildingData).toHaveBeenCalledWith(
         'test-element-123',
-        expect.objectContaining({ name: 'Test Name', age: 25 }),
+        expect.objectContaining({ name: 'Test Name', age: 30 }),
         'testuser',
         'test-project'
       );
