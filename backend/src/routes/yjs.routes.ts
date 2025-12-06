@@ -29,17 +29,26 @@ app.get(
       return {};
     }
 
-    console.log(`WebSocket connection for document: ${documentId}`);
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Yjs WSSharedDoc type is complex
     let doc: any = null;
     let pingInterval: Timer | null = null;
+    // Queue messages received before doc is ready (fixes race condition where
+    // client sends syncStep1 before handleConnection completes)
+    let pendingMessages: ArrayBuffer[] = [];
+    let docReady = false;
 
     return {
       async onOpen(_event, ws) {
-        console.log(`WebSocket opened for ${documentId}`);
         // Store the doc for use in other handlers
         doc = await yjsService.handleConnection(ws.raw, documentId);
+
+        // Process any messages that arrived while we were setting up
+        docReady = true;
+        for (const data of pendingMessages) {
+          const buffer = Buffer.from(data);
+          yjsService.handleMessage(ws.raw, doc, buffer);
+        }
+        pendingMessages = [];
 
         // Set up ping heartbeat to keep connection alive and detect broken connections
         // This is especially important when browser tabs go out of focus
@@ -63,9 +72,14 @@ app.get(
       },
       onMessage(event, ws) {
         // Yjs messages are binary
-        if (event.data instanceof ArrayBuffer && doc) {
-          const buffer = Buffer.from(event.data);
-          yjsService.handleMessage(ws.raw, doc, buffer);
+        if (event.data instanceof ArrayBuffer) {
+          if (docReady && doc) {
+            const buffer = Buffer.from(event.data);
+            yjsService.handleMessage(ws.raw, doc, buffer);
+          } else {
+            // Queue message until doc is ready
+            pendingMessages.push(event.data);
+          }
         }
       },
       onClose(_event, ws) {

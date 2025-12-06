@@ -14,6 +14,8 @@ describe('User Service', () => {
     await db.delete(users).where(eq(users.username, 'serviceuser'));
     await db.delete(users).where(eq(users.username, 'githubuser'));
     await db.delete(users).where(eq(users.username, 'passworduser'));
+    await db.delete(users).where(eq(users.username, 'zuser'));
+    await db.delete(users).where(eq(users.username, 'auser'));
     await db.delete(users).where(eq(users.email, 'service@example.com'));
     await db.delete(users).where(eq(users.email, 'github@example.com'));
   });
