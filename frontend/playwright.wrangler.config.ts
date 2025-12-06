@@ -77,7 +77,6 @@ export default defineConfig({
       reuseExistingServer: !process.env['CI'],
       timeout: 90000, // Wrangler is slower to start
       env: {
-        // Wrangler reads from wrangler.toml, but we can override some things
         NODE_ENV: 'test',
       },
     },
