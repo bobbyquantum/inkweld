@@ -70,6 +70,9 @@ vi.mock('y-indexeddb', () => {
         return Promise.resolve();
       }
     },
+    storeState: () => Promise.resolve(),
+    fetchUpdates: () => Promise.resolve(),
+    clearDocument: () => Promise.resolve(),
   };
 });
 

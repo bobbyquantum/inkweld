@@ -47,8 +47,8 @@ export default defineConfig({
 
   /* Shared settings for all the projects below */
   use: {
-    /* Base URL - frontend served separately */
-    baseURL: 'http://localhost:4200',
+    /* Base URL - frontend served separately (dedicated e2e port to avoid clashing with dev server) */
+    baseURL: 'http://localhost:4400',
 
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
@@ -69,11 +69,11 @@ export default defineConfig({
   webServer: [
     {
       // Wrangler dev server (Workers runtime locally)
-      // Uses --local for local persistence, --port to match expected port
+      // Uses --local for local persistence, --port to avoid clashing with dev server
       // Note: Run `bun run init:d1-local` in backend/ first to initialize the database
-      command: 'npx wrangler dev --local --port 8333',
+      command: 'npx wrangler dev --local --port 9333',
       cwd: '../backend',
-      url: 'http://localhost:8333/api/v1/health',
+      url: 'http://localhost:9333/api/v1/health',
       reuseExistingServer: !process.env['CI'],
       timeout: 90000, // Wrangler is slower to start
       env: {
@@ -82,9 +82,9 @@ export default defineConfig({
       },
     },
     {
-      // Frontend server
-      command: 'npm start',
-      url: 'http://localhost:4200',
+      // Frontend server (dedicated e2e port to avoid clashing with dev server)
+      command: 'npm start -- --port 4400',
+      url: 'http://localhost:4400',
       reuseExistingServer: !process.env['CI'],
       timeout: 120000,
     },

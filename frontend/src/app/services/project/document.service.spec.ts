@@ -18,34 +18,28 @@ import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 
 // Mock y-indexeddb with all required exports
-vi.mock('y-indexeddb', () => {
-  // Create mock function inside factory to avoid hoisting issues
-  const mockStoreState = (): Promise<void> => Promise.resolve();
-
-  class MockIndexeddbPersistence {
+// Note: All mock implementations must be defined inline without referencing vi.fn()
+// to avoid vitest hoisting issues in CI environments
+vi.mock('y-indexeddb', () => ({
+  IndexeddbPersistence: class MockIndexeddbPersistence {
     whenSynced = Promise.resolve();
-    destroy = vi.fn();
+    destroy = () => {};
     constructor(_name: string, _doc: unknown) {}
-  }
-
-  return {
-    IndexeddbPersistence: MockIndexeddbPersistence,
-    storeState: mockStoreState,
-    // Include other exports that might be needed
-    fetchUpdates: vi.fn().mockResolvedValue(undefined),
-    clearDocument: vi.fn().mockResolvedValue(undefined),
-  };
-});
+  },
+  storeState: () => Promise.resolve(),
+  fetchUpdates: () => Promise.resolve(),
+  clearDocument: () => Promise.resolve(),
+}));
 
 // Mock y-websocket
 vi.mock('y-websocket', () => ({
   WebsocketProvider: class WebsocketProvider {
-    on = vi.fn();
-    connect = vi.fn();
-    destroy = vi.fn();
+    on = () => {};
+    connect = () => {};
+    destroy = () => {};
     awareness = {
-      setLocalState: vi.fn(),
-      setLocalStateField: vi.fn(),
+      setLocalState: () => {},
+      setLocalStateField: () => {},
       getStates: () => new Map(),
     };
     constructor(
