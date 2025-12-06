@@ -30,6 +30,7 @@ export interface FieldValidation {
 }
 
 export interface FieldSchema {
+  id?: string;
   key: string;
   label: string;
   type: FieldType | string;

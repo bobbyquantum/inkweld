@@ -96,48 +96,47 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   private async loadElementData(elementId: string): Promise<void> {
     try {
-      await this.worldbuildingService.setupCollaboration(
+      // Load the embedded schema using the abstraction layer
+      const loadedSchema = await this.worldbuildingService.getEmbeddedSchema(
         elementId,
         this.username(),
         this.slug()
       );
-      const ydoc =
-        this.worldbuildingService['connections'].get(elementId)?.ydoc;
+      this.schema.set(loadedSchema);
+      console.log('[WorldbuildingEditor] Loaded schema:', loadedSchema);
 
-      if (ydoc) {
-        const loadedSchema =
-          this.worldbuildingService.loadSchemaFromElement(ydoc);
-        this.schema.set(loadedSchema);
-        console.log('[WorldbuildingEditor] Loaded schema:', loadedSchema);
-
-        if (!loadedSchema && this.username() && this.slug()) {
-          const elements = this.projectState.elements();
-          const element: ApiElement | undefined = elements.find(
-            (el: ApiElement) => el.id === elementId
+      if (!loadedSchema && this.username() && this.slug()) {
+        const elements = this.projectState.elements();
+        const element: ApiElement | undefined = elements.find(
+          (el: ApiElement) => el.id === elementId
+        );
+        if (element) {
+          await this.worldbuildingService.initializeWorldbuildingElement(
+            element,
+            this.username(),
+            this.slug()
           );
-          if (element) {
-            await this.worldbuildingService.initializeWorldbuildingElement(
-              element,
+
+          // Re-fetch the schema after initialization
+          const reinitializedSchema =
+            await this.worldbuildingService.getEmbeddedSchema(
+              elementId,
               this.username(),
               this.slug()
             );
-
-            const reinitializedSchema =
-              this.worldbuildingService.loadSchemaFromElement(ydoc);
-            this.schema.set(reinitializedSchema);
-            if (reinitializedSchema) {
-              this.buildFormFromSchema(reinitializedSchema);
-            }
+          this.schema.set(reinitializedSchema);
+          if (reinitializedSchema) {
+            this.buildFormFromSchema(reinitializedSchema);
           }
-        } else if (loadedSchema) {
-          this.buildFormFromSchema(loadedSchema);
         }
+      } else if (loadedSchema) {
+        this.buildFormFromSchema(loadedSchema);
+      }
 
-        const data =
-          await this.worldbuildingService.getWorldbuildingData(elementId);
-        if (data) {
-          this.updateFormFromData(data);
-        }
+      const data =
+        await this.worldbuildingService.getWorldbuildingData(elementId);
+      if (data) {
+        this.updateFormFromData(data);
       }
     } catch (error) {
       console.error('[WorldbuildingEditor] Error loading element data:', error);
@@ -311,16 +310,15 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         | undefined;
       if (result) {
         const elementId = this.elementId();
-        const connection =
-          this.worldbuildingService['connections'].get(elementId);
-        if (connection?.ydoc) {
-          this.worldbuildingService.embedSchemaInElement(
-            connection.ydoc,
-            result
-          );
-          this.schema.set(result);
-          this.buildFormFromSchema(result);
-        }
+        // Use the abstraction layer to update the embedded schema
+        await this.worldbuildingService.updateEmbeddedSchema(
+          elementId,
+          result,
+          this.username(),
+          this.slug()
+        );
+        this.schema.set(result);
+        this.buildFormFromSchema(result);
       }
     } catch (error) {
       console.error(

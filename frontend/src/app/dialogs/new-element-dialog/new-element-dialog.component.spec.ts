@@ -9,8 +9,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { ElementType, Project } from '@inkweld/index';
 import { MockedObject, vi } from 'vitest';
-import * as Y from 'yjs';
 
+import { ElementTypeSchema } from '../../models/schema-types';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { NewElementDialogComponent } from './new-element-dialog.component';
@@ -23,8 +23,9 @@ describe('NewElementDialogComponent', () => {
     project: ReturnType<typeof signal<Project | undefined>>;
   };
   let mockWorldbuildingService: {
-    loadSchemaLibrary: ReturnType<typeof vi.fn>;
-    autoLoadDefaultTemplates: ReturnType<typeof vi.fn>;
+    getAllSchemas: ReturnType<typeof vi.fn>;
+    hasNoSchemas: ReturnType<typeof vi.fn>;
+    loadDefaults: ReturnType<typeof vi.fn>;
   };
 
   const mockProject: Project = {
@@ -37,29 +38,20 @@ describe('NewElementDialogComponent', () => {
     updatedDate: '2024-01-01',
   };
 
-  const createMockSchemaLibrary = (schemas: any[]): Y.Map<unknown> => {
-    const doc = new Y.Doc();
-    const library = doc.getMap('library');
-    const schemasMap = new Y.Map<unknown>();
-    library.set('schemas', schemasMap);
-
-    schemas.forEach(schema => {
-      const schemaYMap = new Y.Map<unknown>();
-      schemaYMap.set('type', schema.type);
-      schemaYMap.set('name', schema.name);
-      schemaYMap.set('icon', schema.icon);
-      schemaYMap.set('description', schema.description);
-      schemasMap.set(schema.type as string, schemaYMap);
-    });
-
-    return library;
-  };
-
-  const createEmptySchemaLibrary = (): Y.Map<unknown> => {
-    const doc = new Y.Doc();
-    const library = doc.getMap('library');
-    library.set('schemas', new Y.Map());
-    return library;
+  const createMockSchemas = (
+    schemas: Partial<ElementTypeSchema>[]
+  ): ElementTypeSchema[] => {
+    return schemas.map(schema => ({
+      id: schema.id || 'generated-id',
+      type: schema.type || 'UNKNOWN',
+      name: schema.name || 'Unknown',
+      icon: schema.icon || 'help',
+      description: schema.description || '',
+      version: schema.version || 1,
+      isBuiltIn: schema.isBuiltIn ?? true,
+      tabs: schema.tabs || [],
+      ...schema,
+    })) as ElementTypeSchema[];
   };
 
   beforeEach(async () => {
@@ -72,8 +64,9 @@ describe('NewElementDialogComponent', () => {
     };
 
     mockWorldbuildingService = {
-      loadSchemaLibrary: vi.fn(),
-      autoLoadDefaultTemplates: vi.fn(),
+      getAllSchemas: vi.fn(),
+      hasNoSchemas: vi.fn(),
+      loadDefaults: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -243,7 +236,7 @@ describe('NewElementDialogComponent', () => {
 
   describe('worldbuilding type loading', () => {
     it('should load worldbuilding types when project is set', async () => {
-      const mockLibrary = createMockSchemaLibrary([
+      const mockSchemas = createMockSchemas([
         {
           type: 'CHARACTER',
           name: 'Character',
@@ -258,7 +251,8 @@ describe('NewElementDialogComponent', () => {
         },
       ]);
 
-      mockWorldbuildingService.loadSchemaLibrary.mockResolvedValue(mockLibrary);
+      mockWorldbuildingService.hasNoSchemas.mockResolvedValue(false);
+      mockWorldbuildingService.getAllSchemas.mockResolvedValue(mockSchemas);
 
       mockProjectState.project.set(mockProject);
       fixture.detectChanges();
@@ -266,8 +260,7 @@ describe('NewElementDialogComponent', () => {
       // Wait for async loading
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      expect(mockWorldbuildingService.loadSchemaLibrary).toHaveBeenCalledWith(
-        'testuser:test-project',
+      expect(mockWorldbuildingService.getAllSchemas).toHaveBeenCalledWith(
         'testuser',
         'test-project'
       );
@@ -279,8 +272,7 @@ describe('NewElementDialogComponent', () => {
     });
 
     it('should auto-load default templates if library is empty', async () => {
-      const emptyLibrary = createEmptySchemaLibrary();
-      const loadedLibrary = createMockSchemaLibrary([
+      const loadedSchemas = createMockSchemas([
         {
           type: 'CHARACTER',
           name: 'Character',
@@ -289,22 +281,16 @@ describe('NewElementDialogComponent', () => {
         },
       ]);
 
-      mockWorldbuildingService.loadSchemaLibrary
-        .mockResolvedValueOnce(emptyLibrary)
-        .mockResolvedValueOnce(loadedLibrary);
-      mockWorldbuildingService.autoLoadDefaultTemplates.mockResolvedValue(
-        undefined
-      );
+      mockWorldbuildingService.hasNoSchemas.mockResolvedValue(true);
+      mockWorldbuildingService.loadDefaults.mockResolvedValue(undefined);
+      mockWorldbuildingService.getAllSchemas.mockResolvedValue(loadedSchemas);
 
       mockProjectState.project.set(mockProject);
       fixture.detectChanges();
 
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      expect(
-        mockWorldbuildingService.autoLoadDefaultTemplates
-      ).toHaveBeenCalledWith(
-        'testuser:test-project',
+      expect(mockWorldbuildingService.loadDefaults).toHaveBeenCalledWith(
         'testuser',
         'test-project'
       );
@@ -317,7 +303,7 @@ describe('NewElementDialogComponent', () => {
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      mockWorldbuildingService.loadSchemaLibrary.mockRejectedValue(
+      mockWorldbuildingService.hasNoSchemas.mockRejectedValue(
         new Error('Load failed')
       );
 
@@ -334,7 +320,7 @@ describe('NewElementDialogComponent', () => {
     });
 
     it('should filter worldbuilding options by search', async () => {
-      const mockLibrary = createMockSchemaLibrary([
+      const mockSchemas = createMockSchemas([
         {
           type: 'CHARACTER',
           name: 'Character',
@@ -349,7 +335,8 @@ describe('NewElementDialogComponent', () => {
         },
       ]);
 
-      mockWorldbuildingService.loadSchemaLibrary.mockResolvedValue(mockLibrary);
+      mockWorldbuildingService.hasNoSchemas.mockResolvedValue(false);
+      mockWorldbuildingService.getAllSchemas.mockResolvedValue(mockSchemas);
 
       mockProjectState.project.set(mockProject);
       fixture.detectChanges();
