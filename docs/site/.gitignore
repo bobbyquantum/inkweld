@@ -11,6 +11,10 @@
 # Copied OpenAPI spec (generated from backend)
 /static/openapi.json
 
+# Generated screenshots (created by playwright e2e:screenshots)
+/static/img/bookshelf-*.png
+/static/img/editor-*.png
+
 # Misc
 .DS_Store
 .env.local

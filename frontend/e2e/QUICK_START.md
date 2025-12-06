@@ -22,12 +22,12 @@ bun run e2e
 
 #### Registration Tests (10 tests)
 ```bash
-npx playwright test e2e/auth/registration.spec.ts
+npx playwright test --config=playwright.online.config.ts e2e/online/auth/registration.spec.ts
 ```
 
 #### Login Tests (5 tests)
 ```bash
-npx playwright test e2e/auth/login.spec.ts
+npx playwright test --config=playwright.online.config.ts e2e/online/auth/login.spec.ts
 ```
 
 #### Project Workflow Tests (17 tests)
@@ -92,8 +92,8 @@ npx playwright show-report
 ## Test Categories
 
 ### Authentication (15 tests total)
-- `e2e/auth/login.spec.ts` - Login flows
-- `e2e/auth/registration.spec.ts` - Registration flows
+- `e2e/online/auth/login.spec.ts` - Login flows (online mode)
+- `e2e/online/auth/registration.spec.ts` - Registration flows (online mode)
 
 ### Projects (17 tests)
 - `e2e/projects.spec.ts` - Project CRUD operations
@@ -172,7 +172,8 @@ test('slow test', async ({ page }) => {
 
 2. **Focus on Specific Area**
    ```bash
-   npx playwright test e2e/auth/
+   # Run all online auth tests
+   npx playwright test --config=playwright.online.config.ts e2e/online/auth/
    ```
 
 3. **Use UI Mode for Development**

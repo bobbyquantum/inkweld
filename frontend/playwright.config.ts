@@ -1,100 +1,23 @@
-/// <reference types="node" />
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
+import dockerConfig from './playwright.docker.config';
+import onlineConfig from './playwright.online.config';
+import offlineConfig from './playwright.offline.config';
+import wranglerConfig from './playwright.wrangler.config';
+import screenshotsConfig from './playwright.screenshots.config';
 
-/**
- * Main Playwright Configuration (Legacy/Mock API tests)
- *
- * This configuration runs tests in the root e2e folder that use mock APIs.
- * These are tests that haven't been categorized into offline or online yet.
- *
- * RECOMMENDED: Use the specific configs instead:
- *   - npm run e2e:offline  - Pure offline tests (no network)
- *   - npm run e2e:online   - Full-stack tests with real backend
- *   - npm run e2e          - Runs both offline and online tests
- *
- * See https://playwright.dev/docs/test-configuration.
- */
-export default defineConfig({
-  testDir: './e2e',
-  // Exclude offline, online, fullstack folders and common utilities
-  testIgnore: ['**/offline/**', '**/online/**', '**/fullstack/**', '**/common/**'],
-  /* Run tests in files in parallel */
-  fullyParallel: false, // Sequential for database state management
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
-  forbidOnly: !!process.env['CI'],
-  /* Retry on CI only */
-  retries: process.env['CI'] ? 2 : 0,
-  /* Limit parallel workers for database state management */
-  workers: 1,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
-  /* Test timeout */
-  timeout: 25000,
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
-  use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env['PLAYWRIGHT_TEST_BASE_URL'] ?? 'http://localhost:4200',
+const configMap = {
+  docker: dockerConfig,
+  online: onlineConfig,
+  offline: offlineConfig,
+  wrangler: wranglerConfig,
+  screenshots: screenshotsConfig,
+};
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    //trace: 'on-first-retry',
-    trace: 'on',
+const configType = process.env.TEST_ENV || 'online';
+const selectedConfig = configMap[configType as keyof typeof configMap];
 
-    /* Block Service Workers to ensure API mocking works */
-    serviceWorkers: 'block',
-  },
+if (!selectedConfig) {
+  throw new Error(`Unknown TEST_ENV: ${configType}`);
+}
 
-  /* Configure web server for frontend only (mock API) */
-  webServer: process.env['E2E_MODE'] === 'prod'
-    ? {
-        // Serve production build
-      command: 'npx http-server dist/browser -p 4200 -c-1 --proxy http://localhost:4200?',
-      url: 'http://localhost:4200',
-        reuseExistingServer: !process.env['CI'],
-        timeout: 120000,
-      }
-    : {
-        // Frontend dev server
-        command: 'npm start',
-        url: 'http://localhost:4200',
-        reuseExistingServer: !process.env['CI'],
-        timeout: 120000,
-      },
-
-  /* Configure projects for major browsers */
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
-
-    /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
-  ],
-});
+export default selectedConfig;
