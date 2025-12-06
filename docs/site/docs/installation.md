@@ -47,10 +47,9 @@ This installs packages for both frontend and backend.
 
 ### 3. Configure Environment
 
-Backend configuration:
+Create your environment configuration at the project root:
 
 ```bash
-cd backend
 cp .env.example .env
 ```
 

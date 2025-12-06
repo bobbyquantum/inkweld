@@ -103,7 +103,7 @@ flowchart TD
 
 3. **Set up environment variables:**
 
-    - Copy `.env.example` to `.env` and update the values as needed.
+    - Copy `.env.example` to `.env` at the project root and update the values as needed.
 
 4. **(Optional) Enable Angular MCP for AI Assistants:**
 
@@ -164,7 +164,7 @@ To build and run with Docker Compose:
 npm run compose:up:prod
 ```
 
-This uses `backend/Dockerfile` to build the all-in-one image (Angular SPA + Hono backend running on Bun) and persists SQLite/Yjs data in the `inkweld_data` volume. On boot the container automatically runs Drizzle migrations from `/app/backend/drizzle` so the SQLite schema is ready before requests arrive. See `DEPLOY.md` for production-ready variants, including Cloudflare Worker deployments.
+This uses the root `Dockerfile` to build the all-in-one image (Angular SPA + Hono backend compiled into a single Bun binary) and persists SQLite/Yjs data in the `inkweld_data` volume. On boot the container automatically runs Drizzle migrations so the SQLite schema is ready before requests arrive. See `DEPLOY.md` for production deployment options.
 
 ---
 

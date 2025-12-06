@@ -268,9 +268,9 @@ The API client is **auto-generated** - never edit files in `frontend/src/api-cli
 
 ### Backend Environment Variables
 
-Key variables (see `backend/.env.example`):
+Key variables (see `.env.example` at project root):
 
-- `DB_TYPE`: `postgres` or `sqlite` (defaults to postgres)
+- `DB_TYPE`: `sqlite` or `d1` (defaults to sqlite)
 - `PORT`: Server port (default 8333)
 - `SESSION_SECRET`: Session encryption key
 - `DATA_PATH`: Base path for project data (default `./data`)

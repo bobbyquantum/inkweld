@@ -14,7 +14,7 @@ cd backend
 bun run admin --help
 ```
 
-The CLI automatically loads `backend/.env`, so make sure the database credentials align with the instance you intend to manage.
+The CLI automatically loads `.env` from the project root (or `backend/.env` if it exists), so make sure the database credentials align with the instance you intend to manage.
 
 ## User management
 

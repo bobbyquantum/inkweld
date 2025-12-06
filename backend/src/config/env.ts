@@ -2,24 +2,36 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { existsSync } from 'fs';
 import { homedir, platform } from 'os';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Try to load environment variables from multiple locations
 function loadEnvironment() {
-  // Priority 1: Current directory
+  // Priority 1: Current directory (e.g., backend/.env when running from backend/)
   const localEnv = path.resolve(process.cwd(), '.env');
   if (existsSync(localEnv)) {
     dotenv.config({ path: localEnv });
     return;
   }
 
-  // Priority 2: Parent directory (for monorepo structure)
+  // Priority 2: Parent directory (e.g., root .env when running from backend/)
   const parentEnv = path.resolve(process.cwd(), '../.env');
   if (existsSync(parentEnv)) {
     dotenv.config({ path: parentEnv });
     return;
   }
 
-  // Priority 3: User config directory (~/.inkweld/.env on Unix, %APPDATA%\Inkweld\.env on Windows)
+  // Priority 3: Monorepo root relative to this file (backend/src/config/env.ts → root/.env)
+  // This handles cases where the server is run from a different directory
+  const monorepoRoot = path.resolve(__dirname, '../../../.env');
+  if (existsSync(monorepoRoot)) {
+    dotenv.config({ path: monorepoRoot });
+    return;
+  }
+
+  // Priority 4: User config directory (~/.inkweld/.env on Unix, %APPDATA%\Inkweld\.env on Windows)
   const home = homedir();
   const plat = platform();
   let configDir: string;
@@ -78,6 +90,10 @@ export const config = {
 
   // Storage
   dataPath: process.env.DATA_PATH || './data',
+
+  // Frontend serving (when embedded or FRONTEND_DIST is set)
+  // Set to 'false' to disable frontend serving (API-only mode)
+  serveFrontend: process.env.SERVE_FRONTEND !== 'false',
 
   // User registration
   userApprovalRequired: process.env.USER_APPROVAL_REQUIRED !== 'false',

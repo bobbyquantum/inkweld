@@ -932,9 +932,9 @@ async function showDockerDeployment() {
     console.log('📝 Configuration saved to .env file');
     console.log('');
     console.log('To build and run manually:');
-    console.log('  $ docker build -t inkweld/backend:local -f backend/Dockerfile .');
+    console.log('  $ docker build -t inkweld:local .');
     console.log(
-      '  $ docker run -d -p 8333:8333 -v inkweld_data:/data --env-file backend/.env --name inkweld-backend inkweld/backend:local'
+      '  $ docker run -d -p 8333:8333 -v inkweld_data:/data --env-file .env --name inkweld inkweld:local'
     );
     console.log('');
   }
@@ -1055,10 +1055,10 @@ async function buildAndRunDocker(config: Record<string, string>): Promise<void> 
   // Check if we're in the backend directory
   const isInBackend = process.cwd().endsWith('backend');
   const projectRoot = isInBackend ? path.join(process.cwd(), '..') : process.cwd();
-  const dockerfilePath = path.join(projectRoot, 'backend', 'Dockerfile');
+  const dockerfilePath = path.join(projectRoot, 'Dockerfile');
 
   if (!fs.existsSync(dockerfilePath)) {
-    console.error('❌ Could not find backend/Dockerfile');
+    console.error('❌ Could not find Dockerfile');
     console.log('   Make sure you run this from the project root or backend directory');
     return;
   }
@@ -1066,7 +1066,7 @@ async function buildAndRunDocker(config: Record<string, string>): Promise<void> 
   try {
     // Build the image
     console.log('Building image (this may take a few minutes)...');
-    execSync(`docker build -t inkweld/backend:local -f ${dockerfilePath} ${projectRoot}`, {
+    execSync(`docker build -t inkweld:local ${projectRoot}`, {
       stdio: 'inherit',
       cwd: projectRoot,
     });
@@ -1264,10 +1264,10 @@ async function showDockerComposeDeployment() {
   console.log('  • Named volumes for data persistence');
   console.log('');
   console.log('Step 2: Create .env file (if not exists)');
-  console.log('  $ cp backend/.env.example backend/.env');
+  console.log('  $ cp .env.example .env');
   console.log('');
   console.log('Step 3: Generate secrets');
-  console.log('  Edit backend/.env and set:');
+  console.log('  Edit .env and set:');
   console.log('  • SESSION_SECRET (32+ characters)');
   console.log('  • POSTGRES_PASSWORD');
   console.log('  • DATABASE_URL');

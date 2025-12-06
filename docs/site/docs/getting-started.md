@@ -26,16 +26,11 @@ The `install-all` script installs root tools, the Angular frontend, and the Bun 
 ## Configure environment files
 
 ```bash
- # Backend
- cd backend
- cp .env.example .env
-
- # Frontend (only if you need overrides)
- cd ../frontend
+ # From project root
  cp .env.example .env
 ```
 
-Key backend settings (see `backend/.env.example`):
+Key backend settings (see `.env.example` at project root):
 
 - `PORT`, `HOST`, `CLIENT_URL`
 - `DB_TYPE`, `DB_PATH`, `DATA_PATH`
@@ -111,22 +106,21 @@ Backend builds land in `backend/dist/` and include the Bun runner, the Node runn
 
 ## Docker and Compose
 
-The backend Dockerfile bundles the Angular production build and serves it from the same container as the API, so `http://localhost:8333/` loads the SPA while `/api/**` remains JSON-only.
+The Dockerfile bundles the Angular production build into a single Bun binary that serves both the SPA and API from the same container. Access `http://localhost:8333/` for the frontend and `/api/**` for the API.
 
 ```bash
- docker build -t inkweld-backend -f backend/Dockerfile .
- docker run -p 8333:8333 -v inkweld_data:/data \
-   -e SESSION_SECRET=supersecuresecretkey12345678901234567890 \
-   -e CLIENT_URL=http://localhost:4200 \
-   inkweld-backend
+docker build -t inkweld .
+docker run -p 8333:8333 -v inkweld_data:/data \
+  -e SESSION_SECRET=supersecuresecretkey12345678901234567890 \
+  inkweld
 ```
 
 Key runtime notes:
 
 - `SESSION_SECRET` must be 32+ characters.
-- Mount `/data` to keep SQLite + LevelDB data between restarts.
-- Override `FRONTEND_DIST` if you need to serve a different static bundle.
-- Drizzle migrations from `/app/backend/drizzle` run automatically on container start; set `DRIZZLE_MIGRATIONS_DIR` to override.
+- Mount `/data` to persist SQLite database and Yjs documents between restarts.
+- Set `SERVE_FRONTEND=false` to run in API-only mode (if hosting frontend separately).
+- Drizzle migrations run automatically on container start.
 
 For compose-based deployments:
 
@@ -168,24 +162,23 @@ The Bun-based CLI (`backend/admin-cli.ts`) manages users, projects, and stats wi
 Inside Docker you can reuse the CLI against the running container:
 
 ```bash
- docker exec -it inkweld-backend \
-   bun run admin-cli.ts users approve <username>
+docker exec -it inkweld \
+   ./inkweld-server admin users approve <username>
 ```
 
-The CLI loads the same `.env` values as the backend, so double-check `DATABASE_URL` and `DATA_PATH` before pointing it at production data.
+The CLI loads the same `.env` values as the backend, so double-check database paths before pointing it at production data.
 
-## Verify the backend image locally
+## Verify the Docker image locally
 
 ```bash
- docker build -t inkweld/backend:dev -f backend/Dockerfile .
- docker run --rm -p 8333:8333 \
-   -e SESSION_SECRET=supersecuresecretkey12345678901234567890 \
-   -e CLIENT_URL=http://localhost:4200 \
-   inkweld/backend:dev
- curl http://localhost:8333/health
+docker build -t inkweld:dev .
+docker run --rm -p 8333:8333 \
+  -e SESSION_SECRET=supersecuresecretkey12345678901234567890 \
+  inkweld:dev
+curl http://localhost:8333/api/v1/health
 ```
 
-For multi-platform testing, use BuildKit: `docker buildx build --platform linux/amd64,linux/arm64 --load -t inkweld/backend:dev -f backend/Dockerfile .`
+For multi-platform testing, use BuildKit: `docker buildx build --platform linux/amd64,linux/arm64 --load -t inkweld:dev .`
 
 ## Next steps
 

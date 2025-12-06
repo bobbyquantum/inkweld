@@ -372,13 +372,13 @@ Requires:
 ### Docker (Recommended for Production)
 
 ```bash
-docker build -t inkweld -f backend/Dockerfile .
+docker build -t inkweld .
 docker run -p 8333:8333 -v inkweld_data:/data inkweld
 ```
 
 Benefits:
 
-- Includes both frontend and backend
+- Single ~200MB image with frontend embedded
 - Automatic migrations on startup
 - Volume mounting for persistence
 - Health check endpoint
