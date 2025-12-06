@@ -35,7 +35,7 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
 
   /* Test timeout - longer for full-stack tests */
-  timeout: 30000,
+  timeout: 20000,
 
   /* Expect timeout */
   expect: {
@@ -45,7 +45,7 @@ export default defineConfig({
   /* Shared settings for all the projects below */
   use: {
     /* Base URL to use in actions like `await page.goto('/')` */
-    baseURL: 'http://localhost:4200',
+    baseURL: 'http://localhost:4400',
 
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
@@ -65,20 +65,20 @@ export default defineConfig({
   /* Configure web servers for both frontend and backend */
   webServer: [
     {
-      // Backend server with in-memory database
+      // Backend server with in-memory database (dedicated e2e port to avoid clashing with dev server)
       command: 'bun src/bun-runner.ts',
       cwd: '../backend',
-      url: 'http://localhost:8333/api/v1/health',
-      reuseExistingServer: !process.env['CI'],
+      url: 'http://localhost:9333/api/v1/health',
+      reuseExistingServer: false,
       timeout: 30000,
       env: {
         NODE_ENV: 'test',
-        PORT: '8333',
+        PORT: '9333',
         DB_TYPE: 'sqlite',
         DB_DATABASE: ':memory:',
         SESSION_SECRET:
           'test-session-secret-for-e2e-testing-minimum-32-characters',
-        ALLOWED_ORIGINS: 'http://localhost:4200',
+        ALLOWED_ORIGINS: 'http://localhost:4400',
         USER_APPROVAL_REQUIRED: 'false',
         GITHUB_ENABLED: 'false',
         DATA_PATH: './test-data/e2e',
@@ -88,10 +88,10 @@ export default defineConfig({
       },
     },
     {
-      // Frontend server
-      command: 'npm start',
-      url: 'http://localhost:4200',
-      reuseExistingServer: !process.env['CI'],
+      // Frontend server (dedicated e2e port to avoid clashing with dev server)
+      command: 'npm start -- --port 4400',
+      url: 'http://localhost:4400',
+      reuseExistingServer: false,
       timeout: 30000,
     },
   ],

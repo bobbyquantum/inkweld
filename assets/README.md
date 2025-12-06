@@ -8,39 +8,38 @@ This directory contains static assets for the Inkweld project.
 
 ## Generating Screenshots
 
-Screenshots are generated using Playwright e2e tests and are saved directly to `docs/site/static/img/` for use in the Docusaurus documentation site. Screenshots are **not run by default** to keep regular test runs fast.
+Screenshots are generated using Playwright e2e tests and saved directly to `docs/site/static/img/` for use in the Docusaurus documentation site. Screenshots are **generated on-the-fly during the docs build** to ensure they are always up to date.
 
-To generate/update screenshots:
+### Automatic Generation (Recommended)
+
+Screenshots are automatically generated when building the documentation site:
+
+```bash
+cd docs/site
+bun run build
+```
+
+This runs `TEST_ENV=screenshots npx playwright test` before the Docusaurus build.
+
+### Manual Generation
+
+To generate/update screenshots manually:
 
 ```bash
 cd frontend
-npm run screenshots
+TEST_ENV=screenshots npx playwright test
 ```
 
-Or manually with environment variable:
+Or using the config switcher directly:
 
 ```bash
 cd frontend
-GENERATE_SCREENSHOTS=true npm run e2e
-```
-
-On Windows PowerShell:
-
-```powershell
-cd frontend
-npm run screenshots
-```
-
-Or manually:
-
-```powershell
-cd frontend
-$env:GENERATE_SCREENSHOTS="true"; npm run e2e
+npx playwright test --config=playwright.screenshots.config.ts
 ```
 
 ### Generated Screenshots
 
-The following screenshots are created in `docs/site/static/img/` and **committed to the repository** for use in Docusaurus documentation:
+The following screenshots are created in `docs/site/static/img/` (these are **gitignored** and generated fresh on each build):
 
 - `bookshelf-desktop.png` / `bookshelf-desktop-dark.png` - Desktop bookshelf views
 - `bookshelf-mobile.png` / `bookshelf-mobile-dark.png` - Mobile bookshelf views  

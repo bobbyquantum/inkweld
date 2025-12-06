@@ -19,11 +19,13 @@ test.describe('Online Application Launch', () => {
     await expect(page).toHaveTitle(/Home/);
 
     // Should see the welcome content for unauthenticated users
-    await expect(page.locator('h1')).toContainText('Welcome to InkWeld');
+    await expect(page.getByTestId('welcome-heading')).toContainText(
+      'Welcome to InkWeld'
+    );
 
     // Should see login and register buttons in the header
-    await expect(page.locator('button:has-text("Login")')).toBeVisible();
-    await expect(page.locator('button:has-text("Register")')).toBeVisible();
+    await expect(page.getByTestId('login-button')).toBeVisible();
+    await expect(page.getByTestId('register-button')).toBeVisible();
 
     // Should see feature cards
     await expect(

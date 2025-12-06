@@ -16,7 +16,15 @@ import { d1DatabaseMiddleware, type D1AppContext } from './middleware/database.d
 import { registerCommonRoutes } from './config/routes';
 import yjsWorkerRoutes from './routes/yjs-worker.routes';
 
-const app = new OpenAPIHono<D1AppContext>();
+// Extend D1AppContext bindings to include env vars from wrangler.toml
+type WorkerAppContext = {
+  Bindings: D1AppContext['Bindings'] & {
+    ALLOWED_ORIGINS?: string;
+  };
+  Variables: D1AppContext['Variables'];
+};
+
+const app = new OpenAPIHono<WorkerAppContext>();
 
 // Global middleware
 app.use('*', logger());
@@ -26,11 +34,14 @@ app.use('*', secureHeaders());
 // Database middleware - attaches D1 database to context
 app.use('*', d1DatabaseMiddleware);
 
-// CORS configuration (must match bun-app.ts)
-const allowedOrigins = config.allowedOrigins;
-app.use(
-  '*',
-  cors({
+// CORS configuration - reads ALLOWED_ORIGINS from wrangler.toml env bindings
+// In Workers, process.env is not available at runtime, so we read from c.env
+app.use('*', async (c, next) => {
+  // Get allowed origins from wrangler.toml bindings, fallback to static config
+  const envOrigins = c.env?.ALLOWED_ORIGINS;
+  const allowedOrigins = envOrigins ? envOrigins.split(',') : config.allowedOrigins;
+
+  const corsMiddleware = cors({
     origin: (origin) => {
       if (!origin || allowedOrigins.includes(origin)) return origin || '*';
       return allowedOrigins[0] || '*';
@@ -40,8 +51,10 @@ app.use(
     allowHeaders: ['Content-Type', 'Authorization', 'X-CSRF-TOKEN'],
     exposeHeaders: ['Content-Type', 'Authorization'],
     maxAge: 600, // Cache preflight for 10 minutes
-  })
-);
+  });
+
+  return corsMiddleware(c, next);
+});
 
 // Register common routes
 registerCommonRoutes(app);

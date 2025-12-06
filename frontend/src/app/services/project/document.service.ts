@@ -11,8 +11,13 @@ import { DocumentsService } from '@inkweld/index';
 import { Editor } from 'ngx-editor';
 import { Plugin } from 'prosemirror-state';
 import { Observable } from 'rxjs';
-import { IndexeddbPersistence } from 'y-indexeddb';
-import { yCursorPlugin, ySyncPlugin, yUndoPlugin } from 'y-prosemirror';
+import { IndexeddbPersistence, storeState } from 'y-indexeddb';
+import {
+  yCursorPlugin,
+  ySyncPlugin,
+  yUndoPlugin,
+  yXmlFragmentToProsemirrorJSON,
+} from 'y-prosemirror';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
@@ -181,7 +186,9 @@ export class DocumentService {
         'DocumentService',
         `Getting content from active connection: ${documentId}`
       );
-      return connection.type.toJSON();
+      // Use y-prosemirror to convert XmlFragment to ProseMirror JSON format
+      const json = yXmlFragmentToProsemirrorJSON(connection.type);
+      return json?.['content'] ?? [];
     }
 
     // Second try: Load from IndexedDB
@@ -217,7 +224,9 @@ export class DocumentService {
         return null;
       }
 
-      const content = fragment.toJSON();
+      // Use y-prosemirror to convert XmlFragment to ProseMirror JSON format
+      const json = yXmlFragmentToProsemirrorJSON(fragment);
+      const content = (json?.['content'] ?? []) as unknown[];
       this.logger.debug(
         'DocumentService',
         `Loaded content from IndexedDB: ${documentId}`
@@ -777,15 +786,20 @@ export class DocumentService {
           }
         }
 
-        try {
-          void connection.indexeddbProvider.destroy();
-        } catch (error) {
-          this.logger.warn(
-            'DocumentService',
-            `Error destroying IndexedDB provider for ${documentId}`,
-            error
-          );
-        }
+        // IMPORTANT: Flush any pending writes before destroying
+        // y-indexeddb debounces writes, and destroy() cancels pending writes
+        // without flushing them. This ensures all edits are persisted.
+        // Note: We use void to fire-and-forget since disconnect() is sync,
+        // but the data will still be saved before destroy() runs.
+        void storeState(connection.indexeddbProvider, true)
+          .then(() => connection.indexeddbProvider.destroy())
+          .catch(error => {
+            this.logger.warn(
+              'DocumentService',
+              `Error flushing/destroying IndexedDB provider for ${documentId}`,
+              error
+            );
+          });
 
         try {
           connection.ydoc.destroy();
@@ -828,15 +842,16 @@ export class DocumentService {
           );
         }
 
-        try {
-          void connection.indexeddbProvider.destroy();
-        } catch (error) {
-          this.logger.warn(
-            'DocumentService',
-            `Error destroying IndexedDB provider for ${docId}`,
-            error
-          );
-        }
+        // IMPORTANT: Flush pending writes before destroying IndexedDB provider
+        void storeState(connection.indexeddbProvider, true)
+          .then(() => connection.indexeddbProvider.destroy())
+          .catch(error => {
+            this.logger.warn(
+              'DocumentService',
+              `Error flushing/destroying IndexedDB provider for ${docId}`,
+              error
+            );
+          });
 
         if (connection.provider) {
           try {

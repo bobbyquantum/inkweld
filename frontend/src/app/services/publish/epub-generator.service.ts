@@ -555,7 +555,7 @@ export class EpubGeneratorService {
   private nodeToHtml(node: ProseMirrorNode): string {
     if (!node) return '';
 
-    // Text node
+    // Text node (plain string)
     if (typeof node === 'string') {
       return this.escapeHtml(node);
     }
@@ -563,6 +563,33 @@ export class EpubGeneratorService {
     // Array of nodes
     if (Array.isArray(node)) {
       return node.map(n => this.nodeToHtml(n)).join('');
+    }
+
+    // ProseMirror text node - has 'type: text' and 'text' property
+    if (
+      typeof node === 'object' &&
+      'type' in node &&
+      node.type === 'text' &&
+      'text' in node
+    ) {
+      const text = this.escapeHtml(String(node.text));
+      // Handle marks (bold, italic, etc.)
+      const marks = this.getMarks(node);
+      let result = text;
+      for (const mark of marks) {
+        if (mark === 'bold' || mark === 'strong') {
+          result = `<strong>${result}</strong>`;
+        } else if (mark === 'italic' || mark === 'em') {
+          result = `<em>${result}</em>`;
+        } else if (mark === 'underline') {
+          result = `<u>${result}</u>`;
+        } else if (mark === 'strike') {
+          result = `<s>${result}</s>`;
+        } else if (mark === 'code') {
+          result = `<code>${result}</code>`;
+        }
+      }
+      return result;
     }
 
     // Element node from ProseMirror/Yjs
@@ -647,6 +674,20 @@ export class EpubGeneratorService {
     }
 
     return [];
+  }
+
+  private getMarks(node: ProseMirrorNode): string[] {
+    if (typeof node !== 'object' || !node) return [];
+    const marks = (node as Record<string, unknown>)['marks'];
+    if (!Array.isArray(marks)) return [];
+    return marks
+      .map(m => {
+        if (typeof m === 'string') return m;
+        if (typeof m === 'object' && m && 'type' in m)
+          return String((m as Record<string, unknown>)['type']);
+        return '';
+      })
+      .filter(Boolean);
   }
 
   /**

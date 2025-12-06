@@ -118,14 +118,16 @@
                 mat-stroked-button
                 color="primary"
                 (click)="navigateToLogin()"
-                class="login-btn">
+                class="login-btn"
+                data-testid="login-button">
                 Login
               </button>
               <button
                 mat-raised-button
                 color="primary"
                 (click)="navigateToRegister()"
-                class="register-btn">
+                class="register-btn"
+                data-testid="register-button">
                 Register
               </button>
             </div>
@@ -164,7 +166,7 @@
         <!-- Content for unauthenticated users -->
         <div class="welcome-content">
           <div class="hero-section">
-            <h1>Welcome to InkWeld</h1>
+            <h1 data-testid="welcome-heading">Welcome to InkWeld</h1>
             <p class="hero-description">
               InkWeld is a collaborative writing platform designed for anyone
               who wants to write. Organize your projects, collaborate with

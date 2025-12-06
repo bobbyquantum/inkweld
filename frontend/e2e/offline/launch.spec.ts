@@ -69,7 +69,7 @@ test.describe('Offline Application Launch', () => {
     await expect(page).toHaveURL(/\/.+\/.+/);
 
     // Project tree should be visible
-    await expect(page.locator('app-project-tree')).toBeVisible({
+    await expect(page.getByTestId('project-tree')).toBeVisible({
       timeout: 10000,
     });
   });
