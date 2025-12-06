@@ -178,6 +178,48 @@ jobs:
           retention-days: 7
 
   # ===========================================
+  # E2E Tests - Wrangler (Cloudflare Workers Local)
+  # ===========================================
+  e2e-wrangler:
+    name: E2E (Wrangler)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Initialize local D1 database
+        run: cd backend && bun run init:d1-local
+
+      - name: Install Playwright browsers
+        run: cd frontend && npx playwright install --with-deps chromium
+
+      - name: Run wrangler e2e tests
+        run: cd frontend && npm run e2e:wrangler:ci
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: playwright-report-wrangler
+          path: frontend/playwright-report/
+          retention-days: 7
+
+  # ===========================================
   # E2E Tests - Docker (Binary Build)
   # ===========================================
   e2e-docker:
@@ -225,7 +267,7 @@ jobs:
   docker-publish:
     name: Docker Publish
     needs:
-      [lint, test-frontend, test-backend, e2e-offline, e2e-online, e2e-docker]
+      [lint, test-frontend, test-backend, e2e-offline, e2e-online, e2e-wrangler, e2e-docker]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
