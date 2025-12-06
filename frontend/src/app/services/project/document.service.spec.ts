@@ -17,24 +17,27 @@ import { UnifiedUserService } from '../user/unified-user.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 
-// Use vi.hoisted to create mocks that are available during vi.mock hoisting
-const mocks = vi.hoisted(() => {
+// Mock y-indexeddb with all required exports
+vi.mock('y-indexeddb', () => {
+  // Create mock function inside factory to avoid hoisting issues
+  const mockStoreState = (): Promise<void> => Promise.resolve();
+
+  class MockIndexeddbPersistence {
+    whenSynced = Promise.resolve();
+    destroy = vi.fn();
+    constructor(_name: string, _doc: unknown) {}
+  }
+
   return {
-    storeState: vi.fn().mockResolvedValue(undefined),
-    IndexeddbPersistence: class MockIndexeddbPersistence {
-      whenSynced = Promise.resolve();
-      constructor(_name: string, _doc: unknown) {}
-      destroy = vi.fn();
-    },
+    IndexeddbPersistence: MockIndexeddbPersistence,
+    storeState: mockStoreState,
+    // Include other exports that might be needed
+    fetchUpdates: vi.fn().mockResolvedValue(undefined),
+    clearDocument: vi.fn().mockResolvedValue(undefined),
   };
 });
 
-// Mock y-websocket and y-indexeddb to prevent real WebSocket connections
-vi.mock('y-indexeddb', () => ({
-  IndexeddbPersistence: mocks.IndexeddbPersistence,
-  storeState: mocks.storeState,
-}));
-
+// Mock y-websocket
 vi.mock('y-websocket', () => ({
   WebsocketProvider: class WebsocketProvider {
     on = vi.fn();
