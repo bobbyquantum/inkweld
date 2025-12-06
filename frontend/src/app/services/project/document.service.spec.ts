@@ -17,13 +17,22 @@ import { UnifiedUserService } from '../user/unified-user.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 
+// Use vi.hoisted to create mocks that are available during vi.mock hoisting
+const mocks = vi.hoisted(() => {
+  return {
+    storeState: vi.fn().mockResolvedValue(undefined),
+    IndexeddbPersistence: class MockIndexeddbPersistence {
+      whenSynced = Promise.resolve();
+      constructor(_name: string, _doc: unknown) {}
+      destroy = vi.fn();
+    },
+  };
+});
+
 // Mock y-websocket and y-indexeddb to prevent real WebSocket connections
 vi.mock('y-indexeddb', () => ({
-  IndexeddbPersistence: class IndexeddbPersistence {
-    whenSynced = Promise.resolve();
-    constructor(_name: string, _doc: any) {}
-    destroy = vi.fn();
-  },
+  IndexeddbPersistence: mocks.IndexeddbPersistence,
+  storeState: mocks.storeState,
 }));
 
 vi.mock('y-websocket', () => ({
@@ -36,7 +45,12 @@ vi.mock('y-websocket', () => ({
       setLocalStateField: vi.fn(),
       getStates: () => new Map(),
     };
-    constructor(_url: string, _room: string, _doc: any, _options?: any) {}
+    constructor(
+      _url: string,
+      _room: string,
+      _doc: unknown,
+      _options?: unknown
+    ) {}
   },
 }));
 vi.mock('ngx-editor', () => ({

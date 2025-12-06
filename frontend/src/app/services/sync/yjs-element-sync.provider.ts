@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
-import { Element } from '@inkweld/index';
+import { Element, ElementType } from '@inkweld/index';
+import { nanoid } from 'nanoid';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
@@ -514,13 +515,28 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
   /**
    * Load elements and publish plans from the Yjs document and emit them.
+   * If elements are empty, creates a default README document.
    */
   private loadElementsFromDoc(): void {
     if (!this.doc) return;
 
     // Load elements
     const elementsArray = this.doc.getArray<Element>('elements');
-    const elements = elementsArray.toArray();
+    let elements = elementsArray.toArray();
+
+    // If no elements exist, create default README document
+    if (elements.length === 0) {
+      this.logger.info(
+        'YjsSync',
+        'No elements found - creating default README document'
+      );
+      const defaultElements = this.createDefaultElements();
+      this.doc.transact(() => {
+        elementsArray.insert(0, defaultElements);
+      });
+      elements = elementsArray.toArray();
+    }
+
     this.logger.debug('YjsSync', `Loaded ${elements.length} elements from Yjs`);
     this.elementsSubject.next(elements);
 
@@ -532,5 +548,25 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       `Loaded ${plans.length} publish plans from Yjs`
     );
     this.publishPlansSubject.next(plans);
+  }
+
+  /**
+   * Create default elements for a new project.
+   * Returns a README document to help users get started.
+   */
+  private createDefaultElements(): Element[] {
+    return [
+      {
+        id: nanoid(),
+        name: 'README',
+        type: ElementType.Item,
+        level: 0,
+        expandable: false,
+        order: 0,
+        parentId: null,
+        version: 0,
+        metadata: {},
+      },
+    ];
   }
 }
