@@ -387,20 +387,36 @@ describe('User Routes', () => {
     await db.delete(users).where(eq(users.username, 'routeuser'));
     await db.delete(users).where(eq(users.username, 'searchuser1'));
     await db.delete(users).where(eq(users.username, 'searchuser2'));
+    await db.delete(users).where(eq(users.username, 'testadmin'));
 
     const hashedPassword = await bcrypt.hash('testpassword123', 10);
-    await db.insert(users).values({
-      id: crypto.randomUUID(),
-      username: 'routeuser',
-      email: 'route@example.com',
-      password: hashedPassword,
-      name: 'Route User',
-      approved: true,
-      enabled: true,
-    });
+    await db.insert(users).values([
+      {
+        id: crypto.randomUUID(),
+        username: 'routeuser',
+        email: 'route@example.com',
+        password: hashedPassword,
+        name: 'Route User',
+        approved: true,
+        enabled: true,
+      },
+      {
+        id: crypto.randomUUID(),
+        username: 'testadmin',
+        email: 'testadmin@example.com',
+        password: hashedPassword,
+        name: 'Test Admin',
+        approved: true,
+        enabled: true,
+        isAdmin: true,
+      }
+    ]);
   });
 
   afterAll(async () => {
+    // Clean up test users
+    await db.delete(users).where(eq(users.username, 'routeuser'));
+    await db.delete(users).where(eq(users.username, 'testadmin'));
     await stopTestServer();
   });
 
