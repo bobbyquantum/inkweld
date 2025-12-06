@@ -32,38 +32,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 
-interface TabSchema {
-  key: string;
-  label: string;
-  icon?: string;
-  order?: number;
-  fields: FieldSchema[];
-}
-
-interface FieldSchema {
-  id?: string;
-  key: string;
-  label: string;
-  type: string;
-  placeholder?: string;
-  description?: string;
-  rows?: number;
-  options?: string[];
-  layout?: { span?: number };
-  validation?: { required?: boolean };
-}
-
-interface ElementTypeSchema {
-  id: string;
-  type: string;
-  name: string;
-  icon: string;
-  description: string;
-  version: number;
-  tabs: TabSchema[];
-  defaultValues?: Record<string, unknown>;
-  isBuiltIn?: boolean;
-}
+import {
+  ElementTypeSchema,
+  FieldSchema,
+  TabSchema,
+} from '../../models/schema-types';
 
 export interface TemplateEditorDialogData {
   schema: ElementTypeSchema;

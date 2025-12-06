@@ -71,7 +71,7 @@ export default defineConfig({
       // Wrangler dev server (Workers runtime locally)
       // Uses --local for local persistence, --port to match expected port
       // Note: Run `bun run init:d1-local` in backend/ first to initialize the database
-      command: 'wrangler dev --local --port 8333',
+      command: 'npx wrangler dev --local --port 8333',
       cwd: '../backend',
       url: 'http://localhost:8333/api/v1/health',
       reuseExistingServer: !process.env['CI'],

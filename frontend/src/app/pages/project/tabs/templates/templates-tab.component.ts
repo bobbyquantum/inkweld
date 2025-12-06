@@ -21,12 +21,12 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { DefaultTemplatesService } from '@services/worldbuilding/default-templates.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { firstValueFrom } from 'rxjs';
-import * as Y from 'yjs';
 
 import {
   TemplateEditorDialogComponent,
   TemplateEditorDialogData,
 } from '../../../../dialogs/template-editor-dialog/template-editor-dialog.component';
+import { ElementTypeSchema, TabSchema } from '../../../../models/schema-types';
 
 /**
  * Injection token for WebSocket sync timeout.
@@ -51,35 +51,6 @@ export const TEMPLATE_RELOAD_DELAY = new InjectionToken<number>(
     factory: () => 500, // Default 500ms in production
   }
 );
-
-interface TabSchema {
-  key: string;
-  label: string;
-  icon?: string;
-  order?: number;
-  fields: FieldSchema[];
-}
-
-interface FieldSchema {
-  key: string;
-  label: string;
-  type: string;
-  [key: string]: unknown;
-}
-
-interface ElementTypeSchema {
-  id: string;
-  type: string;
-  name: string;
-  icon: string;
-  description: string;
-  version: number;
-  tabs: TabSchema[];
-  defaultValues?: Record<string, unknown>;
-  createdAt?: string;
-  updatedAt?: string;
-  isBuiltIn?: boolean;
-}
 
 interface TemplateSchema {
   type: string;
@@ -152,75 +123,31 @@ export class TemplatesTabComponent {
     this.error.set(null);
 
     try {
-      const projectKey = `${project.username}:${project.slug}`;
-      const library = await this.worldbuildingService.loadSchemaLibrary(
-        projectKey,
-        project.username,
-        project.slug
-      );
-
       // Wait for WebSocket sync to complete after library is loaded
       // For new projects, schemas may have just been created on the backend
       await new Promise(resolve => setTimeout(resolve, this.syncTimeout));
 
-      const schemasMap = library.get('schemas') as Map<
-        string,
-        ElementTypeSchema
-      >;
+      // Use the abstraction layer to get all schemas as plain objects
+      const schemas = await this.worldbuildingService.getAllSchemas(
+        project.username,
+        project.slug
+      );
 
-      if (!schemasMap || schemasMap.size === 0) {
+      if (schemas.length === 0) {
         console.warn('[TemplatesTab] No schemas found in library');
         this.templates.set([]);
         return;
       }
 
-      const templates: TemplateSchema[] = [];
-
-      // Extract all schemas from the Y.Map
-      // Each schema is stored as a Y.Map with string keys
-      schemasMap.forEach((schemaYMap: unknown) => {
-        // schemaYMap is a Y.Map, need to extract its data
-        if (
-          schemaYMap &&
-          typeof schemaYMap === 'object' &&
-          'get' in schemaYMap &&
-          typeof schemaYMap.get === 'function'
-        ) {
-          const ymap = schemaYMap as Y.Map<unknown>;
-          const schema: ElementTypeSchema = {
-            id: ymap.get('id') as string,
-            type: ymap.get('type') as string,
-            name: ymap.get('name') as string,
-            icon: ymap.get('icon') as string,
-            description: ymap.get('description') as string,
-            version: ymap.get('version') as number,
-            isBuiltIn: ymap.get('isBuiltIn') as boolean,
-            tabs: ymap.has('tabs')
-              ? (JSON.parse(ymap.get('tabs') as string) as TabSchema[])
-              : [],
-            defaultValues: ymap.has('defaultValues')
-              ? (JSON.parse(ymap.get('defaultValues') as string) as Record<
-                  string,
-                  unknown
-                >)
-              : undefined,
-            createdAt: ymap.get('createdAt') as string | undefined,
-            updatedAt: ymap.get('updatedAt') as string | undefined,
-          };
-
-          if (schema && schema.type) {
-            templates.push({
-              type: schema.type,
-              label: schema.name || schema.type,
-              icon: schema.icon || 'article',
-              description: schema.description,
-              tabCount: schema.tabs?.length || 0,
-              fieldCount: this.countFields(schema.tabs || []),
-              isBuiltIn: schema.isBuiltIn !== false, // Default to true if not specified
-            });
-          }
-        }
-      });
+      const templates: TemplateSchema[] = schemas.map(schema => ({
+        type: schema.type,
+        label: schema.name || schema.type,
+        icon: schema.icon || 'article',
+        description: schema.description,
+        tabCount: schema.tabs?.length || 0,
+        fieldCount: this.countFields(schema.tabs || []),
+        isBuiltIn: schema.isBuiltIn !== false, // Default to true if not specified
+      }));
 
       // Sort by label
       templates.sort((a, b) => a.label.localeCompare(b.label));
@@ -265,38 +192,13 @@ export class TemplatesTabComponent {
       const defaultTemplates =
         await this.defaultTemplatesService.loadDefaultTemplates();
 
-      const projectKey = `${project.username}:${project.slug}`;
-      const library = await this.worldbuildingService.loadSchemaLibrary(
-        projectKey,
-        project.username,
-        project.slug
-      );
-
-      // Get or create schemas map in the library
-      let schemasMap = library.get('schemas') as Y.Map<unknown>;
-      if (!schemasMap) {
-        schemasMap = new Y.Map();
-        library.set('schemas', schemasMap);
-      }
-
-      // Save each template to the schema library
+      // Use the abstraction layer to save all schemas
       const templateArray = Object.values(defaultTemplates);
-      for (const schema of templateArray) {
-        const schemaYMap = new Y.Map<unknown>();
-        schemaYMap.set('id', schema.id);
-        schemaYMap.set('type', schema.type);
-        schemaYMap.set('name', schema.name);
-        schemaYMap.set('icon', schema.icon);
-        schemaYMap.set('description', schema.description);
-        schemaYMap.set('version', schema.version);
-        schemaYMap.set('isBuiltIn', schema.isBuiltIn);
-        schemaYMap.set('tabs', JSON.stringify(schema.tabs));
-        if (schema.defaultValues) {
-          schemaYMap.set('defaultValues', JSON.stringify(schema.defaultValues));
-        }
-
-        schemasMap.set(schema.type, schemaYMap);
-      }
+      await this.worldbuildingService.saveSchemasToLibrary(
+        project.username,
+        project.slug,
+        templateArray
+      );
 
       this.snackBar.open(
         `✓ Loaded ${templateArray.length} default templates`,
@@ -421,41 +323,17 @@ export class TemplatesTabComponent {
     }
 
     try {
-      // Load the full schema from the library
-      const projectKey = `${project.username}:${project.slug}`;
-      const library = await this.worldbuildingService.loadSchemaLibrary(
-        projectKey,
+      // Load the full schema using the abstraction layer
+      const fullSchema = await this.worldbuildingService.getSchema(
         project.username,
-        project.slug
+        project.slug,
+        template.type
       );
 
-      const schemasMap = library.get('schemas') as Map<string, Y.Map<unknown>>;
-      const schemaYMap = schemasMap?.get(template.type) as Y.Map<unknown>;
-
-      if (!schemaYMap) {
+      if (!fullSchema) {
         this.snackBar.open('Template not found', 'Close', { duration: 3000 });
         return;
       }
-
-      // Convert Y.Map to ElementTypeSchema
-      const fullSchema: ElementTypeSchema = {
-        id: schemaYMap.get('id') as string,
-        type: schemaYMap.get('type') as string,
-        name: schemaYMap.get('name') as string,
-        icon: schemaYMap.get('icon') as string,
-        description: schemaYMap.get('description') as string,
-        version: schemaYMap.get('version') as number,
-        isBuiltIn: schemaYMap.get('isBuiltIn') as boolean,
-        tabs: schemaYMap.has('tabs')
-          ? (JSON.parse(schemaYMap.get('tabs') as string) as TabSchema[])
-          : [],
-        defaultValues: schemaYMap.has('defaultValues')
-          ? (JSON.parse(schemaYMap.get('defaultValues') as string) as Record<
-              string,
-              unknown
-            >)
-          : undefined,
-      };
 
       // Open editor dialog
       const dialogData: TemplateEditorDialogData = { schema: fullSchema };
@@ -474,22 +352,18 @@ export class TemplatesTabComponent {
 
       if (result) {
         // Update the template
-        const updatedSchema = result;
+        const projectKey = `${project.username}:${project.slug}`;
         await this.worldbuildingService.updateTemplate(
           projectKey,
           template.type,
-          updatedSchema,
+          result,
           project.username,
           project.slug
         );
 
-        this.snackBar.open(
-          `✓ Template "${updatedSchema.name}" updated`,
-          'Close',
-          {
-            duration: 3000,
-          }
-        );
+        this.snackBar.open(`✓ Template "${result.name}" updated`, 'Close', {
+          duration: 3000,
+        });
 
         // Wait for sync then reload
         await new Promise(resolve => setTimeout(resolve, this.reloadDelay));

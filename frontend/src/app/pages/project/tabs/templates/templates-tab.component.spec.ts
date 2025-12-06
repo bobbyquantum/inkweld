@@ -8,9 +8,9 @@ import { DefaultTemplatesService } from '@services/worldbuilding/default-templat
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import * as Y from 'yjs';
 
 import { Project } from '../../../../../api-client';
+import { ElementTypeSchema } from '../../../../models/schema-types';
 import {
   TEMPLATE_RELOAD_DELAY,
   TEMPLATE_SYNC_TIMEOUT,
@@ -40,41 +40,21 @@ describe('TemplatesTabComponent', () => {
     updatedDate: '2024-01-01',
   };
 
-  const createMockSchemaLibrary = (schemas: any[]): Y.Map<unknown> => {
-    const doc = new Y.Doc();
-    const library = doc.getMap('library');
-    const schemasMap = new Y.Map<unknown>();
-
-    // Attach schemasMap to library first
-    library.set('schemas', schemasMap);
-
-    // Now add each schema
-    schemas.forEach(schema => {
-      const schemaYMap = new Y.Map<unknown>();
-      schemaYMap.set('id', schema.id);
-      schemaYMap.set('type', schema.type);
-      schemaYMap.set('name', schema.name);
-      schemaYMap.set('icon', schema.icon);
-      schemaYMap.set('description', schema.description);
-      schemaYMap.set('version', schema.version);
-      schemaYMap.set('isBuiltIn', schema.isBuiltIn);
-      schemaYMap.set('tabs', JSON.stringify(schema.tabs));
-      if (schema.defaultValues) {
-        schemaYMap.set('defaultValues', JSON.stringify(schema.defaultValues));
-      }
-
-      schemasMap.set(schema.type as string, schemaYMap);
-    });
-
-    return library;
-  };
-
-  const createEmptySchemaLibrary = (): Y.Map<unknown> => {
-    const doc = new Y.Doc();
-    const library = doc.getMap('library');
-    const schemasMap = new Y.Map<unknown>();
-    library.set('schemas', schemasMap);
-    return library;
+  const createMockSchemas = (
+    schemas: Partial<ElementTypeSchema>[]
+  ): ElementTypeSchema[] => {
+    return schemas.map(schema => ({
+      id: schema.id || 'generated-id',
+      type: schema.type || 'UNKNOWN',
+      name: schema.name || 'Unknown',
+      icon: schema.icon || 'help',
+      description: schema.description || '',
+      version: schema.version || 1,
+      isBuiltIn: schema.isBuiltIn ?? true,
+      tabs: schema.tabs || [],
+      defaultValues: schema.defaultValues,
+      ...schema,
+    })) as ElementTypeSchema[];
   };
 
   beforeEach(async () => {
@@ -84,7 +64,9 @@ describe('TemplatesTabComponent', () => {
     };
 
     mockWorldbuildingService = {
-      loadSchemaLibrary: vi.fn(),
+      getAllSchemas: vi.fn(),
+      getSchema: vi.fn(),
+      saveSchemasToLibrary: vi.fn(),
       cloneTemplate: vi.fn(),
       deleteTemplate: vi.fn(),
       updateTemplate: vi.fn(),
@@ -164,8 +146,8 @@ describe('TemplatesTabComponent', () => {
         ],
       };
 
-      const mockLibrary = createMockSchemaLibrary([characterSchema]);
-      mockWorldbuildingService.loadSchemaLibrary.mockResolvedValue(mockLibrary);
+      const mockSchemas = createMockSchemas([characterSchema]);
+      mockWorldbuildingService.getAllSchemas.mockResolvedValue(mockSchemas);
 
       await component.loadTemplates();
 
@@ -183,9 +165,7 @@ describe('TemplatesTabComponent', () => {
     it('should handle empty schemas', async () => {
       mockProjectState.project.set(mockProject);
 
-      const mockLibrary = createEmptySchemaLibrary();
-
-      mockWorldbuildingService.loadSchemaLibrary.mockResolvedValue(mockLibrary);
+      mockWorldbuildingService.getAllSchemas.mockResolvedValue([]);
 
       await component.loadTemplates();
 
@@ -201,7 +181,7 @@ describe('TemplatesTabComponent', () => {
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      mockWorldbuildingService.loadSchemaLibrary.mockRejectedValue(
+      mockWorldbuildingService.getAllSchemas.mockRejectedValue(
         new Error('Load failed')
       );
 
@@ -219,7 +199,7 @@ describe('TemplatesTabComponent', () => {
 
       await component.loadTemplates();
 
-      expect(mockWorldbuildingService.loadSchemaLibrary).not.toHaveBeenCalled();
+      expect(mockWorldbuildingService.getAllSchemas).not.toHaveBeenCalled();
     });
   });
 
@@ -227,15 +207,14 @@ describe('TemplatesTabComponent', () => {
     it('should reload templates', async () => {
       mockProjectState.project.set(mockProject);
 
-      const mockLibrary = createEmptySchemaLibrary();
-      mockWorldbuildingService.loadSchemaLibrary.mockResolvedValue(mockLibrary);
+      mockWorldbuildingService.getAllSchemas.mockResolvedValue([]);
 
       component.refresh();
 
-      // With TEMPLATE_SYNC_TIMEOUT set to 0, just wait a tick for async
-      await Promise.resolve();
+      // Wait for the async loadTemplates to complete (includes setTimeout even if 0)
+      await new Promise(resolve => setTimeout(resolve, 10));
 
-      expect(mockWorldbuildingService.loadSchemaLibrary).toHaveBeenCalled();
+      expect(mockWorldbuildingService.getAllSchemas).toHaveBeenCalled();
     });
   });
 
@@ -260,8 +239,7 @@ describe('TemplatesTabComponent', () => {
         mockDefaultTemplates
       );
 
-      const mockLibrary = createEmptySchemaLibrary();
-      mockWorldbuildingService.loadSchemaLibrary.mockResolvedValue(mockLibrary);
+      mockWorldbuildingService.getAllSchemas.mockResolvedValue([]);
 
       await component.loadDefaultTemplates();
 
@@ -329,8 +307,7 @@ describe('TemplatesTabComponent', () => {
       mockDialogGateway.openRenameDialog.mockResolvedValue('New Character');
       mockWorldbuildingService.cloneTemplate.mockResolvedValue(undefined);
 
-      const mockLibrary = createEmptySchemaLibrary();
-      mockWorldbuildingService.loadSchemaLibrary.mockResolvedValue(mockLibrary);
+      mockWorldbuildingService.getAllSchemas.mockResolvedValue([]);
 
       await component.cloneTemplate(template);
 
@@ -411,8 +388,7 @@ describe('TemplatesTabComponent', () => {
       mockDialogGateway.openConfirmationDialog.mockResolvedValue(true);
       mockWorldbuildingService.deleteTemplate.mockResolvedValue(undefined);
 
-      const mockLibrary = createEmptySchemaLibrary();
-      mockWorldbuildingService.loadSchemaLibrary.mockResolvedValue(mockLibrary);
+      mockWorldbuildingService.getAllSchemas.mockResolvedValue([]);
 
       await component.deleteTemplate(template);
 
@@ -499,8 +475,7 @@ describe('TemplatesTabComponent', () => {
         tabs: [],
       };
 
-      const mockLibrary = createMockSchemaLibrary([mockSchema]);
-      mockWorldbuildingService.loadSchemaLibrary.mockResolvedValue(mockLibrary);
+      mockWorldbuildingService.getSchema.mockResolvedValue(mockSchema);
 
       const updatedSchema = { ...mockSchema, name: 'Updated Template' };
       mockDialog.open.mockReturnValue({
@@ -508,6 +483,7 @@ describe('TemplatesTabComponent', () => {
       });
 
       mockWorldbuildingService.updateTemplate.mockResolvedValue(undefined);
+      mockWorldbuildingService.getAllSchemas.mockResolvedValue([]);
 
       await component.editTemplate(template);
 
@@ -535,9 +511,7 @@ describe('TemplatesTabComponent', () => {
         isBuiltIn: false,
       };
 
-      const mockLibrary = new Y.Map();
-      mockLibrary.set('schemas', new Map());
-      mockWorldbuildingService.loadSchemaLibrary.mockResolvedValue(mockLibrary);
+      mockWorldbuildingService.getSchema.mockResolvedValue(null);
 
       await component.editTemplate(template);
 
@@ -568,8 +542,7 @@ describe('TemplatesTabComponent', () => {
         tabs: [],
       };
 
-      const mockLibrary = createMockSchemaLibrary([mockSchema]);
-      mockWorldbuildingService.loadSchemaLibrary.mockResolvedValue(mockLibrary);
+      mockWorldbuildingService.getSchema.mockResolvedValue(mockSchema);
 
       mockDialog.open.mockReturnValue({
         afterClosed: () => of(null),
@@ -595,7 +568,7 @@ describe('TemplatesTabComponent', () => {
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      mockWorldbuildingService.loadSchemaLibrary.mockRejectedValue(
+      mockWorldbuildingService.getSchema.mockRejectedValue(
         new Error('Load failed')
       );
 

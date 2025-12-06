@@ -41,7 +41,7 @@ export class WorldbuildingService {
    * @param username - Project username (optional, for WebSocket sync)
    * @param slug - Project slug (optional, for WebSocket sync)
    */
-  async setupCollaboration(
+  private async setupCollaboration(
     elementId: string,
     username?: string,
     slug?: string
@@ -653,7 +653,7 @@ export class WorldbuildingService {
    * Load the project's schema library (collaborative)
    * This contains all the template schemas for the project
    */
-  async loadSchemaLibrary(
+  private async loadSchemaLibrary(
     projectKey: string,
     username?: string,
     slug?: string
@@ -851,7 +851,7 @@ export class WorldbuildingService {
    * Embed a schema snapshot into a worldbuilding element's Y.Doc
    * Called when initializing a new element
    */
-  embedSchemaInElement(ydoc: Y.Doc, schema: ElementTypeSchema): void {
+  private embedSchemaInElement(ydoc: Y.Doc, schema: ElementTypeSchema): void {
     const schemaMap = ydoc.getMap('__schema__');
 
     ydoc.transact(() => {
@@ -876,7 +876,7 @@ export class WorldbuildingService {
   /**
    * Load schema from an element's Y.Doc
    */
-  loadSchemaFromElement(ydoc: Y.Doc): ElementTypeSchema | null {
+  private loadSchemaFromElement(ydoc: Y.Doc): ElementTypeSchema | null {
     const schemaMap = ydoc.getMap('__schema__');
 
     if (!schemaMap.has('type')) {
@@ -918,8 +918,9 @@ export class WorldbuildingService {
     const library = await this.loadSchemaLibrary(projectKey, username, slug);
     const schemasMap = library.get('schemas') as Y.Map<unknown>;
 
+    // If no schemas map exists or it's empty, the template definitely doesn't exist
     if (!schemasMap) {
-      throw new Error('Schema library not found');
+      throw new Error(`Template ${sourceType} not found`);
     }
 
     const sourceSchema = schemasMap.get(sourceType) as Y.Map<unknown>;
@@ -1149,5 +1150,214 @@ export class WorldbuildingService {
 
     // Fallback to default icon
     return 'description';
+  }
+
+  // ============================================================================
+  // PUBLIC ABSTRACTION LAYER - Hide Yjs types from consumers
+  // ============================================================================
+
+  /**
+   * Get the embedded schema from a worldbuilding element.
+   * This abstracts away the Yjs document access.
+   * @param elementId - The element ID
+   * @param username - Project username (optional, for WebSocket sync)
+   * @param slug - Project slug (optional, for WebSocket sync)
+   * @returns The embedded schema or null if not found
+   */
+  async getEmbeddedSchema(
+    elementId: string,
+    username?: string,
+    slug?: string
+  ): Promise<ElementTypeSchema | null> {
+    await this.setupCollaboration(elementId, username, slug);
+    const connection = this.connections.get(elementId);
+    if (!connection?.ydoc) {
+      return null;
+    }
+    return this.loadSchemaFromElement(connection.ydoc);
+  }
+
+  /**
+   * Update the embedded schema in a worldbuilding element.
+   * This abstracts away the Yjs document access.
+   * @param elementId - The element ID
+   * @param schema - The schema to embed
+   * @param username - Project username (optional, for WebSocket sync)
+   * @param slug - Project slug (optional, for WebSocket sync)
+   */
+  async updateEmbeddedSchema(
+    elementId: string,
+    schema: ElementTypeSchema,
+    username?: string,
+    slug?: string
+  ): Promise<void> {
+    await this.setupCollaboration(elementId, username, slug);
+    const connection = this.connections.get(elementId);
+    if (!connection?.ydoc) {
+      throw new Error(`No connection found for element ${elementId}`);
+    }
+    this.embedSchemaInElement(connection.ydoc, schema);
+  }
+
+  /**
+   * Get all schemas from the project's schema library as plain objects.
+   * This abstracts away all Yjs Map iteration.
+   * @param username - Project username
+   * @param slug - Project slug
+   * @returns Array of all schemas in the library
+   */
+  async getAllSchemas(
+    username: string,
+    slug: string
+  ): Promise<ElementTypeSchema[]> {
+    const projectKey = `${username}:${slug}`;
+    const library = await this.loadSchemaLibrary(projectKey, username, slug);
+    const schemasMap = library.get('schemas') as Y.Map<unknown> | undefined;
+
+    if (!schemasMap) {
+      return [];
+    }
+
+    const schemas: ElementTypeSchema[] = [];
+    schemasMap.forEach((schemaYMap: unknown) => {
+      if (
+        schemaYMap &&
+        typeof schemaYMap === 'object' &&
+        'get' in schemaYMap &&
+        typeof (schemaYMap as Y.Map<unknown>).get === 'function'
+      ) {
+        try {
+          const schema = this.convertYMapToSchema(schemaYMap as Y.Map<unknown>);
+          if (schema && schema.type) {
+            schemas.push(schema);
+          }
+        } catch (error) {
+          console.warn(
+            '[WorldbuildingService] Error converting schema:',
+            error
+          );
+        }
+      }
+    });
+
+    return schemas;
+  }
+
+  /**
+   * Save a schema to the project's schema library.
+   * Creates or updates the schema in the library.
+   * @param username - Project username
+   * @param slug - Project slug
+   * @param schema - The schema to save
+   */
+  async saveSchemaToLibrary(
+    username: string,
+    slug: string,
+    schema: ElementTypeSchema
+  ): Promise<void> {
+    const projectKey = `${username}:${slug}`;
+    const library = await this.loadSchemaLibrary(projectKey, username, slug);
+
+    // Get or create schemas map in the library
+    let schemasMap = library.get('schemas') as Y.Map<unknown> | undefined;
+    if (!schemasMap) {
+      schemasMap = new Y.Map();
+      library.set('schemas', schemasMap);
+    }
+
+    // Convert schema to Y.Map
+    const schemaYMap = new Y.Map<unknown>();
+    schemaYMap.set('id', schema.id);
+    schemaYMap.set('type', schema.type);
+    schemaYMap.set('name', schema.name);
+    schemaYMap.set('icon', schema.icon);
+    schemaYMap.set('description', schema.description);
+    schemaYMap.set('version', schema.version);
+    schemaYMap.set('isBuiltIn', schema.isBuiltIn ?? false);
+    schemaYMap.set('tabs', JSON.stringify(schema.tabs));
+    if (schema.defaultValues) {
+      schemaYMap.set('defaultValues', JSON.stringify(schema.defaultValues));
+    }
+
+    schemasMap.set(schema.type, schemaYMap);
+  }
+
+  /**
+   * Save multiple schemas to the project's schema library.
+   * This is more efficient than calling saveSchemaToLibrary multiple times.
+   * @param username - Project username
+   * @param slug - Project slug
+   * @param schemas - Array of schemas to save
+   */
+  async saveSchemasToLibrary(
+    username: string,
+    slug: string,
+    schemas: ElementTypeSchema[]
+  ): Promise<void> {
+    const projectKey = `${username}:${slug}`;
+    const library = await this.loadSchemaLibrary(projectKey, username, slug);
+
+    // Get or create schemas map in the library
+    let schemasMap = library.get('schemas') as Y.Map<unknown> | undefined;
+    if (!schemasMap) {
+      schemasMap = new Y.Map();
+      library.set('schemas', schemasMap);
+    }
+
+    // Save all schemas
+    for (const schema of schemas) {
+      const schemaYMap = new Y.Map<unknown>();
+      schemaYMap.set('id', schema.id);
+      schemaYMap.set('type', schema.type);
+      schemaYMap.set('name', schema.name);
+      schemaYMap.set('icon', schema.icon);
+      schemaYMap.set('description', schema.description);
+      schemaYMap.set('version', schema.version);
+      schemaYMap.set('isBuiltIn', schema.isBuiltIn ?? false);
+      schemaYMap.set('tabs', JSON.stringify(schema.tabs));
+      if (schema.defaultValues) {
+        schemaYMap.set('defaultValues', JSON.stringify(schema.defaultValues));
+      }
+
+      schemasMap.set(schema.type, schemaYMap);
+    }
+  }
+
+  /**
+   * Get a single schema from the library by type.
+   * Returns a plain object, not a Yjs type.
+   * @param username - Project username
+   * @param slug - Project slug
+   * @param schemaType - The schema type to retrieve
+   * @returns The schema or null if not found
+   */
+  async getSchema(
+    username: string,
+    slug: string,
+    schemaType: string
+  ): Promise<ElementTypeSchema | null> {
+    const projectKey = `${username}:${slug}`;
+    return this.getSchemaFromLibrary(projectKey, schemaType, username, slug);
+  }
+
+  /**
+   * Check if the schema library has any schemas.
+   * @param username - Project username
+   * @param slug - Project slug
+   * @returns true if the library is empty
+   */
+  async hasNoSchemas(username: string, slug: string): Promise<boolean> {
+    const projectKey = `${username}:${slug}`;
+    return this.isSchemaLibraryEmpty(projectKey, username, slug);
+  }
+
+  /**
+   * Load default templates into the project's schema library.
+   * @param username - Project username
+   * @param slug - Project slug
+   */
+  async loadDefaults(username: string, slug: string): Promise<void> {
+    const projectKey = `${username}:${slug}`;
+    await this.autoLoadDefaultTemplates(projectKey, username, slug);
   }
 }

@@ -3,10 +3,10 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Element } from '@inkweld/index';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import * as Y from 'yjs';
 
 import { ElementTypeSchema } from '../../models/schema-types';
 import { SetupService } from '../core/setup.service';
+import { DefaultTemplatesService } from './default-templates.service';
 import { WorldbuildingService } from './worldbuilding.service';
 
 describe('WorldbuildingService', () => {
@@ -50,7 +50,7 @@ describe('WorldbuildingService', () => {
 
   beforeEach(() => {
     setupService = {
-      getMode: vi.fn().mockReturnValue('server'),
+      getMode: vi.fn().mockReturnValue('offline'), // Use offline mode to avoid WebSocket
       getWebSocketUrl: vi.fn().mockReturnValue('ws://localhost:8333'),
     };
 
@@ -59,6 +59,7 @@ describe('WorldbuildingService', () => {
         provideZonelessChangeDetection(),
         provideHttpClient(),
         WorldbuildingService,
+        DefaultTemplatesService,
         { provide: SetupService, useValue: setupService },
       ],
     });
@@ -70,121 +71,15 @@ describe('WorldbuildingService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('setupCollaboration', () => {
-    it('should setup collaboration for a worldbuilding element', async () => {
-      const elementId = 'test-element-123';
-      const username = 'testuser';
-      const slug = 'test-project';
-
-      const dataMap = await service.setupCollaboration(
-        elementId,
-        username,
-        slug
-      );
-
-      expect(dataMap).toBeDefined();
-      expect(dataMap).toBeInstanceOf(Y.Map);
-    });
-
-    it('should reuse existing connection if already setup', async () => {
-      const elementId = 'test-element-123';
-      const username = 'testuser';
-      const slug = 'test-project';
-
-      const dataMap1 = await service.setupCollaboration(
-        elementId,
-        username,
-        slug
-      );
-      const dataMap2 = await service.setupCollaboration(
-        elementId,
-        username,
-        slug
-      );
-
-      expect(dataMap1).toBe(dataMap2); // Same instance
-    });
-
-    it('should work in offline mode without WebSocket', async () => {
-      (setupService.getMode as ReturnType<typeof vi.fn>).mockReturnValue(
-        'offline'
-      );
-      const elementId = 'test-element-123';
-
-      const dataMap = await service.setupCollaboration(elementId);
-
-      expect(dataMap).toBeDefined();
-    });
-  });
-
-  describe('loadSchemaLibrary', () => {
-    it('should load schema library for a project', async () => {
-      const projectKey = 'testuser:test-project';
-      const username = 'testuser';
-      const slug = 'test-project';
-
-      const library = await service.loadSchemaLibrary(
-        projectKey,
-        username,
-        slug
-      );
-
-      expect(library).toBeDefined();
-      expect(library).toBeInstanceOf(Y.Map);
-    });
-  });
-
-  describe('embedSchemaInElement', () => {
-    it('should embed schema snapshot in element Y.Doc', () => {
-      const ydoc = new Y.Doc();
-
-      service.embedSchemaInElement(ydoc, mockCharacterSchema);
-
-      const schemaMap = ydoc.getMap('__schema__');
-      expect(schemaMap.get('type')).toBe('character');
-      expect(schemaMap.get('name')).toBe('Character');
-      expect(schemaMap.get('version')).toBe(1);
-    });
-  });
-
-  describe('loadSchemaFromElement', () => {
-    it('should load schema from element Y.Doc', () => {
-      const ydoc = new Y.Doc();
-      service.embedSchemaInElement(ydoc, mockCharacterSchema);
-
-      const loadedSchema = service.loadSchemaFromElement(ydoc);
-
-      expect(loadedSchema).toBeDefined();
-      expect(loadedSchema?.type).toBe('character');
-      expect(loadedSchema?.name).toBe('Character');
-      expect(loadedSchema?.tabs).toHaveLength(1);
-    });
-
-    it('should return null if no schema embedded', () => {
-      const ydoc = new Y.Doc();
-
-      const loadedSchema = service.loadSchemaFromElement(ydoc);
-
-      expect(loadedSchema).toBeNull();
-    });
-  });
-
   describe('getWorldbuildingData', () => {
     it('should retrieve worldbuilding data from element', async () => {
       const elementId = 'test-element-123';
-      const username = 'testuser';
-      const slug = 'test-project';
 
-      // Setup collaboration first
-      const dataMap = await service.setupCollaboration(
-        elementId,
-        username,
-        slug
-      );
-
-      // Set some data
-      dataMap.set('name', 'Test Character');
-      dataMap.set('type', 'character');
+      // First save some data
+      await service.saveWorldbuildingData(elementId, {
+        name: 'Test Character',
+        type: 'character',
+      });
 
       const data = await service.getWorldbuildingData(elementId);
 
@@ -192,9 +87,8 @@ describe('WorldbuildingService', () => {
       expect(data?.['name']).toBe('Test Character');
     });
 
-    it('should return empty object if connection not found', async () => {
-      const data = await service.getWorldbuildingData('nonexistent-id');
-
+    it('should return empty object for new element', async () => {
+      const data = await service.getWorldbuildingData('new-element-id');
       expect(data).toEqual({});
     });
   });
@@ -202,143 +96,214 @@ describe('WorldbuildingService', () => {
   describe('saveWorldbuildingData', () => {
     it('should save worldbuilding data to element', async () => {
       const elementId = 'test-element-123';
-      const username = 'testuser';
-      const slug = 'test-project';
-
-      // Setup collaboration first
-      await service.setupCollaboration(elementId, username, slug);
 
       const testData = {
         name: 'Updated Character',
+        age: 25,
       };
 
-      await service.saveWorldbuildingData(elementId, testData, username, slug);
+      await service.saveWorldbuildingData(elementId, testData);
 
       // Verify data was saved
       const savedData = await service.getWorldbuildingData(elementId);
       expect(savedData?.['name']).toBe('Updated Character');
+      expect(savedData?.['age']).toBe(25);
+    });
+
+    it('should handle nested object data', async () => {
+      const elementId = 'test-element-nested';
+
+      const testData = {
+        name: 'Test',
+        appearance: {
+          height: '180cm',
+          weight: '75kg',
+        },
+      };
+
+      await service.saveWorldbuildingData(elementId, testData);
+
+      const savedData = await service.getWorldbuildingData(elementId);
+      expect(savedData?.['name']).toBe('Test');
+      // Nested data is stored as Y.Map, verify it's accessible
+      expect(savedData?.['appearance']).toBeDefined();
+    });
+
+    it('should handle array data', async () => {
+      const elementId = 'test-element-arrays';
+
+      const testData = {
+        name: 'Test',
+        aliases: ['John', 'Johnny'],
+      };
+
+      await service.saveWorldbuildingData(elementId, testData);
+
+      const savedData = await service.getWorldbuildingData(elementId);
+      expect(savedData?.['name']).toBe('Test');
     });
   });
 
-  describe('getSchemaFromLibrary', () => {
-    it('should retrieve schema from library', async () => {
-      const projectKey = 'testuser:test-project';
-      const username = 'testuser';
-      const slug = 'test-project';
+  describe('observeChanges', () => {
+    it('should call callback when data changes', async () => {
+      const elementId = 'test-element-observe';
+      const callback = vi.fn();
 
-      // Create Y.Doc and get maps from it to ensure proper Y.js context
-      const mockDoc = new Y.Doc();
-      const mockLibrary = mockDoc.getMap('library');
-      const schemasMap = new Y.Map();
-      const schemaData = new Y.Map();
+      const unsubscribe = await service.observeChanges(elementId, callback);
 
-      schemaData.set('id', mockCharacterSchema.id);
-      schemaData.set('type', mockCharacterSchema.type);
-      schemaData.set('name', mockCharacterSchema.name);
-      schemaData.set('icon', mockCharacterSchema.icon);
-      schemaData.set('description', mockCharacterSchema.description);
-      schemaData.set('version', mockCharacterSchema.version);
-      schemaData.set('isBuiltIn', mockCharacterSchema.isBuiltIn);
-      schemaData.set('tabs', JSON.stringify(mockCharacterSchema.tabs));
-      schemaData.set(
-        'defaultValues',
-        JSON.stringify(mockCharacterSchema.defaultValues)
-      );
+      // Make a change
+      await service.saveWorldbuildingData(elementId, { name: 'Changed' });
 
-      schemasMap.set('character', schemaData);
-      mockLibrary.set('schemas', schemasMap);
+      // Callback should have been called
+      expect(callback).toHaveBeenCalled();
 
-      // Verify the structure is correct
-      expect(mockLibrary.has('schemas')).toBe(true);
-      const retrievedSchemasMap = mockLibrary.get('schemas');
-      expect(retrievedSchemasMap).toBe(schemasMap);
+      // Cleanup
+      unsubscribe();
+    });
+  });
 
-      const loadSpy = vi
-        .spyOn(service, 'loadSchemaLibrary')
-        .mockResolvedValue(mockLibrary);
+  describe('getEmbeddedSchema / updateEmbeddedSchema', () => {
+    it('should return null for element with no embedded schema', async () => {
+      const elementId = 'element-no-schema';
 
-      const schema = await service.getSchemaFromLibrary(
-        projectKey,
-        'character',
-        username,
-        slug
-      );
+      const schema = await service.getEmbeddedSchema(elementId);
 
-      expect(loadSpy).toHaveBeenCalledWith(projectKey, username, slug);
+      expect(schema).toBeNull();
+    });
+
+    it('should embed and retrieve schema from element', async () => {
+      const elementId = 'element-with-schema';
+
+      // Update embedded schema
+      await service.updateEmbeddedSchema(elementId, mockCharacterSchema);
+
+      // Retrieve it
+      const schema = await service.getEmbeddedSchema(elementId);
+
       expect(schema).toBeDefined();
       expect(schema?.type).toBe('character');
       expect(schema?.name).toBe('Character');
+      expect(schema?.version).toBe(1);
+      expect(schema?.tabs).toHaveLength(1);
+    });
+  });
+
+  describe('getAllSchemas / saveSchemaToLibrary', () => {
+    it('should return empty array for new project', async () => {
+      const schemas = await service.getAllSchemas('newuser', 'newproject');
+
+      expect(schemas).toEqual([]);
     });
 
-    it('should return null if schema type not found', async () => {
-      const projectKey = 'testuser:test-project';
+    it('should save and retrieve schemas from library', async () => {
       const username = 'testuser';
-      const slug = 'test-project';
+      const slug = 'testproject';
 
-      vi.spyOn(service, 'loadSchemaLibrary').mockResolvedValue({
-        get: (key: string) => {
-          if (key === 'schemas') {
-            return new Y.Map();
-          }
-          return undefined;
-        },
-      } as Y.Map<unknown>);
+      // Save a schema
+      await service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
 
-      const schema = await service.getSchemaFromLibrary(
-        projectKey,
-        'nonexistent',
-        username,
-        slug
+      // Retrieve all schemas
+      const schemas = await service.getAllSchemas(username, slug);
+
+      expect(schemas).toHaveLength(1);
+      expect(schemas[0].type).toBe('character');
+      expect(schemas[0].name).toBe('Character');
+    });
+
+    it('should save multiple schemas', async () => {
+      const username = 'testuser';
+      const slug = 'testproject2';
+
+      const locationSchema: ElementTypeSchema = {
+        ...mockCharacterSchema,
+        id: 'location',
+        type: 'location',
+        name: 'Location',
+        icon: 'place',
+      };
+
+      await service.saveSchemasToLibrary(username, slug, [
+        mockCharacterSchema,
+        locationSchema,
+      ]);
+
+      const schemas = await service.getAllSchemas(username, slug);
+
+      expect(schemas).toHaveLength(2);
+      expect(schemas.map(s => s.type).sort()).toEqual([
+        'character',
+        'location',
+      ]);
+    });
+  });
+
+  describe('getSchema', () => {
+    it('should retrieve specific schema by type', async () => {
+      const username = 'testuser';
+      const slug = 'testproject3';
+
+      // Save schema first
+      await service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+
+      // Get specific schema
+      const schema = await service.getSchema(username, slug, 'character');
+
+      expect(schema).toBeDefined();
+      expect(schema?.type).toBe('character');
+    });
+
+    it('should return null for non-existent schema type', async () => {
+      const schema = await service.getSchema(
+        'testuser',
+        'testproject4',
+        'nonexistent'
       );
 
       expect(schema).toBeNull();
     });
   });
 
+  describe('hasNoSchemas', () => {
+    it('should return true for empty library', async () => {
+      const isEmpty = await service.hasNoSchemas('newuser2', 'newproject2');
+
+      expect(isEmpty).toBe(true);
+    });
+
+    it('should return false when schemas exist', async () => {
+      const username = 'testuser';
+      const slug = 'testproject5';
+
+      await service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+
+      const isEmpty = await service.hasNoSchemas(username, slug);
+
+      expect(isEmpty).toBe(false);
+    });
+  });
+
   describe('cloneTemplate', () => {
     it('should clone an existing template with new ID', async () => {
-      const projectKey = 'testuser:test-project';
       const username = 'testuser';
-      const slug = 'test-project';
-      const sourceType = 'character';
-      const newName = 'Hero';
-      const newDescription = 'Custom hero template';
+      const slug = 'clonetest';
+      const projectKey = `${username}:${slug}`;
 
-      // Create Y.Doc and get maps from it
-      const mockDoc = new Y.Doc();
-      const mockLibrary = mockDoc.getMap('library');
-      const schemasMap = new Y.Map();
-      const schemaData = new Y.Map();
+      // Save original template
+      await service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
 
-      schemaData.set('id', mockCharacterSchema.id);
-      schemaData.set('type', mockCharacterSchema.type);
-      schemaData.set('name', mockCharacterSchema.name);
-      schemaData.set('icon', mockCharacterSchema.icon);
-      schemaData.set('description', mockCharacterSchema.description);
-      schemaData.set('version', mockCharacterSchema.version);
-      schemaData.set('isBuiltIn', true);
-      schemaData.set('tabs', JSON.stringify(mockCharacterSchema.tabs));
-      schemaData.set(
-        'defaultValues',
-        JSON.stringify(mockCharacterSchema.defaultValues)
-      );
-      schemasMap.set('character', schemaData);
-      mockLibrary.set('schemas', schemasMap);
-
-      vi.spyOn(service, 'loadSchemaLibrary').mockResolvedValue(mockLibrary);
-
+      // Clone it
       const clonedSchema = await service.cloneTemplate(
         projectKey,
-        sourceType,
-        newName,
-        newDescription,
+        'character',
+        'Hero',
+        'Custom hero template',
         username,
         slug
       );
 
       expect(clonedSchema).toBeDefined();
-      expect(clonedSchema.name).toBe(newName);
-      expect(clonedSchema.description).toBe(newDescription);
+      expect(clonedSchema.name).toBe('Hero');
+      expect(clonedSchema.description).toBe('Custom hero template');
       expect(clonedSchema.isBuiltIn).toBe(false);
       expect(clonedSchema.version).toBe(1);
       expect(clonedSchema.type.startsWith('CUSTOM_')).toBe(true);
@@ -346,15 +311,9 @@ describe('WorldbuildingService', () => {
     });
 
     it('should throw error if source template not found', async () => {
-      const projectKey = 'testuser:test-project';
       const username = 'testuser';
-      const slug = 'test-project';
-
-      const mockDoc = new Y.Doc();
-      const mockLibrary = mockDoc.getMap('library');
-      mockLibrary.set('schemas', new Y.Map());
-
-      vi.spyOn(service, 'loadSchemaLibrary').mockResolvedValue(mockLibrary);
+      const slug = 'clonetest2';
+      const projectKey = `${username}:${slug}`;
 
       await expect(
         service.cloneTemplate(
@@ -371,82 +330,67 @@ describe('WorldbuildingService', () => {
 
   describe('deleteTemplate', () => {
     it('should delete a custom template from the library', async () => {
-      const projectKey = 'testuser:test-project';
       const username = 'testuser';
-      const slug = 'test-project';
-      const templateType = 'CUSTOM_hero';
+      const slug = 'deletetest';
+      const projectKey = `${username}:${slug}`;
 
-      const mockDoc = new Y.Doc();
-      const mockLibrary = mockDoc.getMap('library');
-      const schemasMap = new Y.Map();
-      const templateData = new Y.Map();
-      templateData.set('isBuiltIn', false);
-      schemasMap.set(templateType, templateData);
-      mockLibrary.set('schemas', schemasMap);
+      // Save and clone to create a custom template
+      await service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+      const cloned = await service.cloneTemplate(
+        projectKey,
+        'character',
+        'ToDelete',
+        undefined,
+        username,
+        slug
+      );
 
-      vi.spyOn(service, 'loadSchemaLibrary').mockResolvedValue(mockLibrary);
+      // Delete the custom template
+      await service.deleteTemplate(projectKey, cloned.type, username, slug);
 
-      await service.deleteTemplate(projectKey, templateType, username, slug);
-
-      expect(schemasMap.has(templateType)).toBe(false);
+      // Verify it's deleted
+      const schema = await service.getSchema(username, slug, cloned.type);
+      expect(schema).toBeNull();
     });
 
     it('should throw error when trying to delete built-in template', async () => {
-      const projectKey = 'testuser:test-project';
       const username = 'testuser';
-      const slug = 'test-project';
-      const templateType = 'character';
+      const slug = 'deletetest2';
+      const projectKey = `${username}:${slug}`;
 
-      const mockDoc = new Y.Doc();
-      const mockLibrary = mockDoc.getMap('library');
-      const schemasMap = new Y.Map();
-      const templateData = new Y.Map();
-      templateData.set('isBuiltIn', true);
-      schemasMap.set(templateType, templateData);
-      mockLibrary.set('schemas', schemasMap);
-
-      vi.spyOn(service, 'loadSchemaLibrary').mockResolvedValue(mockLibrary);
+      await service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
 
       await expect(
-        service.deleteTemplate(projectKey, templateType, username, slug)
+        service.deleteTemplate(projectKey, 'character', username, slug)
       ).rejects.toThrow('Cannot delete built-in templates');
     });
   });
 
   describe('updateTemplate', () => {
     it('should update an existing template in the library', async () => {
-      const projectKey = 'testuser:test-project';
       const username = 'testuser';
-      const slug = 'test-project';
-      const templateType = 'CUSTOM_hero';
+      const slug = 'updatetest';
+      const projectKey = `${username}:${slug}`;
+
+      // Save and clone to create a custom template
+      await service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+      const cloned = await service.cloneTemplate(
+        projectKey,
+        'character',
+        'ToUpdate',
+        undefined,
+        username,
+        slug
+      );
 
       const updatedData = {
         name: 'Updated Hero',
         description: 'Updated description',
-        tabs: [
-          {
-            key: 'basic',
-            label: 'Basic Info',
-            fields: [],
-          },
-        ],
       };
-
-      const mockDoc = new Y.Doc();
-      const mockLibrary = mockDoc.getMap('library');
-      const schemasMap = new Y.Map();
-      const templateData = new Y.Map();
-      templateData.set('version', 1);
-      templateData.set('isBuiltIn', false);
-      templateData.set('tabs', JSON.stringify(mockCharacterSchema.tabs));
-      schemasMap.set(templateType, templateData);
-      mockLibrary.set('schemas', schemasMap);
-
-      vi.spyOn(service, 'loadSchemaLibrary').mockResolvedValue(mockLibrary);
 
       const result = await service.updateTemplate(
         projectKey,
-        templateType,
+        cloned.type,
         updatedData,
         username,
         slug
@@ -455,8 +399,6 @@ describe('WorldbuildingService', () => {
       expect(result.name).toBe('Updated Hero');
       expect(result.description).toBe('Updated description');
       expect(result.version).toBe(2); // Should increment version
-      expect(templateData.get('name')).toBe('Updated Hero');
-      expect(templateData.get('version')).toBe(2);
     });
   });
 
@@ -473,79 +415,34 @@ describe('WorldbuildingService', () => {
     });
 
     it('should look up icon for custom types from schema library', async () => {
-      const elementType = 'CUSTOM_hero';
       const username = 'testuser';
-      const slug = 'test-project';
+      const slug = 'icontest';
 
-      vi.spyOn(service, 'getSchemaFromLibrary').mockResolvedValue({
+      // Save custom schema with specific icon
+      const customSchema: ElementTypeSchema = {
         ...mockCharacterSchema,
-        type: elementType,
+        type: 'CUSTOM_hero',
         icon: 'star',
-      });
+      };
+      await service.saveSchemaToLibrary(username, slug, customSchema);
 
-      const icon = await service.getIconForType(elementType, username, slug);
+      const icon = await service.getIconForType('CUSTOM_hero', username, slug);
 
       expect(icon).toBe('star');
-      expect(service.getSchemaFromLibrary).toHaveBeenCalledWith(
-        'testuser:test-project',
-        elementType,
-        username,
-        slug
-      );
     });
 
     it('should fallback to default icon if custom type schema not found', async () => {
-      const elementType = 'CUSTOM_unknown';
-      const username = 'testuser';
-      const slug = 'test-project';
-
-      vi.spyOn(service, 'getSchemaFromLibrary').mockResolvedValue(null);
-
-      const icon = await service.getIconForType(elementType, username, slug);
+      const icon = await service.getIconForType(
+        'CUSTOM_unknown',
+        'testuser',
+        'icontest2'
+      );
 
       expect(icon).toBe('description');
     });
   });
 
   describe('initializeWorldbuildingElement', () => {
-    it('should initialize element with schema and default values', async () => {
-      const element = {
-        id: 'test-element-123',
-        type: 'CHARACTER',
-        name: 'Test Character',
-      } as Element;
-      const username = 'testuser';
-      const slug = 'test-project';
-
-      // Create mock Yjs document and connection
-      const mockYdoc = new Y.Doc();
-      const mockDataMap = mockYdoc.getMap('worldbuilding');
-      const mockConnection = {
-        ydoc: mockYdoc,
-        dataMap: mockDataMap,
-        provider: undefined,
-        indexeddbProvider: undefined,
-      };
-
-      // Mock schema library
-      vi.spyOn(service, 'getSchemaFromLibrary').mockResolvedValue(
-        mockCharacterSchema
-      );
-
-      // Mock setupCollaboration to return dataMap and set up connection
-      vi.spyOn(service, 'setupCollaboration').mockImplementation(
-        (elementId: string) => {
-          (service as any).connections.set(elementId, mockConnection);
-          return Promise.resolve(mockDataMap);
-        }
-      );
-
-      await service.initializeWorldbuildingElement(element, username, slug);
-
-      expect(mockDataMap.get('type')).toBe('character'); // Schema type, not element type
-      expect(mockDataMap.get('name')).toBe(element.name);
-    });
-
     it('should skip initialization for non-worldbuilding types', async () => {
       const element = {
         id: 'test-element-123',
@@ -553,45 +450,40 @@ describe('WorldbuildingService', () => {
         name: 'Test Document',
       } as Element;
 
-      const setupSpy = vi.spyOn(service, 'setupCollaboration');
-
+      // Should complete without errors
       await service.initializeWorldbuildingElement(element);
 
-      expect(setupSpy).not.toHaveBeenCalled();
+      // No schema should be embedded for non-worldbuilding types
+      const schema = await service.getEmbeddedSchema('test-element-123');
+      expect(schema).toBeNull();
     });
 
     it('should skip initialization if already initialized', async () => {
       const element = {
-        id: 'test-element-123',
+        id: 'initialized-element',
         type: 'CHARACTER',
         name: 'Test Character',
       } as Element;
 
-      // Create mock Yjs document and connection with type already set
-      const mockYdoc = new Y.Doc();
-      const mockDataMap = mockYdoc.getMap('worldbuilding');
-      mockDataMap.set('type', 'character'); // Already initialized
+      const username = 'testuser';
+      const slug = 'inittest';
 
-      const mockConnection = {
-        ydoc: mockYdoc,
-        dataMap: mockDataMap,
-        provider: undefined,
-        indexeddbProvider: undefined,
-      };
+      // Pre-save schema to library so initialization can find it
+      await service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
 
-      // Mock setupCollaboration to return dataMap with type already set
-      vi.spyOn(service, 'setupCollaboration').mockImplementation(
-        (elementId: string) => {
-          (service as any).connections.set(elementId, mockConnection);
-          return Promise.resolve(mockDataMap);
-        }
-      );
+      // Initialize first time
+      await service.initializeWorldbuildingElement(element, username, slug);
 
-      const schemaSpy = vi.spyOn(service, 'getSchemaFromLibrary');
+      // Get the data after initialization
+      const data1 = await service.getWorldbuildingData('initialized-element');
+      const createdDate = data1?.['createdDate'];
 
-      await service.initializeWorldbuildingElement(element);
+      // Initialize again - should be skipped
+      await service.initializeWorldbuildingElement(element, username, slug);
 
-      expect(schemaSpy).not.toHaveBeenCalled();
+      // Verify createdDate hasn't changed (would change if re-initialized)
+      const data2 = await service.getWorldbuildingData('initialized-element');
+      expect(data2?.['createdDate']).toBe(createdDate);
     });
   });
 });

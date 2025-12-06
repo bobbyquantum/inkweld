@@ -1,63 +1,97 @@
-import dotenv from 'dotenv';
-import path from 'path';
-import { existsSync } from 'fs';
-import { homedir, platform } from 'os';
-import { fileURLToPath } from 'url';
+/**
+ * Environment configuration for Inkweld backend
+ *
+ * This file supports multiple runtimes:
+ * - Bun/Node.js: Loads .env files from various locations
+ * - Cloudflare Workers: Uses environment bindings from wrangler.toml
+ *
+ * In Workers, import.meta.url and Node.js APIs are not available,
+ * so we skip dotenv loading entirely and rely on wrangler.toml vars.
+ */
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Detect if we're in Cloudflare Workers (no import.meta.url or process.cwd)
+const isCloudflareWorkers =
+  typeof globalThis.caches !== 'undefined' &&
+  typeof (globalThis as Record<string, unknown>).WebSocketPair !== 'undefined';
 
-// Try to load environment variables from multiple locations
-function loadEnvironment() {
-  // Priority 1: Current directory (e.g., backend/.env when running from backend/)
-  const localEnv = path.resolve(process.cwd(), '.env');
-  if (existsSync(localEnv)) {
-    dotenv.config({ path: localEnv });
-    return;
-  }
+// Only load dotenv in Node.js/Bun environments
+if (!isCloudflareWorkers) {
+  // Dynamic imports to avoid bundling Node.js modules in Workers
+  const loadEnvironment = async () => {
+    try {
+      const dotenv = await import('dotenv');
+      const path = await import('path');
+      const { existsSync } = await import('fs');
+      const { homedir, platform } = await import('os');
+      const { fileURLToPath } = await import('url');
 
-  // Priority 2: Parent directory (e.g., root .env when running from backend/)
-  const parentEnv = path.resolve(process.cwd(), '../.env');
-  if (existsSync(parentEnv)) {
-    dotenv.config({ path: parentEnv });
-    return;
-  }
+      // Safely get __dirname - import.meta.url might be undefined in some contexts
+      let __dirname: string;
+      try {
+        if (import.meta.url) {
+          const __filename = fileURLToPath(import.meta.url);
+          __dirname = path.dirname(__filename);
+        } else {
+          __dirname = process.cwd();
+        }
+      } catch {
+        __dirname = process.cwd();
+      }
 
-  // Priority 3: Monorepo root relative to this file (backend/src/config/env.ts → root/.env)
-  // This handles cases where the server is run from a different directory
-  const monorepoRoot = path.resolve(__dirname, '../../../.env');
-  if (existsSync(monorepoRoot)) {
-    dotenv.config({ path: monorepoRoot });
-    return;
-  }
+      // Priority 1: Current directory (e.g., backend/.env when running from backend/)
+      const localEnv = path.resolve(process.cwd(), '.env');
+      if (existsSync(localEnv)) {
+        dotenv.config({ path: localEnv });
+        return;
+      }
 
-  // Priority 4: User config directory (~/.inkweld/.env on Unix, %APPDATA%\Inkweld\.env on Windows)
-  const home = homedir();
-  const plat = platform();
-  let configDir: string;
+      // Priority 2: Parent directory (e.g., root .env when running from backend/)
+      const parentEnv = path.resolve(process.cwd(), '../.env');
+      if (existsSync(parentEnv)) {
+        dotenv.config({ path: parentEnv });
+        return;
+      }
 
-  switch (plat) {
-    case 'win32':
-      configDir = path.join(
-        process.env.APPDATA || path.join(home, 'AppData', 'Roaming'),
-        'Inkweld'
-      );
-      break;
-    case 'darwin':
-    case 'linux':
-    default:
-      configDir = path.join(home, '.inkweld');
-  }
+      // Priority 3: Monorepo root relative to this file (backend/src/config/env.ts → root/.env)
+      const monorepoRoot = path.resolve(__dirname, '../../../.env');
+      if (existsSync(monorepoRoot)) {
+        dotenv.config({ path: monorepoRoot });
+        return;
+      }
 
-  const configEnv = path.join(configDir, '.env');
-  if (existsSync(configEnv)) {
-    dotenv.config({ path: configEnv });
-  }
+      // Priority 4: User config directory (~/.inkweld/.env on Unix, %APPDATA%\Inkweld\.env on Windows)
+      const home = homedir();
+      const plat = platform();
+      let configDir: string;
 
-  // If none found, continue with environment variables only
+      switch (plat) {
+        case 'win32':
+          configDir = path.join(
+            process.env.APPDATA || path.join(home, 'AppData', 'Roaming'),
+            'Inkweld'
+          );
+          break;
+        case 'darwin':
+        case 'linux':
+        default:
+          configDir = path.join(home, '.inkweld');
+      }
+
+      const configEnv = path.join(configDir, '.env');
+      if (existsSync(configEnv)) {
+        dotenv.config({ path: configEnv });
+      }
+
+      // If none found, continue with environment variables only
+    } catch {
+      // Silently fail - we're likely in a Workers environment or imports failed
+    }
+  };
+
+  // Note: This is async but we call it synchronously for side effects
+  // In Workers, this block is skipped entirely
+  loadEnvironment();
 }
-
-loadEnvironment();
 
 export const config = {
   // Server
