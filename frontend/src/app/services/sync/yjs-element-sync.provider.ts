@@ -304,24 +304,40 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
   /**
    * Wait for the WebSocket to sync with the server.
+   * Uses the 'sync' event from y-websocket instead of polling.
    * Times out after 30 seconds.
    */
   private waitForInitialSync(): Promise<void> {
     return new Promise((resolve, reject) => {
+      if (!this.wsProvider) {
+        reject(new Error('WebSocket provider not initialized'));
+        return;
+      }
+
+      // If already synced, resolve immediately
+      if (this.wsProvider.synced) {
+        this.logger.info('YjsSync', '✅ WebSocket already synced');
+        resolve();
+        return;
+      }
+
       const timeout = setTimeout(() => {
+        this.logger.warn('YjsSync', '⚠️ WebSocket sync timeout after 30s');
         reject(new Error('WebSocket sync timeout'));
       }, 30000);
 
-      const checkSync = () => {
-        if (this.wsProvider?.synced) {
+      // Listen for the sync event instead of polling
+      const onSync = (isSynced: boolean) => {
+        this.logger.debug('YjsSync', `Sync event received: ${isSynced}`);
+        if (isSynced) {
           clearTimeout(timeout);
-          this.logger.info('YjsSync', '✅ WebSocket synced');
+          this.wsProvider?.off('sync', onSync);
+          this.logger.info('YjsSync', '✅ WebSocket synced (via event)');
           resolve();
-        } else {
-          setTimeout(checkSync, 100);
         }
       };
-      checkSync();
+
+      this.wsProvider.on('sync', onSync);
     });
   }
 

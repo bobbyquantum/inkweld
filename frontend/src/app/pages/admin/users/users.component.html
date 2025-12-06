@@ -1,0 +1,246 @@
+<div class="users-container" data-testid="admin-users-page">
+  @if (isLoading()) {
+    <div class="loading-container" data-testid="admin-loading">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Loading users...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-container" data-testid="admin-error">
+      <mat-icon>error</mat-icon>
+      <p data-testid="admin-error-message">{{ error()!.message }}</p>
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="loadUsers()"
+        data-testid="admin-retry-button">
+        Retry
+      </button>
+    </div>
+  } @else {
+    <!-- Tabs -->
+    <mat-tab-group
+      [(selectedIndex)]="selectedTab"
+      data-testid="admin-tabs"
+      class="user-tabs">
+      <!-- Pending Users Tab -->
+      <mat-tab data-testid="stat-pending-users">
+        <ng-template mat-tab-label>
+          <mat-icon>pending</mat-icon>
+          <span data-testid="stat-pending-users-value"
+            >Pending ({{ pendingUsers().length }})</span
+          >
+        </ng-template>
+        <div class="tab-content" data-testid="pending-users-tab">
+          @if (pendingUsers().length === 0) {
+            <div class="empty-state" data-testid="pending-users-empty">
+              <mat-icon>check_circle</mat-icon>
+              <p>No pending users</p>
+            </div>
+          } @else {
+            <div class="user-list" data-testid="pending-users-list">
+              @for (user of pendingUsers(); track user.id) {
+                <mat-card
+                  class="user-card pending"
+                  [attr.data-testid]="'user-card-' + user.username">
+                  <mat-card-content>
+                    <div class="user-info">
+                      <app-user-avatar
+                        [username]="user.username"
+                        size="medium"></app-user-avatar>
+                      <div class="user-details">
+                        <span class="username">{{ user.username }}</span>
+                        <span class="email">{{ user.email }}</span>
+                      </div>
+                    </div>
+                    <div class="user-actions">
+                      <button
+                        mat-raised-button
+                        color="primary"
+                        (click)="approveUser(user)"
+                        [attr.data-testid]="'approve-user-' + user.username">
+                        <mat-icon>check</mat-icon>
+                        Approve
+                      </button>
+                      <button
+                        mat-raised-button
+                        color="warn"
+                        (click)="rejectUser(user)"
+                        [attr.data-testid]="'reject-user-' + user.username">
+                        <mat-icon>close</mat-icon>
+                        Reject
+                      </button>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+              }
+            </div>
+          }
+        </div>
+      </mat-tab>
+
+      <!-- All Users Tab -->
+      <mat-tab data-testid="stat-total-users">
+        <ng-template mat-tab-label>
+          <mat-icon>people</mat-icon>
+          <span data-testid="stat-total-users-value"
+            >All Users ({{ totalUsers() }})</span
+          >
+        </ng-template>
+        <div class="tab-content" data-testid="all-users-tab">
+          <!-- Search bar -->
+          <div class="search-container" data-testid="user-search">
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>Search users</mat-label>
+              <input
+                matInput
+                type="text"
+                placeholder="Search by username or email..."
+                [value]="searchQuery()"
+                (input)="onSearchInput($event)"
+                data-testid="user-search-input" />
+              <mat-icon matPrefix>search</mat-icon>
+              @if (searchQuery()) {
+                <button
+                  matSuffix
+                  mat-icon-button
+                  (click)="clearSearch()"
+                  data-testid="clear-search-button">
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+            </mat-form-field>
+            @if (searchQuery()) {
+              <span class="search-results-count">
+                {{ users().length }} of {{ totalUsers() }} users
+              </span>
+            }
+          </div>
+
+          @if (users().length === 0 && !isLoading()) {
+            <div class="empty-state" data-testid="all-users-empty">
+              <mat-icon>people_outline</mat-icon>
+              @if (searchQuery()) {
+                <p>No users found matching "{{ searchQuery() }}"</p>
+                <button mat-button color="primary" (click)="clearSearch()">
+                  Clear search
+                </button>
+              } @else {
+                <p>No users found</p>
+              }
+            </div>
+          } @else {
+            <div
+              class="user-list scrollable"
+              data-testid="all-users-list"
+              (scroll)="onScroll($event)"
+              #userListContainer>
+              @for (user of users(); track user.id) {
+                <mat-card
+                  class="user-card"
+                  [ngClass]="getUserStatusClass(user)"
+                  [attr.data-testid]="'user-card-' + user.username">
+                  <mat-card-content>
+                    <div class="user-info">
+                      <app-user-avatar
+                        [username]="user.username"
+                        size="medium"></app-user-avatar>
+                      <div class="user-details">
+                        <span class="username">
+                          {{ user.username }}
+                          @if (isCurrentUser(user)) {
+                            <span class="you-badge">(you)</span>
+                          }
+                        </span>
+                        <span class="email">{{ user.email }}</span>
+                      </div>
+                      <mat-chip
+                        class="status-chip"
+                        [ngClass]="getUserStatusClass(user)"
+                        data-testid="user-status-chip">
+                        {{ getUserStatusLabel(user) }}
+                      </mat-chip>
+                    </div>
+                    <div class="user-actions">
+                      <button
+                        mat-icon-button
+                        [matMenuTriggerFor]="userMenu"
+                        [attr.data-testid]="'user-menu-' + user.username"
+                        [matTooltip]="'Actions for ' + user.username">
+                        <mat-icon>more_vert</mat-icon>
+                      </button>
+                      <mat-menu #userMenu="matMenu">
+                        @if (!user.enabled && user.approved) {
+                          <button
+                            mat-menu-item
+                            (click)="enableUser(user)"
+                            [attr.data-testid]="'enable-user-' + user.username">
+                            <mat-icon>check_circle</mat-icon>
+                            <span>Enable</span>
+                          </button>
+                        }
+                        @if (user.enabled && user.approved) {
+                          <button
+                            mat-menu-item
+                            (click)="disableUser(user)"
+                            [disabled]="isCurrentUser(user)"
+                            [attr.data-testid]="
+                              'disable-user-' + user.username
+                            ">
+                            <mat-icon>block</mat-icon>
+                            <span>Disable</span>
+                          </button>
+                        }
+                        <button
+                          mat-menu-item
+                          (click)="toggleAdmin(user)"
+                          [disabled]="isCurrentUser(user)"
+                          [attr.data-testid]="'toggle-admin-' + user.username">
+                          <mat-icon>{{
+                            user.isAdmin ? 'remove_moderator' : 'shield'
+                          }}</mat-icon>
+                          <span>{{
+                            user.isAdmin ? 'Remove Admin' : 'Grant Admin'
+                          }}</span>
+                        </button>
+                        <mat-divider></mat-divider>
+                        <button
+                          mat-menu-item
+                          class="danger"
+                          (click)="deleteUser(user)"
+                          [disabled]="isCurrentUser(user)"
+                          [attr.data-testid]="'delete-user-' + user.username">
+                          <mat-icon color="warn">delete</mat-icon>
+                          <span>Delete</span>
+                        </button>
+                      </mat-menu>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+              }
+
+              <!-- Load more indicator -->
+              @if (isLoadingMore()) {
+                <div class="loading-more" data-testid="loading-more">
+                  <mat-spinner diameter="24"></mat-spinner>
+                  <span>Loading more users...</span>
+                </div>
+              }
+
+              <!-- Load more button (fallback for non-scrolling) -->
+              @if (hasMoreUsers() && !isLoadingMore()) {
+                <div class="load-more-container">
+                  <button
+                    mat-stroked-button
+                    (click)="loadMoreUsers()"
+                    data-testid="load-more-button">
+                    Load more ({{ users().length }} of {{ totalUsers() }})
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  }
+</div>

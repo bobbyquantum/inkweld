@@ -15,6 +15,7 @@
     "build:binary": "bun build src/bun-runner.ts --no-minify --compile --outfile dist/inkweld",
     "build:binary:full": "bun run scripts/build-binary-full.ts",
     "build:worker": "wrangler deploy --dry-run",
+    "generate:frontend-imports": "bun run scripts/generate-frontend-imports.ts",
     "start": "NODE_ENV=production bun dist/bun-runner.js",
     "start:node": "NODE_ENV=production node dist/node-runner.js",
     "test": "NODE_ENV=test bun test --coverage",

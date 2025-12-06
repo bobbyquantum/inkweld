@@ -238,14 +238,27 @@ export class UsersService extends BaseService {
     }
 
     /**
+     * List users
+     * Get a paginated list of users. Admins see all users with full details (including pending/disabled). Regular users only see active (approved+enabled) users with limited info.
      * @endpoint get /api/v1/users
+     * @param search Search by username or email
+     * @param limit Number of results per page (default: 20)
+     * @param offset Offset for pagination (default: 0)
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public listUsers(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PaginatedUsersResponse>;
-    public listUsers(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PaginatedUsersResponse>>;
-    public listUsers(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PaginatedUsersResponse>>;
-    public listUsers(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public listUsers(search?: string, limit?: string, offset?: string, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<PaginatedUsersResponse>;
+    public listUsers(search?: string, limit?: string, offset?: string, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PaginatedUsersResponse>>;
+    public listUsers(search?: string, limit?: string, offset?: string, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PaginatedUsersResponse>>;
+    public listUsers(search?: string, limit?: string, offset?: string, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'application/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+
+        let localVarQueryParameters = new HttpParams({encoder: this.encoder});
+        localVarQueryParameters = this.addToHttpParams(localVarQueryParameters,
+          <any>search, 'search');
+        localVarQueryParameters = this.addToHttpParams(localVarQueryParameters,
+          <any>limit, 'limit');
+        localVarQueryParameters = this.addToHttpParams(localVarQueryParameters,
+          <any>offset, 'offset');
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -277,6 +290,7 @@ export class UsersService extends BaseService {
         return this.httpClient.request<PaginatedUsersResponse>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
+                params: localVarQueryParameters,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,
@@ -288,6 +302,8 @@ export class UsersService extends BaseService {
     }
 
     /**
+     * Search users
+     * Search users by username or name. Admins see all users, regular users only see active users.
      * @endpoint get /api/v1/users/search
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.

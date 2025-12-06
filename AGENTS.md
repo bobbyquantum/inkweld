@@ -203,7 +203,7 @@ src/
 
 ```bash
 # Install dependencies
-npm run install-all
+bun install
 
 # Start development servers (both frontend & backend)
 npm start

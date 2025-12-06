@@ -17,6 +17,7 @@ test.describe('Online Publishing Workflow', () => {
     // Create a unique project
     const uniqueSlug = `publish-test-${Date.now()}`;
     await page.goto('/create-project');
+
     await page.getByTestId('project-title-input').fill('Publishing Test');
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
     await page.getByTestId('create-project-button').click();
@@ -106,6 +107,7 @@ test.describe('Online Publishing Workflow', () => {
 
       // Should show in the items list
       await expect(page.getByTestId('content-items-list')).toBeVisible();
+
       // Use specific test ID to avoid matching multiple elements
       await expect(page.getByTestId('item-name')).toContainText(
         'Table of Contents'

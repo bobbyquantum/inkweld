@@ -1,4 +1,7 @@
 [test]
+# Run setup file before tests to configure environment
+preload = ["./test/setup.ts"]
+
 # Enable coverage reporting
 coverage = true
 

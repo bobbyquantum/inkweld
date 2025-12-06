@@ -11,6 +11,7 @@ export const users = sqliteTable('users', {
   githubId: text('githubId').unique(),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
   approved: integer('approved', { mode: 'boolean' }).notNull().default(false),
+  isAdmin: integer('isAdmin', { mode: 'boolean' }).notNull().default(false),
 });
 
 export type User = typeof users.$inferSelect;

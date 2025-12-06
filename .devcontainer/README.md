@@ -38,7 +38,7 @@ A self-contained development environment for the Inkweld collaborative writing p
 
 1. **Open in VS Code** with the Dev Containers extension installed
 2. Click "Reopen in Container" when prompted
-3. Wait for the container to build and `npm run install-all` to complete
+3. Wait for the container to build and `bun install` to complete
 4. Start developing!
 
 ### Start Development Servers

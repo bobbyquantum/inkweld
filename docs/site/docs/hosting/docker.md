@@ -39,93 +39,79 @@ If you prefer manual control, follow these steps:
 
 ## Overview
 
-The backend Dockerfile produces a single image that serves the Angular production bundle and the Bun API from the same container. Every `docker run` exposes port `8333`, hosts the SPA at `/`, and continues to answer API requests under `/api/**`.
+The Dockerfile produces a single ~200MB image that compiles the Angular frontend and Bun backend into a standalone binary. The container serves both the SPA at `/` and the API at `/api/**` from port `8333`.
 
 ## Build the image
 
 From the repo root:
 
 ```bash
- docker build -t inkweld/backend:local -f backend/Dockerfile .
+docker build -t inkweld:local .
 ```
 
 For multi-platform testing, enable BuildKit and run:
 
 ```bash
- docker buildx build --platform linux/amd64,linux/arm64 \
-   -t inkweld/backend:local -f backend/Dockerfile --load .
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t inkweld:local --load .
 ```
 
 ## Runtime essentials
 
 ```bash
- docker run -p 8333:8333 -v inkweld_data:/data \
-   -e SESSION_SECRET=supersecuresecretkey12345678901234567890 \
-   -e CLIENT_URL=https://app.inkweld.org \
-   --name inkweld-backend \
-   inkweld/backend:local
+docker run -p 8333:8333 -v inkweld_data:/data \
+  -e SESSION_SECRET=supersecuresecretkey12345678901234567890 \
+  --name inkweld \
+  inkweld:local
 ```
 
 Key flags:
 
-- **Port mapping**: always expose port `8333` (configurable via env vars but defaults to `8333`).
-- **Volume**: mount `/data` to persist SQLite databases, LevelDB stores, and uploaded project files.
+- **Port mapping**: expose port `8333` (configurable via `PORT` env var).
+- **Volume**: mount `/data` to persist SQLite database and Yjs documents.
 - **Secrets**: `SESSION_SECRET` must be 32+ characters; keep it private.
-- **CORS**: set `CLIENT_URL`/`ALLOWED_ORIGINS` to whatever serves the SPA (even though the SPA is bundled, other clients may exist).
 
 ## Environment variables
 
 | Variable                 | Purpose                                                          |
 | ------------------------ | ---------------------------------------------------------------- |
 | `PORT`                   | HTTP port (default 8333)                                         |
-| `SESSION_SECRET`         | Session encryption key (required)                                |
-| `CLIENT_URL`             | Frontend origin allowed for CORS                                 |
-| `ALLOWED_ORIGINS`        | Comma-separated list for CORS + CSRF                             |
-| `DB_TYPE`                | `sqlite` or `postgres` (container defaults to SQLite)            |
+| `SESSION_SECRET`         | Session encryption key (required, 32+ chars)                     |
+| `ALLOWED_ORIGINS`        | Comma-separated list for CORS                                    |
+| `DB_TYPE`                | `sqlite` or `d1` (container defaults to SQLite)                  |
 | `DB_PATH`                | SQLite path, defaults to `/data/sqlite.db`                       |
-| `DATA_PATH`              | LevelDB + Yjs storage location (`/data/yjs`)                     |
-| `FRONTEND_DIST`          | Path to static assets; override if you mount a different bundle  |
-| `DRIZZLE_MIGRATIONS_DIR` | Custom migrations directory (defaults to `/app/backend/drizzle`) |
+| `DATA_PATH`              | Yjs document storage location (`/data/yjs`)                      |
+| `SERVE_FRONTEND`         | Set to `false` to disable frontend serving (API-only mode)       |
+| `GITHUB_ENABLED`         | Enable GitHub OAuth (default: false)                             |
+| `USER_APPROVAL_REQUIRED` | Require admin approval for new users (default: true)             |
 
 ## Automatic migrations
 
-On boot the image runs `bun run drizzle-kit migrate` against the bundled migrations folder. Provide your own folder by mounting into `/app/backend/drizzle` or overriding `DRIZZLE_MIGRATIONS_DIR`. Set `SKIP_MIGRATIONS=true` if you must disable the behavior.
-
-## Admin CLI inside the container
-
-The admin CLI ships with the image. Use it via `docker exec` to approve users or inspect stats without copying files out:
-
-```bash
- docker exec -it inkweld-backend \
-   bun run admin-cli.ts users approve <username>
-```
-
-All commands reuse the running container's environment, so you never have to maintain a separate `.env` file for the CLI.
+On boot, the image runs Drizzle migrations against the SQLite database. The migrations are bundled in the image at `/app/drizzle`.
 
 ## Docker Compose
 
-`compose.yaml` wires the backend together with its persistent volume:
+`compose.yaml` wires everything together with persistent volume:
 
 ```yaml
 services:
-  backend:
+  inkweld:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - '8333:8333'
     environment:
       - NODE_ENV=production
       - SESSION_SECRET=${SESSION_SECRET}
-      - CLIENT_URL=${CLIENT_URL}
-      - ALLOWED_ORIGINS=${CLIENT_URL}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
     volumes:
       - inkweld_data:/data
 volumes:
   inkweld_data:
 ```
 
-For production, consider the hardened compose file at `compose.deploy.yaml`, which adds restart policies and externalized secrets.
+For production deployment with pre-built images, use `compose.deploy.yaml` which pulls from GitHub Container Registry.
 
 ## Health checks
 

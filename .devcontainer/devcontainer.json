@@ -12,7 +12,7 @@
   },
 
   // Run install-all after container creation
-  "postCreateCommand": "npm run install-all",
+  "postCreateCommand": "bun install",
 
   // Environment variables for development
   "containerEnv": {

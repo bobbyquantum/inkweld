@@ -2,15 +2,36 @@ import { ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
 export const errorHandler: ErrorHandler = (err, c) => {
-  console.error('Error:', err);
+  // Don't log expected client errors (400/401/403/404) - they're normal flow
+  const isExpectedError =
+    err.name === 'UnauthorizedError' ||
+    err.name === 'ForbiddenError' ||
+    err.name === 'NotFoundError' ||
+    err.name === 'BadRequestError' ||
+    err.name === 'ValidationError' ||
+    (err instanceof HTTPException && err.status < 500);
 
-  // Handle Hono HTTPException
+  if (!isExpectedError) {
+    console.error('Error:', err);
+  }
+
+  // Handle Hono HTTPException (legacy, prefer domain errors)
   if (err instanceof HTTPException) {
     return c.json(
       {
         error: err.message,
       },
       err.status
+    );
+  }
+
+  if (err.name === 'BadRequestError') {
+    return c.json(
+      {
+        error: 'Bad Request',
+        message: err.message || 'Invalid request',
+      },
+      400
     );
   }
 
@@ -52,6 +73,16 @@ export const errorHandler: ErrorHandler = (err, c) => {
         message: err.message || 'Resource not found',
       },
       404
+    );
+  }
+
+  if (err.name === 'InternalError') {
+    return c.json(
+      {
+        error: 'Internal Server Error',
+        message: process.env.NODE_ENV === 'production' ? 'An error occurred' : err.message,
+      },
+      500
     );
   }
 

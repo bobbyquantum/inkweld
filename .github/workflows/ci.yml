@@ -29,8 +29,16 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install dependencies
-        run: bun run install-all
+        run: bun install
 
       - name: Check code formatting
         run: bun run lint
@@ -49,8 +57,16 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install dependencies
-        run: bun run install-all
+        run: bun install
 
       - name: Run frontend tests
         run: cd frontend && npm test
@@ -69,11 +85,19 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install dependencies
-        run: bun run install-all
+        run: bun install
 
       - name: Run backend tests
-        run: cd backend && bun test
+        run: cd backend && DB_DATABASE=":memory:" bun test
 
   # ===========================================
   # E2E Tests - Offline (Mock API)
@@ -89,8 +113,16 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install dependencies
-        run: bun run install-all
+        run: bun install
 
       - name: Install Playwright browsers
         run: cd frontend && npx playwright install --with-deps chromium
@@ -120,8 +152,16 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install dependencies
-        run: bun run install-all
+        run: bun install
 
       - name: Install Playwright browsers
         run: cd frontend && npx playwright install --with-deps chromium
@@ -154,8 +194,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install dependencies
-        run: bun run install-all
+        run: bun install
 
       - name: Install Playwright browsers
         run: cd frontend && npx playwright install --with-deps chromium
@@ -176,7 +224,8 @@ jobs:
   # ===========================================
   docker-publish:
     name: Docker Publish
-    needs: [lint, test-frontend, test-backend, e2e-offline, e2e-online, e2e-docker]
+    needs:
+      [lint, test-frontend, test-backend, e2e-offline, e2e-online, e2e-docker]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
@@ -208,7 +257,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: backend/Dockerfile
+          file: Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

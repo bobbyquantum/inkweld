@@ -14,6 +14,8 @@ describe('User Service', () => {
     await db.delete(users).where(eq(users.username, 'serviceuser'));
     await db.delete(users).where(eq(users.username, 'githubuser'));
     await db.delete(users).where(eq(users.username, 'passworduser'));
+    await db.delete(users).where(eq(users.username, 'zuser'));
+    await db.delete(users).where(eq(users.username, 'auser'));
     await db.delete(users).where(eq(users.email, 'service@example.com'));
     await db.delete(users).where(eq(users.email, 'github@example.com'));
   });
@@ -305,12 +307,13 @@ describe('User Service', () => {
         },
       ]);
 
-      const allUsers = await userService.listAll(db);
-      expect(allUsers.length).toBeGreaterThanOrEqual(2);
+      const result = await userService.listAll(db);
+      expect(result.users.length).toBeGreaterThanOrEqual(2);
+      expect(result.total).toBeGreaterThanOrEqual(2);
 
       // Find our test users in the result
-      const zIndex = allUsers.findIndex((u) => u.username === 'zuser');
-      const aIndex = allUsers.findIndex((u) => u.username === 'auser');
+      const zIndex = result.users.findIndex((u) => u.username === 'zuser');
+      const aIndex = result.users.findIndex((u) => u.username === 'auser');
 
       // 'auser' should come before 'zuser'
       expect(aIndex).toBeLessThan(zIndex);
@@ -384,20 +387,36 @@ describe('User Routes', () => {
     await db.delete(users).where(eq(users.username, 'routeuser'));
     await db.delete(users).where(eq(users.username, 'searchuser1'));
     await db.delete(users).where(eq(users.username, 'searchuser2'));
+    await db.delete(users).where(eq(users.username, 'testadmin'));
 
     const hashedPassword = await bcrypt.hash('testpassword123', 10);
-    await db.insert(users).values({
-      id: crypto.randomUUID(),
-      username: 'routeuser',
-      email: 'route@example.com',
-      password: hashedPassword,
-      name: 'Route User',
-      approved: true,
-      enabled: true,
-    });
+    await db.insert(users).values([
+      {
+        id: crypto.randomUUID(),
+        username: 'routeuser',
+        email: 'route@example.com',
+        password: hashedPassword,
+        name: 'Route User',
+        approved: true,
+        enabled: true,
+      },
+      {
+        id: crypto.randomUUID(),
+        username: 'testadmin',
+        email: 'testadmin@example.com',
+        password: hashedPassword,
+        name: 'Test Admin',
+        approved: true,
+        enabled: true,
+        isAdmin: true,
+      },
+    ]);
   });
 
   afterAll(async () => {
+    // Clean up test users
+    await db.delete(users).where(eq(users.username, 'routeuser'));
+    await db.delete(users).where(eq(users.username, 'testadmin'));
     await stopTestServer();
   });
 
@@ -409,22 +428,30 @@ describe('User Routes', () => {
       const data = (await json()) as {
         users: Array<{ id: string; username: string }>;
         total: number;
-        page: number;
-        pageSize: number;
+        hasMore: boolean;
       };
       expect(data.users).toBeDefined();
       expect(Array.isArray(data.users)).toBe(true);
       expect(data.total).toBeGreaterThanOrEqual(1);
-      expect(data.page).toBe(1);
-      expect(data.pageSize).toBe(10);
+      expect(typeof data.hasMore).toBe('boolean');
     });
 
-    it('should support pagination', async () => {
-      const { response, json } = await client.request('/api/v1/users?page=1&pageSize=5');
+    it('should support pagination with limit and offset', async () => {
+      const { response, json } = await client.request('/api/v1/users?limit=5&offset=0');
 
       expect(response.status).toBe(200);
-      const data = (await json()) as { pageSize: number };
-      expect(data.pageSize).toBe(5);
+      const data = (await json()) as { users: Array<{ id: string }>; hasMore: boolean };
+      expect(data.users.length).toBeLessThanOrEqual(5);
+      expect(typeof data.hasMore).toBe('boolean');
+    });
+
+    it('should support search parameter', async () => {
+      const { response, json } = await client.request('/api/v1/users?search=admin');
+
+      expect(response.status).toBe(200);
+      const data = (await json()) as { users: Array<{ username: string }> };
+      // Should find admin user since we seeded it
+      expect(data.users.some((u) => u.username.includes('admin'))).toBe(true);
     });
   });
 
@@ -435,7 +462,7 @@ describe('User Routes', () => {
           id: crypto.randomUUID(),
           username: 'searchuser1',
           email: 'search1@example.com',
-          name: 'First Searchable',
+          name: 'First User',
           approved: true,
           enabled: true,
         },
@@ -443,7 +470,7 @@ describe('User Routes', () => {
           id: crypto.randomUUID(),
           username: 'searchuser2',
           email: 'search2@example.com',
-          name: 'Second Searchable',
+          name: 'Second User',
           approved: true,
           enabled: true,
         },
@@ -458,8 +485,8 @@ describe('User Routes', () => {
       expect(data.users.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('should search users by name', async () => {
-      const { response, json } = await client.request('/api/v1/users/search?term=Searchable');
+    it('should search users by email', async () => {
+      const { response, json } = await client.request('/api/v1/users/search?term=search1@');
 
       expect(response.status).toBe(200);
       const data = (await json()) as { users: Array<{ username: string }> };

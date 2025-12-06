@@ -3,7 +3,13 @@ import { z } from '@hono/zod-openapi';
 import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { userService } from '../services/user.service';
-import { HTTPException } from 'hono/http-exception';
+import {
+  UnauthorizedError,
+  ForbiddenError,
+  NotFoundError,
+  BadRequestError,
+  InternalError,
+} from '../errors';
 import type { AppContext } from '../types/context';
 import {
   ProjectSchema,
@@ -51,7 +57,7 @@ projectRoutes.openapi(listProjectsRoute, async (c) => {
   const db = c.get('db');
   const contextUser = c.get('user');
   if (!contextUser) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError('Not authenticated');
   }
   const userId = contextUser.id;
 
@@ -124,18 +130,18 @@ projectRoutes.openapi(getProjectRoute, async (c) => {
   const slug = c.req.param('slug');
   const contextUser = c.get('user');
   if (!contextUser) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError('Not authenticated');
   }
   const userId = contextUser.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== userId) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError('Access denied');
   }
 
   return c.json(
@@ -211,19 +217,19 @@ projectRoutes.openapi(createProjectRoute, async (c) => {
   const { slug, title, description } = CreateProjectRequestSchema.parse(body);
   const contextUser = c.get('user');
   if (!contextUser) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError('Not authenticated');
   }
   const userId = contextUser.id;
 
   const user = await userService.findById(db, userId);
   if (!user || !user.username) {
-    throw new HTTPException(404, { message: 'User not found' });
+    throw new NotFoundError('User not found');
   }
 
   const existing = await projectService.findByUsernameAndSlug(db, user.username, slug);
 
   if (existing) {
-    throw new HTTPException(400, { message: 'Project with this slug already exists' });
+    throw new BadRequestError('Project with this slug already exists');
   }
 
   const project = await projectService.create(db, {
@@ -307,7 +313,7 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
   const slug = c.req.param('slug');
   const contextUser = c.get('user');
   if (!contextUser) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError('Not authenticated');
   }
   const userId = contextUser.id;
   const body = await c.req.json();
@@ -316,18 +322,18 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== userId) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError('Access denied');
   }
 
   await projectService.update(db, project.id, updates);
 
   const updated = await projectService.findById(db, project.id);
   if (!updated) {
-    throw new HTTPException(500, { message: 'Failed to update project' });
+    throw new InternalError('Failed to update project');
   }
 
   return c.json(
@@ -397,18 +403,18 @@ projectRoutes.openapi(deleteProjectRoute, async (c) => {
   const slug = c.req.param('slug');
   const contextUser = c.get('user');
   if (!contextUser) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError('Not authenticated');
   }
   const userId = contextUser.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== userId) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError('Access denied');
   }
 
   await projectService.delete(db, project.id);

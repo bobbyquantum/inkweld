@@ -13,8 +13,6 @@ import { User } from './user';
 export interface PaginatedUsersResponse { 
     users: Array<User>;
     total: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
+    hasMore: boolean;
 }
 

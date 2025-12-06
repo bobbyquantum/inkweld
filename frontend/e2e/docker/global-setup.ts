@@ -38,7 +38,7 @@ export default async function globalSetup(): Promise<void> {
   console.log('   This may take a few minutes on first run...\n');
 
   try {
-    execSync('docker compose build inkweld-backend', {
+    execSync('docker compose build inkweld', {
       cwd: rootDir,
       stdio: 'inherit',
     });
@@ -78,7 +78,12 @@ export default async function globalSetup(): Promise<void> {
     // Don't restrict origins in test mode
     '-e',
     'ALLOWED_ORIGINS=*',
-    'inkweld-inkweld-backend',
+    // Default admin for admin e2e tests
+    '-e',
+    'DEFAULT_ADMIN_USERNAME=e2e-admin',
+    '-e',
+    'DEFAULT_ADMIN_PASSWORD=E2eAdminPassword123!',
+    'inkweld-inkweld',
   ];
 
   try {

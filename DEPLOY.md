@@ -1,16 +1,26 @@
 # Deployment Guide
 
-This guide explains how to deploy the new Hono-based `/backend` using the pre-built Docker images from the CI/CD pipeline. The Docker image bundles the Bun runtime, compiled API entrypoint (`dist/bun-runner.js`), and the LevelDB dependencies required for Yjs. Host the Angular frontend separately (e.g., Vercel, Netlify, Cloudflare Pages) and point it at the backend URL via `CLIENT_URL` / `PUBLIC_URL`.
+This guide explains how to deploy Inkweld using Docker. The Docker image is a self-contained build that includes both the backend API and the Angular frontend, compiled into a single Bun binary (~340MB image).
+
+## Architecture
+
+By default, the Docker image serves **both the API and frontend** from the same origin. This is the recommended setup because:
+
+- No CORS configuration needed
+- Angular routing works automatically (SPA fallback)
+- Single deployment to manage
+- Simpler SSL/proxy setup
+
+If you prefer to host the frontend separately (e.g., on Vercel/Netlify), set `SERVE_FRONTEND=false` to run in API-only mode.
 
 ## Overview
 
 The deployment setup consists of:
 
-- `backend/Dockerfile` - Multi-stage build that compiles the Bun runtime target
-- `Dockerfile.deploy` - A deployment dockerfile that pulls the pre-built image from GitHub Container Registry and adds ops-specific tweaks
-- `compose.deploy.yaml` - A docker compose file for production deployment
-- `deploy.sh` - Bash deployment script (Linux/macOS)
-- `deploy.ps1` - PowerShell deployment script (Windows)
+- `Dockerfile` - Multi-stage build that compiles frontend + backend into a single Bun binary
+- `compose.yaml` - Docker Compose for local building and running
+- `compose.deploy.yaml` - Docker Compose for pulling pre-built images from GitHub Container Registry
+- `deploy.sh` / `deploy.ps1` - Helper scripts for deployment
 
 ## Prerequisites
 
@@ -61,21 +71,19 @@ export PORT=8333         # optional, defaults to 8333
 docker compose -f compose.deploy.yaml up -d
 ```
 
-### Option 3: Using Docker Directly
+### Option 3: Build and Run Directly
 
 ```bash
-# Build the deployment image
-docker build -f Dockerfile.deploy \
-  --build-arg OWNER=bobbyquantum \
-  --build-arg TAG=latest \
-  -t inkweld-deploy .
+# Build the image locally
+docker build -t inkweld:latest .
 
 # Run the container
 docker run -d \
   --name inkweld \
   -p 8333:8333 \
   -v inkweld_data:/data \
-  inkweld-deploy
+  -e SESSION_SECRET=your-secret-key-at-least-32-characters \
+  inkweld:latest
 ```
 
 ## Configuration
@@ -87,15 +95,13 @@ The deployment supports the following environment variables:
 - `GITHUB_REPOSITORY_OWNER` - **Required**: Your GitHub username/organization
 - `IMAGE_TAG` - Image tag to deploy (default: `latest`)
 - `PORT` - Port to expose the application on (default: `8333`)
-- `PUBLIC_URL` - Public URL where the app will be accessible
-- `CLIENT_URL` - Client URL / SPA origin (defaults to `http://localhost:4200` for dev)
+- `SERVE_FRONTEND` - Serve embedded frontend (default: `true`). Set to `false` for API-only mode
 - `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins
-- `SESSION_SECRET` - Secret used to sign session cookies
-- `LOCAL_USERS_ENABLED` - Enable local user authentication (default: `true`)
+- `SESSION_SECRET` - Secret used to sign session cookies (must be 32+ characters)
+- `USER_APPROVAL_REQUIRED` - Require admin approval for new registrations (default: `true`)
 - `GITHUB_ENABLED` - Enable GitHub OAuth (default: `false`)
 - `GITHUB_CLIENT_ID` - GitHub OAuth client ID
 - `GITHUB_CLIENT_SECRET` - GitHub OAuth client secret
-- `USER_APPROVAL_REQUIRED` - Require admin approval for new registrations (default: `true`)
 
 ### Example Production Configuration
 

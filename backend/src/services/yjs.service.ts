@@ -80,7 +80,6 @@ export class YjsService {
 
     // Create new persistence if none exists for this project
     if (!persistence) {
-      console.log(`Creating new LevelDB persistence for project ${projectKey} at ${dbPath}`);
       persistence = new LeveldbPersistence(dbPath);
       this.persistences.set(projectKey, persistence);
     }
@@ -88,6 +87,7 @@ export class YjsService {
     // Load existing state from persistence for THIS specific document
     try {
       const persistedState = await persistence.getYDoc(documentId);
+
       if (persistedState && persistedState.store && persistedState.store.clients.size > 0) {
         // Apply persisted state to the document
         const stateVector = Y.encodeStateVector(ydoc);

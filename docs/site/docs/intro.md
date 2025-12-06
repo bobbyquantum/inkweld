@@ -86,7 +86,7 @@ Visit [http://localhost:8333](http://localhost:8333) and start writing.
 ```bash
 git clone https://github.com/bobbyquantum/inkweld.git
 cd inkweld
-bun run install-all
+bun install
 npm start
 ```
 

@@ -26,7 +26,7 @@ const getSharedFileRoute = createRoute({
   },
   responses: {
     200: {
-      content: { '*/*': { schema: z.instanceof(Uint8Array) } },
+      content: { '*/*': { schema: z.any().openapi({ type: 'string', format: 'binary' }) } },
       description: 'File content',
     },
     404: {

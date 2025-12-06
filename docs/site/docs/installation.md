@@ -40,17 +40,16 @@ cd inkweld
 ### 2. Install Dependencies
 
 ```bash
-bun run install-all
+bun install
 ```
 
 This installs packages for both frontend and backend.
 
 ### 3. Configure Environment
 
-Backend configuration:
+Create your environment configuration at the project root:
 
 ```bash
-cd backend
 cp .env.example .env
 ```
 

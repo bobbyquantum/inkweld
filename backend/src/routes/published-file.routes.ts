@@ -2,7 +2,7 @@ import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { HTTPException } from 'hono/http-exception';
+import { UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '../errors';
 
 import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
@@ -64,18 +64,18 @@ publishedFileRoutes.openapi(listPublishedFilesRoute, async (c) => {
   const { username, slug } = c.req.param();
 
   if (!user) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError();
   }
 
   // Verify project exists and user has access
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   // For now, only owner can see published files
   if (project.userId !== user.id) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError();
   }
 
   const files = await db
@@ -124,7 +124,9 @@ const createPublishedFileRoute = createRoute({
       content: {
         'multipart/form-data': {
           schema: z.object({
-            file: z.instanceof(File).openapi({ description: 'The published file' }),
+            file: z
+              .any()
+              .openapi({ type: 'string', format: 'binary', description: 'The published file' }),
             metadata: z.string().openapi({ description: 'JSON metadata string' }),
           }),
         },
@@ -162,17 +164,17 @@ publishedFileRoutes.openapi(createPublishedFileRoute, async (c) => {
   const { username, slug } = c.req.param();
 
   if (!user) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError();
   }
 
   // Verify project exists and user has access
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== user.id) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError();
   }
 
   // Parse multipart form data
@@ -278,7 +280,7 @@ const getPublishedFileRoute = createRoute({
   },
   responses: {
     200: {
-      content: { '*/*': { schema: z.instanceof(Uint8Array) } },
+      content: { '*/*': { schema: z.any().openapi({ type: 'string', format: 'binary' }) } },
       description: 'File content',
     },
     401: {
@@ -303,17 +305,17 @@ publishedFileRoutes.openapi(getPublishedFileRoute, async (c) => {
   const { username, slug, fileId } = c.req.param();
 
   if (!user) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError();
   }
 
   // Verify project exists and user has access
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== user.id) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError();
   }
 
   // Get file metadata
@@ -323,14 +325,14 @@ publishedFileRoutes.openapi(getPublishedFileRoute, async (c) => {
     .where(and(eq(publishedFiles.id, fileId), eq(publishedFiles.projectId, project.id)));
 
   if (!file) {
-    throw new HTTPException(404, { message: 'File not found' });
+    throw new NotFoundError('File not found');
   }
 
   // Get file content from storage
   const content = await storage.readProjectFile(username, slug, `published/${fileId}`);
 
   if (!content) {
-    throw new HTTPException(404, { message: 'File content not found' });
+    throw new NotFoundError('File content not found');
   }
 
   return new Response(content, {
@@ -387,17 +389,17 @@ publishedFileRoutes.openapi(updatePublishedFileRoute, async (c) => {
   const body = c.req.valid('json');
 
   if (!user) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError();
   }
 
   // Verify project exists and user has access
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== user.id) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError();
   }
 
   // Get existing file
@@ -407,7 +409,7 @@ publishedFileRoutes.openapi(updatePublishedFileRoute, async (c) => {
     .where(and(eq(publishedFiles.id, fileId), eq(publishedFiles.projectId, project.id)));
 
   if (!existingFile) {
-    throw new HTTPException(404, { message: 'File not found' });
+    throw new NotFoundError('File not found');
   }
 
   // Build update values
@@ -507,17 +509,17 @@ publishedFileRoutes.openapi(deletePublishedFileRoute, async (c) => {
   const { username, slug, fileId } = c.req.param();
 
   if (!user) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError();
   }
 
   // Verify project exists and user has access
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== user.id) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError();
   }
 
   // Get file to verify it exists
@@ -527,7 +529,7 @@ publishedFileRoutes.openapi(deletePublishedFileRoute, async (c) => {
     .where(and(eq(publishedFiles.id, fileId), eq(publishedFiles.projectId, project.id)));
 
   if (!file) {
-    throw new HTTPException(404, { message: 'File not found' });
+    throw new NotFoundError('File not found');
   }
 
   // Delete from storage
@@ -580,17 +582,17 @@ publishedFileRoutes.openapi(getShareLinkRoute, async (c) => {
   const { username, slug, fileId } = c.req.param();
 
   if (!user) {
-    throw new HTTPException(401, { message: 'Not authenticated' });
+    throw new UnauthorizedError();
   }
 
   // Verify project exists and user has access
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
   if (!project) {
-    throw new HTTPException(404, { message: 'Project not found' });
+    throw new NotFoundError('Project not found');
   }
 
   if (project.userId !== user.id) {
-    throw new HTTPException(403, { message: 'Access denied' });
+    throw new ForbiddenError();
   }
 
   // Get file
@@ -600,11 +602,11 @@ publishedFileRoutes.openapi(getShareLinkRoute, async (c) => {
     .where(and(eq(publishedFiles.id, fileId), eq(publishedFiles.projectId, project.id)));
 
   if (!file) {
-    throw new HTTPException(404, { message: 'File not found' });
+    throw new NotFoundError('File not found');
   }
 
   if (!file.shareToken) {
-    throw new HTTPException(400, { message: 'Sharing is not enabled for this file' });
+    throw new BadRequestError('Sharing is not enabled for this file');
   }
 
   // Build share URL (base URL would come from config in production)

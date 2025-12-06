@@ -16,5 +16,6 @@ export interface User {
     email?: string;
     approved?: boolean;
     enabled: boolean;
+    isAdmin?: boolean;
 }
 
