@@ -29,11 +29,15 @@
                 }
               }
             </mat-icon>
-            <mat-error>{{ getUsernameErrorMessage() }}</mat-error>
+            <mat-error data-testid="username-error">{{
+              getUsernameErrorMessage()
+            }}</mat-error>
           </mat-form-field>
 
           @if (usernameSuggestions && usernameSuggestions.length > 0) {
-            <div class="username-suggestions">
+            <div
+              class="username-suggestions"
+              data-testid="username-suggestions">
               <span class="suggestions-label">Available alternatives:</span>
               <div class="suggestions-buttons">
                 @for (suggestion of usernameSuggestions; track suggestion) {
@@ -42,7 +46,8 @@
                     color="primary"
                     type="button"
                     (click)="selectSuggestion(suggestion)"
-                    class="suggestion-button">
+                    class="suggestion-button"
+                    data-testid="suggestion-button">
                     {{ suggestion }}
                   </button>
                 }

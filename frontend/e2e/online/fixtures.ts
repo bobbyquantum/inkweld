@@ -67,7 +67,7 @@ export const test = base.extend<OnlineTestFixtures>({
         'inkweld-app-config',
         JSON.stringify({
           mode: 'server',
-          serverUrl: 'http://localhost:8333',
+          serverUrl: 'http://localhost:9333',
         })
       );
     });
@@ -97,7 +97,7 @@ export const test = base.extend<OnlineTestFixtures>({
         'inkweld-app-config',
         JSON.stringify({
           mode: 'server',
-          serverUrl: 'http://localhost:8333',
+          serverUrl: 'http://localhost:9333',
         })
       );
 
@@ -151,7 +151,7 @@ export const test = base.extend<OnlineTestFixtures>({
         'inkweld-app-config',
         JSON.stringify({
           mode: 'server',
-          serverUrl: 'http://localhost:8333',
+          serverUrl: 'http://localhost:9333',
         })
       );
 
@@ -246,7 +246,7 @@ export async function authenticateUser(
   password: string,
   isRegister: boolean = true
 ): Promise<string> {
-  const apiUrl = 'http://localhost:8333';
+  const apiUrl = 'http://localhost:9333';
 
   if (isRegister) {
     // Register via API

@@ -45,6 +45,7 @@ import {
   UsersService,
 } from '@inkweld/index';
 import { XsrfService } from '@services/auth/xsrf.service';
+import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
@@ -78,6 +79,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private xsrfService = inject(XsrfService);
   private fb = inject(FormBuilder);
+  private setupService = inject(SetupService);
   private systemConfigService = inject(SystemConfigService);
   private overlay = inject(Overlay);
   private overlayPositionBuilder = inject(OverlayPositionBuilder);
@@ -301,11 +303,12 @@ export class RegisterComponent implements OnInit, OnDestroy {
     }
 
     try {
-      // Note: API client doesn't support username query parameter, so we call HttpClient directly
+      // Build the URL based on server mode configuration
+      const serverUrl = this.setupService.getServerUrl() || '';
+      const checkUrl = `${serverUrl}/api/v1/users/check-username?username=${encodeURIComponent(username)}`;
+
       const response = await firstValueFrom(
-        this.httpClient.get<UsernameAvailability>(
-          `/api/v1/users/check-username?username=${encodeURIComponent(username)}`
-        )
+        this.httpClient.get<UsernameAvailability>(checkUrl)
       );
 
       setTimeout(() => {

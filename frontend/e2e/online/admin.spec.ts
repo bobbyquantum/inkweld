@@ -299,66 +299,89 @@ test.describe('Admin Settings', () => {
   test('should toggle user approval setting and persist', async ({
     adminPage,
   }) => {
-    await navigateToAdminViaMenu(adminPage);
-
-    // Navigate to settings
-    await adminPage.locator('[data-testid="admin-nav-settings"]').click();
-    await adminPage.waitForURL('**/admin/settings');
-
-    // Wait for toggle to be visible
-    const toggle = adminPage.locator(
-      '[data-testid="setting-toggle-user-approval"]'
-    );
-    await expect(toggle).toBeVisible({ timeout: 10000 });
-
-    // Get the initial state by checking if the toggle has the checked class
-    // mat-slide-toggle adds class 'mat-mdc-slide-toggle-checked' when on
-    const isInitiallyChecked = await toggle.evaluate(el =>
-      el.classList.contains('mat-mdc-slide-toggle-checked')
+    // Get auth token for API calls
+    const token = await adminPage.evaluate(() =>
+      localStorage.getItem('auth_token')
     );
 
-    // Click the toggle to change it
-    await toggle.click();
-
-    // Wait for the save to complete (snackbar appears)
-    const snackbar = adminPage.locator('text=Setting saved');
-    await snackbar.waitFor({ state: 'visible', timeout: 5000 });
-
-    // Verify the toggle changed state
-    const isNowChecked = await toggle.evaluate(el =>
-      el.classList.contains('mat-mdc-slide-toggle-checked')
+    // Save initial state via API so we can restore it
+    const configResponse = await adminPage.request.get(
+      'http://localhost:9333/api/v1/admin/config/USER_APPROVAL_REQUIRED',
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
     );
-    expect(isNowChecked).toBe(!isInitiallyChecked);
+    const configData = (await configResponse.json()) as {
+      value: string;
+    };
+    const initialApprovalRequired = configData.value === 'true';
 
-    // Wait for snackbar to disappear before navigating
-    await snackbar.waitFor({ state: 'hidden', timeout: 5000 });
+    try {
+      await navigateToAdminViaMenu(adminPage);
 
-    // Navigate away and back to verify persistence (instead of reload which loses session)
-    await adminPage.locator('[data-testid="admin-nav-users"]').click();
-    await adminPage.waitForURL('**/admin/users');
-    await adminPage.locator('[data-testid="admin-nav-settings"]').click();
-    await adminPage.waitForURL('**/admin/settings');
+      // Navigate to settings
+      await adminPage.locator('[data-testid="admin-nav-settings"]').click();
+      await adminPage.waitForURL('**/admin/settings');
 
-    // Wait for toggle to load again
-    await expect(toggle).toBeVisible({ timeout: 10000 });
+      // Wait for toggle to be visible
+      const toggle = adminPage.locator(
+        '[data-testid="setting-toggle-user-approval"]'
+      );
+      await expect(toggle).toBeVisible({ timeout: 10000 });
 
-    // Verify the setting persisted
-    const isPersistedChecked = await toggle.evaluate(el =>
-      el.classList.contains('mat-mdc-slide-toggle-checked')
-    );
-    expect(isPersistedChecked).toBe(!isInitiallyChecked);
+      // Get the initial state by checking if the toggle has the checked class
+      const isInitiallyChecked = await toggle.evaluate(el =>
+        el.classList.contains('mat-mdc-slide-toggle-checked')
+      );
 
-    // Toggle back to restore original state
-    await toggle.click();
+      // Click the toggle to change it
+      await toggle.click();
 
-    // Wait for the save to complete
-    await snackbar.waitFor({ state: 'visible', timeout: 5000 });
-    await snackbar.waitFor({ state: 'hidden', timeout: 5000 });
+      // Wait for the save to complete (snackbar appears)
+      // Use first() in case there are multiple snackbars
+      const snackbar = adminPage
+        .locator('.mat-mdc-snack-bar-label')
+        .filter({ hasText: /Setting saved/i })
+        .first();
+      await snackbar.waitFor({ state: 'visible', timeout: 5000 });
 
-    // Verify restored
-    const isRestoredChecked = await toggle.evaluate(el =>
-      el.classList.contains('mat-mdc-slide-toggle-checked')
-    );
-    expect(isRestoredChecked).toBe(isInitiallyChecked);
+      // Verify the toggle changed state
+      const isNowChecked = await toggle.evaluate(el =>
+        el.classList.contains('mat-mdc-slide-toggle-checked')
+      );
+      expect(isNowChecked).toBe(!isInitiallyChecked);
+
+      // Wait for snackbar to disappear before navigating
+      await adminPage.waitForTimeout(2000); // Give snackbar time to dismiss
+
+      // Navigate away and back to verify persistence
+      await adminPage.locator('[data-testid="admin-nav-users"]').click();
+      await adminPage.waitForURL('**/admin/users');
+      await adminPage.locator('[data-testid="admin-nav-settings"]').click();
+      await adminPage.waitForURL('**/admin/settings');
+
+      // Wait for toggle to load again
+      await expect(toggle).toBeVisible({ timeout: 10000 });
+
+      // Verify the setting persisted
+      const isPersistedChecked = await toggle.evaluate(el =>
+        el.classList.contains('mat-mdc-slide-toggle-checked')
+      );
+      expect(isPersistedChecked).toBe(!isInitiallyChecked);
+    } finally {
+      // ALWAYS restore the original state via API to avoid affecting other tests
+      await adminPage.request.put(
+        'http://localhost:9333/api/v1/admin/config/USER_APPROVAL_REQUIRED',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          data: {
+            value: initialApprovalRequired ? 'true' : 'false',
+          },
+        }
+      );
+    }
   });
 });

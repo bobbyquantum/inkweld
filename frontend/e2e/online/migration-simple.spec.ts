@@ -65,7 +65,7 @@ test.describe('Migration Service', () => {
     const testPassword = 'TestPassword123!';
 
     const registerResponse = await offlinePage.request.post(
-      'http://localhost:8333/api/v1/auth/register',
+      'http://localhost:9333/api/v1/auth/register',
       {
         data: {
           username: testUsername,
@@ -84,7 +84,7 @@ test.describe('Migration Service', () => {
 
     // Step 7: Verify we can create a project on the server using the token
     const createProjectResponse = await offlinePage.request.post(
-      'http://localhost:8333/api/v1/projects',
+      'http://localhost:9333/api/v1/projects',
       {
         headers: {
           Authorization: `Bearer ${registerData.token}`,
@@ -106,7 +106,7 @@ test.describe('Migration Service', () => {
 
     // Step 8: Verify we can fetch the project back
     const fetchProjectResponse = await offlinePage.request.get(
-      `http://localhost:8333/api/v1/projects/${testUsername}/server-project`,
+      `http://localhost:9333/api/v1/projects/${testUsername}/server-project`,
       {
         headers: {
           Authorization: `Bearer ${registerData.token}`,
@@ -137,7 +137,7 @@ test.describe('Migration Service', () => {
 
     // Step 2: Create a project using the API
     const createProjectResponse = await authenticatedPage.request.post(
-      'http://localhost:8333/api/v1/projects',
+      'http://localhost:9333/api/v1/projects',
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -162,7 +162,7 @@ test.describe('Migration Service', () => {
     // Step 3: Verify we can fetch it back
     // Fetch username from the API
     const userResponse = await authenticatedPage.request.get(
-      'http://localhost:8333/api/v1/users/me',
+      'http://localhost:9333/api/v1/users/me',
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -174,7 +174,7 @@ test.describe('Migration Service', () => {
     const userData = (await userResponse.json()) as { username: string };
 
     const fetchProjectResponse = await authenticatedPage.request.get(
-      `http://localhost:8333/api/v1/projects/${userData.username}/authenticated-project`,
+      `http://localhost:9333/api/v1/projects/${userData.username}/authenticated-project`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

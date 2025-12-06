@@ -84,7 +84,7 @@ test.describe('Offline Project Workflows', () => {
     await expect(page).toHaveURL(/\/.+\/.+/);
 
     // Project tree should be visible
-    await expect(page.locator('app-project-tree')).toBeVisible({
+    await expect(page.getByTestId('project-tree')).toBeVisible({
       timeout: 10000,
     });
   });
@@ -98,7 +98,7 @@ test.describe('Offline Project Workflows', () => {
     await page.getByTestId('project-title-input').fill('Cancelled Project');
 
     // Click cancel button
-    await page.locator('button:has-text("Cancel")').click();
+    await page.getByTestId('cancel-button').click();
 
     // Should navigate back to home
     await expect(page).toHaveURL('/');
@@ -159,8 +159,8 @@ test.describe('Offline Project Workflows', () => {
     await page.getByTestId('project-slug-input').fill('preview-test');
 
     // Should show URL preview
-    await expect(page.locator('.project-url-preview')).toBeVisible();
-    await expect(page.locator('.project-url-preview')).toContainText(
+    await expect(page.getByTestId('project-url-preview')).toBeVisible();
+    await expect(page.getByTestId('project-url-preview')).toContainText(
       'preview-test'
     );
   });

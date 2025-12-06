@@ -6,7 +6,7 @@ import { expect, test } from './fixtures';
 test.describe('Online Infrastructure', () => {
   test('should access backend health endpoint', async ({ page }) => {
     const response = await page.request.get(
-      'http://localhost:8333/api/v1/health'
+      'http://localhost:9333/api/v1/health'
     );
     expect(response.ok()).toBeTruthy();
   });
@@ -19,16 +19,17 @@ test.describe('Online Infrastructure', () => {
     const testUsername = `e2etest-${Date.now()}`;
     const testPassword = 'TestPassword123!';
 
-    // Set server mode and clear any existing state
+    // Set server mode with serverUrl
     await page.addInitScript(() => {
       // Clear all localStorage first
       localStorage.clear();
 
-      // Set server mode but NO serverUrl - this should trigger setup
+      // Set server mode with serverUrl pointing to test backend
       localStorage.setItem(
         'inkweld-app-config',
         JSON.stringify({
           mode: 'server',
+          serverUrl: 'http://localhost:9333',
         })
       );
     });

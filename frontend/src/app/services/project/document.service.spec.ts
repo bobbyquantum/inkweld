@@ -17,26 +17,37 @@ import { UnifiedUserService } from '../user/unified-user.service';
 import { DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
 
-// Mock y-websocket and y-indexeddb to prevent real WebSocket connections
+// Mock y-indexeddb with all required exports
+// Note: All mock implementations must be defined inline without referencing vi.fn()
+// to avoid vitest hoisting issues in CI environments
 vi.mock('y-indexeddb', () => ({
-  IndexeddbPersistence: class IndexeddbPersistence {
+  IndexeddbPersistence: class MockIndexeddbPersistence {
     whenSynced = Promise.resolve();
-    constructor(_name: string, _doc: any) {}
-    destroy = vi.fn();
+    destroy = () => {};
+    constructor(_name: string, _doc: unknown) {}
   },
+  storeState: () => Promise.resolve(),
+  fetchUpdates: () => Promise.resolve(),
+  clearDocument: () => Promise.resolve(),
 }));
 
+// Mock y-websocket
 vi.mock('y-websocket', () => ({
   WebsocketProvider: class WebsocketProvider {
-    on = vi.fn();
-    connect = vi.fn();
-    destroy = vi.fn();
+    on = () => {};
+    connect = () => {};
+    destroy = () => {};
     awareness = {
-      setLocalState: vi.fn(),
-      setLocalStateField: vi.fn(),
+      setLocalState: () => {},
+      setLocalStateField: () => {},
       getStates: () => new Map(),
     };
-    constructor(_url: string, _room: string, _doc: any, _options?: any) {}
+    constructor(
+      _url: string,
+      _room: string,
+      _doc: unknown,
+      _options?: unknown
+    ) {}
   },
 }));
 vi.mock('ngx-editor', () => ({

@@ -400,6 +400,98 @@ test.skip('skip this', async ({ page }) => {
 
 ---
 
+## IDE Integration & Config Switching
+
+### Using Playwright in VS Code
+
+When running tests through the Playwright VS Code extension or IDE integration, you can switch between different test configurations for various scenarios:
+
+#### Switching Test Environments
+
+The Inkweld project provides multiple Playwright configurations:
+
+- **`playwright.online.config.ts`** - Default: Tests against live backend (port 8333)
+- **`playwright.offline.config.ts`** - Tests with offline/mock functionality
+- **`playwright.docker.config.ts`** - Tests in Docker environment
+- **`playwright.wrangler.config.ts`** - Tests with Cloudflare Workers
+- **`playwright.screenshots.config.ts`** - Configuration for screenshot capture
+
+#### Method 1: Using Environment Variables
+
+```bash
+# Run online tests (default)
+TEST_ENV=online npx playwright test
+
+# Run offline tests
+TEST_ENV=offline npx playwright test
+
+# Run docker tests
+TEST_ENV=docker npx playwright test
+
+# Run wrangler tests
+TEST_ENV=wrangler npx playwright test
+
+# Run screenshot tests
+TEST_ENV=screenshots npx playwright test
+```
+
+#### IDE Extension Usage
+
+When using the Playwright VS Code extension (Test Explorer or inline test run buttons), the configuration is determined by:
+
+1. The `playwright.env` setting in VS Code (`settings.json`)
+2. The `TEST_ENV` environment variable (if set in terminal)
+3. The default in `playwright.config.ts` (if neither above is set)
+
+##### Method 2: VS Code Playwright Settings 
+
+Edit your VS Code `settings.json` (⌘+Shift+P → "Preferences: Open Settings (JSON)"):
+
+```jsonc
+{
+  "playwright.env": {
+    "TEST_ENV": "online"     // or "offline", "docker", "wrangler", "screenshots"
+  }
+}
+```
+
+**Benefits**: 
+- Persists across IDE restarts
+- Automatically picked up by Playwright extension
+- No need to set environment variables manually
+- Easy to toggle between different test scenarios
+
+To set `TEST_ENV` in your terminal session:
+
+```bash
+# macOS/Linux
+export TEST_ENV=offline
+npx playwright test
+
+# Or inline
+TEST_ENV=offline npx playwright test
+
+# Windows (PowerShell)
+$env:TEST_ENV = "offline"
+npx playwright test
+
+# Windows (Command Prompt)
+set TEST_ENV=offline
+npx playwright test
+```
+
+### Testing Different Scenarios
+
+| Config | Use Case | Notes |
+|--------|----------|-------|
+| `online` | Full integration tests | Requires backend running on port 8333 |
+| `offline` | Offline/mock API scenarios | Tests offline functionality |
+| `docker` | Docker containerized tests | Used in CI/CD pipeline |
+| `wrangler` | Cloudflare Workers | Tests against D1/Durable Objects |
+| `screenshots` | Documentation screenshots | Generates screenshots for docs site |
+
+---
+
 ## Common Pitfalls
 
 ### Avoid Flaky Tests
@@ -409,7 +501,7 @@ test.skip('skip this', async ({ page }) => {
 test('flaky test', async ({ page }) => {
   await page.getByTestId('button').click();
   await page.waitForTimeout(1000); // Might not be enough
-  expect(await page.locator('.result').textContent()).toBe('Success');
+  expect(await page.getByTestId('result').textContent()).toBe('Success');
 });
 ```
 
@@ -417,7 +509,7 @@ test('flaky test', async ({ page }) => {
 ```typescript
 test('reliable test', async ({ page }) => {
   await page.getByTestId('button').click();
-  await expect(page.locator('.result')).toHaveText('Success');
+  await expect(page.getByTestId('result')).toHaveText('Success');
 });
 ```
 
@@ -425,12 +517,13 @@ test('reliable test', async ({ page }) => {
 
 #### ❌ Bad - Fails if content changes
 ```typescript
-await expect(page.locator('.message')).toHaveText('Welcome, John!');
+await expect(page.getByTestId('welcome-message')).toHaveText('Welcome, John!');
 ```
 
 #### ✅ Good - Flexible assertion
 ```typescript
-await expect(page.locator('.message')).toContainText('Welcome');
+await expect(page.getByTestId('welcome-message')).toContainText('Welcome');
+```
 ```
 
 ### Don't Test Implementation Details

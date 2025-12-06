@@ -64,7 +64,7 @@ test.describe('Offline to Server Migration', () => {
     // Step 7: Enter server URL
     await offlinePage
       .locator('[data-testid="server-url-input"]')
-      .fill('http://localhost:8333');
+      .fill('http://localhost:9333');
 
     // Step 8: Click "Connect to Server" button
     const connectButton = offlinePage.locator(
@@ -252,7 +252,7 @@ test.describe('Offline to Server Migration', () => {
 
     await offlinePage
       .locator('[data-testid="server-url-input"]')
-      .fill('http://localhost:8333');
+      .fill('http://localhost:9333');
 
     await offlinePage
       .locator('[data-testid="connect-to-server-button"]')

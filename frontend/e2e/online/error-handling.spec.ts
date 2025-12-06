@@ -140,8 +140,11 @@ test.describe('Error Handling and Edge Cases', () => {
       // Should handle gracefully - either stay on register or go to home if registered
       await page.waitForTimeout(1000);
       const url = page.url();
+      const baseUrl =
+        test.info().project.use.baseURL ?? 'http://localhost:4400/';
+      const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
       expect(
-        url.includes('register') || url === 'http://localhost:4200/'
+        url.includes('register') || url === normalizedBaseUrl
       ).toBeTruthy();
     });
 

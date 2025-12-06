@@ -18,11 +18,11 @@ test.describe('Authentication', () => {
     });
     expect(config).toBeTruthy();
     expect(config.mode).toBe('server');
-    expect(config.serverUrl).toBe('http://localhost:8333');
+    expect(config.serverUrl).toBe('http://localhost:9333');
 
     // Verify we can access an authenticated endpoint
     const response = await authenticatedPage.request.get(
-      'http://localhost:8333/api/v1/projects',
+      'http://localhost:9333/api/v1/projects',
       {
         headers: {
           Authorization: `Bearer ${token}`,

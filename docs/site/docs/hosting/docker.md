@@ -73,17 +73,17 @@ Key flags:
 
 ## Environment variables
 
-| Variable                 | Purpose                                                          |
-| ------------------------ | ---------------------------------------------------------------- |
-| `PORT`                   | HTTP port (default 8333)                                         |
-| `SESSION_SECRET`         | Session encryption key (required, 32+ chars)                     |
-| `ALLOWED_ORIGINS`        | Comma-separated list for CORS                                    |
-| `DB_TYPE`                | `sqlite` or `d1` (container defaults to SQLite)                  |
-| `DB_PATH`                | SQLite path, defaults to `/data/sqlite.db`                       |
-| `DATA_PATH`              | Yjs document storage location (`/data/yjs`)                      |
-| `SERVE_FRONTEND`         | Set to `false` to disable frontend serving (API-only mode)       |
-| `GITHUB_ENABLED`         | Enable GitHub OAuth (default: false)                             |
-| `USER_APPROVAL_REQUIRED` | Require admin approval for new users (default: true)             |
+| Variable                 | Purpose                                                    |
+| ------------------------ | ---------------------------------------------------------- |
+| `PORT`                   | HTTP port (default 8333)                                   |
+| `SESSION_SECRET`         | Session encryption key (required, 32+ chars)               |
+| `ALLOWED_ORIGINS`        | Comma-separated list for CORS                              |
+| `DB_TYPE`                | `sqlite` or `d1` (container defaults to SQLite)            |
+| `DB_PATH`                | SQLite path, defaults to `/data/sqlite.db`                 |
+| `DATA_PATH`              | Yjs document storage location (`/data/yjs`)                |
+| `SERVE_FRONTEND`         | Set to `false` to disable frontend serving (API-only mode) |
+| `GITHUB_ENABLED`         | Enable GitHub OAuth (default: false)                       |
+| `USER_APPROVAL_REQUIRED` | Require admin approval for new users (default: true)       |
 
 ## Automatic migrations
 

@@ -31,26 +31,6 @@ Inkweld is ideal for:
 
 ---
 
-## Screenshots
-
-### Project Bookshelf (Dark Mode)
-
-![Bookshelf - Desktop Dark Mode](docs/site/static/img/bookshelf-desktop-dark.png)
-*Desktop View*
-
-![Bookshelf - Mobile Dark Mode](docs/site/static/img/bookshelf-mobile-dark.png)
-*Mobile View*
-
-### Project Editor (Dark Mode)
-
-![Editor - Desktop Dark Mode](docs/site/static/img/editor-desktop-dark.png)
-*Desktop Editor with Real-time Collaboration*
-
-![Editor - Mobile Dark Mode](docs/site/static/img/editor-mobile-dark.png)
-*Mobile Editor with Formatting Menu*
-
----
-
 ### Feature Overview
 
 | Feature                        | Description                                                                 |

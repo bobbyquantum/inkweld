@@ -1,4 +1,4 @@
-import { expect, test } from '../online/fixtures';
+import { expect, test } from '../fixtures';
 
 test.describe('User Registration', () => {
   test('should register a new user successfully with valid credentials', async ({
@@ -23,16 +23,43 @@ test.describe('User Registration', () => {
   test('should show error when username is already taken', async ({
     anonymousPage: page,
   }) => {
+    // First, create a user via API so we have an existing username to test against
+    const existingUsername = `existing${Date.now()}`;
+    const registerResponse = await page.request.post(
+      'http://localhost:9333/api/v1/auth/register',
+      {
+        data: {
+          username: existingUsername,
+          password: 'ExistingPass123!',
+        },
+      }
+    );
+    expect(registerResponse.ok()).toBeTruthy();
+
+    // Verify the user was created by checking username availability
+    const checkResponse = await page.request.get(
+      `http://localhost:9333/api/v1/users/check-username?username=${existingUsername}`
+    );
+    const checkData = await checkResponse.json();
+    expect(checkData.available).toBe(false); // Username should NOT be available
+
     // Go to registration page
     await page.goto('/register');
 
-    // Fill registration form with existing username
-    await page.getByTestId('username-input').fill('testuser');
+    // Fill registration form with the existing username
+    await page.getByTestId('username-input').fill(existingUsername);
 
     // Blur to trigger username availability check
     await page.getByTestId('username-input').blur();
 
-    // Wait for the availability check to complete
+    // Wait for the availability check to complete (network request)
+    await page.waitForResponse(
+      resp =>
+        resp.url().includes('/api/v1/users/check-username') &&
+        resp.status() === 200
+    );
+
+    // Give the UI time to update
     await page.waitForTimeout(500);
 
     // Fill in password fields with valid passwords
@@ -43,7 +70,7 @@ test.describe('User Registration', () => {
     await expect(page.getByTestId('register-button')).toBeDisabled();
 
     // Should show username taken error
-    await expect(page.locator('mat-error')).toContainText(
+    await expect(page.getByTestId('username-error')).toContainText(
       'Username already taken'
     );
   });
@@ -51,18 +78,31 @@ test.describe('User Registration', () => {
   test('should show username suggestions when username is taken', async ({
     anonymousPage: page,
   }) => {
+    // First, create a user via API so we have an existing username to test against
+    const existingUsername = `suggest${Date.now()}`;
+    const registerResponse = await page.request.post(
+      'http://localhost:9333/api/v1/auth/register',
+      {
+        data: {
+          username: existingUsername,
+          password: 'ExistingPass123!',
+        },
+      }
+    );
+    expect(registerResponse.ok()).toBeTruthy();
+
     await page.goto('/register');
 
-    // Fill with an existing username
-    await page.getByTestId('username-input').fill('testuser');
+    // Fill with the existing username
+    await page.getByTestId('username-input').fill(existingUsername);
     await page.getByTestId('username-input').blur();
 
     // Wait for availability check
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
     // Should show suggestions
-    await expect(page.locator('.username-suggestions')).toBeVisible();
-    await expect(page.locator('.suggestion-button').first()).toBeVisible();
+    await expect(page.getByTestId('username-suggestions')).toBeVisible();
+    await expect(page.getByTestId('suggestion-button').first()).toBeVisible();
   });
 
   test('should validate password confirmation matches', async ({
@@ -148,7 +188,7 @@ test.describe('User Registration', () => {
     await page.getByTestId('username-input').blur();
 
     // Should show error about minimum length
-    await expect(page.locator('mat-error')).toContainText(
+    await expect(page.getByTestId('username-error')).toContainText(
       'Username must be at least 3 characters'
     );
 
@@ -167,24 +207,37 @@ test.describe('User Registration', () => {
   test('should allow selection of username suggestions', async ({
     anonymousPage: page,
   }) => {
+    // First, create a user via API so we have an existing username to test against
+    const existingUsername = `selectuser${Date.now()}`;
+    const registerResponse = await page.request.post(
+      'http://localhost:9333/api/v1/auth/register',
+      {
+        data: {
+          username: existingUsername,
+          password: 'ExistingPass123!',
+        },
+      }
+    );
+    expect(registerResponse.ok()).toBeTruthy();
+
     await page.goto('/register');
 
-    // Fill with existing username to get suggestions
-    await page.getByTestId('username-input').fill('testuser');
+    // Fill with the existing username to get suggestions
+    await page.getByTestId('username-input').fill(existingUsername);
     await page.getByTestId('username-input').blur();
 
     // Wait for suggestions to appear
-    await page.waitForTimeout(500);
-    await expect(page.locator('.username-suggestions')).toBeVisible();
+    await page.waitForTimeout(1000);
+    await expect(page.getByTestId('username-suggestions')).toBeVisible();
 
     // Click on a suggestion
-    const firstSuggestion = page.locator('.suggestion-button').first();
+    const firstSuggestion = page.getByTestId('suggestion-button').first();
     await firstSuggestion.click();
 
-    // Username field should now contain the suggestion
+    // Username field should now contain the suggestion (a variation of the original)
     const usernameValue = await page.getByTestId('username-input').inputValue();
-    expect(usernameValue).not.toBe('testuser');
-    expect(usernameValue).toContain('testuser');
+    expect(usernameValue).not.toBe(existingUsername);
+    expect(usernameValue).toContain(existingUsername.substring(0, 10)); // Suggestions should be based on original
   });
 
   test('should automatically login after successful registration', async ({
