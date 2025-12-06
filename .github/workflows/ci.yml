@@ -267,7 +267,15 @@ jobs:
   docker-publish:
     name: Docker Publish
     needs:
-      [lint, test-frontend, test-backend, e2e-offline, e2e-online, e2e-wrangler, e2e-docker]
+      [
+        lint,
+        test-frontend,
+        test-backend,
+        e2e-offline,
+        e2e-online,
+        e2e-wrangler,
+        e2e-docker,
+      ]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
