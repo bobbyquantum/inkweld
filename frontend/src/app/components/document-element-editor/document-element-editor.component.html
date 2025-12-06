@@ -73,4 +73,24 @@
       </span>
     </div>
   }
+
+  <!-- Element Reference Popup (@ mentions) -->
+  @if (elementRefService.isPopupOpen()) {
+    <app-element-ref-popup
+      [position]="elementRefService.popupPosition()!"
+      [initialQuery]="elementRefService.searchQuery()"
+      (selected)="onElementSelected($event)"
+      (closed)="elementRefService.closePopup()">
+    </app-element-ref-popup>
+  }
+
+  <!-- Element Reference Context Menu (right-click / long-press) -->
+  <app-element-ref-context-menu
+    [contextData]="contextMenuData()"
+    (action)="onContextMenuAction($event)">
+  </app-element-ref-context-menu>
+
+  <!-- Element Reference Tooltip (hover) -->
+  <app-element-ref-tooltip [tooltipData]="tooltipData()">
+  </app-element-ref-tooltip>
 }

@@ -25,6 +25,20 @@ import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
 
+import {
+  deleteElementRef,
+  ElementRefAction,
+  ElementRefContextData,
+  ElementRefContextMenuComponent,
+  ElementRefPopupComponent,
+  ElementRefService,
+  ElementRefTooltipComponent,
+  ElementRefTooltipData,
+  ElementSearchResult,
+  extendedSchema,
+  insertElementRef,
+  updateElementRefText,
+} from '../element-ref';
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
 import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
 import { SnapshotPanelComponent } from '../snapshot-panel/snapshot-panel.component';
@@ -42,6 +56,9 @@ import { SnapshotPanelComponent } from '../snapshot-panel/snapshot-panel.compone
     DragDropModule,
     LintFloatingMenuComponent,
     SnapshotPanelComponent,
+    ElementRefPopupComponent,
+    ElementRefContextMenuComponent,
+    ElementRefTooltipComponent,
   ],
   templateUrl: './document-element-editor.component.html',
   styleUrls: [
@@ -55,6 +72,7 @@ export class DocumentElementEditorComponent
   private documentService = inject(DocumentService);
   private projectState = inject(ProjectStateService);
   private settingsService = inject(SettingsService);
+  protected elementRefService = inject(ElementRefService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   private _documentId = 'invalid';
@@ -71,6 +89,12 @@ export class DocumentElementEditorComponent
 
   /** Whether to show the snapshot panel */
   showSnapshotPanel = signal(false);
+
+  /** Context menu data for element references */
+  contextMenuData = signal<ElementRefContextData | null>(null);
+
+  /** Tooltip data for element references */
+  tooltipData = signal<ElementRefTooltipData | null>(null);
 
   editor!: Editor;
   toolbar: Toolbar = [
@@ -125,6 +149,45 @@ export class DocumentElementEditorComponent
         // ngAfterViewChecked will handle setupCollaboration once editor.view is ready
       }
     });
+
+    // Watch for element ref click events from the service
+    effect(() => {
+      const clickEvent = this.elementRefService.clickEvent();
+      if (clickEvent) {
+        // Get the element for display
+        const element = this.elementRefService.getElementById(
+          clickEvent.elementId
+        );
+        const originalName =
+          element?.name ?? clickEvent.originalName ?? clickEvent.displayText;
+
+        // Set context menu data
+        this.contextMenuData.set({
+          elementId: clickEvent.elementId,
+          elementType: clickEvent.elementType,
+          displayText: clickEvent.displayText,
+          originalName,
+          position: {
+            x: clickEvent.mouseEvent.clientX,
+            y: clickEvent.mouseEvent.clientY,
+          },
+          nodePos: clickEvent.nodePos,
+        });
+
+        // Clear the event from the service
+        this.elementRefService.clearClickEvent();
+      }
+    });
+
+    // Watch for tooltip data from the service
+    effect(() => {
+      const data = this.elementRefService.tooltipData();
+      if (data) {
+        this.tooltipData.set(data);
+      } else {
+        this.tooltipData.set(null);
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -138,7 +201,7 @@ export class DocumentElementEditorComponent
         '[DocumentEditor] ngOnInit - creating editor for',
         this.documentId
       );
-      this.editor = new Editor({ history: true });
+      this.editor = new Editor({ history: true, schema: extendedSchema });
       this.editorKey++; // Force template refresh
       console.log(
         '[DocumentEditor] ngOnInit - editor created, doc size:',
@@ -231,7 +294,7 @@ export class DocumentElementEditorComponent
         console.log(
           '[DocumentEditor] ngOnChanges - creating new editor for tab'
         );
-        this.editor = new Editor({ history: true });
+        this.editor = new Editor({ history: true, schema: extendedSchema });
         this.editorKey++; // Force template refresh
         console.log(
           '[DocumentEditor] ngOnChanges - new editor created, doc size:',
@@ -445,5 +508,66 @@ export class DocumentElementEditorComponent
     }
 
     return false;
+  }
+
+  /**
+   * Handle selection of an element from the popup
+   * @param result The search result representing the selected element
+   */
+  onElementSelected(result: ElementSearchResult): void {
+    if (!this.editor?.view) return;
+
+    const attrs = this.elementRefService.createNodeAttrs({
+      id: result.element.id,
+      name: result.element.name,
+      type: result.element.type,
+    });
+
+    insertElementRef(this.editor.view, attrs);
+    this.elementRefService.closePopup();
+  }
+
+  /**
+   * Handle actions from the element reference context menu
+   * @param action The action object with type and data
+   */
+  onContextMenuAction(action: ElementRefAction): void {
+    switch (action.type) {
+      case 'close':
+        this.contextMenuData.set(null);
+        break;
+
+      case 'navigate': {
+        // Navigate to the element by opening it as a tab
+        const element = this.elementRefService.getElementById(action.elementId);
+        if (element) {
+          this.projectState.openDocument(element);
+        }
+        this.contextMenuData.set(null);
+        break;
+      }
+
+      case 'edit-text': {
+        // Update the element reference display text
+        if (this.editor?.view) {
+          updateElementRefText(
+            this.editor.view,
+            action.nodePos,
+            action.newText
+          );
+        }
+        this.contextMenuData.set(null);
+        break;
+      }
+
+      case 'delete': {
+        // Delete the element reference from the document
+        if (this.editor?.view) {
+          deleteElementRef(this.editor.view, action.nodePos);
+        }
+        this.contextMenuData.set(null);
+        break;
+      }
+    }
   }
 }

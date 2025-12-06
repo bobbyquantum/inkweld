@@ -677,6 +677,18 @@ export class PdfGeneratorService {
     const children = this.getChildren(node);
     const marks = this.getMarks(node);
 
+    // Handle elementRef nodes - render display text as plain text
+    // These are design-time references, no special rendering in published output
+    if (nodeName === 'elementref') {
+      const attrs = (node as Record<string, unknown>)['attrs'] as
+        | Record<string, unknown>
+        | undefined;
+      const displayText = attrs?.['displayText'];
+      return typeof displayText === 'string' && displayText
+        ? [displayText]
+        : [];
+    }
+
     // Text node with marks
     if (nodeName === 'text' || !nodeName) {
       const rawText = (node as Record<string, unknown>)['text'];
@@ -701,6 +713,16 @@ export class PdfGeneratorService {
     if (typeof node === 'string') return node;
     if (Array.isArray(node))
       return node.map(n => this.extractPlainText(n)).join('');
+
+    // Handle elementRef nodes - render display text as plain text
+    const nodeName = this.getNodeName(node);
+    if (nodeName === 'elementref') {
+      const attrs = (node as Record<string, unknown>)['attrs'] as
+        | Record<string, unknown>
+        | undefined;
+      const displayText = attrs?.['displayText'];
+      return typeof displayText === 'string' ? displayText : '';
+    }
 
     const text = (node as Record<string, unknown>)['text'];
     if (typeof text === 'string') return text;

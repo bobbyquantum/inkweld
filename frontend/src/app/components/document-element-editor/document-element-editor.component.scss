@@ -240,3 +240,251 @@
     height: calc(100vh - 74px) !important;
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Element Reference Styles
+// ─────────────────────────────────────────────────────────────────────────────
+
+/* Base element reference style */
+::ng-deep .element-ref {
+  display: inline;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: linear-gradient(
+    135deg,
+    var(--sys-primary-container, #e8def8) 0%,
+    var(--element-ref-bg-end, #d4c8f0) 100%
+  );
+  color: var(--sys-on-primary-container, #21005d);
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  border: 1px solid var(--sys-outline-variant, rgba(121, 116, 126, 0.3));
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  position: relative;
+}
+
+::ng-deep .element-ref:hover {
+  background: linear-gradient(
+    135deg,
+    var(--sys-primary, #6750a4) 0%,
+    var(--sys-primary-dark, #523d8a) 100%
+  );
+  color: var(--sys-on-primary, #ffffff);
+  box-shadow:
+    0 2px 6px rgba(103, 80, 164, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border-color: var(--sys-primary, #6750a4);
+  transform: translateY(-1px);
+}
+
+::ng-deep .element-ref:focus {
+  outline: 2px solid var(--sys-primary, #6750a4);
+  outline-offset: 2px;
+}
+
+/* Icon before the text */
+::ng-deep .element-ref::before {
+  font-family: 'Material Icons';
+  font-size: 14px;
+  margin-right: 3px;
+  vertical-align: middle;
+  opacity: 0.85;
+}
+
+/* Type-specific styling */
+::ng-deep .element-ref--item::before {
+  content: 'description';
+}
+
+::ng-deep .element-ref--character::before {
+  content: 'person';
+}
+
+::ng-deep .element-ref--location::before {
+  content: 'place';
+}
+
+::ng-deep .element-ref--wb_item::before {
+  content: 'category';
+}
+
+::ng-deep .element-ref--map::before {
+  content: 'map';
+}
+
+::ng-deep .element-ref--folder::before {
+  content: 'folder';
+}
+
+/* Character refs get a slightly different color */
+::ng-deep .element-ref--character {
+  --element-ref-bg-end: #f0c8d8;
+  background: linear-gradient(
+    135deg,
+    var(--sys-tertiary-container, #ffd8e4) 0%,
+    var(--element-ref-bg-end, #f0c8d8) 100%
+  );
+  color: var(--sys-on-tertiary-container, #31111d);
+  border-color: var(--sys-outline-variant, rgba(125, 82, 96, 0.3));
+}
+
+::ng-deep .element-ref--character:hover {
+  background: linear-gradient(
+    135deg,
+    var(--sys-tertiary, #7d5260) 0%,
+    #6a4552 100%
+  );
+  color: var(--sys-on-tertiary, #ffffff);
+  border-color: var(--sys-tertiary, #7d5260);
+  box-shadow:
+    0 2px 6px rgba(125, 82, 96, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Location refs */
+::ng-deep .element-ref--location {
+  --element-ref-bg-end: #c8d8f0;
+  background: linear-gradient(
+    135deg,
+    var(--sys-secondary-container, #e8dff5) 0%,
+    var(--element-ref-bg-end, #c8d8f0) 100%
+  );
+  color: var(--sys-on-secondary-container, #1d192b);
+  border-color: var(--sys-outline-variant, rgba(98, 91, 113, 0.3));
+}
+
+::ng-deep .element-ref--location:hover {
+  background: linear-gradient(
+    135deg,
+    var(--sys-secondary, #625b71) 0%,
+    #524b61 100%
+  );
+  color: var(--sys-on-secondary, #ffffff);
+  border-color: var(--sys-secondary, #625b71);
+  box-shadow:
+    0 2px 6px rgba(98, 91, 113, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Deleted element style */
+::ng-deep .element-ref--deleted {
+  background: linear-gradient(
+    135deg,
+    var(--sys-error-container, #f9dedc) 0%,
+    #f0c8c8 100%
+  );
+  color: var(--sys-on-error-container, #410e0b);
+  text-decoration: line-through;
+  opacity: 0.7;
+  border-color: var(--sys-error, rgba(179, 38, 30, 0.3));
+}
+
+::ng-deep .element-ref--deleted:hover {
+  background: linear-gradient(
+    135deg,
+    var(--sys-error, #b3261e) 0%,
+    #9a1f18 100%
+  );
+  color: var(--sys-on-error, #ffffff);
+  border-color: var(--sys-error, #b3261e);
+  opacity: 1;
+}
+
+/* Note indicator */
+::ng-deep .element-ref--has-note::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 6px;
+  height: 6px;
+  background: var(--sys-tertiary, #7d5260);
+  border-radius: 50%;
+  border: 1px solid var(--sys-surface, #fff);
+}
+
+/* Dark theme adjustments */
+:host-context(.dark-theme) ::ng-deep .element-ref {
+  --element-ref-bg-end: #3a2878;
+  background: linear-gradient(
+    135deg,
+    var(--sys-primary-container, #4f378b) 0%,
+    var(--element-ref-bg-end, #3a2878) 100%
+  );
+  color: var(--sys-on-primary-container, #eaddff);
+  border-color: var(--sys-outline-variant, rgba(202, 196, 208, 0.3));
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+:host-context(.dark-theme) ::ng-deep .element-ref:hover {
+  background: linear-gradient(
+    135deg,
+    var(--sys-primary, #d0bcff) 0%,
+    #b8a4e8 100%
+  );
+  color: var(--sys-on-primary, #381e72);
+  border-color: var(--sys-primary, #d0bcff);
+  box-shadow:
+    0 2px 6px rgba(208, 188, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+:host-context(.dark-theme) ::ng-deep .element-ref--character {
+  --element-ref-bg-end: #4a2838;
+  background: linear-gradient(
+    135deg,
+    var(--sys-tertiary-container, #633b48) 0%,
+    var(--element-ref-bg-end, #4a2838) 100%
+  );
+  color: var(--sys-on-tertiary-container, #ffd8e4);
+  border-color: rgba(255, 216, 228, 0.3);
+}
+
+:host-context(.dark-theme) ::ng-deep .element-ref--character:hover {
+  background: linear-gradient(
+    135deg,
+    var(--sys-tertiary, #efb8c8) 0%,
+    #d8a4b8 100%
+  );
+  color: var(--sys-on-tertiary, #492532);
+  border-color: var(--sys-tertiary, #efb8c8);
+}
+
+:host-context(.dark-theme) ::ng-deep .element-ref--location {
+  --element-ref-bg-end: #383248;
+  background: linear-gradient(
+    135deg,
+    var(--sys-secondary-container, #4a4458) 0%,
+    var(--element-ref-bg-end, #383248) 100%
+  );
+  color: var(--sys-on-secondary-container, #e8def8);
+  border-color: rgba(232, 223, 248, 0.3);
+}
+
+:host-context(.dark-theme) ::ng-deep .element-ref--location:hover {
+  background: linear-gradient(
+    135deg,
+    var(--sys-secondary, #ccc2dc) 0%,
+    #b4aac4 100%
+  );
+  color: var(--sys-on-secondary, #332d41);
+  border-color: var(--sys-secondary, #ccc2dc);
+}
+
+:host-context(.dark-theme) ::ng-deep .element-ref--has-note::after {
+  background: var(--sys-tertiary, #efb8c8);
+  border-color: var(--sys-surface, #1c1b1f);
+}
+
+/* Element ref trigger highlight (while typing @query) */
+::ng-deep .element-ref-trigger {
+  background-color: var(--sys-primary-container, #e8def8);
+  border-radius: 2px;
+}
