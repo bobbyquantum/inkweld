@@ -165,7 +165,7 @@ export default async function globalSetup(): Promise<void> {
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
     process.stdout.write(`\r   Waiting... ${elapsed}s`);
-    
+
     // Every 30 seconds, show the latest logs to help debug
     if (parseInt(elapsed) > 0 && parseInt(elapsed) % 30 === 0) {
       try {
@@ -179,7 +179,7 @@ export default async function globalSetup(): Promise<void> {
         // Ignore log errors
       }
     }
-    
+
     await new Promise(resolve => setTimeout(resolve, HEALTH_CHECK_INTERVAL));
   }
 
