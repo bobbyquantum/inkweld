@@ -113,7 +113,7 @@ export default async function globalSetup(): Promise<void> {
       encoding: 'utf-8',
     });
     console.log(initialLogs);
-  } catch (logError) {
+  } catch {
     console.log('   (Could not retrieve initial logs)');
   }
 
