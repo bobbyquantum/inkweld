@@ -112,9 +112,34 @@ export default async function globalSetup(): Promise<void> {
     const initialLogs = execSync(`docker logs ${CONTAINER_NAME}`, {
       encoding: 'utf-8',
     });
-    console.log(initialLogs);
+    console.log(initialLogs || '   (No logs yet)');
   } catch {
     console.log('   (Could not retrieve initial logs)');
+  }
+
+  // Check container status immediately
+  console.log('\n🔍 Checking container status...');
+  try {
+    const status = execSync(
+      `docker inspect -f "{{.State.Status}}" ${CONTAINER_NAME}`,
+      { encoding: 'utf-8' }
+    ).trim();
+    const cleanStatus = status.replace(/['"]/g, '');
+    console.log(`   Container status: ${cleanStatus}`);
+
+    if (cleanStatus !== 'running') {
+      console.error(`\n❌ Container is not running (status: ${cleanStatus})`);
+      const logs = execSync(`docker logs ${CONTAINER_NAME}`, {
+        encoding: 'utf-8',
+      });
+      console.error('Container logs:\n', logs || '(empty)');
+      throw new Error(`Container not running: ${cleanStatus}`);
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('Container not running')) {
+      throw error;
+    }
+    console.error('   Could not check container status:', error);
   }
 
   // Wait for health check
@@ -130,9 +155,18 @@ export default async function globalSetup(): Promise<void> {
         console.log(`   Frontend + API: http://localhost:${DOCKER_PORT}`);
         console.log(`   Health check:   ${HEALTH_CHECK_URL}\n`);
         return;
+      } else {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+        if (parseInt(elapsed) % 10 === 0) {
+          console.log(`\n   Health check failed with status: ${response.status}`);
+        }
       }
-    } catch {
-      // Container not ready yet
+    } catch (fetchError) {
+      // Container not ready yet - show error periodically
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+      if (parseInt(elapsed) % 10 === 0 && parseInt(elapsed) > 0) {
+        console.log(`\n   Health check failed: ${fetchError instanceof Error ? fetchError.message : 'Connection refused'}`);
+      }
     }
 
     // Check if container is still running
