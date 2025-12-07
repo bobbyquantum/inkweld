@@ -106,6 +106,17 @@ export default async function globalSetup(): Promise<void> {
     throw error;
   }
 
+  // Show initial container logs to help debug startup issues
+  console.log('\n📋 Initial container logs:');
+  try {
+    const initialLogs = execSync(`docker logs ${CONTAINER_NAME}`, {
+      encoding: 'utf-8',
+    });
+    console.log(initialLogs);
+  } catch (logError) {
+    console.log('   (Could not retrieve initial logs)');
+  }
+
   // Wait for health check
   console.log('\n⏳ Waiting for container to be healthy...');
   const startTime = Date.now();
@@ -131,7 +142,7 @@ export default async function globalSetup(): Promise<void> {
         { encoding: 'utf-8' }
       ).trim();
       // Status might have quotes on some platforms, strip them
-      const cleanStatus = status.replace(/['"]/, '');
+      const cleanStatus = status.replace(/['"]/g, '');
       if (cleanStatus !== 'running') {
         console.error(
           `\n❌ Container stopped unexpectedly (status: ${cleanStatus})`
@@ -154,6 +165,21 @@ export default async function globalSetup(): Promise<void> {
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
     process.stdout.write(`\r   Waiting... ${elapsed}s`);
+    
+    // Every 30 seconds, show the latest logs to help debug
+    if (parseInt(elapsed) > 0 && parseInt(elapsed) % 30 === 0) {
+      try {
+        const recentLogs = execSync(`docker logs --tail 20 ${CONTAINER_NAME}`, {
+          encoding: 'utf-8',
+        });
+        console.log(`\n\n📋 Container logs at ${elapsed}s:`);
+        console.log(recentLogs);
+        console.log(`\n⏳ Still waiting for health check...`);
+      } catch {
+        // Ignore log errors
+      }
+    }
+    
     await new Promise(resolve => setTimeout(resolve, HEALTH_CHECK_INTERVAL));
   }
 
