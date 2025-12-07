@@ -18,7 +18,7 @@ RUN bun install --frozen-lockfile
 
 COPY frontend .
 # Build frontend and verify output exists - fail early with clear error if build doesn't produce expected output
-RUN bun install --production=false && bun run build \
+RUN bun run build \
   && if [ ! -d /app/frontend/dist ]; then \
        echo "ERROR: frontend build did not produce /app/frontend/dist"; \
        ls -la /app/frontend || true; \
