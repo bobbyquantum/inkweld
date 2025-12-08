@@ -3,7 +3,12 @@ import { Element, ElementType } from '@inkweld/index';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { vi } from 'vitest';
 
+import {
+  ElementRelationship,
+  RelationshipType,
+} from '../../components/element-ref/element-ref.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { PublishPlan } from '../../models/publish-plan';
 import { LoggerService } from '../core/logger.service';
 import { OfflineProjectElementsService } from '../offline/offline-project-elements.service';
 import { OfflineElementSyncProvider } from './offline-element-sync.provider';
@@ -13,9 +18,18 @@ describe('OfflineElementSyncProvider', () => {
   let mockOfflineElementsService: {
     loadElements: ReturnType<typeof vi.fn>;
     elements: ReturnType<typeof vi.fn>;
+    publishPlans: ReturnType<typeof vi.fn>;
+    relationships: ReturnType<typeof vi.fn>;
+    customRelationshipTypes: ReturnType<typeof vi.fn>;
     saveElements: ReturnType<typeof vi.fn>;
+    savePublishPlans: ReturnType<typeof vi.fn>;
+    saveRelationships: ReturnType<typeof vi.fn>;
+    saveCustomRelationshipTypes: ReturnType<typeof vi.fn>;
     closeConnection: ReturnType<typeof vi.fn>;
     _elementsSubject: BehaviorSubject<Element[]>;
+    _publishPlansSubject: BehaviorSubject<PublishPlan[]>;
+    _relationshipsSubject: BehaviorSubject<ElementRelationship[]>;
+    _customTypesSubject: BehaviorSubject<RelationshipType[]>;
     _errorsSubject: Subject<string>;
   };
   let mockLoggerService: {
@@ -40,14 +54,26 @@ describe('OfflineElementSyncProvider', () => {
 
   beforeEach(() => {
     const elementsSubject = new BehaviorSubject<Element[]>([]);
+    const publishPlansSubject = new BehaviorSubject<PublishPlan[]>([]);
+    const relationshipsSubject = new BehaviorSubject<ElementRelationship[]>([]);
+    const customTypesSubject = new BehaviorSubject<RelationshipType[]>([]);
     const errorsSubject = new Subject<string>();
 
     mockOfflineElementsService = {
       loadElements: vi.fn().mockResolvedValue(undefined),
       elements: vi.fn(() => elementsSubject.getValue()),
+      publishPlans: vi.fn(() => publishPlansSubject.getValue()),
+      relationships: vi.fn(() => relationshipsSubject.getValue()),
+      customRelationshipTypes: vi.fn(() => customTypesSubject.getValue()),
       saveElements: vi.fn().mockResolvedValue(undefined),
+      savePublishPlans: vi.fn().mockResolvedValue(undefined),
+      saveRelationships: vi.fn().mockResolvedValue(undefined),
+      saveCustomRelationshipTypes: vi.fn().mockResolvedValue(undefined),
       closeConnection: vi.fn().mockResolvedValue(undefined),
       _elementsSubject: elementsSubject,
+      _publishPlansSubject: publishPlansSubject,
+      _relationshipsSubject: relationshipsSubject,
+      _customTypesSubject: customTypesSubject,
       _errorsSubject: errorsSubject,
     };
 

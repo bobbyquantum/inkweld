@@ -1,0 +1,91 @@
+<div class="relationships-panel">
+  <div class="panel-header">
+    <h3>Relationships</h3>
+    <button
+      mat-icon-button
+      (click)="refresh()"
+      matTooltip="Refresh"
+      data-testid="refresh-relationships">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="32"></mat-spinner>
+      <p>Loading relationships...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-container">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ error() }}</p>
+      <button mat-button (click)="refresh()">Try Again</button>
+    </div>
+  } @else if (totalCount() === 0) {
+    <div class="empty-state">
+      <mat-icon>link_off</mat-icon>
+      <p>No relationships yet</p>
+      <p class="hint">Use @ to reference other elements</p>
+    </div>
+  } @else {
+    <mat-nav-list class="relationships-list">
+      <!-- Outgoing Relationships -->
+      @if (outgoingCount() > 0) {
+        <div mat-subheader>References ({{ outgoingCount() }})</div>
+        @for (rel of outgoingRelationships(); track rel.id) {
+          <a
+            mat-list-item
+            tabindex="0"
+            (click)="navigateToElement(rel, true)"
+            (keydown.enter)="navigateToElement(rel, true)"
+            (mouseenter)="showTooltipForElement(rel.targetElementId, $event)"
+            (mouseleave)="hideTooltip()"
+            data-testid="outgoing-relationship">
+            <mat-icon matListItemIcon>{{
+              getElementIcon(rel.targetElementId)
+            }}</mat-icon>
+            <span matListItemTitle>{{
+              getElementName(rel.targetElementId)
+            }}</span>
+            <div matListItemMeta>
+              <mat-icon>chevron_right</mat-icon>
+            </div>
+          </a>
+        }
+      }
+
+      <!-- Divider between sections -->
+      @if (outgoingCount() > 0 && incomingCount() > 0) {
+        <mat-divider></mat-divider>
+      }
+
+      <!-- Incoming Relationships (Backlinks) -->
+      @if (incomingCount() > 0) {
+        <div mat-subheader>Backlinks ({{ incomingCount() }})</div>
+        @for (rel of incomingRelationships(); track rel.id) {
+          <a
+            mat-list-item
+            tabindex="0"
+            (click)="navigateToElement(rel, false)"
+            (keydown.enter)="navigateToElement(rel, false)"
+            (mouseenter)="showTooltipForElement(rel.sourceElementId, $event)"
+            (mouseleave)="hideTooltip()"
+            data-testid="incoming-relationship">
+            <mat-icon matListItemIcon>{{
+              getElementIcon(rel.sourceElementId)
+            }}</mat-icon>
+            <span matListItemTitle>{{
+              getElementName(rel.sourceElementId)
+            }}</span>
+            <span matListItemLine>{{
+              getRelationshipTypeName(rel.relationshipTypeId)
+            }}</span>
+            <div matListItemMeta>
+              <mat-icon>chevron_right</mat-icon>
+            </div>
+          </a>
+        }
+      }
+    </mat-nav-list>
+  }
+</div>

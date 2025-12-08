@@ -179,7 +179,7 @@ $dark-theme: mat.define-theme(
   /* Scrollbar styles for light theme */
   --scrollbar-thumb-color: #006874; /* primary-40 */
   --scrollbar-thumb-hover-color: #008391; /* primary-50 */
-  --scrollbar-track-color: #eff1f1; /* neutral-95 */
+  --scrollbar-track-color: var(--sys-surface-container-high); /* neutral-95 */
 
   @include mat.all-component-themes($light-theme);
   @include mat.system-level-colors($light-theme);
@@ -224,50 +224,6 @@ $dark-theme: mat.define-theme(
     --custom-error-color: var(--sys-error);
     --password-tooltip-bg: var(--sys-surface-container-high);
     --password-tooltip-border: var(--sys-outline-variant);
-  }
-}
-
-/* ProseMirror-yjs cursor styles for light theme */
-:root .ProseMirror > .ProseMirror-yjs-cursor:first-child {
-  margin-top: 16px;
-}
-
-.ProseMirror p:first-child,
-.ProseMirror h1:first-child,
-.ProseMirror h2:first-child,
-.ProseMirror h3:first-child,
-.ProseMirror h4:first-child,
-.ProseMirror h5:first-child,
-.ProseMirror h6:first-child {
-  margin-top: 16px;
-}
-
-.ProseMirror-yjs-cursor {
-  position: relative;
-  margin-left: -1px;
-  margin-right: -1px;
-  border-left: 2px solid var(--sys-tertiary);
-  border-right: 2px solid var(--sys-tertiary);
-  word-break: normal;
-  pointer-events: none;
-
-  > div {
-    position: absolute;
-    top: -1.4em;
-    left: -1px;
-    font-size: 12px;
-    background-color: var(--sys-tertiary);
-    font-family: var(--mat-ref-typeface-plain);
-    font-style: normal;
-    font-weight: normal;
-    line-height: normal;
-    -webkit-user-select: none;
-    user-select: none;
-    color: var(--sys-on-tertiary);
-    padding: 2px 6px;
-    border-radius: 3px;
-    white-space: nowrap;
-    opacity: 0.9;
   }
 }
 
@@ -316,17 +272,6 @@ $dark-theme: mat.define-theme(
     --custom-error-color: var(--sys-error);
     --password-tooltip-bg: var(--sys-surface-container-high);
     --password-tooltip-border: var(--sys-outline-variant);
-  }
-}
-
-/* ProseMirror-yjs cursor styles for dark theme */
-.dark-theme .ProseMirror-yjs-cursor {
-  border-left-color: var(--sys-tertiary);
-  border-right-color: var(--sys-tertiary);
-
-  > div {
-    background-color: var(--sys-tertiary);
-    color: var(--sys-on-tertiary);
   }
 }
 

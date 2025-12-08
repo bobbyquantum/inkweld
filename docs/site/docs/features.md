@@ -26,7 +26,7 @@ Build rich, detailed fictional worlds with structured templates for characters, 
 - **Location databases**: Map out settings with descriptions, histories, and connections
 - **Timeline management**: Organize events chronologically across your story universe
 - **Custom templates**: Create your own worldbuilding schemas for unique needs
-- **Cross-referencing**: Link characters, locations, and events throughout your project
+- **[Element references](/docs/user-guide/element-references)**: Use `@mentions` to link characters, locations, and items throughout your prose
 
 ## Document Organization
 

@@ -1,15 +1,18 @@
 /**
  * Relationship Service
  *
- * Manages CRUD operations for element relationships and provides
- * methods for querying the relationship graph.
+ * Manages CRUD operations for element relationships using centralized
+ * storage in the project elements Yjs document.
+ *
+ * Relationships are now stored centrally, enabling:
+ * - Fast backlink queries without scanning all documents
+ * - Relationships on worldbuilding elements (not just document references)
+ * - Custom relationship types per project
+ * - Real-time sync via Yjs
  */
 
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { nanoid } from 'nanoid';
-import { IndexeddbPersistence } from 'y-indexeddb';
-import { WebsocketProvider } from 'y-websocket';
-import * as Y from 'yjs';
 
 import {
   getAllRelationshipTypes,
@@ -23,140 +26,52 @@ import {
   ResolvedRelationship,
 } from '../../components/element-ref/element-ref.model';
 import { LoggerService } from '../core/logger.service';
-import { SetupService } from '../core/setup.service';
 import { ProjectStateService } from '../project/project-state.service';
-
-/**
- * Connection to a relationship Y.Doc for an element
- */
-interface RelationshipConnection {
-  ydoc: Y.Doc;
-  relationshipsArray: Y.Array<ElementRelationship>;
-  provider?: WebsocketProvider;
-  indexeddbProvider: IndexeddbPersistence;
-}
+import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 
 @Injectable({
   providedIn: 'root',
 })
 export class RelationshipService {
   private logger = inject(LoggerService);
-  private setupService = inject(SetupService);
   private projectState = inject(ProjectStateService);
+  private syncProviderFactory = inject(ElementSyncProviderFactory);
 
-  /** Active connections to element relationship documents */
-  private connections = new Map<string, RelationshipConnection>();
+  /** Get the active sync provider */
+  private get syncProvider() {
+    return this.syncProviderFactory.getProvider();
+  }
 
-  /** Project-level custom relationship types */
+  // ─────────────────────────────────────────────────────────────────────────
+  // Reactive Signals
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** All relationships in the project (reactive) */
+  private relationshipsSignal = signal<ElementRelationship[]>([]);
+  readonly relationships = this.relationshipsSignal.asReadonly();
+
+  /** Custom relationship types from the project */
   private customTypesSignal = signal<RelationshipType[]>([]);
   readonly customTypes = this.customTypesSignal.asReadonly();
+
+  /** Alias for backwards compatibility */
+  readonly customRelationshipTypes = this.customTypes;
 
   /** All available relationship types (built-in + custom) */
   readonly allTypes = computed(() =>
     getAllRelationshipTypes(this.customTypesSignal())
   );
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Connection Management
-  // ─────────────────────────────────────────────────────────────────────────
+  constructor() {
+    // Subscribe to relationships from sync provider
+    this.syncProvider.relationships$.subscribe(relationships => {
+      this.relationshipsSignal.set(relationships);
+    });
 
-  /**
-   * Get or create a connection to an element's relationship data
-   */
-  private async getConnection(
-    elementId: string,
-    username?: string,
-    slug?: string
-  ): Promise<RelationshipConnection> {
-    const docId = this.buildDocId(elementId, username, slug);
-
-    if (this.connections.has(docId)) {
-      return this.connections.get(docId)!;
-    }
-
-    this.logger.debug(
-      'RelationshipService',
-      `Creating connection for ${docId}`
-    );
-
-    const ydoc = new Y.Doc();
-    const relationshipsArray =
-      ydoc.getArray<ElementRelationship>('__relationships__');
-
-    // Set up IndexedDB persistence
-    const indexeddbProvider = new IndexeddbPersistence(
-      `inkweld-rel-${docId}`,
-      ydoc
-    );
-    await indexeddbProvider.whenSynced;
-
-    // Set up WebSocket provider if in server mode
-    let provider: WebsocketProvider | undefined;
-    const wsUrl = this.setupService.getWebSocketUrl();
-    if (wsUrl && username && slug) {
-      const roomName = `rel:${username}:${slug}:${elementId}`;
-      provider = new WebsocketProvider(wsUrl, roomName, ydoc);
-    }
-
-    const connection: RelationshipConnection = {
-      ydoc,
-      relationshipsArray,
-      provider,
-      indexeddbProvider,
-    };
-
-    this.connections.set(docId, connection);
-    return connection;
-  }
-
-  /**
-   * Build a document ID for relationship storage
-   */
-  private buildDocId(
-    elementId: string,
-    username?: string,
-    slug?: string
-  ): string {
-    if (username && slug) {
-      return `${username}:${slug}:${elementId}`;
-    }
-    return elementId;
-  }
-
-  /**
-   * Disconnect from an element's relationship data
-   */
-  async disconnect(
-    elementId: string,
-    username?: string,
-    slug?: string
-  ): Promise<void> {
-    const docId = this.buildDocId(elementId, username, slug);
-    const connection = this.connections.get(docId);
-
-    if (connection) {
-      connection.provider?.disconnect();
-      await connection.indexeddbProvider.destroy();
-      connection.ydoc.destroy();
-      this.connections.delete(docId);
-
-      this.logger.debug('RelationshipService', `Disconnected from ${docId}`);
-    }
-  }
-
-  /**
-   * Disconnect all connections
-   */
-  async disconnectAll(): Promise<void> {
-    const docIds = Array.from(this.connections.keys());
-    for (const docId of docIds) {
-      const parts = docId.split(':');
-      if (parts.length === 3) {
-        await this.disconnect(parts[2], parts[0], parts[1]);
-      } else {
-        await this.disconnect(docId);
-      }
-    }
+    // Subscribe to custom types from sync provider
+    this.syncProvider.customRelationshipTypes$.subscribe(types => {
+      this.customTypesSignal.set(types);
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -164,21 +79,46 @@ export class RelationshipService {
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Get all outgoing relationships from an element
+   * Get all relationships in the project
    */
-  async getOutgoingRelationships(
-    elementId: string,
-    username?: string,
-    slug?: string
-  ): Promise<ElementRelationship[]> {
-    const connection = await this.getConnection(elementId, username, slug);
-    return connection.relationshipsArray.toArray();
+  getAllRelationships(): ElementRelationship[] {
+    return this.syncProvider.getRelationships();
   }
 
   /**
-   * Add a new relationship from an element
+   * Get all outgoing relationships from an element
    */
-  async addRelationship(
+  getOutgoingRelationships(sourceElementId: string): ElementRelationship[] {
+    return this.syncProvider
+      .getRelationships()
+      .filter(r => r.sourceElementId === sourceElementId);
+  }
+
+  /**
+   * Get all incoming relationships (backlinks) to an element
+   */
+  getIncomingRelationships(targetElementId: string): ElementRelationship[] {
+    return this.syncProvider
+      .getRelationships()
+      .filter(r => r.targetElementId === targetElementId);
+  }
+
+  /**
+   * Get complete relationship view for an element (outgoing + incoming)
+   */
+  getRelationshipView(elementId: string): ElementRelationshipView {
+    const allRelationships = this.syncProvider.getRelationships();
+
+    return {
+      outgoing: allRelationships.filter(r => r.sourceElementId === elementId),
+      incoming: allRelationships.filter(r => r.targetElementId === elementId),
+    };
+  }
+
+  /**
+   * Add a new relationship
+   */
+  addRelationship(
     sourceElementId: string,
     targetElementId: string,
     relationshipTypeId: string,
@@ -186,33 +126,26 @@ export class RelationshipService {
       note?: string;
       displayText?: string;
       documentContext?: ElementRelationship['documentContext'];
-      username?: string;
-      slug?: string;
     }
-  ): Promise<ElementRelationship> {
-    const { username, slug, ...relationshipOptions } = options || {};
-    const connection = await this.getConnection(
-      sourceElementId,
-      username,
-      slug
-    );
-
+  ): ElementRelationship {
     const now = new Date().toISOString();
     const relationship: ElementRelationship = {
       id: nanoid(),
       sourceElementId,
       targetElementId,
       relationshipTypeId,
-      note: relationshipOptions.note,
-      displayText: relationshipOptions.displayText,
-      documentContext: relationshipOptions.documentContext,
+      note: options?.note,
+      displayText: options?.displayText,
+      documentContext: options?.documentContext,
       createdAt: now,
       updatedAt: now,
     };
 
-    connection.ydoc.transact(() => {
-      connection.relationshipsArray.push([relationship]);
-    });
+    const relationships = [
+      ...this.syncProvider.getRelationships(),
+      relationship,
+    ];
+    this.syncProvider.updateRelationships(relationships);
 
     this.logger.debug(
       'RelationshipService',
@@ -225,22 +158,13 @@ export class RelationshipService {
   /**
    * Update an existing relationship
    */
-  async updateRelationship(
-    sourceElementId: string,
+  updateRelationship(
     relationshipId: string,
     updates: Partial<
       Pick<ElementRelationship, 'note' | 'displayText' | 'relationshipTypeId'>
-    >,
-    username?: string,
-    slug?: string
-  ): Promise<ElementRelationship | null> {
-    const connection = await this.getConnection(
-      sourceElementId,
-      username,
-      slug
-    );
-
-    const relationships = connection.relationshipsArray.toArray();
+    >
+  ): ElementRelationship | null {
+    const relationships = this.syncProvider.getRelationships();
     const index = relationships.findIndex(r => r.id === relationshipId);
 
     if (index === -1) {
@@ -258,10 +182,9 @@ export class RelationshipService {
       updatedAt: new Date().toISOString(),
     };
 
-    connection.ydoc.transact(() => {
-      connection.relationshipsArray.delete(index, 1);
-      connection.relationshipsArray.insert(index, [updated]);
-    });
+    const newRelationships = [...relationships];
+    newRelationships[index] = updated;
+    this.syncProvider.updateRelationships(newRelationships);
 
     this.logger.debug(
       'RelationshipService',
@@ -272,21 +195,10 @@ export class RelationshipService {
   }
 
   /**
-   * Remove a relationship
+   * Remove a relationship by ID
    */
-  async removeRelationship(
-    sourceElementId: string,
-    relationshipId: string,
-    username?: string,
-    slug?: string
-  ): Promise<boolean> {
-    const connection = await this.getConnection(
-      sourceElementId,
-      username,
-      slug
-    );
-
-    const relationships = connection.relationshipsArray.toArray();
+  removeRelationship(relationshipId: string): boolean {
+    const relationships = this.syncProvider.getRelationships();
     const index = relationships.findIndex(r => r.id === relationshipId);
 
     if (index === -1) {
@@ -297,9 +209,8 @@ export class RelationshipService {
       return false;
     }
 
-    connection.ydoc.transact(() => {
-      connection.relationshipsArray.delete(index, 1);
-    });
+    const newRelationships = relationships.filter(r => r.id !== relationshipId);
+    this.syncProvider.updateRelationships(newRelationships);
 
     this.logger.debug(
       'RelationshipService',
@@ -310,83 +221,68 @@ export class RelationshipService {
   }
 
   /**
-   * Find a relationship by ID within an element's relationships
+   * Find a relationship by ID
    */
-  async findRelationship(
-    sourceElementId: string,
-    relationshipId: string,
-    username?: string,
-    slug?: string
-  ): Promise<ElementRelationship | null> {
-    const relationships = await this.getOutgoingRelationships(
-      sourceElementId,
-      username,
-      slug
+  findRelationship(relationshipId: string): ElementRelationship | null {
+    return (
+      this.syncProvider.getRelationships().find(r => r.id === relationshipId) ||
+      null
     );
-    return relationships.find(r => r.id === relationshipId) || null;
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Backlink / Incoming Relationship Queries
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Find all incoming relationships (backlinks) to an element
-   *
-   * This scans all elements in the project to find relationships
-   * pointing to the target element. For large projects, consider
-   * implementing a relationship index.
-   */
-  async getIncomingRelationships(
-    targetElementId: string,
-    username?: string,
-    slug?: string
-  ): Promise<ElementRelationship[]> {
-    const elements = this.projectState.elements();
-    const incoming: ElementRelationship[] = [];
-
-    // Scan each element's outgoing relationships
-    for (const element of elements) {
-      if (element.id === targetElementId) continue;
-
-      try {
-        const outgoing = await this.getOutgoingRelationships(
-          element.id,
-          username,
-          slug
-        );
-
-        const pointingToTarget = outgoing.filter(
-          r => r.targetElementId === targetElementId
-        );
-
-        incoming.push(...pointingToTarget);
-      } catch {
-        // Element may not have relationships initialized yet
-        this.logger.debug(
-          'RelationshipService',
-          `No relationships for element ${element.id}`
-        );
-      }
-    }
-
-    return incoming;
   }
 
   /**
-   * Get complete relationship view for an element (outgoing + incoming)
+   * Find relationships between two specific elements
    */
-  async getRelationshipView(
-    elementId: string,
-    username?: string,
-    slug?: string
-  ): Promise<ElementRelationshipView> {
-    const [outgoing, incoming] = await Promise.all([
-      this.getOutgoingRelationships(elementId, username, slug),
-      this.getIncomingRelationships(elementId, username, slug),
-    ]);
+  findRelationshipsBetween(
+    sourceElementId: string,
+    targetElementId: string
+  ): ElementRelationship[] {
+    return this.syncProvider
+      .getRelationships()
+      .filter(
+        r =>
+          r.sourceElementId === sourceElementId &&
+          r.targetElementId === targetElementId
+      );
+  }
 
-    return { outgoing, incoming };
+  /**
+   * Find relationships with a specific document context
+   */
+  findRelationshipsInDocument(documentId: string): ElementRelationship[] {
+    return this.syncProvider
+      .getRelationships()
+      .filter(r => r.documentContext?.documentId === documentId);
+  }
+
+  /**
+   * Remove all relationships originating from a document context
+   * Called when an @ reference is deleted from a document
+   */
+  removeRelationshipsFromDocument(
+    documentId: string,
+    targetElementId?: string
+  ): number {
+    const relationships = this.syncProvider.getRelationships();
+    const toRemove = relationships.filter(
+      r =>
+        r.documentContext?.documentId === documentId &&
+        (targetElementId === undefined || r.targetElementId === targetElementId)
+    );
+
+    if (toRemove.length === 0) return 0;
+
+    const newRelationships = relationships.filter(
+      r => !toRemove.some(tr => tr.id === r.id)
+    );
+    this.syncProvider.updateRelationships(newRelationships);
+
+    this.logger.debug(
+      'RelationshipService',
+      `Removed ${toRemove.length} relationships from document ${documentId}`
+    );
+
+    return toRemove.length;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -448,15 +344,11 @@ export class RelationshipService {
   /**
    * Get resolved relationship view with full metadata
    */
-  async getResolvedRelationshipView(
-    elementId: string,
-    username?: string,
-    slug?: string
-  ): Promise<{
+  getResolvedRelationshipView(elementId: string): {
     outgoing: ResolvedRelationship[];
     incoming: ResolvedRelationship[];
-  }> {
-    const view = await this.getRelationshipView(elementId, username, slug);
+  } {
+    const view = this.getRelationshipView(elementId);
 
     const outgoing = view.outgoing
       .map(r => this.resolveRelationship(r, false))
@@ -485,7 +377,8 @@ export class RelationshipService {
       isBuiltIn: false,
     };
 
-    this.customTypesSignal.update(types => [...types, newType]);
+    const types = [...this.syncProvider.getCustomRelationshipTypes(), newType];
+    this.syncProvider.updateCustomRelationshipTypes(types);
 
     this.logger.debug(
       'RelationshipService',
@@ -502,20 +395,29 @@ export class RelationshipService {
     typeId: string,
     updates: Partial<Omit<RelationshipType, 'id' | 'isBuiltIn'>>
   ): boolean {
-    const types = this.customTypesSignal();
+    const types = this.syncProvider.getCustomRelationshipTypes();
     const index = types.findIndex(t => t.id === typeId);
 
-    if (index === -1 || types[index].isBuiltIn) {
+    if (index === -1) {
       this.logger.warn(
         'RelationshipService',
-        `Cannot update type ${typeId}: not found or is built-in`
+        `Cannot update type ${typeId}: not found`
       );
       return false;
     }
 
-    this.customTypesSignal.update(types =>
-      types.map((t, i) => (i === index ? { ...t, ...updates } : t))
+    if (types[index].isBuiltIn) {
+      this.logger.warn(
+        'RelationshipService',
+        `Cannot update built-in type ${typeId}`
+      );
+      return false;
+    }
+
+    const newTypes = types.map((t, i) =>
+      i === index ? { ...t, ...updates } : t
     );
+    this.syncProvider.updateCustomRelationshipTypes(newTypes);
 
     return true;
   }
@@ -524,28 +426,29 @@ export class RelationshipService {
    * Remove a custom relationship type
    */
   removeCustomType(typeId: string): boolean {
-    const types = this.customTypesSignal();
+    const types = this.syncProvider.getCustomRelationshipTypes();
     const type = types.find(t => t.id === typeId);
 
-    if (!type || type.isBuiltIn) {
+    if (!type) {
       this.logger.warn(
         'RelationshipService',
-        `Cannot remove type ${typeId}: not found or is built-in`
+        `Cannot remove type ${typeId}: not found`
       );
       return false;
     }
 
-    this.customTypesSignal.update(types => types.filter(t => t.id !== typeId));
+    if (type.isBuiltIn) {
+      this.logger.warn(
+        'RelationshipService',
+        `Cannot remove built-in type ${typeId}`
+      );
+      return false;
+    }
+
+    const newTypes = types.filter(t => t.id !== typeId);
+    this.syncProvider.updateCustomRelationshipTypes(newTypes);
 
     return true;
-  }
-
-  /**
-   * Load custom types from project storage
-   * Called when a project is loaded
-   */
-  loadCustomTypes(types: RelationshipType[]): void {
-    this.customTypesSignal.set(types.filter(t => !t.isBuiltIn));
   }
 
   /**
@@ -569,28 +472,63 @@ export class RelationshipService {
   /**
    * Check if an element has any relationships (outgoing or incoming)
    */
-  async hasRelationships(
-    elementId: string,
-    username?: string,
-    slug?: string
-  ): Promise<boolean> {
-    const view = await this.getRelationshipView(elementId, username, slug);
+  hasRelationships(elementId: string): boolean {
+    const view = this.getRelationshipView(elementId);
     return view.outgoing.length > 0 || view.incoming.length > 0;
   }
 
   /**
    * Get count of relationships for an element
    */
-  async getRelationshipCount(
-    elementId: string,
-    username?: string,
-    slug?: string
-  ): Promise<{ outgoing: number; incoming: number; total: number }> {
-    const view = await this.getRelationshipView(elementId, username, slug);
+  getRelationshipCount(elementId: string): {
+    outgoing: number;
+    incoming: number;
+    total: number;
+  } {
+    const view = this.getRelationshipView(elementId);
     return {
       outgoing: view.outgoing.length,
       incoming: view.incoming.length,
       total: view.outgoing.length + view.incoming.length,
     };
+  }
+
+  /**
+   * Remove all relationships involving an element
+   * Called when an element is deleted
+   */
+  removeAllRelationshipsForElement(elementId: string): number {
+    const relationships = this.syncProvider.getRelationships();
+    const toRemove = relationships.filter(
+      r => r.sourceElementId === elementId || r.targetElementId === elementId
+    );
+
+    if (toRemove.length === 0) return 0;
+
+    const newRelationships = relationships.filter(
+      r => !toRemove.some(tr => tr.id === r.id)
+    );
+    this.syncProvider.updateRelationships(newRelationships);
+
+    this.logger.debug(
+      'RelationshipService',
+      `Removed ${toRemove.length} relationships for element ${elementId}`
+    );
+
+    return toRemove.length;
+  }
+
+  /**
+   * Observable stream of all relationships
+   */
+  get relationships$() {
+    return this.syncProvider.relationships$;
+  }
+
+  /**
+   * Observable stream of custom relationship types
+   */
+  get customRelationshipTypes$() {
+    return this.syncProvider.customRelationshipTypes$;
   }
 }

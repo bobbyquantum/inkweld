@@ -21,7 +21,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'User Guide',
-      items: ['user-guide/projects'],
+      items: ['user-guide/projects', 'user-guide/element-references'],
     },
     {
       type: 'category',

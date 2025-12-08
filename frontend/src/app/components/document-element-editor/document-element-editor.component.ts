@@ -23,6 +23,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { RelationshipService } from '@services/relationship';
 import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
 
 import {
@@ -41,7 +42,7 @@ import {
 } from '../element-ref';
 import { LintFloatingMenuComponent } from '../lint/lint-floating-menu.component';
 import { pluginKey as lintPluginKey } from '../lint/lint-plugin';
-import { SnapshotPanelComponent } from '../snapshot-panel/snapshot-panel.component';
+import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
 
 @Component({
   selector: 'app-document-element-editor',
@@ -55,7 +56,7 @@ import { SnapshotPanelComponent } from '../snapshot-panel/snapshot-panel.compone
     MatOptionModule,
     DragDropModule,
     LintFloatingMenuComponent,
-    SnapshotPanelComponent,
+    MetaPanelComponent,
     ElementRefPopupComponent,
     ElementRefContextMenuComponent,
     ElementRefTooltipComponent,
@@ -72,6 +73,7 @@ export class DocumentElementEditorComponent
   private documentService = inject(DocumentService);
   private projectState = inject(ProjectStateService);
   private settingsService = inject(SettingsService);
+  private relationshipService = inject(RelationshipService);
   protected elementRefService = inject(ElementRefService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
@@ -87,8 +89,8 @@ export class DocumentElementEditorComponent
   @Input() zenMode = false;
   @Input() tabsDisabled = false;
 
-  /** Whether to show the snapshot panel */
-  showSnapshotPanel = signal(false);
+  /** Whether to show the meta panel (relationships + snapshots) */
+  showMetaPanel = signal(false);
 
   /** Context menu data for element references */
   contextMenuData = signal<ElementRefContextData | null>(null);
@@ -525,6 +527,20 @@ export class DocumentElementEditorComponent
 
     insertElementRef(this.editor.view, attrs);
     this.elementRefService.closePopup();
+
+    // Create a relationship in the centralized store
+    // The source is the current document, the target is the referenced element
+    this.relationshipService.addRelationship(
+      this.documentId,
+      result.element.id,
+      'referenced-in',
+      {
+        displayText: result.element.name,
+        documentContext: {
+          documentId: this.documentId,
+        },
+      }
+    );
   }
 
   /**
@@ -565,6 +581,12 @@ export class DocumentElementEditorComponent
         if (this.editor?.view) {
           deleteElementRef(this.editor.view, action.nodePos);
         }
+        // Remove the relationship from the centralized store
+        // Only remove if there are no other refs to this element in this document
+        this.relationshipService.removeRelationshipsFromDocument(
+          this.documentId,
+          action.elementId
+        );
         this.contextMenuData.set(null);
         break;
       }

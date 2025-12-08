@@ -52,7 +52,7 @@ export interface ElementRefContextData {
 export type ElementRefAction =
   | { type: 'navigate'; elementId: string; elementType: ElementType }
   | { type: 'edit-text'; nodePos: number; newText: string }
-  | { type: 'delete'; nodePos: number }
+  | { type: 'delete'; nodePos: number; elementId: string }
   | { type: 'close' };
 
 @Component({
@@ -433,6 +433,7 @@ export class ElementRefContextMenuComponent {
       this.action.emit({
         type: 'delete',
         nodePos: data.nodePos,
+        elementId: data.elementId,
       });
     }
     this.close();

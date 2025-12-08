@@ -5,13 +5,70 @@
  * - Full e2e flow: typing @, searching, selecting, final result
  * - Tooltip on hover
  * - Both light and dark mode variants
+ *
+ * Screenshots are cropped to show only the relevant UI elements with padding
+ * for cleaner documentation images.
  */
 
+import { Locator, Page } from '@playwright/test';
 import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
 
 import { expect, test } from './fixtures';
+
+/**
+ * Helper to capture a cropped screenshot around specific elements with padding
+ * @param page - Playwright page
+ * @param elements - Array of locators to include in the screenshot
+ * @param path - Output path for the screenshot
+ * @param padding - Padding around the combined bounding box (default 24px)
+ */
+async function captureElementScreenshot(
+  page: Page,
+  elements: Locator[],
+  path: string,
+  padding = 24
+): Promise<void> {
+  // Get bounding boxes for all visible elements
+  const boxes: { x: number; y: number; width: number; height: number }[] = [];
+
+  for (const element of elements) {
+    if (await element.isVisible().catch(() => false)) {
+      const box = await element.boundingBox();
+      if (box) {
+        boxes.push(box);
+      }
+    }
+  }
+
+  if (boxes.length === 0) {
+    // Fallback to full page screenshot if no elements found
+    await page.screenshot({ path, fullPage: false });
+    return;
+  }
+
+  // Calculate combined bounding box
+  const minX = Math.max(0, Math.min(...boxes.map(b => b.x)) - padding);
+  const minY = Math.max(0, Math.min(...boxes.map(b => b.y)) - padding);
+  const maxX = Math.max(...boxes.map(b => b.x + b.width)) + padding;
+  const maxY = Math.max(...boxes.map(b => b.y + b.height)) + padding;
+
+  // Get viewport size to clamp values
+  const viewport = page.viewportSize();
+  const clipWidth = Math.min(maxX - minX, (viewport?.width || 1280) - minX);
+  const clipHeight = Math.min(maxY - minY, (viewport?.height || 800) - minY);
+
+  await page.screenshot({
+    path,
+    clip: {
+      x: minX,
+      y: minY,
+      width: clipWidth,
+      height: clipHeight,
+    },
+  });
+}
 
 test.describe('Element Reference Screenshots', () => {
   const screenshotsDir = join(
@@ -231,10 +288,13 @@ test.describe('Element Reference Screenshots', () => {
       await page.waitForTimeout(400);
 
       // Screenshot 1: Popup just opened (showing all elements)
-      await page.screenshot({
-        path: join(screenshotsDir, 'element-ref-01-popup-light.png'),
-        fullPage: false,
-      });
+      // Crop to show editor area with popup
+      await captureElementScreenshot(
+        page,
+        [editor, page.locator('[data-testid="element-ref-popup"]')],
+        join(screenshotsDir, 'element-ref-01-popup-light.png'),
+        32
+      );
       console.log('✓ Captured popup opening (light mode)');
 
       // Step 3: Type search query
@@ -242,10 +302,12 @@ test.describe('Element Reference Screenshots', () => {
       await page.waitForTimeout(300);
 
       // Screenshot 2: Search in progress
-      await page.screenshot({
-        path: join(screenshotsDir, 'element-ref-02-search-light.png'),
-        fullPage: false,
-      });
+      await captureElementScreenshot(
+        page,
+        [editor, page.locator('[data-testid="element-ref-popup"]')],
+        join(screenshotsDir, 'element-ref-02-search-light.png'),
+        32
+      );
       console.log('✓ Captured search in progress (light mode)');
 
       // Step 4: Select the first result
@@ -265,10 +327,12 @@ test.describe('Element Reference Screenshots', () => {
       await page.waitForTimeout(300);
 
       // Screenshot 3: Link in document
-      await page.screenshot({
-        path: join(screenshotsDir, 'element-ref-03-link-light.png'),
-        fullPage: false,
-      });
+      await captureElementScreenshot(
+        page,
+        [editor],
+        join(screenshotsDir, 'element-ref-03-link-light.png'),
+        32
+      );
       console.log('✓ Captured link in document (light mode)');
 
       // Step 5: Hover over the link to show tooltip
@@ -279,10 +343,12 @@ test.describe('Element Reference Screenshots', () => {
         await page.waitForTimeout(800);
 
         // Screenshot 4: Tooltip visible
-        await page.screenshot({
-          path: join(screenshotsDir, 'element-ref-04-tooltip-light.png'),
-          fullPage: false,
-        });
+        await captureElementScreenshot(
+          page,
+          [elementRef, page.locator('.element-ref-tooltip')],
+          join(screenshotsDir, 'element-ref-04-tooltip-light.png'),
+          24
+        );
         console.log('✓ Captured tooltip on hover (light mode)');
       }
     });
@@ -386,10 +452,12 @@ test.describe('Element Reference Screenshots', () => {
       await page.waitForTimeout(400);
 
       // Screenshot: Searching for a character
-      await page.screenshot({
-        path: join(screenshotsDir, 'element-ref-character-search-light.png'),
-        fullPage: false,
-      });
+      await captureElementScreenshot(
+        page,
+        [editor, page.locator('[data-testid="element-ref-popup"]')],
+        join(screenshotsDir, 'element-ref-character-search-light.png'),
+        32
+      );
       console.log('✓ Captured character search (light mode)');
 
       // Select the character result
@@ -413,10 +481,12 @@ test.describe('Element Reference Screenshots', () => {
       await page.waitForTimeout(300);
 
       // Screenshot: Character reference in text
-      await page.screenshot({
-        path: join(screenshotsDir, 'element-ref-character-link-light.png'),
-        fullPage: false,
-      });
+      await captureElementScreenshot(
+        page,
+        [editor],
+        join(screenshotsDir, 'element-ref-character-link-light.png'),
+        32
+      );
       console.log('✓ Captured character link in text (light mode)');
 
       // Hover over the character reference to show tooltip
@@ -426,10 +496,12 @@ test.describe('Element Reference Screenshots', () => {
         await page.waitForTimeout(800);
 
         // Screenshot: Character tooltip with character icon
-        await page.screenshot({
-          path: join(screenshotsDir, 'element-ref-character-tooltip-light.png'),
-          fullPage: false,
-        });
+        await captureElementScreenshot(
+          page,
+          [characterRef, page.locator('.element-ref-tooltip')],
+          join(screenshotsDir, 'element-ref-character-tooltip-light.png'),
+          24
+        );
         console.log('✓ Captured character tooltip (light mode)');
       }
     });
@@ -472,10 +544,12 @@ test.describe('Element Reference Screenshots', () => {
       await page.waitForTimeout(400);
 
       // Screenshot 1: Popup just opened (dark mode)
-      await page.screenshot({
-        path: join(screenshotsDir, 'element-ref-01-popup-dark.png'),
-        fullPage: false,
-      });
+      await captureElementScreenshot(
+        page,
+        [editor, page.locator('[data-testid="element-ref-popup"]')],
+        join(screenshotsDir, 'element-ref-01-popup-dark.png'),
+        32
+      );
       console.log('✓ Captured popup opening (dark mode)');
 
       // Step 3: Type search query
@@ -483,10 +557,12 @@ test.describe('Element Reference Screenshots', () => {
       await page.waitForTimeout(300);
 
       // Screenshot 2: Search in progress (dark mode)
-      await page.screenshot({
-        path: join(screenshotsDir, 'element-ref-02-search-dark.png'),
-        fullPage: false,
-      });
+      await captureElementScreenshot(
+        page,
+        [editor, page.locator('[data-testid="element-ref-popup"]')],
+        join(screenshotsDir, 'element-ref-02-search-dark.png'),
+        32
+      );
       console.log('✓ Captured search in progress (dark mode)');
 
       // Step 4: Select the first result
@@ -505,10 +581,12 @@ test.describe('Element Reference Screenshots', () => {
       await page.waitForTimeout(300);
 
       // Screenshot 3: Link in document (dark mode)
-      await page.screenshot({
-        path: join(screenshotsDir, 'element-ref-03-link-dark.png'),
-        fullPage: false,
-      });
+      await captureElementScreenshot(
+        page,
+        [editor],
+        join(screenshotsDir, 'element-ref-03-link-dark.png'),
+        32
+      );
       console.log('✓ Captured link in document (dark mode)');
 
       // Step 5: Hover over the link to show tooltip
@@ -518,10 +596,12 @@ test.describe('Element Reference Screenshots', () => {
         await page.waitForTimeout(800);
 
         // Screenshot 4: Tooltip visible (dark mode)
-        await page.screenshot({
-          path: join(screenshotsDir, 'element-ref-04-tooltip-dark.png'),
-          fullPage: false,
-        });
+        await captureElementScreenshot(
+          page,
+          [elementRef, page.locator('.element-ref-tooltip')],
+          join(screenshotsDir, 'element-ref-04-tooltip-dark.png'),
+          24
+        );
         console.log('✓ Captured tooltip on hover (dark mode)');
       }
     });
@@ -631,10 +711,12 @@ test.describe('Element Reference Screenshots', () => {
       await page.waitForTimeout(400);
 
       // Screenshot: Searching for a character in dark mode
-      await page.screenshot({
-        path: join(screenshotsDir, 'element-ref-character-search-dark.png'),
-        fullPage: false,
-      });
+      await captureElementScreenshot(
+        page,
+        [editor, page.locator('[data-testid="element-ref-popup"]')],
+        join(screenshotsDir, 'element-ref-character-search-dark.png'),
+        32
+      );
       console.log('✓ Captured character search (dark mode)');
 
       // Select the character result
@@ -658,10 +740,12 @@ test.describe('Element Reference Screenshots', () => {
       await page.waitForTimeout(300);
 
       // Screenshot: Character reference in text (dark mode)
-      await page.screenshot({
-        path: join(screenshotsDir, 'element-ref-character-link-dark.png'),
-        fullPage: false,
-      });
+      await captureElementScreenshot(
+        page,
+        [editor],
+        join(screenshotsDir, 'element-ref-character-link-dark.png'),
+        32
+      );
       console.log('✓ Captured character link in text (dark mode)');
 
       // Hover over the character reference to show tooltip
@@ -671,10 +755,12 @@ test.describe('Element Reference Screenshots', () => {
         await page.waitForTimeout(800);
 
         // Screenshot: Character tooltip with character icon (dark mode)
-        await page.screenshot({
-          path: join(screenshotsDir, 'element-ref-character-tooltip-dark.png'),
-          fullPage: false,
-        });
+        await captureElementScreenshot(
+          page,
+          [characterRef, page.locator('.element-ref-tooltip')],
+          join(screenshotsDir, 'element-ref-character-tooltip-dark.png'),
+          24
+        );
         console.log('✓ Captured character tooltip (dark mode)');
       }
     });

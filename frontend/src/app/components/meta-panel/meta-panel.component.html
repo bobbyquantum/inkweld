@@ -1,0 +1,47 @@
+@if (isOpen()) {
+  <div class="meta-panel">
+    <div class="panel-content">
+      <mat-accordion class="meta-accordion" multi>
+        <!-- Relationships Section -->
+        <mat-expansion-panel
+          [expanded]="expandedSection() === 'relationships'"
+          (opened)="onSectionChange('relationships')"
+          (closed)="
+            expandedSection() === 'relationships' ? onSectionChange(null) : null
+          "
+          data-testid="relationships-section">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="section-icon">link</mat-icon>
+              Relationships
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <app-relationships-panel
+            [documentId]="documentId()"
+            [elementId]="elementId()">
+          </app-relationships-panel>
+        </mat-expansion-panel>
+
+        <!-- Snapshots Section -->
+        <mat-expansion-panel
+          [expanded]="expandedSection() === 'snapshots'"
+          (opened)="onSectionChange('snapshots')"
+          (closed)="
+            expandedSection() === 'snapshots' ? onSectionChange(null) : null
+          "
+          data-testid="snapshots-section">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="section-icon">history</mat-icon>
+              Snapshots
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <app-snapshot-panel
+            [documentId]="documentId()"
+            (closePanel)="onSectionChange(null)">
+          </app-snapshot-panel>
+        </mat-expansion-panel>
+      </mat-accordion>
+    </div>
+  </div>
+}
