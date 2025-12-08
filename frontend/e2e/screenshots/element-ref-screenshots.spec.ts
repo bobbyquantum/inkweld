@@ -1129,4 +1129,262 @@ test.describe('Element Reference Screenshots', () => {
       console.log('✓ Captured edit mode screenshot (light mode)');
     });
   });
+
+  test.describe('Backlinks/Inverse Relationships Screenshots', () => {
+    test('capture character backlinks from story references - light mode', async ({
+      offlinePage: page,
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+
+      const characterName = 'Elara Moonwhisper';
+      const projectSlug = 'backlinks-light-' + Date.now();
+      const editor = await setupProjectWithCharacter(
+        page,
+        projectSlug,
+        'The Silver Saga',
+        characterName
+      );
+
+      // Create a reference to the character in Chapter 1
+      await editor.pressSequentially('In the beginning, there was ', {
+        delay: 15,
+      });
+
+      // Trigger @ and search for the character
+      await page.keyboard.type('@');
+      await page
+        .waitForSelector('[data-testid="element-ref-popup"]', {
+          state: 'visible',
+          timeout: 3000,
+        })
+        .catch(() => {});
+
+      await page.keyboard.type('elara');
+      await page.waitForTimeout(400);
+
+      // Select the character result
+      const resultItem = page
+        .locator('[data-testid="element-ref-result-item"]')
+        .first();
+      if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await resultItem.click();
+      } else {
+        await page.keyboard.press('Enter');
+      }
+      await page.waitForTimeout(300);
+
+      await editor.pressSequentially(', the keeper of ancient secrets.', {
+        delay: 15,
+      });
+      await page.waitForTimeout(500);
+
+      // Now navigate to the character to see the backlink
+      // Click on the character in the project tree (using treeitem role selector)
+      const characterNode = page.getByRole('treeitem', {
+        name: characterName,
+      });
+      await characterNode.click();
+      await page.waitForTimeout(500);
+
+      // Wait for worldbuilding editor to load
+      await page
+        .waitForSelector('[data-testid="worldbuilding-editor"]', {
+          state: 'visible',
+          timeout: 5000,
+        })
+        .catch(() => {
+          console.log('Worldbuilding editor may not be visible');
+        });
+
+      // Open the meta panel to see relationships
+      const metaPanelToggle = page.locator('[data-testid="meta-panel-toggle"]');
+      if (
+        await metaPanelToggle.isVisible({ timeout: 2000 }).catch(() => false)
+      ) {
+        await metaPanelToggle.click();
+        await page.waitForTimeout(400);
+      }
+
+      // Expand the relationships section if needed
+      const relationshipsSection = page.locator(
+        '[data-testid="relationships-section"]'
+      );
+      if (
+        await relationshipsSection
+          .isVisible({ timeout: 2000 })
+          .catch(() => false)
+      ) {
+        await relationshipsSection.click();
+        await page.waitForTimeout(300);
+      }
+
+      // Wait for relationships to load
+      await page.waitForTimeout(500);
+
+      // Screenshot: Full page showing worldbuilding editor with backlinks panel
+      await page.screenshot({
+        path: join(screenshotsDir, 'element-ref-backlinks-character-light.png'),
+        fullPage: false,
+      });
+      console.log('✓ Captured character backlinks screenshot (light mode)');
+
+      // Capture a focused view of the worldbuilding editor container with meta panel
+      const worldbuildingContainer = page.locator(
+        '.worldbuilding-editor-container'
+      );
+      if (await worldbuildingContainer.isVisible().catch(() => false)) {
+        await captureElementScreenshot(
+          page,
+          [worldbuildingContainer],
+          join(screenshotsDir, 'element-ref-backlinks-worldbuilding-light.png'),
+          16
+        );
+        console.log(
+          '✓ Captured worldbuilding editor with backlinks (light mode)'
+        );
+      }
+
+      // Also capture a cropped version focusing on just the meta panel
+      const metaPanel = page.locator('app-meta-panel');
+      if (await metaPanel.isVisible().catch(() => false)) {
+        await captureElementScreenshot(
+          page,
+          [metaPanel],
+          join(screenshotsDir, 'element-ref-backlinks-panel-light.png'),
+          16
+        );
+        console.log('✓ Captured meta panel with backlinks (light mode)');
+      }
+    });
+
+    test('capture character backlinks from story references - dark mode', async ({
+      offlinePage: page,
+    }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+
+      const characterName = 'Kael Shadowmere';
+      const projectSlug = 'backlinks-dark-' + Date.now();
+      const editor = await setupProjectWithCharacter(
+        page,
+        projectSlug,
+        'Chronicles of Darkness',
+        characterName
+      );
+
+      // Enable dark mode
+      await enableDarkMode(page);
+      await page.waitForTimeout(300);
+
+      // Create a reference to the character in Chapter 1
+      await editor.pressSequentially('The darkness spoke through ', {
+        delay: 15,
+      });
+
+      // Trigger @ and search for the character
+      await page.keyboard.type('@');
+      await page
+        .waitForSelector('[data-testid="element-ref-popup"]', {
+          state: 'visible',
+          timeout: 3000,
+        })
+        .catch(() => {});
+
+      await page.keyboard.type('kael');
+      await page.waitForTimeout(400);
+
+      // Select the character result
+      const resultItem = page
+        .locator('[data-testid="element-ref-result-item"]')
+        .first();
+      if (await resultItem.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await resultItem.click();
+      } else {
+        await page.keyboard.press('Enter');
+      }
+      await page.waitForTimeout(300);
+
+      await editor.pressSequentially(', the harbinger of twilight.', {
+        delay: 15,
+      });
+      await page.waitForTimeout(500);
+
+      // Now navigate to the character to see the backlink
+      // Click on the character in the project tree (using treeitem role selector)
+      const characterNode = page.getByRole('treeitem', {
+        name: characterName,
+      });
+      await characterNode.click();
+      await page.waitForTimeout(500);
+
+      // Wait for worldbuilding editor to load
+      await page
+        .waitForSelector('[data-testid="worldbuilding-editor"]', {
+          state: 'visible',
+          timeout: 5000,
+        })
+        .catch(() => {
+          console.log('Worldbuilding editor may not be visible');
+        });
+
+      // Open the meta panel to see relationships
+      const metaPanelToggle = page.locator('[data-testid="meta-panel-toggle"]');
+      if (
+        await metaPanelToggle.isVisible({ timeout: 2000 }).catch(() => false)
+      ) {
+        await metaPanelToggle.click();
+        await page.waitForTimeout(400);
+      }
+
+      // Expand the relationships section if needed
+      const relationshipsSection = page.locator(
+        '[data-testid="relationships-section"]'
+      );
+      if (
+        await relationshipsSection
+          .isVisible({ timeout: 2000 })
+          .catch(() => false)
+      ) {
+        await relationshipsSection.click();
+        await page.waitForTimeout(300);
+      }
+
+      // Wait for relationships to load
+      await page.waitForTimeout(500);
+
+      // Screenshot: Full page showing worldbuilding editor with backlinks panel (dark mode)
+      await page.screenshot({
+        path: join(screenshotsDir, 'element-ref-backlinks-character-dark.png'),
+        fullPage: false,
+      });
+      console.log('✓ Captured character backlinks screenshot (dark mode)');
+
+      // Capture a focused view of the worldbuilding editor container with meta panel
+      const worldbuildingContainer = page.locator(
+        '.worldbuilding-editor-container'
+      );
+      if (await worldbuildingContainer.isVisible().catch(() => false)) {
+        await captureElementScreenshot(
+          page,
+          [worldbuildingContainer],
+          join(screenshotsDir, 'element-ref-backlinks-worldbuilding-dark.png'),
+          16
+        );
+        console.log(
+          '✓ Captured worldbuilding editor with backlinks (dark mode)'
+        );
+      }
+
+      // Also capture a cropped version focusing on just the meta panel
+      const metaPanel = page.locator('app-meta-panel');
+      if (await metaPanel.isVisible().catch(() => false)) {
+        await captureElementScreenshot(
+          page,
+          [metaPanel],
+          join(screenshotsDir, 'element-ref-backlinks-panel-dark.png'),
+          16
+        );
+        console.log('✓ Captured meta panel with backlinks (dark mode)');
+      }
+    });
+  });
 });

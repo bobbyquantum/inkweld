@@ -31,7 +31,7 @@
     <mat-nav-list class="relationships-list">
       <!-- Outgoing Relationships -->
       @if (outgoingCount() > 0) {
-        <div mat-subheader>References ({{ outgoingCount() }})</div>
+        <div mat-subheader>Outgoing ({{ outgoingCount() }})</div>
         @for (rel of outgoingRelationships(); track rel.id) {
           <a
             mat-list-item
@@ -59,9 +59,9 @@
         <mat-divider></mat-divider>
       }
 
-      <!-- Incoming Relationships (Backlinks) -->
+      <!-- Incoming Relationships (Referenced by other elements) -->
       @if (incomingCount() > 0) {
-        <div mat-subheader>Backlinks ({{ incomingCount() }})</div>
+        <div mat-subheader>References ({{ incomingCount() }})</div>
         @for (rel of incomingRelationships(); track rel.id) {
           <a
             mat-list-item
@@ -76,9 +76,6 @@
             }}</mat-icon>
             <span matListItemTitle>{{
               getElementName(rel.sourceElementId)
-            }}</span>
-            <span matListItemLine>{{
-              getRelationshipTypeName(rel.relationshipTypeId)
             }}</span>
             <div matListItemMeta>
               <mat-icon>chevron_right</mat-icon>

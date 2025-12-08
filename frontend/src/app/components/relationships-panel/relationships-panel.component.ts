@@ -84,10 +84,25 @@ export class RelationshipsPanelComponent {
   });
 
   /**
-   * Get element by ID
+   * Extract the element ID from a documentId or elementId
+   * DocumentIds are formatted as "username:slug:elementId"
+   */
+  private extractElementId(id: string): string {
+    const parts = id.split(':');
+    // If it has 3 parts, it's a documentId - return the last part (element ID)
+    if (parts.length === 3) {
+      return parts[2];
+    }
+    // Otherwise assume it's already just the element ID
+    return id;
+  }
+
+  /**
+   * Get element by ID (handles both documentId format and plain element ID)
    */
   getElement(elementId: string): Element | undefined {
-    return this.elements().find((e: Element) => e.id === elementId);
+    const actualElementId = this.extractElementId(elementId);
+    return this.elements().find((e: Element) => e.id === actualElementId);
   }
 
   /**

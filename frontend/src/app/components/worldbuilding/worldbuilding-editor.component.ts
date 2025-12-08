@@ -22,6 +22,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime } from 'rxjs';
 
 import { Element as ApiElement, ElementType } from '../../../api-client';
@@ -33,6 +34,7 @@ import {
 } from '../../models/schema-types';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
+import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
 
 /**
  * Main worldbuilding editor component that renders the dynamic
@@ -52,6 +54,8 @@ import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding
     MatIconModule,
     MatExpansionModule,
     MatTabsModule,
+    MatTooltipModule,
+    MetaPanelComponent,
   ],
   templateUrl: './worldbuilding-editor.component.html',
   styleUrls: ['./worldbuilding-editor.component.scss'],
@@ -70,6 +74,9 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);
   form = new FormGroup({});
+
+  /** Whether to show the meta panel (relationships + snapshots) */
+  showMetaPanel = signal(false);
 
   private unsubscribeObserver: (() => void) | null = null;
   private formSubscription: (() => void) | null = null;
