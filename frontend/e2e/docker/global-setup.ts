@@ -136,7 +136,10 @@ export default async function globalSetup(): Promise<void> {
       throw new Error(`Container not running: ${cleanStatus}`);
     }
   } catch (error) {
-    if (error instanceof Error && error.message.includes('Container not running')) {
+    if (
+      error instanceof Error &&
+      error.message.includes('Container not running')
+    ) {
       throw error;
     }
     console.error('   Could not check container status:', error);
@@ -145,27 +148,42 @@ export default async function globalSetup(): Promise<void> {
   // Wait for health check
   console.log('\n⏳ Waiting for container to be healthy...');
   const startTime = Date.now();
+  let lastLogTime = -10; // Start at -10 so first log happens immediately
 
   while (Date.now() - startTime < HEALTH_CHECK_TIMEOUT) {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const shouldLog = elapsed - lastLogTime >= 10;
+
     try {
-      const response = await fetch(HEALTH_CHECK_URL);
+      // Add timeout to fetch to prevent hanging
+      const controller = new AbortController();
+      const fetchTimeout = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(HEALTH_CHECK_URL, {
+        signal: controller.signal,
+      });
+      clearTimeout(fetchTimeout);
+
       if (response.ok) {
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         console.log(`\n✅ Container is healthy! (${elapsed}s)\n`);
         console.log(`   Frontend + API: http://localhost:${DOCKER_PORT}`);
         console.log(`   Health check:   ${HEALTH_CHECK_URL}\n`);
         return;
-      } else {
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-        if (parseInt(elapsed) % 10 === 0) {
-          console.log(`\n   Health check failed with status: ${response.status}`);
-        }
+      } else if (shouldLog) {
+        console.log(
+          `   [${elapsed}s] Health check returned status: ${response.status}`
+        );
+        lastLogTime = elapsed;
       }
     } catch (fetchError) {
-      // Container not ready yet - show error periodically
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-      if (parseInt(elapsed) % 10 === 0 && parseInt(elapsed) > 0) {
-        console.log(`\n   Health check failed: ${fetchError instanceof Error ? fetchError.message : 'Connection refused'}`);
+      // Container not ready yet - log periodically (every 10s)
+      if (shouldLog) {
+        const errorMsg =
+          fetchError instanceof Error
+            ? fetchError.message
+            : 'Connection refused';
+        console.log(`   [${elapsed}s] Waiting... (${errorMsg})`);
+        lastLogTime = elapsed;
       }
     }
 
@@ -197,18 +215,16 @@ export default async function globalSetup(): Promise<void> {
       // Ignore inspect errors
     }
 
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-    process.stdout.write(`\r   Waiting... ${elapsed}s`);
-
     // Every 30 seconds, show the latest logs to help debug
-    if (parseInt(elapsed) > 0 && parseInt(elapsed) % 30 === 0) {
+    if (elapsed > 0 && elapsed % 30 === 0 && elapsed !== lastLogTime) {
       try {
         const recentLogs = execSync(`docker logs --tail 20 ${CONTAINER_NAME}`, {
           encoding: 'utf-8',
         });
-        console.log(`\n\n📋 Container logs at ${elapsed}s:`);
-        console.log(recentLogs);
-        console.log(`\n⏳ Still waiting for health check...`);
+        console.log(`\n📋 Container logs at ${elapsed}s:`);
+        console.log(recentLogs || '(no logs)');
+        console.log(`⏳ Still waiting for health check...`);
+        lastLogTime = elapsed;
       } catch {
         // Ignore log errors
       }

@@ -113,17 +113,20 @@ export const test = base.extend<OnlineTestFixtures>({
     const apiUrl = getApiBaseUrl();
 
     // Set up app configuration with auth token in one addInitScript
-    await page.addInitScript(({ authToken, serverUrl }: { authToken: string; serverUrl: string }) => {
-      localStorage.setItem(
-        'inkweld-app-config',
-        JSON.stringify({
-          mode: 'server',
-          serverUrl,
-        })
-      );
+    await page.addInitScript(
+      ({ authToken, serverUrl }: { authToken: string; serverUrl: string }) => {
+        localStorage.setItem(
+          'inkweld-app-config',
+          JSON.stringify({
+            mode: 'server',
+            serverUrl,
+          })
+        );
 
-      localStorage.setItem('auth_token', authToken);
-    }, { authToken: token, serverUrl: apiUrl });
+        localStorage.setItem('auth_token', authToken);
+      },
+      { authToken: token, serverUrl: apiUrl }
+    );
 
     // Navigate to the app with both config and token already set
     await page.goto('/');
@@ -169,17 +172,20 @@ export const test = base.extend<OnlineTestFixtures>({
     const apiUrl = getApiBaseUrl();
 
     // Set up app configuration with auth token
-    await page.addInitScript(({ authToken, serverUrl }: { authToken: string; serverUrl: string }) => {
-      localStorage.setItem(
-        'inkweld-app-config',
-        JSON.stringify({
-          mode: 'server',
-          serverUrl,
-        })
-      );
+    await page.addInitScript(
+      ({ authToken, serverUrl }: { authToken: string; serverUrl: string }) => {
+        localStorage.setItem(
+          'inkweld-app-config',
+          JSON.stringify({
+            mode: 'server',
+            serverUrl,
+          })
+        );
 
-      localStorage.setItem('auth_token', authToken);
-    }, { authToken: token, serverUrl: apiUrl });
+        localStorage.setItem('auth_token', authToken);
+      },
+      { authToken: token, serverUrl: apiUrl }
+    );
 
     // Navigate to the app with config and token already set
     await page.goto('/');
