@@ -2,16 +2,71 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Element } from '@inkweld/index';
+import { BehaviorSubject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  ElementRelationship,
+  RelationshipType,
+} from '../../components/element-ref/element-ref.model';
+import { DocumentSyncState } from '../../models/document-sync-state';
+import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
 import { SetupService } from '../core/setup.service';
+import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
+import { IElementSyncProvider } from '../sync/element-sync-provider.interface';
 import { DefaultTemplatesService } from './default-templates.service';
 import { WorldbuildingService } from './worldbuilding.service';
+
+/**
+ * Creates a mock IElementSyncProvider for schema tests.
+ */
+function createMockSyncProvider(): IElementSyncProvider & {
+  _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
+} {
+  const elementsSubject = new BehaviorSubject<Element[]>([]);
+  const publishPlansSubject = new BehaviorSubject<PublishPlan[]>([]);
+  const relationshipsSubject = new BehaviorSubject<ElementRelationship[]>([]);
+  const customTypesSubject = new BehaviorSubject<RelationshipType[]>([]);
+  const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
+  const syncStateSubject = new BehaviorSubject<DocumentSyncState>(
+    DocumentSyncState.Synced
+  );
+
+  return {
+    _schemasSubject: schemasSubject,
+
+    connect: vi.fn().mockResolvedValue({ success: true }),
+    disconnect: vi.fn(),
+    isConnected: vi.fn().mockReturnValue(true),
+    getSyncState: vi.fn(() => syncStateSubject.getValue()),
+    getElements: vi.fn(() => elementsSubject.getValue()),
+    getPublishPlans: vi.fn(() => publishPlansSubject.getValue()),
+    getRelationships: vi.fn(() => relationshipsSubject.getValue()),
+    getCustomRelationshipTypes: vi.fn(() => customTypesSubject.getValue()),
+    getSchemas: vi.fn(() => schemasSubject.getValue()),
+    updateElements: vi.fn(),
+    updatePublishPlans: vi.fn(),
+    updateRelationships: vi.fn(),
+    updateCustomRelationshipTypes: vi.fn(),
+    updateSchemas: vi.fn((schemas: ElementTypeSchema[]) => {
+      schemasSubject.next(schemas);
+    }),
+
+    syncState$: syncStateSubject.asObservable(),
+    elements$: elementsSubject.asObservable(),
+    publishPlans$: publishPlansSubject.asObservable(),
+    relationships$: relationshipsSubject.asObservable(),
+    customRelationshipTypes$: customTypesSubject.asObservable(),
+    schemas$: schemasSubject.asObservable(),
+    errors$: new BehaviorSubject<string>('').asObservable(),
+  };
+}
 
 describe('WorldbuildingService', () => {
   let service: WorldbuildingService;
   let setupService: Partial<SetupService>;
+  let mockSyncProvider: ReturnType<typeof createMockSyncProvider>;
 
   const mockCharacterSchema: ElementTypeSchema = {
     id: 'character',
@@ -54,6 +109,13 @@ describe('WorldbuildingService', () => {
       getWebSocketUrl: vi.fn().mockReturnValue('ws://localhost:8333'),
     };
 
+    mockSyncProvider = createMockSyncProvider();
+
+    const mockSyncProviderFactory = {
+      getProvider: vi.fn().mockReturnValue(mockSyncProvider),
+      getCurrentMode: vi.fn().mockReturnValue('offline'),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -61,10 +123,16 @@ describe('WorldbuildingService', () => {
         WorldbuildingService,
         DefaultTemplatesService,
         { provide: SetupService, useValue: setupService },
+        {
+          provide: ElementSyncProviderFactory,
+          useValue: mockSyncProviderFactory,
+        },
       ],
     });
 
     service = TestBed.inject(WorldbuildingService);
+    // Set the mock sync provider for schema operations
+    service.setSyncProvider(mockSyncProvider);
   });
 
   it('should be created', () => {

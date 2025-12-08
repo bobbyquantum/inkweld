@@ -9,6 +9,7 @@ import {
   RelationshipType,
 } from '../../components/element-ref/element-ref.model';
 import { PublishPlan } from '../../models/publish-plan';
+import { ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 
 const OFFLINE_ELEMENTS_STORAGE_KEY = 'inkweld-offline-elements';
@@ -20,7 +21,7 @@ interface StoredProjectElements {
 /**
  * Connection to a single Yjs document for a project.
  *
- * All project metadata (elements, publish plans, relationships, custom types)
+ * All project metadata (elements, publish plans, relationships, custom types, schemas)
  * is stored in the SAME Yjs document, matching the online YjsElementSyncProvider.
  */
 interface YjsProjectConnection {
@@ -30,6 +31,7 @@ interface YjsProjectConnection {
   publishPlansArray: Y.Array<PublishPlan>;
   relationshipsArray: Y.Array<ElementRelationship>;
   customTypesArray: Y.Array<RelationshipType>;
+  schemasArray: Y.Array<ElementTypeSchema>;
 }
 
 /**
@@ -40,6 +42,7 @@ interface YjsProjectConnection {
  * - Publish plans
  * - Element relationships
  * - Custom relationship types
+ * - Worldbuilding schemas
  *
  * All data is stored in a SINGLE Yjs document per project, matching the structure
  * used by YjsElementSyncProvider for online mode. This ensures seamless transition
@@ -51,6 +54,7 @@ interface YjsProjectConnection {
  * - 'publishPlans' - publishing configuration
  * - 'relationships' - element references
  * - 'customRelationshipTypes' - user-defined relationship types
+ * - 'schemas' - worldbuilding template schemas
  */
 @Injectable({
   providedIn: 'root',
@@ -62,6 +66,7 @@ export class OfflineProjectElementsService {
   readonly publishPlans = signal<PublishPlan[]>([]);
   readonly relationships = signal<ElementRelationship[]>([]);
   readonly customRelationshipTypes = signal<RelationshipType[]>([]);
+  readonly schemas = signal<ElementTypeSchema[]>([]);
   readonly isLoading = signal(false);
 
   // Yjs connections per project (username:slug -> connection)
@@ -81,12 +86,14 @@ export class OfflineProjectElementsService {
       this.publishPlans.set(connection.publishPlansArray.toArray());
       this.relationships.set(connection.relationshipsArray.toArray());
       this.customRelationshipTypes.set(connection.customTypesArray.toArray());
+      this.schemas.set(connection.schemasArray.toArray());
 
       this.logger.debug(
         'OfflineProjectElements',
         `Loaded ${connection.elementsArray.length} elements, ` +
           `${connection.publishPlansArray.length} publish plans, ` +
-          `${connection.relationshipsArray.length} relationships ` +
+          `${connection.relationshipsArray.length} relationships, ` +
+          `${connection.schemasArray.length} schemas ` +
           `for ${username}/${slug}`
       );
     } catch (error) {
@@ -100,6 +107,7 @@ export class OfflineProjectElementsService {
       this.publishPlans.set([]);
       this.relationships.set([]);
       this.customRelationshipTypes.set([]);
+      this.schemas.set([]);
     } finally {
       this.isLoading.set(false);
     }
@@ -251,6 +259,41 @@ export class OfflineProjectElementsService {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Worldbuilding Schemas
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Save schemas for a specific project using Yjs
+   */
+  async saveSchemas(
+    username: string,
+    slug: string,
+    schemas: ElementTypeSchema[]
+  ): Promise<void> {
+    try {
+      const connection = await this.getOrCreateConnection(username, slug);
+
+      connection.doc.transact(() => {
+        connection.schemasArray.delete(0, connection.schemasArray.length);
+        connection.schemasArray.insert(0, schemas);
+      });
+
+      this.schemas.set(schemas);
+      this.logger.debug(
+        'OfflineProjectElements',
+        `Saved ${schemas.length} schemas for ${username}/${slug}`
+      );
+    } catch (error) {
+      this.logger.error(
+        'OfflineProjectElements',
+        'Failed to save schemas',
+        error
+      );
+      throw error;
+    }
+  }
+
   /**
    * Get or create a Yjs connection for a project.
    * Creates a single Yjs document with all project metadata arrays.
@@ -283,6 +326,7 @@ export class OfflineProjectElementsService {
     const customTypesArray = doc.getArray<RelationshipType>(
       'customRelationshipTypes'
     );
+    const schemasArray = doc.getArray<ElementTypeSchema>('schemas');
 
     // Set up observers for all arrays
     elementsArray.observe(() => {
@@ -301,6 +345,10 @@ export class OfflineProjectElementsService {
       this.customRelationshipTypes.set(customTypesArray.toArray());
     });
 
+    schemasArray.observe(() => {
+      this.schemas.set(schemasArray.toArray());
+    });
+
     // Check if we need to migrate from localStorage (elements only)
     if (elementsArray.length === 0) {
       this.migrateFromLocalStorage(projectKey, elementsArray, doc);
@@ -313,6 +361,7 @@ export class OfflineProjectElementsService {
       publishPlansArray,
       relationshipsArray,
       customTypesArray,
+      schemasArray,
     };
     this.yjsConnections.set(projectKey, connection);
 

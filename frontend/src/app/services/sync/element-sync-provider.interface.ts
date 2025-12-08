@@ -7,6 +7,7 @@ import {
 } from '../../components/element-ref/element-ref.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
+import { ElementTypeSchema } from '../../models/schema-types';
 
 /**
  * Configuration for connecting to a sync provider
@@ -170,6 +171,30 @@ export interface IElementSyncProvider {
    * @param types The new custom relationship types array
    */
   updateCustomRelationshipTypes(types: RelationshipType[]): void;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Worldbuilding Schemas (project template library)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get the current worldbuilding schemas array.
+   * Returns an empty array if not connected.
+   */
+  getSchemas(): ElementTypeSchema[];
+
+  /**
+   * Observable stream of schema changes.
+   * Emits whenever schemas are added, removed, or modified.
+   */
+  schemas$: Observable<ElementTypeSchema[]>;
+
+  /**
+   * Update the entire schemas array.
+   * The provider handles merging/conflict resolution.
+   *
+   * @param schemas The new schemas array
+   */
+  updateSchemas(schemas: ElementTypeSchema[]): void;
 }
 
 /**

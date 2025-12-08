@@ -51,25 +51,25 @@ The popup shows your most recent/relevant elements by default. Start typing to f
 
 ### Keyboard Navigation
 
-| Key | Action |
-|-----|--------|
-| `↑` `↓` | Navigate through results |
-| `Enter` | Select highlighted result |
+| Key      | Action                        |
+| -------- | ----------------------------- |
+| `↑` `↓`  | Navigate through results      |
+| `Enter`  | Select highlighted result     |
 | `Escape` | Close popup without selecting |
-| `Tab` | Select and continue typing |
+| `Tab`    | Select and continue typing    |
 
 ### Element Types
 
 The popup shows icons indicating element type:
 
-| Icon | Element Type |
-|------|--------------|
-| 📄 | Document |
-| 📁 | Folder |
-| 👤 | Character |
-| 📍 | Location |
-| 📦 | Item |
-| ✨ | Worldbuilding entry |
+| Icon | Element Type        |
+| ---- | ------------------- |
+| 📄   | Document            |
+| 📁   | Folder              |
+| 👤   | Character           |
+| 📍   | Location            |
+| 📦   | Item                |
+| ✨   | Worldbuilding entry |
 
 ## Editing References
 
@@ -121,6 +121,7 @@ Before writing a scene, create your characters and locations as worldbuilding en
 ### Use Consistent Names
 
 Keep element names consistent for easy searching:
+
 - ✅ `Elena Blackwood` (full name)
 - ✅ `The Silver Spoon Tavern` (with article if part of name)
 - ❌ `elena` or `Elena's tavern` (informal variants)
@@ -128,12 +129,14 @@ Keep element names consistent for easy searching:
 ### Custom Display Text
 
 Use display text to match your narrative voice:
+
 - Reference: `@Elena Blackwood`
 - Display: "the young sorceress" or "her mentor"
 
 ### Track Mentions Across Scenes
 
 Use backlinks to ensure consistency:
+
 1. Open a character's page
 2. Check the Relationships Panel
 3. Review all scenes where they appear

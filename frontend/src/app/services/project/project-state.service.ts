@@ -232,6 +232,9 @@ export class ProjectStateService implements OnDestroy {
       'ProjectState',
       `Connected to ${this.syncProviderFactory.getCurrentMode()} sync provider`
     );
+
+    // Update WorldbuildingService with the sync provider for schema access
+    this.worldbuildingService.setSyncProvider(this.syncProvider);
   }
 
   /**
@@ -289,6 +292,9 @@ export class ProjectStateService implements OnDestroy {
       currentProjectId: currentProject?.id,
       currentProjectSlug: currentProject?.slug,
     });
+
+    // Clear WorldbuildingService sync provider
+    this.worldbuildingService.setSyncProvider(null);
 
     // Disconnect sync provider
     this.cleanupProviderSubscriptions();
