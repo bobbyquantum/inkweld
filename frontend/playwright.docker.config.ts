@@ -54,8 +54,8 @@ export default defineConfig({
 
   /* Shared settings for all the projects below */
   use: {
-    /* Base URL - Docker container serves both frontend and backend on 8333 */
-    baseURL: 'http://localhost:8333',
+    /* Base URL - Docker container serves both frontend and backend on 9333 */
+    baseURL: 'http://localhost:9333',
 
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',

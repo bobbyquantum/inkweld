@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import * as path from 'path';
 
 const CONTAINER_NAME = 'inkweld-e2e-test';
-const DOCKER_PORT = 8333;
+const DOCKER_PORT = 9333;
 const HEALTH_CHECK_URL = `http://localhost:${DOCKER_PORT}/api/v1/health`;
 const HEALTH_CHECK_TIMEOUT = 180000; // 3 minutes for image build + startup
 const HEALTH_CHECK_INTERVAL = 2000;
@@ -106,22 +106,85 @@ export default async function globalSetup(): Promise<void> {
     throw error;
   }
 
+  // Show initial container logs to help debug startup issues
+  console.log('\n📋 Initial container logs:');
+  try {
+    const initialLogs = execSync(`docker logs ${CONTAINER_NAME}`, {
+      encoding: 'utf-8',
+    });
+    console.log(initialLogs || '   (No logs yet)');
+  } catch {
+    console.log('   (Could not retrieve initial logs)');
+  }
+
+  // Check container status immediately
+  console.log('\n🔍 Checking container status...');
+  try {
+    const status = execSync(
+      `docker inspect -f "{{.State.Status}}" ${CONTAINER_NAME}`,
+      { encoding: 'utf-8' }
+    ).trim();
+    const cleanStatus = status.replace(/['"]/g, '');
+    console.log(`   Container status: ${cleanStatus}`);
+
+    if (cleanStatus !== 'running') {
+      console.error(`\n❌ Container is not running (status: ${cleanStatus})`);
+      const logs = execSync(`docker logs ${CONTAINER_NAME}`, {
+        encoding: 'utf-8',
+      });
+      console.error('Container logs:\n', logs || '(empty)');
+      throw new Error(`Container not running: ${cleanStatus}`);
+    }
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.includes('Container not running')
+    ) {
+      throw error;
+    }
+    console.error('   Could not check container status:', error);
+  }
+
   // Wait for health check
   console.log('\n⏳ Waiting for container to be healthy...');
   const startTime = Date.now();
+  let lastLogTime = -10; // Start at -10 so first log happens immediately
 
   while (Date.now() - startTime < HEALTH_CHECK_TIMEOUT) {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const shouldLog = elapsed - lastLogTime >= 10;
+
     try {
-      const response = await fetch(HEALTH_CHECK_URL);
+      // Add timeout to fetch to prevent hanging
+      const controller = new AbortController();
+      const fetchTimeout = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(HEALTH_CHECK_URL, {
+        signal: controller.signal,
+      });
+      clearTimeout(fetchTimeout);
+
       if (response.ok) {
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         console.log(`\n✅ Container is healthy! (${elapsed}s)\n`);
         console.log(`   Frontend + API: http://localhost:${DOCKER_PORT}`);
         console.log(`   Health check:   ${HEALTH_CHECK_URL}\n`);
         return;
+      } else if (shouldLog) {
+        console.log(
+          `   [${elapsed}s] Health check returned status: ${response.status}`
+        );
+        lastLogTime = elapsed;
       }
-    } catch {
-      // Container not ready yet
+    } catch (fetchError) {
+      // Container not ready yet - log periodically (every 10s)
+      if (shouldLog) {
+        const errorMsg =
+          fetchError instanceof Error
+            ? fetchError.message
+            : 'Connection refused';
+        console.log(`   [${elapsed}s] Waiting... (${errorMsg})`);
+        lastLogTime = elapsed;
+      }
     }
 
     // Check if container is still running
@@ -131,7 +194,7 @@ export default async function globalSetup(): Promise<void> {
         { encoding: 'utf-8' }
       ).trim();
       // Status might have quotes on some platforms, strip them
-      const cleanStatus = status.replace(/['"]/, '');
+      const cleanStatus = status.replace(/['"]/g, '');
       if (cleanStatus !== 'running') {
         console.error(
           `\n❌ Container stopped unexpectedly (status: ${cleanStatus})`
@@ -152,8 +215,21 @@ export default async function globalSetup(): Promise<void> {
       // Ignore inspect errors
     }
 
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-    process.stdout.write(`\r   Waiting... ${elapsed}s`);
+    // Every 30 seconds, show the latest logs to help debug
+    if (elapsed > 0 && elapsed % 30 === 0 && elapsed !== lastLogTime) {
+      try {
+        const recentLogs = execSync(`docker logs --tail 20 ${CONTAINER_NAME}`, {
+          encoding: 'utf-8',
+        });
+        console.log(`\n📋 Container logs at ${elapsed}s:`);
+        console.log(recentLogs || '(no logs)');
+        console.log(`⏳ Still waiting for health check...`);
+        lastLogTime = elapsed;
+      } catch {
+        // Ignore log errors
+      }
+    }
+
     await new Promise(resolve => setTimeout(resolve, HEALTH_CHECK_INTERVAL));
   }
 
