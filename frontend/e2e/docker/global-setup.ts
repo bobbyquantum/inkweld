@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import * as path from 'path';
 
 const CONTAINER_NAME = 'inkweld-e2e-test';
-const DOCKER_PORT = 8333;
+const DOCKER_PORT = 9333;
 const HEALTH_CHECK_URL = `http://localhost:${DOCKER_PORT}/api/v1/health`;
 const HEALTH_CHECK_TIMEOUT = 180000; // 3 minutes for image build + startup
 const HEALTH_CHECK_INTERVAL = 2000;
