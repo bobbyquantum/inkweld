@@ -147,7 +147,7 @@ describe('TemplatesTabComponent', () => {
       };
 
       const mockSchemas = createMockSchemas([characterSchema]);
-      mockWorldbuildingService.getAllSchemas.mockResolvedValue(mockSchemas);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue(mockSchemas);
 
       await component.loadTemplates();
 
@@ -165,7 +165,7 @@ describe('TemplatesTabComponent', () => {
     it('should handle empty schemas', async () => {
       mockProjectState.project.set(mockProject);
 
-      mockWorldbuildingService.getAllSchemas.mockResolvedValue([]);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
 
       await component.loadTemplates();
 
@@ -181,9 +181,9 @@ describe('TemplatesTabComponent', () => {
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      mockWorldbuildingService.getAllSchemas.mockRejectedValue(
-        new Error('Load failed')
-      );
+      mockWorldbuildingService.getAllSchemas.mockImplementation(() => {
+        throw new Error('Load failed');
+      });
 
       await component.loadTemplates();
 
@@ -207,7 +207,7 @@ describe('TemplatesTabComponent', () => {
     it('should reload templates', async () => {
       mockProjectState.project.set(mockProject);
 
-      mockWorldbuildingService.getAllSchemas.mockResolvedValue([]);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
 
       component.refresh();
 
@@ -239,7 +239,7 @@ describe('TemplatesTabComponent', () => {
         mockDefaultTemplates
       );
 
-      mockWorldbuildingService.getAllSchemas.mockResolvedValue([]);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
 
       await component.loadDefaultTemplates();
 
@@ -305,9 +305,9 @@ describe('TemplatesTabComponent', () => {
       };
 
       mockDialogGateway.openRenameDialog.mockResolvedValue('New Character');
-      mockWorldbuildingService.cloneTemplate.mockResolvedValue(undefined);
+      mockWorldbuildingService.cloneTemplate.mockReturnValue(undefined);
 
-      mockWorldbuildingService.getAllSchemas.mockResolvedValue([]);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
 
       await component.cloneTemplate(template);
 
@@ -386,9 +386,9 @@ describe('TemplatesTabComponent', () => {
       };
 
       mockDialogGateway.openConfirmationDialog.mockResolvedValue(true);
-      mockWorldbuildingService.deleteTemplate.mockResolvedValue(undefined);
+      mockWorldbuildingService.deleteTemplate.mockReturnValue(undefined);
 
-      mockWorldbuildingService.getAllSchemas.mockResolvedValue([]);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
 
       await component.deleteTemplate(template);
 
@@ -438,9 +438,9 @@ describe('TemplatesTabComponent', () => {
         .spyOn(console, 'error')
         .mockImplementation(() => {});
       mockDialogGateway.openConfirmationDialog.mockResolvedValue(true);
-      mockWorldbuildingService.deleteTemplate.mockRejectedValue(
-        new Error('Delete failed')
-      );
+      mockWorldbuildingService.deleteTemplate.mockImplementation(() => {
+        throw new Error('Delete failed');
+      });
 
       await component.deleteTemplate(template);
 
@@ -475,15 +475,15 @@ describe('TemplatesTabComponent', () => {
         tabs: [],
       };
 
-      mockWorldbuildingService.getSchema.mockResolvedValue(mockSchema);
+      mockWorldbuildingService.getSchema.mockReturnValue(mockSchema);
 
       const updatedSchema = { ...mockSchema, name: 'Updated Template' };
       mockDialog.open.mockReturnValue({
         afterClosed: () => of(updatedSchema),
       });
 
-      mockWorldbuildingService.updateTemplate.mockResolvedValue(undefined);
-      mockWorldbuildingService.getAllSchemas.mockResolvedValue([]);
+      mockWorldbuildingService.updateTemplate.mockReturnValue(undefined);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue([]);
 
       await component.editTemplate(template);
 
@@ -511,7 +511,7 @@ describe('TemplatesTabComponent', () => {
         isBuiltIn: false,
       };
 
-      mockWorldbuildingService.getSchema.mockResolvedValue(null);
+      mockWorldbuildingService.getSchema.mockReturnValue(null);
 
       await component.editTemplate(template);
 
@@ -542,7 +542,7 @@ describe('TemplatesTabComponent', () => {
         tabs: [],
       };
 
-      mockWorldbuildingService.getSchema.mockResolvedValue(mockSchema);
+      mockWorldbuildingService.getSchema.mockReturnValue(mockSchema);
 
       mockDialog.open.mockReturnValue({
         afterClosed: () => of(null),

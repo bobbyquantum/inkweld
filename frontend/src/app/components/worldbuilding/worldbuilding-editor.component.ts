@@ -15,7 +15,6 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -26,7 +25,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime } from 'rxjs';
 
 import { Element as ApiElement, ElementType } from '../../../api-client';
-import { TemplateEditorDialogComponent } from '../../dialogs/template-editor-dialog/template-editor-dialog.component';
 import {
   ElementTypeSchema,
   FieldSchema,
@@ -69,7 +67,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   private worldbuildingService = inject(WorldbuildingService);
   private projectState = inject(ProjectStateService);
-  private dialog = inject(MatDialog);
 
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);
@@ -103,16 +100,22 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   private async loadElementData(elementId: string): Promise<void> {
     try {
-      // Load the embedded schema using the abstraction layer
-      const loadedSchema = await this.worldbuildingService.getEmbeddedSchema(
-        elementId,
-        this.username(),
-        this.slug()
-      );
+      const username = this.username();
+      const slug = this.slug();
+
+      // Load the schema from the project library using the element's schema type
+      let loadedSchema: ElementTypeSchema | null = null;
+      if (username && slug) {
+        loadedSchema = await this.worldbuildingService.getSchemaForElement(
+          elementId,
+          username,
+          slug
+        );
+      }
       this.schema.set(loadedSchema);
       console.log('[WorldbuildingEditor] Loaded schema:', loadedSchema);
 
-      if (!loadedSchema && this.username() && this.slug()) {
+      if (!loadedSchema && username && slug) {
         const elements = this.projectState.elements();
         const element: ApiElement | undefined = elements.find(
           (el: ApiElement) => el.id === elementId
@@ -120,16 +123,16 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         if (element) {
           await this.worldbuildingService.initializeWorldbuildingElement(
             element,
-            this.username(),
-            this.slug()
+            username,
+            slug
           );
 
           // Re-fetch the schema after initialization
           const reinitializedSchema =
-            await this.worldbuildingService.getEmbeddedSchema(
+            await this.worldbuildingService.getSchemaForElement(
               elementId,
-              this.username(),
-              this.slug()
+              username,
+              slug
             );
           this.schema.set(reinitializedSchema);
           if (reinitializedSchema) {
@@ -300,38 +303,5 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   removeArrayItem(fieldKey: string, index: number): void {
     const formArray = this.getFormArray(fieldKey);
     formArray.removeAt(index);
-  }
-
-  async editEmbeddedTemplate(): Promise<void> {
-    const currentSchema = this.schema();
-    if (!currentSchema) return;
-
-    const dialogRef = this.dialog.open(TemplateEditorDialogComponent, {
-      width: '800px',
-      maxHeight: '90vh',
-      data: { schema: currentSchema },
-    });
-    try {
-      const result = (await dialogRef.afterClosed().toPromise()) as
-        | ElementTypeSchema
-        | undefined;
-      if (result) {
-        const elementId = this.elementId();
-        // Use the abstraction layer to update the embedded schema
-        await this.worldbuildingService.updateEmbeddedSchema(
-          elementId,
-          result,
-          this.username(),
-          this.slug()
-        );
-        this.schema.set(result);
-        this.buildFormFromSchema(result);
-      }
-    } catch (error) {
-      console.error(
-        '[WorldbuildingEditor] Error updating embedded template:',
-        error
-      );
-    }
   }
 }

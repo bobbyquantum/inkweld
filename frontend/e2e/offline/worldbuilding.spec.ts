@@ -9,14 +9,14 @@ import { expect, test } from './fixtures';
  */
 
 test.describe('Worldbuilding Templates', () => {
-  test('should create, edit, and delete custom templates', async ({
+  test('should create, clone and delete custom templates from Templates tab', async ({
     offlinePageWithProject: page,
   }) => {
     // Navigate to project (fixture has already waited for projects to load and cards to be visible)
     await page.getByTestId('project-card').first().click();
     await expect(page).toHaveURL(/\/.+\/.+/);
 
-    // Create a character worldbuilding element
+    // Create a character worldbuilding element to initialize templates
     await page.getByTestId('add-element-button').click();
     await page.getByTestId('element-type-character').click();
     await page.getByTestId('element-name-input').fill('Test Character');
@@ -24,36 +24,6 @@ test.describe('Worldbuilding Templates', () => {
 
     // Verify character element was created
     await expect(page.getByTestId('element-Test Character')).toBeVisible();
-
-    // Open the character element
-    await page.getByTestId('element-Test Character').click();
-
-    // Wait for worldbuilding editor to load
-    await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
-
-    // Test template editing functionality
-    await page.getByTestId('edit-template-button').click();
-
-    // Verify template editor dialog opened
-    await expect(page.getByTestId('template-editor-dialog')).toBeVisible();
-
-    // Add a new tab
-    await page.getByTestId('add-tab-button').click();
-    await page.getByTestId('tab-label-input').last().fill('Skills');
-
-    // Add a field to the new tab
-    await page.getByTestId('add-field-button').last().click();
-    // Wait a bit for field expansion animation
-    await page.waitForTimeout(200);
-    await page.getByTestId('field-label-input').last().fill('Height');
-    await page.getByTestId('field-key-input').last().fill('height');
-
-    // Save the template changes
-    await page.getByTestId('save-template-button').click();
-
-    // Verify dialog closed and form updated
-    await expect(page.getByTestId('template-editor-dialog')).not.toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Skills' })).toBeVisible();
 
     // Navigate to Templates tab to access clone functionality
     await page.getByTestId('back-to-project-button').click();
@@ -104,6 +74,9 @@ test.describe('Worldbuilding Templates', () => {
     // Navigate to project (fixture has already waited for projects to load and cards to be visible)
     await page.getByTestId('project-card').first().click();
 
+    // Wait for project to fully load
+    await page.waitForLoadState('networkidle');
+
     // Create different types of worldbuilding elements
     const elementTypes = [
       { type: 'character', name: 'Test Character', expectedTab: 'Basic Info' },
@@ -112,11 +85,83 @@ test.describe('Worldbuilding Templates', () => {
     ];
 
     for (const element of elementTypes) {
+      console.log(`Creating element of type: ${element.type}`);
+
+      // Check if there's already a dialog open
+      const existingDialogs = await page.locator('mat-dialog-container').count();
+      console.log(`Existing dialogs: ${existingDialogs}`);
+      if (existingDialogs > 0) {
+        console.log('Closing existing dialog...');
+        await page.keyboard.press('Escape');
+        await page.waitForSelector('mat-dialog-container', {
+          state: 'detached',
+          timeout: 5000,
+        });
+      }
+
+      // Ensure add-element-button is visible and clickable
+      const addButton = page.getByTestId('add-element-button');
+      await addButton.waitFor({ state: 'visible', timeout: 5000 });
+      console.log('Add button is visible, clicking...');
+
       // Create element
-      await page.getByTestId('add-element-button').click();
+      await addButton.click();
+      console.log('Add button clicked');
+
+      // Wait a moment for any async operations
+      await page.waitForTimeout(500);
+
+      // Check dialog count after click
+      const dialogCountAfterClick = await page.locator('mat-dialog-container').count();
+      console.log(`Dialogs after click: ${dialogCountAfterClick}`);
+
+      // Wait for dialog content to appear (mat-dialog-title or the search field)
+      try {
+        await page.waitForSelector('mat-form-field input[matInput]', {
+          state: 'visible',
+          timeout: 10000,
+        });
+        console.log('Dialog search field is visible');
+      } catch {
+        // Take screenshot on failure
+        await page.screenshot({ path: `test-results/worldbuilding-dialog-failure-${element.type}.png` });
+
+        // Check console errors
+        const consoleErrors = await page.evaluate(() => {
+          return (window as unknown as { consoleErrors?: string[] }).consoleErrors ?? [];
+        });
+        console.log('Console errors:', consoleErrors);
+
+        throw new Error(`Dialog did not open for ${element.type}. Dialogs present: ${dialogCountAfterClick}`);
+      }
+
+      // Wait for worldbuilding options to load (async from schema library)
+      // Give more time since schemas are loaded asynchronously
+      try {
+        await page.waitForSelector(
+          `[data-testid="element-type-${element.type}"]`,
+          { state: 'visible', timeout: 15000 }
+        );
+      } catch {
+        // Debug: capture current state of dialog
+        const dialogContent = await page
+          .locator('mat-dialog-content')
+          .textContent();
+        console.error(`Dialog content when waiting for ${element.type}:`, dialogContent);
+        throw new Error(
+          `Timeout waiting for element-type-${element.type}. Dialog content: ${dialogContent}`
+        );
+      }
+
       await page.getByTestId(`element-type-${element.type}`).click();
       await page.getByTestId('element-name-input').fill(element.name);
       await page.getByTestId('create-element-button').click();
+
+      // Wait for dialog to fully close before continuing
+      await page.waitForSelector('mat-dialog-container', {
+        state: 'detached',
+        timeout: 5000,
+      });
 
       // Open element and verify schema initialization
       await page.getByTestId(`element-${element.name}`).click();
@@ -127,49 +172,10 @@ test.describe('Worldbuilding Templates', () => {
 
       // Go back to project view
       await page.getByTestId('back-to-project-button').click();
+
+      // Wait for navigation to complete
+      await page.waitForLoadState('networkidle');
     }
-  });
-
-  // Embedded schema modifications should persist when saved to the element's embedded schema
-  test('should handle embedded template editing workflow', async ({
-    offlinePageWithProject: page,
-  }) => {
-    // Navigate to project and create a character (fixture has already waited for projects to load and cards to be visible)
-    await page.getByTestId('project-card').first().click();
-    await page.getByTestId('add-element-button').click();
-    await page.getByTestId('element-type-character').click();
-    await page.getByTestId('element-name-input').fill('Hero Character');
-    await page.getByTestId('create-element-button').click();
-
-    // Open the character
-    await page.getByTestId('element-Hero Character').click();
-    await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
-
-    // Edit embedded template
-    await page.getByTestId('edit-template-button').click();
-    await expect(page.getByTestId('template-editor-dialog')).toBeVisible();
-
-    // Modify the template
-    await page
-      .getByTestId('template-description-input')
-      .fill('Updated character template');
-
-    // Add a new field
-    await page.getByTestId('add-field-button').first().click();
-    // Wait for field expansion animation
-    await page.waitForTimeout(200);
-    await page.getByTestId('field-label-input').last().fill('Backstory');
-    await page.getByTestId('field-key-input').last().fill('backstory');
-    // For Material select, click to open, then select the option
-    await page.getByTestId('field-type-select').last().click();
-    await page.getByRole('option', { name: 'Text Area' }).click();
-
-    // Save changes
-    await page.getByTestId('save-template-button').click();
-
-    // Verify the form updated with new field
-    await expect(page.getByTestId('template-editor-dialog')).not.toBeVisible();
-    await expect(page.getByTestId('field-backstory')).toBeVisible();
   });
 
   test('should validate template editor form inputs', async ({
@@ -306,11 +312,15 @@ test.describe('Worldbuilding Templates', () => {
     // Create element using custom template
     await page.getByTestId('add-element-button').click();
 
-    // Wait a moment for dialog to open and templates to load
-    await page.waitForTimeout(300);
-
     // Use the dynamically captured custom template type
     const elementTypeTestId = `element-type-${customTemplateType!.toLowerCase()}`;
+
+    // Wait for the custom template option to appear (async from schema library)
+    await page.waitForSelector(`[data-testid="${elementTypeTestId}"]`, {
+      state: 'visible',
+      timeout: 10000,
+    });
+
     await page.getByTestId(elementTypeTestId).click();
     await page.getByTestId('element-name-input').fill('My Hero');
     await page.getByTestId('create-element-button').click();

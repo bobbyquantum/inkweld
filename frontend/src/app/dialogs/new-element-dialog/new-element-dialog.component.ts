@@ -144,10 +144,7 @@ export class NewElementDialogComponent {
       );
 
       // Check if library is empty and auto-load defaults if needed
-      const isEmpty = await this.worldbuildingService.hasNoSchemas(
-        username,
-        slug
-      );
+      const isEmpty = this.worldbuildingService.hasNoSchemas(username, slug);
 
       if (isEmpty) {
         console.log(
@@ -157,10 +154,7 @@ export class NewElementDialogComponent {
       }
 
       // Get all schemas as plain objects
-      const schemas = await this.worldbuildingService.getAllSchemas(
-        username,
-        slug
-      );
+      const schemas = this.worldbuildingService.getAllSchemas(username, slug);
 
       if (schemas.length === 0) {
         console.warn('[NewElementDialog] No schemas found');

@@ -372,8 +372,8 @@ describe('ProjectStateService', () => {
       await service.loadProject('testuser', 'test-project');
     });
 
-    it('should add root level element via sync provider', async () => {
-      await service.addElement(ElementType.Folder, 'New Folder');
+    it('should add root level element via sync provider', () => {
+      service.addElement(ElementType.Folder, 'New Folder');
 
       expect(mockSyncProvider.updateElements).toHaveBeenCalled();
       const calledElements = mockSyncProvider.updateElements.mock.calls[0][0];
@@ -382,9 +382,9 @@ describe('ProjectStateService', () => {
       expect(calledElements[0].level).toBe(0);
     });
 
-    it('should add child element and auto-expand parent', async () => {
+    it('should add child element and auto-expand parent', () => {
       // Add parent first
-      await service.addElement(ElementType.Folder, 'Parent');
+      service.addElement(ElementType.Folder, 'Parent');
       const parentId = mockSyncProvider.updateElements.mock.calls[0][0][0].id;
 
       // Simulate provider returning the parent
@@ -403,7 +403,7 @@ describe('ProjectStateService', () => {
       ]);
 
       // Add child
-      await service.addElement(ElementType.Item, 'Child', parentId);
+      service.addElement(ElementType.Item, 'Child', parentId);
 
       expect(service.isExpanded(parentId)).toBe(true);
     });

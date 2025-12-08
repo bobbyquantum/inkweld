@@ -2,8 +2,6 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormArray, ReactiveFormsModule } from '@angular/forms';
-import { MatDialog } from '@angular/material/dialog';
-import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
@@ -19,14 +17,13 @@ describe('WorldbuildingEditorComponent', () => {
   let component: WorldbuildingEditorComponent;
   let fixture: ComponentFixture<WorldbuildingEditorComponent>;
   let worldbuildingService: WorldbuildingMock;
-  let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockProjectState: {
     elements: ReturnType<typeof signal<Element[]>>;
   };
 
   const mockCharacterSchema: ElementTypeSchema = {
     id: 'character',
-    type: 'character',
+    type: 'CHARACTER',
     name: 'Character',
     icon: 'person',
     description: 'Character schema',
@@ -89,10 +86,10 @@ describe('WorldbuildingEditorComponent', () => {
     worldbuildingService = mockDeep<WorldbuildingService>();
 
     // Mock the new abstraction methods
-    worldbuildingService.getEmbeddedSchema.mockResolvedValue(
+    worldbuildingService.getSchemaForElement.mockResolvedValue(
       mockCharacterSchema
     );
-    worldbuildingService.updateEmbeddedSchema.mockResolvedValue();
+    worldbuildingService.getElementSchemaType.mockResolvedValue('character');
     worldbuildingService.getWorldbuildingData.mockResolvedValue({
       id: 'test-element-123',
       type: 'character',
@@ -102,12 +99,6 @@ describe('WorldbuildingEditorComponent', () => {
     worldbuildingService.observeChanges.mockResolvedValue(() => {});
     worldbuildingService.saveWorldbuildingData.mockResolvedValue();
     worldbuildingService.initializeWorldbuildingElement.mockResolvedValue();
-
-    mockDialog = {
-      open: vi.fn().mockReturnValue({
-        afterClosed: () => of(null),
-      }),
-    };
 
     mockProjectState = {
       elements: signal<Element[]>([mockElement]),
@@ -119,7 +110,6 @@ describe('WorldbuildingEditorComponent', () => {
         provideZonelessChangeDetection(),
         provideHttpClient(),
         { provide: WorldbuildingService, useValue: worldbuildingService },
-        { provide: MatDialog, useValue: mockDialog },
         { provide: ProjectStateService, useValue: mockProjectState },
       ],
     }).compileComponents();
@@ -281,46 +271,6 @@ describe('WorldbuildingEditorComponent', () => {
     });
   });
 
-  describe('editEmbeddedTemplate', () => {
-    it('should open template editor dialog', async () => {
-      component['schema'].set(mockCharacterSchema);
-
-      await component.editEmbeddedTemplate();
-
-      expect(mockDialog.open).toHaveBeenCalled();
-    });
-
-    it('should not open dialog when no schema', async () => {
-      component['schema'].set(null);
-
-      await component.editEmbeddedTemplate();
-
-      expect(mockDialog.open).not.toHaveBeenCalled();
-    });
-
-    it('should update schema when dialog returns result', async () => {
-      component['schema'].set(mockCharacterSchema);
-      const updatedSchema: ElementTypeSchema = {
-        ...mockCharacterSchema,
-        name: 'Updated Character',
-      };
-      mockDialog.open.mockReturnValue({
-        afterClosed: () => of(updatedSchema),
-      });
-
-      await component.editEmbeddedTemplate();
-
-      // Should use the abstraction method
-      expect(worldbuildingService.updateEmbeddedSchema).toHaveBeenCalledWith(
-        'test-element-123',
-        updatedSchema,
-        'testuser',
-        'test-project'
-      );
-      expect(component['schema']()).toEqual(updatedSchema);
-    });
-  });
-
   describe('lifecycle', () => {
     it('should clean up observers on destroy', () => {
       const mockUnsubscribe = vi.fn();
@@ -347,8 +297,8 @@ describe('WorldbuildingEditorComponent', () => {
     it('should load schema and data on element load', async () => {
       await component['loadElementData']('test-element-123');
 
-      // Should use the abstraction method
-      expect(worldbuildingService.getEmbeddedSchema).toHaveBeenCalledWith(
+      // Should use the project-level schema lookup
+      expect(worldbuildingService.getSchemaForElement).toHaveBeenCalledWith(
         'test-element-123',
         'testuser',
         'test-project'
@@ -359,7 +309,7 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     it('should handle missing schema by initializing element', async () => {
-      worldbuildingService.getEmbeddedSchema
+      worldbuildingService.getSchemaForElement
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(mockCharacterSchema);
 
@@ -374,7 +324,7 @@ describe('WorldbuildingEditorComponent', () => {
       const consoleSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      worldbuildingService.getEmbeddedSchema.mockRejectedValue(
+      worldbuildingService.getSchemaForElement.mockRejectedValue(
         new Error('Connection failed')
       );
 

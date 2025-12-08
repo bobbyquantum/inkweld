@@ -6,16 +6,8 @@
     <div class="dynamic-worldbuilding-editor">
       @if (schema()) {
         <form [formGroup]="form">
-          <!-- Toolbar with template editing and meta panel toggle -->
+          <!-- Toolbar with meta panel toggle -->
           <div class="template-editor-controls">
-            <button
-              mat-stroked-button
-              type="button"
-              data-testid="edit-template-button"
-              (click)="editEmbeddedTemplate()">
-              <mat-icon>edit</mat-icon>
-              Edit Template
-            </button>
             <!-- Meta panel toggle button -->
             <button
               mat-icon-button
