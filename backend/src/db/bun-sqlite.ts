@@ -5,8 +5,8 @@
 import { drizzle, BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import { Database as BunDatabase } from 'bun:sqlite';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 import * as schema from './schema';
 import { config } from '../config/env.js';
 
@@ -16,6 +16,15 @@ let migrationsApplied = false;
 
 export async function setupBunDatabase(dbPath: string): Promise<BunSQLiteDatabase<typeof schema>> {
   if (db) return db;
+
+  // Ensure directory exists for the database file (unless using :memory:)
+  if (dbPath !== ':memory:') {
+    const dbDir = dirname(dbPath);
+    if (!existsSync(dbDir)) {
+      mkdirSync(dbDir, { recursive: true });
+      console.log(`[database] Created directory: ${dbDir}`);
+    }
+  }
 
   sqlite = new BunDatabase(dbPath);
   db = drizzle(sqlite, { schema });
