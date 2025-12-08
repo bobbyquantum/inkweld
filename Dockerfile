@@ -9,6 +9,7 @@
 # classic-level/binding.js to directly require the N-API prebuild before compilation.
 
 # Frontend builder stage (Angular)
+# Angular build outputs to dist/browser/ in production mode (default configuration)
 FROM oven/bun:1.3.3 AS frontend-builder
 WORKDIR /app/frontend
 
@@ -16,7 +17,13 @@ COPY frontend/bun.lock frontend/package.json ./
 RUN bun install --frozen-lockfile
 
 COPY frontend .
-RUN bun run build
+# Build frontend and verify output exists - fail early with clear error if build doesn't produce expected output
+RUN bun run build \
+  && if [ ! -d /app/frontend/dist ]; then \
+       echo "ERROR: frontend build did not produce /app/frontend/dist"; \
+       ls -la /app/frontend || true; \
+       exit 1; \
+     fi
 
 # Backend builder stage - produces a single compiled binary
 FROM oven/bun:1.3.3 AS backend-builder
@@ -46,7 +53,8 @@ RUN PATCH_TARGET=$([ "${TARGETARCH}" = "arm64" ] && echo "linux-arm64-glibc" || 
   echo "Patching native modules for: $PATCH_TARGET" && \
   bun scripts/patch-native-modules.ts patch $PATCH_TARGET
 
-# Copy frontend dist (for embedding if desired)
+# Copy frontend dist for binary embedding
+# Angular outputs to dist/browser/ - copy entire dist directory for consistency
 COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 
 # Generate frontend imports file for binary embedding
@@ -76,7 +84,7 @@ ENV NODE_ENV=production \
   DB_PATH=/data/sqlite.db \
   DATA_PATH=/data/yjs \
   DB_LOGGING=false \
-  FRONTEND_DIST=/app/frontend
+  FRONTEND_DIST=/app/frontend/browser
 
 # Install only runtime dependencies (curl for healthcheck, ca-certs for HTTPS)
 RUN apt-get update && \
@@ -88,7 +96,12 @@ RUN apt-get update && \
 # Copy only the compiled binary and drizzle migrations (required for DB setup)
 COPY --from=backend-builder --chown=inkweld:inkweld /app/backend/inkweld-server ./
 COPY --from=backend-builder --chown=inkweld:inkweld /app/backend/drizzle ./drizzle
-COPY --from=frontend-builder --chown=inkweld:inkweld /app/frontend/dist/browser ${FRONTEND_DIST}
+
+# Copy frontend assets from dist directory
+# Angular outputs to dist/browser/ in production mode. We copy the entire dist/ directory
+# to /app/frontend/, which creates /app/frontend/browser/ containing index.html and assets.
+# FRONTEND_DIST env var points to /app/frontend/browser for serving.
+COPY --from=frontend-builder --chown=inkweld:inkweld /app/frontend/dist /app/frontend
 
 USER inkweld
 VOLUME ["/data"]

@@ -10,6 +10,23 @@ import { Page, test as base } from '@playwright/test';
  */
 
 /**
+ * Get the API base URL from Playwright config or environment.
+ * Defaults to http://localhost:9333 for online tests, but Docker tests use 8333.
+ */
+function getApiBaseUrl(): string {
+  // Check for explicit API URL override
+  if (process.env['API_BASE_URL']) {
+    return process.env['API_BASE_URL'];
+  }
+  // Use PLAYWRIGHT_BASE_URL if set (used by Docker tests)
+  if (process.env['PLAYWRIGHT_BASE_URL']) {
+    return process.env['PLAYWRIGHT_BASE_URL'];
+  }
+  // Default for online tests (backend runs on port 9333)
+  return 'http://localhost:9333';
+}
+
+/**
  * Default admin credentials (must match playwright.online.config.ts)
  */
 export const DEFAULT_ADMIN = {
@@ -61,16 +78,18 @@ export const test = base.extend<OnlineTestFixtures>({
     const context = await browser.newContext();
     const page = await context.newPage();
 
+    const apiUrl = getApiBaseUrl();
+
     // Set up app configuration for server mode
-    await page.addInitScript(() => {
+    await page.addInitScript((serverUrl: string) => {
       localStorage.setItem(
         'inkweld-app-config',
         JSON.stringify({
           mode: 'server',
-          serverUrl: 'http://localhost:9333',
+          serverUrl,
         })
       );
-    });
+    }, apiUrl);
 
     await use(page);
 
@@ -91,18 +110,23 @@ export const test = base.extend<OnlineTestFixtures>({
     // Register and authenticate user via API (before any navigation)
     const token = await authenticateUser(page, username, password, true);
 
-    // Set up app configuration with auth token in one addInitScript
-    await page.addInitScript((authToken: string) => {
-      localStorage.setItem(
-        'inkweld-app-config',
-        JSON.stringify({
-          mode: 'server',
-          serverUrl: 'http://localhost:9333',
-        })
-      );
+    const apiUrl = getApiBaseUrl();
 
-      localStorage.setItem('auth_token', authToken);
-    }, token);
+    // Set up app configuration with auth token in one addInitScript
+    await page.addInitScript(
+      ({ authToken, serverUrl }: { authToken: string; serverUrl: string }) => {
+        localStorage.setItem(
+          'inkweld-app-config',
+          JSON.stringify({
+            mode: 'server',
+            serverUrl,
+          })
+        );
+
+        localStorage.setItem('auth_token', authToken);
+      },
+      { authToken: token, serverUrl: apiUrl }
+    );
 
     // Navigate to the app with both config and token already set
     await page.goto('/');
@@ -145,18 +169,23 @@ export const test = base.extend<OnlineTestFixtures>({
       false // login, not register
     );
 
-    // Set up app configuration with auth token
-    await page.addInitScript((authToken: string) => {
-      localStorage.setItem(
-        'inkweld-app-config',
-        JSON.stringify({
-          mode: 'server',
-          serverUrl: 'http://localhost:9333',
-        })
-      );
+    const apiUrl = getApiBaseUrl();
 
-      localStorage.setItem('auth_token', authToken);
-    }, token);
+    // Set up app configuration with auth token
+    await page.addInitScript(
+      ({ authToken, serverUrl }: { authToken: string; serverUrl: string }) => {
+        localStorage.setItem(
+          'inkweld-app-config',
+          JSON.stringify({
+            mode: 'server',
+            serverUrl,
+          })
+        );
+
+        localStorage.setItem('auth_token', authToken);
+      },
+      { authToken: token, serverUrl: apiUrl }
+    );
 
     // Navigate to the app with config and token already set
     await page.goto('/');
@@ -246,7 +275,7 @@ export async function authenticateUser(
   password: string,
   isRegister: boolean = true
 ): Promise<string> {
-  const apiUrl = 'http://localhost:9333';
+  const apiUrl = getApiBaseUrl();
 
   if (isRegister) {
     // Register via API
