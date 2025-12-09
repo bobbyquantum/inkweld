@@ -7,7 +7,7 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -18,7 +18,7 @@
     background: rgba(0, 0, 0, 0.5);
     pointer-events: none;
   }
-  
+
   padding: 80px 0;
   box-sizing: border-box;
 }
@@ -41,7 +41,7 @@
     width: auto;
     margin-right: 16px;
   }
-  
+
   .page-title {
     position: absolute;
     left: 0;

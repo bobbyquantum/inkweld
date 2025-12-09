@@ -13,7 +13,7 @@
   box-sizing: border-box;
   position: relative;
   padding-bottom: 40px;
-  
+
   &::before {
     content: '';
     position: fixed;
@@ -25,7 +25,7 @@
     pointer-events: none;
     z-index: 0;
   }
-  
+
   &.is-mobile {
     padding-top: 0;
   }
@@ -41,24 +41,25 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   width: 100%;
   box-sizing: border-box;
-  
+
   .toolbar-title {
     font-size: 20px;
     font-weight: 500;
     margin: 0;
     text-align: center;
   }
-  
+
   .toolbar-spacer {
     flex: 1;
   }
-  
+
   .toolbar-placeholder {
     width: 40px; // Same width as the back button for symmetry
   }
 }
 
-.loading-state, .error-state {
+.loading-state,
+.error-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -69,25 +70,26 @@
   z-index: 1;
   position: relative;
   box-sizing: border-box;
-  
-  mat-icon, .error-icon {
+
+  mat-icon,
+  .error-icon {
     font-size: 64px;
     height: 64px;
     width: 64px;
     margin-bottom: 16px;
   }
-  
+
   h2 {
     font-size: 24px;
     margin-bottom: 8px;
     color: rgba(255, 255, 255, 0.9);
   }
-  
+
   p {
     margin-bottom: 24px;
     color: rgba(255, 255, 255, 0.7);
   }
-  
+
   button {
     margin-top: 16px;
     min-width: 120px;
@@ -111,7 +113,7 @@
   position: relative;
   z-index: 1;
   box-sizing: border-box;
-  
+
   @media (max-width: 768px) {
     padding: 0 12px;
     margin: 12px auto 0;
@@ -128,7 +130,7 @@
   border-radius: 8px;
   backdrop-filter: blur(10px);
   box-sizing: border-box;
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: center;
@@ -146,22 +148,24 @@
   height: 120px;
   border-radius: 50%;
   overflow: hidden;
-  transition: transform 0.2s, border-color 0.2s;
+  transition:
+    transform 0.2s,
+    border-color 0.2s;
   box-sizing: border-box;
   border: 2px solid rgba(255, 255, 255, 0.1);
-  
+
   &.editable:hover {
     border-color: rgba(255, 255, 255, 0.3);
     transform: scale(1.02);
   }
-  
+
   app-user-avatar {
     display: block;
     width: 100%;
     height: 100%;
     overflow: hidden;
   }
-  
+
   .edit-avatar-icon {
     position: absolute;
     bottom: 5px;
@@ -178,7 +182,7 @@
     justify-content: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
-  
+
   @media (max-width: 768px) {
     margin-right: 0;
     margin-bottom: 20px;
@@ -194,7 +198,7 @@
   flex-direction: column;
   justify-content: center;
   box-sizing: border-box;
-  
+
   @media (max-width: 768px) {
     width: 100%;
   }
@@ -205,7 +209,7 @@
   font-weight: 600;
   margin: 0 0 4px;
   color: rgba(255, 255, 255, 0.95);
-  
+
   @media (max-width: 768px) {
     font-size: 24px;
   }
@@ -216,7 +220,7 @@
   font-weight: 400;
   margin: 0 0 16px;
   color: rgba(255, 255, 255, 0.7);
-  
+
   @media (max-width: 768px) {
     font-size: 16px;
   }
@@ -227,7 +231,7 @@
   gap: 24px;
   margin-top: 16px;
   box-sizing: border-box;
-  
+
   @media (max-width: 768px) {
     justify-content: center;
   }
@@ -239,7 +243,7 @@
   gap: 8px;
   color: rgba(255, 255, 255, 0.8);
   box-sizing: border-box;
-  
+
   mat-icon {
     font-size: 20px;
     height: 20px;
@@ -259,7 +263,7 @@
   padding: 24px;
   backdrop-filter: blur(10px);
   box-sizing: border-box;
-  
+
   @media (max-width: 768px) {
     padding: 16px;
     margin-bottom: 20px;
@@ -284,11 +288,11 @@
   background-color: rgba(50, 50, 50, 0.5);
   border-radius: 8px;
   box-sizing: border-box;
-  
+
   mat-icon {
     color: rgba(255, 255, 255, 0.7);
   }
-  
+
   p {
     margin: 0;
     color: rgba(255, 255, 255, 0.9);
@@ -303,7 +307,7 @@
   padding: 32px;
   text-align: center;
   box-sizing: border-box;
-  
+
   mat-icon {
     font-size: 48px;
     height: 48px;
@@ -311,13 +315,13 @@
     margin-bottom: 16px;
     opacity: 0.6;
   }
-  
+
   h4 {
     font-size: 20px;
     margin-bottom: 8px;
     color: rgba(255, 255, 255, 0.9);
   }
-  
+
   p {
     color: rgba(255, 255, 255, 0.7);
   }
@@ -328,16 +332,16 @@
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 16px;
   box-sizing: border-box;
-  
+
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: 12px;
   }
-  
+
   @media (min-width: 769px) and (max-width: 1024px) {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   @media (min-width: 1025px) {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -348,42 +352,44 @@
   border-radius: 8px;
   padding: 20px;
   cursor: pointer;
-  transition: transform 0.2s, background-color 0.2s;
+  transition:
+    transform 0.2s,
+    background-color 0.2s;
   height: 100%;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  
+
   &:hover {
     transform: translateY(-4px);
     background-color: rgba(60, 60, 60, 0.5);
   }
-  
+
   .project-title {
     font-size: 18px;
     font-weight: 500;
     margin: 0 0 8px;
     color: rgba(255, 255, 255, 0.95);
   }
-  
+
   .project-description {
     font-size: 14px;
     line-height: 1.5;
     color: rgba(255, 255, 255, 0.7);
     margin: 0 0 16px;
     flex-grow: 1;
-    
+
     @media (max-width: 768px) {
       max-height: 150px;
       overflow-y: auto;
     }
   }
-  
+
   .project-meta {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.5);
   }
-  
+
   @media (max-width: 768px) {
     padding: 16px;
   }
