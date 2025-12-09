@@ -20,7 +20,10 @@
     &::before {
       background-color: rgba(0, 0, 0, 0.6);
       backdrop-filter: saturate(70%);
-      @supports not ((backdrop-filter: saturate(70%)) or (-webkit-backdrop-filter: saturate(70%))) {
+      @supports not (
+        (backdrop-filter: saturate(70%)) or
+          (-webkit-backdrop-filter: saturate(70%))
+      ) {
         background-color: rgba(0, 0, 0, 0.7);
       }
     }
@@ -37,7 +40,9 @@
   padding-top: 20px;
 }
 
-h1 { margin-bottom: 24px; }
+h1 {
+  margin-bottom: 24px;
+}
 
 mat-card {
   margin-bottom: 24px;
@@ -61,7 +66,9 @@ mat-card {
   object-fit: contain;
 }
 
-.card-content { padding-top: 30px; }
+.card-content {
+  padding-top: 30px;
+}
 .title {
   margin-top: 8px;
   margin-bottom: 24px;
@@ -78,10 +85,14 @@ form {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  h3 { margin-bottom: 8px; }
+  h3 {
+    margin-bottom: 8px;
+  }
   button {
     width: 100%;
-    mat-icon { margin-right: 8px; }
+    mat-icon {
+      margin-right: 8px;
+    }
   }
   .loading-spinner {
     display: flex;
@@ -90,18 +101,33 @@ form {
     gap: 12px;
     padding: 16px 0;
     color: var(--mat-theme-text-secondary-on-background);
-    mat-progress-spinner { margin-bottom: 4px; }
-    span { font-size: 0.9em; }
+    mat-progress-spinner {
+      margin-bottom: 4px;
+    }
+    span {
+      font-size: 0.9em;
+    }
   }
 }
 
-mat-divider { margin: 24px 0; }
-.register-button, .login-button { width: 100%; }
+mat-divider {
+  margin: 24px 0;
+}
+.register-button,
+.login-button {
+  width: 100%;
+}
 
 .mobile {
-  .content-wrapper { max-width: 100%; }
-  mat-card { padding: 16px; }
-  .oauth-container button { padding: 8px 16px; }
+  .content-wrapper {
+    max-width: 100%;
+  }
+  mat-card {
+    padding: 16px;
+  }
+  .oauth-container button {
+    padding: 8px 16px;
+  }
 }
 
 .username-suggestions {
@@ -142,8 +168,13 @@ mat-divider { margin: 24px 0; }
   margin-bottom: 16px;
   padding: 12px 16px;
   border-radius: 4px;
-  background-color: color-mix(in srgb, var(--custom-error-color) 5%, transparent);
-  border: 1px solid color-mix(in srgb, var(--custom-error-color) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--custom-error-color) 5%,
+    transparent
+  );
+  border: 1px solid
+    color-mix(in srgb, var(--custom-error-color) 20%, transparent);
 }
 
 .validation-error-heading {
@@ -165,7 +196,9 @@ mat-divider { margin: 24px 0; }
   margin-bottom: 4px;
   font-size: 0.85em;
   color: var(--custom-error-color);
-  &:last-child { margin-bottom: 0; }
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .validation-error-icon {
@@ -186,7 +219,9 @@ mat-divider { margin: 24px 0; }
     height: 20px;
     width: 20px;
   }
-  span { font-size: 0.9em; }
+  span {
+    font-size: 0.9em;
+  }
 }
 
 .password-validation-checklist {
@@ -224,8 +259,12 @@ mat-divider { margin: 24px 0; }
   .dark-theme & {
     background-color: rgba(144, 202, 249, 0.12);
     border: 1px solid rgba(144, 202, 249, 0.3);
-    &::before { border-bottom-color: rgba(144, 202, 249, 0.3); }
-    &::after { border-bottom-color: rgba(144, 202, 249, 0.12); }
+    &::before {
+      border-bottom-color: rgba(144, 202, 249, 0.3);
+    }
+    &::after {
+      border-bottom-color: rgba(144, 202, 249, 0.12);
+    }
   }
 }
 
@@ -259,13 +298,19 @@ mat-divider { margin: 24px 0; }
   margin-bottom: 4px;
   font-size: 0.85em;
   color: var(--mat-theme-on-surface-variant);
-  &:last-child { margin-bottom: 0; }
+  &:last-child {
+    margin-bottom: 0;
+  }
   &.met {
     color: var(--custom-success-color);
-    .validation-checklist-icon { color: var(--custom-success-color); }
+    .validation-checklist-icon {
+      color: var(--custom-success-color);
+    }
   }
   &:not(.met) {
-    .validation-checklist-icon { color: var(--custom-error-color); }
+    .validation-checklist-icon {
+      color: var(--custom-error-color);
+    }
   }
 }
 
@@ -308,7 +353,9 @@ mat-divider { margin: 24px 0; }
   border-radius: 4px;
   color: var(--mat-theme-on-surface-variant);
   z-index: 2;
-  span { font-size: 0.9em; }
+  span {
+    font-size: 0.9em;
+  }
 }
 
 .captcha-error {
@@ -327,7 +374,9 @@ mat-divider { margin: 24px 0; }
 .password-requirements-tooltip {
   background: var(--password-tooltip-bg);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.15);
   border: 1px solid var(--password-tooltip-border);
   padding: 16px;
   max-width: 280px;
@@ -369,14 +418,24 @@ mat-divider { margin: 24px 0; }
   margin-bottom: 6px;
   font-size: 0.85em;
   color: var(--mat-theme-on-surface-variant);
-  &:last-child { margin-bottom: 0; }
+  &:last-child {
+    margin-bottom: 0;
+  }
   &.met {
-    .requirement-icon { color: var(--custom-success-color); }
-    .requirement-text { color: var(--custom-success-color); }
+    .requirement-icon {
+      color: var(--custom-success-color);
+    }
+    .requirement-text {
+      color: var(--custom-success-color);
+    }
   }
   &:not(.met) {
-    .requirement-icon { color: var(--custom-error-color); }
-    .requirement-text { color: var(--mat-theme-on-surface-variant); }
+    .requirement-icon {
+      color: var(--custom-error-color);
+    }
+    .requirement-text {
+      color: var(--mat-theme-on-surface-variant);
+    }
   }
 }
 
@@ -387,4 +446,6 @@ mat-divider { margin: 24px 0; }
   flex-shrink: 0;
 }
 
-.requirement-text { line-height: 1.3; }
+.requirement-text {
+  line-height: 1.3;
+}

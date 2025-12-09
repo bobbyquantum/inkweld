@@ -45,7 +45,6 @@
   justify-content: center;
   text-align: center;
   padding: 40px 20px;
-  height: 100%;
 
   mat-icon {
     font-size: 64px;
@@ -79,7 +78,7 @@
 }
 
 .empty-state {
-  min-height: calc(100vh - 200px);
+  height: calc(100vh - 200px);
 }
 
 // Main layout
