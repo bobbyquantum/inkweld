@@ -93,7 +93,7 @@
     "electron": "^35.2.1",
     "electron-builder": "^26.0.12",
     "electron-squirrel-startup": "^1.0.1",
-    "wait-on": "^8.0.3",
+    "wait-on": "^9.0.0",
     "@types/adm-zip": "^0.5.7",
     "@types/lodash-es": "4.17.12",
     "@types/node": "^24.10.1",
