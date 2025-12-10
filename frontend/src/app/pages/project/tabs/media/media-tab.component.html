@@ -1,0 +1,150 @@
+<div class="media-container">
+  <div class="media-header">
+    <h1>Project Media</h1>
+    <div class="header-stats">
+      <span class="stat">{{ totalCount() }} items</span>
+      <span class="stat">{{ totalSize() | fileSize }}</span>
+    </div>
+  </div>
+
+  <!-- Category filter -->
+  <div class="category-filter">
+    <button
+      mat-button
+      [class.active]="selectedCategory() === 'all'"
+      (click)="setCategory('all')">
+      All
+    </button>
+    <button
+      mat-button
+      [class.active]="selectedCategory() === 'cover'"
+      (click)="setCategory('cover')">
+      Cover
+    </button>
+    <button
+      mat-button
+      [class.active]="selectedCategory() === 'inline'"
+      (click)="setCategory('inline')">
+      Inline Images
+    </button>
+    <button
+      mat-button
+      [class.active]="selectedCategory() === 'published'"
+      (click)="setCategory('published')">
+      Published
+    </button>
+    <button
+      mat-button
+      [class.active]="selectedCategory() === 'other'"
+      (click)="setCategory('other')">
+      Other
+    </button>
+  </div>
+
+  <!-- Loading state -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading media...</p>
+    </div>
+  }
+
+  <!-- Error state -->
+  @if (error() && !isLoading()) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <mat-icon color="warn">error</mat-icon>
+        <p>{{ error() }}</p>
+        <button mat-button color="primary" (click)="loadMedia()">
+          Try Again
+        </button>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Empty state -->
+  @if (!isLoading() && !error() && filteredItems().length === 0) {
+    <mat-card class="empty-card">
+      <mat-card-content>
+        <mat-icon>perm_media</mat-icon>
+        @if (selectedCategory() === 'all') {
+          <p>No media stored locally for this project.</p>
+          <p class="hint">
+            Media includes cover images, inline images in documents, and
+            published exports (EPUB, PDF, etc.)
+          </p>
+        } @else {
+          <p>No {{ selectedCategory() }} media found.</p>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Media grid -->
+  @if (!isLoading() && !error() && filteredItems().length > 0) {
+    <div class="media-grid">
+      @for (item of filteredItems(); track item.mediaId) {
+        <div class="media-item" [class.is-image]="item.isImage">
+          <!-- Thumbnail / Icon -->
+          <div
+            class="media-preview"
+            [attr.tabindex]="item.isImage ? 0 : null"
+            [attr.role]="item.isImage ? 'button' : null"
+            (click)="item.isImage && viewImage(item)"
+            (keydown.enter)="item.isImage && viewImage(item)"
+            (keydown.space)="
+              item.isImage && viewImage(item); $event.preventDefault()
+            ">
+            @if (item.isImage && item.url) {
+              <img
+                [src]="item.url"
+                [alt]="item.filename || item.mediaId"
+                class="thumbnail" />
+            } @else {
+              <mat-icon class="file-icon">{{ getMediaIcon(item) }}</mat-icon>
+            }
+          </div>
+
+          <!-- Info -->
+          <div class="media-info">
+            <span
+              class="media-name"
+              [matTooltip]="item.filename || item.mediaId">
+              {{ item.filename || item.mediaId }}
+            </span>
+            <span class="media-meta">
+              <span class="category-badge">{{ item.categoryLabel }}</span>
+              <span class="size">{{ item.size | fileSize }}</span>
+            </span>
+            <span class="media-date">{{ formatDate(item.createdAt) }}</span>
+          </div>
+
+          <!-- Actions -->
+          <div class="media-actions">
+            @if (item.isImage) {
+              <button
+                mat-icon-button
+                matTooltip="View"
+                (click)="viewImage(item)">
+                <mat-icon>visibility</mat-icon>
+              </button>
+            }
+            <button
+              mat-icon-button
+              matTooltip="Download"
+              (click)="downloadMedia(item)">
+              <mat-icon>download</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              matTooltip="Delete"
+              (click)="deleteMedia(item)"
+              [disabled]="item.category === 'cover'">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

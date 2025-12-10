@@ -388,16 +388,11 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  public onShowFileList(): void {
-    this.projectState.openSystemTab('project-files');
+  public onShowMediaLibrary(): void {
+    this.projectState.openSystemTab('media');
     const project = this.projectState.project();
     if (project) {
-      void this.router.navigate([
-        '/',
-        project.username,
-        project.slug,
-        'project-files',
-      ]);
+      void this.router.navigate(['/', project.username, project.slug, 'media']);
     }
   }
 

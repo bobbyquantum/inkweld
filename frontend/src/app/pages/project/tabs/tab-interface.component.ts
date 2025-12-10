@@ -116,12 +116,12 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
 
         // Handle different tab types
         if (tab.type === 'system') {
-          // System tab (documents list or project files)
+          // System tab (documents list or media)
           void this.router.navigate([
             '/',
             project.username,
             project.slug,
-            tab.systemType, // 'documents-list' or 'project-files'
+            tab.systemType, // 'documents-list' or 'media'
           ]);
         } else if (tab.type === 'publishPlan') {
           // Publish plan tab
@@ -235,8 +235,8 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
       const projectBaseUrl = `/${project.username}/${project.slug}`;
       if (url === `${projectBaseUrl}/documents-list`) {
         systemRoute = 'documents-list';
-      } else if (url === `${projectBaseUrl}/project-files`) {
-        systemRoute = 'project-files';
+      } else if (url === `${projectBaseUrl}/media`) {
+        systemRoute = 'media';
       } else if (url === `${projectBaseUrl}/templates-list`) {
         systemRoute = 'templates-list';
       } else if (url === `${projectBaseUrl}/relationships-list`) {
@@ -287,7 +287,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
         this.projectState.openSystemTab(
           systemRoute as
             | 'documents-list'
-            | 'project-files'
+            | 'media'
             | 'templates-list'
             | 'relationships-list'
         );
@@ -386,12 +386,10 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Opens a system tab for documents-list, project-files, or templates-list
+   * Opens a system tab for documents-list, media, or templates-list
    * @param type The type of system tab to open
    */
-  openSystemTab(
-    type: 'documents-list' | 'project-files' | 'templates-list'
-  ): void {
+  openSystemTab(type: 'documents-list' | 'media' | 'templates-list'): void {
     console.log(`[TabInterface] Opening system tab: ${type}`);
     this.projectState.openSystemTab(type);
   }
@@ -421,8 +419,8 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
     if (tab.type === 'system') {
       if (tab.systemType === 'documents-list') {
         return 'list';
-      } else if (tab.systemType === 'project-files') {
-        return 'attach_file';
+      } else if (tab.systemType === 'media') {
+        return 'perm_media';
       } else if (tab.systemType === 'templates-list') {
         return 'description';
       }

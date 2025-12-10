@@ -168,7 +168,6 @@ app.get('/api', (c) => {
       projects: '/api/v1/projects',
       documents: '/api/v1/projects/:username/:slug/docs',
       elements: '/api/v1/projects/:username/:slug/elements',
-      files: '/api/v1/projects/:username/:slug/files',
       epub: '/api/v1/projects/:username/:slug/epub',
       images: '/api/v1/images',
       snapshots: '/api/v1/snapshots',

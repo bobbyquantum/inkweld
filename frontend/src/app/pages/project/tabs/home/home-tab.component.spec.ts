@@ -349,18 +349,16 @@ describe('HomeTabComponent', () => {
     expect(imagesApi.uploadProjectCover).not.toHaveBeenCalled();
   });
 
-  it('should open project files tab', () => {
-    component.openProjectFilesTab();
-    expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
-      'project-files'
-    );
-  });
-
   it('should open documents tab', () => {
     component.openDocumentsTab();
     expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
       'documents-list'
     );
+  });
+
+  it('should open media tab', () => {
+    component.openMediaTab();
+    expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
   });
 
   describe.skip('cover image', () => {

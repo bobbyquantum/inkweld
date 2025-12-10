@@ -158,36 +158,6 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Files',
-      items: [
-        {
-          type: 'doc',
-          id: 'api/list-project-files',
-          label: 'listProjectFiles',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/upload-project-file',
-          label: 'uploadProjectFile',
-          className: 'api-method post',
-        },
-        {
-          type: 'doc',
-          id: 'api/download-project-file',
-          label: 'downloadProjectFile',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
-          id: 'api/delete-project-file',
-          label: 'deleteProjectFile',
-          className: 'api-method delete',
-        },
-      ],
-    },
-    {
-      type: 'category',
       label: 'Images',
       items: [
         {
