@@ -565,6 +565,19 @@ export class EpubGeneratorService {
       return node.map(n => this.nodeToHtml(n)).join('');
     }
 
+    // Handle elementRef nodes - render display text as plain text
+    // These are design-time references, no special rendering or linking in published output
+    if (
+      typeof node === 'object' &&
+      'type' in node &&
+      node.type === 'elementRef'
+    ) {
+      const attrs =
+        'attrs' in node ? (node['attrs'] as Record<string, unknown>) : null;
+      const displayText = attrs?.['displayText'] as string | undefined;
+      return displayText ? this.escapeHtml(displayText) : '';
+    }
+
     // ProseMirror text node - has 'type: text' and 'text' property
     if (
       typeof node === 'object' &&

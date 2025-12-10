@@ -150,6 +150,20 @@ export class ProjectStateService implements OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────────
 
   async loadProject(username: string, slug: string): Promise<void> {
+    // Skip if already loaded and connected to the same project
+    const currentProject = this.project();
+    if (
+      currentProject?.username === username &&
+      currentProject?.slug === slug &&
+      this.syncProvider?.isConnected()
+    ) {
+      this.logger.debug(
+        'ProjectState',
+        `Skipping reload - already connected to ${username}/${slug}`
+      );
+      return;
+    }
+
     this.isLoading.set(true);
     this.error.set(undefined);
 
@@ -232,6 +246,9 @@ export class ProjectStateService implements OnDestroy {
       'ProjectState',
       `Connected to ${this.syncProviderFactory.getCurrentMode()} sync provider`
     );
+
+    // Update WorldbuildingService with the sync provider for schema access
+    this.worldbuildingService.setSyncProvider(this.syncProvider);
   }
 
   /**
@@ -289,6 +306,9 @@ export class ProjectStateService implements OnDestroy {
       currentProjectId: currentProject?.id,
       currentProjectSlug: currentProject?.slug,
     });
+
+    // Clear WorldbuildingService sync provider
+    this.worldbuildingService.setSyncProvider(null);
 
     // Disconnect sync provider
     this.cleanupProviderSubscriptions();
@@ -351,16 +371,16 @@ export class ProjectStateService implements OnDestroy {
     this.syncProvider.updateElements(elements);
   }
 
-  async addElement(
+  addElement(
     type: Element['type'],
     name: string,
     parentId?: string
-  ): Promise<string | undefined> {
+  ): string | undefined {
     const project = this.project();
     if (!project) return undefined;
 
     // Fetch icon for custom templates
-    const icon = await this.worldbuildingService.getIconForType(
+    const icon = this.worldbuildingService.getIconForType(
       type,
       project.username,
       project.slug
@@ -618,16 +638,18 @@ export class ProjectStateService implements OnDestroy {
 
       // Cache icon for custom types
       if (element.type.startsWith('CUSTOM_')) {
-        void this.worldbuildingService
-          .getIconForType(element.type, project.username, project.slug)
-          .then(icon => {
-            const updatedElement = { ...element };
-            updatedElement.metadata = { ...element.metadata, icon };
-            this.tabManager.updateTabElement(element.id, updatedElement);
-          })
-          .catch(err => {
-            console.warn(`Failed to load icon for ${element.type}:`, err);
-          });
+        try {
+          const icon = this.worldbuildingService.getIconForType(
+            element.type,
+            project.username,
+            project.slug
+          );
+          const updatedElement = { ...element };
+          updatedElement.metadata = { ...element.metadata, icon };
+          this.tabManager.updateTabElement(element.id, updatedElement);
+        } catch (err) {
+          console.warn(`Failed to load icon for ${element.type}:`, err);
+        }
       }
     }
 
@@ -637,7 +659,11 @@ export class ProjectStateService implements OnDestroy {
   }
 
   openSystemTab(
-    type: 'documents-list' | 'project-files' | 'templates-list'
+    type:
+      | 'documents-list'
+      | 'project-files'
+      | 'templates-list'
+      | 'relationships-list'
   ): void {
     const result = this.tabManager.openSystemTab(type);
     if (result.wasCreated) {
@@ -691,9 +717,9 @@ export class ProjectStateService implements OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────────
 
   showNewElementDialog(parentElement?: Element): void {
-    void this.dialogGateway.openNewElementDialog().then(async result => {
+    void this.dialogGateway.openNewElementDialog().then(result => {
       if (result) {
-        const newElementId = await this.addElement(
+        const newElementId = this.addElement(
           result.type,
           result.name,
           parentElement?.id
@@ -879,7 +905,7 @@ export class ProjectStateService implements OnDestroy {
     }
   }
 
-  private async enrichElementsWithIcons(elements: Element[]): Promise<void> {
+  private enrichElementsWithIcons(elements: Element[]): void {
     const project = this.project();
     if (!project) return;
 
@@ -891,7 +917,7 @@ export class ProjectStateService implements OnDestroy {
 
     for (const element of customElements) {
       try {
-        const icon = await this.worldbuildingService.getIconForType(
+        const icon = this.worldbuildingService.getIconForType(
           element.type,
           project.username,
           project.slug

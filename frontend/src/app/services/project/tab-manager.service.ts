@@ -15,7 +15,12 @@ export interface AppTab {
   /** Type of tab content */
   type: 'document' | 'folder' | 'system' | 'worldbuilding' | 'publishPlan';
   /** For system tabs, specifies the system view type */
-  systemType?: 'documents-list' | 'project-files' | 'templates-list' | 'home';
+  systemType?:
+    | 'documents-list'
+    | 'project-files'
+    | 'templates-list'
+    | 'relationships-list'
+    | 'home';
   /** The element associated with this tab (for document/folder/worldbuilding tabs) */
   element?: Element;
   /** The element type (for filtering/display purposes) */
@@ -155,7 +160,11 @@ export class TabManagerService {
    * @returns Information about the opened tab
    */
   openSystemTab(
-    type: 'documents-list' | 'project-files' | 'templates-list'
+    type:
+      | 'documents-list'
+      | 'project-files'
+      | 'templates-list'
+      | 'relationships-list'
   ): OpenTabResult {
     const tabs = this.openTabs();
     const tabId = `system-${type}`;
@@ -164,7 +173,9 @@ export class TabManagerService {
         ? 'Documents'
         : type === 'project-files'
           ? 'Files'
-          : 'Templates';
+          : type === 'templates-list'
+            ? 'Templates'
+            : 'Relationships';
 
     // Check if tab already exists
     const existingIndex = tabs.findIndex(t => t.id === tabId);
@@ -497,7 +508,11 @@ export class TabManagerService {
    * @returns The index (with home offset) or -1 if not found
    */
   findSystemTabIndex(
-    systemType: 'documents-list' | 'project-files' | 'templates-list'
+    systemType:
+      | 'documents-list'
+      | 'project-files'
+      | 'templates-list'
+      | 'relationships-list'
   ): number {
     const tabs = this.openTabs();
     const index = tabs.findIndex(t => t.systemType === systemType);

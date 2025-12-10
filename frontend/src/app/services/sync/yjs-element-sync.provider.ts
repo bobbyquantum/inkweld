@@ -6,8 +6,13 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
+import {
+  ElementRelationship,
+  RelationshipTypeDefinition,
+} from '../../components/element-ref/element-ref.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
+import { ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import {
   IElementSyncProvider,
@@ -72,6 +77,15 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   );
   private readonly elementsSubject = new BehaviorSubject<Element[]>([]);
   private readonly publishPlansSubject = new BehaviorSubject<PublishPlan[]>([]);
+  private readonly relationshipsSubject = new BehaviorSubject<
+    ElementRelationship[]
+  >([]);
+  private readonly customRelationshipTypesSubject = new BehaviorSubject<
+    RelationshipTypeDefinition[]
+  >([]);
+  private readonly schemasSubject = new BehaviorSubject<ElementTypeSchema[]>(
+    []
+  );
   private readonly errorsSubject = new Subject<string>();
 
   // Public observables
@@ -81,6 +95,12 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.elementsSubject.asObservable();
   readonly publishPlans$: Observable<PublishPlan[]> =
     this.publishPlansSubject.asObservable();
+  readonly relationships$: Observable<ElementRelationship[]> =
+    this.relationshipsSubject.asObservable();
+  readonly customRelationshipTypes$: Observable<RelationshipTypeDefinition[]> =
+    this.customRelationshipTypesSubject.asObservable();
+  readonly schemas$: Observable<ElementTypeSchema[]> =
+    this.schemasSubject.asObservable();
   readonly errors$: Observable<string> = this.errorsSubject.asObservable();
 
   /**
@@ -220,6 +240,9 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     // Reset state
     this.elementsSubject.next([]);
     this.publishPlansSubject.next([]);
+    this.relationshipsSubject.next([]);
+    this.customRelationshipTypesSubject.next([]);
+    this.schemasSubject.next([]);
     this.syncStateSubject.next(DocumentSyncState.Unavailable);
   }
 
@@ -296,6 +319,120 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.logger.debug(
       'YjsSync',
       `Yjs doc now contains ${plansArray.length} publish plans`
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Relationships (centralized in project elements doc)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  getRelationships(): ElementRelationship[] {
+    return this.relationshipsSubject.getValue();
+  }
+
+  /**
+   * Update relationships in the Yjs document.
+   * Changes propagate to all connected clients.
+   */
+  updateRelationships(relationships: ElementRelationship[]): void {
+    if (!this.doc) {
+      this.logger.warn(
+        'YjsSync',
+        'Cannot update relationships - not connected'
+      );
+      return;
+    }
+
+    this.logger.debug(
+      'YjsSync',
+      `Writing ${relationships.length} relationships to Yjs`
+    );
+
+    const relationshipsArray =
+      this.doc.getArray<ElementRelationship>('relationships');
+
+    this.doc.transact(() => {
+      relationshipsArray.delete(0, relationshipsArray.length);
+      relationshipsArray.insert(0, relationships);
+    });
+
+    this.logger.debug(
+      'YjsSync',
+      `Yjs doc now contains ${relationshipsArray.length} relationships`
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Custom Relationship Types (project-specific)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  getCustomRelationshipTypes(): RelationshipTypeDefinition[] {
+    return this.customRelationshipTypesSubject.getValue();
+  }
+
+  /**
+   * Update custom relationship types in the Yjs document.
+   * Changes propagate to all connected clients.
+   */
+  updateCustomRelationshipTypes(types: RelationshipTypeDefinition[]): void {
+    if (!this.doc) {
+      this.logger.warn(
+        'YjsSync',
+        'Cannot update custom relationship types - not connected'
+      );
+      return;
+    }
+
+    this.logger.debug(
+      'YjsSync',
+      `Writing ${types.length} custom relationship types to Yjs`
+    );
+
+    const typesArray = this.doc.getArray<RelationshipTypeDefinition>(
+      'customRelationshipTypes'
+    );
+
+    this.doc.transact(() => {
+      typesArray.delete(0, typesArray.length);
+      typesArray.insert(0, types);
+    });
+
+    this.logger.debug(
+      'YjsSync',
+      `Yjs doc now contains ${typesArray.length} custom relationship types`
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Worldbuilding Schemas (project template library)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  getSchemas(): ElementTypeSchema[] {
+    return this.schemasSubject.getValue();
+  }
+
+  /**
+   * Update schemas in the Yjs document.
+   * Changes propagate to all connected clients.
+   */
+  updateSchemas(schemas: ElementTypeSchema[]): void {
+    if (!this.doc) {
+      this.logger.warn('YjsSync', 'Cannot update schemas - not connected');
+      return;
+    }
+
+    this.logger.debug('YjsSync', `Writing ${schemas.length} schemas to Yjs`);
+
+    const schemasArray = this.doc.getArray<ElementTypeSchema>('schemas');
+
+    this.doc.transact(() => {
+      schemasArray.delete(0, schemasArray.length);
+      schemasArray.insert(0, schemas);
+    });
+
+    this.logger.debug(
+      'YjsSync',
+      `Yjs doc now contains ${schemasArray.length} schemas`
     );
   }
 
@@ -511,6 +648,39 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.logger.debug('YjsSync', `Publish plans changed: ${plans.length}`);
       this.publishPlansSubject.next(plans);
     });
+
+    // Relationships observer
+    const relationshipsArray =
+      this.doc.getArray<ElementRelationship>('relationships');
+    relationshipsArray.observe(() => {
+      const relationships = relationshipsArray.toArray();
+      this.logger.debug(
+        'YjsSync',
+        `Relationships changed: ${relationships.length}`
+      );
+      this.relationshipsSubject.next(relationships);
+    });
+
+    // Custom relationship types observer
+    const typesArray = this.doc.getArray<RelationshipTypeDefinition>(
+      'customRelationshipTypes'
+    );
+    typesArray.observe(() => {
+      const types = typesArray.toArray();
+      this.logger.debug(
+        'YjsSync',
+        `Custom relationship types changed: ${types.length}`
+      );
+      this.customRelationshipTypesSubject.next(types);
+    });
+
+    // Schemas observer
+    const schemasArray = this.doc.getArray<ElementTypeSchema>('schemas');
+    schemasArray.observe(() => {
+      const schemas = schemasArray.toArray();
+      this.logger.debug('YjsSync', `Schemas changed: ${schemas.length}`);
+      this.schemasSubject.next(schemas);
+    });
   }
 
   /**
@@ -548,6 +718,33 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       `Loaded ${plans.length} publish plans from Yjs`
     );
     this.publishPlansSubject.next(plans);
+
+    // Load relationships
+    const relationshipsArray =
+      this.doc.getArray<ElementRelationship>('relationships');
+    const relationships = relationshipsArray.toArray();
+    this.logger.debug(
+      'YjsSync',
+      `Loaded ${relationships.length} relationships from Yjs`
+    );
+    this.relationshipsSubject.next(relationships);
+
+    // Load custom relationship types
+    const typesArray = this.doc.getArray<RelationshipTypeDefinition>(
+      'customRelationshipTypes'
+    );
+    const types = typesArray.toArray();
+    this.logger.debug(
+      'YjsSync',
+      `Loaded ${types.length} custom relationship types from Yjs`
+    );
+    this.customRelationshipTypesSubject.next(types);
+
+    // Load schemas
+    const schemasArray = this.doc.getArray<ElementTypeSchema>('schemas');
+    const schemas = schemasArray.toArray();
+    this.logger.debug('YjsSync', `Loaded ${schemas.length} schemas from Yjs`);
+    this.schemasSubject.next(schemas);
   }
 
   /**

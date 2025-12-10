@@ -1,0 +1,103 @@
+<div class="relationships-panel">
+  <!-- Add Relationship Button -->
+  <div class="panel-actions">
+    <button
+      mat-stroked-button
+      (click)="openAddRelationshipDialog()"
+      class="add-relationship-button"
+      data-testid="add-relationship-button">
+      <mat-icon>add</mat-icon>
+      <span>Add Relationship</span>
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="32"></mat-spinner>
+      <p>Loading relationships...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-container">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ error() }}</p>
+      <button mat-button (click)="refresh()">Try Again</button>
+    </div>
+  } @else if (totalCount() === 0) {
+    <div class="empty-state">
+      <mat-icon>link_off</mat-icon>
+      <p>No relationships yet</p>
+      <p class="hint">
+        Click "Add Relationship" above or use @ to reference elements in
+        documents
+      </p>
+    </div>
+  } @else {
+    <!-- Grouped Relationships -->
+    <mat-accordion class="relationships-accordion" multi>
+      @for (group of groupedRelationships(); track getGroupKey(group)) {
+        <mat-expansion-panel
+          [expanded]="true"
+          class="relationship-group"
+          [class.incoming]="group.isIncoming"
+          data-testid="relationship-group">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="type-icon">{{
+                group.type.icon || 'link'
+              }}</mat-icon>
+              <span class="group-label">{{ group.displayLabel }}</span>
+              <span class="group-count"
+                >({{ group.relationships.length }})</span
+              >
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <mat-nav-list class="relationships-list" dense>
+            @for (rel of group.relationships; track rel.id) {
+              <a
+                mat-list-item
+                tabindex="0"
+                (click)="navigateToElement(rel, group.isIncoming)"
+                (keydown.enter)="navigateToElement(rel, group.isIncoming)"
+                (mouseenter)="
+                  showTooltipForElement(
+                    group.isIncoming
+                      ? rel.sourceElementId
+                      : rel.targetElementId,
+                    $event
+                  )
+                "
+                (mouseleave)="hideTooltip()"
+                class="relationship-item"
+                data-testid="relationship-item">
+                <mat-icon matListItemIcon>{{
+                  getElementIcon(
+                    group.isIncoming ? rel.sourceElementId : rel.targetElementId
+                  )
+                }}</mat-icon>
+                <span matListItemTitle>{{
+                  getElementName(
+                    group.isIncoming ? rel.sourceElementId : rel.targetElementId
+                  )
+                }}</span>
+                <div matListItemMeta class="item-actions">
+                  @if (!group.isIncoming) {
+                    <button
+                      mat-icon-button
+                      (click)="deleteRelationship(rel, $event)"
+                      matTooltip="Remove relationship"
+                      class="delete-button"
+                      data-testid="delete-relationship-button">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  }
+                  <mat-icon class="chevron">chevron_right</mat-icon>
+                </div>
+              </a>
+            }
+          </mat-nav-list>
+        </mat-expansion-panel>
+      }
+    </mat-accordion>
+  }
+</div>

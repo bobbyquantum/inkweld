@@ -1,0 +1,89 @@
+.form-section {
+  margin-bottom: 24px;
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--sys-on-surface-variant);
+  }
+}
+
+.full-width {
+  width: 100%;
+}
+
+.type-icon {
+  margin-right: 8px;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+}
+
+.inverse-hint {
+  margin-left: 8px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.type-description {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--sys-surface-container);
+  border-radius: 8px;
+  margin-top: 8px;
+
+  mat-icon {
+    color: var(--sys-primary);
+    flex-shrink: 0;
+  }
+
+  .inverse-note {
+    font-size: 12px;
+    color: var(--sys-on-surface-variant);
+    display: block;
+    margin-top: 4px;
+  }
+}
+
+.selected-element {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--sys-surface-container-high);
+  border-radius: 8px;
+  border: 1px solid var(--sys-outline-variant);
+
+  mat-icon {
+    color: var(--sys-primary);
+    flex-shrink: 0;
+  }
+
+  .element-name {
+    flex: 1;
+    font-weight: 500;
+  }
+}
+
+.no-results {
+  color: var(--sys-on-surface-variant);
+  font-style: italic;
+}
+
+mat-dialog-content {
+  min-width: 400px;
+  max-width: 500px;
+}
+
+mat-option {
+  mat-icon {
+    margin-right: 8px;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}

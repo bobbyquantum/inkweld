@@ -2,7 +2,7 @@ h2[mat-dialog-title] {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--mat-warn-color);
+  color: var(--sys-error);
 }
 
 mat-dialog-content {
@@ -12,17 +12,17 @@ mat-dialog-content {
 
 .warning-message {
   padding: 16px;
-  background: color-mix(in srgb, var(--mat-warn-color) 10%, transparent);
-  border-left: 4px solid var(--mat-warn-color);
+  background: var(--sys-error-container);
+  border-left: 4px solid var(--sys-error);
   border-radius: 4px;
   margin-bottom: 16px;
 
   p {
     margin: 0;
-    color: var(--mat-app-on-surface);
+    color: var(--sys-on-error-container);
 
     strong {
-      color: var(--mat-warn-color);
+      color: var(--sys-error);
     }
   }
 }
@@ -45,12 +45,12 @@ mat-dialog-content {
 
   dt {
     font-weight: 500;
-    color: var(--mat-app-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 
   dd {
     margin: 0;
-    color: var(--mat-app-on-surface);
+    color: var(--sys-on-surface);
   }
 }
 
@@ -59,18 +59,18 @@ mat-dialog-content {
   align-items: flex-start;
   gap: 12px;
   padding: 12px;
-  background: color-mix(in srgb, var(--mat-primary-color) 10%, transparent);
+  background: var(--sys-primary-container);
   border-radius: 4px;
 
   mat-icon {
-    color: var(--mat-primary-color);
+    color: var(--sys-on-primary-container);
     flex-shrink: 0;
   }
 
   p {
     margin: 0;
     font-size: 13px;
-    color: var(--mat-app-on-surface);
+    color: var(--sys-on-primary-container);
   }
 }
 
