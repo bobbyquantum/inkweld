@@ -659,11 +659,7 @@ export class ProjectStateService implements OnDestroy {
   }
 
   openSystemTab(
-    type:
-      | 'documents-list'
-      | 'media'
-      | 'templates-list'
-      | 'relationships-list'
+    type: 'documents-list' | 'media' | 'templates-list' | 'relationships-list'
   ): void {
     const result = this.tabManager.openSystemTab(type);
     if (result.wasCreated) {

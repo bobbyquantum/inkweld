@@ -160,11 +160,7 @@ export class TabManagerService {
    * @returns Information about the opened tab
    */
   openSystemTab(
-    type:
-      | 'documents-list'
-      | 'media'
-      | 'templates-list'
-      | 'relationships-list'
+    type: 'documents-list' | 'media' | 'templates-list' | 'relationships-list'
   ): OpenTabResult {
     const tabs = this.openTabs();
     const tabId = `system-${type}`;
