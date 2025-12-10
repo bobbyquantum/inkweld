@@ -17,7 +17,7 @@ export interface AppTab {
   /** For system tabs, specifies the system view type */
   systemType?:
     | 'documents-list'
-    | 'project-files'
+    | 'media'
     | 'templates-list'
     | 'relationships-list'
     | 'home';
@@ -162,7 +162,7 @@ export class TabManagerService {
   openSystemTab(
     type:
       | 'documents-list'
-      | 'project-files'
+      | 'media'
       | 'templates-list'
       | 'relationships-list'
   ): OpenTabResult {
@@ -171,8 +171,8 @@ export class TabManagerService {
     const tabName =
       type === 'documents-list'
         ? 'Documents'
-        : type === 'project-files'
-          ? 'Files'
+        : type === 'media'
+          ? 'Media'
           : type === 'templates-list'
             ? 'Templates'
             : 'Relationships';

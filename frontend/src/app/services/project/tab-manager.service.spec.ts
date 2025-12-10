@@ -152,11 +152,11 @@ describe('TabManagerService', () => {
       expect(result.tab.systemType).toBe('documents-list');
     });
 
-    it('should create project-files system tab', () => {
-      const result = service.openSystemTab('project-files');
+    it('should create media system tab', () => {
+      const result = service.openSystemTab('media');
 
-      expect(result.tab.name).toBe('Files');
-      expect(result.tab.systemType).toBe('project-files');
+      expect(result.tab.name).toBe('Media');
+      expect(result.tab.systemType).toBe('media');
     });
 
     it('should create templates-list system tab', () => {
@@ -312,10 +312,10 @@ describe('TabManagerService', () => {
       const tabs: AppTab[] = [
         { id: 'doc-1', name: 'Chapter 1', type: 'document' },
         {
-          id: 'system-files',
-          name: 'Files',
+          id: 'system-media',
+          name: 'Media',
           type: 'system',
-          systemType: 'project-files',
+          systemType: 'media',
         },
       ];
 

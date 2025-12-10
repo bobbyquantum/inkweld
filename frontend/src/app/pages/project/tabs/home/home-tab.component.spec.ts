@@ -356,6 +356,11 @@ describe('HomeTabComponent', () => {
     );
   });
 
+  it('should open media tab', () => {
+    component.openMediaTab();
+    expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
+  });
+
   describe.skip('cover image', () => {
     it('should load cover image when project is set', async () => {
       const mockBlob = new Blob(['test'], { type: 'image/png' });

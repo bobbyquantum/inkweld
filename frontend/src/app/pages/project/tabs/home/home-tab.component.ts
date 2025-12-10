@@ -238,6 +238,17 @@ export class HomeTabComponent {
   }
 
   /**
+   * Opens the media tab
+   */
+  openMediaTab(): void {
+    this.projectState.openSystemTab('media');
+    const project = this.projectState.project();
+    if (project) {
+      void this.router.navigate(['/', project.username, project.slug, 'media']);
+    }
+  }
+
+  /**
    * Opens the templates tab
    */
   openTemplatesTab(): void {

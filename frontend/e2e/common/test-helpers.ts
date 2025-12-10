@@ -1,4 +1,155 @@
 import { Page } from '@playwright/test';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
+
+/**
+ * Demo asset paths (relative to workspace root)
+ */
+export const DEMO_ASSETS = {
+  covers: {
+    demo1: 'assets/demo_covers/demo_cover_1.png',
+    inkweld1: 'assets/demo_covers/inkweld_cover_1.png',
+    worldbuilding1: 'assets/demo_covers/worldbuilding_cover_1.png',
+  },
+  images: {
+    cyberCityscape: 'assets/demo_images/cyber-cityscape.png',
+    demoCharacter: 'assets/demo_images/demo-character.png',
+    landscapePencil: 'assets/demo_images/landscape-pencil-art.png',
+  },
+} as const;
+
+/**
+ * Get the absolute path to a demo asset
+ */
+export function getDemoAssetPath(relativePath: string): string {
+  // Go from frontend/e2e to workspace root
+  return join(process.cwd(), '..', relativePath);
+}
+
+/**
+ * Load a demo asset file as a base64 string
+ */
+export async function loadDemoAssetBase64(
+  relativePath: string
+): Promise<string> {
+  const absolutePath = getDemoAssetPath(relativePath);
+  const buffer = await readFile(absolutePath);
+  return buffer.toString('base64');
+}
+
+/**
+ * Store a real image file from assets into IndexedDB
+ * @param page Playwright page
+ * @param projectKey Project key (username/slug)
+ * @param mediaId Media ID for storage
+ * @param assetPath Path to asset relative to workspace root
+ * @param filename Display filename in the media record
+ */
+export async function storeRealMediaInIndexedDB(
+  page: Page,
+  projectKey: string,
+  mediaId: string,
+  assetPath: string,
+  filename: string
+): Promise<void> {
+  const base64Data = await loadDemoAssetBase64(assetPath);
+
+  await page.evaluate(
+    async ({ projectKey, mediaId, base64Data, filename }) => {
+      // Convert base64 to blob
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'image/png' });
+
+      const key = `${projectKey}:${mediaId}`;
+      const record = {
+        id: key,
+        blob,
+        mimeType: 'image/png',
+        size: blob.size,
+        createdAt: new Date().toISOString(),
+        filename,
+      };
+
+      return new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open('inkweld-media', 1);
+        request.onerror = () => reject(new Error('Failed to open database'));
+        request.onupgradeneeded = event => {
+          const db = (event.target as IDBOpenDBRequest).result;
+          if (!db.objectStoreNames.contains('media')) {
+            db.createObjectStore('media', { keyPath: 'id' });
+          }
+        };
+        request.onsuccess = () => {
+          const db = request.result;
+          const tx = db.transaction('media', 'readwrite');
+          const store = tx.objectStore('media');
+          const putRequest = store.put(record);
+          putRequest.onsuccess = () => resolve();
+          putRequest.onerror = () => reject(new Error('Failed to store media'));
+        };
+      });
+    },
+    { projectKey, mediaId, base64Data, filename }
+  );
+}
+
+/**
+ * Store a sample EPUB file (real empty EPUB structure) in IndexedDB
+ * This creates a minimal valid EPUB file rather than random bytes
+ */
+export async function storeRealEpubInIndexedDB(
+  page: Page,
+  projectKey: string,
+  fileId: string,
+  filename: string
+): Promise<void> {
+  await page.evaluate(
+    async ({ projectKey, fileId, filename }) => {
+      // Create a minimal EPUB-like structure as a real file
+      // EPUBs are ZIP files with specific structure
+      // For testing, we create a simple but valid-looking blob
+      const encoder = new TextEncoder();
+      const mimetype = encoder.encode('application/epub+zip');
+
+      // Create blob from the mimetype content (minimal but real content)
+      const blob = new Blob([mimetype], { type: 'application/epub+zip' });
+
+      const key = `${projectKey}:published-${fileId}`;
+      const record = {
+        id: key,
+        blob,
+        mimeType: 'application/epub+zip',
+        size: blob.size,
+        createdAt: new Date().toISOString(),
+        filename,
+      };
+
+      return new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open('inkweld-media', 1);
+        request.onerror = () => reject(new Error('Failed to open database'));
+        request.onupgradeneeded = event => {
+          const db = (event.target as IDBOpenDBRequest).result;
+          if (!db.objectStoreNames.contains('media')) {
+            db.createObjectStore('media', { keyPath: 'id' });
+          }
+        };
+        request.onsuccess = () => {
+          const db = request.result;
+          const tx = db.transaction('media', 'readwrite');
+          const store = tx.objectStore('media');
+          const putRequest = store.put(record);
+          putRequest.onsuccess = () => resolve();
+          putRequest.onerror = () => reject(new Error('Failed to store epub'));
+        };
+      });
+    },
+    { projectKey, fileId, filename }
+  );
+}
 
 /**
  * Common test constants used across offline and online tests
