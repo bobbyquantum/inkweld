@@ -248,6 +248,67 @@ describe('ElementRefService', () => {
     });
   });
 
+  describe('searchResults signal', () => {
+    it('should return limited elements when no query is set', () => {
+      service.setSearchQuery('');
+      const results = service.searchResults();
+      expect(results.length).toBeLessThanOrEqual(10);
+    });
+
+    it('should filter results based on search query', () => {
+      service.setSearchQuery('john');
+      const results = service.searchResults();
+      expect(results.length).toBe(2);
+      expect(results.some(r => r.element.name === 'John Smith')).toBe(true);
+      expect(results.some(r => r.element.name === 'Jane Johnson')).toBe(true);
+    });
+
+    it('should filter by type in search query', () => {
+      service.setSearchQuery('location');
+      const results = service.searchResults();
+      expect(results.length).toBe(1);
+      expect(results[0].element.type).toBe(ElementType.Location);
+    });
+
+    it('should handle whitespace in queries', () => {
+      service.setSearchQuery('   john   ');
+      const results = service.searchResults();
+      expect(results.length).toBe(2);
+    });
+
+    it('should return empty results for non-matching query', () => {
+      service.setSearchQuery('nonexistent');
+      const results = service.searchResults();
+      expect(results.length).toBe(0);
+    });
+
+    it('should handle element with missing parent in path', () => {
+      // Add an element with a parentId that does not exist
+      mockProjectState.elements.set([
+        ...mockElements,
+        {
+          id: 'orphan-1',
+          name: 'Orphan Element',
+          type: ElementType.Character,
+          parentId: 'non-existent-parent', // Parent doesn't exist
+          order: 10,
+          level: 1,
+          expandable: false,
+          version: 1,
+          metadata: {},
+        },
+      ]);
+
+      service.setSearchQuery('orphan');
+      const results = service.searchResults();
+
+      expect(results.length).toBe(1);
+      expect(results[0].element.name).toBe('Orphan Element');
+      // Path should be empty since parent doesn't exist
+      expect(results[0].path).toBe('');
+    });
+  });
+
   describe('element lookup', () => {
     it('should get element by ID', () => {
       const element = service.getElementById('char-1');
@@ -290,6 +351,152 @@ describe('ElementRefService', () => {
     it('should return description icon for documents', () => {
       const element = mockElements.find(e => e.id === 'doc-1')!;
       expect(service.getElementIcon(element)).toBe('description');
+    });
+
+    it('should return category icon for custom types', () => {
+      const customElement: Element = {
+        id: 'custom-1',
+        name: 'Custom Item',
+        type: 'CUSTOM_MyType' as ElementType,
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      };
+      expect(service.getElementIcon(customElement)).toBe('category');
+    });
+  });
+
+  describe('getDefaultIconForType', () => {
+    it('should return default icon for standard types', () => {
+      expect(service.getDefaultIconForType(ElementType.Character)).toBe(
+        'person'
+      );
+      expect(service.getDefaultIconForType(ElementType.Location)).toBe('place');
+      expect(service.getDefaultIconForType(ElementType.Folder)).toBe('folder');
+      expect(service.getDefaultIconForType(ElementType.Item)).toBe(
+        'description'
+      );
+    });
+
+    it('should return category icon for custom types', () => {
+      expect(service.getDefaultIconForType('CUSTOM_Race' as ElementType)).toBe(
+        'category'
+      );
+    });
+
+    it('should return description icon for unknown types', () => {
+      expect(service.getDefaultIconForType('UNKNOWN' as ElementType)).toBe(
+        'description'
+      );
+    });
+  });
+
+  describe('formatElementType', () => {
+    it('should format standard element types', () => {
+      expect(service.formatElementType(ElementType.Character)).toBe(
+        'Character'
+      );
+      expect(service.formatElementType(ElementType.Location)).toBe('Location');
+      expect(service.formatElementType(ElementType.Item)).toBe('Document');
+    });
+
+    it('should format custom types with title case and spaces', () => {
+      expect(service.formatElementType('CUSTOM_Race' as ElementType)).toBe(
+        'Custom Race'
+      );
+      expect(
+        service.formatElementType('CUSTOM_Magic_System' as ElementType)
+      ).toBe('Custom Magic System');
+    });
+
+    it('should return title case for unrecognized types', () => {
+      expect(service.formatElementType('UNKNOWN' as ElementType)).toBe(
+        'Unknown'
+      );
+    });
+  });
+
+  describe('tooltip control', () => {
+    it('should show tooltip with data', () => {
+      const tooltipData = {
+        elementId: 'char-1',
+        displayText: 'John',
+        originalName: 'John Smith',
+        elementType: ElementType.Character,
+        position: { x: 100, y: 200 },
+      };
+
+      service.showTooltip(tooltipData);
+
+      expect(service.tooltipData()).toEqual(tooltipData);
+    });
+
+    it('should hide tooltip', () => {
+      const tooltipData = {
+        elementId: 'char-1',
+        displayText: 'John',
+        originalName: 'John Smith',
+        elementType: ElementType.Character,
+        position: { x: 100, y: 200 },
+      };
+
+      service.showTooltip(tooltipData);
+      service.hideTooltip();
+
+      expect(service.tooltipData()).toBeNull();
+    });
+  });
+
+  describe('click event handling', () => {
+    it('should handle ref click event', () => {
+      const clickEvent = {
+        elementId: 'char-1',
+        elementType: ElementType.Character,
+        displayText: 'John',
+        originalName: 'John Smith',
+        nodePos: 42,
+        mouseEvent: new MouseEvent('click'),
+        isContextMenu: false,
+      };
+
+      service.handleRefClick(clickEvent);
+
+      expect(service.clickEvent()).toEqual(clickEvent);
+    });
+
+    it('should clear click event', () => {
+      const clickEvent = {
+        elementId: 'char-1',
+        elementType: ElementType.Character,
+        displayText: 'John',
+        originalName: 'John Smith',
+        nodePos: 42,
+        mouseEvent: new MouseEvent('click'),
+        isContextMenu: true,
+      };
+
+      service.handleRefClick(clickEvent);
+      service.clearClickEvent();
+
+      expect(service.clickEvent()).toBeNull();
+    });
+  });
+
+  describe('editor view management', () => {
+    it('should set and get editor view', () => {
+      const mockView = {
+        state: {},
+        dispatch: vi.fn(),
+      } as unknown as Parameters<typeof service.setEditorView>[0];
+
+      expect(service.editorView()).toBeNull();
+
+      service.setEditorView(mockView);
+
+      expect(service.editorView()).toBe(mockView);
     });
   });
 });

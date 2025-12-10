@@ -8,7 +8,7 @@ import * as Y from 'yjs';
 
 import {
   ElementRelationship,
-  RelationshipType,
+  RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
@@ -81,7 +81,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     ElementRelationship[]
   >([]);
   private readonly customRelationshipTypesSubject = new BehaviorSubject<
-    RelationshipType[]
+    RelationshipTypeDefinition[]
   >([]);
   private readonly schemasSubject = new BehaviorSubject<ElementTypeSchema[]>(
     []
@@ -97,7 +97,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.publishPlansSubject.asObservable();
   readonly relationships$: Observable<ElementRelationship[]> =
     this.relationshipsSubject.asObservable();
-  readonly customRelationshipTypes$: Observable<RelationshipType[]> =
+  readonly customRelationshipTypes$: Observable<RelationshipTypeDefinition[]> =
     this.customRelationshipTypesSubject.asObservable();
   readonly schemas$: Observable<ElementTypeSchema[]> =
     this.schemasSubject.asObservable();
@@ -366,7 +366,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   // Custom Relationship Types (project-specific)
   // ─────────────────────────────────────────────────────────────────────────────
 
-  getCustomRelationshipTypes(): RelationshipType[] {
+  getCustomRelationshipTypes(): RelationshipTypeDefinition[] {
     return this.customRelationshipTypesSubject.getValue();
   }
 
@@ -374,7 +374,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
    * Update custom relationship types in the Yjs document.
    * Changes propagate to all connected clients.
    */
-  updateCustomRelationshipTypes(types: RelationshipType[]): void {
+  updateCustomRelationshipTypes(types: RelationshipTypeDefinition[]): void {
     if (!this.doc) {
       this.logger.warn(
         'YjsSync',
@@ -388,7 +388,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       `Writing ${types.length} custom relationship types to Yjs`
     );
 
-    const typesArray = this.doc.getArray<RelationshipType>(
+    const typesArray = this.doc.getArray<RelationshipTypeDefinition>(
       'customRelationshipTypes'
     );
 
@@ -662,7 +662,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     });
 
     // Custom relationship types observer
-    const typesArray = this.doc.getArray<RelationshipType>(
+    const typesArray = this.doc.getArray<RelationshipTypeDefinition>(
       'customRelationshipTypes'
     );
     typesArray.observe(() => {
@@ -730,7 +730,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.relationshipsSubject.next(relationships);
 
     // Load custom relationship types
-    const typesArray = this.doc.getArray<RelationshipType>(
+    const typesArray = this.doc.getArray<RelationshipTypeDefinition>(
       'customRelationshipTypes'
     );
     const types = typesArray.toArray();

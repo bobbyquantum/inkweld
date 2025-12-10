@@ -40,6 +40,8 @@ export enum RelationshipCategory {
  * Relationship types define the vocabulary for connecting elements.
  * Each type has a forward label (e.g., "Parent of") and optionally
  * an inverse label (e.g., "Child of") for displaying backlinks.
+ *
+ * @deprecated Use RelationshipTypeDefinition instead
  */
 export interface RelationshipType {
   /** Unique identifier for this relationship type */
@@ -58,6 +60,116 @@ export interface RelationshipType {
   color?: string;
   /** Whether this relationship is symmetric (same in both directions) */
   isSymmetric?: boolean;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// New Relationship Type System (v2)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Configuration for one endpoint of a relationship type.
+ * Defines schema constraints and cardinality limits.
+ */
+export interface RelationshipEndpoint {
+  /**
+   * Element schemas allowed at this endpoint.
+   * Empty array means any schema is allowed.
+   * Uses schema type IDs (e.g., 'CHARACTER', 'LOCATION', 'CUSTOM_MY_TYPE')
+   */
+  allowedSchemas: string[];
+
+  /**
+   * Maximum number of relationships of this type allowed at this endpoint.
+   * - null/undefined = unlimited
+   * - 1 = only one relationship allowed (e.g., "one mother")
+   * - n = up to n relationships allowed
+   *
+   * @example
+   * // Mother relationship: target can have max 1 mother
+   * targetEndpoint: { maxCount: 1 }
+   * // Children: source can have unlimited children
+   * sourceEndpoint: { maxCount: null }
+   */
+  maxCount?: number | null;
+}
+
+/**
+ * Enhanced relationship type definition with endpoint constraints.
+ *
+ * This replaces the older RelationshipType interface, providing:
+ * - Schema constraints at each endpoint
+ * - Cardinality limits (maxCount)
+ * - Control over backlink visibility (showInverse)
+ *
+ * Relationships are stored as directed edges in a project-level graph.
+ * The source creates the relationship, the target sees it as a backlink.
+ *
+ * @example
+ * // Brother relationship - typically hide inverse, user adds Sister from other side
+ * {
+ *   id: 'brother',
+ *   name: 'Brother',
+ *   inverseLabel: 'Brother of',
+ *   showInverse: false,
+ *   category: RelationshipCategory.Familial,
+ *   isBuiltIn: true,
+ *   sourceEndpoint: { allowedSchemas: ['CHARACTER'] },
+ *   targetEndpoint: { allowedSchemas: ['CHARACTER'] },
+ * }
+ */
+export interface RelationshipTypeDefinition {
+  /** Unique identifier for this relationship type */
+  id: string;
+
+  /**
+   * Primary label for this relationship type.
+   * Shown when viewing outgoing relationships.
+   * @example "Brother", "Parent", "Located In", "Owns"
+   */
+  name: string;
+
+  /**
+   * Label shown in backlinks (when target views their incoming relationships).
+   * @example "Brother of", "Child of", "Contains", "Owned by"
+   */
+  inverseLabel: string;
+
+  /**
+   * Whether to show this relationship in the target's backlinks panel.
+   * Set to false for gendered relationships where users define both directions manually.
+   * @default true
+   */
+  showInverse: boolean;
+
+  /** Category for grouping in UI */
+  category: RelationshipCategory;
+
+  /** Material icon name for visual identification */
+  icon?: string;
+
+  /** Whether this is a built-in type (cannot be deleted by user) */
+  isBuiltIn: boolean;
+
+  /** Optional color for visual distinction (hex code) */
+  color?: string;
+
+  /**
+   * Source endpoint configuration.
+   * The source is the element that creates/owns the relationship.
+   */
+  sourceEndpoint: RelationshipEndpoint;
+
+  /**
+   * Target endpoint configuration.
+   * The target is the element being referenced/linked to.
+   */
+  targetEndpoint: RelationshipEndpoint;
+
+  /** ISO timestamp of creation */
+  createdAt?: string;
+
+  /** ISO timestamp of last update */
+  updatedAt?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -218,11 +330,14 @@ export interface ElementRelationshipsYjsData {
 
 /**
  * Structure of the project-level relationship type library
- * Stored in the project's schema library Y.Doc
+ * Stored in the project's schema library Y.Doc alongside schemas
  */
 export interface ProjectRelationshipTypes {
-  /** Custom relationship types defined for this project */
-  customTypes: RelationshipType[];
+  /**
+   * Custom relationship types defined for this project.
+   * These supplement the built-in default types.
+   */
+  types: RelationshipTypeDefinition[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -264,4 +379,26 @@ export interface ElementRefClickEvent {
   mouseEvent: MouseEvent;
   /** Whether this was a right-click (context menu) */
   isContextMenu: boolean;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Validation
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Result of validating whether a relationship can be created
+ */
+export interface RelationshipValidationResult {
+  /** Whether the relationship can be created */
+  valid: boolean;
+  /** Error messages if not valid */
+  errors: string[];
+}
+
+/**
+ * Minimal element info needed for relationship validation
+ */
+export interface RelationshipValidationElement {
+  id: string;
+  type: string; // ElementType or custom schema type
 }

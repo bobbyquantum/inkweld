@@ -1,9 +1,12 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
   ElementRelationship,
@@ -11,12 +14,34 @@ import {
 } from '@services/relationship';
 
 import { Element, ElementType } from '../../../api-client';
+import {
+  AddRelationshipDialogComponent,
+  AddRelationshipDialogData,
+  AddRelationshipDialogResult,
+} from '../../dialogs/add-relationship-dialog/add-relationship-dialog.component';
+import { RelationshipTypeDefinition } from '../element-ref/element-ref.model';
 import { ElementRefService } from '../element-ref/element-ref.service';
 import { ElementRefTooltipData } from '../element-ref/element-ref-tooltip/element-ref-tooltip.component';
 
 /**
+ * Grouped relationships by type for display
+ */
+interface RelationshipGroup {
+  /** The relationship type definition */
+  type: RelationshipTypeDefinition;
+  /** Relationships in this group */
+  relationships: ElementRelationship[];
+  /** Whether these are incoming (backlinks) or outgoing */
+  isIncoming: boolean;
+  /** Display label (type name or inverse label) */
+  displayLabel: string;
+}
+
+/**
  * Panel component for displaying relationships (backlinks and outgoing refs)
  * for the current document or element.
+ *
+ * Relationships are grouped by type, with each type as an expandable panel.
  */
 @Component({
   selector: 'app-relationships-panel',
@@ -24,9 +49,11 @@ import { ElementRefTooltipData } from '../element-ref/element-ref-tooltip/elemen
   imports: [
     MatButtonModule,
     MatDividerModule,
+    MatExpansionModule,
     MatIconModule,
     MatListModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
   ],
   templateUrl: './relationships-panel.component.html',
   styleUrl: './relationships-panel.component.scss',
@@ -44,18 +71,27 @@ export class RelationshipsPanelComponent {
   /** Error message */
   error = signal<string | null>(null);
 
+  /** Track which panels are expanded */
+  expandedPanels = signal<Set<string>>(new Set());
+
   private relationshipService = inject(RelationshipService);
   private projectState = inject(ProjectStateService);
   private elementRefService = inject(ElementRefService);
+  private dialog = inject(MatDialog);
 
   /** All relationships from the service */
   private allRelationships = computed(() => {
     return this.relationshipService.relationships();
   });
 
+  /** The effective element ID (elementId or documentId) */
+  private effectiveElementId = computed(() => {
+    return this.elementId() || this.documentId();
+  });
+
   /** Outgoing relationships (from this element to others) */
   outgoingRelationships = computed(() => {
-    const targetId = this.elementId() || this.documentId();
+    const targetId = this.effectiveElementId();
     return this.allRelationships().filter(
       (r: ElementRelationship) => r.sourceElementId === targetId
     );
@@ -63,10 +99,85 @@ export class RelationshipsPanelComponent {
 
   /** Incoming relationships (backlinks from other elements) */
   incomingRelationships = computed(() => {
-    const targetId = this.elementId() || this.documentId();
+    const targetId = this.effectiveElementId();
     return this.allRelationships().filter(
       (r: ElementRelationship) => r.targetElementId === targetId
     );
+  });
+
+  /** All relationship types */
+  private allTypes = computed(() => this.relationshipService.allTypes());
+
+  /**
+   * Relationships grouped by type for display.
+   * Outgoing relationships show the type name.
+   * Incoming relationships show the inverse label.
+   */
+  groupedRelationships = computed(() => {
+    const outgoing = this.outgoingRelationships();
+    const incoming = this.incomingRelationships();
+    const types = this.allTypes();
+    const groups: RelationshipGroup[] = [];
+
+    // Group outgoing relationships by type
+    const outgoingByType = new Map<string, ElementRelationship[]>();
+    for (const rel of outgoing) {
+      const typeId = rel.relationshipTypeId;
+      if (!outgoingByType.has(typeId)) {
+        outgoingByType.set(typeId, []);
+      }
+      outgoingByType.get(typeId)!.push(rel);
+    }
+
+    // Create groups for outgoing
+    for (const [typeId, rels] of outgoingByType) {
+      const typeDef = types.find(t => t.id === typeId);
+      if (typeDef) {
+        groups.push({
+          type: typeDef,
+          relationships: rels,
+          isIncoming: false,
+          displayLabel: typeDef.name,
+        });
+      }
+    }
+
+    // Group incoming relationships by type
+    const incomingByType = new Map<string, ElementRelationship[]>();
+    for (const rel of incoming) {
+      const typeId = rel.relationshipTypeId;
+      const typeDef = types.find(t => t.id === typeId);
+      // Only show incoming if showInverse is true
+      if (typeDef?.showInverse !== false) {
+        if (!incomingByType.has(typeId)) {
+          incomingByType.set(typeId, []);
+        }
+        incomingByType.get(typeId)!.push(rel);
+      }
+    }
+
+    // Create groups for incoming (backlinks)
+    for (const [typeId, rels] of incomingByType) {
+      const typeDef = types.find(t => t.id === typeId);
+      if (typeDef) {
+        groups.push({
+          type: typeDef,
+          relationships: rels,
+          isIncoming: true,
+          displayLabel: typeDef.inverseLabel || `${typeDef.name} (backlink)`,
+        });
+      }
+    }
+
+    // Sort groups: outgoing first, then by display label
+    groups.sort((a, b) => {
+      if (a.isIncoming !== b.isIncoming) {
+        return a.isIncoming ? 1 : -1;
+      }
+      return a.displayLabel.localeCompare(b.displayLabel);
+    });
+
+    return groups;
   });
 
   /** Count of outgoing relationships */
@@ -81,6 +192,12 @@ export class RelationshipsPanelComponent {
   /** Elements map for resolving names */
   private elements = computed(() => {
     return this.projectState.elements();
+  });
+
+  /** The current element (for getting schema type) */
+  private currentElement = computed(() => {
+    const id = this.effectiveElementId();
+    return this.elements().find(e => e.id === id);
   });
 
   /**
@@ -138,27 +255,31 @@ export class RelationshipsPanelComponent {
   }
 
   /**
-   * Get relationship type display name
+   * Get the schema type for an element
    */
-  getRelationshipTypeName(type: string): string {
-    // Try to find custom type first
-    const customTypes = this.relationshipService.customRelationshipTypes();
-    const customType = customTypes.find(t => t.id === type);
-    if (customType) {
-      return customType.label;
-    }
-
-    // Default types
-    switch (type) {
-      case 'references':
-        return 'References';
-      case 'mentioned-in':
-        return 'Mentioned in';
-      case 'related-to':
-        return 'Related to';
+  private getElementSchema(element: Element): string {
+    switch (element.type) {
+      case ElementType.Character:
+        return 'CHARACTER';
+      case ElementType.Location:
+        return 'LOCATION';
+      case ElementType.Item:
+        return 'ITEM';
+      case ElementType.Folder:
+        return 'FOLDER';
+      case ElementType.WbItem:
+        // For worldbuilding items, check metadata for schema type
+        return element.metadata?.['schemaType'] || 'WB_ITEM';
       default:
-        return type;
+        return 'ITEM';
     }
+  }
+
+  /**
+   * Get a unique key for a relationship group
+   */
+  getGroupKey(group: RelationshipGroup): string {
+    return `${group.type.id}-${group.isIncoming ? 'in' : 'out'}`;
   }
 
   /**
@@ -166,18 +287,63 @@ export class RelationshipsPanelComponent {
    */
   navigateToElement(
     relationship: ElementRelationship,
-    isOutgoing: boolean
+    isIncoming: boolean
   ): void {
-    const targetId = isOutgoing
-      ? relationship.targetElementId
-      : relationship.sourceElementId;
+    const targetId = isIncoming
+      ? relationship.sourceElementId
+      : relationship.targetElementId;
 
     // Find the element and open it
-    const elements = this.elements();
-    const element = elements.find((e: Element) => e.id === targetId);
+    const element = this.getElement(targetId);
     if (element) {
       this.projectState.openDocument(element);
     }
+  }
+
+  /**
+   * Open the add relationship dialog
+   */
+  openAddRelationshipDialog(): void {
+    const currentElement = this.currentElement();
+    const sourceSchema = currentElement
+      ? this.getElementSchema(currentElement)
+      : undefined;
+
+    const dialogData: AddRelationshipDialogData = {
+      sourceElementId: this.effectiveElementId(),
+      sourceSchemaType: sourceSchema,
+    };
+
+    const dialogRef = this.dialog.open(AddRelationshipDialogComponent, {
+      data: dialogData,
+      width: '500px',
+      maxWidth: '90vw',
+    });
+
+    dialogRef
+      .afterClosed()
+      .subscribe((result: AddRelationshipDialogResult | null) => {
+        if (result) {
+          // Create the relationship
+          this.relationshipService.addRelationship(
+            this.effectiveElementId(),
+            result.targetElementId,
+            result.relationshipTypeId,
+            { note: result.note }
+          );
+        }
+      });
+  }
+
+  /**
+   * Delete a relationship
+   */
+  deleteRelationship(
+    relationship: ElementRelationship,
+    event: MouseEvent
+  ): void {
+    event.stopPropagation();
+    this.relationshipService.removeRelationship(relationship.id);
   }
 
   /**

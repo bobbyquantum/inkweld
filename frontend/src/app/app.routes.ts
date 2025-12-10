@@ -11,6 +11,7 @@ import { FolderTabComponent } from './pages/project/tabs/folder/folder-tab.compo
 import { HomeTabComponent } from './pages/project/tabs/home/home-tab.component';
 import { ProjectFilesTabComponent } from './pages/project/tabs/project-files/project-files-tab.component';
 import { PublishPlanTabComponent } from './pages/project/tabs/publish-plan/publish-plan-tab.component';
+import { RelationshipsTabComponent } from './pages/project/tabs/relationships/relationships-tab.component';
 import { TemplatesTabComponent } from './pages/project/tabs/templates/templates-tab.component';
 import { WorldbuildingTabComponent } from './pages/project/tabs/worldbuilding/worldbuilding-tab.component';
 
@@ -152,6 +153,13 @@ export const routes: Routes = [
       {
         path: 'templates-list',
         component: TemplatesTabComponent,
+        data: {
+          reuseComponent: false,
+        },
+      },
+      {
+        path: 'relationships-list',
+        component: RelationshipsTabComponent,
         data: {
           reuseComponent: false,
         },

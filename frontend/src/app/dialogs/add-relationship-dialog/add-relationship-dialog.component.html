@@ -1,0 +1,121 @@
+<h2 mat-dialog-title>Add Relationship</h2>
+
+<mat-dialog-content>
+  <!-- Step 1: Select Relationship Type -->
+  <div class="form-section">
+    <h3>1. Select Relationship Type</h3>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Relationship Type</mat-label>
+      <mat-select
+        [value]="selectedTypeId()"
+        (selectionChange)="onTypeSelected($event.value)"
+        data-testid="relationship-type-select">
+        @for (type of availableTypes(); track type.id) {
+          <mat-option [value]="type.id">
+            <mat-icon class="type-icon">{{ getTypeIcon(type) }}</mat-icon>
+            <span>{{ type.name }}</span>
+            @if (type.inverseLabel) {
+              <span class="inverse-hint">({{ type.inverseLabel }})</span>
+            }
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (selectedType(); as type) {
+      <div class="type-description">
+        <mat-icon>{{ getTypeIcon(type) }}</mat-icon>
+        <span>
+          This element <strong>{{ type.name }}</strong> the selected target
+          @if (type.showInverse && type.inverseLabel) {
+            <br />
+            <span class="inverse-note">
+              Target will see this as: "{{ type.inverseLabel }}"
+            </span>
+          }
+        </span>
+      </div>
+    }
+  </div>
+
+  <!-- Step 2: Select Target Element -->
+  @if (selectedTypeId()) {
+    <div class="form-section">
+      <h3>2. Select Target Element</h3>
+
+      @if (selectedElement(); as element) {
+        <!-- Show selected element -->
+        <div class="selected-element">
+          <mat-icon>{{ getElementIcon(element) }}</mat-icon>
+          <span class="element-name">{{ element.name }}</span>
+          <button
+            mat-icon-button
+            (click)="clearSelectedElement()"
+            matTooltip="Clear selection"
+            data-testid="clear-element-button">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      } @else {
+        <!-- Element search -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Search elements</mat-label>
+          <input
+            matInput
+            [formControl]="elementSearchControl"
+            [matAutocomplete]="elementAuto"
+            placeholder="Type to search..."
+            data-testid="element-search-input" />
+          <mat-icon matSuffix>search</mat-icon>
+          <mat-autocomplete
+            #elementAuto="matAutocomplete"
+            [displayWith]="displayElement"
+            (optionSelected)="onElementSelected($event)"
+            data-testid="element-autocomplete">
+            @for (element of filteredElements(); track element.id) {
+              <mat-option [value]="element" data-testid="element-option">
+                <mat-icon>{{ getElementIcon(element) }}</mat-icon>
+                <span>{{ element.name }}</span>
+              </mat-option>
+            } @empty {
+              <mat-option disabled>
+                <span class="no-results">No matching elements found</span>
+              </mat-option>
+            }
+          </mat-autocomplete>
+        </mat-form-field>
+      }
+    </div>
+  }
+
+  <!-- Step 3: Optional Note -->
+  @if (selectedElement()) {
+    <div class="form-section">
+      <h3>3. Add Note (Optional)</h3>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Note</mat-label>
+        <textarea
+          matInput
+          [value]="note()"
+          (input)="note.set($any($event.target).value)"
+          placeholder="Add context about this relationship..."
+          rows="2"
+          data-testid="relationship-note-input"></textarea>
+      </mat-form-field>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()" data-testid="cancel-button">
+    Cancel
+  </button>
+  <button
+    mat-raised-button
+    color="primary"
+    [disabled]="!canSubmit()"
+    (click)="submit()"
+    data-testid="add-relationship-button">
+    Add Relationship
+  </button>
+</mat-dialog-actions>

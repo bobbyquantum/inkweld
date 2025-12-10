@@ -6,7 +6,7 @@ import * as Y from 'yjs';
 
 import {
   ElementRelationship,
-  RelationshipType,
+  RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
 import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
@@ -30,7 +30,7 @@ interface YjsProjectConnection {
   elementsArray: Y.Array<Element>;
   publishPlansArray: Y.Array<PublishPlan>;
   relationshipsArray: Y.Array<ElementRelationship>;
-  customTypesArray: Y.Array<RelationshipType>;
+  customTypesArray: Y.Array<RelationshipTypeDefinition>;
   schemasArray: Y.Array<ElementTypeSchema>;
 }
 
@@ -65,7 +65,7 @@ export class OfflineProjectElementsService {
   readonly elements = signal<Element[]>([]);
   readonly publishPlans = signal<PublishPlan[]>([]);
   readonly relationships = signal<ElementRelationship[]>([]);
-  readonly customRelationshipTypes = signal<RelationshipType[]>([]);
+  readonly customRelationshipTypes = signal<RelationshipTypeDefinition[]>([]);
   readonly schemas = signal<ElementTypeSchema[]>([]);
   readonly isLoading = signal(false);
 
@@ -231,7 +231,7 @@ export class OfflineProjectElementsService {
   async saveCustomRelationshipTypes(
     username: string,
     slug: string,
-    types: RelationshipType[]
+    types: RelationshipTypeDefinition[]
   ): Promise<void> {
     try {
       const connection = await this.getOrCreateConnection(username, slug);
@@ -323,7 +323,7 @@ export class OfflineProjectElementsService {
     const publishPlansArray = doc.getArray<PublishPlan>('publishPlans');
     const relationshipsArray =
       doc.getArray<ElementRelationship>('relationships');
-    const customTypesArray = doc.getArray<RelationshipType>(
+    const customTypesArray = doc.getArray<RelationshipTypeDefinition>(
       'customRelationshipTypes'
     );
     const schemasArray = doc.getArray<ElementTypeSchema>('schemas');

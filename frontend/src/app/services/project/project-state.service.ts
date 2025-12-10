@@ -150,6 +150,20 @@ export class ProjectStateService implements OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────────
 
   async loadProject(username: string, slug: string): Promise<void> {
+    // Skip if already loaded and connected to the same project
+    const currentProject = this.project();
+    if (
+      currentProject?.username === username &&
+      currentProject?.slug === slug &&
+      this.syncProvider?.isConnected()
+    ) {
+      this.logger.debug(
+        'ProjectState',
+        `Skipping reload - already connected to ${username}/${slug}`
+      );
+      return;
+    }
+
     this.isLoading.set(true);
     this.error.set(undefined);
 
@@ -645,7 +659,11 @@ export class ProjectStateService implements OnDestroy {
   }
 
   openSystemTab(
-    type: 'documents-list' | 'project-files' | 'templates-list'
+    type:
+      | 'documents-list'
+      | 'project-files'
+      | 'templates-list'
+      | 'relationships-list'
   ): void {
     const result = this.tabManager.openSystemTab(type);
     if (result.wasCreated) {

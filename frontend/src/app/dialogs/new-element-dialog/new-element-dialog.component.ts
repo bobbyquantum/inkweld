@@ -69,9 +69,8 @@ export class NewElementDialogComponent {
   selectedType = signal<ElementType | null>(null);
   searchQuery = signal('');
 
-  // Element type options (starts with document types, worldbuilding loaded dynamically)
-  elementTypeOptions = signal<ElementTypeOption[]>([
-    // Document types (always available)
+  // Document types (constant, always available)
+  private readonly documentTypes: ElementTypeOption[] = [
     {
       type: ElementType.Folder,
       label: 'Folder',
@@ -86,7 +85,10 @@ export class NewElementDialogComponent {
       description: 'Create a narrative document or chapter',
       category: 'document',
     },
-  ]);
+  ];
+
+  // Element type options (document types + dynamically loaded worldbuilding types)
+  elementTypeOptions = signal<ElementTypeOption[]>([...this.documentTypes]);
 
   // Filtered options based on search
   filteredOptions = computed(() => {
@@ -194,10 +196,10 @@ export class NewElementDialogComponent {
     );
 
     // Update options with both document types and loaded worldbuilding types
+    // Use the constant documentTypes instead of reading the signal to avoid
+    // creating a dependency in the calling effect
     this.elementTypeOptions.set([
-      ...this.elementTypeOptions().filter(
-        (opt: ElementTypeOption) => opt.category === 'document'
-      ),
+      ...this.documentTypes,
       ...worldbuildingOptions,
     ]);
 

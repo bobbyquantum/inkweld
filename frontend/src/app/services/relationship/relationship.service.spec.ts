@@ -6,7 +6,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   ElementRelationship,
-  RelationshipType,
+  RelationshipCategory,
+  RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
@@ -28,7 +29,7 @@ describe('RelationshipService', () => {
     getCustomRelationshipTypes: ReturnType<typeof vi.fn>;
     updateCustomRelationshipTypes: ReturnType<typeof vi.fn>;
     relationships$: BehaviorSubject<ElementRelationship[]>;
-    customRelationshipTypes$: BehaviorSubject<RelationshipType[]>;
+    customRelationshipTypes$: BehaviorSubject<RelationshipTypeDefinition[]>;
   };
   let mockSyncProviderFactory: {
     getProvider: ReturnType<typeof vi.fn>;
@@ -36,7 +37,7 @@ describe('RelationshipService', () => {
 
   // Test data storage (simulating Yjs arrays)
   let relationshipsStore: ElementRelationship[];
-  let customTypesStore: RelationshipType[];
+  let customTypesStore: RelationshipTypeDefinition[];
 
   const mockElements: Element[] = [
     {
@@ -103,12 +104,14 @@ describe('RelationshipService', () => {
         .mockImplementation(() => customTypesStore),
       updateCustomRelationshipTypes: vi
         .fn()
-        .mockImplementation((types: RelationshipType[]) => {
+        .mockImplementation((types: RelationshipTypeDefinition[]) => {
           customTypesStore = types;
           mockSyncProvider.customRelationshipTypes$.next(types);
         }),
       relationships$: new BehaviorSubject<ElementRelationship[]>([]),
-      customRelationshipTypes$: new BehaviorSubject<RelationshipType[]>([]),
+      customRelationshipTypes$: new BehaviorSubject<
+        RelationshipTypeDefinition[]
+      >([]),
     };
 
     mockSyncProviderFactory = {
@@ -144,7 +147,7 @@ describe('RelationshipService', () => {
     it('should have built-in types available', () => {
       const types = service.getAllTypes();
       expect(types.length).toBeGreaterThan(0);
-      expect(types.some(t => t.id === 'parent-of')).toBe(true);
+      expect(types.some(t => t.id === 'parent')).toBe(true);
       expect(types.some(t => t.id === 'referenced-in')).toBe(true);
     });
   });
@@ -309,9 +312,9 @@ describe('RelationshipService', () => {
 
   describe('relationship types', () => {
     it('should get type by ID', () => {
-      const type = service.getTypeById('parent-of');
+      const type = service.getTypeById('parent');
       expect(type).toBeDefined();
-      expect(type?.label).toBe('Parent of');
+      expect(type?.name).toBe('Parent');
       expect(type?.inverseLabel).toBe('Child of');
     });
 
@@ -322,38 +325,45 @@ describe('RelationshipService', () => {
 
     it('should add custom relationship type', () => {
       const newType = service.addCustomType({
-        category: 'custom' as any,
-        label: 'Nemesis of',
+        category: RelationshipCategory.Custom,
+        name: 'Nemesis of',
         inverseLabel: 'Hunted by',
+        showInverse: true,
         icon: 'skull',
+        sourceEndpoint: { allowedSchemas: [] },
+        targetEndpoint: { allowedSchemas: [] },
       });
 
       expect(newType.id).toMatch(/^custom-/);
       expect(newType.isBuiltIn).toBe(false);
-      expect(newType.label).toBe('Nemesis of');
+      expect(newType.name).toBe('Nemesis of');
 
       expect(mockSyncProvider.updateCustomRelationshipTypes).toHaveBeenCalled();
     });
 
     it('should update custom relationship type', () => {
       const newType = service.addCustomType({
-        category: 'custom' as any,
-        label: 'Test Type',
+        category: RelationshipCategory.Custom,
+        name: 'Test Type',
+        inverseLabel: 'Test Type (inverse)',
+        showInverse: true,
+        sourceEndpoint: { allowedSchemas: [] },
+        targetEndpoint: { allowedSchemas: [] },
       });
 
       const updated = service.updateCustomType(newType.id, {
-        label: 'Updated Type',
+        name: 'Updated Type',
         icon: 'star',
       });
 
       expect(updated).toBe(true);
-      expect(customTypesStore[0].label).toBe('Updated Type');
+      expect(customTypesStore[0].name).toBe('Updated Type');
       expect(customTypesStore[0].icon).toBe('star');
     });
 
     it('should not update non-existent types', () => {
       const updated = service.updateCustomType('fake-id', {
-        label: 'Hacked!',
+        name: 'Hacked!',
       });
 
       expect(updated).toBe(false);
@@ -361,8 +371,12 @@ describe('RelationshipService', () => {
 
     it('should remove custom relationship type', () => {
       const newType = service.addCustomType({
-        category: 'custom' as any,
-        label: 'Temporary Type',
+        category: RelationshipCategory.Custom,
+        name: 'Temporary Type',
+        inverseLabel: 'Temporary Type (inverse)',
+        showInverse: true,
+        sourceEndpoint: { allowedSchemas: [] },
+        targetEndpoint: { allowedSchemas: [] },
       });
 
       expect(customTypesStore.length).toBe(1);
@@ -385,7 +399,7 @@ describe('RelationshipService', () => {
         id: 'rel-1',
         sourceElementId: 'char-1',
         targetElementId: 'char-2',
-        relationshipTypeId: 'parent-of',
+        relationshipTypeId: 'parent',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -396,7 +410,7 @@ describe('RelationshipService', () => {
       expect(resolved?.relatedElement.id).toBe('char-2');
       expect(resolved?.relatedElement.name).toBe('Jane Doe');
       expect(resolved?.isIncoming).toBe(false);
-      expect(resolved?.displayLabel).toBe('Parent of');
+      expect(resolved?.displayLabel).toBe('Parent');
     });
 
     it('should resolve incoming relationship with inverse label', () => {
@@ -404,7 +418,7 @@ describe('RelationshipService', () => {
         id: 'rel-1',
         sourceElementId: 'char-1',
         targetElementId: 'char-2',
-        relationshipTypeId: 'parent-of',
+        relationshipTypeId: 'parent',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -423,7 +437,7 @@ describe('RelationshipService', () => {
         id: 'rel-1',
         sourceElementId: 'unknown-id',
         targetElementId: 'char-2',
-        relationshipTypeId: 'parent-of',
+        relationshipTypeId: 'parent',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -451,7 +465,7 @@ describe('RelationshipService', () => {
     it('should check if element has relationships', () => {
       expect(service.hasRelationships('char-1')).toBe(false);
 
-      service.addRelationship('char-1', 'char-2', 'parent-of');
+      service.addRelationship('char-1', 'char-2', 'parent');
 
       expect(service.hasRelationships('char-1')).toBe(true);
       expect(service.hasRelationships('char-2')).toBe(true); // incoming
@@ -459,8 +473,8 @@ describe('RelationshipService', () => {
     });
 
     it('should get relationship count', () => {
-      service.addRelationship('char-1', 'char-2', 'parent-of');
-      service.addRelationship('char-1', 'loc-1', 'lives-at');
+      service.addRelationship('char-1', 'char-2', 'parent');
+      service.addRelationship('char-1', 'loc-1', 'residence');
       service.addRelationship('loc-1', 'char-1', 'houses');
 
       const count = service.getRelationshipCount('char-1');
@@ -471,9 +485,9 @@ describe('RelationshipService', () => {
     });
 
     it('should remove all relationships for element', () => {
-      service.addRelationship('char-1', 'char-2', 'parent-of');
-      service.addRelationship('char-2', 'char-1', 'child-of');
-      service.addRelationship('char-2', 'loc-1', 'lives-at');
+      service.addRelationship('char-1', 'char-2', 'parent');
+      service.addRelationship('char-2', 'char-1', 'child');
+      service.addRelationship('char-2', 'loc-1', 'residence');
 
       const removed = service.removeAllRelationshipsForElement('char-1');
 

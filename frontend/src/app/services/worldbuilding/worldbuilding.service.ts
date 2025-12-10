@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { Element, ElementType } from '@inkweld/index';
+import { Subscription } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
@@ -32,17 +33,24 @@ export class WorldbuildingService {
   // Current sync provider (used for schema library access)
   private syncProvider: IElementSyncProvider | null = null;
   private schemasCache: ElementTypeSchema[] = [];
+  private schemasSubscription: Subscription | null = null;
 
   /**
    * Set the sync provider for schema library access.
    * Called by ProjectStateService when a project is loaded.
    */
   setSyncProvider(provider: IElementSyncProvider | null): void {
+    // Clean up existing subscription
+    if (this.schemasSubscription) {
+      this.schemasSubscription.unsubscribe();
+      this.schemasSubscription = null;
+    }
+
     this.syncProvider = provider;
     if (provider) {
       this.schemasCache = provider.getSchemas();
       // Subscribe to schema changes
-      provider.schemas$.subscribe(schemas => {
+      this.schemasSubscription = provider.schemas$.subscribe(schemas => {
         this.schemasCache = schemas;
       });
     } else {

@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 
 import {
   ElementRelationship,
-  RelationshipType,
+  RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
@@ -158,19 +158,19 @@ export interface IElementSyncProvider {
    * Get the current custom relationship types array.
    * Returns an empty array if not connected.
    */
-  getCustomRelationshipTypes(): RelationshipType[];
+  getCustomRelationshipTypes(): RelationshipTypeDefinition[];
 
   /**
    * Observable stream of custom relationship type changes.
    */
-  customRelationshipTypes$: Observable<RelationshipType[]>;
+  customRelationshipTypes$: Observable<RelationshipTypeDefinition[]>;
 
   /**
    * Update the entire custom relationship types array.
    *
    * @param types The new custom relationship types array
    */
-  updateCustomRelationshipTypes(types: RelationshipType[]): void;
+  updateCustomRelationshipTypes(types: RelationshipTypeDefinition[]): void;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Worldbuilding Schemas (project template library)

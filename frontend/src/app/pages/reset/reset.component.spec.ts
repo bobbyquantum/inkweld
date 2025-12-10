@@ -123,5 +123,94 @@ describe('ResetComponent', () => {
 
       await clearPromise;
     });
+
+    it('should delete databases returned by indexedDB.databases()', async () => {
+      // Mock databases() to return some databases
+      const mockDeleteRequest = {
+        onsuccess: null as ((evt: Event) => void) | null,
+        onerror: null as ((evt: Event) => void) | null,
+        onblocked: null as ((evt: Event) => void) | null,
+      };
+
+      const mockIndexedDB = {
+        deleteDatabase: vi.fn(() => {
+          setTimeout(() => {
+            mockDeleteRequest.onsuccess?.({} as Event);
+          }, 0);
+          return mockDeleteRequest as unknown as IDBOpenDBRequest;
+        }),
+        databases: vi
+          .fn()
+          .mockResolvedValue([{ name: 'test-db' }, { name: 'another-db' }]),
+      };
+
+      Object.defineProperty(globalThis, 'indexedDB', {
+        value: mockIndexedDB,
+        writable: true,
+        configurable: true,
+      });
+
+      await component.clearAllData();
+
+      expect(mockIndexedDB.deleteDatabase).toHaveBeenCalledWith('test-db');
+      expect(mockIndexedDB.deleteDatabase).toHaveBeenCalledWith('another-db');
+    });
+
+    it('should fall back to known databases when databases() throws', async () => {
+      const mockDeleteRequest = {
+        onsuccess: null as ((evt: Event) => void) | null,
+        onerror: null as ((evt: Event) => void) | null,
+        onblocked: null as ((evt: Event) => void) | null,
+      };
+
+      const mockIndexedDB = {
+        deleteDatabase: vi.fn(() => {
+          setTimeout(() => {
+            mockDeleteRequest.onsuccess?.({} as Event);
+          }, 0);
+          return mockDeleteRequest as unknown as IDBOpenDBRequest;
+        }),
+        databases: vi.fn().mockRejectedValue(new Error('Not supported')),
+      };
+
+      Object.defineProperty(globalThis, 'indexedDB', {
+        value: mockIndexedDB,
+        writable: true,
+        configurable: true,
+      });
+
+      await component.clearAllData();
+
+      expect(mockIndexedDB.deleteDatabase).toHaveBeenCalledWith(
+        'inkweld-media'
+      );
+      expect(mockIndexedDB.deleteDatabase).toHaveBeenCalledWith('inkweld-sync');
+    });
+
+    it('should clear cookies with existing cookies', async () => {
+      // Mock document.cookie getter to return cookies
+      const originalCookie = Object.getOwnPropertyDescriptor(
+        Document.prototype,
+        'cookie'
+      );
+      let cookieStore = 'session=abc123; token=xyz789';
+
+      Object.defineProperty(document, 'cookie', {
+        get: () => cookieStore,
+        set: val => {
+          cookieStore = val;
+        },
+        configurable: true,
+      });
+
+      await component.clearAllData();
+
+      // Restore original cookie descriptor
+      if (originalCookie) {
+        Object.defineProperty(document, 'cookie', originalCookie);
+      }
+
+      expect(router.navigate).toHaveBeenCalledWith(['/setup']);
+    });
   });
 });

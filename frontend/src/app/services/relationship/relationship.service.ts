@@ -15,14 +15,15 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { nanoid } from 'nanoid';
 
 import {
-  getAllRelationshipTypes,
+  getAllRelationshipTypeDefinitions,
   getRelationshipLabel,
-  getRelationshipTypeById,
+  getRelationshipTypeDefinitionById,
+  toRelationshipTypeLegacy,
 } from '../../components/element-ref/default-relationship-types';
 import {
   ElementRelationship,
   ElementRelationshipView,
-  RelationshipType,
+  RelationshipTypeDefinition,
   ResolvedRelationship,
 } from '../../components/element-ref/element-ref.model';
 import { LoggerService } from '../core/logger.service';
@@ -50,16 +51,16 @@ export class RelationshipService {
   private relationshipsSignal = signal<ElementRelationship[]>([]);
   readonly relationships = this.relationshipsSignal.asReadonly();
 
-  /** Custom relationship types from the project */
-  private customTypesSignal = signal<RelationshipType[]>([]);
+  /** Custom relationship types from the project (new format) */
+  private customTypesSignal = signal<RelationshipTypeDefinition[]>([]);
   readonly customTypes = this.customTypesSignal.asReadonly();
 
   /** Alias for backwards compatibility */
   readonly customRelationshipTypes = this.customTypes;
 
-  /** All available relationship types (built-in + custom) */
+  /** All available relationship types (built-in + custom, new format) */
   readonly allTypes = computed(() =>
-    getAllRelationshipTypes(this.customTypesSignal())
+    getAllRelationshipTypeDefinitions(this.customTypesSignal())
   );
 
   constructor() {
@@ -313,19 +314,22 @@ export class RelationshipService {
       return null;
     }
 
-    // Get relationship type
-    const relationshipType = getRelationshipTypeById(
+    // Get relationship type (v2 format)
+    const relationshipTypeDef = getRelationshipTypeDefinitionById(
       relationship.relationshipTypeId,
       this.customTypesSignal()
     );
 
-    if (!relationshipType) {
+    if (!relationshipTypeDef) {
       this.logger.warn(
         'RelationshipService',
         `Unknown relationship type ${relationship.relationshipTypeId}`
       );
       return null;
     }
+
+    // Convert to legacy format for backward compatibility with ResolvedRelationship
+    const relationshipType = toRelationshipTypeLegacy(relationshipTypeDef);
 
     return {
       ...relationship,
@@ -369,9 +373,9 @@ export class RelationshipService {
    * Add a custom relationship type to the project
    */
   addCustomType(
-    type: Omit<RelationshipType, 'id' | 'isBuiltIn'>
-  ): RelationshipType {
-    const newType: RelationshipType = {
+    type: Omit<RelationshipTypeDefinition, 'id' | 'isBuiltIn'>
+  ): RelationshipTypeDefinition {
+    const newType: RelationshipTypeDefinition = {
       ...type,
       id: `custom-${nanoid(8)}`,
       isBuiltIn: false,
@@ -382,7 +386,7 @@ export class RelationshipService {
 
     this.logger.debug(
       'RelationshipService',
-      `Added custom relationship type: ${newType.label}`
+      `Added custom relationship type: ${newType.name}`
     );
 
     return newType;
@@ -393,7 +397,7 @@ export class RelationshipService {
    */
   updateCustomType(
     typeId: string,
-    updates: Partial<Omit<RelationshipType, 'id' | 'isBuiltIn'>>
+    updates: Partial<Omit<RelationshipTypeDefinition, 'id' | 'isBuiltIn'>>
   ): boolean {
     const types = this.syncProvider.getCustomRelationshipTypes();
     const index = types.findIndex(t => t.id === typeId);
@@ -452,17 +456,17 @@ export class RelationshipService {
   }
 
   /**
-   * Get all relationship types (for UI)
+   * Get all relationship types (for UI) - new format
    */
-  getAllTypes(): RelationshipType[] {
-    return getAllRelationshipTypes(this.customTypesSignal());
+  getAllTypes(): RelationshipTypeDefinition[] {
+    return getAllRelationshipTypeDefinitions(this.customTypesSignal());
   }
 
   /**
-   * Get a relationship type by ID
+   * Get a relationship type by ID - new format
    */
-  getTypeById(typeId: string): RelationshipType | undefined {
-    return getRelationshipTypeById(typeId, this.customTypesSignal());
+  getTypeById(typeId: string): RelationshipTypeDefinition | undefined {
+    return getRelationshipTypeDefinitionById(typeId, this.customTypesSignal());
   }
 
   // ─────────────────────────────────────────────────────────────────────────

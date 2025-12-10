@@ -28,6 +28,20 @@
   min-height: 0; // Critical for nested scrolling
 }
 
+// Add Relationship button at top of panel
+.panel-actions {
+  margin-bottom: 12px;
+
+  .add-relationship-button {
+    width: 100%;
+    justify-content: center;
+
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+}
+
 .meta-accordion {
   display: block;
 
@@ -44,13 +58,20 @@
     &.mat-expanded {
       border-color: var(--sys-outline);
     }
+
+    // Incoming relationships (backlinks) styling
+    &.incoming {
+      .mat-expansion-panel-header {
+        .section-icon {
+          color: var(--sys-tertiary);
+        }
+      }
+    }
   }
 
   .mat-expansion-panel-header {
     padding: 0 16px;
     height: 48px;
-
-    // Let Material handle hover state
   }
 
   .mat-expansion-panel-body {
@@ -73,17 +94,61 @@ mat-panel-title {
   font-size: 14px;
 }
 
+// Relationship list styling
+.relationships-list {
+  padding: 0 !important;
+
+  .relationship-item {
+    cursor: pointer;
+
+    &:hover {
+      background: var(--sys-surface-container-high);
+
+      .delete-button {
+        opacity: 1;
+      }
+    }
+  }
+
+  .item-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .delete-button {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      width: 32px;
+      height: 32px;
+      line-height: 32px;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+
+      &:hover {
+        color: var(--sys-error);
+      }
+    }
+
+    .chevron {
+      color: var(--sys-on-surface-variant);
+      font-size: 20px;
+    }
+  }
+}
+
 // Embedded panel styles - remove redundant headers when inside accordion
 ::ng-deep {
   .meta-accordion {
-    app-snapshot-panel,
-    app-relationships-panel {
+    app-snapshot-panel {
       .panel-header {
         display: none; // Hide redundant header inside accordion
       }
 
-      .snapshot-panel,
-      .relationships-panel {
+      .snapshot-panel {
         border: none;
         background: transparent;
       }

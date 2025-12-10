@@ -8,7 +8,7 @@ import { MockedObject, vi } from 'vitest';
 
 import {
   ElementRelationship,
-  RelationshipType,
+  RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
@@ -33,7 +33,7 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
   _elementsSubject: BehaviorSubject<Element[]>;
   _publishPlansSubject: BehaviorSubject<PublishPlan[]>;
   _relationshipsSubject: BehaviorSubject<ElementRelationship[]>;
-  _customTypesSubject: BehaviorSubject<RelationshipType[]>;
+  _customTypesSubject: BehaviorSubject<RelationshipTypeDefinition[]>;
   _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
   _syncStateSubject: BehaviorSubject<DocumentSyncState>;
   _errorsSubject: Subject<string>;
@@ -41,7 +41,9 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
   const elementsSubject = new BehaviorSubject<Element[]>([]);
   const publishPlansSubject = new BehaviorSubject<PublishPlan[]>([]);
   const relationshipsSubject = new BehaviorSubject<ElementRelationship[]>([]);
-  const customTypesSubject = new BehaviorSubject<RelationshipType[]>([]);
+  const customTypesSubject = new BehaviorSubject<RelationshipTypeDefinition[]>(
+    []
+  );
   const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
   const syncStateSubject = new BehaviorSubject<DocumentSyncState>(
     DocumentSyncState.Unavailable
@@ -75,9 +77,11 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     updateRelationships: vi.fn((relationships: ElementRelationship[]) => {
       relationshipsSubject.next(relationships);
     }),
-    updateCustomRelationshipTypes: vi.fn((types: RelationshipType[]) => {
-      customTypesSubject.next(types);
-    }),
+    updateCustomRelationshipTypes: vi.fn(
+      (types: RelationshipTypeDefinition[]) => {
+        customTypesSubject.next(types);
+      }
+    ),
     updateSchemas: vi.fn((schemas: ElementTypeSchema[]) => {
       schemasSubject.next(schemas);
     }),
@@ -93,7 +97,7 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     _elementsSubject: BehaviorSubject<Element[]>;
     _publishPlansSubject: BehaviorSubject<PublishPlan[]>;
     _relationshipsSubject: BehaviorSubject<ElementRelationship[]>;
-    _customTypesSubject: BehaviorSubject<RelationshipType[]>;
+    _customTypesSubject: BehaviorSubject<RelationshipTypeDefinition[]>;
     _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
     _syncStateSubject: BehaviorSubject<DocumentSyncState>;
     _errorsSubject: Subject<string>;

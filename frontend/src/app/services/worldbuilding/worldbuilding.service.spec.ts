@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   ElementRelationship,
-  RelationshipType,
+  RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
@@ -27,7 +27,9 @@ function createMockSyncProvider(): IElementSyncProvider & {
   const elementsSubject = new BehaviorSubject<Element[]>([]);
   const publishPlansSubject = new BehaviorSubject<PublishPlan[]>([]);
   const relationshipsSubject = new BehaviorSubject<ElementRelationship[]>([]);
-  const customTypesSubject = new BehaviorSubject<RelationshipType[]>([]);
+  const customTypesSubject = new BehaviorSubject<RelationshipTypeDefinition[]>(
+    []
+  );
   const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
   const syncStateSubject = new BehaviorSubject<DocumentSyncState>(
     DocumentSyncState.Synced

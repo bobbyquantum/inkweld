@@ -4,7 +4,7 @@ import { BehaviorSubject, Observable, Subject } from 'rxjs';
 
 import {
   ElementRelationship,
-  RelationshipType,
+  RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
@@ -53,7 +53,7 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
     ElementRelationship[]
   >([]);
   private readonly customRelationshipTypesSubject = new BehaviorSubject<
-    RelationshipType[]
+    RelationshipTypeDefinition[]
   >([]);
   private readonly schemasSubject = new BehaviorSubject<ElementTypeSchema[]>(
     []
@@ -69,7 +69,7 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
     this.publishPlansSubject.asObservable();
   readonly relationships$: Observable<ElementRelationship[]> =
     this.relationshipsSubject.asObservable();
-  readonly customRelationshipTypes$: Observable<RelationshipType[]> =
+  readonly customRelationshipTypes$: Observable<RelationshipTypeDefinition[]> =
     this.customRelationshipTypesSubject.asObservable();
   readonly schemas$: Observable<ElementTypeSchema[]> =
     this.schemasSubject.asObservable();
@@ -277,14 +277,14 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
   // Custom Relationship Types (project-specific)
   // ───────────────────────────────────────────────────────────────────────────────
 
-  getCustomRelationshipTypes(): RelationshipType[] {
+  getCustomRelationshipTypes(): RelationshipTypeDefinition[] {
     return this.customRelationshipTypesSubject.getValue();
   }
 
   /**
    * Update custom relationship types in offline storage.
    */
-  updateCustomRelationshipTypes(types: RelationshipType[]): void {
+  updateCustomRelationshipTypes(types: RelationshipTypeDefinition[]): void {
     if (!this.connected || !this.currentUsername || !this.currentSlug) {
       this.logger.warn(
         'OfflineSync',

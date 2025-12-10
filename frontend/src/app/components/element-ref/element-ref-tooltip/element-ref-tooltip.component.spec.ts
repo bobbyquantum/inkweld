@@ -160,6 +160,46 @@ describe('ElementRefTooltipComponent', () => {
     it('should format element type for display', () => {
       expect(component.formatElementType()).toBe('Character');
     });
+
+    it('should show display alias when displayText differs from originalName', () => {
+      const aliasTooltipData: ElementRefTooltipData = {
+        elementId: 'test-id',
+        elementType: ElementType.Character,
+        displayText: 'The Hero', // Different from original name
+        originalName: 'Elena',
+        position: { x: 100, y: 200 },
+      };
+
+      component.tooltipData = aliasTooltipData;
+      fixture.detectChanges();
+
+      const aliasElement =
+        fixture.nativeElement.querySelector('.display-alias');
+      expect(aliasElement).toBeTruthy();
+      expect(aliasElement.textContent).toContain('The Hero');
+    });
+
+    it('should not show display alias when displayText equals originalName', () => {
+      // Already set up with same names in beforeEach
+      const aliasElement =
+        fixture.nativeElement.querySelector('.display-alias');
+      expect(aliasElement).toBeNull();
+    });
+
+    it('should show loading spinner when loading preview', () => {
+      component.isLoadingPreview.set(true);
+      fixture.detectChanges();
+
+      const spinner = fixture.nativeElement.querySelector(
+        '.tooltip-preview.loading mat-spinner'
+      );
+      expect(spinner).toBeTruthy();
+
+      const loadingText = fixture.nativeElement.querySelector(
+        '.tooltip-preview.loading'
+      );
+      expect(loadingText?.textContent).toContain('Loading preview...');
+    });
   });
 
   describe('element type icons', () => {
@@ -300,6 +340,74 @@ describe('ElementRefTooltipComponent', () => {
 
       expect(component.showAbove()).toBe(false);
     });
+
+    it('should clamp x position to minimum padding when too far left', () => {
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'test-id',
+        elementType: ElementType.Item,
+        displayText: 'Test',
+        originalName: 'Test',
+        position: { x: -100, y: 200 }, // Negative x to test left boundary
+      };
+
+      component.tooltipData = tooltipData;
+      fixture.detectChanges();
+
+      const position = component.tooltipPosition();
+      // Position should be clamped to padding (12px)
+      expect(position.x).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should clamp y position to minimum padding when too far up', () => {
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'test-id',
+        elementType: ElementType.Item,
+        displayText: 'Test',
+        originalName: 'Test',
+        position: { x: 100, y: -100 }, // Negative y to test top boundary
+      };
+
+      component.tooltipData = tooltipData;
+      fixture.detectChanges();
+
+      const position = component.tooltipPosition();
+      // Position should be clamped to padding (12px)
+      expect(position.y).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should clamp x position when too far right', () => {
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'test-id',
+        elementType: ElementType.Item,
+        displayText: 'Test',
+        originalName: 'Test',
+        position: { x: window.innerWidth + 100, y: 200 }, // Beyond right edge
+      };
+
+      component.tooltipData = tooltipData;
+      fixture.detectChanges();
+
+      const position = component.tooltipPosition();
+      // Position should be clamped within viewport
+      expect(position.x).toBeLessThanOrEqual(window.innerWidth);
+    });
+
+    it('should clamp y position when too far down', () => {
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'test-id',
+        elementType: ElementType.Item,
+        displayText: 'Test',
+        originalName: 'Test',
+        position: { x: 100, y: window.innerHeight + 100 }, // Beyond bottom edge
+      };
+
+      component.tooltipData = tooltipData;
+      fixture.detectChanges();
+
+      const position = component.tooltipPosition();
+      // Position should be clamped within viewport
+      expect(position.y).toBeLessThanOrEqual(window.innerHeight);
+    });
   });
 
   describe('keyboard handling', () => {
@@ -342,6 +450,106 @@ describe('ElementRefTooltipComponent', () => {
 
       expect(component.previewContent()).toBeNull();
       expect(component.isLoadingPreview()).toBe(false);
+    });
+
+    it('should display path when previewContent has path', () => {
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'test-id',
+        elementType: ElementType.Item,
+        displayText: 'Test',
+        originalName: 'Test',
+        position: { x: 100, y: 200 },
+      };
+
+      component.tooltipData = tooltipData;
+      component.previewContent.set({
+        path: 'Act 1 / Chapter 1',
+        excerpt: undefined,
+        wordCount: undefined,
+      });
+      fixture.detectChanges();
+
+      const pathElement =
+        fixture.debugElement.nativeElement.querySelector('.preview-path');
+      expect(pathElement).toBeTruthy();
+      expect(pathElement.textContent).toContain('Act 1 / Chapter 1');
+    });
+
+    it('should display excerpt when previewContent has excerpt', () => {
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'test-id',
+        elementType: ElementType.Item,
+        displayText: 'Test',
+        originalName: 'Test',
+        position: { x: 100, y: 200 },
+      };
+
+      component.tooltipData = tooltipData;
+      component.previewContent.set({
+        path: undefined,
+        excerpt: 'This is a preview of the content...',
+        wordCount: undefined,
+      });
+      fixture.detectChanges();
+
+      const excerptElement =
+        fixture.debugElement.nativeElement.querySelector('.preview-excerpt');
+      expect(excerptElement).toBeTruthy();
+      expect(excerptElement.textContent).toContain(
+        'This is a preview of the content...'
+      );
+    });
+
+    it('should display word count when previewContent has wordCount', () => {
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'test-id',
+        elementType: ElementType.Item,
+        displayText: 'Test',
+        originalName: 'Test',
+        position: { x: 100, y: 200 },
+      };
+
+      component.tooltipData = tooltipData;
+      component.previewContent.set({
+        path: undefined,
+        excerpt: undefined,
+        wordCount: 1500,
+      });
+      fixture.detectChanges();
+
+      const metaElement =
+        fixture.debugElement.nativeElement.querySelector('.preview-meta');
+      expect(metaElement).toBeTruthy();
+      expect(metaElement.textContent).toContain('1500 words');
+    });
+
+    it('should display all preview content fields', () => {
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'test-id',
+        elementType: ElementType.Item,
+        displayText: 'Test',
+        originalName: 'Test',
+        position: { x: 100, y: 200 },
+      };
+
+      component.tooltipData = tooltipData;
+      component.previewContent.set({
+        path: 'Act 1 / Chapter 1',
+        excerpt: 'Opening scene...',
+        wordCount: 2500,
+      });
+      fixture.detectChanges();
+
+      const pathElement =
+        fixture.debugElement.nativeElement.querySelector('.preview-path');
+      const excerptElement =
+        fixture.debugElement.nativeElement.querySelector('.preview-excerpt');
+      const metaElement =
+        fixture.debugElement.nativeElement.querySelector('.preview-meta');
+
+      expect(pathElement).toBeTruthy();
+      expect(excerptElement).toBeTruthy();
+      expect(metaElement).toBeTruthy();
     });
   });
 });

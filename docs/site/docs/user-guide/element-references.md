@@ -5,6 +5,8 @@ description: Link your story elements together with @mentions for characters, lo
 sidebar_position: 2
 ---
 
+import ThemedImage from '@site/src/components/ThemedImage';
+
 # Element References
 
 Element references let you create links between your story content. Use the `@` symbol to reference characters, locations, items, and other elements from anywhere in your project.
@@ -16,7 +18,10 @@ Element references let you create links between your story content. Use the `@` 
 3. Select from the dropdown or press Enter
 4. A styled link is inserted into your text
 
-![Element reference search popup](/img/features/element-ref-01-popup-light.png)
+<ThemedImage
+  src="/img/features/element-ref-01-popup"
+  alt="Element reference search popup"
+/>
 
 ## Why Use Element References?
 
@@ -35,7 +40,10 @@ Click any element reference to jump directly to that character sheet, location p
 
 When you hover over an element reference, a tooltip shows key information about that element. Quickly verify character names, location details, or item properties without leaving your current document.
 
-![Element reference tooltip](/img/features/element-ref-04-tooltip-light.png)
+<ThemedImage
+  src="/img/features/element-ref-04-tooltip"
+  alt="Element reference tooltip"
+/>
 
 ## Using the @ Popup
 
@@ -47,7 +55,10 @@ The popup shows your most recent/relevant elements by default. Start typing to f
 - Type `@Tavern` to find locations containing "Tavern"
 - Results are ranked by relevance and recency
 
-![Searching for a character](/img/features/element-ref-character-search-light.png)
+<ThemedImage
+  src="/img/features/element-ref-character-search"
+  alt="Searching for a character"
+/>
 
 ### Keyboard Navigation
 
@@ -140,12 +151,6 @@ Use backlinks to ensure consistency:
 1. Open a character's page
 2. Check the Relationships Panel
 3. Review all scenes where they appear
-
-## Dark Mode Support
-
-Element references and the popup adapt to your theme preference:
-
-![Element reference in dark mode](/img/features/element-ref-01-popup-dark.png)
 
 ## Troubleshooting
 

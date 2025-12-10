@@ -568,9 +568,10 @@ describe('TemplatesTabComponent', () => {
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      mockWorldbuildingService.getSchema.mockRejectedValue(
-        new Error('Load failed')
-      );
+      // getSchema is synchronous, so use mockImplementation to throw
+      mockWorldbuildingService.getSchema.mockImplementation(() => {
+        throw new Error('Load failed');
+      });
 
       await component.editTemplate(template);
 
