@@ -659,11 +659,7 @@ export class ProjectStateService implements OnDestroy {
   }
 
   openSystemTab(
-    type:
-      | 'documents-list'
-      | 'project-files'
-      | 'templates-list'
-      | 'relationships-list'
+    type: 'documents-list' | 'media' | 'templates-list' | 'relationships-list'
   ): void {
     const result = this.tabManager.openSystemTab(type);
     if (result.wasCreated) {
@@ -844,10 +840,8 @@ export class ProjectStateService implements OnDestroy {
             selectedIndex = validTabs.findIndex(
               t => t.systemType === 'documents-list'
             );
-          } else if (lastSegment === 'files') {
-            selectedIndex = validTabs.findIndex(
-              t => t.systemType === 'project-files'
-            );
+          } else if (lastSegment === 'media') {
+            selectedIndex = validTabs.findIndex(t => t.systemType === 'media');
           } else if (lastSegment === 'templates') {
             selectedIndex = validTabs.findIndex(
               t => t.systemType === 'templates-list'

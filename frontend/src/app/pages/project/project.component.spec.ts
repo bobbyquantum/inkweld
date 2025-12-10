@@ -371,16 +371,14 @@ describe('ProjectComponent', () => {
       ]);
     });
 
-    it('should show file list', () => {
-      component.onShowFileList();
-      expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
-        'project-files'
-      );
+    it('should show media library', () => {
+      component.onShowMediaLibrary();
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
       expect(router.navigate).toHaveBeenCalledWith([
         '/',
         'testuser',
         'test-project',
-        'project-files',
+        'media',
       ]);
     });
 

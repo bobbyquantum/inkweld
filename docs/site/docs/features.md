@@ -5,7 +5,7 @@ description: Discover what makes Inkweld the perfect platform for collaborative 
 sidebar_position: 2
 ---
 
-![Inkweld Bookshelf](/img/bookshelf-desktop-dark.png)
+![Inkweld Bookshelf](/img/generated/bookshelf-desktop-dark.png)
 
 ## Real-Time Collaboration
 
@@ -16,7 +16,26 @@ Work together with co-authors, beta readers, and editors in real-time. Inkweld u
 - **Seamless sync** - Changes sync automatically when you're back online
 - **User presence** - Know who's currently viewing and editing documents
 
-![Editor Interface](/img/editor-desktop-dark.png)
+![Editor Interface](/img/generated/editor-desktop-dark.png)
+
+## Media Library
+
+Manage all your project's media assets in one place with the built-in Media Library.
+
+![Media Library](/img/generated/media-tab-desktop.png)
+
+- **Centralized storage**: View all images and files stored with your project
+- **Category filtering**: Filter by cover images, inline images, or published exports
+- **Quick preview**: Click any image for a full-size preview
+- **Easy management**: Download or delete media files with one click
+- **Offline support**: Media is stored locally in IndexedDB for offline access
+- **Size tracking**: See total storage used at a glance
+
+The Media Library automatically organizes assets uploaded to your project:
+
+- **Cover images**: Project and document covers
+- **Inline images**: Images embedded in your documents
+- **Published exports**: Generated EPUB, PDF, and other export files
 
 ## Worldbuilding Tools
 

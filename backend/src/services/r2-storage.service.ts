@@ -86,19 +86,6 @@ export class R2StorageService {
   }
 
   /**
-   * List all files in a project directory
-   */
-  async listProjectFiles(username: string, projectSlug: string): Promise<string[]> {
-    const prefix = `${username}/${projectSlug}/`;
-    const listed = await this.bucket.list({ prefix });
-
-    return listed.objects.map((obj) => {
-      // Remove the prefix to get just the filename
-      return obj.key.substring(prefix.length);
-    });
-  }
-
-  /**
    * Delete all files in a project directory
    */
   async deleteProjectDirectory(username: string, projectSlug: string): Promise<void> {

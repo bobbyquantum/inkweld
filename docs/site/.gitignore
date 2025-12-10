@@ -12,9 +12,8 @@
 /static/openapi.json
 
 # Generated screenshots (created by playwright e2e:screenshots)
-/static/img/bookshelf-*.png
-/static/img/editor-*.png
-/static/img/features/
+# All generated screenshots go in the /static/img/generated/ folder
+/static/img/generated/
 
 # Misc
 .DS_Store

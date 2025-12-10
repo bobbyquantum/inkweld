@@ -222,22 +222,6 @@ export class HomeTabComponent {
   }
 
   /**
-   * Opens the project files tab
-   */
-  openProjectFilesTab(): void {
-    this.projectState.openSystemTab('project-files');
-    const project = this.projectState.project();
-    if (project) {
-      void this.router.navigate([
-        '/',
-        project.username,
-        project.slug,
-        'project-files',
-      ]);
-    }
-  }
-
-  /**
    * Opens the documents tab
    */
   openDocumentsTab(): void {
@@ -250,6 +234,17 @@ export class HomeTabComponent {
         project.slug,
         'documents-list',
       ]);
+    }
+  }
+
+  /**
+   * Opens the media tab
+   */
+  openMediaTab(): void {
+    this.projectState.openSystemTab('media');
+    const project = this.projectState.project();
+    if (project) {
+      void this.router.navigate(['/', project.username, project.slug, 'media']);
     }
   }
 

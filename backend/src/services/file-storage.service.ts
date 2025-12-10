@@ -73,18 +73,6 @@ export class FileStorageService {
   }
 
   /**
-   * List files in a project directory
-   */
-  async listProjectFiles(username: string, projectSlug: string): Promise<string[]> {
-    const projectPath = this.getProjectPath(username, projectSlug);
-    try {
-      return await fs.readdir(projectPath);
-    } catch {
-      return [];
-    }
-  }
-
-  /**
    * Delete an entire project directory
    */
   async deleteProjectDirectory(username: string, projectSlug: string): Promise<void> {
