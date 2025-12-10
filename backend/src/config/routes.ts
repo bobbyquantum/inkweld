@@ -15,7 +15,6 @@ import imageRoutes from '../routes/image.routes';
 import snapshotRoutes from '../routes/snapshot.routes';
 import documentRoutes from '../routes/document.routes';
 import elementRoutes from '../routes/element.routes';
-import fileRoutes from '../routes/file.routes';
 import lintRoutes from '../routes/lint.routes';
 import aiImageRoutes from '../routes/ai-image.routes';
 import mcpRoutes from '../routes/mcp.routes';
@@ -41,11 +40,10 @@ export function registerCommonRoutes(app: any): void {
   app.route('/api/v1/admin', adminRoutes);
   app.route('/api/v1/admin/config', adminConfigRoutes);
 
-  // Project routes (projects, documents, elements, files, images)
+  // Project routes (projects, documents, elements, images)
   app.route('/api/v1/projects', projectRoutes);
   app.route('/api/v1/projects', documentRoutes);
   app.route('/api/v1/projects', elementRoutes);
-  app.route('/api/v1/projects', fileRoutes);
   app.route('/api/v1/projects', imageRoutes);
 
   // Snapshots have their own base path to avoid conflicts

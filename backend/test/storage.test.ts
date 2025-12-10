@@ -61,19 +61,6 @@ describe('FileStorageService', () => {
       expect(exists).toBe(false);
     });
 
-    it('should list project files', async () => {
-      const username = 'testuser';
-      const projectSlug = 'test-project';
-
-      await service.saveProjectFile(username, projectSlug, 'file1.txt', 'content1');
-      await service.saveProjectFile(username, projectSlug, 'file2.txt', 'content2');
-
-      const files = await service.listProjectFiles(username, projectSlug);
-      expect(files).toContain('file1.txt');
-      expect(files).toContain('file2.txt');
-      expect(files.length).toBe(2);
-    });
-
     it('should handle binary data (images)', async () => {
       const username = 'testuser';
       const projectSlug = 'test-project';
@@ -130,8 +117,11 @@ describe('FileStorageService', () => {
 
       await service.deleteProjectDirectory(username, projectSlug);
 
-      const files = await service.listProjectFiles(username, projectSlug);
-      expect(files.length).toBe(0);
+      // Verify files no longer exist
+      const file1Exists = await service.projectFileExists(username, projectSlug, 'file1.txt');
+      const file2Exists = await service.projectFileExists(username, projectSlug, 'file2.txt');
+      expect(file1Exists).toBe(false);
+      expect(file2Exists).toBe(false);
     });
   });
 });

@@ -9,7 +9,6 @@ import { DocumentTabComponent } from './pages/project/tabs/document/document-tab
 import { DocumentsListTabComponent } from './pages/project/tabs/documents-list/documents-list-tab.component';
 import { FolderTabComponent } from './pages/project/tabs/folder/folder-tab.component';
 import { HomeTabComponent } from './pages/project/tabs/home/home-tab.component';
-import { ProjectFilesTabComponent } from './pages/project/tabs/project-files/project-files-tab.component';
 import { PublishPlanTabComponent } from './pages/project/tabs/publish-plan/publish-plan-tab.component';
 import { RelationshipsTabComponent } from './pages/project/tabs/relationships/relationships-tab.component';
 import { TemplatesTabComponent } from './pages/project/tabs/templates/templates-tab.component';
@@ -139,13 +138,6 @@ export const routes: Routes = [
       {
         path: 'documents-list',
         component: DocumentsListTabComponent,
-        data: {
-          reuseComponent: false,
-        },
-      },
-      {
-        path: 'project-files',
-        component: ProjectFilesTabComponent,
         data: {
           reuseComponent: false,
         },

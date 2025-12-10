@@ -25,8 +25,6 @@ export interface StorageService {
 
   deleteProjectFile(username: string, projectSlug: string, filename: string): Promise<void>;
 
-  listProjectFiles(username: string, projectSlug: string): Promise<string[]>;
-
   deleteProjectDirectory(username: string, projectSlug: string): Promise<void>;
 
   saveUserAvatar(username: string, data: Buffer | ArrayBuffer | Uint8Array): Promise<void>;
@@ -82,10 +80,6 @@ class FileStorageAdapter implements StorageService {
 
   async deleteProjectFile(username: string, projectSlug: string, filename: string): Promise<void> {
     await this.fileStorage.deleteProjectFile(username, projectSlug, filename);
-  }
-
-  async listProjectFiles(username: string, projectSlug: string): Promise<string[]> {
-    return await this.fileStorage.listProjectFiles(username, projectSlug);
   }
 
   async deleteProjectDirectory(username: string, projectSlug: string): Promise<void> {
@@ -153,10 +147,6 @@ class R2StorageAdapter implements StorageService {
 
   async deleteProjectFile(username: string, projectSlug: string, filename: string): Promise<void> {
     await this.r2Storage.deleteProjectFile(username, projectSlug, filename);
-  }
-
-  async listProjectFiles(username: string, projectSlug: string): Promise<string[]> {
-    return await this.r2Storage.listProjectFiles(username, projectSlug);
   }
 
   async deleteProjectDirectory(username: string, projectSlug: string): Promise<void> {
