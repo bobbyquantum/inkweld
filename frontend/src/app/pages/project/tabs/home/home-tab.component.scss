@@ -17,8 +17,8 @@
 }
 
 .full-width-header {
-  background-color: var(--mat-primary-color);
-  color: white;
+  background-color: var(--sys-primary);
+  color: var(--sys-on-primary);
   border-radius: 8px;
   padding: 24px;
 }
@@ -71,7 +71,7 @@
 
 .home-column-header {
   margin-bottom: 16px;
-  border-bottom: 1px solid var(--mat-divider-color);
+  border-bottom: 1px solid var(--sys-outline-variant);
   padding-bottom: 8px;
   font-weight: bold;
 }
@@ -111,14 +111,14 @@
 
 .recent-file-item:hover,
 .recent-file-item:focus {
-  background-color: var(--mat-hover-color);
+  background-color: var(--sys-surface-container-high);
 }
 
 .no-recent-files {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--mat-hint-color);
+  color: var(--sys-outline);
   font-style: italic;
 }
 
@@ -151,7 +151,7 @@
 
   &:hover,
   &:focus-within {
-    background-color: var(--mat-hover-color);
+    background-color: var(--sys-surface-container-high);
   }
 }
 
@@ -165,7 +165,7 @@
   border-radius: 4px;
 
   &:focus {
-    outline: 2px solid var(--mat-primary-color);
+    outline: 2px solid var(--sys-primary);
     outline-offset: -2px;
   }
 }
@@ -186,7 +186,7 @@
 
 .plan-format {
   font-size: 0.85em;
-  color: var(--mat-hint-color);
+  color: var(--sys-outline);
 }
 
 .delete-plan-btn {
@@ -207,6 +207,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--mat-hint-color);
+  color: var(--sys-outline);
   font-style: italic;
 }

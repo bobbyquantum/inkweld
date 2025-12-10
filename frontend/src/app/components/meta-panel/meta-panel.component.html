@@ -1,0 +1,102 @@
+@if (isOpen()) {
+  <div class="meta-panel">
+    <div class="panel-content">
+      <!-- Add Relationship Button - Always visible at top -->
+      <div class="panel-actions">
+        <button
+          mat-stroked-button
+          (click)="openAddRelationshipDialog()"
+          class="add-relationship-button"
+          data-testid="add-relationship-button">
+          <mat-icon>add</mat-icon>
+          <span>Add Relationship</span>
+        </button>
+      </div>
+
+      <mat-accordion class="meta-accordion" multi>
+        <!-- Dynamic Relationship Type Panels -->
+        @for (group of groupedRelationships(); track getGroupKey(group)) {
+          <mat-expansion-panel
+            [expanded]="true"
+            class="relationship-type-panel"
+            [class.incoming]="group.isIncoming"
+            data-testid="relationship-type-panel">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon class="section-icon">{{
+                  group.type.icon || 'link'
+                }}</mat-icon>
+                {{ group.displayLabel }} ({{ group.relationships.length }})
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <mat-nav-list class="relationships-list" dense>
+              @for (rel of group.relationships; track rel.id) {
+                <a
+                  mat-list-item
+                  tabindex="0"
+                  (click)="navigateToElement(rel, group.isIncoming)"
+                  (keydown.enter)="navigateToElement(rel, group.isIncoming)"
+                  (mouseenter)="
+                    showTooltipForElement(
+                      group.isIncoming
+                        ? rel.sourceElementId
+                        : rel.targetElementId,
+                      $event
+                    )
+                  "
+                  (mouseleave)="hideTooltip()"
+                  class="relationship-item"
+                  data-testid="relationship-item">
+                  <mat-icon matListItemIcon>{{
+                    getElementIcon(
+                      group.isIncoming
+                        ? rel.sourceElementId
+                        : rel.targetElementId
+                    )
+                  }}</mat-icon>
+                  <span matListItemTitle>{{
+                    getElementName(
+                      group.isIncoming
+                        ? rel.sourceElementId
+                        : rel.targetElementId
+                    )
+                  }}</span>
+                  <div matListItemMeta class="item-actions">
+                    @if (!group.isIncoming) {
+                      <button
+                        mat-icon-button
+                        (click)="deleteRelationship(rel, $event)"
+                        matTooltip="Remove relationship"
+                        class="delete-button"
+                        data-testid="delete-relationship-button">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    }
+                    <mat-icon class="chevron">chevron_right</mat-icon>
+                  </div>
+                </a>
+              }
+            </mat-nav-list>
+          </mat-expansion-panel>
+        }
+
+        <!-- Snapshots Section -->
+        <mat-expansion-panel
+          [expanded]="!hasRelationships()"
+          data-testid="snapshots-section">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon class="section-icon">history</mat-icon>
+              Snapshots
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <app-snapshot-panel
+            [documentId]="documentId()"
+            (closePanel)="close()">
+          </app-snapshot-panel>
+        </mat-expansion-panel>
+      </mat-accordion>
+    </div>
+  </div>
+}

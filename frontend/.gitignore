@@ -52,5 +52,8 @@ Thumbs.db
 /playwright/.cache/
 .jest-cache
 /test-results.json
+
+# Generated screenshots (regenerated during docs build)
+/e2e/screenshots/output/
 debug-screenshot.png
 .npmrc

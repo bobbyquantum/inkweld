@@ -1,0 +1,237 @@
+<div class="relationships-tab-container">
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Loading relationship types...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-container">
+      <mat-icon>error_outline</mat-icon>
+      <p class="error-message">{{ error() }}</p>
+      <button mat-raised-button color="primary" (click)="refresh()">
+        <mat-icon>refresh</mat-icon>
+        Retry
+      </button>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!isLoading() && !error() && !hasTypes()) {
+    <div class="empty-container">
+      <mat-icon class="empty-icon">link</mat-icon>
+      <h3>No Relationship Types Found</h3>
+      <p>This project doesn't have any relationship types configured yet.</p>
+      <p class="help-text">
+        Relationship types define how elements can be connected to each other
+        (e.g., "Parent of", "Lives at", "Owns").
+      </p>
+      <button mat-raised-button color="primary" (click)="loadDefaultTypes()">
+        <span class="button-content">
+          <mat-icon>download</mat-icon>
+          <span>Load Default Types</span>
+        </span>
+      </button>
+    </div>
+  }
+
+  <!-- Relationship Types List -->
+  @if (!isLoading() && !error() && hasTypes()) {
+    <div class="relationships-header">
+      <div class="header-content">
+        <h2>
+          <mat-icon>link</mat-icon>
+          Relationship Types
+        </h2>
+        <p class="subtitle">
+          {{ relationshipTypes().length }} type{{
+            relationshipTypes().length === 1 ? '' : 's'
+          }}
+          available ({{ customTypes().length }} custom)
+        </p>
+      </div>
+      <div class="header-actions">
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="createCustomType()"
+          data-testid="create-type-button">
+          <mat-icon>add</mat-icon>
+          New Type
+        </button>
+        <button
+          mat-icon-button
+          (click)="refresh()"
+          matTooltip="Refresh relationship types">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Custom Types Section -->
+    @if (customTypes().length > 0) {
+      <div class="section">
+        <h3 class="section-title">
+          <mat-icon>tune</mat-icon>
+          Custom Types
+        </h3>
+        <div class="types-grid">
+          @for (type of customTypes(); track type.id) {
+            <mat-card
+              class="type-card custom"
+              data-testid="relationship-type-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar [style.color]="type.color">{{
+                  type.icon
+                }}</mat-icon>
+                <mat-card-title>{{ type.name }}</mat-card-title>
+                <mat-card-subtitle>
+                  <mat-chip class="custom-chip">Custom</mat-chip>
+                  <mat-chip class="category-chip">{{
+                    type.categoryLabel
+                  }}</mat-chip>
+                </mat-card-subtitle>
+
+                <!-- Actions menu -->
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="typeMenu"
+                  class="type-menu-button"
+                  data-testid="type-menu-button"
+                  aria-label="Type actions">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+
+                <mat-menu #typeMenu="matMenu">
+                  <button mat-menu-item (click)="editType(type)">
+                    <mat-icon>edit</mat-icon>
+                    <span>Edit</span>
+                  </button>
+                  <button mat-menu-item (click)="cloneType(type)">
+                    <mat-icon>content_copy</mat-icon>
+                    <span>Clone</span>
+                  </button>
+                  <button
+                    mat-menu-item
+                    (click)="deleteType(type)"
+                    data-testid="delete-type-button">
+                    <mat-icon>delete</mat-icon>
+                    <span>Delete</span>
+                  </button>
+                </mat-menu>
+              </mat-card-header>
+
+              <mat-card-content>
+                <div class="type-details">
+                  <div class="detail-row">
+                    <span class="label">Forward:</span>
+                    <span class="value">{{ type.name }}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Inverse:</span>
+                    <span class="value">{{ type.inverseLabel }}</span>
+                    @if (!type.showInverse) {
+                      <mat-icon
+                        class="hidden-icon"
+                        matTooltip="Inverse links are hidden">
+                        visibility_off
+                      </mat-icon>
+                    }
+                  </div>
+                  <div class="detail-row constraints">
+                    <span class="label">Source:</span>
+                    <span class="value">{{ type.sourceConstraints }}</span>
+                  </div>
+                  <div class="detail-row constraints">
+                    <span class="label">Target:</span>
+                    <span class="value">{{ type.targetConstraints }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Built-in Types Section -->
+    @if (builtInTypes().length > 0) {
+      <div class="section">
+        <h3 class="section-title">
+          <mat-icon>lock</mat-icon>
+          Built-in Types
+        </h3>
+        <div class="types-grid">
+          @for (type of builtInTypes(); track type.id) {
+            <mat-card
+              class="type-card built-in"
+              data-testid="relationship-type-card">
+              <mat-card-header>
+                <mat-icon mat-card-avatar [style.color]="type.color">{{
+                  type.icon
+                }}</mat-icon>
+                <mat-card-title>{{ type.name }}</mat-card-title>
+                <mat-card-subtitle>
+                  <mat-chip class="built-in-chip">Built-in</mat-chip>
+                  <mat-chip class="category-chip">{{
+                    type.categoryLabel
+                  }}</mat-chip>
+                </mat-card-subtitle>
+
+                <!-- Actions menu (limited for built-in) -->
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="builtInMenu"
+                  class="type-menu-button"
+                  aria-label="Type actions">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+
+                <mat-menu #builtInMenu="matMenu">
+                  <button
+                    mat-menu-item
+                    (click)="cloneType(type)"
+                    data-testid="clone-type-button">
+                    <mat-icon>content_copy</mat-icon>
+                    <span>Clone as Custom</span>
+                  </button>
+                </mat-menu>
+              </mat-card-header>
+
+              <mat-card-content>
+                <div class="type-details">
+                  <div class="detail-row">
+                    <span class="label">Forward:</span>
+                    <span class="value">{{ type.name }}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Inverse:</span>
+                    <span class="value">{{ type.inverseLabel }}</span>
+                    @if (!type.showInverse) {
+                      <mat-icon
+                        class="hidden-icon"
+                        matTooltip="Inverse links are hidden">
+                        visibility_off
+                      </mat-icon>
+                    }
+                  </div>
+                  <div class="detail-row constraints">
+                    <span class="label">Source:</span>
+                    <span class="value">{{ type.sourceConstraints }}</span>
+                  </div>
+                  <div class="detail-row constraints">
+                    <span class="label">Target:</span>
+                    <span class="value">{{ type.targetConstraints }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>

@@ -1,0 +1,162 @@
+@use '@angular/material' as mat;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0; // Critical for flex shrinking
+}
+
+.meta-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--sys-surface-container);
+  overflow: hidden;
+  width: 100%;
+  min-height: 0; // Allow shrinking
+}
+
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 0; // Critical for nested scrolling
+}
+
+// Add Relationship button at top of panel
+.panel-actions {
+  margin-bottom: 12px;
+
+  .add-relationship-button {
+    width: 100%;
+    justify-content: center;
+
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+}
+
+.meta-accordion {
+  display: block;
+
+  .mat-expansion-panel {
+    margin-bottom: 8px;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    border: 1px solid var(--sys-outline-variant);
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &.mat-expanded {
+      border-color: var(--sys-outline);
+    }
+
+    // Incoming relationships (backlinks) styling
+    &.incoming {
+      .mat-expansion-panel-header {
+        .section-icon {
+          color: var(--sys-tertiary);
+        }
+      }
+    }
+  }
+
+  .mat-expansion-panel-header {
+    padding: 0 16px;
+    height: 48px;
+  }
+
+  .mat-expansion-panel-body {
+    padding: 0;
+  }
+}
+
+.section-icon {
+  margin-right: 8px;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--sys-primary);
+}
+
+mat-panel-title {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+// Relationship list styling
+.relationships-list {
+  padding: 0 !important;
+
+  .relationship-item {
+    cursor: pointer;
+
+    &:hover {
+      background: var(--sys-surface-container-high);
+
+      .delete-button {
+        opacity: 1;
+      }
+    }
+  }
+
+  .item-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .delete-button {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      width: 32px;
+      height: 32px;
+      line-height: 32px;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+
+      &:hover {
+        color: var(--sys-error);
+      }
+    }
+
+    .chevron {
+      color: var(--sys-on-surface-variant);
+      font-size: 20px;
+    }
+  }
+}
+
+// Embedded panel styles - remove redundant headers when inside accordion
+::ng-deep {
+  .meta-accordion {
+    app-snapshot-panel {
+      .panel-header {
+        display: none; // Hide redundant header inside accordion
+      }
+
+      .snapshot-panel {
+        border: none;
+        background: transparent;
+      }
+    }
+  }
+}
+
+// Animation states handled by Angular animations
+:host {
+  display: block;
+}

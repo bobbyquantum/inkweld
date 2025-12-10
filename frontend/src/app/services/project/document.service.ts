@@ -21,6 +21,10 @@ import {
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
+import {
+  createElementRefPlugin,
+  ElementRefService,
+} from '../../components/element-ref';
 import { LintApiService } from '../../components/lint/lint-api.service';
 import { createLintPlugin } from '../../components/lint/lint-plugin';
 import { DocumentSyncState } from '../../models/document-sync-state';
@@ -61,6 +65,7 @@ export class DocumentService {
   private systemConfigService = inject(SystemConfigService);
   private projectStateService = inject(ProjectStateService);
   private lintApiService = inject(LintApiService);
+  private elementRefService = inject(ElementRefService);
   private logger = inject(LoggerService);
   private userService = inject(UnifiedUserService);
 
@@ -678,6 +683,35 @@ export class DocumentService {
       const lintPlugin = createLintPlugin(this.lintApiService);
       plugins.push(lintPlugin);
     }
+
+    // Add the element reference plugin for @ mentions
+    const elementRefPlugin = createElementRefPlugin({
+      onOpen: (position: { x: number; y: number }, query: string) => {
+        this.elementRefService.openPopup(position, query);
+      },
+      onClose: () => {
+        this.elementRefService.closePopup();
+      },
+      onQueryChange: (query: string) => {
+        this.elementRefService.setSearchQuery(query);
+      },
+      onRefClick: event => {
+        // Delegate to ElementRefService for context menu handling
+        this.elementRefService.handleRefClick(event);
+      },
+      onRefHover: data => {
+        // Show tooltip on element ref hover
+        this.elementRefService.showTooltip(data);
+      },
+      onRefHoverEnd: () => {
+        // Hide tooltip when hover ends
+        this.elementRefService.hideTooltip();
+      },
+    });
+    plugins.push(elementRefPlugin);
+
+    // Store editor view in ElementRefService for context menu operations
+    this.elementRefService.setEditorView(view);
 
     // Add word count tracking plugin
     const wordCountPlugin = new Plugin({

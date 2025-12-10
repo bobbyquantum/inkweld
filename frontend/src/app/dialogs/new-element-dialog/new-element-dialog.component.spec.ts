@@ -251,8 +251,8 @@ describe('NewElementDialogComponent', () => {
         },
       ]);
 
-      mockWorldbuildingService.hasNoSchemas.mockResolvedValue(false);
-      mockWorldbuildingService.getAllSchemas.mockResolvedValue(mockSchemas);
+      mockWorldbuildingService.hasNoSchemas.mockReturnValue(false);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue(mockSchemas);
 
       mockProjectState.project.set(mockProject);
       fixture.detectChanges();
@@ -281,9 +281,9 @@ describe('NewElementDialogComponent', () => {
         },
       ]);
 
-      mockWorldbuildingService.hasNoSchemas.mockResolvedValue(true);
+      mockWorldbuildingService.hasNoSchemas.mockReturnValue(true);
       mockWorldbuildingService.loadDefaults.mockResolvedValue(undefined);
-      mockWorldbuildingService.getAllSchemas.mockResolvedValue(loadedSchemas);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue(loadedSchemas);
 
       mockProjectState.project.set(mockProject);
       fixture.detectChanges();
@@ -303,9 +303,9 @@ describe('NewElementDialogComponent', () => {
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      mockWorldbuildingService.hasNoSchemas.mockRejectedValue(
-        new Error('Load failed')
-      );
+      mockWorldbuildingService.hasNoSchemas.mockImplementation(() => {
+        throw new Error('Load failed');
+      });
 
       mockProjectState.project.set(mockProject);
       fixture.detectChanges();
@@ -335,8 +335,8 @@ describe('NewElementDialogComponent', () => {
         },
       ]);
 
-      mockWorldbuildingService.hasNoSchemas.mockResolvedValue(false);
-      mockWorldbuildingService.getAllSchemas.mockResolvedValue(mockSchemas);
+      mockWorldbuildingService.hasNoSchemas.mockReturnValue(false);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue(mockSchemas);
 
       mockProjectState.project.set(mockProject);
       fixture.detectChanges();

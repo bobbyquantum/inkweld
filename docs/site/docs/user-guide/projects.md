@@ -78,6 +78,10 @@ When collaborators are editing:
    - Backstory and motivations
    - Relationships with other characters
 
+:::tip Element References
+Once you've created characters and locations, use `@` mentions in your documents to link to them. See [Element References](./element-references) for details.
+:::
+
 ### Location Entries
 
 Document your story's settings:

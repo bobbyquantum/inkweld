@@ -4,6 +4,12 @@ import { nanoid } from 'nanoid';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
 
+import {
+  ElementRelationship,
+  RelationshipTypeDefinition,
+} from '../../components/element-ref/element-ref.model';
+import { PublishPlan } from '../../models/publish-plan';
+import { ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 
 const OFFLINE_ELEMENTS_STORAGE_KEY = 'inkweld-offline-elements';
@@ -13,11 +19,42 @@ interface StoredProjectElements {
 }
 
 /**
- * Manages offline project elements using Yjs + IndexedDB
+ * Connection to a single Yjs document for a project.
  *
- * This service provides CRDT-based storage for project elements in offline mode,
- * matching the pattern used by DocumentService and ProjectStateService.
- * When switching to online mode, the Yjs document automatically syncs via WebSocket.
+ * All project metadata (elements, publish plans, relationships, custom types, schemas)
+ * is stored in the SAME Yjs document, matching the online YjsElementSyncProvider.
+ */
+interface YjsProjectConnection {
+  doc: Y.Doc;
+  provider: IndexeddbPersistence;
+  elementsArray: Y.Array<Element>;
+  publishPlansArray: Y.Array<PublishPlan>;
+  relationshipsArray: Y.Array<ElementRelationship>;
+  customTypesArray: Y.Array<RelationshipTypeDefinition>;
+  schemasArray: Y.Array<ElementTypeSchema>;
+}
+
+/**
+ * Manages offline project data using Yjs + IndexedDB
+ *
+ * This service provides CRDT-based storage for all project metadata in offline mode:
+ * - Elements (folders, items)
+ * - Publish plans
+ * - Element relationships
+ * - Custom relationship types
+ * - Worldbuilding schemas
+ *
+ * All data is stored in a SINGLE Yjs document per project, matching the structure
+ * used by YjsElementSyncProvider for online mode. This ensures seamless transition
+ * between offline and online modes.
+ *
+ * Document ID format: `${username}:${slug}:elements`
+ * Arrays in document:
+ * - 'elements' - project tree structure
+ * - 'publishPlans' - publishing configuration
+ * - 'relationships' - element references
+ * - 'customRelationshipTypes' - user-defined relationship types
+ * - 'schemas' - worldbuilding template schemas
  */
 @Injectable({
   providedIn: 'root',
@@ -26,30 +63,38 @@ export class OfflineProjectElementsService {
   private logger = inject(LoggerService);
 
   readonly elements = signal<Element[]>([]);
+  readonly publishPlans = signal<PublishPlan[]>([]);
+  readonly relationships = signal<ElementRelationship[]>([]);
+  readonly customRelationshipTypes = signal<RelationshipTypeDefinition[]>([]);
+  readonly schemas = signal<ElementTypeSchema[]>([]);
   readonly isLoading = signal(false);
 
   // Yjs connections per project (username:slug -> connection)
-  private yjsConnections = new Map<
-    string,
-    {
-      doc: Y.Doc;
-      provider: IndexeddbPersistence;
-      elementsArray: Y.Array<Element>;
-    }
-  >();
+  private yjsConnections = new Map<string, YjsProjectConnection>();
 
   /**
-   * Load elements for a specific project using Yjs + IndexedDB
+   * Load elements for a specific project using Yjs + IndexedDB.
+   * Also sets up observers for all project data arrays.
    */
   async loadElements(username: string, slug: string): Promise<void> {
     this.isLoading.set(true);
     try {
       const connection = await this.getOrCreateConnection(username, slug);
-      const elements = connection.elementsArray.toArray();
-      this.elements.set(elements);
+
+      // Load all data from the unified Yjs document
+      this.elements.set(connection.elementsArray.toArray());
+      this.publishPlans.set(connection.publishPlansArray.toArray());
+      this.relationships.set(connection.relationshipsArray.toArray());
+      this.customRelationshipTypes.set(connection.customTypesArray.toArray());
+      this.schemas.set(connection.schemasArray.toArray());
+
       this.logger.debug(
         'OfflineProjectElements',
-        `Loaded ${elements.length} elements for ${username}/${slug}`
+        `Loaded ${connection.elementsArray.length} elements, ` +
+          `${connection.publishPlansArray.length} publish plans, ` +
+          `${connection.relationshipsArray.length} relationships, ` +
+          `${connection.schemasArray.length} schemas ` +
+          `for ${username}/${slug}`
       );
     } catch (error) {
       this.logger.error(
@@ -57,8 +102,12 @@ export class OfflineProjectElementsService {
         'Failed to load elements',
         error
       );
-      // Fall back to empty array on error
+      // Fall back to empty arrays on error
       this.elements.set([]);
+      this.publishPlans.set([]);
+      this.relationships.set([]);
+      this.customRelationshipTypes.set([]);
+      this.schemas.set([]);
     } finally {
       this.isLoading.set(false);
     }
@@ -96,17 +145,163 @@ export class OfflineProjectElementsService {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Publish Plans
+  // ─────────────────────────────────────────────────────────────────────────────
+
   /**
-   * Get or create a Yjs connection for a project
+   * Save publish plans for a specific project using Yjs
+   */
+  async savePublishPlans(
+    username: string,
+    slug: string,
+    plans: PublishPlan[]
+  ): Promise<void> {
+    try {
+      const connection = await this.getOrCreateConnection(username, slug);
+
+      connection.doc.transact(() => {
+        connection.publishPlansArray.delete(
+          0,
+          connection.publishPlansArray.length
+        );
+        connection.publishPlansArray.insert(0, plans);
+      });
+
+      this.publishPlans.set(plans);
+      this.logger.debug(
+        'OfflineProjectElements',
+        `Saved ${plans.length} publish plans for ${username}/${slug}`
+      );
+    } catch (error) {
+      this.logger.error(
+        'OfflineProjectElements',
+        'Failed to save publish plans',
+        error
+      );
+      throw error;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Relationships
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Save relationships for a specific project using Yjs
+   */
+  async saveRelationships(
+    username: string,
+    slug: string,
+    relationships: ElementRelationship[]
+  ): Promise<void> {
+    try {
+      const connection = await this.getOrCreateConnection(username, slug);
+
+      connection.doc.transact(() => {
+        connection.relationshipsArray.delete(
+          0,
+          connection.relationshipsArray.length
+        );
+        connection.relationshipsArray.insert(0, relationships);
+      });
+
+      this.relationships.set(relationships);
+      this.logger.debug(
+        'OfflineProjectElements',
+        `Saved ${relationships.length} relationships for ${username}/${slug}`
+      );
+    } catch (error) {
+      this.logger.error(
+        'OfflineProjectElements',
+        'Failed to save relationships',
+        error
+      );
+      throw error;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Custom Relationship Types
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Save custom relationship types for a specific project using Yjs
+   */
+  async saveCustomRelationshipTypes(
+    username: string,
+    slug: string,
+    types: RelationshipTypeDefinition[]
+  ): Promise<void> {
+    try {
+      const connection = await this.getOrCreateConnection(username, slug);
+
+      connection.doc.transact(() => {
+        connection.customTypesArray.delete(
+          0,
+          connection.customTypesArray.length
+        );
+        connection.customTypesArray.insert(0, types);
+      });
+
+      this.customRelationshipTypes.set(types);
+      this.logger.debug(
+        'OfflineProjectElements',
+        `Saved ${types.length} custom relationship types for ${username}/${slug}`
+      );
+    } catch (error) {
+      this.logger.error(
+        'OfflineProjectElements',
+        'Failed to save custom relationship types',
+        error
+      );
+      throw error;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Worldbuilding Schemas
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Save schemas for a specific project using Yjs
+   */
+  async saveSchemas(
+    username: string,
+    slug: string,
+    schemas: ElementTypeSchema[]
+  ): Promise<void> {
+    try {
+      const connection = await this.getOrCreateConnection(username, slug);
+
+      connection.doc.transact(() => {
+        connection.schemasArray.delete(0, connection.schemasArray.length);
+        connection.schemasArray.insert(0, schemas);
+      });
+
+      this.schemas.set(schemas);
+      this.logger.debug(
+        'OfflineProjectElements',
+        `Saved ${schemas.length} schemas for ${username}/${slug}`
+      );
+    } catch (error) {
+      this.logger.error(
+        'OfflineProjectElements',
+        'Failed to save schemas',
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Get or create a Yjs connection for a project.
+   * Creates a single Yjs document with all project metadata arrays.
    */
   private async getOrCreateConnection(
     username: string,
     slug: string
-  ): Promise<{
-    doc: Y.Doc;
-    provider: IndexeddbPersistence;
-    elementsArray: Y.Array<Element>;
-  }> {
+  ): Promise<YjsProjectConnection> {
     const projectKey = `${username}:${slug}`;
     const docId = `${username}:${slug}:elements`;
 
@@ -123,14 +318,51 @@ export class OfflineProjectElementsService {
     // Wait for IndexedDB to sync before proceeding
     await provider.whenSynced;
 
+    // Get all arrays from the unified document
     const elementsArray = doc.getArray<Element>('elements');
+    const publishPlansArray = doc.getArray<PublishPlan>('publishPlans');
+    const relationshipsArray =
+      doc.getArray<ElementRelationship>('relationships');
+    const customTypesArray = doc.getArray<RelationshipTypeDefinition>(
+      'customRelationshipTypes'
+    );
+    const schemasArray = doc.getArray<ElementTypeSchema>('schemas');
 
-    // Check if we need to migrate from localStorage
+    // Set up observers for all arrays
+    elementsArray.observe(() => {
+      this.elements.set(elementsArray.toArray());
+    });
+
+    publishPlansArray.observe(() => {
+      this.publishPlans.set(publishPlansArray.toArray());
+    });
+
+    relationshipsArray.observe(() => {
+      this.relationships.set(relationshipsArray.toArray());
+    });
+
+    customTypesArray.observe(() => {
+      this.customRelationshipTypes.set(customTypesArray.toArray());
+    });
+
+    schemasArray.observe(() => {
+      this.schemas.set(schemasArray.toArray());
+    });
+
+    // Check if we need to migrate from localStorage (elements only)
     if (elementsArray.length === 0) {
       this.migrateFromLocalStorage(projectKey, elementsArray, doc);
     }
 
-    const connection = { doc, provider, elementsArray };
+    const connection: YjsProjectConnection = {
+      doc,
+      provider,
+      elementsArray,
+      publishPlansArray,
+      relationshipsArray,
+      customTypesArray,
+      schemasArray,
+    };
     this.yjsConnections.set(projectKey, connection);
 
     this.logger.debug(

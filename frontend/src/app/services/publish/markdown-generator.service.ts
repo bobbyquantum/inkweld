@@ -376,6 +376,17 @@ export class MarkdownGeneratorService {
       return node.map(n => this.extractText(n)).join('');
     }
 
+    // Handle elementRef nodes - render display text as plain text
+    // These are design-time references, no special rendering in published output
+    const nodeName = this.getNodeName(node);
+    if (nodeName === 'elementRef') {
+      const attrs = (node as Record<string, unknown>)['attrs'] as
+        | Record<string, unknown>
+        | undefined;
+      const displayText = attrs?.['displayText'];
+      return typeof displayText === 'string' ? displayText : '';
+    }
+
     const text = (node as Record<string, unknown>)['text'];
     if (typeof text === 'string') {
       const marks = this.getMarks(node);

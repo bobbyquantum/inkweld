@@ -239,6 +239,8 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
         systemRoute = 'project-files';
       } else if (url === `${projectBaseUrl}/templates-list`) {
         systemRoute = 'templates-list';
+      } else if (url === `${projectBaseUrl}/relationships-list`) {
+        systemRoute = 'relationships-list';
       } else if (url.startsWith(`${projectBaseUrl}/publish-plan/`)) {
         // Extract publish plan ID from URL
         const urlParts = url.split('/');
@@ -283,7 +285,11 @@ export class TabInterfaceComponent implements OnInit, OnDestroy {
       // If system tab not found in the existing tabs, create it
       if (tabIndex === -1) {
         this.projectState.openSystemTab(
-          systemRoute as 'documents-list' | 'project-files' | 'templates-list'
+          systemRoute as
+            | 'documents-list'
+            | 'project-files'
+            | 'templates-list'
+            | 'relationships-list'
         );
         // Re-find the tab index after creating
         tabIndex = this.projectState

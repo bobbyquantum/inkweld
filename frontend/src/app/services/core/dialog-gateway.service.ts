@@ -4,6 +4,11 @@ import { Project } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import {
+  AddRelationshipDialogComponent,
+  AddRelationshipDialogData,
+  AddRelationshipDialogResult,
+} from '../../dialogs/add-relationship-dialog/add-relationship-dialog.component';
+import {
   ConfirmationDialogComponent,
   ConfirmationDialogData,
 } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
@@ -120,6 +125,17 @@ export class DialogGatewayService {
       maxHeight: '90vh',
       panelClass: 'user-settings-dialog-panel',
       data: { selectedCategory: selectedCategory || 'general' },
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openAddRelationshipDialog(
+    data: AddRelationshipDialogData
+  ): Promise<AddRelationshipDialogResult | undefined> {
+    const dialogRef = this.dialog.open(AddRelationshipDialogComponent, {
+      data,
+      disableClose: true,
+      width: '500px',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

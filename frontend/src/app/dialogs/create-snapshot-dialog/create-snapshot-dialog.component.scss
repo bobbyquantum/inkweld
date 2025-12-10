@@ -6,12 +6,12 @@ mat-dialog-content {
 .word-count-info {
   margin: 0 0 16px 0;
   padding: 12px;
-  background: var(--mat-app-background-color, #fafafa);
+  background: var(--sys-surface-container);
   border-radius: 4px;
   font-size: 14px;
 
   strong {
-    color: var(--mat-primary-color, #1976d2);
+    color: var(--sys-primary);
   }
 }
 

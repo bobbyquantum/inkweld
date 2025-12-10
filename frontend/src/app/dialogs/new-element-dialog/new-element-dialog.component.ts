@@ -69,9 +69,8 @@ export class NewElementDialogComponent {
   selectedType = signal<ElementType | null>(null);
   searchQuery = signal('');
 
-  // Element type options (starts with document types, worldbuilding loaded dynamically)
-  elementTypeOptions = signal<ElementTypeOption[]>([
-    // Document types (always available)
+  // Document types (constant, always available)
+  private readonly documentTypes: ElementTypeOption[] = [
     {
       type: ElementType.Folder,
       label: 'Folder',
@@ -86,7 +85,10 @@ export class NewElementDialogComponent {
       description: 'Create a narrative document or chapter',
       category: 'document',
     },
-  ]);
+  ];
+
+  // Element type options (document types + dynamically loaded worldbuilding types)
+  elementTypeOptions = signal<ElementTypeOption[]>([...this.documentTypes]);
 
   // Filtered options based on search
   filteredOptions = computed(() => {
@@ -144,10 +146,7 @@ export class NewElementDialogComponent {
       );
 
       // Check if library is empty and auto-load defaults if needed
-      const isEmpty = await this.worldbuildingService.hasNoSchemas(
-        username,
-        slug
-      );
+      const isEmpty = this.worldbuildingService.hasNoSchemas(username, slug);
 
       if (isEmpty) {
         console.log(
@@ -157,10 +156,7 @@ export class NewElementDialogComponent {
       }
 
       // Get all schemas as plain objects
-      const schemas = await this.worldbuildingService.getAllSchemas(
-        username,
-        slug
-      );
+      const schemas = this.worldbuildingService.getAllSchemas(username, slug);
 
       if (schemas.length === 0) {
         console.warn('[NewElementDialog] No schemas found');
@@ -200,10 +196,10 @@ export class NewElementDialogComponent {
     );
 
     // Update options with both document types and loaded worldbuilding types
+    // Use the constant documentTypes instead of reading the signal to avoid
+    // creating a dependency in the calling effect
     this.elementTypeOptions.set([
-      ...this.elementTypeOptions().filter(
-        (opt: ElementTypeOption) => opt.category === 'document'
-      ),
+      ...this.documentTypes,
       ...worldbuildingOptions,
     ]);
 

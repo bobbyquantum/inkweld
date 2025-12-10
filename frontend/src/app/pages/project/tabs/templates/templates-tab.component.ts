@@ -128,7 +128,7 @@ export class TemplatesTabComponent {
       await new Promise(resolve => setTimeout(resolve, this.syncTimeout));
 
       // Use the abstraction layer to get all schemas as plain objects
-      const schemas = await this.worldbuildingService.getAllSchemas(
+      const schemas = this.worldbuildingService.getAllSchemas(
         project.username,
         project.slug
       );
@@ -194,7 +194,7 @@ export class TemplatesTabComponent {
 
       // Use the abstraction layer to save all schemas
       const templateArray = Object.values(defaultTemplates);
-      await this.worldbuildingService.saveSchemasToLibrary(
+      this.worldbuildingService.saveSchemasToLibrary(
         project.username,
         project.slug,
         templateArray
@@ -242,7 +242,7 @@ export class TemplatesTabComponent {
 
     try {
       const projectKey = `${project.username}:${project.slug}`;
-      await this.worldbuildingService.cloneTemplate(
+      this.worldbuildingService.cloneTemplate(
         projectKey,
         template.type,
         newName,
@@ -289,7 +289,7 @@ export class TemplatesTabComponent {
 
     try {
       const projectKey = `${project.username}:${project.slug}`;
-      await this.worldbuildingService.deleteTemplate(
+      this.worldbuildingService.deleteTemplate(
         projectKey,
         template.type,
         project.username,
@@ -324,7 +324,7 @@ export class TemplatesTabComponent {
 
     try {
       // Load the full schema using the abstraction layer
-      const fullSchema = await this.worldbuildingService.getSchema(
+      const fullSchema = this.worldbuildingService.getSchema(
         project.username,
         project.slug,
         template.type
@@ -353,7 +353,7 @@ export class TemplatesTabComponent {
       if (result) {
         // Update the template
         const projectKey = `${project.username}:${project.slug}`;
-        await this.worldbuildingService.updateTemplate(
+        this.worldbuildingService.updateTemplate(
           projectKey,
           template.type,
           result,

@@ -6,8 +6,13 @@ import { Element, ElementType, Project, ProjectsService } from '@inkweld/index';
 import { BehaviorSubject, of, Subject } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 
+import {
+  ElementRelationship,
+  RelationshipTypeDefinition,
+} from '../../components/element-ref/element-ref.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
+import { ElementTypeSchema } from '../../models/schema-types';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
@@ -27,11 +32,19 @@ import { RecentFilesService } from './recent-files.service';
 function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
   _elementsSubject: BehaviorSubject<Element[]>;
   _publishPlansSubject: BehaviorSubject<PublishPlan[]>;
+  _relationshipsSubject: BehaviorSubject<ElementRelationship[]>;
+  _customTypesSubject: BehaviorSubject<RelationshipTypeDefinition[]>;
+  _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
   _syncStateSubject: BehaviorSubject<DocumentSyncState>;
   _errorsSubject: Subject<string>;
 } {
   const elementsSubject = new BehaviorSubject<Element[]>([]);
   const publishPlansSubject = new BehaviorSubject<PublishPlan[]>([]);
+  const relationshipsSubject = new BehaviorSubject<ElementRelationship[]>([]);
+  const customTypesSubject = new BehaviorSubject<RelationshipTypeDefinition[]>(
+    []
+  );
+  const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
   const syncStateSubject = new BehaviorSubject<DocumentSyncState>(
     DocumentSyncState.Unavailable
   );
@@ -40,6 +53,9 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
   return {
     _elementsSubject: elementsSubject,
     _publishPlansSubject: publishPlansSubject,
+    _relationshipsSubject: relationshipsSubject,
+    _customTypesSubject: customTypesSubject,
+    _schemasSubject: schemasSubject,
     _syncStateSubject: syncStateSubject,
     _errorsSubject: errorsSubject,
 
@@ -49,20 +65,40 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     getSyncState: vi.fn(() => syncStateSubject.getValue()),
     getElements: vi.fn(() => elementsSubject.getValue()),
     getPublishPlans: vi.fn(() => publishPlansSubject.getValue()),
+    getRelationships: vi.fn(() => relationshipsSubject.getValue()),
+    getCustomRelationshipTypes: vi.fn(() => customTypesSubject.getValue()),
+    getSchemas: vi.fn(() => schemasSubject.getValue()),
     updateElements: vi.fn((elements: Element[]) => {
       elementsSubject.next(elements);
     }),
     updatePublishPlans: vi.fn((plans: PublishPlan[]) => {
       publishPlansSubject.next(plans);
     }),
+    updateRelationships: vi.fn((relationships: ElementRelationship[]) => {
+      relationshipsSubject.next(relationships);
+    }),
+    updateCustomRelationshipTypes: vi.fn(
+      (types: RelationshipTypeDefinition[]) => {
+        customTypesSubject.next(types);
+      }
+    ),
+    updateSchemas: vi.fn((schemas: ElementTypeSchema[]) => {
+      schemasSubject.next(schemas);
+    }),
 
     syncState$: syncStateSubject.asObservable(),
     elements$: elementsSubject.asObservable(),
     publishPlans$: publishPlansSubject.asObservable(),
+    relationships$: relationshipsSubject.asObservable(),
+    customRelationshipTypes$: customTypesSubject.asObservable(),
+    schemas$: schemasSubject.asObservable(),
     errors$: errorsSubject.asObservable(),
   } as MockedObject<IElementSyncProvider> & {
     _elementsSubject: BehaviorSubject<Element[]>;
     _publishPlansSubject: BehaviorSubject<PublishPlan[]>;
+    _relationshipsSubject: BehaviorSubject<ElementRelationship[]>;
+    _customTypesSubject: BehaviorSubject<RelationshipTypeDefinition[]>;
+    _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
     _syncStateSubject: BehaviorSubject<DocumentSyncState>;
     _errorsSubject: Subject<string>;
   };
@@ -340,8 +376,8 @@ describe('ProjectStateService', () => {
       await service.loadProject('testuser', 'test-project');
     });
 
-    it('should add root level element via sync provider', async () => {
-      await service.addElement(ElementType.Folder, 'New Folder');
+    it('should add root level element via sync provider', () => {
+      service.addElement(ElementType.Folder, 'New Folder');
 
       expect(mockSyncProvider.updateElements).toHaveBeenCalled();
       const calledElements = mockSyncProvider.updateElements.mock.calls[0][0];
@@ -350,9 +386,9 @@ describe('ProjectStateService', () => {
       expect(calledElements[0].level).toBe(0);
     });
 
-    it('should add child element and auto-expand parent', async () => {
+    it('should add child element and auto-expand parent', () => {
       // Add parent first
-      await service.addElement(ElementType.Folder, 'Parent');
+      service.addElement(ElementType.Folder, 'Parent');
       const parentId = mockSyncProvider.updateElements.mock.calls[0][0][0].id;
 
       // Simulate provider returning the parent
@@ -371,7 +407,7 @@ describe('ProjectStateService', () => {
       ]);
 
       // Add child
-      await service.addElement(ElementType.Item, 'Child', parentId);
+      service.addElement(ElementType.Item, 'Child', parentId);
 
       expect(service.isExpanded(parentId)).toBe(true);
     });

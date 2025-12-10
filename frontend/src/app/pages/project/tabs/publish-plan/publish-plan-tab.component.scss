@@ -21,7 +21,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: var(--mat-hint-color);
+    color: var(--sys-outline);
 
     mat-icon {
       font-size: 48px;
@@ -38,8 +38,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  background-color: var(--mat-primary-color);
-  color: white;
+  background-color: var(--sys-primary);
+  color: var(--sys-on-primary);
   border-radius: 8px;
   margin-bottom: 16px;
 
@@ -89,15 +89,15 @@ mat-expansion-panel {
     font-weight: 500;
 
     mat-icon {
-      color: var(--mat-primary-color);
+      color: var(--sys-primary);
     }
 
     .item-count {
       margin-left: auto;
       font-size: 0.85em;
-      color: var(--mat-hint-color);
+      color: var(--sys-outline);
       font-weight: normal;
-      background: var(--mat-hover-color);
+      background: var(--sys-surface-container-high);
       padding: 2px 8px;
       border-radius: 12px;
     }
@@ -126,7 +126,7 @@ mat-expansion-panel {
   align-items: flex-start;
   margin-bottom: 16px;
   padding: 16px;
-  background: var(--mat-hover-color);
+  background: var(--sys-surface-container-high);
   border-radius: 8px;
 
   .element-picker {
@@ -151,8 +151,8 @@ mat-expansion-panel {
   justify-content: center;
   padding: 48px 24px;
   text-align: center;
-  color: var(--mat-hint-color);
-  border: 2px dashed var(--mat-divider-color);
+  color: var(--sys-outline);
+  border: 2px dashed var(--sys-outline-variant);
   border-radius: 8px;
 
   mat-icon {
@@ -186,18 +186,18 @@ mat-expansion-panel {
   gap: 12px;
   padding: 12px 16px;
   background: var(--sys-surface);
-  border: 1px solid var(--mat-divider-color);
+  border: 1px solid var(--sys-outline-variant);
   border-radius: 8px;
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: var(--mat-primary-color);
+    border-color: var(--sys-outline);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
   .drag-handle {
     cursor: grab;
-    color: var(--mat-hint-color);
+    color: var(--sys-outline);
 
     &:active {
       cursor: grabbing;
@@ -206,12 +206,12 @@ mat-expansion-panel {
 
   .item-order {
     font-weight: 600;
-    color: var(--mat-primary-color);
+    color: var(--sys-primary);
     min-width: 24px;
   }
 
   .item-icon {
-    color: var(--mat-hint-color);
+    color: var(--sys-outline);
   }
 
   .item-name {
@@ -276,7 +276,7 @@ mat-expansion-panel {
     height: 120px;
     border-radius: 4px;
     overflow: hidden;
-    border: 1px solid var(--mat-divider-color);
+    border: 1px solid var(--sys-outline-variant);
 
     img {
       width: 100%;
@@ -309,7 +309,7 @@ mat-expansion-panel {
 
   .generate-hint {
     margin: 12px 0 0;
-    color: var(--mat-hint-color);
+    color: var(--sys-outline);
     font-size: 0.9em;
   }
 }

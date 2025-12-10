@@ -1,12 +1,31 @@
-.dynamic-worldbuilding-editor {
-  height: calc(100vh - 98px);
+// Main container with editor + meta panel side by side
+.worldbuilding-editor-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  height: calc(100vh - 98px);
   overflow: hidden;
 
   @media (max-width: 759px) {
     height: calc(100vh - 82px);
   }
+}
+
+// Editor section (left side)
+.editor-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  transition: flex 200ms ease-out;
+}
+
+.dynamic-worldbuilding-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 
   form {
     flex: 1;
@@ -17,9 +36,17 @@
   }
 
   .template-editor-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 16px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     flex-shrink: 0;
+  }
+
+  // Meta panel toggle button in toolbar
+  .meta-panel-toggle-btn {
+    margin-left: auto; // Push to right side of toolbar
   }
 
   mat-tab-group {
@@ -41,4 +68,26 @@
   .array-field { width: 100%; margin-bottom: 1rem; }
   .array-item { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; }
   .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; }
+}
+
+// Meta panel container (right side) - mirrors document editor style
+.meta-panel-container {
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  flex-shrink: 0;
+  border-left: 1px solid transparent;
+  background: var(--sys-surface-container);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 200ms ease-out;
+
+  &.open {
+    width: 320px;
+    min-width: 280px;
+    max-width: 380px;
+    border-left-color: var(--sys-outline-variant);
+    overflow-y: auto;
+  }
 }
