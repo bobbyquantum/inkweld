@@ -15,8 +15,6 @@ function HomepageHeader(): ReactNode {
         <div className={styles.heroContent}>
           <div className={styles.heroText}>
             <Heading as="h1" className="hero__title">
-              Write Together,
-              <br />
               Own Your Words
             </Heading>
             <p className={clsx('hero__subtitle', styles.heroSubtitle)}>

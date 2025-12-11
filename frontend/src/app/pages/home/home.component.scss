@@ -165,9 +165,22 @@
     justify-self: end;
   }
 
+  .logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
   .app-logo {
     height: 36px;
     width: auto;
+  }
+
+  .app-name {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--t1);
+    letter-spacing: 0.5px;
   }
 
   .center-section {
@@ -392,6 +405,13 @@
   }
 }
 
+// Extra small screens - hide app name if space is limited
+@media (max-width: 400px) {
+  .app-name {
+    display: none;
+  }
+}
+
 // Mobile styles
 @media (max-width: 768px) {
   .covers-grid {
@@ -428,8 +448,16 @@
     .left-section {
       gap: 8px;
 
+      .logo-container {
+        gap: 8px;
+      }
+
       .app-logo {
         height: 28px;
+      }
+
+      .app-name {
+        font-size: 18px;
       }
     }
 
