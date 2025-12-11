@@ -8,7 +8,7 @@ import { ProjectsService } from '@inkweld/api/projects.service';
 import { ElementType } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectService } from '@services/project/project.service';
-import { ProjectImportExportService } from '@services/project/project-import-export.service';
+import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 
 import { ProjectCoverComponent } from '../../../../components/project-cover/project-cover.component';
@@ -37,7 +37,7 @@ export class HomeTabComponent {
   protected readonly projectState = inject(ProjectStateService);
   protected readonly projectService = inject(ProjectService);
   protected readonly recentFilesService = inject(RecentFilesService);
-  protected readonly importExportService = inject(ProjectImportExportService);
+  protected readonly exportService = inject(ProjectExportService);
   protected readonly dialogGateway = inject(DialogGatewayService);
   protected readonly projectApi = inject(ProjectsService);
   protected readonly snackBar = inject(MatSnackBar);
@@ -82,7 +82,7 @@ export class HomeTabComponent {
   onExportClick(): void {
     const project = this.projectState.project();
     if (project) {
-      void this.importExportService.exportProjectZip();
+      void this.exportService.exportProject();
     }
   }
 

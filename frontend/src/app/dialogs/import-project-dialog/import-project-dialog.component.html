@@ -1,0 +1,211 @@
+<h2 mat-dialog-title>
+  @switch (step()) {
+    @case ('file-select') {
+      Import Project
+    }
+    @case ('configure') {
+      Configure Import
+    }
+    @case ('importing') {
+      Importing...
+    }
+    @case ('complete') {
+      @if (importError()) {
+        Import Failed
+      } @else {
+        Import Complete
+      }
+    }
+  }
+</h2>
+
+<mat-dialog-content>
+  <!-- Step 1: File Selection -->
+  @if (step() === 'file-select') {
+    <div
+      class="drop-zone"
+      data-testid="import-drop-zone"
+      [class.drag-over]="isDragOver()"
+      [class.parsing]="isParsing()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)">
+      @if (isParsing()) {
+        <mat-icon>hourglass_empty</mat-icon>
+        <p>Parsing archive...</p>
+      } @else {
+        <mat-icon>upload_file</mat-icon>
+        <p>Drag and drop a project archive here</p>
+        <p class="hint">or</p>
+        <label class="file-input-label">
+          <input
+            type="file"
+            accept=".zip"
+            data-testid="import-file-input"
+            (change)="onFileSelected($event)"
+            hidden />
+          <span class="browse-btn" data-testid="import-browse-button"
+            >Browse Files</span
+          >
+        </label>
+      }
+    </div>
+
+    @if (parseError()) {
+      <div class="error-message" data-testid="import-parse-error">
+        <mat-icon>error</mat-icon>
+        <span>{{ parseError() }}</span>
+      </div>
+    }
+  }
+
+  <!-- Step 2: Configure -->
+  @if (step() === 'configure') {
+    @if (manifest(); as m) {
+      <div class="archive-info" data-testid="import-archive-info">
+        <h3>{{ m.projectTitle }}</h3>
+        <p class="archive-meta">
+          Exported {{ formatDate(m.exportedAt) }} • Version {{ m.version }}
+        </p>
+      </div>
+    }
+
+    @if (counts(); as c) {
+      <div class="project-summary" data-testid="import-project-summary">
+        <div class="summary-item">
+          <mat-icon>description</mat-icon>
+          <span>{{ c.elements }} elements</span>
+        </div>
+        @if (c.mediaFiles > 0) {
+          <div class="summary-item">
+            <mat-icon>image</mat-icon>
+            <span>{{ c.mediaFiles }} media files</span>
+          </div>
+        }
+        @if (c.worldbuildingEntries > 0) {
+          <div class="summary-item">
+            <mat-icon>public</mat-icon>
+            <span>{{ c.worldbuildingEntries }} worldbuilding entries</span>
+          </div>
+        }
+      </div>
+    }
+
+    <mat-form-field appearance="outline" class="slug-field">
+      <mat-label>Project Slug</mat-label>
+      <input
+        matInput
+        [formControl]="slugControl"
+        data-testid="import-slug-input"
+        placeholder="my-project" />
+      @if (slugControl.hasError('required')) {
+        <mat-error>Slug is required</mat-error>
+      } @else if (slugControl.hasError('minlength')) {
+        <mat-error>Slug must be at least 3 characters</mat-error>
+      } @else if (slugControl.hasError('maxlength')) {
+        <mat-error>Slug cannot exceed 50 characters</mat-error>
+      } @else if (slugControl.hasError('pattern')) {
+        <mat-error>Use lowercase letters, numbers, and hyphens only</mat-error>
+      } @else if (slugControl.hasError('slugTaken')) {
+        <mat-error>This slug is already taken</mat-error>
+      }
+      @if (isValidating()) {
+        <mat-hint>Checking availability...</mat-hint>
+      } @else if (validationResult()?.available) {
+        <mat-hint class="available">Slug is available</mat-hint>
+      }
+    </mat-form-field>
+  }
+
+  <!-- Step 3: Importing -->
+  @if (step() === 'importing') {
+    <div class="import-progress" data-testid="import-progress">
+      <mat-progress-bar
+        mode="determinate"
+        [value]="importProgress()"></mat-progress-bar>
+      <p class="status-text" data-testid="import-status-text">
+        {{ importStatus() }}
+      </p>
+      <p class="progress-text">{{ importProgress() }}%</p>
+    </div>
+  }
+
+  <!-- Step 4: Complete -->
+  @if (step() === 'complete') {
+    @if (importError()) {
+      <div class="result-error" data-testid="import-error">
+        <mat-icon>error</mat-icon>
+        <p>{{ importError() }}</p>
+      </div>
+    } @else {
+      <div class="result-success" data-testid="import-success">
+        <mat-icon>check_circle</mat-icon>
+        <p>Project imported successfully!</p>
+        @if (importedSlug()) {
+          <p class="imported-slug" data-testid="import-result-slug">
+            Slug: {{ importedSlug() }}
+          </p>
+        }
+      </div>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @switch (step()) {
+    @case ('file-select') {
+      <button
+        mat-button
+        (click)="onCancel()"
+        data-testid="import-cancel-button">
+        Cancel
+      </button>
+    }
+    @case ('configure') {
+      <button mat-button (click)="onBack()" data-testid="import-back-button">
+        Back
+      </button>
+      <button
+        mat-button
+        (click)="onCancel()"
+        data-testid="import-cancel-button">
+        Cancel
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        data-testid="import-start-button"
+        [disabled]="!canImport()"
+        (click)="onStartImport()">
+        Import
+      </button>
+    }
+    @case ('importing') {
+      <!-- No actions during import -->
+    }
+    @case ('complete') {
+      @if (importError()) {
+        <button
+          mat-button
+          (click)="onBack()"
+          data-testid="import-try-again-button">
+          Try Again
+        </button>
+        <button
+          mat-button
+          (click)="onCancel()"
+          data-testid="import-cancel-button">
+          Cancel
+        </button>
+      } @else {
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="onClose()"
+          data-testid="import-done-button">
+          Done
+        </button>
+      }
+    }
+  }
+</mat-dialog-actions>

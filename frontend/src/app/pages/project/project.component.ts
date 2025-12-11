@@ -3,7 +3,6 @@ import {
   AfterViewInit,
   Component,
   effect,
-  ElementRef,
   HostListener,
   inject,
   OnDestroy,
@@ -32,7 +31,7 @@ import { Element, ElementType, Project } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { UnifiedProjectService } from '@services/offline/unified-project.service';
 import { DocumentService } from '@services/project/document.service';
-import { ProjectImportExportService } from '@services/project/project-import-export.service';
+import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
   AngularSplitModule,
@@ -83,13 +82,12 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly route = inject(ActivatedRoute);
   protected readonly title = inject(Title);
   protected readonly router = inject(Router);
-  protected readonly importExportService = inject(ProjectImportExportService);
+  protected readonly exportService = inject(ProjectExportService);
   protected readonly projectService = inject(UnifiedProjectService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly settingsService = inject(SettingsService);
 
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
-  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   public readonly isMobile = signal(false);
   public readonly isZenMode = signal(false);
@@ -321,8 +319,38 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onImportClicked = (): void => {
-    this.fileInput?.nativeElement.click();
+    const project = this.projectState.project();
+    void this.dialogGateway
+      .openImportProjectDialog(project?.username)
+      .then(result => {
+        if (result?.success && result.slug) {
+          this.snackBar
+            .open('Project imported successfully!', 'View', {
+              duration: 5000,
+            })
+            .onAction()
+            .subscribe(() => {
+              // Navigate to the imported project
+              const username = project?.username ?? 'offline';
+              void this.router.navigate(['/', username, result.slug]);
+            });
+        }
+      });
   };
+
+  async onExportClicked(): Promise<void> {
+    try {
+      await this.exportService.exportProject();
+      this.snackBar.open('Project exported successfully', 'Close', {
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      this.snackBar.open('Failed to export project', 'Close', {
+        duration: 5000,
+      });
+    }
+  }
 
   exitProject() {
     void this.router.navigate(['/']);
@@ -406,16 +434,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
         project.slug,
         'templates-list',
       ]);
-    }
-  }
-
-  public onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      const project = this.projectState.project();
-      if (project) {
-        void this.importExportService.importProjectZip(input.files[0]);
-      }
     }
   }
 
