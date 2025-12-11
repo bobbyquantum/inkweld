@@ -7,7 +7,28 @@
   padding: 6rem 0 4rem;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%);
+  background: url('/img/home_background.png') center/cover no-repeat;
+}
+
+/* Darker overlay for dark mode (default) */
+.heroBanner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Red-tinted overlay for light mode */
+html[data-theme='light'] .heroBanner::before {
+  background: rgba(153, 27, 27, 0.75);
+}
+
+/* Ensure content sits above the overlay */
+.heroBanner > .container {
+  position: relative;
+  z-index: 1;
 }
 
 @media screen and (max-width: 996px) {
@@ -36,6 +57,15 @@
   text-align: left;
 }
 
+/* Force white text in hero for both light and dark modes */
+.heroBanner :global(.hero__title) {
+  color: #ffffff !important;
+}
+
+.heroBanner :global(.hero__subtitle) {
+  color: #ffffff !important;
+}
+
 @media screen and (max-width: 996px) {
   .heroText {
     text-align: center;
@@ -46,7 +76,7 @@
   font-size: 1.25rem;
   line-height: 1.6;
   margin: 1.5rem 0 2rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: #ffffff;
 }
 
 .buttons {
