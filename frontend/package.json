@@ -118,7 +118,7 @@
     "jsdom": "^27.2.0",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^5.4.449",
-    "playwright-ng-schematics": "21.0.2",
+    "playwright-ng-schematics": "21.0.3",
     "prettier": "^3.7.4",
     "rimraf": "6.1.2",
     "typescript": "^5.9.3",

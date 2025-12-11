@@ -68,7 +68,7 @@
         "jsdom": "^27.2.0",
         "pdf-parse": "^2.4.5",
         "pdfjs-dist": "^5.4.449",
-        "playwright-ng-schematics": "21.0.2",
+        "playwright-ng-schematics": "21.0.3",
         "prettier": "^3.7.4",
         "rimraf": "6.1.2",
         "typescript": "^5.9.3",
@@ -1592,7 +1592,7 @@
 
     "playwright-core": ["playwright-core@1.57.0", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-agTcKlMw/mjBWOnD6kFZttAAGHgi/Nw0CZ2o6JqWSbMlI219lAFLZZCyqByTsvVAJq5XA5H8cA6PrvBRpBWEuQ=="],
 
-    "playwright-ng-schematics": ["playwright-ng-schematics@21.0.2", "", { "dependencies": { "@angular-devkit/architect": ">= 0.2100.0 < 0.2200.0", "@angular-devkit/core": "^21.0.0", "@angular-devkit/schematics": "^21.0.0" } }, "sha512-jS5wkKLEcti6gnJCN5nS30aGCKQrMH8T5QgU2sCzvAEUZZXh1C+L4hqmS/mlZ++Xppk//x8cOUn+VX6apVyGRw=="],
+    "playwright-ng-schematics": ["playwright-ng-schematics@21.0.3", "", { "dependencies": { "@angular-devkit/architect": ">= 0.2100.0 < 0.2200.0", "@angular-devkit/core": "^21.0.0", "@angular-devkit/schematics": "^21.0.0" } }, "sha512-6Q5YtaQWdYB1/Jrn7lBmZaOY+kSob0dZaUp7JwaGhGxCTP2P/NK7M/2MrfTorSiA8POXVmw3/nI8lh0w2kSTqA=="],
 
     "plist": ["plist@3.1.0", "", { "dependencies": { "@xmldom/xmldom": "^0.8.8", "base64-js": "^1.5.1", "xmlbuilder": "^15.1.1" } }, "sha512-uysumyrvkUX0rX/dEVqt8gC3sTBzd4zoWfLeS29nb53imdaXVvLINYXTI2GNqzaMuvacNx4uJQ8+b3zXR0pkgQ=="],
 
