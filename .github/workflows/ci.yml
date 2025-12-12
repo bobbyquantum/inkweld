@@ -131,7 +131,7 @@ jobs:
         run: cd frontend && npm run e2e:offline:ci
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: playwright-report-offline
@@ -170,7 +170,7 @@ jobs:
         run: cd frontend && npm run e2e:online:ci
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: playwright-report-online
@@ -212,7 +212,7 @@ jobs:
         run: cd frontend && npm run e2e:wrangler:ci
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: playwright-report-wrangler
@@ -254,7 +254,7 @@ jobs:
         run: cd frontend && npm run e2e:docker:ci
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: playwright-report-docker
