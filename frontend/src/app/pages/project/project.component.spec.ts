@@ -18,7 +18,7 @@ import { Element, ElementType, Project } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { UnifiedProjectService } from '@services/offline/unified-project.service';
 import { DocumentService } from '@services/project/document.service';
-import { ProjectImportExportService } from '@services/project/project-import-export.service';
+import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RecentFilesService } from '@services/project/recent-files.service';
 import { SplitGutterInteractionEvent } from 'angular-split';
@@ -71,7 +71,7 @@ describe('ProjectComponent', () => {
   let breakpointObserver: Partial<BreakpointObserver>;
   let snackBar: Partial<MatSnackBar>;
   let router: Partial<Router>;
-  let importExportService: Partial<ProjectImportExportService>;
+  let exportService: Partial<ProjectExportService>;
   let projectService: Partial<UnifiedProjectService>;
   let dialogGateway: Partial<DialogGatewayService>;
   let settingsService: Partial<SettingsService>;
@@ -182,7 +182,9 @@ describe('ProjectComponent', () => {
     };
 
     snackBar = {
-      open: vi.fn(),
+      open: vi.fn().mockReturnValue({
+        onAction: vi.fn().mockReturnValue({ subscribe: vi.fn() }),
+      }),
     };
 
     router = {
@@ -192,9 +194,8 @@ describe('ProjectComponent', () => {
       },
     };
 
-    importExportService = {
-      importProjectZip: vi.fn().mockResolvedValue(undefined),
-      exportProjectZip: vi.fn().mockResolvedValue(undefined),
+    exportService = {
+      exportProject: vi.fn().mockResolvedValue(undefined),
     };
 
     projectService = {
@@ -204,6 +205,7 @@ describe('ProjectComponent', () => {
     dialogGateway = {
       openConfirmationDialog: vi.fn().mockResolvedValue(false),
       openEditProjectDialog: vi.fn().mockResolvedValue(null),
+      openImportProjectDialog: vi.fn().mockResolvedValue({ success: false }),
     };
 
     settingsService = {
@@ -226,7 +228,7 @@ describe('ProjectComponent', () => {
           useValue: { params: paramsSubject.asObservable() },
         },
         { provide: Router, useValue: router },
-        { provide: ProjectImportExportService, useValue: importExportService },
+        { provide: ProjectExportService, useValue: exportService },
         { provide: UnifiedProjectService, useValue: projectService },
         { provide: DialogGatewayService, useValue: dialogGateway },
         { provide: SettingsService, useValue: settingsService },
@@ -553,35 +555,31 @@ describe('ProjectComponent', () => {
   });
 
   describe('file import', () => {
-    it('should trigger file input click on import', () => {
-      const mockFileInput = { click: vi.fn() };
-      component['fileInput'] = {
-        nativeElement: mockFileInput,
-      } as any;
+    it('should open import dialog on import clicked', () => {
+      (
+        dialogGateway.openImportProjectDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({ success: true, slug: 'imported-project' });
 
       component.onImportClicked();
-      expect(mockFileInput.click).toHaveBeenCalled();
-    });
-
-    it('should handle file selection', () => {
-      const mockFile = new File([''], 'test.zip', { type: 'application/zip' });
-      const mockEvent = {
-        target: { files: [mockFile] },
-      } as unknown as Event;
-
-      component.onFileSelected(mockEvent);
-      expect(importExportService.importProjectZip).toHaveBeenCalledWith(
-        mockFile
+      expect(dialogGateway.openImportProjectDialog).toHaveBeenCalledWith(
+        'testuser'
       );
     });
 
-    it('should not import when no files selected', () => {
-      const mockEvent = {
-        target: { files: [] },
-      } as unknown as Event;
+    it('should show snackbar on successful import', async () => {
+      (
+        dialogGateway.openImportProjectDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({ success: true, slug: 'imported-project' });
 
-      component.onFileSelected(mockEvent);
-      expect(importExportService.importProjectZip).not.toHaveBeenCalled();
+      component.onImportClicked();
+      // Wait for the promise to resolve
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Project imported successfully!',
+        'View',
+        { duration: 5000 }
+      );
     });
   });
 

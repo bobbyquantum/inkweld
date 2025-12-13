@@ -26,7 +26,6 @@ import { Project } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { UnifiedProjectService } from '@services/offline/unified-project.service';
 import { ProjectService } from '@services/project/project.service';
-import { ProjectImportExportService } from '@services/project/project-import-export.service';
 import {
   ImageCroppedEvent,
   ImageCropperComponent,
@@ -50,7 +49,6 @@ import {
   ],
 })
 export class EditProjectDialogComponent implements OnInit {
-  readonly importExportService = inject(ProjectImportExportService);
   private dialogRef = inject(MatDialogRef<EditProjectDialogComponent>);
   private ProjectsService = inject(ProjectsService);
   private dialogGateway = inject(DialogGatewayService);

@@ -13,7 +13,7 @@ import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
 import { ProjectService } from '../../../../services/project/project.service';
-import { ProjectImportExportService } from '../../../../services/project/project-import-export.service';
+import { ProjectExportService } from '../../../../services/project/project-export.service';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import { RecentFilesService } from '../../../../services/project/recent-files.service';
 import { HomeTabComponent } from './home-tab.component';
@@ -27,7 +27,7 @@ describe('HomeTabComponent', () => {
   let projectStateService: Partial<ProjectStateService>;
   let projectService: Partial<ProjectService>;
   let recentFilesService: Partial<RecentFilesService>;
-  let importExportService: Partial<ProjectImportExportService>;
+  let exportService: Partial<ProjectExportService>;
   let dialogGateway: Partial<DialogGatewayService>;
   let snackBar: Partial<MatSnackBar>;
 
@@ -91,9 +91,8 @@ describe('HomeTabComponent', () => {
       getRecentFilesForProject: vi.fn().mockReturnValue(mockRecentFiles),
     };
 
-    importExportService = {
-      exportProjectZip: vi.fn().mockResolvedValue(undefined),
-      importProjectZip: vi.fn().mockResolvedValue(undefined),
+    exportService = {
+      exportProject: vi.fn().mockResolvedValue(undefined),
     };
 
     projectService = {
@@ -115,6 +114,7 @@ describe('HomeTabComponent', () => {
         .fn()
         .mockResolvedValue({ approved: false, imageData: null }),
       openNewElementDialog: vi.fn().mockResolvedValue(undefined),
+      openImportProjectDialog: vi.fn().mockResolvedValue(undefined),
     };
 
     snackBar = {
@@ -135,7 +135,7 @@ describe('HomeTabComponent', () => {
         { provide: ProjectsService, useValue: projectsApi },
         { provide: ImagesService, useValue: imagesApi },
         { provide: RecentFilesService, useValue: recentFilesService },
-        { provide: ProjectImportExportService, useValue: importExportService },
+        { provide: ProjectExportService, useValue: exportService },
         { provide: DialogGatewayService, useValue: dialogGateway },
         { provide: MatSnackBar, useValue: snackBar },
       ],
@@ -240,13 +240,14 @@ describe('HomeTabComponent', () => {
 
   it('should export project when export button is clicked', () => {
     component.onExportClick();
-    expect(importExportService.exportProjectZip).toHaveBeenCalled();
+    expect(exportService.exportProject).toHaveBeenCalled();
   });
 
-  it('should emit import event when import button is clicked', () => {
-    vi.spyOn(component.importRequested, 'emit');
+  it('should open import dialog when import button is clicked', () => {
     component.onImportClick();
-    expect(component.importRequested.emit).toHaveBeenCalled();
+    expect(dialogGateway.openImportProjectDialog).toHaveBeenCalledWith(
+      mockProject.username
+    );
   });
 
   it('should open publish plan when publish button is clicked', () => {

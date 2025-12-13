@@ -22,7 +22,7 @@ import {
   EpubResult,
 } from './epub-generator.service';
 
-// Mock JSZip
+// Mock JSZip - epub generator uses file() and generateAsync() methods
 vi.mock('@progress/jszip-esm', () => ({
   default: class MockJSZip {
     private files: Map<string, string | Blob> = new Map();

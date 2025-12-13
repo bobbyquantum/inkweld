@@ -171,13 +171,13 @@ describe('AdminUsersComponent', () => {
 
     fixture = TestBed.createComponent(AdminUsersComponent);
     component = fixture.componentInstance;
-  });
+  }, 10000);
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should load users on init', async () => {
+  it('should load users on init', { timeout: 5000 }, async () => {
     fixture.detectChanges();
     await new Promise(resolve => setTimeout(resolve, 0));
 
@@ -185,7 +185,7 @@ describe('AdminUsersComponent', () => {
     expect(adminServiceMock.listPendingUsers).toHaveBeenCalled();
   });
 
-  it('should compute active users correctly', () => {
+  it('should compute active users correctly', { timeout: 5000 }, () => {
     fixture.detectChanges();
 
     const activeUsers = component.activeUsers();
@@ -193,7 +193,7 @@ describe('AdminUsersComponent', () => {
     expect(activeUsers.every(u => u.approved && u.enabled)).toBe(true);
   });
 
-  it('should compute disabled users correctly', () => {
+  it('should compute disabled users correctly', { timeout: 5000 }, () => {
     fixture.detectChanges();
 
     const disabledUsers = component.disabledUsers();
@@ -201,7 +201,7 @@ describe('AdminUsersComponent', () => {
     expect(disabledUsers[0].username).toBe('disabled');
   });
 
-  it('should compute admin users correctly', () => {
+  it('should compute admin users correctly', { timeout: 5000 }, () => {
     fixture.detectChanges();
 
     const adminUsers = component.adminUsers();
@@ -209,14 +209,14 @@ describe('AdminUsersComponent', () => {
     expect(adminUsers[0].username).toBe('admin');
   });
 
-  it('should identify current user', () => {
+  it('should identify current user', { timeout: 5000 }, () => {
     fixture.detectChanges();
 
     expect(component.isCurrentUser(MOCK_USERS[0])).toBe(true); // admin
     expect(component.isCurrentUser(MOCK_USERS[1])).toBe(false); // user1
   });
 
-  it('should return correct status class for users', () => {
+  it('should return correct status class for users', { timeout: 5000 }, () => {
     fixture.detectChanges();
 
     expect(component.getUserStatusClass(MOCK_USERS[0])).toBe('admin');
@@ -225,7 +225,7 @@ describe('AdminUsersComponent', () => {
     expect(component.getUserStatusClass(MOCK_PENDING[0])).toBe('pending');
   });
 
-  it('should return correct status label for users', () => {
+  it('should return correct status label for users', { timeout: 5000 }, () => {
     fixture.detectChanges();
 
     expect(component.getUserStatusLabel(MOCK_USERS[0])).toBe('Admin');
@@ -234,7 +234,7 @@ describe('AdminUsersComponent', () => {
     expect(component.getUserStatusLabel(MOCK_PENDING[0])).toBe('Pending');
   });
 
-  it('should approve user after confirmation', async () => {
+  it('should approve user after confirmation', { timeout: 5000 }, async () => {
     fixture.detectChanges();
 
     await component.approveUser(MOCK_PENDING[0]);
@@ -243,18 +243,22 @@ describe('AdminUsersComponent', () => {
     expect(adminServiceMock.approveUser).toHaveBeenCalledWith('4');
   });
 
-  it('should not approve user if dialog cancelled', async () => {
-    dialogMock.open.mockReturnValue({
-      afterClosed: () => of(false),
-    });
-    fixture.detectChanges();
+  it(
+    'should not approve user if dialog cancelled',
+    { timeout: 5000 },
+    async () => {
+      dialogMock.open.mockReturnValue({
+        afterClosed: () => of(false),
+      });
+      fixture.detectChanges();
 
-    await component.approveUser(MOCK_PENDING[0]);
+      await component.approveUser(MOCK_PENDING[0]);
 
-    expect(adminServiceMock.approveUser).not.toHaveBeenCalled();
-  });
+      expect(adminServiceMock.approveUser).not.toHaveBeenCalled();
+    }
+  );
 
-  it('should reject user after confirmation', async () => {
+  it('should reject user after confirmation', { timeout: 5000 }, async () => {
     dialogMock.open.mockReturnValue({
       afterClosed: () => of(true),
     });
@@ -265,7 +269,7 @@ describe('AdminUsersComponent', () => {
     expect(adminServiceMock.rejectUser).toHaveBeenCalledWith('4');
   });
 
-  it('should enable user', async () => {
+  it('should enable user', { timeout: 5000 }, async () => {
     fixture.detectChanges();
 
     await component.enableUser(MOCK_USERS[2]); // disabled user
@@ -273,7 +277,7 @@ describe('AdminUsersComponent', () => {
     expect(adminServiceMock.enableUser).toHaveBeenCalledWith('3');
   });
 
-  it('should disable user after confirmation', async () => {
+  it('should disable user after confirmation', { timeout: 5000 }, async () => {
     dialogMock.open.mockReturnValue({
       afterClosed: () => of(true),
     });
@@ -284,7 +288,7 @@ describe('AdminUsersComponent', () => {
     expect(adminServiceMock.disableUser).toHaveBeenCalledWith('2');
   });
 
-  it('should not allow disabling current user', async () => {
+  it('should not allow disabling current user', { timeout: 5000 }, async () => {
     fixture.detectChanges();
 
     await component.disableUser(MOCK_USERS[0]); // admin = current user
@@ -292,26 +296,34 @@ describe('AdminUsersComponent', () => {
     expect(adminServiceMock.disableUser).not.toHaveBeenCalled();
   });
 
-  it('should toggle admin status after confirmation', async () => {
-    dialogMock.open.mockReturnValue({
-      afterClosed: () => of(true),
-    });
-    fixture.detectChanges();
+  it(
+    'should toggle admin status after confirmation',
+    { timeout: 5000 },
+    async () => {
+      dialogMock.open.mockReturnValue({
+        afterClosed: () => of(true),
+      });
+      fixture.detectChanges();
 
-    await component.toggleAdmin(MOCK_USERS[1]); // user1, grant admin
+      await component.toggleAdmin(MOCK_USERS[1]); // user1, grant admin
 
-    expect(adminServiceMock.setUserAdmin).toHaveBeenCalledWith('2', true);
-  });
+      expect(adminServiceMock.setUserAdmin).toHaveBeenCalledWith('2', true);
+    }
+  );
 
-  it('should not allow changing own admin status', async () => {
-    fixture.detectChanges();
+  it(
+    'should not allow changing own admin status',
+    { timeout: 5000 },
+    async () => {
+      fixture.detectChanges();
 
-    await component.toggleAdmin(MOCK_USERS[0]); // admin = current user
+      await component.toggleAdmin(MOCK_USERS[0]); // admin = current user
 
-    expect(adminServiceMock.setUserAdmin).not.toHaveBeenCalled();
-  });
+      expect(adminServiceMock.setUserAdmin).not.toHaveBeenCalled();
+    }
+  );
 
-  it('should delete user after confirmation', async () => {
+  it('should delete user after confirmation', { timeout: 5000 }, async () => {
     dialogMock.open.mockReturnValue({
       afterClosed: () => of(true),
     });
@@ -322,7 +334,7 @@ describe('AdminUsersComponent', () => {
     expect(adminServiceMock.deleteUser).toHaveBeenCalledWith('2');
   });
 
-  it('should not allow deleting current user', async () => {
+  it('should not allow deleting current user', { timeout: 5000 }, async () => {
     fixture.detectChanges();
 
     await component.deleteUser(MOCK_USERS[0]); // admin = current user

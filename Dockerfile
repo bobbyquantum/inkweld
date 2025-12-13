@@ -10,7 +10,7 @@
 
 # Frontend builder stage (Angular)
 # Angular build outputs to dist/browser/ in production mode (default configuration)
-FROM oven/bun:1.3.3 AS frontend-builder
+FROM oven/bun:1.3.4 AS frontend-builder
 WORKDIR /app/frontend
 
 COPY frontend/bun.lock frontend/package.json ./
@@ -20,24 +20,28 @@ COPY frontend .
 # Build frontend and verify output exists - fail early with clear error if build doesn't produce expected output
 RUN bun run build \
   && if [ ! -d /app/frontend/dist ]; then \
-       echo "ERROR: frontend build did not produce /app/frontend/dist"; \
-       ls -la /app/frontend || true; \
-       exit 1; \
-     fi
+  echo "ERROR: frontend build did not produce /app/frontend/dist"; \
+  ls -la /app/frontend || true; \
+  exit 1; \
+  fi
 
 # Backend builder stage - produces a single compiled binary
-FROM oven/bun:1.3.3 AS backend-builder
+FROM oven/bun:1.3.4 AS backend-builder
 WORKDIR /app/backend
 
-# Build tools for better-sqlite3 (the only native module that needs compilation)
-# Other native modules (classic-level, bcrypt) use prebuilds
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  python3 make g++ && \
-  rm -rf /var/lib/apt/lists/*
+# No build tools needed - we use bun:sqlite (native to Bun), not better-sqlite3
+# better-sqlite3 is only needed for the Node.js runner (node-runner.ts)
+# Native modules (classic-level, bcrypt) ship with prebuilds and are patched later
 
-# Install dependencies
+# Install dependencies with --ignore-scripts to skip better-sqlite3's node-gyp build
+# (Bun doesn't support prebuild-install, causing it to fall back to node-gyp which fails)
+# Then run postinstall for packages that need platform-specific binaries:
+# - esbuild: downloads platform-specific binary
+# - sharp: downloads prebuilt libvips binaries
 COPY backend/bun.lock backend/package.json ./
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --ignore-scripts && \
+    node node_modules/esbuild/install.js && \
+    cd node_modules/sharp && node install/check.js || true
 
 # Copy source and build scripts
 COPY backend .

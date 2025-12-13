@@ -1,11 +1,26 @@
 import { ElementType } from '../../api-client';
 import {
+  ARCHIVE_VERSION,
+  ArchiveElement,
+  ArchiveManifest,
+  ArchiveProject,
+  MIN_SUPPORTED_VERSION,
   ProjectArchive,
   ProjectArchiveError,
   ProjectArchiveErrorType,
 } from './project-archive';
 
 describe('project-archive models', () => {
+  describe('Constants', () => {
+    it('should export ARCHIVE_VERSION', () => {
+      expect(ARCHIVE_VERSION).toBe(1);
+    });
+
+    it('should export MIN_SUPPORTED_VERSION', () => {
+      expect(MIN_SUPPORTED_VERSION).toBe(1);
+    });
+  });
+
   describe('ProjectArchiveErrorType enum', () => {
     it('should have InvalidFormat type', () => {
       expect(ProjectArchiveErrorType.InvalidFormat).toBe('INVALID_FORMAT');
@@ -15,10 +30,8 @@ describe('project-archive models', () => {
       expect(ProjectArchiveErrorType.VersionMismatch).toBe('VERSION_MISMATCH');
     });
 
-    it('should have DuplicateProject type', () => {
-      expect(ProjectArchiveErrorType.DuplicateProject).toBe(
-        'DUPLICATE_PROJECT'
-      );
+    it('should have SlugTaken type', () => {
+      expect(ProjectArchiveErrorType.SlugTaken).toBe('SLUG_TAKEN');
     });
 
     it('should have ValidationFailed type', () => {
@@ -27,8 +40,32 @@ describe('project-archive models', () => {
       );
     });
 
-    it('should have FileSystemError type', () => {
-      expect(ProjectArchiveErrorType.FileSystemError).toBe('FILE_SYSTEM_ERROR');
+    it('should have StorageError type', () => {
+      expect(ProjectArchiveErrorType.StorageError).toBe('STORAGE_ERROR');
+    });
+
+    it('should have NetworkError type', () => {
+      expect(ProjectArchiveErrorType.NetworkError).toBe('NETWORK_ERROR');
+    });
+
+    it('should have SyncRequired type', () => {
+      expect(ProjectArchiveErrorType.SyncRequired).toBe('SYNC_REQUIRED');
+    });
+
+    it('should have MediaDownloadFailed type', () => {
+      expect(ProjectArchiveErrorType.MediaDownloadFailed).toBe(
+        'MEDIA_DOWNLOAD_FAILED'
+      );
+    });
+
+    it('should have MediaUploadFailed type', () => {
+      expect(ProjectArchiveErrorType.MediaUploadFailed).toBe(
+        'MEDIA_UPLOAD_FAILED'
+      );
+    });
+
+    it('should have Cancelled type', () => {
+      expect(ProjectArchiveErrorType.Cancelled).toBe('CANCELLED');
     });
   });
 
@@ -57,7 +94,7 @@ describe('project-archive models', () => {
 
     it('should be instanceof Error', () => {
       const error = new ProjectArchiveError(
-        ProjectArchiveErrorType.FileSystemError,
+        ProjectArchiveErrorType.StorageError,
         'Failed to write file'
       );
 
@@ -66,7 +103,7 @@ describe('project-archive models', () => {
 
     it('should be instanceof ProjectArchiveError', () => {
       const error = new ProjectArchiveError(
-        ProjectArchiveErrorType.DuplicateProject,
+        ProjectArchiveErrorType.SlugTaken,
         'Project already exists'
       );
 
@@ -83,11 +120,100 @@ describe('project-archive models', () => {
     });
   });
 
+  describe('ArchiveManifest interface', () => {
+    it('should allow creating a valid manifest object', () => {
+      const manifest: ArchiveManifest = {
+        version: 1,
+        exportedAt: '2024-01-01T00:00:00Z',
+        projectTitle: 'Test Project',
+        originalSlug: 'test-project',
+      };
+
+      expect(manifest.version).toBe(1);
+      expect(manifest.projectTitle).toBe('Test Project');
+      expect(manifest.originalSlug).toBe('test-project');
+    });
+
+    it('should allow optional appVersion', () => {
+      const manifest: ArchiveManifest = {
+        version: 1,
+        exportedAt: '2024-01-01T00:00:00Z',
+        projectTitle: 'Test',
+        originalSlug: 'test',
+        appVersion: '1.0.0',
+      };
+
+      expect(manifest.appVersion).toBe('1.0.0');
+    });
+  });
+
+  describe('ArchiveProject interface', () => {
+    it('should allow creating a valid project object', () => {
+      const project: ArchiveProject = {
+        title: 'Test Project',
+        slug: 'test-project',
+      };
+
+      expect(project.title).toBe('Test Project');
+      expect(project.slug).toBe('test-project');
+    });
+
+    it('should allow optional description', () => {
+      const project: ArchiveProject = {
+        title: 'Test',
+        slug: 'test',
+        description: 'A test project',
+      };
+
+      expect(project.description).toBe('A test project');
+    });
+  });
+
+  describe('ArchiveElement interface', () => {
+    it('should allow creating a valid element', () => {
+      const element: ArchiveElement = {
+        id: 'elem-1',
+        name: 'Chapter 1',
+        type: ElementType.Folder,
+        order: 0,
+        level: 1,
+        parentId: null,
+        metadata: {},
+      };
+
+      expect(element.id).toBe('elem-1');
+      expect(element.name).toBe('Chapter 1');
+      expect(element.type).toBe(ElementType.Folder);
+    });
+
+    it('should allow optional expandable and version', () => {
+      const element: ArchiveElement = {
+        id: 'elem-2',
+        name: 'Scene 1',
+        type: ElementType.Item,
+        order: 1,
+        level: 2,
+        parentId: 'elem-1',
+        expandable: false,
+        version: 3,
+        metadata: { customKey: 'value' },
+      };
+
+      expect(element.expandable).toBe(false);
+      expect(element.version).toBe(3);
+      expect(element.metadata['customKey']).toBe('value');
+    });
+  });
+
   describe('ProjectArchive interface', () => {
     it('should allow creating a valid archive object', () => {
       const archive: ProjectArchive = {
-        version: 1,
-        exportedAt: '2024-01-01T00:00:00Z',
+        manifest: {
+          version: 1,
+          exportedAt: '2024-01-01T00:00:00Z',
+          projectTitle: 'Test Project',
+          originalSlug: 'test-project',
+        },
         project: {
           title: 'Test Project',
           description: 'A test project',
@@ -100,55 +226,53 @@ describe('project-archive models', () => {
             type: ElementType.Folder,
             order: 0,
             level: 1,
-            version: 1,
+            parentId: null,
             expandable: true,
-            metadata: { customKey: 'customValue' },
+            metadata: {},
           },
         ],
+        documents: [],
+        worldbuilding: [],
+        schemas: [],
+        relationships: [],
+        customRelationshipTypes: [],
+        publishPlans: [],
+        media: [],
       };
 
-      expect(archive.version).toBe(1);
+      expect(archive.manifest.version).toBe(1);
       expect(archive.project.title).toBe('Test Project');
       expect(archive.elements).toHaveLength(1);
     });
 
-    it('should allow optional description in project', () => {
+    it('should allow empty arrays for optional collections', () => {
       const archive: ProjectArchive = {
-        version: 1,
-        exportedAt: '2024-01-01T00:00:00Z',
+        manifest: {
+          version: 1,
+          exportedAt: '2024-01-01T00:00:00Z',
+          projectTitle: 'Minimal Project',
+          originalSlug: 'minimal',
+        },
         project: {
-          title: 'Test',
-          slug: 'test',
+          title: 'Minimal',
+          slug: 'minimal',
         },
         elements: [],
+        documents: [],
+        worldbuilding: [],
+        schemas: [],
+        relationships: [],
+        customRelationshipTypes: [],
+        publishPlans: [],
+        media: [],
       };
 
-      expect(archive.project.description).toBeUndefined();
-    });
-
-    it('should allow optional fields in elements', () => {
-      const archive: ProjectArchive = {
-        version: 1,
-        exportedAt: '2024-01-01T00:00:00Z',
-        project: {
-          title: 'Test',
-          slug: 'test',
-        },
-        elements: [
-          {
-            name: 'Minimal Element',
-            type: ElementType.Item,
-            order: 0,
-            level: 0,
-            metadata: {},
-          },
-        ],
-      };
-
-      expect(archive.elements[0].id).toBeUndefined();
-      expect(archive.elements[0].version).toBeUndefined();
-      expect(archive.elements[0].expandable).toBeUndefined();
-      expect(archive.elements[0].content).toBeUndefined();
+      expect(archive.elements).toHaveLength(0);
+      expect(archive.documents).toHaveLength(0);
+      expect(archive.worldbuilding).toHaveLength(0);
+      expect(archive.schemas).toHaveLength(0);
+      expect(archive.relationships).toHaveLength(0);
+      expect(archive.media).toHaveLength(0);
     });
   });
 });

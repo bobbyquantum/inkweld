@@ -63,7 +63,8 @@
         <button
           mat-icon-button
           [matMenuTriggerFor]="moreMenuMobile"
-          class="action-button">
+          class="action-button"
+          data-testid="project-more-menu-button">
           <mat-icon>more_vert</mat-icon>
         </button>
         <app-user-menu [miniMode]="true" class="action-button"></app-user-menu>
@@ -75,7 +76,24 @@
             <span>Toggle Zen Mode</span>
           </button>
         }
-        <button mat-menu-item (click)="onDeleteProjectClick()">
+        <button
+          mat-menu-item
+          (click)="onExportClicked()"
+          data-testid="export-project-button">
+          <mat-icon>download</mat-icon>
+          <span>Export project</span>
+        </button>
+        <button
+          mat-menu-item
+          (click)="onImportClicked()"
+          data-testid="import-project-button">
+          <mat-icon>upload</mat-icon>
+          <span>Import project</span>
+        </button>
+        <button
+          mat-menu-item
+          (click)="onDeleteProjectClick()"
+          data-testid="delete-project-button">
           <mat-icon>delete</mat-icon>
           <span>Delete project</span>
         </button>
@@ -180,13 +198,5 @@
         </div>
       }
     }
-
-    <!-- Hidden file input for import -->
-    <input
-      type="file"
-      #fileInput
-      style="display: none"
-      accept=".zip"
-      (change)="onFileSelected($event)" />
   </mat-sidenav-content>
 </mat-sidenav-container>

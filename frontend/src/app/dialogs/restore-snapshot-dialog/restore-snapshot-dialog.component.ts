@@ -6,14 +6,13 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-
-import { DocumentSnapshot } from '../../../api-client';
+import { UnifiedSnapshot } from '@services/project/unified-snapshot.service';
 
 /**
  * Data passed to the RestoreSnapshotDialog
  */
 export interface RestoreSnapshotDialogData {
-  snapshot: DocumentSnapshot;
+  snapshot: UnifiedSnapshot;
   currentWordCount?: number;
 }
 
