@@ -2,10 +2,19 @@
   <div class="full-width-column">
     <div class="full-width-header">
       <div class="header-content">
-        <div class="cover-image-wrapper">
+        <div
+          class="cover-image-wrapper clickable"
+          (click)="projectState.showEditProjectDialog()"
+          (keydown.enter)="projectState.showEditProjectDialog()"
+          tabindex="0"
+          role="button"
+          aria-label="Edit project cover">
           <app-project-cover
             [project]="projectState.project()!"
             variant="list"></app-project-cover>
+          <div class="cover-overlay">
+            <mat-icon>edit</mat-icon>
+          </div>
         </div>
         <div class="project-info">
           <h2>{{ projectState.project()?.title }}</h2>
@@ -28,10 +37,6 @@
         <button mat-button color="primary" (click)="onNewFileClick()">
           <mat-icon>note_add</mat-icon>
           New File
-        </button>
-        <button mat-button color="primary" (click)="onGenerateCoverClick()">
-          <mat-icon>image</mat-icon>
-          Generate Cover
         </button>
         <button mat-button color="primary" (click)="onExportClick()">
           <mat-icon>cloud_download</mat-icon>

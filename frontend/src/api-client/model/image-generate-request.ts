@@ -7,6 +7,9 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { ImageSize } from './image-size';
+import { WorldbuildingContext } from './worldbuilding-context';
+import { ImageProviderType } from './image-provider-type';
 
 
 export interface ImageGenerateRequest { 
@@ -15,48 +18,38 @@ export interface ImageGenerateRequest {
      */
     prompt: string;
     /**
-     * AI model to use
+     * Provider to use (uses default if not specified)
      */
-    model?: ImageGenerateRequestModel;
+    provider?: ImageProviderType;
+    /**
+     * Specific model to use
+     */
+    model?: string;
     /**
      * Number of images to generate
      */
     n?: number;
+    size?: ImageSize;
     /**
-     * Image quality
+     * Image quality (DALL-E 3 only)
      */
     quality?: ImageGenerateRequestQuality;
     /**
-     * Response format
-     */
-    responseFormat?: ImageGenerateRequestResponseFormat;
-    /**
-     * Image size
-     */
-    size?: ImageGenerateRequestSize;
-    /**
-     * Image style
+     * Image style (DALL-E 3 only)
      */
     style?: ImageGenerateRequestStyle;
+    /**
+     * Negative prompt (Stable Diffusion only)
+     */
+    negativePrompt?: string;
+    /**
+     * Worldbuilding elements to include in the prompt
+     */
+    worldbuildingContext?: Array<WorldbuildingContext>;
 }
-export enum ImageGenerateRequestModel {
-    DallE2 = 'dall-e-2',
-    DallE3 = 'dall-e-3'
-};
 export enum ImageGenerateRequestQuality {
     Standard = 'standard',
     Hd = 'hd'
-};
-export enum ImageGenerateRequestResponseFormat {
-    Url = 'url',
-    B64Json = 'b64_json'
-};
-export enum ImageGenerateRequestSize {
-    _256x256 = '256x256',
-    _512x512 = '512x512',
-    _1024x1024 = '1024x1024',
-    _1792x1024 = '1792x1024',
-    _1024x1792 = '1024x1792'
 };
 export enum ImageGenerateRequestStyle {
     Vivid = 'vivid',

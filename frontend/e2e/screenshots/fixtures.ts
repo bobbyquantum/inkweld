@@ -7,6 +7,7 @@
 import { expect as baseExpect, Page, test as base } from '@playwright/test';
 
 import { mockApi } from './mock-api';
+import { setupAiImageHandlers } from './mock-api/ai-image';
 import { setupAuthHandlers } from './mock-api/auth';
 import { setupConfigHandlers } from './mock-api/config';
 import { mockProjects, setupProjectHandlers } from './mock-api/projects';
@@ -23,6 +24,7 @@ function initializeMockApi(): void {
   setupUserHandlers();
   setupConfigHandlers();
   setupProjectHandlers();
+  setupAiImageHandlers();
 }
 
 // Initialize handlers before each test
@@ -70,6 +72,9 @@ const demoProjects = [
 export type ScreenshotFixtures = {
   // Authenticated user with demo projects (server mode with mock API)
   authenticatedPage: Page;
+
+  // Admin user page for admin settings screenshots
+  adminPage: Page;
 
   // Offline mode page for editor screenshots
   offlinePage: Page;
@@ -152,6 +157,71 @@ export const test = base.extend<ScreenshotFixtures>({
       });
       console.log('[Fixture] Projects loaded after reload');
     }
+
+    await use(page);
+  },
+
+  // Admin page fixture - ensures user is loaded before navigating to admin routes
+  adminPage: async ({ page }, use) => {
+    // Initialize mock API handlers for this test
+    initializeMockApi();
+
+    // Set up mock API interception
+    await mockApi.setupPageInterception(page);
+
+    // Small delay to ensure handlers are fully registered
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Set up app configuration and auth token in localStorage
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          mode: 'server',
+          serverUrl: 'http://localhost:8333',
+        })
+      );
+      // Set mock auth token for admin user
+      localStorage.setItem('auth_token', 'mock-token-testuser');
+    });
+
+    console.log('[AdminFixture] Setting up admin page');
+
+    // First, navigate to home to establish user session
+    await page.goto('about:blank');
+
+    // Navigate to home and wait for user to be loaded
+    const userApiPromise = page.waitForResponse(
+      resp => resp.url().includes('/api/v1/users/me') && resp.status() === 200,
+      { timeout: 10000 }
+    );
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    // Wait for user API to respond
+    console.log('[AdminFixture] Waiting for user API...');
+    await userApiPromise;
+    console.log('[AdminFixture] User API responded');
+
+    // Wait for the page to fully render and Angular to process the user
+    await page.waitForLoadState('networkidle');
+
+    // Wait for the user menu to appear (indicates user is authenticated)
+    try {
+      await page.waitForSelector(
+        '[data-testid="user-menu-button"], .user-menu',
+        {
+          timeout: 5000,
+        }
+      );
+      console.log('[AdminFixture] User menu visible - user is authenticated');
+    } catch {
+      console.log('[AdminFixture] User menu not found, waiting longer...');
+      await page.waitForTimeout(2000);
+    }
+
+    // The adminPage fixture is ready - tests can navigate to admin routes
+    console.log('[AdminFixture] Admin page ready');
 
     await use(page);
   },

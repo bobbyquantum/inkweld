@@ -3,6 +3,22 @@ import { inject, Injectable } from '@angular/core';
 import { StorageConfig, StorageService } from './storage.service';
 
 /**
+ * Metadata for AI-generated images
+ */
+export interface GenerationMetadata {
+  /** The prompt used to generate the image */
+  prompt: string;
+  /** AI model used (e.g., "gemini-2.0-flash-exp") */
+  model: string;
+  /** Provider used (e.g., "openrouter", "openai") */
+  provider: string;
+  /** Image size requested (e.g., "768x1344") */
+  size: string;
+  /** When the image was generated */
+  generatedAt: string;
+}
+
+/**
  * Stored media record in IndexedDB
  */
 export interface StoredMedia {
@@ -18,6 +34,8 @@ export interface StoredMedia {
   createdAt: string;
   /** Original filename if applicable */
   filename?: string;
+  /** Optional generation metadata for AI-generated images */
+  generation?: GenerationMetadata;
 }
 
 /**
@@ -29,6 +47,8 @@ export interface MediaInfo {
   size: number;
   createdAt: string;
   filename?: string;
+  /** Optional generation metadata for AI-generated images */
+  generation?: GenerationMetadata;
 }
 
 const MEDIA_DB_CONFIG: StorageConfig = {
@@ -128,12 +148,14 @@ export class OfflineStorageService {
    * @param mediaId - Identifier like "cover", "avatar", "img-{uuid}"
    * @param blob - The binary data to store
    * @param filename - Optional original filename
+   * @param generation - Optional generation metadata for AI-generated images
    */
   async saveMedia(
     projectKey: string,
     mediaId: string,
     blob: Blob,
-    filename?: string
+    filename?: string,
+    generation?: GenerationMetadata
   ): Promise<void> {
     const db = await this.ensureDb();
     const key = this.makeKey(projectKey, mediaId);
@@ -145,6 +167,7 @@ export class OfflineStorageService {
       size: blob.size,
       createdAt: new Date().toISOString(),
       filename,
+      generation,
     };
 
     await this.storageService.put(db, STORE_NAME, record);
@@ -229,6 +252,7 @@ export class OfflineStorageService {
               size: record.size,
               createdAt: record.createdAt,
               filename: record.filename,
+              generation: record.generation,
             });
           }
           cursor.continue();

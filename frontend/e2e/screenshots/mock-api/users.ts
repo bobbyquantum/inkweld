@@ -10,6 +10,7 @@ export interface MockUserDto {
   username: string;
   name: string;
   roles?: string[];
+  isAdmin?: boolean;
 }
 
 /**
@@ -22,12 +23,15 @@ class MockUsers {
       id: '1',
       username: 'testuser',
       name: 'Test User',
+      roles: ['admin'],
+      isAdmin: true, // Give testuser admin role for screenshot tests
     },
     {
       id: '2',
       username: 'adminuser',
       name: 'Admin User',
       roles: ['admin'],
+      isAdmin: true,
     },
   ];
 
@@ -65,12 +69,15 @@ class MockUsers {
         id: '1',
         username: 'testuser',
         name: 'Test User',
+        roles: ['admin'],
+        isAdmin: true, // Give testuser admin role for screenshot tests
       },
       {
         id: '2',
         username: 'adminuser',
         name: 'Admin User',
         roles: ['admin'],
+        isAdmin: true,
       },
     ];
   }
@@ -176,5 +183,34 @@ export function setupUserHandlers(): void {
         }),
       });
     }
+  });
+
+  // GET /api/v1/users - List all users (admin endpoint)
+  mockApi.addHandler('**/api/v1/users', async (route: Route) => {
+    const users = mockUsers.getUsers();
+    console.log(`Returning ${users.length} users for admin list`);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        users: users.map(u => ({
+          ...u,
+          createdAt: new Date().toISOString(),
+          approved: true,
+          enabled: true,
+        })),
+        total: users.length,
+      }),
+    });
+  });
+
+  // GET /api/v1/admin/users/pending - Get pending users
+  mockApi.addHandler('**/api/v1/admin/users/pending', async (route: Route) => {
+    console.log('Returning empty pending users list');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+    });
   });
 }

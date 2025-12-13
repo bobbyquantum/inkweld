@@ -1,4 +1,5 @@
 import {
+  ChangeDetectorRef,
   Component,
   ElementRef,
   inject,
@@ -22,6 +23,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { Project } from '@inkweld/index';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { UnifiedProjectService } from '@services/offline/unified-project.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectImportExportService } from '@services/project/project-import-export.service';
@@ -51,11 +53,13 @@ export class EditProjectDialogComponent implements OnInit {
   readonly importExportService = inject(ProjectImportExportService);
   private dialogRef = inject(MatDialogRef<EditProjectDialogComponent>);
   private ProjectsService = inject(ProjectsService);
+  private dialogGateway = inject(DialogGatewayService);
   private projectService = inject(ProjectService);
   private unifiedProjectService = inject(UnifiedProjectService);
   private dialogData = inject<Project>(MAT_DIALOG_DATA);
   private snackBar = inject(MatSnackBar);
   private sanitizer = inject(DomSanitizer);
+  private cdr = inject(ChangeDetectorRef);
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('coverImageInput') coverImageInput!: ElementRef<HTMLInputElement>;
@@ -74,6 +78,7 @@ export class EditProjectDialogComponent implements OnInit {
 
   // Image cropper properties
   imageChangedEvent: Event | null = null;
+  imageBase64: string | undefined = undefined;
   croppedImage: SafeUrl | null = null;
   croppedBlob: Blob | null = null;
   isCropperReady = false;
@@ -170,6 +175,7 @@ export class EditProjectDialogComponent implements OnInit {
 
   resetCropperState(): void {
     this.imageChangedEvent = null;
+    this.imageBase64 = undefined;
     this.croppedImage = null;
     this.croppedBlob = null;
     this.hasImageLoaded = false;
@@ -202,6 +208,91 @@ export class EditProjectDialogComponent implements OnInit {
 
   openCoverImageSelector(): void {
     this.coverImageInput.nativeElement.click();
+  }
+
+  async openMediaLibrarySelector(): Promise<void> {
+    if (!this.project.username || !this.project.slug) return;
+
+    const result = await this.dialogGateway.openMediaSelectorDialog({
+      username: this.project.username,
+      slug: this.project.slug,
+      filterType: 'image',
+      title: 'Select Cover Image',
+    });
+
+    if (result?.blob) {
+      // Convert blob to base64 for the cropper
+      const base64 = await this.blobToBase64(result.blob);
+      const filename = result.selected?.filename || 'selected-cover.png';
+
+      // Reset cropper state first
+      this.resetCropperState();
+
+      // Set the data BEFORE showing the cropper
+      this.pendingFileName = filename;
+      this.imageBase64 = base64;
+
+      // Show the cropper and trigger change detection
+      this.showCropper = true;
+      this.cdr.detectChanges();
+    }
+  }
+
+  private blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async openGenerateCoverDialog(): Promise<void> {
+    const result = await this.dialogGateway.openImageGenerationDialog({
+      forCover: true,
+    });
+    if (result?.saved && result.imageData) {
+      // Convert base64 to blob and update local state
+      const blob = this.base64ToBlob(result.imageData);
+      const file = new File([blob], 'generated-cover.png', {
+        type: 'image/png',
+      });
+      this.coverImage = file;
+      this.coverImageUrl = this.sanitizer.bypassSecurityTrustUrl(
+        result.imageData
+      );
+      // Save immediately to the project
+      if (this.project.username && this.project.slug) {
+        this.isLoadingCover = true;
+        try {
+          await this.projectService.uploadProjectCover(
+            this.project.username,
+            this.project.slug,
+            file
+          );
+          this.showSuccess('Cover image generated and saved successfully');
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          this.showError(`Failed to save cover image: ${errorMessage}`);
+        } finally {
+          this.isLoadingCover = false;
+        }
+      }
+    }
+  }
+
+  private base64ToBlob(base64Data: string): Blob {
+    const base64String = base64Data.includes(',')
+      ? base64Data.split(',')[1]
+      : base64Data;
+    const byteCharacters = atob(base64String);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: 'image/png' });
   }
 
   async removeCoverImage(): Promise<void> {

@@ -16,13 +16,19 @@ import { EditAvatarDialogComponent } from '../../dialogs/edit-avatar-dialog/edit
 import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { FileUploadComponent } from '../../dialogs/file-upload/file-upload.component';
 import {
-  GenerateCoverDialogComponent,
-  GenerateCoverDialogData,
-} from '../../dialogs/generate-cover-dialog/generate-cover-dialog.component';
+  ImageGenerationDialogComponent,
+  ImageGenerationDialogData,
+  ImageGenerationDialogResult,
+} from '../../dialogs/image-generation-dialog/image-generation-dialog.component';
 import {
   ImageViewerDialogComponent,
   ImageViewerDialogData,
 } from '../../dialogs/image-viewer-dialog/image-viewer-dialog.component';
+import {
+  MediaSelectorDialogComponent,
+  MediaSelectorDialogData,
+  MediaSelectorDialogResult,
+} from '../../dialogs/media-selector-dialog/media-selector-dialog.component';
 import {
   NewElementDialogComponent,
   NewElementDialogResult,
@@ -100,15 +106,11 @@ export class DialogGatewayService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 
-  openGenerateCoverDialog(project: Project): Promise<boolean> {
-    const dialogRef = this.dialog.open(GenerateCoverDialogComponent, {
-      data: { project } as GenerateCoverDialogData,
-      disableClose: false,
-      width: '600px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
-    });
-    return firstValueFrom(dialogRef.afterClosed());
+  openGenerateCoverDialog(
+    _project: Project
+  ): Promise<ImageGenerationDialogResult | undefined> {
+    // Use the new ImageGenerationDialogComponent with forCover mode
+    return this.openImageGenerationDialog({ forCover: true });
   }
 
   openUserSettingsDialog(
@@ -136,6 +138,32 @@ export class DialogGatewayService {
       data,
       disableClose: true,
       width: '500px',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openImageGenerationDialog(
+    data?: ImageGenerationDialogData
+  ): Promise<ImageGenerationDialogResult | undefined> {
+    const dialogRef = this.dialog.open(ImageGenerationDialogComponent, {
+      data: data || {},
+      disableClose: false,
+      width: '700px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openMediaSelectorDialog(
+    data: MediaSelectorDialogData
+  ): Promise<MediaSelectorDialogResult | undefined> {
+    const dialogRef = this.dialog.open(MediaSelectorDialogComponent, {
+      data,
+      disableClose: false,
+      width: '600px',
+      maxWidth: '95vw',
+      maxHeight: '80vh',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

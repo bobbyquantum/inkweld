@@ -1,6 +1,17 @@
 <div class="media-container">
   <div class="media-header">
     <h1>Project Media</h1>
+    <div class="header-actions">
+      @if (canUseAiGeneration()) {
+        <button
+          mat-stroked-button
+          (click)="openImageGenerator()"
+          data-testid="generate-image-button">
+          <mat-icon>auto_awesome</mat-icon>
+          Generate Image
+        </button>
+      }
+    </div>
     <div class="header-stats">
       <span class="stat">{{ totalCount() }} items</span>
       <span class="stat">{{ totalSize() | fileSize }}</span>
@@ -14,6 +25,12 @@
       [class.active]="selectedCategory() === 'all'"
       (click)="setCategory('all')">
       All
+    </button>
+    <button
+      mat-button
+      [class.active]="selectedCategory() === 'generated'"
+      (click)="setCategory('generated')">
+      Generated
     </button>
     <button
       mat-button
@@ -40,6 +57,71 @@
       Other
     </button>
   </div>
+
+  <!-- Active generation jobs -->
+  @if (hasActiveJobs()) {
+    <div class="active-jobs-section">
+      <h3 class="section-title">
+        <mat-icon>auto_awesome</mat-icon>
+        Generating Images
+      </h3>
+      <div class="active-jobs-grid">
+        @for (job of activeJobs(); track job.id) {
+          <div
+            class="active-job-card"
+            [class.completed]="job.status === 'completed'"
+            [class.failed]="job.status === 'failed'">
+            <div class="job-status">
+              @if (
+                job.status === 'pending' ||
+                job.status === 'generating' ||
+                job.status === 'saving'
+              ) {
+                <mat-spinner diameter="24"></mat-spinner>
+              } @else if (job.status === 'completed') {
+                <mat-icon class="status-icon success">check_circle</mat-icon>
+              } @else if (job.status === 'failed') {
+                <mat-icon class="status-icon error">error</mat-icon>
+              }
+            </div>
+            <div class="job-info">
+              <span class="job-prompt" [matTooltip]="job.request.prompt">
+                {{ truncatePrompt(job.request.prompt, 60) }}
+              </span>
+              <span class="job-meta">
+                {{ getJobProviderLabel(job) }} ·
+                @switch (job.status) {
+                  @case ('pending') {
+                    Queued...
+                  }
+                  @case ('generating') {
+                    Generating...
+                  }
+                  @case ('saving') {
+                    Saving to library...
+                  }
+                  @case ('completed') {
+                    {{ job.images.length }} image(s) saved
+                  }
+                  @case ('failed') {
+                    Failed: {{ job.error }}
+                  }
+                }
+              </span>
+            </div>
+            @if (job.status === 'completed' && job.images.length > 0) {
+              <div class="job-preview">
+                <img
+                  [src]="job.images[0]"
+                  alt="Generated image preview"
+                  class="preview-thumbnail" />
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
 
   <!-- Loading state -->
   @if (isLoading()) {
@@ -116,7 +198,19 @@
               <span class="category-badge">{{ item.categoryLabel }}</span>
               <span class="size">{{ item.size | fileSize }}</span>
             </span>
-            <span class="media-date">{{ formatDate(item.createdAt) }}</span>
+            @if (item.generation) {
+              <span
+                class="generation-prompt"
+                [matTooltip]="item.generation.prompt">
+                <mat-icon class="prompt-icon">auto_awesome</mat-icon>
+                {{ truncatePrompt(item.generation.prompt) }}
+              </span>
+              <span class="generation-meta">
+                {{ item.generation.model }} · {{ item.generation.size }}
+              </span>
+            } @else {
+              <span class="media-date">{{ formatDate(item.createdAt) }}</span>
+            }
           </div>
 
           <!-- Actions -->

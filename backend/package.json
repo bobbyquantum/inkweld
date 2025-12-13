@@ -35,6 +35,7 @@
     "logs:prod": "wrangler tail --env production"
   },
   "dependencies": {
+    "@fal-ai/client": "^1.7.2",
     "@hono/node-server": "^1.13.7",
     "@hono/node-ws": "^1.2.0",
     "@hono/oauth-providers": "^0.8.5",
