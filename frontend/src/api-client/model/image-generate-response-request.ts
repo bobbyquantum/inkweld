@@ -9,10 +9,13 @@
  */
 
 
-export interface AIImageError { 
-    /**
-     * Error message
-     */
-    error: string;
+/**
+ * Original request parameters
+ */
+export interface ImageGenerateResponseRequest { 
+    prompt: string;
+    size?: string;
+    quality?: string;
+    style?: string;
 }
 

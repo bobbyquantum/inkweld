@@ -120,6 +120,16 @@ class ConfigService {
         return envConfig.openai.enabled ? 'true' : 'false';
       case 'AI_IMAGE_ENABLED':
         return envConfig.openai.enabled ? 'true' : 'false';
+      case 'AI_IMAGE_DEFAULT_PROVIDER':
+        return 'openai';
+      case 'AI_IMAGE_OPENAI_ENABLED':
+        return envConfig.openai.enabled ? 'true' : 'false';
+      case 'AI_IMAGE_OPENROUTER_ENABLED':
+        return 'false';
+      case 'AI_IMAGE_SD_ENABLED':
+        return 'false';
+      case 'AI_IMAGE_FALAI_ENABLED':
+        return 'false';
       default:
         return undefined;
     }

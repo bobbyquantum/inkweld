@@ -1,5 +1,6 @@
 import {
   Component,
+  computed,
   effect,
   inject,
   OnDestroy,
@@ -12,7 +13,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import {
+  GenerationJob,
+  ImageGenerationService,
+} from '@services/ai/image-generation.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { SetupService } from '@services/core/setup.service';
 import {
   MediaInfo,
   OfflineStorageService,
@@ -30,7 +36,7 @@ export interface MediaItem extends MediaInfo {
   /** Whether this is an image */
   isImage: boolean;
   /** Display category */
-  category: 'cover' | 'inline' | 'published' | 'other';
+  category: 'cover' | 'generated' | 'inline' | 'published' | 'other';
   /** Human-readable category name */
   categoryLabel: string;
 }
@@ -54,6 +60,13 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   protected readonly projectState = inject(ProjectStateService);
   private readonly offlineStorage = inject(OfflineStorageService);
   private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly setupService = inject(SetupService);
+  private readonly generationService = inject(ImageGenerationService);
+
+  // Check if in server mode (AI generation requires server)
+  readonly canUseAiGeneration = computed(
+    () => this.setupService.getMode() === 'server'
+  );
 
   // State signals
   mediaItems = signal<MediaItem[]>([]);
@@ -65,10 +78,41 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   totalSize = signal<number>(0);
   totalCount = signal<number>(0);
 
+  // Active generation jobs for this project
+  readonly activeJobs = computed(() => {
+    const project = this.projectState.project();
+    if (!project?.username || !project?.slug) return [];
+    const projectKey = `${project.username}/${project.slug}`;
+    return this.generationService
+      .getProjectJobs(projectKey)
+      .filter(
+        j =>
+          j.status === 'pending' ||
+          j.status === 'generating' ||
+          j.status === 'saving'
+      );
+  });
+
+  // Poll interval for active jobs
+  private jobPollInterval: ReturnType<typeof setInterval> | null = null;
+
   // Effect to reload when project changes
   private readonly projectEffect = effect(() => {
     const project = this.projectState.project();
     if (project) {
+      void this.loadMedia();
+    }
+  });
+
+  // Effect to reload media when jobs complete
+  private readonly jobEffect = effect(() => {
+    const jobs = this.activeJobs();
+    // Start/stop polling based on active jobs
+    if (jobs.length > 0 && !this.jobPollInterval) {
+      this.startJobPolling();
+    } else if (jobs.length === 0 && this.jobPollInterval) {
+      this.stopJobPolling();
+      // Reload media when all jobs complete
       void this.loadMedia();
     }
   });
@@ -79,8 +123,42 @@ export class MediaTabComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.projectEffect.destroy();
+    this.jobEffect.destroy();
+    this.stopJobPolling();
     // Cleanup blob URLs
     this.revokeAllUrls();
+  }
+
+  private startJobPolling(): void {
+    this.stopJobPolling();
+    // Poll every second to update job status display
+    this.jobPollInterval = setInterval(() => {
+      // Force re-evaluation of activeJobs
+      const jobs = this.generationService.jobs();
+      // Check if any completed - if so, reload media
+      const project = this.projectState.project();
+      if (project?.username && project?.slug) {
+        const projectKey = `${project.username}/${project.slug}`;
+        const projectJobs = jobs.filter(j => j.projectKey === projectKey);
+        const hasActive = projectJobs.some(
+          j =>
+            j.status === 'pending' ||
+            j.status === 'generating' ||
+            j.status === 'saving'
+        );
+        if (!hasActive && this.jobPollInterval) {
+          this.stopJobPolling();
+          void this.loadMedia();
+        }
+      }
+    }, 1000);
+  }
+
+  private stopJobPolling(): void {
+    if (this.jobPollInterval) {
+      clearInterval(this.jobPollInterval);
+      this.jobPollInterval = null;
+    }
   }
 
   /**
@@ -165,6 +243,37 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Truncate a prompt for display
+   */
+  truncatePrompt(prompt: string, maxLength = 50): string {
+    if (prompt.length <= maxLength) return prompt;
+    return prompt.substring(0, maxLength) + '...';
+  }
+
+  /**
+   * Check if there are active generation jobs
+   */
+  hasActiveJobs(): boolean {
+    return this.activeJobs().length > 0;
+  }
+
+  /**
+   * Get a display label for a generation job's provider
+   */
+  getJobProviderLabel(job: GenerationJob): string {
+    const provider = job.request.provider;
+    if (!provider) return 'Unknown';
+    switch (provider as string) {
+      case 'openrouter':
+        return 'OpenRouter';
+      case 'openai':
+        return 'OpenAI';
+      default:
+        return provider as string;
+    }
+  }
+
+  /**
    * View an image in the image viewer dialog
    */
   viewImage(item: MediaItem): void {
@@ -244,6 +353,32 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Truncate a prompt for display
+   */
+  truncateJobPrompt(job: GenerationJob): string {
+    const prompt = job.request.prompt;
+    const maxLength = 60;
+    if (prompt.length <= maxLength) return prompt;
+    return prompt.substring(0, maxLength) + '...';
+  }
+
+  /**
+   * Get status text for a generation job
+   */
+  getJobStatusText(job: GenerationJob): string {
+    switch (job.status) {
+      case 'pending':
+        return 'Starting...';
+      case 'generating':
+        return 'Generating...';
+      case 'saving':
+        return 'Saving...';
+      default:
+        return job.message;
+    }
+  }
+
   // ============================================
   // PRIVATE HELPERS
   // ============================================
@@ -254,19 +389,22 @@ export class MediaTabComponent implements OnInit, OnDestroy {
 
   private categorizeMedia(
     mediaId: string
-  ): 'cover' | 'inline' | 'published' | 'other' {
+  ): 'cover' | 'generated' | 'inline' | 'published' | 'other' {
     if (mediaId === 'cover') return 'cover';
+    if (mediaId.startsWith('generated-')) return 'generated';
     if (mediaId.startsWith('img-')) return 'inline';
     if (mediaId.startsWith('published-')) return 'published';
     return 'other';
   }
 
   private getCategoryLabel(
-    category: 'cover' | 'inline' | 'published' | 'other'
+    category: 'cover' | 'generated' | 'inline' | 'published' | 'other'
   ): string {
     switch (category) {
       case 'cover':
         return 'Cover Image';
+      case 'generated':
+        return 'AI Generated';
       case 'inline':
         return 'Inline Image';
       case 'published':
@@ -298,6 +436,52 @@ export class MediaTabComponent implements OnInit, OnDestroy {
       this.offlineStorage.revokeProjectUrls(
         `${project.username}/${project.slug}`
       );
+    }
+  }
+
+  /**
+   * Open the image generation dialog
+   */
+  async openImageGenerator(): Promise<void> {
+    const result = await this.dialogGateway.openImageGenerationDialog();
+
+    if (result?.saved && result.imageData) {
+      // Save the generated image to media library
+      const project = this.projectState.project();
+      if (!project?.username || !project?.slug) return;
+
+      try {
+        // Convert base64/URL to blob
+        let blob: Blob;
+        if (result.imageData.startsWith('data:')) {
+          // Base64 data URL
+          const response = await fetch(result.imageData);
+          blob = await response.blob();
+        } else {
+          // Regular URL - fetch it
+          const response = await fetch(result.imageData);
+          blob = await response.blob();
+        }
+
+        // Generate a unique ID for the media
+        const timestamp = Date.now();
+        const mediaId = `generated-${timestamp}`;
+        const projectKey = `${project.username}/${project.slug}`;
+
+        // Save to offline storage
+        await this.offlineStorage.saveMedia(
+          projectKey,
+          mediaId,
+          blob,
+          `ai-generated-${timestamp}.png`
+        );
+
+        // Reload media list
+        await this.loadMedia();
+      } catch (err) {
+        console.error('Failed to save generated image:', err);
+        this.error.set('Failed to save generated image');
+      }
     }
   }
 }

@@ -62,6 +62,14 @@ export const routes: Routes = [
           ),
         title: 'Admin - Settings',
       },
+      {
+        path: 'ai',
+        loadComponent: () =>
+          import('./pages/admin/ai-settings/ai-settings.component').then(
+            m => m.AdminAiSettingsComponent
+          ),
+        title: 'Admin - AI Settings',
+      },
     ],
   },
   {

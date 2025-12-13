@@ -501,80 +501,6 @@
           "error"
         ]
       },
-      "ProjectFile": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "document.pdf",
-            "description": "File name"
-          },
-          "size": {
-            "type": "number",
-            "example": 1024,
-            "description": "File size in bytes"
-          },
-          "uploadDate": {
-            "type": "string",
-            "example": "2023-01-01T00:00:00.000Z",
-            "description": "Upload timestamp"
-          }
-        },
-        "required": [
-          "name"
-        ]
-      },
-      "FileError": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "string",
-            "example": "An error occurred",
-            "description": "Error message"
-          }
-        },
-        "required": [
-          "error"
-        ]
-      },
-      "UploadResponse": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "document.pdf",
-            "description": "Uploaded file name"
-          },
-          "size": {
-            "type": "number",
-            "example": 1024,
-            "description": "File size in bytes"
-          },
-          "uploadDate": {
-            "type": "string",
-            "example": "2023-01-01T00:00:00.000Z",
-            "description": "Upload timestamp"
-          }
-        },
-        "required": [
-          "name",
-          "size",
-          "uploadDate"
-        ]
-      },
-      "DeleteResponse": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "example": "File deleted successfully",
-            "description": "Success message"
-          }
-        },
-        "required": [
-          "message"
-        ]
-      },
       "ImageMessage": {
         "type": "object",
         "properties": {
@@ -1046,57 +972,136 @@
           "level"
         ]
       },
-      "ImageData": {
-        "type": "object",
-        "properties": {
-          "b64_json": {
-            "type": "string",
-            "description": "Base64-encoded JSON image data"
-          },
-          "url": {
-            "type": "string",
-            "example": "https://example.com/image.png",
-            "description": "URL to the image"
-          },
-          "revised_prompt": {
-            "type": "string",
-            "description": "The revised prompt used"
-          }
-        }
+      "ImageProviderType": {
+        "type": "string",
+        "enum": [
+          "openai",
+          "openrouter",
+          "stable-diffusion",
+          "falai"
+        ]
       },
-      "ImageResponse": {
+      "ImageModelInfo": {
         "type": "object",
         "properties": {
-          "created": {
-            "type": "number",
-            "example": 1234567890,
-            "description": "Unix timestamp of creation"
+          "id": {
+            "type": "string",
+            "description": "Model ID"
           },
-          "data": {
+          "name": {
+            "type": "string",
+            "description": "Model name"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ImageProviderType"
+          },
+          "supportedSizes": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ImageData"
+              "type": "string"
             },
-            "description": "Generated images"
+            "description": "Supported image sizes"
           },
-          "source": {
+          "supportsQuality": {
+            "type": "boolean",
+            "description": "Whether quality setting is supported"
+          },
+          "supportsStyle": {
+            "type": "boolean",
+            "description": "Whether style setting is supported"
+          },
+          "maxImages": {
+            "type": "number",
+            "description": "Maximum images per request"
+          },
+          "description": {
             "type": "string",
-            "example": "openai",
-            "description": "Source service"
+            "description": "Model description"
           }
         },
         "required": [
-          "created",
-          "data",
-          "source"
+          "id",
+          "name",
+          "provider",
+          "supportedSizes",
+          "supportsQuality",
+          "supportsStyle",
+          "maxImages"
         ]
       },
-      "AIImageError": {
+      "ImageProviderStatus": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/ImageProviderType"
+          },
+          "name": {
+            "type": "string",
+            "description": "Provider display name"
+          },
+          "available": {
+            "type": "boolean",
+            "description": "Whether provider is available"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether provider is enabled"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageModelInfo"
+            },
+            "description": "Available models"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if unavailable"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "available",
+          "enabled",
+          "models"
+        ]
+      },
+      "ImageGenerationStatus": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "description": "Whether any provider is available"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageProviderStatus"
+            },
+            "description": "All configured providers"
+          },
+          "defaultProvider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImageProviderType"
+              },
+              {
+                "description": "Default provider"
+              }
+            ]
+          }
+        },
+        "required": [
+          "available",
+          "providers"
+        ]
+      },
+      "ImageGenerationError": {
         "type": "object",
         "properties": {
           "error": {
             "type": "string",
-            "example": "An error occurred",
             "description": "Error message"
           }
         },
@@ -1104,29 +1109,186 @@
           "error"
         ]
       },
+      "GeneratedImage": {
+        "type": "object",
+        "properties": {
+          "b64Json": {
+            "type": "string",
+            "description": "Base64-encoded image data"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to the image"
+          },
+          "revisedPrompt": {
+            "type": "string",
+            "description": "Revised prompt if modified"
+          },
+          "index": {
+            "type": "number",
+            "description": "Image index in batch"
+          }
+        },
+        "required": [
+          "index"
+        ]
+      },
+      "ImageGenerateResponse": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "number",
+            "description": "Unix timestamp of creation"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GeneratedImage"
+            },
+            "description": "Generated images"
+          },
+          "provider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImageProviderType"
+              },
+              {
+                "description": "Provider that generated the images"
+              }
+            ]
+          },
+          "model": {
+            "type": "string",
+            "description": "Model used"
+          },
+          "request": {
+            "type": "object",
+            "properties": {
+              "prompt": {
+                "type": "string"
+              },
+              "size": {
+                "type": "string"
+              },
+              "quality": {
+                "type": "string"
+              },
+              "style": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "prompt"
+            ],
+            "description": "Original request parameters"
+          }
+        },
+        "required": [
+          "created",
+          "data",
+          "provider",
+          "model",
+          "request"
+        ]
+      },
+      "ImageSize": {
+        "type": "string",
+        "enum": [
+          "1024x1024",
+          "832x1248",
+          "1248x832",
+          "864x1184",
+          "1184x864",
+          "896x1152",
+          "1152x896",
+          "768x1344",
+          "1344x768",
+          "1536x672",
+          "1920x1080",
+          "1080x1920",
+          "1600x2560",
+          "2560x1600"
+        ]
+      },
+      "WorldbuildingContext": {
+        "type": "object",
+        "properties": {
+          "elementId": {
+            "type": "string",
+            "description": "Element ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Element name"
+          },
+          "type": {
+            "type": "string",
+            "description": "Element type"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "subject",
+              "setting",
+              "style",
+              "reference"
+            ],
+            "description": "Role of the element in the prompt"
+          },
+          "roleDescription": {
+            "type": "string",
+            "description": "Description of the role"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "Raw worldbuilding element data"
+          }
+        },
+        "required": [
+          "elementId",
+          "name",
+          "type",
+          "role",
+          "data"
+        ]
+      },
       "ImageGenerateRequest": {
         "type": "object",
         "properties": {
           "prompt": {
             "type": "string",
-            "example": "A beautiful landscape",
+            "minLength": 1,
+            "maxLength": 4000,
+            "example": "A fantasy castle on a misty mountain",
             "description": "The image generation prompt"
+          },
+          "provider": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImageProviderType"
+              },
+              {
+                "description": "Provider to use (uses default if not specified)"
+              }
+            ]
           },
           "model": {
             "type": "string",
-            "enum": [
-              "dall-e-2",
-              "dall-e-3"
-            ],
             "example": "dall-e-3",
-            "description": "AI model to use"
+            "description": "Specific model to use"
           },
           "n": {
-            "type": "number",
+            "type": "integer",
             "minimum": 1,
-            "maximum": 10,
+            "maximum": 4,
             "example": 1,
             "description": "Number of images to generate"
+          },
+          "size": {
+            "$ref": "#/components/schemas/ImageSize"
           },
           "quality": {
             "type": "string",
@@ -1135,28 +1297,7 @@
               "hd"
             ],
             "example": "standard",
-            "description": "Image quality"
-          },
-          "response_format": {
-            "type": "string",
-            "enum": [
-              "url",
-              "b64_json"
-            ],
-            "example": "url",
-            "description": "Response format"
-          },
-          "size": {
-            "type": "string",
-            "enum": [
-              "256x256",
-              "512x512",
-              "1024x1024",
-              "1792x1024",
-              "1024x1792"
-            ],
-            "example": "1024x1024",
-            "description": "Image size"
+            "description": "Image quality (DALL-E 3 only)"
           },
           "style": {
             "type": "string",
@@ -1165,30 +1306,72 @@
               "natural"
             ],
             "example": "vivid",
-            "description": "Image style"
+            "description": "Image style (DALL-E 3 only)"
+          },
+          "negativePrompt": {
+            "type": "string",
+            "description": "Negative prompt (Stable Diffusion only)"
+          },
+          "worldbuildingContext": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorldbuildingContext"
+            },
+            "description": "Worldbuilding elements to include in the prompt"
           }
         },
         "required": [
           "prompt"
         ]
       },
-      "AIImageStatus": {
+      "CustomImageSize": {
         "type": "object",
         "properties": {
-          "enabled": {
-            "type": "boolean",
-            "example": true,
-            "description": "Whether AI image generation is enabled"
-          },
-          "service": {
+          "id": {
             "type": "string",
-            "example": "openai",
-            "description": "The AI service being used"
+            "description": "Unique identifier for this size"
+          },
+          "name": {
+            "type": "string",
+            "description": "User-friendly name for the size"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 256,
+            "maximum": 4096,
+            "description": "Width in pixels"
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 256,
+            "maximum": 4096,
+            "description": "Height in pixels"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description"
           }
         },
         "required": [
-          "enabled",
-          "service"
+          "id",
+          "name",
+          "width",
+          "height"
+        ]
+      },
+      "CustomSizesResponse": {
+        "type": "object",
+        "properties": {
+          "sizes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomImageSize"
+            },
+            "description": "Custom image sizes"
+          }
+        },
+        "required": [
+          "sizes"
         ]
       },
       "MCPError": {
@@ -3595,334 +3778,6 @@
         }
       }
     },
-    "/api/v1/projects/{username}/{slug}/files": {
-      "get": {
-        "operationId": "listProjectFiles",
-        "tags": [
-          "Files"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "example": "johndoe",
-              "description": "Username"
-            },
-            "required": true,
-            "description": "Username",
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "my-novel",
-              "description": "Project slug"
-            },
-            "required": true,
-            "description": "Project slug",
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of files",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ProjectFile"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "uploadProjectFile",
-        "tags": [
-          "Files"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "example": "johndoe",
-              "description": "Username"
-            },
-            "required": true,
-            "description": "Username",
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "my-novel",
-              "description": "Project slug"
-            },
-            "required": true,
-            "description": "Project slug",
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "File uploaded successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UploadResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "No file provided",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/files/{storedName}": {
-      "get": {
-        "operationId": "downloadProjectFile",
-        "tags": [
-          "Files"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "example": "johndoe",
-              "description": "Username"
-            },
-            "required": true,
-            "description": "Username",
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "my-novel",
-              "description": "Project slug"
-            },
-            "required": true,
-            "description": "Project slug",
-            "name": "slug",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "document.pdf",
-              "description": "File name"
-            },
-            "required": true,
-            "description": "File name",
-            "name": "storedName",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "File content",
-            "content": {
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "File not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "operationId": "deleteProjectFile",
-        "tags": [
-          "Files"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "example": "johndoe",
-              "description": "Username"
-            },
-            "required": true,
-            "description": "Username",
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "my-novel",
-              "description": "Project slug"
-            },
-            "required": true,
-            "description": "Project slug",
-            "name": "slug",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "document.pdf",
-              "description": "File name"
-            },
-            "required": true,
-            "description": "File name",
-            "name": "storedName",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "File deleted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeleteResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "File or project not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FileError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/projects/{username}/{slug}/cover": {
       "post": {
         "operationId": "uploadProjectCover",
@@ -4823,12 +4678,46 @@
         }
       }
     },
+    "/api/v1/ai/image/status": {
+      "get": {
+        "tags": [
+          "AI Image Generation"
+        ],
+        "summary": "Get image generation status",
+        "description": "Get the status of all configured image generation providers",
+        "operationId": "getImageGenerationStatus",
+        "responses": {
+          "200": {
+            "description": "Provider status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageGenerationStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageGenerationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ai/image/generate": {
       "post": {
         "tags": [
           "AI Image Generation"
         ],
-        "operationId": "generateAIImage",
+        "summary": "Generate images",
+        "description": "Generate images using the specified or default provider",
+        "operationId": "generateImage",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4840,11 +4729,11 @@
         },
         "responses": {
           "200": {
-            "description": "Image generated successfully",
+            "description": "Images generated successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ImageResponse"
+                  "$ref": "#/components/schemas/ImageGenerateResponse"
                 }
               }
             }
@@ -4854,27 +4743,27 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AIImageError"
+                  "$ref": "#/components/schemas/ImageGenerationError"
                 }
               }
             }
           },
           "401": {
-            "description": "Not authenticated",
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AIImageError"
+                  "$ref": "#/components/schemas/ImageGenerationError"
                 }
               }
             }
           },
           "503": {
-            "description": "AI image generation service unavailable",
+            "description": "No provider available",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AIImageError"
+                  "$ref": "#/components/schemas/ImageGenerationError"
                 }
               }
             }
@@ -4882,19 +4771,154 @@
         }
       }
     },
-    "/api/v1/ai/image/status": {
+    "/api/v1/ai/image/models/{provider}": {
       "get": {
         "tags": [
           "AI Image Generation"
         ],
-        "operationId": "getAIImageStatus",
+        "summary": "Get available models",
+        "description": "Get available models for a specific provider",
+        "operationId": "getProviderModels",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/ImageProviderType"
+            },
+            "required": true,
+            "name": "provider",
+            "in": "path"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Service status",
+            "description": "Available models",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AIImageStatus"
+                  "type": "object",
+                  "properties": {
+                    "models": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ImageModelInfo"
+                      }
+                    }
+                  },
+                  "required": [
+                    "models"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Provider not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageGenerationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/image/custom-sizes": {
+      "get": {
+        "tags": [
+          "AI Image Generation"
+        ],
+        "summary": "Get custom image sizes",
+        "description": "Get user-defined custom image size profiles",
+        "operationId": "getCustomImageSizes",
+        "responses": {
+          "200": {
+            "description": "Custom sizes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomSizesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageGenerationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AI Image Generation"
+        ],
+        "summary": "Update custom image sizes",
+        "description": "Update user-defined custom image size profiles (admin only)",
+        "operationId": "updateCustomImageSizes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sizes": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/CustomImageSize"
+                    }
+                  }
+                },
+                "required": [
+                  "sizes"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Custom sizes updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomSizesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageGenerationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageGenerationError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageGenerationError"
                 }
               }
             }

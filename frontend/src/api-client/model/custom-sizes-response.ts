@@ -7,20 +7,13 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { CustomImageSize } from './custom-image-size';
 
 
-export interface UploadResponse { 
+export interface CustomSizesResponse { 
     /**
-     * Uploaded file name
+     * Custom image sizes
      */
-    name: string;
-    /**
-     * File size in bytes
-     */
-    size: number;
-    /**
-     * Upload timestamp
-     */
-    uploadDate: string;
+    sizes: Array<CustomImageSize>;
 }
 

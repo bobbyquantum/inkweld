@@ -1,0 +1,63 @@
+<h2 mat-dialog-title>{{ title }}</h2>
+
+<mat-dialog-content class="dialog-content">
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading media...</p>
+    </div>
+  } @else if (error()) {
+    <div class="error-container">
+      <mat-icon color="warn">error</mat-icon>
+      <p>{{ error() }}</p>
+    </div>
+  } @else if (mediaItems().length === 0) {
+    <div class="empty-container">
+      <mat-icon>photo_library</mat-icon>
+      <p>No images in your media library.</p>
+      <p class="hint">Generate or upload images first, then select one here.</p>
+    </div>
+  } @else {
+    <div class="media-grid">
+      @for (item of mediaItems(); track item.mediaId) {
+        <div
+          class="media-item"
+          [class.selected]="isSelected(item)"
+          (click)="selectItem(item)"
+          (keydown.enter)="selectItem(item)"
+          (keydown.space)="selectItem(item); $event.preventDefault()"
+          tabindex="0"
+          role="button"
+          [attr.aria-pressed]="isSelected(item)">
+          @if (item.url) {
+            <img
+              [src]="item.url"
+              [alt]="item.filename || item.mediaId"
+              class="thumbnail" />
+          } @else {
+            <mat-icon class="placeholder-icon">image</mat-icon>
+          }
+          @if (isSelected(item)) {
+            <div class="selected-overlay">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+          }
+          <div class="item-info">
+            <span class="item-name">{{ item.filename || item.mediaId }}</span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  <button
+    mat-raised-button
+    color="primary"
+    [disabled]="!selectedItem()"
+    (click)="confirm()">
+    Select
+  </button>
+</mat-dialog-actions>

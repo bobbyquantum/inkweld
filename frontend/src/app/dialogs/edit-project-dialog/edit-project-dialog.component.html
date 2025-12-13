@@ -10,6 +10,7 @@
       <div class="cropper-container">
         <image-cropper
           [imageChangedEvent]="imageChangedEvent"
+          [imageBase64]="imageBase64"
           [maintainAspectRatio]="true"
           [aspectRatio]="coverAspectRatio"
           [roundCropper]="false"
@@ -84,14 +85,32 @@
 
           <div class="cover-image-controls">
             <h3>Cover Image</h3>
-            <button
-              mat-stroked-button
-              color="primary"
-              (click)="openCoverImageSelector()"
-              [disabled]="isLoadingCover">
-              <mat-icon>add_photo_alternate</mat-icon>
-              {{ coverImageUrl ? 'Change Cover Image' : 'Add Cover Image' }}
-            </button>
+            <div class="cover-buttons">
+              <button
+                mat-stroked-button
+                color="primary"
+                (click)="openCoverImageSelector()"
+                [disabled]="isLoadingCover">
+                <mat-icon>add_photo_alternate</mat-icon>
+                Upload Image
+              </button>
+              <button
+                mat-stroked-button
+                color="primary"
+                (click)="openMediaLibrarySelector()"
+                [disabled]="isLoadingCover">
+                <mat-icon>photo_library</mat-icon>
+                Select from Library
+              </button>
+              <button
+                mat-stroked-button
+                color="primary"
+                (click)="openGenerateCoverDialog()"
+                [disabled]="isLoadingCover">
+                <mat-icon>auto_awesome</mat-icon>
+                Generate with AI
+              </button>
+            </div>
           </div>
         </form>
 

@@ -307,6 +307,7 @@ describe('HomeTabComponent', () => {
   it('should open generate cover dialog when generate cover button is clicked', async () => {
     const mockResult = {
       approved: true,
+      saved: true,
       imageData: 'data:image/png;base64,test123',
     };
     (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
@@ -323,7 +324,7 @@ describe('HomeTabComponent', () => {
 
   it('should save cover image when dialog approves with image data', async () => {
     const mockResult = {
-      approved: true,
+      saved: true,
       imageData: 'data:image/png;base64,test123',
     };
     (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
@@ -338,7 +339,7 @@ describe('HomeTabComponent', () => {
   });
 
   it('should not save cover image when dialog is cancelled', async () => {
-    const mockResult = { approved: false, imageData: null };
+    const mockResult = { saved: false };
     (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
       mockResult
     );

@@ -1,0 +1,428 @@
+<!-- Dynamic title based on stage -->
+<h2 mat-dialog-title class="dialog-title">
+  @if (stage() === 'generating') {
+    <button
+      mat-icon-button
+      class="back-button"
+      (click)="goBack()"
+      [disabled]="isBackDisabled()"
+      matTooltip="Back to form">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+  }
+  <mat-icon>auto_awesome</mat-icon>
+  @if (stage() === 'form') {
+    Generate Image
+  } @else {
+    @if (currentJob()?.status === 'completed') {
+      Select Image
+    } @else if (currentJob()?.status === 'failed') {
+      Generation Failed
+    } @else {
+      Generating...
+    }
+  }
+</h2>
+
+<mat-dialog-content class="dialog-content">
+  @if (isLoadingStatus()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading configuration...</p>
+    </div>
+  } @else if (!status()?.available) {
+    <div class="disabled-notice">
+      <mat-icon>warning</mat-icon>
+      <h3>Image Generation Disabled</h3>
+      <p>AI image generation is not enabled on this server.</p>
+      <p>
+        Please contact an administrator to configure image generation providers.
+      </p>
+    </div>
+  } @else if (enabledProviders().length === 0) {
+    <div class="disabled-notice">
+      <mat-icon>warning</mat-icon>
+      <h3>No Providers Available</h3>
+      <p>
+        No image generation providers are currently configured and available.
+      </p>
+      <p>Please contact an administrator to set up API keys for providers.</p>
+    </div>
+  } @else {
+    <!-- STAGE 1: Form -->
+    @if (stage() === 'form') {
+      <div class="generation-form">
+        <!-- Provider Selection -->
+        <div class="form-section">
+          <h3>Provider</h3>
+          <div class="provider-chips">
+            @for (provider of enabledProviders(); track provider.key) {
+              <button
+                mat-stroked-button
+                [class.selected]="selectedProvider() === provider.key"
+                (click)="selectedProvider.set(provider.key)"
+                [matTooltip]="provider.models.join(', ')">
+                @if (provider.key === 'openrouter') {
+                  <svg
+                    class="openrouter-icon"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 512 512"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="currentColor"
+                    stroke="currentColor">
+                    <path
+                      d="M3 248.945C18 248.945 76 236 106 219C136 202 136 202 198 158C276.497 102.293 332 120.945 423 120.945"
+                      stroke-width="90" />
+                    <path
+                      d="M511 121.5L357.25 210.268L357.25 32.7324L511 121.5Z" />
+                    <path
+                      d="M0 249C15 249 73 261.945 103 278.945C133 295.945 133 295.945 195 339.945C273.497 395.652 329 377 420 377"
+                      stroke-width="90" />
+                    <path
+                      d="M508 376.445L354.25 287.678L354.25 465.213L508 376.445Z" />
+                  </svg>
+                } @else {
+                  <mat-icon>{{ getProviderIcon(provider.key) }}</mat-icon>
+                }
+                {{ getProviderLabel(provider.key) }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Model Selection -->
+        @if (selectedProvider() && availableModels().length > 0) {
+          <div class="form-section">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Model</mat-label>
+              <mat-select
+                [value]="selectedModel()"
+                (selectionChange)="selectedModel.set($event.value)">
+                @for (model of availableModels(); track model.id) {
+                  <mat-option [value]="model.id">
+                    {{ model.name }}
+                  </mat-option>
+                }
+              </mat-select>
+              @if (isLoadingModels()) {
+                <mat-hint>Loading models...</mat-hint>
+              }
+            </mat-form-field>
+          </div>
+        }
+
+        <!-- Prompt -->
+        <div class="form-section">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Prompt</mat-label>
+            <textarea
+              matInput
+              [value]="prompt()"
+              (input)="prompt.set($any($event.target).value)"
+              rows="4"
+              placeholder="Describe the image you want to generate..."></textarea>
+            <mat-hint>Be descriptive for better results</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <!-- Negative Prompt (Stable Diffusion only) -->
+        @if (selectedProvider() === ImageProviderType.StableDiffusion) {
+          <div class="form-section">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Negative Prompt</mat-label>
+              <textarea
+                matInput
+                [value]="negativePrompt()"
+                (input)="negativePrompt.set($any($event.target).value)"
+                rows="2"
+                placeholder="Things to avoid in the image..."></textarea>
+              <mat-hint>Describe what you don't want to see</mat-hint>
+            </mat-form-field>
+          </div>
+        }
+
+        <!-- Image Settings -->
+        <div class="form-section settings-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Size</mat-label>
+            <mat-select
+              [value]="selectedSize()"
+              (selectionChange)="selectedSize.set($event.value)">
+              @for (size of sizeOptions(); track size.value) {
+                <mat-option [value]="size.value">
+                  {{ size.label }} ({{ size.megapixels }} MP)
+                  @if (size.isCustom) {
+                    <mat-icon class="custom-size-icon">tune</mat-icon>
+                  }
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Count</mat-label>
+            <mat-select
+              [value]="imageCount()"
+              (selectionChange)="imageCount.set($event.value)">
+              <mat-option [value]="1">1 image</mat-option>
+              <mat-option [value]="2">2 images</mat-option>
+              <mat-option [value]="4">4 images</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <!-- OpenAI-specific options -->
+        @if (selectedProvider() === ImageProviderType.Openai) {
+          <div class="form-section settings-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Quality</mat-label>
+              <mat-select
+                [value]="quality()"
+                (selectionChange)="quality.set($event.value)">
+                <mat-option value="standard">Standard</mat-option>
+                <mat-option value="hd">HD</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Style</mat-label>
+              <mat-select
+                [value]="style()"
+                (selectionChange)="style.set($event.value)">
+                <mat-option value="vivid">Vivid</mat-option>
+                <mat-option value="natural">Natural</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        }
+
+        <!-- Worldbuilding Context -->
+        @if (worldbuildingElements().length > 0) {
+          <mat-expansion-panel
+            [expanded]="showWorldbuilding()"
+            (opened)="showWorldbuilding.set(true)">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>diversity_3</mat-icon>
+                Worldbuilding Elements
+                @if (getSelectedElements().length > 0) {
+                  <span class="selected-count"
+                    >({{ getSelectedElements().length }} selected)</span
+                  >
+                }
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <div class="worldbuilding-elements">
+              <p class="hint">
+                Include worldbuilding elements to inform the AI about
+                characters, locations, or concepts. Their data will be sent as
+                context to improve generation accuracy.
+              </p>
+
+              @for (element of worldbuildingElements(); track element.id) {
+                <div class="element-row" [class.selected]="element.selected">
+                  <mat-checkbox
+                    [checked]="element.selected"
+                    (change)="toggleElementSelection(element)">
+                    <span class="element-name">{{ element.name }}</span>
+                    <span class="element-type">{{ element.type }}</span>
+                  </mat-checkbox>
+
+                  @if (element.selected) {
+                    <mat-form-field appearance="outline" class="role-select">
+                      <mat-label>Role</mat-label>
+                      <mat-select
+                        [value]="element.role"
+                        (selectionChange)="
+                          updateElementRole(element, $event.value)
+                        ">
+                        @for (role of roleOptions; track role.value) {
+                          <mat-option
+                            [value]="role.value"
+                            [matTooltip]="role.description">
+                            {{ role.label }}
+                          </mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+
+                    <button
+                      mat-icon-button
+                      [matTooltip]="'View data'"
+                      (click)="$event.stopPropagation()">
+                      <mat-icon>data_object</mat-icon>
+                    </button>
+                  }
+                </div>
+
+                @if (element.selected && element.data) {
+                  <details class="element-data">
+                    <summary>Raw Data</summary>
+                    <pre>{{ formatElementData(element.data) }}</pre>
+                  </details>
+                }
+              }
+            </div>
+          </mat-expansion-panel>
+        }
+
+        <!-- Error display -->
+        @if (error()) {
+          <div class="error-banner">
+            <mat-icon>error</mat-icon>
+            <span>{{ error() }}</span>
+          </div>
+        }
+
+        <!-- Generate button -->
+        <div class="generate-section">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="generate()"
+            [disabled]="!prompt().trim() || !selectedProvider()">
+            <mat-icon>auto_awesome</mat-icon>
+            Generate
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- STAGE 2: Generating / Results -->
+    @if (stage() === 'generating') {
+      <div class="generating-stage">
+        <!-- Summary Card -->
+        <div class="generation-summary">
+          <div class="summary-row">
+            <span class="label">Prompt</span>
+            <span class="value prompt-value">{{
+              truncatePrompt(currentJob()?.request?.prompt || '', 150)
+            }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Provider</span>
+            <span class="value">{{
+              getProviderLabel(currentJob()?.request?.provider!)
+            }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Model</span>
+            <span class="value">{{
+              currentJob()?.response?.model ||
+                currentJob()?.request?.model ||
+                'Default'
+            }}</span>
+          </div>
+          <div class="summary-row">
+            <span class="label">Size</span>
+            <span class="value">{{
+              getSizeLabel(currentJob()?.request?.size || '')
+            }}</span>
+          </div>
+          @if ((currentJob()?.request?.n || 1) > 1) {
+            <div class="summary-row">
+              <span class="label">Count</span>
+              <span class="value">{{ currentJob()?.request?.n }} images</span>
+            </div>
+          }
+        </div>
+
+        <!-- Status indicator -->
+        <div class="status-container">
+          @if (
+            currentJob()?.status === 'pending' ||
+            currentJob()?.status === 'generating'
+          ) {
+            <mat-spinner diameter="48"></mat-spinner>
+            <p class="status-message">{{ currentJob()?.message }}</p>
+            <p class="status-hint">
+              You can close this dialog - generation will continue in the
+              background.
+            </p>
+          } @else if (currentJob()?.status === 'saving') {
+            <mat-spinner diameter="32"></mat-spinner>
+            <p class="status-message">{{ currentJob()?.message }}</p>
+          } @else if (currentJob()?.status === 'failed') {
+            <mat-icon class="error-icon">error</mat-icon>
+            <p class="status-message error">
+              {{ currentJob()?.error || 'Generation failed' }}
+            </p>
+            <button mat-stroked-button (click)="goBack()">
+              <mat-icon>arrow_back</mat-icon>
+              Try Again
+            </button>
+          }
+        </div>
+
+        <!-- Results (when completed) -->
+        @if (
+          currentJob()?.status === 'completed' && currentJob()?.images?.length
+        ) {
+          <div class="results-section">
+            <h3>Generated Images</h3>
+            <p class="auto-saved-notice">
+              <mat-icon>check_circle</mat-icon>
+              Images automatically saved to Media Library
+            </p>
+
+            <div class="image-grid">
+              @for (image of currentJob()!.images; track $index) {
+                <div
+                  class="image-item"
+                  [class.selected]="selectedImageIndex() === $index"
+                  (click)="selectImage($index)"
+                  (keydown.enter)="selectImage($index)"
+                  (keydown.space)="selectImage($index); $event.preventDefault()"
+                  tabindex="0"
+                  role="button">
+                  <img
+                    [src]="getImageUrl(image)"
+                    alt="Generated image {{ $index + 1 }}" />
+                  @if (selectedImageIndex() === $index) {
+                    <div class="selected-indicator">
+                      <mat-icon>check_circle</mat-icon>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Selected image preview -->
+            @if (getSelectedImage()) {
+              <div class="selected-preview">
+                <img
+                  [src]="getImageUrl(getSelectedImage()!)"
+                  alt="Selected image" />
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (stage() === 'form') {
+    <button mat-button (click)="cancel()">Cancel</button>
+  } @else {
+    <button mat-button (click)="cancel()">
+      @if (
+        currentJob()?.status === 'generating' ||
+        currentJob()?.status === 'saving'
+      ) {
+        Close (Continue in Background)
+      } @else {
+        Close
+      }
+    </button>
+    @if (currentJob()?.status === 'completed' && currentJob()?.images?.length) {
+      <button mat-raised-button color="primary" (click)="saveAndClose()">
+        <mat-icon>check</mat-icon>
+        Use Selected Image
+      </button>
+    }
+  }
+</mat-dialog-actions>

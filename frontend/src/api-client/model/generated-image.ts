@@ -9,9 +9,9 @@
  */
 
 
-export interface ImageData { 
+export interface GeneratedImage { 
     /**
-     * Base64-encoded JSON image data
+     * Base64-encoded image data
      */
     b64Json?: string;
     /**
@@ -19,8 +19,12 @@ export interface ImageData {
      */
     url?: string;
     /**
-     * The revised prompt used
+     * Revised prompt if modified
      */
     revisedPrompt?: string;
+    /**
+     * Image index in batch
+     */
+    index: number;
 }
 

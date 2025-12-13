@@ -36,6 +36,39 @@
   height: 128px; // 1:1.6 aspect ratio
   border-radius: 4px;
   overflow: hidden;
+  position: relative;
+
+  &.clickable {
+    cursor: pointer;
+
+    .cover-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+
+      mat-icon {
+        color: white;
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+      }
+    }
+
+    &:hover .cover-overlay,
+    &:focus .cover-overlay {
+      opacity: 1;
+    }
+
+    &:focus {
+      outline: 2px solid var(--sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
 }
 
 .project-info {
