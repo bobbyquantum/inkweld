@@ -88,11 +88,11 @@ flowchart TD
 4. **(Optional) Enable Angular MCP for AI Assistants:**
 
     This project includes an Angular CLI MCP (Model Context Protocol) server configuration that gives AI assistants direct access to real-time Angular documentation. The configuration is already set up in `.vscode/mcp.json`.
-    
+
     **To activate it:**
     - Restart VS Code or your AI assistant after cloning the repository
     - The MCP server provides tools like `get_best_practices`, `search_documentation`, and `list_projects`
-    - Learn more at https://angular.dev/ai/mcp
+    - Learn more at <https://angular.dev/ai/mcp>
 
 > There are VSCode workspaces available. For general development or trying it out, it's recommended to load the full workspace with backend and frontend folders configured.
 
