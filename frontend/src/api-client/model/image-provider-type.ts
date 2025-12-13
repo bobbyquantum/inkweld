@@ -9,10 +9,14 @@
  */
 
 
-export interface DeleteResponse { 
-    /**
-     * Success message
-     */
-    message: string;
+export enum ImageProviderType {
+
+    Openai = 'openai',
+
+    Openrouter = 'openrouter',
+
+    StableDiffusion = 'stable-diffusion',
+
+    Falai = 'falai'
 }
 

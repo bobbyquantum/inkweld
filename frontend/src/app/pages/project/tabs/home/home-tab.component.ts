@@ -89,24 +89,12 @@ export class HomeTabComponent {
   onGenerateCoverClick(): void {
     const project = this.projectState.project();
     if (project) {
-      void this.dialogGateway
-        .openGenerateCoverDialog(project)
-        .then((result: unknown) => {
-          // Handle the dialog result which can be false or { approved: true, imageData: string }
-          if (result && typeof result === 'object' && 'approved' in result) {
-            const approvalResult = result as {
-              approved: boolean;
-              imageData?: string;
-            };
-            if (approvalResult.approved && approvalResult.imageData) {
-              this.saveCoverImage(
-                project.username,
-                project.slug,
-                approvalResult.imageData
-              );
-            }
-          }
-        });
+      void this.dialogGateway.openGenerateCoverDialog(project).then(result => {
+        // Handle the dialog result from ImageGenerationDialogResult
+        if (result?.saved && result.imageData) {
+          this.saveCoverImage(project.username, project.slug, result.imageData);
+        }
+      });
     }
   }
 

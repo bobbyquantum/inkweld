@@ -7,16 +7,10 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { CustomImageSize } from './custom-image-size';
 
 
-export interface AIImageStatus { 
-    /**
-     * Whether AI image generation is enabled
-     */
-    enabled: boolean;
-    /**
-     * The AI service being used
-     */
-    service: string;
+export interface UpdateCustomImageSizesRequest { 
+    sizes: Array<CustomImageSize>;
 }
 

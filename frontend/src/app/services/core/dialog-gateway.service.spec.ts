@@ -12,10 +12,7 @@ import {
 import { EditAvatarDialogComponent } from '../../dialogs/edit-avatar-dialog/edit-avatar-dialog.component';
 import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
 import { FileUploadComponent } from '../../dialogs/file-upload/file-upload.component';
-import {
-  GenerateCoverDialogComponent,
-  GenerateCoverDialogData,
-} from '../../dialogs/generate-cover-dialog/generate-cover-dialog.component';
+import { ImageGenerationDialogComponent } from '../../dialogs/image-generation-dialog/image-generation-dialog.component';
 import {
   ImageViewerDialogComponent,
   ImageViewerDialogData,
@@ -181,25 +178,25 @@ describe('DialogGatewayService', () => {
     expect(result).toBe(true);
   });
 
-  it('should open generate cover dialog', async () => {
+  it('should open generate cover dialog using image generation dialog', async () => {
     const project: Project = {
       id: '1',
       title: 'Test Project',
       slug: 'test-project',
       username: 'testuser',
     } as Project;
-    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(true));
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of({ saved: true }));
 
     const result = await service.openGenerateCoverDialog(project);
 
-    expect(dialogMock.open).toHaveBeenCalledWith(GenerateCoverDialogComponent, {
-      data: { project } as GenerateCoverDialogData,
-      disableClose: false,
-      width: '600px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
-    });
-    expect(result).toBe(true);
+    // openGenerateCoverDialog now delegates to openImageGenerationDialog with forCover: true
+    expect(dialogMock.open).toHaveBeenCalledWith(
+      ImageGenerationDialogComponent,
+      expect.objectContaining({
+        data: { forCover: true },
+      })
+    );
+    expect(result).toEqual({ saved: true });
   });
 
   it('should open user settings dialog with default category', async () => {

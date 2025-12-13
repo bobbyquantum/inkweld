@@ -147,6 +147,16 @@ mat-form-field {
     font-size: 1rem;
     font-weight: 500;
   }
+
+  .cover-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    button {
+      justify-content: flex-start;
+    }
+  }
 }
 
 /* Loading indicator */
