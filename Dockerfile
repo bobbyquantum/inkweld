@@ -10,7 +10,7 @@
 
 # Frontend builder stage (Angular)
 # Angular build outputs to dist/browser/ in production mode (default configuration)
-FROM oven/bun:1.3.3 AS frontend-builder
+FROM oven/bun:1.3.4 AS frontend-builder
 WORKDIR /app/frontend
 
 COPY frontend/bun.lock frontend/package.json ./
@@ -20,13 +20,13 @@ COPY frontend .
 # Build frontend and verify output exists - fail early with clear error if build doesn't produce expected output
 RUN bun run build \
   && if [ ! -d /app/frontend/dist ]; then \
-       echo "ERROR: frontend build did not produce /app/frontend/dist"; \
-       ls -la /app/frontend || true; \
-       exit 1; \
-     fi
+  echo "ERROR: frontend build did not produce /app/frontend/dist"; \
+  ls -la /app/frontend || true; \
+  exit 1; \
+  fi
 
 # Backend builder stage - produces a single compiled binary
-FROM oven/bun:1.3.3 AS backend-builder
+FROM oven/bun:1.3.4 AS backend-builder
 WORKDIR /app/backend
 
 # Build tools for better-sqlite3 (the only native module that needs compilation)
