@@ -15,6 +15,7 @@ import {
   ArchiveManifest,
   ArchiveMediaFile,
   ArchiveProgress,
+  ArchiveSnapshot,
   ArchiveWorldbuildingData,
   ImportPhase,
   ProjectArchive,
@@ -26,6 +27,7 @@ import { ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import { OfflineProjectService } from '../offline/offline-project.service';
 import { OfflineProjectElementsService } from '../offline/offline-project-elements.service';
+import { OfflineSnapshotService } from '../offline/offline-snapshot.service';
 import { OfflineStorageService } from '../offline/offline-storage.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { DocumentImportService } from './document-import.service';
@@ -77,6 +79,7 @@ export class ProjectImportService {
   private offlineProject = inject(OfflineProjectService);
   private offlineElements = inject(OfflineProjectElementsService);
   private offlineStorage = inject(OfflineStorageService);
+  private offlineSnapshots = inject(OfflineSnapshotService);
   private projectsService = inject(ProjectsService);
   private documentImport = inject(DocumentImportService);
 
@@ -185,7 +188,17 @@ export class ProjectImportService {
         );
         await this.importProjectData(archive, project.username, project.slug);
 
-        // Phase 9: Import media
+        // Phase 9: Import snapshots
+        if (archive.snapshots && archive.snapshots.length > 0) {
+          this.updateProgress(
+            ImportPhase.ImportingSnapshots,
+            78,
+            'Importing snapshots...'
+          );
+          await this.importSnapshots(archive.snapshots, projectKey);
+        }
+
+        // Phase 10: Import media
         this.updateProgress(
           ImportPhase.ImportingMedia,
           85,
@@ -380,6 +393,13 @@ export class ProjectImportService {
       []
     );
 
+    // Read optional snapshots file
+    const snapshotsJson = await this.readJsonFile<ArchiveSnapshot[]>(
+      zip,
+      'snapshots.json',
+      []
+    );
+
     return {
       manifest: manifestJson,
       project: projectJson,
@@ -391,6 +411,7 @@ export class ProjectImportService {
       customRelationshipTypes: customTypesJson,
       publishPlans: publishPlansJson,
       media: mediaIndexJson,
+      snapshots: snapshotsJson,
     };
   }
 
@@ -614,6 +635,81 @@ export class ProjectImportService {
         archive.publishPlans
       );
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Snapshot Import
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Import snapshots from the archive.
+   */
+  private async importSnapshots(
+    snapshots: ArchiveSnapshot[],
+    projectKey: string
+  ): Promise<void> {
+    for (let i = 0; i < snapshots.length; i++) {
+      const snapshot = snapshots[i];
+
+      this.updateProgress(
+        ImportPhase.ImportingSnapshots,
+        78 + (5 * i) / snapshots.length,
+        'Importing snapshots...',
+        `Snapshot ${i + 1} of ${snapshots.length}`,
+        i,
+        snapshots.length
+      );
+
+      try {
+        // Handle both new format (xmlContent) and legacy format (yDocState)
+        const yDocState = snapshot.yDocState
+          ? this.base64ToUint8Array(snapshot.yDocState)
+          : undefined;
+        const worldbuildingState = snapshot.worldbuildingState
+          ? this.base64ToUint8Array(snapshot.worldbuildingState)
+          : undefined;
+        const stateVector = snapshot.stateVector
+          ? this.base64ToUint8Array(snapshot.stateVector)
+          : undefined;
+
+        await this.offlineSnapshots.importSnapshot(projectKey, {
+          documentId: snapshot.documentId,
+          name: snapshot.name,
+          description: snapshot.description,
+          // New format
+          xmlContent: snapshot.xmlContent,
+          worldbuildingData: snapshot.worldbuildingData,
+          // Legacy format
+          yDocState,
+          worldbuildingState,
+          stateVector,
+          wordCount: snapshot.wordCount,
+          metadata: snapshot.metadata,
+          createdAt: snapshot.createdAt,
+        });
+      } catch (err) {
+        this.logger.warn(
+          'ProjectImport',
+          `Failed to import snapshot for ${snapshot.documentId}`,
+          err
+        );
+        // Continue with other snapshots
+      }
+    }
+
+    this.logger.info('ProjectImport', `Imported ${snapshots.length} snapshots`);
+  }
+
+  /**
+   * Convert base64 string to Uint8Array.
+   */
+  private base64ToUint8Array(base64: string): Uint8Array {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

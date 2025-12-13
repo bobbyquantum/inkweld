@@ -172,7 +172,7 @@ export class HomeTabComponent {
   onImportClick(): void {
     const project = this.projectState.project();
     if (project) {
-      this.importRequested.emit();
+      void this.dialogGateway.openImportProjectDialog(project.username);
     }
   }
 

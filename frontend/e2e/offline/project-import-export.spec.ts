@@ -4,43 +4,37 @@
  * Tests that verify project export and import functionality
  * works correctly in pure offline mode without any server connection.
  */
-import { execSync } from 'child_process';
 import * as fs from 'fs';
+import JSZip from 'jszip';
+import * as os from 'os';
 import * as path from 'path';
 
 import { expect, test } from './fixtures';
 
+/** Cross-platform temp directory */
+const tmpDir = os.tmpdir();
+
 /**
  * Helper to verify a ZIP file is valid and extract manifest.
- * Uses unzip command line tool instead of importing jszip.
+ * Uses JSZip for cross-platform compatibility.
  */
-function verifyZipContents(zipPath: string): {
+async function verifyZipContents(zipPath: string): Promise<{
   files: string[];
   manifest?: Record<string, unknown>;
-} {
-  // List files in the ZIP
-  const output = execSync(`unzip -l "${zipPath}" 2>&1`).toString();
-  const files = output
-    .split('\n')
-    .filter(line => line.trim() && !line.includes('Archive:'))
-    .map(line => {
-      const match = line.match(/\d+\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}\s+(.+)$/);
-      return match ? match[1].trim() : null;
-    })
-    .filter((f): f is string => !!f && !f.includes('---------'));
+}> {
+  // Read the ZIP file
+  const zipData = fs.readFileSync(zipPath);
+  const zip = await JSZip.loadAsync(zipData);
+
+  // Get list of files
+  const files = Object.keys(zip.files).filter(name => !zip.files[name].dir);
 
   // Extract and read manifest if it exists
   let manifest: Record<string, unknown> | undefined;
-  if (files.includes('manifest.json')) {
-    const tmpDir = `/tmp/zip-extract-${Date.now()}`;
-    fs.mkdirSync(tmpDir, { recursive: true });
-    execSync(`unzip -o "${zipPath}" manifest.json -d "${tmpDir}" 2>&1`);
-    const manifestContent = fs.readFileSync(
-      path.join(tmpDir, 'manifest.json'),
-      'utf-8'
-    );
+  const manifestFile = zip.file('manifest.json');
+  if (manifestFile) {
+    const manifestContent = await manifestFile.async('string');
     manifest = JSON.parse(manifestContent) as Record<string, unknown>;
-    fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 
   return { files, manifest };
@@ -76,11 +70,11 @@ test.describe('Offline Project Export', () => {
     expect(filename).toMatch(/test-project.*\.zip$/);
 
     // Save the file and verify its contents
-    const downloadPath = path.join('/tmp', filename);
+    const downloadPath = path.join(tmpDir, filename);
     await download.saveAs(downloadPath);
 
     // Verify it's a valid ZIP file with expected contents
-    const { files, manifest } = verifyZipContents(downloadPath);
+    const { files, manifest } = await verifyZipContents(downloadPath);
 
     // Verify manifest.json exists and has correct content
     expect(files).toContain('manifest.json');
@@ -116,11 +110,11 @@ test.describe('Offline Project Export', () => {
 
     // Wait for download
     const download = await downloadPromise;
-    const downloadPath = path.join('/tmp', download.suggestedFilename());
+    const downloadPath = path.join(tmpDir, download.suggestedFilename());
     await download.saveAs(downloadPath);
 
     // Verify ZIP structure
-    const { files } = verifyZipContents(downloadPath);
+    const { files } = await verifyZipContents(downloadPath);
 
     // Verify expected files exist
     expect(files).toContain('manifest.json');
@@ -198,7 +192,7 @@ test.describe('Offline Project Import', () => {
     const download = await downloadPromise;
 
     // Save to temp file
-    const exportedFile = path.join('/tmp', `export-${Date.now()}.zip`);
+    const exportedFile = path.join(tmpDir, `export-${Date.now()}.zip`);
     await download.saveAs(exportedFile);
 
     // Now import the same archive with a new slug
@@ -272,7 +266,7 @@ test.describe('Offline Project Import', () => {
     await expect(page.getByTestId('import-drop-zone')).toBeVisible();
 
     // Create an invalid "ZIP" file
-    const invalidZipPath = path.join('/tmp', 'invalid.zip');
+    const invalidZipPath = path.join(tmpDir, 'invalid.zip');
     fs.writeFileSync(invalidZipPath, 'This is not a valid ZIP file');
 
     // Upload the invalid file
@@ -302,7 +296,7 @@ test.describe('Offline Project Import', () => {
     const downloadPromise = page.waitForEvent('download');
     await page.getByTestId('export-project-button').click();
     const download = await downloadPromise;
-    const exportedFile = path.join('/tmp', `slug-test-${Date.now()}.zip`);
+    const exportedFile = path.join(tmpDir, `slug-test-${Date.now()}.zip`);
     await download.saveAs(exportedFile);
 
     // Open import dialog
@@ -349,7 +343,7 @@ test.describe('Offline Project Import', () => {
     const downloadPromise = page.waitForEvent('download');
     await page.getByTestId('export-project-button').click();
     const download = await downloadPromise;
-    const exportedFile = path.join('/tmp', `collision-${Date.now()}.zip`);
+    const exportedFile = path.join(tmpDir, `collision-${Date.now()}.zip`);
     await download.saveAs(exportedFile);
 
     // Open import dialog
@@ -402,11 +396,12 @@ test.describe('Export/Import Round-Trip', () => {
     await page.getByTestId('export-project-button').click();
     const download = await downloadPromise;
 
-    const exportedFile = path.join('/tmp', `roundtrip-${Date.now()}.zip`);
+    const exportedFile = path.join(tmpDir, `roundtrip-${Date.now()}.zip`);
     await download.saveAs(exportedFile);
 
     // Read the original manifest
-    const { manifest: originalManifest } = verifyZipContents(exportedFile);
+    const { manifest: originalManifest } =
+      await verifyZipContents(exportedFile);
     expect(originalManifest).toBeDefined();
     const projectTitle = originalManifest?.['projectTitle'];
     const originalTitle =

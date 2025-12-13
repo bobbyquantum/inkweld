@@ -114,6 +114,7 @@ describe('HomeTabComponent', () => {
         .fn()
         .mockResolvedValue({ approved: false, imageData: null }),
       openNewElementDialog: vi.fn().mockResolvedValue(undefined),
+      openImportProjectDialog: vi.fn().mockResolvedValue(undefined),
     };
 
     snackBar = {
@@ -242,10 +243,11 @@ describe('HomeTabComponent', () => {
     expect(exportService.exportProject).toHaveBeenCalled();
   });
 
-  it('should emit import event when import button is clicked', () => {
-    vi.spyOn(component.importRequested, 'emit');
+  it('should open import dialog when import button is clicked', () => {
     component.onImportClick();
-    expect(component.importRequested.emit).toHaveBeenCalled();
+    expect(dialogGateway.openImportProjectDialog).toHaveBeenCalledWith(
+      mockProject.username
+    );
   });
 
   it('should open publish plan when publish button is clicked', () => {

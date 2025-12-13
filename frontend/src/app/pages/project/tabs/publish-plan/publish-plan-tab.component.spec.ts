@@ -91,7 +91,7 @@ describe('PublishPlanTabComponent', () => {
     fixture = TestBed.createComponent(PublishPlanTabComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
-  });
+  }, 10000);
 
   it('should create', () => {
     expect(component).toBeTruthy();

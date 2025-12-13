@@ -13,9 +13,11 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DocumentSnapshotService } from '@services/project/document-snapshot.service';
+import {
+  UnifiedSnapshot,
+  UnifiedSnapshotService,
+} from '@services/project/unified-snapshot.service';
 
-import { DocumentSnapshot } from '../../../api-client';
 import {
   CreateSnapshotDialogComponent,
   CreateSnapshotDialogData,
@@ -55,49 +57,48 @@ export class SnapshotPanelComponent implements OnInit {
   loading = signal(false);
 
   /** Snapshots list */
-  snapshots = signal<DocumentSnapshot[]>([]);
+  snapshots = signal<UnifiedSnapshot[]>([]);
 
   /** Error message */
   error = signal<string | null>(null);
 
-  private snapshotService = inject(DocumentSnapshotService);
+  private snapshotService = inject(UnifiedSnapshotService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
 
   ngOnInit() {
-    this.loadSnapshots();
+    void this.loadSnapshots();
   }
 
   /**
    * Load snapshots for the current document
    */
-  loadSnapshots() {
+  async loadSnapshots(): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
 
-    this.snapshotService
-      .listSnapshots(this.documentId(), {
-        orderBy: 'createdAt',
-        order: 'DESC',
-        limit: 100,
-      })
-      .subscribe({
-        next: result => {
-          this.snapshots.set(result);
-          this.loading.set(false);
-        },
-        error: err => {
-          console.error('Failed to load snapshots:', err);
-          this.error.set('Failed to load snapshots. Please try again.');
-          this.loading.set(false);
-        },
-      });
+    try {
+      const result = await this.snapshotService.listSnapshots(
+        this.documentId()
+      );
+      // Sort by createdAt descending
+      result.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      this.snapshots.set(result);
+    } catch (err) {
+      console.error('Failed to load snapshots:', err);
+      this.error.set('Failed to load snapshots. Please try again.');
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   /**
    * Open dialog to create a new snapshot
    */
-  async createSnapshot() {
+  async createSnapshot(): Promise<void> {
     const dialogRef = this.dialog.open<
       CreateSnapshotDialogComponent,
       CreateSnapshotDialogData,
@@ -112,39 +113,32 @@ export class SnapshotPanelComponent implements OnInit {
     const result = await dialogRef.afterClosed().toPromise();
     if (result) {
       this.loading.set(true);
-      this.snapshotService
-        .createSnapshot(this.documentId(), {
-          documentId: this.documentId(),
-          name: result.name,
-          description: result.description,
-          yDocState: '', // TODO: Get actual yDoc state from editor
-        })
-        .subscribe({
-          next: snapshot => {
-            this.snackBar.open(
-              `Snapshot "${snapshot.name}" created successfully`,
-              'OK',
-              {
-                duration: 3000,
-              }
-            );
-            this.loadSnapshots();
-          },
-          error: err => {
-            console.error('Failed to create snapshot:', err);
-            this.snackBar.open('Failed to create snapshot', 'OK', {
-              duration: 3000,
-            });
-            this.loading.set(false);
-          },
+      try {
+        const snapshot = await this.snapshotService.createSnapshot(
+          this.documentId(),
+          result.name,
+          result.description
+        );
+        this.snackBar.open(
+          `Snapshot "${snapshot.name}" created successfully`,
+          'OK',
+          { duration: 3000 }
+        );
+        await this.loadSnapshots();
+      } catch (err) {
+        console.error('Failed to create snapshot:', err);
+        this.snackBar.open('Failed to create snapshot', 'OK', {
+          duration: 3000,
         });
+        this.loading.set(false);
+      }
     }
   }
 
   /**
    * Open dialog to restore a snapshot
    */
-  async restoreSnapshot(snapshot: DocumentSnapshot) {
+  async restoreSnapshot(snapshot: UnifiedSnapshot): Promise<void> {
     const dialogRef = this.dialog.open<
       RestoreSnapshotDialogComponent,
       RestoreSnapshotDialogData,
@@ -160,64 +154,38 @@ export class SnapshotPanelComponent implements OnInit {
     const confirmed = await dialogRef.afterClosed().toPromise();
     if (confirmed) {
       this.loading.set(true);
-      this.snapshotService
-        .restoreSnapshot(this.documentId(), snapshot.id)
-        .subscribe({
-          next: () => {
-            this.snackBar.open(
-              `Document restored to "${snapshot.name}"`,
-              'OK',
-              { duration: 3000 }
-            );
-
-            this.loading.set(false);
-            this.loadSnapshots(); // Refresh the snapshot list
-          },
-          error: err => {
-            console.error('Failed to restore snapshot:', err);
-            this.snackBar.open('Failed to restore snapshot', 'OK', {
-              duration: 3000,
-            });
-            this.loading.set(false);
-          },
+      try {
+        await this.snapshotService.restoreFromSnapshot(
+          this.documentId(),
+          snapshot.id
+        );
+        this.snackBar.open(`Document restored to "${snapshot.name}"`, 'OK', {
+          duration: 3000,
         });
+        await this.loadSnapshots();
+      } catch (err) {
+        console.error('Failed to restore snapshot:', err);
+        this.snackBar.open('Failed to restore snapshot', 'OK', {
+          duration: 3000,
+        });
+        this.loading.set(false);
+      }
     }
   }
 
   /**
    * Preview snapshot as HTML in new window/tab
-   * TODO: Backend API now returns SnapshotWithContent (yDocState), not HTML
-   * Need to render yDocState to HTML on frontend or add HTML rendering to backend
+   * TODO: Implement preview by rendering Yjs state to HTML
    */
-  previewSnapshot(snapshot: DocumentSnapshot) {
-    this.snapshotService
-      .previewSnapshot(this.documentId(), snapshot.id)
-      .subscribe({
-        next: snapshotContent => {
-          // TODO: Render yDocState to HTML
-          // For now, show a message that preview is not available
-          this.snackBar.open(
-            'Preview feature needs implementation (backend returns yDocState, not HTML)',
-            'OK',
-            {
-              duration: 5000,
-            }
-          );
-          console.log('Snapshot content:', snapshotContent);
-        },
-        error: err => {
-          console.error('Failed to preview snapshot:', err);
-          this.snackBar.open('Failed to preview snapshot', 'OK', {
-            duration: 3000,
-          });
-        },
-      });
+  previewSnapshot(_snapshot: UnifiedSnapshot): void {
+    // For now, show a message that preview is not available
+    this.snackBar.open('Preview feature coming soon', 'OK', { duration: 3000 });
   }
 
   /**
    * Delete a snapshot
    */
-  deleteSnapshot(snapshot: DocumentSnapshot) {
+  async deleteSnapshot(snapshot: UnifiedSnapshot): Promise<void> {
     if (
       !confirm(
         `Are you sure you want to delete the snapshot "${snapshot.name}"? This cannot be undone.`
@@ -226,22 +194,18 @@ export class SnapshotPanelComponent implements OnInit {
       return;
     }
 
-    this.snapshotService
-      .deleteSnapshot(this.documentId(), snapshot.id)
-      .subscribe({
-        next: () => {
-          this.snackBar.open('Snapshot deleted successfully', 'OK', {
-            duration: 3000,
-          });
-          this.loadSnapshots(); // Reload the list
-        },
-        error: err => {
-          console.error('Failed to delete snapshot:', err);
-          this.snackBar.open('Failed to delete snapshot', 'OK', {
-            duration: 3000,
-          });
-        },
+    try {
+      await this.snapshotService.deleteSnapshot(snapshot.id);
+      this.snackBar.open('Snapshot deleted successfully', 'OK', {
+        duration: 3000,
       });
+      await this.loadSnapshots();
+    } catch (err) {
+      console.error('Failed to delete snapshot:', err);
+      this.snackBar.open('Failed to delete snapshot', 'OK', {
+        duration: 3000,
+      });
+    }
   }
 
   /**

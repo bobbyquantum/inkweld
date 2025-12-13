@@ -123,6 +123,52 @@ export interface ArchiveMediaFile {
 }
 
 /**
+ * Document snapshot in the archive.
+ * Snapshots preserve document history and can be used for restore.
+ *
+ * Archives now prefer storing `xmlContent` (for CRDT-correct restore)
+ * but also support legacy `yDocState` format for backward compatibility.
+ */
+export interface ArchiveSnapshot {
+  /** Document element ID this snapshot belongs to */
+  documentId: string;
+  /** User-provided name for the snapshot */
+  name: string;
+  /** Optional description */
+  description?: string;
+  /**
+   * Document content as XML string (new format).
+   * This is preferred for CRDT-correct restore operations.
+   */
+  xmlContent?: string;
+  /**
+   * Worldbuilding data as JSON (new format).
+   */
+  worldbuildingData?: Record<string, unknown>;
+  /**
+   * @deprecated Use xmlContent instead. Kept for backward compatibility.
+   * Yjs document state as base64
+   */
+  yDocState?: string;
+  /**
+   * @deprecated Use worldbuildingData instead.
+   * Worldbuilding Yjs state as base64 (for WB elements)
+   */
+  worldbuildingState?: string;
+  /**
+   * @deprecated No longer needed with content-based snapshots.
+   * Yjs state vector as base64
+   */
+  stateVector?: string;
+  /** Word count at time of snapshot */
+  wordCount?: number;
+  /** Additional metadata */
+  metadata?: Record<string, unknown>;
+  /** When this snapshot was created (ISO string) */
+  createdAt: string;
+}
+
+/**
  * Complete project archive structure.
  * This is what gets serialized to JSON files within the ZIP.
  */
@@ -147,6 +193,8 @@ export interface ProjectArchive {
   publishPlans: PublishPlan[];
   /** Media file manifest */
   media: ArchiveMediaFile[];
+  /** Document snapshots (optional, for version history) */
+  snapshots?: ArchiveSnapshot[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -163,6 +211,7 @@ export enum ExportPhase {
   PackagingElements = 'packaging-elements',
   PackagingDocuments = 'packaging-documents',
   PackagingWorldbuilding = 'packaging-worldbuilding',
+  PackagingSnapshots = 'packaging-snapshots',
   PackagingMedia = 'packaging-media',
   CreatingArchive = 'creating-archive',
   Complete = 'complete',
@@ -177,11 +226,13 @@ export enum ImportPhase {
   ValidatingArchive = 'validating-archive',
   CheckingSlug = 'checking-slug',
   CreatingProject = 'creating-project',
+  CreatingBackupSnapshots = 'creating-backup-snapshots',
   ImportingElements = 'importing-elements',
   ImportingDocuments = 'importing-documents',
   ImportingWorldbuilding = 'importing-worldbuilding',
   ImportingSchemas = 'importing-schemas',
   ImportingRelationships = 'importing-relationships',
+  ImportingSnapshots = 'importing-snapshots',
   ImportingData = 'importing-data',
   ImportingMedia = 'importing-media',
   UploadingMedia = 'uploading-media',

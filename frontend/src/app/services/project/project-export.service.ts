@@ -11,6 +11,7 @@ import {
   ArchiveManifest,
   ArchiveMediaFile,
   ArchiveProgress,
+  ArchiveSnapshot,
   ArchiveWorldbuildingData,
   ExportPhase,
   ProjectArchive,
@@ -21,6 +22,7 @@ import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import { OfflineProjectElementsService } from '../offline/offline-project-elements.service';
+import { OfflineSnapshotService } from '../offline/offline-snapshot.service';
 import { OfflineStorageService } from '../offline/offline-storage.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
@@ -72,6 +74,7 @@ export class ProjectExportService {
   private worldbuildingService = inject(WorldbuildingService);
   private offlineElements = inject(OfflineProjectElementsService);
   private offlineStorage = inject(OfflineStorageService);
+  private offlineSnapshots = inject(OfflineSnapshotService);
   private syncFactory = inject(ElementSyncProviderFactory);
   private imagesService = inject(ImagesService);
 
@@ -158,7 +161,15 @@ export class ProjectExportService {
       );
       const publishPlans = await this.getPublishPlans(username, slug);
 
-      // Phase 3: Get media files
+      // Phase 3: Get snapshots
+      this.updateProgress(
+        ExportPhase.PackagingSnapshots,
+        55,
+        'Packaging snapshots...'
+      );
+      const snapshots = await this.getSnapshots(projectKey);
+
+      // Phase 4: Get media files
       this.updateProgress(
         ExportPhase.PackagingMedia,
         65,
@@ -167,7 +178,7 @@ export class ProjectExportService {
       const { mediaManifest, mediaBlobs } =
         await this.getMediaFiles(projectKey);
 
-      // Phase 4: Create archive
+      // Phase 5: Create archive
       this.updateProgress(
         ExportPhase.CreatingArchive,
         80,
@@ -190,6 +201,7 @@ export class ProjectExportService {
         customRelationshipTypes,
         publishPlans,
         media: mediaManifest,
+        snapshots,
       };
 
       // Create ZIP
@@ -527,6 +539,46 @@ export class ProjectExportService {
   }
 
   /**
+   * Get document snapshots for export.
+   * Exports both new format (xmlContent) and legacy format (yDocState) for backward compatibility.
+   */
+  private async getSnapshots(projectKey: string): Promise<ArchiveSnapshot[]> {
+    const storedSnapshots =
+      await this.offlineSnapshots.getSnapshotsForExport(projectKey);
+
+    return storedSnapshots.map(s => ({
+      documentId: s.documentId,
+      name: s.name,
+      description: s.description,
+      // New format
+      xmlContent: s.xmlContent,
+      worldbuildingData: s.worldbuildingData,
+      // Legacy format (for backward compatibility with older imports)
+      yDocState: s.yDocState ? this.uint8ArrayToBase64(s.yDocState) : undefined,
+      worldbuildingState: s.worldbuildingState
+        ? this.uint8ArrayToBase64(s.worldbuildingState)
+        : undefined,
+      stateVector: s.stateVector
+        ? this.uint8ArrayToBase64(s.stateVector)
+        : undefined,
+      wordCount: s.wordCount,
+      metadata: s.metadata,
+      createdAt: s.createdAt,
+    }));
+  }
+
+  /**
+   * Convert Uint8Array to base64 string.
+   */
+  private uint8ArrayToBase64(bytes: Uint8Array): string {
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+
+  /**
    * Get media files from IndexedDB.
    */
   private async getMediaFiles(projectKey: string): Promise<{
@@ -635,6 +687,11 @@ export class ProjectExportService {
       JSON.stringify(archive.publishPlans, null, 2)
     );
     zip.file('media-index.json', JSON.stringify(archive.media, null, 2));
+
+    // Add snapshots if present
+    if (archive.snapshots && archive.snapshots.length > 0) {
+      zip.file('snapshots.json', JSON.stringify(archive.snapshots, null, 2));
+    }
 
     // Add media files
     for (const [path, blob] of mediaBlobs) {

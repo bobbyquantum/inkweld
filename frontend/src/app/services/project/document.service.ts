@@ -49,6 +49,16 @@ interface DocumentConnection {
 }
 
 /**
+ * Represents a ProseMirror JSON node for conversion to XML.
+ */
+interface ProseMirrorNode {
+  type: string;
+  text?: string;
+  attrs?: Record<string, unknown>;
+  content?: ProseMirrorNode[];
+}
+
+/**
  * Manages Yjs document connections for collaborative editing
  *
  * Handles WebSocket connections, IndexedDB persistence, and ProseMirror integration
@@ -172,6 +182,65 @@ export class DocumentService {
   }
 
   /**
+   * Gets the Yjs document instance for a document.
+   *
+   * Returns the active connection's ydoc if connected, or creates a temporary
+   * one from IndexedDB for snapshot purposes.
+   *
+   * @param documentId - The document ID
+   * @returns The Yjs document or null if not found
+   */
+  async getYDoc(documentId: string): Promise<Y.Doc | null> {
+    // First try: Active connection
+    const connection = this.connections.get(documentId);
+    if (connection) {
+      return connection.ydoc;
+    }
+
+    // Second try: Load from IndexedDB (for snapshots of non-active documents)
+    this.logger.debug(
+      'DocumentService',
+      `Loading Yjs doc from IndexedDB for snapshot: ${documentId}`
+    );
+
+    const ydoc = new Y.Doc();
+    const provider = new IndexeddbPersistence(documentId, ydoc);
+
+    try {
+      await provider.whenSynced;
+
+      // Check if we actually have content
+      const prosemirror = ydoc.getXmlFragment('prosemirror');
+      if (prosemirror.length === 0) {
+        this.logger.debug(
+          'DocumentService',
+          `No content found in IndexedDB for ${documentId}`
+        );
+        await provider.destroy();
+        ydoc.destroy();
+        return null;
+      }
+
+      // Note: We return the ydoc here - caller is responsible for cleanup
+      // The provider is attached to the ydoc, so destroying ydoc will cleanup
+      return ydoc;
+    } catch (error) {
+      this.logger.warn(
+        'DocumentService',
+        `Error loading Yjs doc from IndexedDB: ${documentId}`,
+        error
+      );
+      try {
+        await provider.destroy();
+        ydoc.destroy();
+      } catch {
+        // Ignore cleanup errors
+      }
+      return null;
+    }
+  }
+
+  /**
    * Gets document content as ProseMirror-compatible JSON.
    *
    * This is the single abstraction point for retrieving document content.
@@ -219,6 +288,19 @@ export class DocumentService {
 
     try {
       await provider.whenSynced;
+
+      // First check for imported content (from project import)
+      const importedContentMap = ydoc.getMap<unknown>('importedContent');
+      const importedContent = importedContentMap.get('content');
+      if (importedContent) {
+        this.logger.debug(
+          'DocumentService',
+          `Found imported content for ${documentId}, returning it`
+        );
+        return importedContent;
+      }
+
+      // Otherwise load from prosemirror XmlFragment
       const fragment = ydoc.getXmlFragment('prosemirror');
 
       if (fragment.length === 0) {
@@ -311,6 +393,97 @@ export class DocumentService {
         fragment.push([yNode]);
       }
     });
+  }
+
+  /**
+   * Converts ProseMirror JSON content to an XML string for import.
+   *
+   * This is used when importing project archives - the content is stored
+   * as ProseMirror JSON, and we need to convert it to XML to apply it
+   * to the Yjs XmlFragment using forward CRDT operations.
+   *
+   * @param content - ProseMirror JSON content (the content array or full doc)
+   * @returns XML string representation, or null if content is empty/invalid
+   */
+  private prosemirrorJsonToXml(content: unknown): string | null {
+    if (!content) return null;
+
+    // Handle both full doc format { type: 'doc', content: [...] } and just content array
+    const contentArray = Array.isArray(content)
+      ? content
+      : (content as { content?: unknown[] }).content;
+
+    if (
+      !contentArray ||
+      !Array.isArray(contentArray) ||
+      contentArray.length === 0
+    ) {
+      return null;
+    }
+
+    const parts: string[] = [];
+    for (const node of contentArray) {
+      parts.push(this.prosemirrorNodeToXml(node as ProseMirrorNode));
+    }
+    return parts.join('');
+  }
+
+  /**
+   * Recursively converts a ProseMirror node to XML.
+   */
+  private prosemirrorNodeToXml(node: ProseMirrorNode): string {
+    if (!node || typeof node !== 'object') return '';
+
+    // Text node
+    if (node.type === 'text' && typeof node.text === 'string') {
+      // Escape XML special characters
+      return this.escapeXml(node.text);
+    }
+
+    // Element node
+    const tagName = node.type || 'paragraph';
+    const attrs = node.attrs || {};
+
+    // Build attribute string
+    const attrParts: string[] = [];
+    for (const [key, value] of Object.entries(attrs)) {
+      if (value !== null && value !== undefined) {
+        // Serialize objects as JSON, primitives as strings
+        let strValue: string;
+        if (typeof value === 'object') {
+          strValue = JSON.stringify(value);
+        } else if (typeof value === 'string') {
+          strValue = value;
+        } else {
+          strValue = String(value as string | number | boolean);
+        }
+        attrParts.push(`${key}="${this.escapeXml(strValue)}"`);
+      }
+    }
+    const attrStr = attrParts.length > 0 ? ' ' + attrParts.join(' ') : '';
+
+    // Build children
+    const children = node.content || [];
+    if (children.length === 0) {
+      return `<${tagName}${attrStr}/>`;
+    }
+
+    const childXml = children
+      .map(child => this.prosemirrorNodeToXml(child))
+      .join('');
+    return `<${tagName}${attrStr}>${childXml}</${tagName}>`;
+  }
+
+  /**
+   * Escapes special XML characters.
+   */
+  private escapeXml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
   }
 
   /**
@@ -432,6 +605,32 @@ export class DocumentService {
         '[DocumentService] Editor doc size AFTER sync:',
         editor.view?.state.doc.content.size
       );
+
+      // Check for imported content from project import
+      // This is content stored as JSON in importedContentMap that needs to be
+      // applied to the XmlFragment using forward CRDT operations
+      const importedContentMap = ydoc.getMap<unknown>('importedContent');
+      const importedContent = importedContentMap.get('content');
+      if (importedContent && type.length === 0) {
+        this.logger.info(
+          'DocumentService',
+          `Found imported content for ${documentId}, applying to XmlFragment`
+        );
+        // Convert the JSON content to XML and apply it
+        const xmlContent = this.prosemirrorJsonToXml(importedContent);
+        if (xmlContent) {
+          this.importXmlString(ydoc, type, xmlContent);
+          // Clear the importedContent map now that we've applied it
+          ydoc.transact(() => {
+            importedContentMap.delete('content');
+            importedContentMap.delete('importedAt');
+          });
+          this.logger.debug(
+            'DocumentService',
+            `Applied imported content and cleared importedContentMap`
+          );
+        }
+      }
 
       // Try to setup WebSocket provider if URL is available
       let provider: WebsocketProvider | null = null;

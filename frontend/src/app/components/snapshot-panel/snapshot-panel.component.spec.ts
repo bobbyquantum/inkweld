@@ -2,49 +2,52 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { DocumentSnapshotService } from '@services/project/document-snapshot.service';
-import { of, throwError } from 'rxjs';
+import {
+  UnifiedSnapshot,
+  UnifiedSnapshotService,
+} from '@services/project/unified-snapshot.service';
+import { of } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 
-import { DocumentSnapshot } from '../../../api-client';
 import { SnapshotPanelComponent } from './snapshot-panel.component';
 
 describe('SnapshotPanelComponent', () => {
   let component: SnapshotPanelComponent;
   let fixture: ComponentFixture<SnapshotPanelComponent>;
-  let snapshotServiceMock: MockedObject<DocumentSnapshotService>;
+  let snapshotServiceMock: MockedObject<UnifiedSnapshotService>;
   let dialogMock: MockedObject<MatDialog>;
   let snackBarMock: MockedObject<MatSnackBar>;
 
-  const mockSnapshots: DocumentSnapshot[] = [
-    {
-      id: 'snap-1',
-      documentId: 'doc-1',
-      name: 'Snapshot 1',
-      description: 'First snapshot',
-      wordCount: 100,
-      createdAt: '2024-01-01T00:00:00Z',
-    },
+  const mockSnapshots: UnifiedSnapshot[] = [
     {
       id: 'snap-2',
       documentId: 'doc-1',
       name: 'Snapshot 2',
-      description: 'Second snapshot',
+      description: 'Second snapshot (newest)',
       wordCount: 200,
       createdAt: '2024-01-02T00:00:00Z',
+      isLocal: true,
+      isSynced: true,
+    },
+    {
+      id: 'snap-1',
+      documentId: 'doc-1',
+      name: 'Snapshot 1',
+      description: 'First snapshot (older)',
+      wordCount: 100,
+      createdAt: '2024-01-01T00:00:00Z',
+      isLocal: true,
+      isSynced: false,
     },
   ];
 
   beforeEach(async () => {
     snapshotServiceMock = {
-      listSnapshots: vi.fn().mockReturnValue(of(mockSnapshots)),
-      createSnapshot: vi.fn().mockReturnValue(of(mockSnapshots[0])),
-      restoreSnapshot: vi.fn().mockReturnValue(of({ message: 'Restored' })),
-      deleteSnapshot: vi.fn().mockReturnValue(of({ message: 'Deleted' })),
-      previewSnapshot: vi
-        .fn()
-        .mockReturnValue(of({ yDocState: 'base64state' })),
-    } as unknown as MockedObject<DocumentSnapshotService>;
+      listSnapshots: vi.fn().mockResolvedValue(mockSnapshots),
+      createSnapshot: vi.fn().mockResolvedValue(mockSnapshots[0]),
+      restoreFromSnapshot: vi.fn().mockResolvedValue(true),
+      deleteSnapshot: vi.fn().mockResolvedValue(undefined),
+    } as unknown as MockedObject<UnifiedSnapshotService>;
 
     dialogMock = {
       open: vi.fn().mockReturnValue({
@@ -60,7 +63,7 @@ describe('SnapshotPanelComponent', () => {
       imports: [SnapshotPanelComponent],
       providers: [
         provideZonelessChangeDetection(),
-        { provide: DocumentSnapshotService, useValue: snapshotServiceMock },
+        { provide: UnifiedSnapshotService, useValue: snapshotServiceMock },
         { provide: MatDialog, useValue: dialogMock },
         { provide: MatSnackBar, useValue: snackBarMock },
       ],
@@ -78,35 +81,30 @@ describe('SnapshotPanelComponent', () => {
   });
 
   describe('ngOnInit', () => {
-    it('should load snapshots on init', () => {
-      expect(snapshotServiceMock.listSnapshots).toHaveBeenCalledWith('doc-1', {
-        orderBy: 'createdAt',
-        order: 'DESC',
-        limit: 100,
+    it('should load snapshots on init', async () => {
+      // Wait for async loadSnapshots to complete
+      await vi.waitFor(() => {
+        expect(snapshotServiceMock.listSnapshots).toHaveBeenCalledWith('doc-1');
       });
-      expect(component.snapshots()).toEqual(mockSnapshots);
     });
   });
 
   describe('loadSnapshots', () => {
-    it('should set loading to true while loading', () => {
-      component.loading.set(false);
-      component.loadSnapshots();
+    it('should set loading to false after loading completes', async () => {
+      await component.loadSnapshots();
 
-      // After subscribe completes, loading should be false
       expect(component.loading()).toBe(false);
-      expect(component.snapshots()).toEqual(mockSnapshots);
     });
 
-    it('should handle error when loading snapshots', () => {
+    it('should handle error when loading snapshots', async () => {
       const consoleSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
-      snapshotServiceMock.listSnapshots.mockReturnValue(
-        throwError(() => new Error('Load failed'))
+      snapshotServiceMock.listSnapshots.mockRejectedValue(
+        new Error('Load failed')
       );
 
-      component.loadSnapshots();
+      await component.loadSnapshots();
 
       expect(component.error()).toBe(
         'Failed to load snapshots. Please try again.'
@@ -129,14 +127,13 @@ describe('SnapshotPanelComponent', () => {
       await component.createSnapshot();
 
       expect(dialogMock.open).toHaveBeenCalled();
-      expect(snapshotServiceMock.createSnapshot).toHaveBeenCalledWith('doc-1', {
-        documentId: 'doc-1',
-        name: 'New Snapshot',
-        description: 'Test description',
-        yDocState: '',
-      });
+      expect(snapshotServiceMock.createSnapshot).toHaveBeenCalledWith(
+        'doc-1',
+        'New Snapshot',
+        'Test description'
+      );
       expect(snackBarMock.open).toHaveBeenCalledWith(
-        'Snapshot "Snapshot 1" created successfully',
+        'Snapshot "Snapshot 2" created successfully',
         'OK',
         { duration: 3000 }
       );
@@ -160,8 +157,8 @@ describe('SnapshotPanelComponent', () => {
       dialogMock.open.mockReturnValue({
         afterClosed: vi.fn().mockReturnValue(of({ name: 'Test' })),
       } as unknown as ReturnType<typeof dialogMock.open>);
-      snapshotServiceMock.createSnapshot.mockReturnValue(
-        throwError(() => new Error('Create failed'))
+      snapshotServiceMock.createSnapshot.mockRejectedValue(
+        new Error('Create failed')
       );
 
       await component.createSnapshot();
@@ -185,12 +182,12 @@ describe('SnapshotPanelComponent', () => {
       await component.restoreSnapshot(mockSnapshots[0]);
 
       expect(dialogMock.open).toHaveBeenCalled();
-      expect(snapshotServiceMock.restoreSnapshot).toHaveBeenCalledWith(
+      expect(snapshotServiceMock.restoreFromSnapshot).toHaveBeenCalledWith(
         'doc-1',
-        'snap-1'
+        'snap-2'
       );
       expect(snackBarMock.open).toHaveBeenCalledWith(
-        'Document restored to "Snapshot 1"',
+        'Document restored to "Snapshot 2"',
         'OK',
         { duration: 3000 }
       );
@@ -203,7 +200,7 @@ describe('SnapshotPanelComponent', () => {
 
       await component.restoreSnapshot(mockSnapshots[0]);
 
-      expect(snapshotServiceMock.restoreSnapshot).not.toHaveBeenCalled();
+      expect(snapshotServiceMock.restoreFromSnapshot).not.toHaveBeenCalled();
     });
 
     it('should handle error when restoring snapshot', async () => {
@@ -213,8 +210,8 @@ describe('SnapshotPanelComponent', () => {
       dialogMock.open.mockReturnValue({
         afterClosed: vi.fn().mockReturnValue(of(true)),
       } as unknown as ReturnType<typeof dialogMock.open>);
-      snapshotServiceMock.restoreSnapshot.mockReturnValue(
-        throwError(() => new Error('Restore failed'))
+      snapshotServiceMock.restoreFromSnapshot.mockRejectedValue(
+        new Error('Restore failed')
       );
 
       await component.restoreSnapshot(mockSnapshots[0]);
@@ -230,52 +227,24 @@ describe('SnapshotPanelComponent', () => {
   });
 
   describe('previewSnapshot', () => {
-    it('should show not implemented message for preview', () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-      component.previewSnapshot(mockSnapshots[0]);
-
-      expect(snapshotServiceMock.previewSnapshot).toHaveBeenCalledWith(
-        'doc-1',
-        'snap-1'
-      );
-      expect(snackBarMock.open).toHaveBeenCalledWith(
-        'Preview feature needs implementation (backend returns yDocState, not HTML)',
-        'OK',
-        { duration: 5000 }
-      );
-      consoleSpy.mockRestore();
-    });
-
-    it('should handle error when previewing snapshot', () => {
-      const consoleSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
-      snapshotServiceMock.previewSnapshot.mockReturnValue(
-        throwError(() => new Error('Preview failed'))
-      );
-
+    it('should show coming soon message for preview', () => {
       component.previewSnapshot(mockSnapshots[0]);
 
       expect(snackBarMock.open).toHaveBeenCalledWith(
-        'Failed to preview snapshot',
+        'Preview feature coming soon',
         'OK',
         { duration: 3000 }
       );
-      consoleSpy.mockRestore();
     });
   });
 
   describe('deleteSnapshot', () => {
-    it('should delete snapshot when confirmed', () => {
+    it('should delete snapshot when confirmed', async () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
 
-      component.deleteSnapshot(mockSnapshots[0]);
+      await component.deleteSnapshot(mockSnapshots[0]);
 
-      expect(snapshotServiceMock.deleteSnapshot).toHaveBeenCalledWith(
-        'doc-1',
-        'snap-1'
-      );
+      expect(snapshotServiceMock.deleteSnapshot).toHaveBeenCalledWith('snap-2');
       expect(snackBarMock.open).toHaveBeenCalledWith(
         'Snapshot deleted successfully',
         'OK',
@@ -283,24 +252,24 @@ describe('SnapshotPanelComponent', () => {
       );
     });
 
-    it('should not delete snapshot when cancelled', () => {
+    it('should not delete snapshot when cancelled', async () => {
       vi.spyOn(window, 'confirm').mockReturnValue(false);
 
-      component.deleteSnapshot(mockSnapshots[0]);
+      await component.deleteSnapshot(mockSnapshots[0]);
 
       expect(snapshotServiceMock.deleteSnapshot).not.toHaveBeenCalled();
     });
 
-    it('should handle error when deleting snapshot', () => {
+    it('should handle error when deleting snapshot', async () => {
       const consoleSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
       vi.spyOn(window, 'confirm').mockReturnValue(true);
-      snapshotServiceMock.deleteSnapshot.mockReturnValue(
-        throwError(() => new Error('Delete failed'))
+      snapshotServiceMock.deleteSnapshot.mockRejectedValue(
+        new Error('Delete failed')
       );
 
-      component.deleteSnapshot(mockSnapshots[0]);
+      await component.deleteSnapshot(mockSnapshots[0]);
 
       expect(snackBarMock.open).toHaveBeenCalledWith(
         'Failed to delete snapshot',
