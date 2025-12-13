@@ -44,7 +44,7 @@ Inkweld v0.1.0 is the first public release of this collaborative creative writin
 
 #### Developer Experience
 
-- **Modern Tech Stack**: Angular 20 (frontend), NestJS 10 on Bun (backend)
+- **Modern Tech Stack**: Angular 20 (frontend), Hono on Bun (backend)
 - **Comprehensive Testing**: Jest for unit tests, Playwright for e2e tests
 - **API Documentation**: Auto-generated OpenAPI specification
 - **Type Safety**: Full TypeScript implementation with strict mode

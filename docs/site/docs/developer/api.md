@@ -81,7 +81,7 @@ Future versions will be released as `/api/v2/`, etc., with backward compatibilit
 The complete API specification is available at:
 
 - **File**: `backend/openapi.json`
-- **Generation**: Auto-generated from NestJS decorators
+- **Generation**: Auto-generated from Hono routes with Zod schemas
 - **Format**: OpenAPI 3.1 (JSON)
 
 ### Generating the Spec
@@ -91,13 +91,13 @@ cd backend
 bun run generate:openapi
 ```
 
-This analyzes all NestJS controllers and generates the OpenAPI specification.
+This analyzes all Hono routes and generates the OpenAPI specification.
 
 ## Documentation Updates
 
 When the API changes:
 
-1. Update NestJS controller decorators
+1. Update Hono route definitions and Zod schemas
 2. Regenerate OpenAPI spec: `cd backend && bun run generate:openapi`
 3. Regenerate docs: `cd docs/site && npm run gen-api-docs`
 4. Review changes in documentation site

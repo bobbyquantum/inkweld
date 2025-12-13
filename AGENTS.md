@@ -9,10 +9,10 @@ This document provides guidance for AI coding assistants (Copilot, Cline, Windsu
 **Inkweld** is a collaborative creative writing platform built with:
 
 - **Frontend**: Angular 20 (standalone components, modern control flow)
-- **Backend**: NestJS 10 running on Bun
+- **Backend**: Hono running on Bun/Node/Workers
 - **Database**: SQLite/D1 (Drizzle ORM) + LevelDB (per-project document storage)
 - **Real-time**: Yjs + WebSocket for collaborative editing
-- **Testing**: Jest (unit) + Playwright (e2e)
+- **Testing**: Vitest (unit) + Playwright (e2e)
 
 ---
 
@@ -31,6 +31,7 @@ This project is configured with the **Angular CLI MCP Server**, which enables AI
 - `modernize` (experimental) - Provides migration instructions for upgrading code
 
 **Benefits**:
+
 - AI assistants have access to up-to-date Angular documentation
 - Reduces reliance on potentially outdated training data
 - Project-aware guidance based on actual workspace structure
@@ -38,7 +39,7 @@ This project is configured with the **Angular CLI MCP Server**, which enables AI
 
 **Restart Required**: After MCP configuration changes, restart VS Code or your AI assistant to enable the integration.
 
-For more information, visit: https://angular.dev/ai/mcp
+For more information, visit: <https://angular.dev/ai/mcp>
 
 ---
 
@@ -119,7 +120,7 @@ src/app/
 
 ---
 
-## Backend Architecture (NestJS 10)
+## Backend Architecture (Hono)
 
 ### Technology Stack
 

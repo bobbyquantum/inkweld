@@ -50,9 +50,9 @@ Inkweld is ideal for:
 
 ```mermaid
 flowchart TD
-    Frontend[Angular 20 PWA] -->|REST + WebSocket| Backend[Hono API (Bun/Node/Workers)]
+    Frontend[Angular 20 PWA] -->|REST + WebSocket| Backend[Hono API]
     Backend -->|Drizzle ORM| Database[(SQLite / D1)]
-    Backend -->|Yjs persistence| Realtime[(LevelDB / Durable Objects)]
+    Backend -->|Yjs persistence| Realtime[(LevelDB)]
     Backend -->|OpenAPI spec| APIClient[Generated SDK]
     Frontend -.->|imports at build| APIClient
 ```
@@ -63,7 +63,7 @@ flowchart TD
 
 > **Requirements:**  
 >
-> - [Bun 1.2+](https://bun.sh/)  
+> - [Bun 1.3+](https://bun.sh/)  
 > - [NodeJS 20+](https://nodejs.org/en)
 
 1. **Clone the repository:**
@@ -219,7 +219,7 @@ This will execute the unit tests for both the frontend and backend projects.
 - [x] Basic document editing with ProseMirror over Yjs
 - [x] In-browser IndexedDB storage
 - [x] Backend LevelDB storage
-- [x] Templated worldbuilding features (character/location templates with real-time collaboration)
+- [ ] Templated worldbuilding features (character/location templates) *(schema system not yet ported to Hono backend)*
 - [x] Real-time collaborative editing with WebSocket sync
 - [ ] Complete import/export to archive functionality (partially done)
 - [ ] Project renaming and slug changing capabilities

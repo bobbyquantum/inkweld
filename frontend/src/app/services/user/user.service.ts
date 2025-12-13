@@ -287,7 +287,7 @@ export class UserService {
             }
           | undefined;
 
-        // Handle both formats: { error: 'Invalid credentials' } and legacy NestJS format
+        // Handle both error response formats
         if (
           errorBody?.error === 'Invalid credentials' ||
           errorBody?.message === 'Invalid credentials' ||
