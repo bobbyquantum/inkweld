@@ -264,12 +264,12 @@ This will execute the unit tests for both the frontend and backend projects.
 
 - [x] Docker support with optimized multi-stage Dockerfile
 - [x] Docker Compose configuration
-- [x] Support for SQLite and PostgreSQL databases
+- [x] Support for SQLite and Cloudflare D1 databases
 - [x] CI/CD pipeline with automated testing
 - [x] Automated Docker image publishing to GHCR
 - [x] GitHub Actions workflows
+- [x] Self-hosting documentation
 - [ ] Production logging framework (currently using console logs)
-- [ ] Self-hosting documentation
 - [ ] Monitoring and observability setup
 
 > **Note for Production Deployments:** The current version (v0.1.0) uses console logging for simplicity during development. For production deployments, we recommend implementing a proper logging framework such as Winston, Pino, or a similar solution with log rotation, severity levels, and external logging service integration.

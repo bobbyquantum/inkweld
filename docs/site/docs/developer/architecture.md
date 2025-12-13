@@ -240,7 +240,7 @@ graph LR
 
     subgraph Server["Server Side"]
         API["Hono API"]
-        PG[("PostgreSQL/SQLite<br/>Metadata")]
+        PG[("SQLite/D1<br/>Metadata")]
         LDB[("LevelDB<br/>Document Content")]
     end
 
@@ -319,17 +319,13 @@ graph TB
     end
 
     subgraph Storage[\"Storage Backends\"]
-        PG[(\"PostgreSQL\")]
         SQLite[(\"SQLite\")]
         D1[(\"D1 Database\")]
         R2[(\"R2 Storage\")]
     end
 
-    BunProd --> PG
     BunProd --> SQLite
-    NodeProd --> PG
     NodeProd --> SQLite
-    Docker --> PG
     Docker --> SQLite
     CF --> D1
     CF --> R2
