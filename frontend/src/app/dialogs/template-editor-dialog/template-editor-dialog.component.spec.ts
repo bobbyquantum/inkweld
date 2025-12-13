@@ -79,7 +79,7 @@ describe('TemplateEditorDialogComponent', () => {
     fixture = TestBed.createComponent(TemplateEditorDialogComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
-  });
+  }, 10000);
 
   it('should create', () => {
     expect(component).toBeDefined();

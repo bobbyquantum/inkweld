@@ -1,9 +1,9 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { UnifiedSnapshot } from '@services/project/unified-snapshot.service';
 import { MockedObject, vi } from 'vitest';
 
-import { DocumentSnapshot } from '../../../api-client';
 import {
   RestoreSnapshotDialogComponent,
   RestoreSnapshotDialogData,
@@ -15,13 +15,15 @@ describe('RestoreSnapshotDialogComponent', () => {
   let dialogRefMock: MockedObject<MatDialogRef<RestoreSnapshotDialogComponent>>;
   let dialogData: RestoreSnapshotDialogData;
 
-  const mockSnapshot: DocumentSnapshot = {
+  const mockSnapshot: UnifiedSnapshot = {
     id: 'snap-1',
     documentId: 'doc-1',
     name: 'Test Snapshot',
     description: 'A test snapshot',
     wordCount: 1000,
     createdAt: '2024-01-15T10:30:00Z',
+    isLocal: true,
+    isSynced: false,
   };
 
   beforeEach(async () => {

@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -22,7 +22,6 @@ import {
 
 import { UnifiedProjectService } from '../../services/offline/unified-project.service';
 import { ProjectService } from '../../services/project/project.service';
-import { ProjectImportExportService } from '../../services/project/project-import-export.service';
 import { EditProjectDialogComponent } from './edit-project-dialog.component';
 
 // Helper to create a mock File object
@@ -35,7 +34,6 @@ describe('EditProjectDialogComponent', () => {
   let component: EditProjectDialogComponent;
   let fixture: ComponentFixture<EditProjectDialogComponent>;
   let dialogRef: MockedObject<MatDialogRef<EditProjectDialogComponent>>;
-  let importExportService: MockedObject<ProjectImportExportService>;
   let snackBar: MockedObject<MatSnackBar>;
   let ProjectsService: MockedObject<ProjectsService>;
   let projectService: MockedObject<ProjectService>;
@@ -74,15 +72,6 @@ describe('EditProjectDialogComponent', () => {
       close: vi.fn(),
     } as any;
 
-    importExportService = {
-      exportProject: vi.fn(),
-      exportProjectZip: vi.fn(),
-      importProject: vi.fn(),
-      isProcessing: vi.fn().mockReturnValue(signal(false)()),
-      progress: vi.fn().mockReturnValue(signal(0)()),
-      error: vi.fn().mockReturnValue(signal(undefined)()),
-    } as any;
-
     snackBar = {
       open: vi.fn(),
     } as any;
@@ -116,7 +105,6 @@ describe('EditProjectDialogComponent', () => {
         provideHttpClientTesting(),
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: MAT_DIALOG_DATA, useValue: mockProject },
-        { provide: ProjectImportExportService, useValue: importExportService },
         { provide: ProjectsService, useValue: ProjectsService },
         { provide: ProjectService, useValue: projectService },
         { provide: UnifiedProjectService, useValue: unifiedProjectService },

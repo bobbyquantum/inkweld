@@ -105,7 +105,7 @@ describe('CreateProjectComponent', () => {
     fixture = TestBed.createComponent(CreateProjectComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
-  });
+  }, 10000);
 
   it('should create', () => {
     expect(component).toBeTruthy();

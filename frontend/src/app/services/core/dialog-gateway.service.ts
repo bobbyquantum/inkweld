@@ -25,6 +25,11 @@ import {
   ImageViewerDialogData,
 } from '../../dialogs/image-viewer-dialog/image-viewer-dialog.component';
 import {
+  ImportProjectDialogComponent,
+  ImportProjectDialogData,
+  ImportProjectDialogResult,
+} from '../../dialogs/import-project-dialog/import-project-dialog.component';
+import {
   MediaSelectorDialogComponent,
   MediaSelectorDialogData,
   MediaSelectorDialogResult,
@@ -151,6 +156,19 @@ export class DialogGatewayService {
       width: '700px',
       maxWidth: '95vw',
       maxHeight: '90vh',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openImportProjectDialog(
+    username?: string
+  ): Promise<ImportProjectDialogResult | undefined> {
+    const data: ImportProjectDialogData = { username };
+    const dialogRef = this.dialog.open(ImportProjectDialogComponent, {
+      data,
+      disableClose: true,
+      width: '500px',
+      maxWidth: '95vw',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

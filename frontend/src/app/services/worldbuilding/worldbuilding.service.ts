@@ -145,6 +145,27 @@ export class WorldbuildingService {
   }
 
   /**
+   * Get the Yjs document for a worldbuilding element.
+   *
+   * Returns the active connection's ydoc if connected, or null if not connected.
+   * Unlike prose documents, worldbuilding docs are always loaded via setupCollaboration.
+   *
+   * @param elementId - The element ID
+   * @returns The Yjs document or null if not connected
+   */
+  getYDoc(elementId: string): Y.Doc | null {
+    const connection = this.connections.get(elementId);
+    if (connection) {
+      return connection.ydoc;
+    }
+
+    // For worldbuilding, we need to set up the connection first
+    // Try to get project context
+    // Note: This is a simplified version - caller should ensure collaboration is set up
+    return null;
+  }
+
+  /**
    * Get the worldbuilding data for an element from its YJS document
    */
   async getWorldbuildingData(

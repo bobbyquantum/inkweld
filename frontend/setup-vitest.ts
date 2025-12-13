@@ -121,6 +121,9 @@ if (!Blob.prototype.text) {
 (globalThis as any).URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 (globalThis as any).URL.revokeObjectURL = vi.fn();
 
+// Note: JSZip mock is defined per-test-file to avoid parallel execution issues
+// Each test file that uses JSZip should define its own vi.mock('@progress/jszip-esm')
+
 // Mock localStorage for jsdom environment
 const localStorageMock = (() => {
   let store: Record<string, string> = {};

@@ -1,0 +1,56 @@
+# Dependencies - installed fresh in Docker
+node_modules
+**/node_modules
+.bun
+**/.bun
+
+# Build outputs - built fresh in Docker
+dist
+**/dist
+build
+**/build
+.angular
+frontend/.angular
+frontend/coverage
+frontend/playwright-report
+frontend/test-results
+backend/coverage
+backend/data
+backend/test-data
+
+# Development files
+.git
+.github
+.vscode
+.devcontainer
+.env
+.env.*
+!.env.example
+
+# Documentation
+docs
+
+# Test files
+test-results
+e2e/test-results
+*.spec.ts
+*.test.ts
+
+# IDE and editor files
+*.swp
+*.swo
+*~
+.idea
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+*.md
+!README.md
+LICENSE
+renovate.json
+*.code-workspace

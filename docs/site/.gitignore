@@ -14,7 +14,7 @@
 # Generated screenshots (created by playwright e2e:screenshots)
 # All generated screenshots go in the /static/img/generated/ folder
 /static/img/generated/
-
+/static/img/features/
 # Misc
 .DS_Store
 .env.local

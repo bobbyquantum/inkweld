@@ -1,0 +1,184 @@
+.drop-zone {
+  border: 2px dashed var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  padding: 48px 24px;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  &.drag-over {
+    border-color: var(--mat-sys-primary);
+    background-color: var(--mat-sys-primary-container);
+  }
+
+  &.parsing {
+    cursor: wait;
+  }
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  p {
+    margin: 0;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  .hint {
+    font-size: 0.875rem;
+    opacity: 0.7;
+  }
+
+  .file-input-label {
+    cursor: pointer;
+
+    .browse-btn {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 4px;
+      background-color: var(--mat-sys-primary);
+      color: var(--mat-sys-on-primary);
+      font-weight: 500;
+      transition: opacity 0.2s ease;
+
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+  }
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 4px;
+  background-color: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+
+  mat-icon {
+    color: var(--mat-sys-error);
+  }
+}
+
+.archive-info {
+  margin-bottom: 16px;
+
+  h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.25rem;
+    font-weight: 500;
+  }
+
+  .archive-meta {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+.project-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px;
+  border-radius: 8px;
+  background-color: var(--mat-sys-surface-container);
+
+  .summary-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: var(--mat-sys-on-surface-variant);
+    }
+
+    span {
+      font-size: 0.875rem;
+    }
+  }
+}
+
+.slug-field {
+  width: 100%;
+
+  .available {
+    color: var(--mat-sys-primary);
+  }
+}
+
+.import-progress {
+  text-align: center;
+  padding: 24px 0;
+
+  mat-progress-bar {
+    margin-bottom: 16px;
+  }
+
+  .status-text {
+    margin: 0 0 8px 0;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  .progress-text {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 500;
+  }
+}
+
+.result-success,
+.result-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px;
+  text-align: center;
+
+  mat-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 1.125rem;
+  }
+
+  .imported-slug {
+    font-family: monospace;
+    font-size: 0.875rem;
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+.result-success mat-icon {
+  color: var(--mat-sys-primary);
+}
+
+.result-error mat-icon {
+  color: var(--mat-sys-error);
+}
+
+mat-dialog-content {
+  min-width: 400px;
+  max-width: 500px;
+}
