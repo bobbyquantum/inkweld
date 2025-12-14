@@ -104,7 +104,7 @@ jobs:
   # ===========================================
   e2e-offline:
     name: E2E (Offline)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, e2e]
     steps:
       - uses: actions/checkout@v6
 
@@ -143,7 +143,7 @@ jobs:
   # ===========================================
   e2e-online:
     name: E2E (Online)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, e2e]
     steps:
       - uses: actions/checkout@v6
 
@@ -182,7 +182,7 @@ jobs:
   # ===========================================
   e2e-wrangler:
     name: E2E (Wrangler)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, e2e]
     steps:
       - uses: actions/checkout@v6
 
@@ -224,7 +224,7 @@ jobs:
   # ===========================================
   e2e-docker:
     name: E2E (Docker)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, e2e]
     steps:
       - uses: actions/checkout@v6
 
