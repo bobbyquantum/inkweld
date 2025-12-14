@@ -125,7 +125,7 @@ jobs:
         run: bun install
 
       - name: Install Playwright browsers
-        run: cd frontend && npx playwright install --with-deps chromium
+        run: cd frontend && bunx playwright install --with-deps chromium
 
       - name: Run offline e2e tests
         run: cd frontend && npm run e2e:offline:ci
@@ -164,7 +164,7 @@ jobs:
         run: bun install
 
       - name: Install Playwright browsers
-        run: cd frontend && npx playwright install --with-deps chromium
+        run: cd frontend && bunx playwright install --with-deps chromium
 
       - name: Run online e2e tests
         run: cd frontend && npm run e2e:online:ci
@@ -206,7 +206,7 @@ jobs:
         run: cd backend && bun run init:d1-local
 
       - name: Install Playwright browsers
-        run: cd frontend && npx playwright install --with-deps chromium
+        run: cd frontend && bunx playwright install --with-deps chromium
 
       - name: Run wrangler e2e tests
         run: cd frontend && npm run e2e:wrangler:ci
@@ -248,7 +248,7 @@ jobs:
         run: bun install
 
       - name: Install Playwright browsers
-        run: cd frontend && npx playwright install --with-deps chromium
+        run: cd frontend && bunx playwright install --with-deps chromium
 
       - name: Run Docker e2e tests
         run: cd frontend && npm run e2e:docker:ci
