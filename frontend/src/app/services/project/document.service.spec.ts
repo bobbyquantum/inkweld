@@ -50,7 +50,7 @@ vi.mock('y-websocket', () => ({
     ) {}
   },
 }));
-vi.mock('ngx-editor', () => ({
+vi.mock('@bobbyquantum/ngx-editor', () => ({
   Editor: vi.fn(() => ({
     view: {
       state: {

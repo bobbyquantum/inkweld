@@ -10,13 +10,6 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      // Redirect ngx-editor imports to the forked @bobbyquantum/ngx-editor package
-      // This is required because the coverage provider looks for ngx-editor
-      'ngx-editor': '@bobbyquantum/ngx-editor',
-    },
-  },
   test: {
     // Set reasonable test timeout (1 second instead of vitest's default)
     // This prevents hanging tests from blocking CI for too long
