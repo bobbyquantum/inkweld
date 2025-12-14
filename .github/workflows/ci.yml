@@ -37,11 +37,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
+      - name: Install build tools for native modules
+        run: sudo apt-get update && sudo apt-get install -y python3 make g++
+
       - name: Install dependencies
-        run: |
-          bun install --ignore-scripts
-          node node_modules/esbuild/install.js || true
-          cd node_modules/sharp && node install/check.js || true
+        run: bun install
 
       - name: Check code formatting
         run: bun run lint
@@ -68,11 +68,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
+      - name: Install build tools for native modules
+        run: sudo apt-get update && sudo apt-get install -y python3 make g++
+
       - name: Install dependencies
-        run: |
-          bun install --ignore-scripts
-          node node_modules/esbuild/install.js || true
-          cd node_modules/sharp && node install/check.js || true
+        run: bun install
 
       - name: Run frontend tests
         run: cd frontend && npm test
@@ -99,11 +99,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
+      - name: Install build tools for native modules
+        run: sudo apt-get update && sudo apt-get install -y python3 make g++
+
       - name: Install dependencies
-        run: |
-          bun install --ignore-scripts
-          node node_modules/esbuild/install.js || true
-          cd node_modules/sharp && node install/check.js || true
+        run: bun install
 
       - name: Run backend tests
         run: cd backend && DB_DATABASE=":memory:" bun test
@@ -130,11 +130,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
+      - name: Install build tools for native modules
+        run: sudo apt-get update && sudo apt-get install -y python3 make g++
+
       - name: Install dependencies
-        run: |
-          bun install --ignore-scripts
-          node node_modules/esbuild/install.js || true
-          cd node_modules/sharp && node install/check.js || true
+        run: bun install
 
       - name: Install Playwright browsers
         run: cd frontend && npx playwright install --with-deps chromium
@@ -172,11 +172,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
+      - name: Install build tools for native modules
+        run: sudo apt-get update && sudo apt-get install -y python3 make g++
+
       - name: Install dependencies
-        run: |
-          bun install --ignore-scripts
-          node node_modules/esbuild/install.js || true
-          cd node_modules/sharp && node install/check.js || true
+        run: bun install
 
       - name: Install Playwright browsers
         run: cd frontend && npx playwright install --with-deps chromium
@@ -214,11 +214,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
+      - name: Install build tools for native modules
+        run: sudo apt-get update && sudo apt-get install -y python3 make g++
+
       - name: Install dependencies
-        run: |
-          bun install --ignore-scripts
-          node node_modules/esbuild/install.js || true
-          cd node_modules/sharp && node install/check.js || true
+        run: bun install
 
       - name: Initialize local D1 database
         run: cd backend && bun run init:d1-local
@@ -262,11 +262,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
+      - name: Install build tools for native modules
+        run: sudo apt-get update && sudo apt-get install -y python3 make g++
+
       - name: Install dependencies
-        run: |
-          bun install --ignore-scripts
-          node node_modules/esbuild/install.js || true
-          cd node_modules/sharp && node install/check.js || true
+        run: bun install
 
       - name: Install Playwright browsers
         run: cd frontend && npx playwright install --with-deps chromium
