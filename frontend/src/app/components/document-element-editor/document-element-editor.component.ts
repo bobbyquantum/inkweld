@@ -20,11 +20,11 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Editor, NgxEditorModule, Toolbar } from '@bobbyquantum/ngx-editor';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
-import { Editor, NgxEditorModule, Toolbar } from 'ngx-editor';
 
 import {
   deleteElementRef,
@@ -203,7 +203,11 @@ export class DocumentElementEditorComponent
         '[DocumentEditor] ngOnInit - creating editor for',
         this.documentId
       );
-      this.editor = new Editor({ history: true, schema: extendedSchema });
+      this.editor = new Editor({
+        history: true,
+        schema: extendedSchema,
+        features: { resizeImage: true },
+      });
       this.editorKey++; // Force template refresh
       console.log(
         '[DocumentEditor] ngOnInit - editor created, doc size:',
@@ -255,6 +259,11 @@ export class DocumentElementEditorComponent
             );
             // Force change detection to update the view
             this.cdr.detectChanges();
+
+            // Workaround for ngx-editor zoneless compatibility (NG0100 on image selection)
+            // When clicking on images, ngx-editor's ImageViewComponent updates 'selected' state
+            // during change detection, causing NG0100. We schedule a detectChanges after clicks.
+            this.setupImageClickHandler();
           })
           .catch((error: unknown) => {
             console.error(
@@ -296,7 +305,11 @@ export class DocumentElementEditorComponent
         console.log(
           '[DocumentEditor] ngOnChanges - creating new editor for tab'
         );
-        this.editor = new Editor({ history: true, schema: extendedSchema });
+        this.editor = new Editor({
+          history: true,
+          schema: extendedSchema,
+          features: { resizeImage: true },
+        });
         this.editorKey++; // Force template refresh
         console.log(
           '[DocumentEditor] ngOnChanges - new editor created, doc size:',
@@ -591,5 +604,35 @@ export class DocumentElementEditorComponent
         break;
       }
     }
+  }
+
+  /**
+   * Workaround for ngx-editor zoneless compatibility issue.
+   *
+   * ngx-editor's ImageViewComponent updates its 'selected' state during Angular's
+   * change detection cycle when you click on an image. In zoneless mode, this causes
+   * NG0100: ExpressionChangedAfterItHasBeenCheckedError.
+   *
+   * This workaround adds a click listener to the editor that detects clicks on images
+   * and schedules a change detection cycle after a microtask, allowing ngx-editor's
+   * internal state to settle before Angular checks for changes.
+   */
+  private setupImageClickHandler(): void {
+    const editorDom = this.editor?.view?.dom;
+    if (!editorDom) return;
+
+    editorDom.addEventListener('click', event => {
+      const target = event.target as HTMLElement;
+      // Check if clicked on an image or image wrapper
+      if (
+        target.tagName === 'IMG' ||
+        target.closest('.ngx-editor-image-view-wrapper')
+      ) {
+        // Schedule change detection after ngx-editor's internal state updates
+        queueMicrotask(() => {
+          this.cdr.detectChanges();
+        });
+      }
+    });
   }
 }

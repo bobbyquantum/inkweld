@@ -127,8 +127,9 @@ describe('FalAiImageProvider', () => {
       const models = provider.getModels();
       const flux = models.find((m) => m.id === 'fal-ai/flux-2-pro');
       expect(flux).toBeDefined();
-      expect(flux!.sizeMode).toBe('dimensions');
-      const sizes = flux!.supportedSizes || [];
+      if (!flux) throw new Error('FLUX 2 Pro model not found');
+      expect(flux.sizeMode).toBe('dimensions');
+      const sizes = flux.supportedSizes || [];
       expect(sizes).toContain('1920x1080'); // HD 1080p landscape
       expect(sizes).toContain('1080x1920'); // HD 1080p portrait
       expect(sizes).toContain('1600x2560'); // Ebook cover
@@ -138,14 +139,15 @@ describe('FalAiImageProvider', () => {
       const models = provider.getModels();
       const nano = models.find((m) => m.id === 'fal-ai/nano-banana-pro');
       expect(nano).toBeDefined();
-      expect(nano!.sizeMode).toBe('aspect_ratio');
-      expect(nano!.resolutions).toContain('1K');
-      expect(nano!.resolutions).toContain('2K');
-      expect(nano!.resolutions).toContain('4K');
-      expect(nano!.aspectRatios).toContain('16:9');
-      expect(nano!.aspectRatios).toContain('9:16');
+      if (!nano) throw new Error('Nano Banana Pro model not found');
+      expect(nano.sizeMode).toBe('aspect_ratio');
+      expect(nano.resolutions).toContain('1K');
+      expect(nano.resolutions).toContain('2K');
+      expect(nano.resolutions).toContain('4K');
+      expect(nano.aspectRatios).toContain('16:9');
+      expect(nano.aspectRatios).toContain('9:16');
       // Size format should be ratio@resolution
-      const sizes = nano!.supportedSizes || [];
+      const sizes = nano.supportedSizes || [];
       expect(sizes).toContain('16:9@4K');
       expect(sizes).toContain('9:16@4K');
     });
