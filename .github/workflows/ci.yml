@@ -124,6 +124,11 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Install Playwright browsers
         run: cd frontend && bunx playwright install --with-deps chromium
 
@@ -163,6 +168,11 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Install Playwright browsers
         run: cd frontend && bunx playwright install --with-deps chromium
 
@@ -201,6 +211,11 @@ jobs:
 
       - name: Install dependencies
         run: bun install
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
       - name: Initialize local D1 database
         run: cd backend && bun run init:d1-local
@@ -246,6 +261,11 @@ jobs:
 
       - name: Install dependencies
         run: bun install
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
       - name: Install Playwright browsers
         run: cd frontend && bunx playwright install --with-deps chromium

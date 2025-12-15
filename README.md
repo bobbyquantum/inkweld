@@ -217,19 +217,19 @@ This will execute the unit tests for both the frontend and backend projects.
 ### Core Functionality
 
 - [x] Basic document editing with ProseMirror over Yjs
+- [x] Local-first capabilities with automatic sync
 - [x] In-browser IndexedDB storage
 - [x] Backend LevelDB storage
-- [ ] Templated worldbuilding features (character/location templates) *(schema system not yet ported to Hono backend)*
+- [x] Templated worldbuilding features (character/location templates)
 - [x] Real-time collaborative editing with WebSocket sync
-- [ ] Complete import/export to archive functionality (partially done)
+- [x] Complete import/export to archive functionality
 - [ ] Project renaming and slug changing capabilities
-- [x] Offline-first capabilities with automatic sync
 
 ### Content Export
 
 - [x] EPUB export capability
-- [ ] PDF export functionality
-- [ ] Markdown export options
+- [x] PDF export functionality
+- [x] Markdown export options
 - [ ] Print-friendly formatting
 
 ### User Experience
@@ -271,8 +271,6 @@ This will execute the unit tests for both the frontend and backend projects.
 - [x] Self-hosting documentation
 - [ ] Production logging framework (currently using console logs)
 - [ ] Monitoring and observability setup
-
-> **Note for Production Deployments:** The current version (v0.1.0) uses console logging for simplicity during development. For production deployments, we recommend implementing a proper logging framework such as Winston, Pino, or a similar solution with log rotation, severity levels, and external logging service integration.
 
 ---
 
