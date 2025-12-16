@@ -123,7 +123,7 @@ Use import aliases for cleaner imports:
 - Use `data-testid` attributes for stable selectors in e2e tests
 - Mock API responses using `frontend/e2e/mock-api/` framework
 
-## Backend-Specific Patterns (NestJS 10 + Bun)
+## Backend-Specific Patterns (Hono + Bun)
 
 ### Runtime - Always Use Bun
 

@@ -115,7 +115,7 @@ For those interested in what's under the hood:
 - **Bun + Hono backend** for blazing-fast API performance
 - **Yjs CRDTs** for real-time collaboration without conflicts
 - **LevelDB** for efficient document persistence
-- **PostgreSQL or SQLite** for relational data
+- **SQLite or Cloudflare D1** for relational data
 - **WebSocket connections** for instant updates
 - **Docker deployment** for easy self-hosting
 

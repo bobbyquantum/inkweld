@@ -1,7 +1,7 @@
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { Editor } from 'ngx-editor';
+import { Editor } from '@bobbyquantum/ngx-editor';
 import { TextSelection } from 'prosemirror-state';
 import { Subscription } from 'rxjs';
 

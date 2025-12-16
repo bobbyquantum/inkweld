@@ -7,8 +7,8 @@ import {
   signal,
   WritableSignal,
 } from '@angular/core';
+import { Editor } from '@bobbyquantum/ngx-editor';
 import { DocumentsService } from '@inkweld/index';
-import { Editor } from 'ngx-editor';
 import { Plugin } from 'prosemirror-state';
 import { Observable } from 'rxjs';
 import { IndexeddbPersistence, storeState } from 'y-indexeddb';
@@ -25,12 +25,19 @@ import {
   createElementRefPlugin,
   ElementRefService,
 } from '../../components/element-ref';
+import {
+  createImagePastePlugin,
+  extractMediaId,
+  generateMediaId,
+  isMediaUrl,
+} from '../../components/image-paste';
 import { LintApiService } from '../../components/lint/lint-api.service';
 import { createLintPlugin } from '../../components/lint/lint-plugin';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { SystemConfigService } from '../core/system-config.service';
+import { OfflineStorageService } from '../offline/offline-storage.service';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { ProjectStateService } from './project-state.service';
 
@@ -78,6 +85,7 @@ export class DocumentService {
   private elementRefService = inject(ElementRefService);
   private logger = inject(LoggerService);
   private userService = inject(UnifiedUserService);
+  private offlineStorage = inject(OfflineStorageService);
 
   private connections: Map<string, DocumentConnection> = new Map();
 
@@ -568,10 +576,13 @@ export class DocumentService {
     // If connection exists and editor already has y-sync plugin, don't re-add plugins
     if (
       connection &&
-      editor.view.state.plugins.some(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        p => (p.spec as any)?.key?.key === 'y-sync$'
-      )
+      editor.view.state.plugins.some(p => {
+        const key = p.spec?.key;
+        if (!key) return false;
+        if (typeof key === 'string') return key === 'y-sync$';
+        // PluginKey - check the key property name via string representation
+        return 'key' in key && (key as { key: string }).key === 'y-sync$';
+      })
     ) {
       this.logger.info(
         'DocumentService',
@@ -912,6 +923,30 @@ export class DocumentService {
     // Store editor view in ElementRefService for context menu operations
     this.elementRefService.setEditorView(view);
 
+    // Add image paste plugin for saving pasted images to media library
+    const imagePastePlugin = createImagePastePlugin({
+      saveImage: async (blob: Blob, _mimeType: string) => {
+        const projectKey = this.getProjectKey();
+        if (!projectKey) {
+          throw new Error('No project key available for saving image');
+        }
+        const mediaId = generateMediaId();
+        await this.offlineStorage.saveMedia(projectKey, mediaId, blob);
+        this.logger.debug(
+          'DocumentService',
+          `Saved pasted image as ${mediaId} in ${projectKey}`
+        );
+        return mediaId;
+      },
+      getImageUrl: async (mediaId: string) => {
+        const projectKey = this.getProjectKey();
+        if (!projectKey) return null;
+        return await this.offlineStorage.getMediaUrl(projectKey, mediaId);
+      },
+      getProjectKey: () => this.getProjectKey(),
+    });
+    plugins.push(imagePastePlugin);
+
     // Add word count tracking plugin
     const wordCountPlugin = new Plugin({
       view: () => ({
@@ -950,6 +985,11 @@ export class DocumentService {
     // CRITICAL: Force the view to re-render by dispatching an empty transaction
     // This triggers the ySyncPlugin's binding to sync content from Yjs to ProseMirror
     view.dispatch(view.state.tr);
+
+    // Start media URL observer for images with media: scheme
+    // This watches for images with media: URLs and resolves them to blob URLs
+    // by directly manipulating the DOM (not ProseMirror state) to avoid NG0100 errors
+    this.startMediaUrlObserver(view, documentId);
 
     // Initial word count update with guard and error suppression
     try {
@@ -992,6 +1032,18 @@ export class DocumentService {
         if (reconnectTimeout) {
           clearTimeout(reconnectTimeout);
           this.reconnectTimeouts.delete(documentId);
+        }
+
+        // Clean up media observer
+        const mediaObserver = (
+          connection as unknown as { mediaObserver?: MutationObserver }
+        ).mediaObserver;
+        if (mediaObserver) {
+          mediaObserver.disconnect();
+          this.logger.debug(
+            'DocumentService',
+            `Media observer disconnected for ${documentId}`
+          );
         }
 
         // Remove from connections map FIRST to prevent reconnection
@@ -1191,5 +1243,175 @@ export class DocumentService {
     };
 
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  }
+
+  /**
+   * Restore media URLs for images in the document.
+   *
+   * After loading a document from Yjs/IndexedDB, images with `media:` scheme URLs
+   * need to be resolved to actual blob URLs for display. This method scans the
+   * document for such images and updates their src attributes.
+   *
+   * @param view - The ProseMirror editor view
+   * @param documentId - The document ID for logging
+   */
+  /**
+   * Start watching for media URLs in the editor DOM and resolve them to blob URLs.
+   *
+   * This uses a MutationObserver to detect when images with `media:` URLs are
+   * added to the DOM, then resolves them to blob URLs by directly setting the
+   * DOM element's src attribute. This avoids modifying the ProseMirror document
+   * state, which would trigger Angular's change detection and cause NG0100 errors.
+   *
+   * The ProseMirror document continues to store `media:` URLs for persistence.
+   * Only the rendered DOM elements have blob URLs for display.
+   *
+   * @param view - The ProseMirror editor view
+   * @param documentId - The document ID for logging
+   */
+  private startMediaUrlObserver(
+    view: import('prosemirror-view').EditorView,
+    documentId: string
+  ): void {
+    const projectKey = this.getProjectKey();
+    if (!projectKey) {
+      this.logger.debug(
+        'DocumentService',
+        `No project key available for media restoration in ${documentId}`
+      );
+      return;
+    }
+
+    // Check if view has a DOM element we can observe
+    if (!view?.dom) {
+      this.logger.debug(
+        'DocumentService',
+        `View DOM not available for media restoration in ${documentId}`
+      );
+      return;
+    }
+
+    // Helper function to resolve a single image element
+    const resolveImageSrc = async (img: HTMLImageElement): Promise<void> => {
+      const src = img.getAttribute('src');
+      if (!src || !isMediaUrl(src)) return;
+
+      // Skip if already being processed
+      if (img.dataset['mediaResolving'] === 'true') return;
+      img.dataset['mediaResolving'] = 'true';
+
+      const mediaId = extractMediaId(src);
+      if (!mediaId) {
+        img.dataset['mediaResolving'] = 'false';
+        return;
+      }
+
+      try {
+        const blobUrl = await this.offlineStorage.getMediaUrl(
+          projectKey,
+          mediaId
+        );
+        if (blobUrl) {
+          // Store the media ID for reference
+          img.dataset['mediaId'] = mediaId;
+          // Directly set the DOM element's src (not ProseMirror state)
+          img.src = blobUrl;
+          this.logger.debug(
+            'DocumentService',
+            `Resolved media URL ${mediaId} to blob URL in ${documentId}`
+          );
+        } else {
+          this.logger.warn(
+            'DocumentService',
+            `Media not found for ${mediaId} in ${documentId}`
+          );
+          // Show placeholder for missing media
+          img.alt = `[Image not found: ${mediaId}]`;
+        }
+      } catch (error) {
+        this.logger.error(
+          'DocumentService',
+          `Failed to restore media ${mediaId}:`,
+          error
+        );
+      } finally {
+        img.dataset['mediaResolving'] = 'false';
+      }
+    };
+
+    // Wrapper that handles the promise without returning it (for setTimeout)
+    const resolveImageSrcSync = (img: HTMLImageElement): void => {
+      void resolveImageSrc(img);
+    };
+
+    // Process existing images in the DOM
+    const existingImages =
+      view.dom.querySelectorAll<HTMLImageElement>('img[src^="media:"]');
+    for (const img of existingImages) {
+      // Use setTimeout to break out of Angular's change detection cycle
+      setTimeout(() => resolveImageSrcSync(img), 0);
+    }
+
+    // Set up MutationObserver to handle dynamically added images
+    const observer = new MutationObserver(mutations => {
+      for (const mutation of mutations) {
+        // Check added nodes
+        for (const node of mutation.addedNodes) {
+          if (node instanceof HTMLImageElement && isMediaUrl(node.src)) {
+            setTimeout(() => resolveImageSrcSync(node), 0);
+          } else if (node instanceof HTMLElement) {
+            const imgs =
+              node.querySelectorAll<HTMLImageElement>('img[src^="media:"]');
+            for (const img of imgs) {
+              setTimeout(() => resolveImageSrcSync(img), 0);
+            }
+          }
+        }
+        // Check attribute changes on images
+        if (
+          mutation.type === 'attributes' &&
+          mutation.attributeName === 'src' &&
+          mutation.target instanceof HTMLImageElement
+        ) {
+          const img = mutation.target;
+          if (isMediaUrl(img.src)) {
+            setTimeout(() => resolveImageSrcSync(img), 0);
+          }
+        }
+      }
+    });
+
+    observer.observe(view.dom, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src'],
+    });
+
+    // Store observer for cleanup
+    const connection = this.connections.get(documentId);
+    if (connection) {
+      // Store the observer on the connection for cleanup when disconnecting
+      (
+        connection as unknown as { mediaObserver?: MutationObserver }
+      ).mediaObserver = observer;
+    }
+
+    this.logger.debug(
+      'DocumentService',
+      `Media URL observer started for ${documentId}`
+    );
+  }
+
+  /**
+   * Get the current project key in "username/slug" format.
+   * Used by plugins that need to interact with the media library.
+   */
+  private getProjectKey(): string | null {
+    const project = this.projectStateService.project();
+    if (!project?.username || !project?.slug) {
+      return null;
+    }
+    return `${project.username}/${project.slug}`;
   }
 }

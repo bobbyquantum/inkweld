@@ -15,7 +15,7 @@ import { DocumentSyncState } from '../../models/document-sync-state';
 import { DocumentElementEditorComponent } from './document-element-editor.component';
 
 // Mock ngx-editor module with all required exports
-vi.mock('ngx-editor', () => {
+vi.mock('@bobbyquantum/ngx-editor', () => {
   const mockEditorView = {
     state: {
       plugins: [],

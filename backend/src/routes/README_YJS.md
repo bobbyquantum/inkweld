@@ -164,19 +164,11 @@ To support additional platforms (e.g., Deno, AWS Lambda):
 4. **Create platform app**: `<platform>-app.ts` that imports platform routes
 5. **Update build config**: Add entry point for new platform
 
-## Migration from Old Backend
+## Architecture
 
-The new Hono backend replaces the previous NestJS-based backend:
+The Hono backend supports multiple platforms for Yjs collaboration:
 
-### Old (NestJS + Bun)
-```
-(removed - old backend)
-├── yjs/
-│   ├── yjs.gateway.ts      # WebSocket gateway
-│   └── yjs.service.ts      # LevelDB persistence
-```
-
-### New (Hono + Multi-Platform)
+### Platform Implementations
 ```
 backend/src/
 ├── routes/

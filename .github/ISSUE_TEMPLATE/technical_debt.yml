@@ -15,7 +15,7 @@ body:
       description: Which part of the application is affected?
       options:
         - Frontend (Angular)
-        - Backend (NestJS)
+        - Backend (Hono)
         - Database
         - API
         - Build/CI/CD

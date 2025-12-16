@@ -38,13 +38,13 @@ Inkweld v0.1.0 is the first public release of this collaborative creative writin
 
 - **Docker Support**: Multi-stage Dockerfile with optimized production builds
 - **Docker Compose**: Ready-to-use Docker Compose configuration
-- **Database Flexibility**: Support for both PostgreSQL and SQLite
+- **Database Flexibility**: Support for SQLite and Cloudflare D1
 - **CI/CD Pipeline**: Automated testing, linting, and Docker image publishing to GHCR
 - **Progressive Web App**: Service worker support for offline capabilities and installability
 
 #### Developer Experience
 
-- **Modern Tech Stack**: Angular 20 (frontend), NestJS 10 on Bun (backend)
+- **Modern Tech Stack**: Angular 20 (frontend), Hono on Bun (backend)
 - **Comprehensive Testing**: Jest for unit tests, Playwright for e2e tests
 - **API Documentation**: Auto-generated OpenAPI specification
 - **Type Safety**: Full TypeScript implementation with strict mode

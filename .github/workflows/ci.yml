@@ -100,131 +100,11 @@ jobs:
         run: cd backend && DB_DATABASE=":memory:" bun test
 
   # ===========================================
-  # E2E Tests - Offline (Mock API)
+  # E2E Tests - All (Sequential)
   # ===========================================
-  e2e-offline:
-    name: E2E (Offline)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Install Playwright browsers
-        run: cd frontend && npx playwright install --with-deps chromium
-
-      - name: Run offline e2e tests
-        run: cd frontend && npm run e2e:offline:ci
-
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v6
-        if: failure()
-        with:
-          name: playwright-report-offline
-          path: frontend/playwright-report/
-          retention-days: 7
-
-  # ===========================================
-  # E2E Tests - Online (Real Backend)
-  # ===========================================
-  e2e-online:
-    name: E2E (Online)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Install Playwright browsers
-        run: cd frontend && npx playwright install --with-deps chromium
-
-      - name: Run online e2e tests
-        run: cd frontend && npm run e2e:online:ci
-
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v6
-        if: failure()
-        with:
-          name: playwright-report-online
-          path: frontend/playwright-report/
-          retention-days: 7
-
-  # ===========================================
-  # E2E Tests - Wrangler (Cloudflare Workers Local)
-  # ===========================================
-  e2e-wrangler:
-    name: E2E (Wrangler)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Initialize local D1 database
-        run: cd backend && bun run init:d1-local
-
-      - name: Install Playwright browsers
-        run: cd frontend && npx playwright install --with-deps chromium
-
-      - name: Run wrangler e2e tests
-        run: cd frontend && npm run e2e:wrangler:ci
-
-      - name: Upload Playwright report
-        uses: actions/upload-artifact@v6
-        if: failure()
-        with:
-          name: playwright-report-wrangler
-          path: frontend/playwright-report/
-          retention-days: 7
-
-  # ===========================================
-  # E2E Tests - Docker (Binary Build)
-  # ===========================================
-  e2e-docker:
-    name: E2E (Docker)
-    runs-on: ubuntu-latest
+  e2e:
+    name: E2E Tests
+    runs-on: [self-hosted, Linux, X64, e2e]
     steps:
       - uses: actions/checkout@v6
 
@@ -247,17 +127,35 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Install Playwright browsers
-        run: cd frontend && npx playwright install --with-deps chromium
+        run: cd frontend && bunx playwright install --with-deps chromium
+
+      - name: Initialize local D1 database
+        run: cd backend && bun run init:d1-local
+
+      # Run all e2e tests sequentially
+      - name: Run offline e2e tests
+        run: cd frontend && npm run e2e:offline:ci
+
+      - name: Run online e2e tests
+        run: cd frontend && npm run e2e:online:ci
+
+      - name: Run wrangler e2e tests
+        run: cd frontend && npm run e2e:wrangler:ci
 
       - name: Run Docker e2e tests
         run: cd frontend && npm run e2e:docker:ci
 
-      - name: Upload Playwright report
+      - name: Upload Playwright reports
         uses: actions/upload-artifact@v6
         if: failure()
         with:
-          name: playwright-report-docker
+          name: playwright-reports
           path: frontend/playwright-report/
           retention-days: 7
 
@@ -266,16 +164,7 @@ jobs:
   # ===========================================
   docker-publish:
     name: Docker Publish
-    needs:
-      [
-        lint,
-        test-frontend,
-        test-backend,
-        e2e-offline,
-        e2e-online,
-        e2e-wrangler,
-        e2e-docker,
-      ]
+    needs: [lint, test-frontend, test-backend, e2e]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 

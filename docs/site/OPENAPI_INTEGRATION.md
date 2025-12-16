@@ -144,22 +144,26 @@ bun run generate:openapi
 
 ### 2. Enrich OpenAPI with Documentation
 
-Add descriptions, examples, and metadata to your NestJS controllers:
+Add descriptions, examples, and metadata to your Hono routes using Zod schemas:
 
 ```typescript
-@ApiOperation({
-  summary: 'Get user profile',
-  description: 'Returns the authenticated user\'s profile information'
-})
-@ApiResponse({
-  status: 200,
-  description: 'User profile retrieved successfully',
-  type: UserDto
-})
-@Get('me')
-async getMe(@Req() req: Request) {
-  // ...
-}
+// Example: Enriching route documentation with Zod
+const userRoutes = new OpenAPIHono()
+  .openapi(
+    createRoute({
+      method: 'get',
+      path: '/me',
+      summary: 'Get user profile',
+      description: 'Returns the authenticated user\'s profile information',
+      responses: {
+        200: {
+          description: 'User profile retrieved successfully',
+          content: { 'application/json': { schema: UserSchema } }
+        }
+      }
+    }),
+    async (c) => { /* handler */ }
+  )
 ```
 
 ### 3. Use Tags for Organization
@@ -167,11 +171,14 @@ async getMe(@Req() req: Request) {
 Group related endpoints with OpenAPI tags:
 
 ```typescript
-@ApiTags('Authentication')
-@Controller('auth')
-export class AuthController {
-  // ...
-}
+const authRoutes = new OpenAPIHono()
+  .openapi(
+    createRoute({
+      tags: ['Authentication'],
+      // ... route config
+    }),
+    handler
+  )
 ```
 
 ### 4. Version Control Generated Docs
@@ -213,8 +220,8 @@ npm run build
 
 If endpoints are missing:
 
-1. Check NestJS controller decorators (`@ApiOperation`, `@ApiResponse`)
-2. Verify controllers are properly registered in modules
+1. Check Hono route definitions and Zod schemas
+2. Verify routes are properly registered
 3. Regenerate OpenAPI spec: `cd backend && bun run generate:openapi`
 
 ## Resources
@@ -222,7 +229,7 @@ If endpoints are missing:
 - [Plugin Documentation](https://github.com/PaloAltoNetworks/docusaurus-openapi-docs)
 - [Docusaurus Documentation](https://docusaurus.io/)
 - [OpenAPI Specification](https://swagger.io/specification/)
-- [NestJS OpenAPI](https://docs.nestjs.com/openapi/introduction)
+- [Hono OpenAPI](https://hono.dev/docs/helpers/openapi)
 
 ## Next Steps
 

@@ -25,7 +25,7 @@ Select option **1. Docker** and follow the prompts. The wizard will:
 **Configuration options include:**
 
 - Port number (default: 8333)
-- Database type (SQLite or PostgreSQL)
+- Database type (SQLite)
 - Session secret (auto-generated)
 - Domain/URL
 - User approval requirements

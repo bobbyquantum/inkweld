@@ -77,34 +77,11 @@ The dev container sets up a SQLite-based development environment by default:
 
 | Variable | Default Value | Description |
 |----------|---------------|-------------|
-| `DB_TYPE` | `sqlite` | Database type (sqlite/postgres) |
+| `DB_TYPE` | `sqlite` | Database type (sqlite or d1 for Cloudflare) |
 | `DB_PATH` | `/workspaces/inkweld/backend/data/dev.sqlite` | SQLite file path |
 | `DATA_PATH` | `/workspaces/inkweld/backend/data/yjs` | Yjs document storage |
 | `LOCAL_USERS_ENABLED` | `true` | Enable local auth |
 | `USER_APPROVAL_REQUIRED` | `false` | Skip admin approval |
-
-### Using PostgreSQL
-
-For production-like testing with PostgreSQL:
-
-1. Start the optional Postgres container:
-
-   ```bash
-   docker compose -f .devcontainer/docker-compose.yml up -d postgres
-   ```
-
-2. Update your environment:
-
-   ```bash
-   export DB_TYPE=postgres
-   export DB_HOST=localhost
-   export DB_PORT=5432
-   export DB_USER=inkweld
-   export DB_PASSWORD=inkweld_dev
-   export DB_NAME=inkweld_dev
-   ```
-
-3. Access Adminer at <http://localhost:8080> for database management
 
 ## Ports
 
@@ -113,7 +90,6 @@ For production-like testing with PostgreSQL:
 | 4200 | Angular Frontend |
 | 8333 | Hono/Bun Backend |
 | 3000 | Docusaurus Docs |
-| 5432 | PostgreSQL (optional) |
 | 8080 | Adminer (optional) |
 
 ## Troubleshooting

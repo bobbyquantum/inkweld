@@ -1,8 +1,8 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { Editor } from '@bobbyquantum/ngx-editor';
 import { DocumentsService } from '@inkweld/api/documents.service';
-import { Editor } from 'ngx-editor';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeepMockProxy } from 'vitest-mock-extended';
 import { IndexeddbPersistence } from 'y-indexeddb';
@@ -50,7 +50,7 @@ vi.mock('y-websocket', () => ({
     ) {}
   },
 }));
-vi.mock('ngx-editor', () => ({
+vi.mock('@bobbyquantum/ngx-editor', () => ({
   Editor: vi.fn(() => ({
     view: {
       state: {
@@ -124,6 +124,10 @@ describe('DocumentService', () => {
     // Mock ProjectStateService
     mockProjectStateService = {
       updateSyncState: vi.fn(),
+      project: vi.fn().mockReturnValue({
+        username: 'testuser',
+        slug: 'test-project',
+      }),
     } as unknown as DeepMockProxy<ProjectStateService>;
 
     // Mock DocumentsService

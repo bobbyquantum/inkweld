@@ -15,7 +15,7 @@ body:
       description: Which part of the application would this feature affect?
       options:
         - Frontend (Angular)
-        - Backend (NestJS)
+        - Backend (Hono)
         - Database
         - API
         - Documentation
