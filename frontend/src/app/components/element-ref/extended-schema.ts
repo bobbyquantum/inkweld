@@ -4,7 +4,11 @@
  * Extends ngx-editor's default schema with custom nodes like elementRef
  * for inline element references (@ mentions).
  */
-import { marks, nodes, schema as ngxEditorSchema } from 'ngx-editor/schema';
+import {
+  marks,
+  nodes,
+  schema as ngxEditorSchema,
+} from '@bobbyquantum/ngx-editor/schema';
 import { Schema } from 'prosemirror-model';
 
 import { elementRefNodeSpec } from './element-ref-schema';

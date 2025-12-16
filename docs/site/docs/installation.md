@@ -115,21 +115,22 @@ USER_APPROVAL_REQUIRED=false
 
 ### SQLite (Default)
 
-Perfect for single-server deployments:
+Perfect for single-server deployments. This is the recommended option for most use cases:
 
 ```bash
 DB_TYPE=sqlite
 DB_PATH=./data/inkweld.db
 ```
 
-### PostgreSQL
+### Cloudflare D1
 
-For production deployments with multiple instances:
+For Cloudflare Workers deployments:
 
 ```bash
-DB_TYPE=postgres
-DATABASE_URL=postgresql://user:password@localhost:5432/inkweld
+DB_TYPE=d1
 ```
+
+See [Cloudflare deployment](./hosting/cloudflare) for D1 configuration.
 
 ## Next Steps
 
@@ -154,11 +155,11 @@ ng serve --port 4201
 
 ### Database Connection Errors
 
-Ensure your database is running and credentials are correct. For PostgreSQL:
+Ensure the data directory exists and is writable:
 
 ```bash
-psql -U postgres
-CREATE DATABASE inkweld;
+mkdir -p backend/data
+chmod 755 backend/data
 ```
 
 ### Permission Issues

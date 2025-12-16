@@ -17,7 +17,7 @@ This is the new Hono-based backend for Inkweld, designed to be easier to deploy 
 ### Prerequisites
 
 - Bun 1.3.1 or higher
-- PostgreSQL (or SQLite for development)
+- SQLite (default, automatic) or Cloudflare D1
 
 ### Installation
 
@@ -207,13 +207,15 @@ backend/
 ### CSRF
 - `GET /api/csrf/token` - Get CSRF token for protected requests
 
-## Differences from NestJS Version
+## Design Choices
 
-1. **No Decorators**: Uses standard TypeScript/JavaScript instead of decorators
-2. **Simpler Middleware**: Hono's middleware system is more straightforward
-3. **Validation**: Uses Zod instead of class-validator
-4. **Deployment**: Can deploy to multiple platforms (Cloudflare Workers, Vercel, AWS Lambda, etc.)
-5. **Performance**: Lighter and faster than NestJS
+This Hono backend was designed with the following principles:
+
+1. **No Decorators**: Uses standard TypeScript/JavaScript instead of decorator-based patterns
+2. **Simple Middleware**: Hono's middleware system is lightweight and straightforward
+3. **Validation**: Uses Zod for schema validation
+4. **Multi-Platform**: Can deploy to Bun, Node.js, Cloudflare Workers, Vercel, AWS Lambda, etc.
+5. **Performance**: Lightweight and fast
 
 ## Migration Status
 
@@ -243,7 +245,7 @@ backend/
 
 ### ❌ Not Yet Implemented (Critical Features)
 
-The following features from the old NestJS backend have **NOT** been ported yet:
+The following features have **NOT** been implemented yet:
 
 #### **Worldbuilding Schema System** (HIGH PRIORITY)
 - **Missing**: Schema Service for managing worldbuilding templates

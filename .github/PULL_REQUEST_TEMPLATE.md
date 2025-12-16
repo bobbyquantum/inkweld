@@ -16,7 +16,7 @@
 ## Affected Components
 <!-- Mark which parts of the codebase are affected - Remove unused options -->
 - [ ] Frontend (Angular)
-- [ ] Backend (NestJS)
+- [ ] Backend (Hono)
 - [ ] Database
 - [ ] API
 - [ ] Infrastructure/DevOps

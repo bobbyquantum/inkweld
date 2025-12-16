@@ -50,9 +50,9 @@ Inkweld is ideal for:
 
 ```mermaid
 flowchart TD
-    Frontend[Angular 20 PWA] -->|REST + WebSocket| Backend[Hono API (Bun/Node/Workers)]
+    Frontend[Angular 20 PWA] -->|REST + WebSocket| Backend[Hono API]
     Backend -->|Drizzle ORM| Database[(SQLite / D1)]
-    Backend -->|Yjs persistence| Realtime[(LevelDB / Durable Objects)]
+    Backend -->|Yjs persistence| Realtime[(LevelDB)]
     Backend -->|OpenAPI spec| APIClient[Generated SDK]
     Frontend -.->|imports at build| APIClient
 ```
@@ -63,7 +63,7 @@ flowchart TD
 
 > **Requirements:**  
 >
-> - [Bun 1.2+](https://bun.sh/)  
+> - [Bun 1.3+](https://bun.sh/)  
 > - [NodeJS 20+](https://nodejs.org/en)
 
 1. **Clone the repository:**
@@ -88,11 +88,11 @@ flowchart TD
 4. **(Optional) Enable Angular MCP for AI Assistants:**
 
     This project includes an Angular CLI MCP (Model Context Protocol) server configuration that gives AI assistants direct access to real-time Angular documentation. The configuration is already set up in `.vscode/mcp.json`.
-    
+
     **To activate it:**
     - Restart VS Code or your AI assistant after cloning the repository
     - The MCP server provides tools like `get_best_practices`, `search_documentation`, and `list_projects`
-    - Learn more at https://angular.dev/ai/mcp
+    - Learn more at <https://angular.dev/ai/mcp>
 
 > There are VSCode workspaces available. For general development or trying it out, it's recommended to load the full workspace with backend and frontend folders configured.
 
@@ -217,19 +217,19 @@ This will execute the unit tests for both the frontend and backend projects.
 ### Core Functionality
 
 - [x] Basic document editing with ProseMirror over Yjs
+- [x] Local-first capabilities with automatic sync
 - [x] In-browser IndexedDB storage
 - [x] Backend LevelDB storage
-- [x] Templated worldbuilding features (character/location templates with real-time collaboration)
+- [x] Templated worldbuilding features (character/location templates)
 - [x] Real-time collaborative editing with WebSocket sync
-- [ ] Complete import/export to archive functionality (partially done)
+- [x] Complete import/export to archive functionality
 - [ ] Project renaming and slug changing capabilities
-- [x] Offline-first capabilities with automatic sync
 
 ### Content Export
 
 - [x] EPUB export capability
-- [ ] PDF export functionality
-- [ ] Markdown export options
+- [x] PDF export functionality
+- [x] Markdown export options
 - [ ] Print-friendly formatting
 
 ### User Experience
@@ -264,15 +264,13 @@ This will execute the unit tests for both the frontend and backend projects.
 
 - [x] Docker support with optimized multi-stage Dockerfile
 - [x] Docker Compose configuration
-- [x] Support for SQLite and PostgreSQL databases
+- [x] Support for SQLite and Cloudflare D1 databases
 - [x] CI/CD pipeline with automated testing
 - [x] Automated Docker image publishing to GHCR
 - [x] GitHub Actions workflows
+- [x] Self-hosting documentation
 - [ ] Production logging framework (currently using console logs)
-- [ ] Self-hosting documentation
 - [ ] Monitoring and observability setup
-
-> **Note for Production Deployments:** The current version (v0.1.0) uses console logging for simplicity during development. For production deployments, we recommend implementing a proper logging framework such as Winston, Pino, or a similar solution with log rotation, severity levels, and external logging service integration.
 
 ---
 
