@@ -34,6 +34,40 @@
   }
 }
 
+// Splash screen while initializing
+.splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--header-bg);
+  z-index: 9999;
+
+  .splash-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+
+    .splash-logo {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+    }
+
+    .splash-app-name {
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: var(--t1);
+      letter-spacing: 0.5px;
+    }
+  }
+}
+
 // State containers
 .empty-search-results,
 .loading-state,
