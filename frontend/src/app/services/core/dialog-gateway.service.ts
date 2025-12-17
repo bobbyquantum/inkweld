@@ -43,6 +43,11 @@ import {
   RenameDialogData,
 } from '../../dialogs/rename-dialog/rename-dialog.component';
 import { UserSettingsDialogComponent } from '../../dialogs/user-settings-dialog/user-settings-dialog.component';
+import {
+  WorldbuildingImageDialogComponent,
+  WorldbuildingImageDialogData,
+  WorldbuildingImageDialogResult,
+} from '../../dialogs/worldbuilding-image-dialog/worldbuilding-image-dialog.component';
 
 @Injectable({
   providedIn: 'root',
@@ -182,6 +187,19 @@ export class DialogGatewayService {
       width: '600px',
       maxWidth: '95vw',
       maxHeight: '80vh',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openWorldbuildingImageDialog(
+    data: WorldbuildingImageDialogData
+  ): Promise<WorldbuildingImageDialogResult | undefined> {
+    const dialogRef = this.dialog.open(WorldbuildingImageDialogComponent, {
+      data,
+      disableClose: false,
+      width: '500px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

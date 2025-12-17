@@ -40,7 +40,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  background-color: var(--ngx-editor-menubar-bg-color);
+  background-color: var(--sys-surface-container);
   transition: opacity 0.3s ease;
 
   .zen-mode & {

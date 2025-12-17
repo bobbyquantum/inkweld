@@ -1,50 +1,69 @@
-<div class="tab-interface-container">
-  <nav
-    mat-tab-nav-bar
-    [mat-stretch-tabs]="false"
-    [tabPanel]="tabPanel"
-    class="tab-nav-bar">
-    <!-- Home Tab -->
-    <a
-      mat-tab-link
-      [active]="currentTabIndex === 0"
-      (click)="onTabChange(0)"
-      (keydown.enter)="onTabChange(0)"
-      (keydown.space)="onTabChange(0)"
-      tabindex="0"
-      data-testid="home-tab-button">
-      <div class="tab-label home-tab">
-        <mat-icon>home</mat-icon>
-      </div>
-    </a>
+<div class="tab-bar-container">
+  <!-- Left scroll arrow -->
+  @if (canScrollLeft()) {
+    <button
+      type="button"
+      class="scroll-arrow scroll-arrow-left"
+      (click)="scrollLeft()"
+      aria-label="Scroll tabs left">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+  }
 
-    <!-- All Other Tabs -->
-    @for (tab of projectState.openTabs(); track tab.id; let i = $index) {
-      <a
-        mat-tab-link
-        [active]="currentTabIndex === i + 1"
-        (click)="onTabChange(i + 1)"
-        (keydown.enter)="onTabChange(i + 1)"
-        (keydown.space)="onTabChange(i + 1)"
-        [cdkContextMenuTriggerFor]="tabContextMenu"
-        (contextmenu)="onTabContextMenu(i + 1, tab)"
-        [attr.data-testid]="'tab-' + tab.name"
-        tabindex="0">
-        <div class="tab-label">
+  <div class="tabs-scroll-container" ngTabs>
+    <nav
+      #tabNavBar
+      ngTabList
+      cdkDropList
+      cdkDropListOrientation="horizontal"
+      (cdkDropListDropped)="onTabDrop($event)"
+      class="tab-nav-bar"
+      [selectedTab]="'tab-' + currentTabIndex"
+      selectionMode="explicit"
+      (scroll)="onTabsScroll()">
+      <!-- All Tabs (including Home) -->
+      @for (tab of projectState.openTabs(); track tab.id; let i = $index) {
+        <button
+          cdkDrag
+          ngTab
+          [value]="'tab-' + i"
+          type="button"
+          (click)="onTabChange(i)"
+          [cdkContextMenuTriggerFor]="tabContextMenu"
+          (contextmenu)="onTabContextMenu(i, tab)"
+          [attr.data-testid]="
+            tab.systemType === 'home' ? 'home-tab-button' : 'tab-' + tab.name
+          "
+          class="tab-button"
+          [class.home-tab]="tab.systemType === 'home'">
           <mat-icon class="tab-icon">{{ getTabIcon(tab) }}</mat-icon>
           <span class="tab-name">{{ tab.name }}</span>
           <button
-            mat-icon-button
+            type="button"
             class="close-tab-button"
-            (click)="closeTab(i + 1, $event)">
+            (click)="closeTab(i, $event)">
             <mat-icon>close</mat-icon>
           </button>
-        </div>
-      </a>
-    }
-  </nav>
+        </button>
+      }
+    </nav>
+  </div>
 
-  <mat-tab-nav-panel #tabPanel></mat-tab-nav-panel>
+  <!-- Right scroll arrow -->
+  @if (canScrollRight()) {
+    <button
+      type="button"
+      class="scroll-arrow scroll-arrow-right"
+      (click)="scrollRight()"
+      aria-label="Scroll tabs right">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  }
+
+  <!-- Fixed end actions (projected content) -->
+  <div class="tab-bar-actions">
+    <ng-content></ng-content>
+  </div>
 </div>
 
 <!-- Tab Context Menu -->
@@ -69,6 +88,34 @@
         (click)="closeTab(contextTabIndex || 0)">
         <mat-icon>close</mat-icon>
         <span class="context-menu-item-title">Close</span>
+      </button>
+      @if (hasTabsToRight()) {
+        <button
+          type="button"
+          class="context-menu-item"
+          cdkMenuItem
+          (click)="closeTabsToRight()">
+          <mat-icon>chevron_right</mat-icon>
+          <span class="context-menu-item-title">Close to the Right</span>
+        </button>
+      }
+      @if (hasOtherTabs()) {
+        <button
+          type="button"
+          class="context-menu-item"
+          cdkMenuItem
+          (click)="closeOtherTabs()">
+          <mat-icon>tab_unselected</mat-icon>
+          <span class="context-menu-item-title">Close Others</span>
+        </button>
+      }
+      <button
+        type="button"
+        class="context-menu-item"
+        cdkMenuItem
+        (click)="closeAllTabs()">
+        <mat-icon>close_fullscreen</mat-icon>
+        <span class="context-menu-item-title">Close All</span>
       </button>
     }
   </div>
