@@ -19,12 +19,13 @@
 
   <mat-tree
     #tree
-    [dataSource]="dataSource"
+    [dataSource]="treeElements()"
     [levelAccessor]="levelAccessor"
     cdkDropList
-    [cdkDropListData]="dataSource"
+    [cdkDropListData]="treeElements()"
     (cdkDropListSorted)="sorted($event)"
-    (cdkDropListDropped)="drop($event)">
+    (cdkDropListDropped)="drop($event)"
+    [trackBy]="trackByElement">
     <mat-tree-node
       cdkDrag
       [cdkDragData]="node"

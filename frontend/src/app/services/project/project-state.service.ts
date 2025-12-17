@@ -1,4 +1,11 @@
-import { computed, inject, Injectable, OnDestroy, signal } from '@angular/core';
+import {
+  computed,
+  inject,
+  Injectable,
+  NgZone,
+  OnDestroy,
+  signal,
+} from '@angular/core';
 import { Element, ElementType, Project, ProjectsService } from '@inkweld/index';
 import { ProjectElement } from 'app/models/project-element';
 import { nanoid } from 'nanoid';
@@ -67,6 +74,7 @@ export class ProjectStateService implements OnDestroy {
   private readonly elementTreeService = inject(ElementTreeService);
   private readonly tabManager = inject(TabManagerService);
   private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
+  private readonly ngZone = inject(NgZone);
 
   // Current sync provider (set when project is loaded)
   private syncProvider: IElementSyncProvider | null = null;
@@ -253,6 +261,7 @@ export class ProjectStateService implements OnDestroy {
 
   /**
    * Subscribe to sync provider observables.
+   * Wraps callbacks in NgZone.run() to ensure Angular change detection runs.
    */
   private setupProviderSubscriptions(): void {
     if (!this.syncProvider) return;
@@ -260,34 +269,42 @@ export class ProjectStateService implements OnDestroy {
     // Clean up any existing subscriptions
     this.cleanupProviderSubscriptions();
 
-    // Elements changes
+    // Elements changes - wrap in NgZone for proper change detection
     this.providerSubscriptions.push(
       this.syncProvider.elements$.subscribe(elements => {
-        this.elements.set(elements);
-        // Enrich custom type elements with icons
-        void this.enrichElementsWithIcons(elements);
+        this.ngZone.run(() => {
+          this.elements.set(elements);
+          // Enrich custom type elements with icons
+          void this.enrichElementsWithIcons(elements);
+        });
       })
     );
 
     // Publish plans changes
     this.providerSubscriptions.push(
       this.syncProvider.publishPlans$.subscribe(plans => {
-        this.publishPlans.set(plans);
+        this.ngZone.run(() => {
+          this.publishPlans.set(plans);
+        });
       })
     );
 
     // Sync state changes
     this.providerSubscriptions.push(
       this.syncProvider.syncState$.subscribe(state => {
-        this.docSyncState.set(state);
+        this.ngZone.run(() => {
+          this.docSyncState.set(state);
+        });
       })
     );
 
     // Errors
     this.providerSubscriptions.push(
       this.syncProvider.errors$.subscribe(errorMsg => {
-        this.logger.error('ProjectState', 'Sync provider error', errorMsg);
-        this.error.set(errorMsg);
+        this.ngZone.run(() => {
+          this.logger.error('ProjectState', 'Sync provider error', errorMsg);
+          this.error.set(errorMsg);
+        });
       })
     );
   }

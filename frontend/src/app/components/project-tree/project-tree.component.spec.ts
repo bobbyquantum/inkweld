@@ -1,4 +1,3 @@
-import { ArrayDataSource } from '@angular/cdk/collections';
 import {
   CdkDrag,
   CdkDragDrop,
@@ -159,12 +158,12 @@ describe('ProjectTreeComponent', () => {
 
   describe('Drag and Drop', () => {
     let mockDrag: CdkDrag<ProjectElement>;
-    let mockDropList: CdkDropList<ArrayDataSource<ProjectElement>>;
+    let mockDropList: CdkDropList<ProjectElement[]>;
     let node: ProjectElement;
 
     const createTestDragEvent = (
       invalid = false
-    ): CdkDragDrop<ArrayDataSource<ProjectElement>> => ({
+    ): CdkDragDrop<ProjectElement[], ProjectElement[], ProjectElement> => ({
       previousIndex: 0,
       currentIndex: 1,
       item: {
@@ -173,13 +172,13 @@ describe('ProjectTreeComponent', () => {
           : mockDto,
       } as CdkDrag<ProjectElement>,
       container: {
-        data: new ArrayDataSource([mockDto]),
+        data: [mockDto],
         getSortedItems: () => [{ data: mockDto } as CdkDrag<ProjectElement>],
-      } as CdkDropList<ArrayDataSource<ProjectElement>>,
+      } as CdkDropList<ProjectElement[]>,
       previousContainer: {
-        data: new ArrayDataSource([mockDto]),
+        data: [mockDto],
         getSortedItems: () => [{ data: mockDto } as CdkDrag<ProjectElement>],
-      } as CdkDropList<ArrayDataSource<ProjectElement>>,
+      } as CdkDropList<ProjectElement[]>,
       isPointerOverContainer: true,
       distance: { x: 0, y: 0 },
       event: new MouseEvent('mouseup'),
@@ -264,9 +263,9 @@ describe('ProjectTreeComponent', () => {
       node = mockDto;
       mockDrag = { data: node } as CdkDrag<ProjectElement>;
       mockDropList = {
-        data: new ArrayDataSource<ProjectElement>([node]),
+        data: [node],
         getSortedItems: () => [mockDrag],
-      } as CdkDropList<ArrayDataSource<ProjectElement>>;
+      } as CdkDropList<ProjectElement[]>;
     });
 
     it('should handle drag start', () => {
@@ -289,7 +288,7 @@ describe('ProjectTreeComponent', () => {
         } as CdkDrag<ProjectElement>,
         // Add the drag item to be able to filter it properly
         // in the sorted event handler
-      } as unknown as CdkDragSortEvent<ArrayDataSource<ProjectElement>>;
+      } as unknown as CdkDragSortEvent<ProjectElement[]>;
 
       const [nodeAbove, nodeBelow] = [
         createTestNode('2', 1, 0),
@@ -312,7 +311,7 @@ describe('ProjectTreeComponent', () => {
     it('should handle drag move with valid container dimensions', () => {
       const mockMoveEvent = {
         pointerPosition: { x: 100, y: 0 },
-      } as CdkDragMove<ArrayDataSource<ProjectElement>>;
+      } as CdkDragMove<ProjectElement>;
 
       // Mock the getBoundingClientRect to return valid dimensions
       vi.spyOn(
@@ -350,7 +349,7 @@ describe('ProjectTreeComponent', () => {
   it('should handle drag move with invalid container dimensions', () => {
     const mockMoveEvent = {
       pointerPosition: { x: 100, y: 0 },
-    } as CdkDragMove<ArrayDataSource<ProjectElement>>;
+    } as CdkDragMove<ProjectElement>;
 
     vi.spyOn(
       component.treeContainer.nativeElement,

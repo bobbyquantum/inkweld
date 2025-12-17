@@ -1,4 +1,3 @@
-import { ArrayDataSource } from '@angular/cdk/collections';
 import {
   CdkDrag,
   CdkDragDrop,
@@ -85,7 +84,6 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
   readonly isSaving = this.projectStateService.isSaving;
   readonly error = this.projectStateService.error;
 
-  dataSource: ArrayDataSource<ProjectElement>;
   readonly settingsService = inject(SettingsService);
   protected readonly router = inject(Router);
 
@@ -133,18 +131,6 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
   @Output() documentOpened = new EventEmitter<Element>();
 
   constructor() {
-    this.dataSource = new ArrayDataSource<ProjectElement>([]);
-    effect(() => {
-      this.logger.debug(
-        'ProjectTree',
-        'Visible elements changed',
-        this.projectStateService.visibleElements()
-      );
-      this.dataSource = new ArrayDataSource<ProjectElement>(
-        this.projectStateService.visibleElements()
-      );
-    });
-
     let tabsReady = false;
     // only update indicator after tabs load from storage
     effect(() => {
@@ -173,6 +159,16 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
         setTimeout(() => this.updateIndicator());
       }
     });
+  }
+
+  /**
+   * Track function for efficient DOM updates.
+   * @param index The index of the item.
+   * @param item The project element.
+   * @returns The unique identifier for the item.
+   */
+  trackByElement(_index: number, item: ProjectElement): string {
+    return item.id;
   }
 
   /**
@@ -258,7 +254,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
    * Handles the drag move event to adjust the placeholder position.
    * @param event The drag move event.
    */
-  public dragMove(event: CdkDragMove<ArrayDataSource<ProjectElement>>) {
+  public dragMove(event: CdkDragMove<ProjectElement>) {
     const pointerX = event.pointerPosition.x;
 
     const treeRect = this.treeContainer.nativeElement.getBoundingClientRect();
@@ -302,10 +298,10 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
    *
    * @param event The drag sort event.
    */
-  sorted(event: CdkDragSortEvent<ArrayDataSource<ProjectElement>>) {
+  sorted(event: CdkDragSortEvent<ProjectElement[]>) {
     const { previousIndex, currentIndex, container, item } = event;
 
-    // Item being dragged
+    // Item being dragged (cdkDragData sets this as ProjectElement, but TS infers container type)
     const draggedItem = item.data as unknown as ProjectElement;
 
     // Determine if dragging up or down
@@ -320,7 +316,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
 
     const sortedNodes = container
       .getSortedItems()
-      .map(dragItem => dragItem.data as ProjectElement);
+      .map(dragItem => dragItem.data as unknown as ProjectElement);
 
     // Filter out the dragged item
     const filteredNodes = sortedNodes.filter(
@@ -358,11 +354,11 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
    * Handles the drop event to rearrange nodes.
    * @param event The drag drop event.
    */
-  public async drop(event: CdkDragDrop<ArrayDataSource<ProjectElement>>) {
+  public async drop(event: CdkDragDrop<ProjectElement[]>) {
     const { previousIndex, currentIndex, container, item } = event;
 
-    // Item being dragged
-    const draggedItem = item.data as ProjectElement;
+    // Item being dragged (cdkDragData sets this as ProjectElement, but TS infers container type)
+    const draggedItem = item.data as unknown as ProjectElement;
 
     // Determine if dragging up or down
     const isDraggingDown = previousIndex < currentIndex;
@@ -376,7 +372,7 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
 
     const sortedNodes = container
       .getSortedItems()
-      .map(dragItem => dragItem.data as ProjectElement);
+      .map(dragItem => dragItem.data as unknown as ProjectElement);
 
     // Filter out the dragged item
     const filteredNodes = sortedNodes.filter(
