@@ -51,74 +51,129 @@
         (documentOpened)="onDocumentOpened($event)"></app-project-tree>
     </mat-sidenav>
   }
-  <mat-sidenav-content>
-    <!-- Main toolbar -->
-    <mat-toolbar class="mobile-toolbar">
-      <button mat-icon-button (click)="toggleSidebar()">
-        <mat-icon>menu</mat-icon>
-      </button>
-      <span class="project-title">{{ projectState.project()?.title }}</span>
-      <span class="toolbar-spacer"></span>
-      <div class="toolbar-actions">
-        <button
-          mat-icon-button
-          [matMenuTriggerFor]="moreMenuMobile"
-          class="action-button"
-          data-testid="project-more-menu-button">
-          <mat-icon>more_vert</mat-icon>
+  <mat-sidenav-content [class.no-toolbar]="!isMobile() && useTabsDesktop()">
+    <!-- Main toolbar - only shown on mobile or when desktop tabs are disabled -->
+    @if (isMobile() || !useTabsDesktop()) {
+      <mat-toolbar class="mobile-toolbar">
+        <button mat-icon-button (click)="toggleSidebar()">
+          <mat-icon>menu</mat-icon>
         </button>
-        <app-user-menu [miniMode]="true" class="action-button"></app-user-menu>
-      </div>
-      <mat-menu #moreMenuMobile="matMenu">
-        @if (canEnableZenMode() || isZenMode()) {
-          <button mat-menu-item (click)="toggleZenMode()">
-            <mat-icon>self_improvement</mat-icon>
-            <span>Toggle Zen Mode</span>
+        <span class="project-title">{{ projectState.project()?.title }}</span>
+        <span class="toolbar-spacer"></span>
+        <div class="toolbar-actions">
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="moreMenuMobile"
+            class="action-button"
+            data-testid="project-more-menu-button">
+            <mat-icon>more_vert</mat-icon>
           </button>
-        }
-        <button
-          mat-menu-item
-          (click)="onExportClicked()"
-          data-testid="export-project-button">
-          <mat-icon>download</mat-icon>
-          <span>Export project</span>
+          <app-user-menu
+            [miniMode]="true"
+            class="action-button"></app-user-menu>
+        </div>
+        <mat-menu #moreMenuMobile="matMenu">
+          @if (canEnableZenMode() || isZenMode()) {
+            <button mat-menu-item (click)="toggleZenMode()">
+              <mat-icon>self_improvement</mat-icon>
+              <span>Toggle Zen Mode</span>
+            </button>
+          }
+          <button
+            mat-menu-item
+            (click)="onExportClicked()"
+            data-testid="export-project-button">
+            <mat-icon>download</mat-icon>
+            <span>Export project</span>
+          </button>
+          <button
+            mat-menu-item
+            (click)="onImportClicked()"
+            data-testid="import-project-button">
+            <mat-icon>upload</mat-icon>
+            <span>Import project</span>
+          </button>
+          <button
+            mat-menu-item
+            (click)="onDeleteProjectClick()"
+            data-testid="delete-project-button">
+            <mat-icon>delete</mat-icon>
+            <span>Delete project</span>
+          </button>
+          <button mat-menu-item (click)="onPublishClick()">
+            <mat-icon>publish</mat-icon>
+            <span>Publish project</span>
+          </button>
+          <button mat-menu-item (click)="onShowDocumentList()">
+            <mat-icon>list</mat-icon>
+            <span>Show Document List</span>
+          </button>
+          <button mat-menu-item (click)="onShowMediaLibrary()">
+            <mat-icon>perm_media</mat-icon>
+            <span>Show Media Library</span>
+          </button>
+          <button mat-menu-item (click)="onShowTemplatesList()">
+            <mat-icon>description</mat-icon>
+            <span>Show Templates</span>
+          </button>
+          <button mat-menu-item (click)="exitProject()">
+            <mat-icon>exit_to_app</mat-icon>
+            <span>Exit project</span>
+          </button>
+        </mat-menu>
+      </mat-toolbar>
+    }
+
+    <!-- Desktop menu (used when projected into tab bar - defined outside @if to be accessible) -->
+    <mat-menu #moreMenuDesktop="matMenu">
+      @if (canEnableZenMode() || isZenMode()) {
+        <button mat-menu-item (click)="toggleZenMode()">
+          <mat-icon>self_improvement</mat-icon>
+          <span>Toggle Zen Mode</span>
         </button>
-        <button
-          mat-menu-item
-          (click)="onImportClicked()"
-          data-testid="import-project-button">
-          <mat-icon>upload</mat-icon>
-          <span>Import project</span>
-        </button>
-        <button
-          mat-menu-item
-          (click)="onDeleteProjectClick()"
-          data-testid="delete-project-button">
-          <mat-icon>delete</mat-icon>
-          <span>Delete project</span>
-        </button>
-        <button mat-menu-item (click)="onPublishClick()">
-          <mat-icon>publish</mat-icon>
-          <span>Publish project</span>
-        </button>
-        <button mat-menu-item (click)="onShowDocumentList()">
-          <mat-icon>list</mat-icon>
-          <span>Show Document List</span>
-        </button>
-        <button mat-menu-item (click)="onShowMediaLibrary()">
-          <mat-icon>perm_media</mat-icon>
-          <span>Show Media Library</span>
-        </button>
-        <button mat-menu-item (click)="onShowTemplatesList()">
-          <mat-icon>description</mat-icon>
-          <span>Show Templates</span>
-        </button>
-        <button mat-menu-item (click)="exitProject()">
-          <mat-icon>exit_to_app</mat-icon>
-          <span>Exit project</span>
-        </button>
-      </mat-menu>
-    </mat-toolbar>
+      }
+      <button
+        mat-menu-item
+        (click)="onExportClicked()"
+        data-testid="export-project-button-desktop">
+        <mat-icon>download</mat-icon>
+        <span>Export project</span>
+      </button>
+      <button
+        mat-menu-item
+        (click)="onImportClicked()"
+        data-testid="import-project-button-desktop">
+        <mat-icon>upload</mat-icon>
+        <span>Import project</span>
+      </button>
+      <button
+        mat-menu-item
+        (click)="onDeleteProjectClick()"
+        data-testid="delete-project-button-desktop">
+        <mat-icon>delete</mat-icon>
+        <span>Delete project</span>
+      </button>
+      <button mat-menu-item (click)="onPublishClick()">
+        <mat-icon>publish</mat-icon>
+        <span>Publish project</span>
+      </button>
+      <button mat-menu-item (click)="onShowDocumentList()">
+        <mat-icon>list</mat-icon>
+        <span>Show Document List</span>
+      </button>
+      <button mat-menu-item (click)="onShowMediaLibrary()">
+        <mat-icon>perm_media</mat-icon>
+        <span>Show Media Library</span>
+      </button>
+      <button mat-menu-item (click)="onShowTemplatesList()">
+        <mat-icon>description</mat-icon>
+        <span>Show Templates</span>
+      </button>
+      <button mat-menu-item (click)="exitProject()">
+        <mat-icon>exit_to_app</mat-icon>
+        <span>Exit project</span>
+      </button>
+    </mat-menu>
 
     @if (isMobile()) {
       <div class="mobile-content-wrapper">
@@ -173,8 +228,20 @@
             <div class="desktop-content">
               @if (useTabsDesktop()) {
                 <div class="tabs-header">
-                  <app-tab-interface
-                    (importRequested)="onImportClicked()"></app-tab-interface>
+                  <app-tab-interface (importRequested)="onImportClicked()">
+                    <!-- Projected into tab-bar-actions -->
+                    <button
+                      mat-icon-button
+                      [matMenuTriggerFor]="moreMenuDesktop"
+                      class="action-button"
+                      data-testid="project-more-menu-button"
+                      aria-label="More actions">
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                    <app-user-menu
+                      [miniMode]="true"
+                      class="action-button"></app-user-menu>
+                  </app-tab-interface>
                 </div>
               }
               <div class="content-area">
@@ -188,8 +255,20 @@
         <div class="desktop-content">
           @if (useTabsDesktop()) {
             <div class="tabs-header">
-              <app-tab-interface
-                (importRequested)="onImportClicked()"></app-tab-interface>
+              <app-tab-interface (importRequested)="onImportClicked()">
+                <!-- Projected into tab-bar-actions -->
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="moreMenuDesktop"
+                  class="action-button"
+                  data-testid="project-more-menu-button"
+                  aria-label="More actions">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <app-user-menu
+                  [miniMode]="true"
+                  class="action-button"></app-user-menu>
+              </app-tab-interface>
             </div>
           }
           <div class="content-area">

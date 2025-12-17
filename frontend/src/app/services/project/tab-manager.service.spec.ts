@@ -123,13 +123,13 @@ describe('TabManagerService', () => {
       expect(service.openTabs().length).toBe(1);
     });
 
-    it('should set selected tab index with home offset', () => {
+    it('should set selected tab index for opened document', () => {
       const element = createElement('doc-1', 'Chapter 1', ElementType.Item);
 
       service.openDocument(element);
 
-      // Index should be 1 (0 is home tab)
-      expect(service.selectedTabIndex()).toBe(1);
+      // Index should be 0 (first tab in the array)
+      expect(service.selectedTabIndex()).toBe(0);
     });
 
     it('should add element to openDocuments', () => {
@@ -405,7 +405,7 @@ describe('TabManagerService', () => {
   });
 
   describe('findSystemTabIndex', () => {
-    it('should return index with home offset for existing system tab', () => {
+    it('should return index for existing system tab', () => {
       service.openDocument(
         createElement('doc-1', 'Chapter 1', ElementType.Item)
       );
@@ -413,8 +413,8 @@ describe('TabManagerService', () => {
 
       const index = service.findSystemTabIndex('documents-list');
 
-      // Should be 2 (index 1 in array + 1 for home offset)
-      expect(index).toBe(2);
+      // Should be 1 (second tab in array after doc-1)
+      expect(index).toBe(1);
     });
 
     it('should return -1 for non-existing system tab', () => {
@@ -425,7 +425,7 @@ describe('TabManagerService', () => {
   });
 
   describe('findTabIndexByElementId', () => {
-    it('should return index with home offset for existing tab', () => {
+    it('should return index for existing tab', () => {
       service.openDocument(
         createElement('doc-1', 'Chapter 1', ElementType.Item)
       );
@@ -435,7 +435,7 @@ describe('TabManagerService', () => {
 
       const index = service.findTabIndexByElementId('doc-2');
 
-      expect(index).toBe(2); // Index 1 in array + 1 for home offset
+      expect(index).toBe(1); // Second tab in array
     });
 
     it('should return -1 for non-existing element', () => {

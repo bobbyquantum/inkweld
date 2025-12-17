@@ -15,8 +15,20 @@ import { DefaultTemplatesService } from './default-templates.service';
 interface WorldbuildingConnection {
   ydoc: Y.Doc;
   dataMap: Y.Map<unknown>;
+  identityMap: Y.Map<unknown>;
   provider?: WebsocketProvider;
   indexeddbProvider: IndexeddbPersistence;
+}
+
+/**
+ * Common identity data for all worldbuilding elements.
+ * This is stored separately from schema-specific data.
+ */
+export interface WorldbuildingIdentity {
+  /** Image URL or asset reference */
+  image?: string;
+  /** Short description for tooltips and previews */
+  description?: string;
 }
 
 @Injectable({
@@ -81,6 +93,7 @@ export class WorldbuildingService {
     if (!connection) {
       const ydoc = new Y.Doc();
       const dataMap = ydoc.getMap('worldbuilding');
+      const identityMap = ydoc.getMap('identity');
 
       // Initialize IndexedDB provider for offline persistence
       const indexeddbProvider = new IndexeddbPersistence(
@@ -134,6 +147,7 @@ export class WorldbuildingService {
       connection = {
         ydoc,
         dataMap,
+        identityMap,
         provider,
         indexeddbProvider,
       };
@@ -202,6 +216,84 @@ export class WorldbuildingService {
 
     // Return cleanup function
     return () => dataMap.unobserve(observer);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Identity Data (common fields for all worldbuilding elements)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get the identity data for a worldbuilding element
+   */
+  async getIdentityData(
+    elementId: string,
+    username?: string,
+    slug?: string
+  ): Promise<WorldbuildingIdentity> {
+    await this.setupCollaboration(elementId, username, slug);
+    const connection = this.connections.get(elementId);
+    if (!connection) {
+      return {};
+    }
+
+    const identityMap = connection.identityMap;
+    return {
+      image: identityMap.get('image') as string | undefined,
+      description: identityMap.get('description') as string | undefined,
+    };
+  }
+
+  /**
+   * Save identity data for a worldbuilding element
+   */
+  async saveIdentityData(
+    elementId: string,
+    data: Partial<WorldbuildingIdentity>,
+    username?: string,
+    slug?: string
+  ): Promise<void> {
+    await this.setupCollaboration(elementId, username, slug);
+    const connection = this.connections.get(elementId);
+    if (!connection) {
+      return;
+    }
+
+    const identityMap = connection.identityMap;
+    connection.ydoc.transact(() => {
+      if (data.image !== undefined) {
+        identityMap.set('image', data.image);
+      }
+      if (data.description !== undefined) {
+        identityMap.set('description', data.description);
+      }
+    });
+  }
+
+  /**
+   * Observe changes to identity data
+   */
+  async observeIdentityChanges(
+    elementId: string,
+    callback: (data: WorldbuildingIdentity) => void,
+    username?: string,
+    slug?: string
+  ): Promise<() => void> {
+    await this.setupCollaboration(elementId, username, slug);
+    const connection = this.connections.get(elementId);
+    if (!connection) {
+      return () => {};
+    }
+
+    const identityMap = connection.identityMap;
+    const observer = () => {
+      callback({
+        image: identityMap.get('image') as string | undefined,
+        description: identityMap.get('description') as string | undefined,
+      });
+    };
+
+    identityMap.observe(observer);
+    return () => identityMap.unobserve(observer);
   }
 
   /**

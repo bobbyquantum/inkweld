@@ -1,53 +1,235 @@
-.tab-interface-container {
+// Main tab bar container - horizontal layout with scrollable tabs and fixed end actions
+.tab-bar-container {
+  display: flex;
+  align-items: stretch;
   width: 100%;
-  position: relative;
+  height: 48px;
+  background-color: var(--sys-surface-container-lowest);
+  border-bottom: 1px solid var(--sys-outline-variant);
 }
 
+// Scroll arrow buttons
+.scroll-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background-color: var(--sys-surface-container-lowest);
+  color: var(--sys-on-surface-variant);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  z-index: 1;
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--sys-on-surface) 8%, transparent);
+    color: var(--sys-on-surface);
+  }
+
+  &:active {
+    background-color: color-mix(in srgb, var(--sys-on-surface) 12%, transparent);
+  }
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.scroll-arrow-left {
+  border-right: 1px solid var(--sys-outline-variant);
+}
+
+.scroll-arrow-right {
+  border-left: 1px solid var(--sys-outline-variant);
+}
+
+// Scrollable tabs container
+.tabs-scroll-container {
+  flex: 1;
+  min-width: 0; // Allow shrinking
+  overflow: hidden;
+}
+
+// Angular ARIA Tab Navigation Bar
 .tab-nav-bar {
-  background-color: var(--sys-surface-container);
-  width: 100%;
-  overflow-x: auto; // Allow scrolling for many tabs
+  display: flex;
+  height: 100%;
+  overflow-x: auto;
+  outline: none;
 
   // Hide scrollbar but allow scrolling
   &::-webkit-scrollbar {
     display: none;
   }
-  -ms-overflow-style: none; // IE and Edge
-  scrollbar-width: none; // Firefox
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-// Tab label styling
-.tab-label {
+// Fixed actions container at the end of the tab bar
+.tab-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--sys-outline-variant);
+  background-color: var(--sys-surface-container-lowest);
+
+  // Style projected buttons
+  ::ng-deep {
+    button {
+      color: var(--sys-on-surface-variant);
+
+      &:hover {
+        color: var(--sys-on-surface);
+      }
+    }
+
+    .mat-mdc-icon-button {
+      --mdc-icon-button-state-layer-size: 40px;
+      --mdc-icon-button-icon-size: 20px;
+    }
+  }
+}
+
+// Tab button base styles
+.tab-button {
   display: flex;
   align-items: center;
   gap: 8px;
-  max-width: 260px; // Increased max-width
-  width: 100%; // Take up available space
-  position: relative; // For absolute positioning of close button
+  padding: 0 16px;
+  height: 100%;
+  min-width: 90px;
+  max-width: 260px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+  color: var(--sys-on-surface-variant);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
 
-  // Text content styling
-  span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex-grow: 1; // Allow text to take available space
+  // Hover state
+  &:hover:not([aria-disabled='true']) {
+    background-color: color-mix(in srgb, var(--sys-on-surface) 8%, transparent);
   }
 
-  // Icon styling for different tab types
-  .tab-icon {
-    color: var(--sys-color-primary);
-    opacity: 0.8;
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
+  // Focus visible state
+  &:focus-visible {
+    outline: 2px solid var(--sys-primary);
+    outline-offset: -2px;
+    border-radius: 4px;
   }
 
-  &.home-tab {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none; // Make home tab non-closeable
+  // Selected state (aria-selected from Angular ARIA)
+  &[aria-selected='true'] {
+    color: var(--sys-primary);
+    background-color: var(--sys-surface-container-low);
+    z-index: 1;
+
+    // Active indicator bar at top
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background-color: var(--sys-primary);
+      border-bottom-left-radius: 3px;
+      border-bottom-right-radius: 3px;
+    }
+  }
+
+  // Disabled state
+  &[aria-disabled='true'] {
     cursor: default;
+    color: color-mix(in srgb, var(--sys-on-surface) 38%, transparent);
+  }
+
+  // Home tab specific styles (no special styling needed, just a regular tab now)
+
+  // Drag state
+  &.cdk-drag-preview {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    background-color: var(--sys-surface-container);
+    opacity: 0.9;
+  }
+
+  &.cdk-drag-placeholder {
+    opacity: 0.3;
+  }
+
+  &.cdk-drag-animating {
+    transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+// Drop list animation
+.tab-nav-bar.cdk-drop-list-dragging .tab-button:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+// Tab name text
+.tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+// Tab icon
+.tab-icon {
+  color: var(--sys-primary);
+  opacity: 0.8;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+// Close button - hidden until tab is hovered
+.close-tab-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  color: inherit;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+
+  // Show on tab hover or when tab is selected
+  .tab-button:hover &,
+  .tab-button[aria-selected='true'] & {
+    opacity: 0.6;
+  }
+
+  &:hover {
+    opacity: 1;
+    background-color: color-mix(in srgb, var(--sys-on-surface) 12%, transparent);
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
   }
 }
 
@@ -131,20 +313,4 @@
   100% {
     opacity: 0.6;
   }
-}
-
-mat-tab-nav-panel {
-  height: calc(100% - 48px);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-router-outlet + * {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-  flex: 1;
-  min-height: 0;
 }

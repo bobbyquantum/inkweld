@@ -1,0 +1,66 @@
+<aside class="identity-panel" [class.collapsed]="!isExpanded()">
+  <!-- Collapse toggle for mobile -->
+  <button
+    class="collapse-toggle"
+    mat-icon-button
+    (click)="toggleExpanded()"
+    [matTooltip]="isExpanded() ? 'Collapse' : 'Expand'">
+    <mat-icon>{{ isExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+  </button>
+
+  @if (isExpanded()) {
+    <div class="identity-content">
+      <!-- Image section -->
+      <div class="image-section">
+        <button
+          class="image-placeholder"
+          (click)="onImageClick()"
+          matTooltip="Click to set image">
+          @if (identity().image) {
+            <img [src]="identity().image" [alt]="elementName()" />
+          } @else {
+            <mat-icon class="placeholder-icon">image</mat-icon>
+            <span class="placeholder-text">Add Image</span>
+          }
+        </button>
+      </div>
+
+      <!-- Name section -->
+      <div class="name-section">
+        <span class="element-name">{{ elementName() }}</span>
+        <button
+          mat-icon-button
+          class="rename-button"
+          (click)="onRenameClick()"
+          matTooltip="Rename">
+          <mat-icon>edit</mat-icon>
+        </button>
+      </div>
+
+      <!-- Description section -->
+      <div class="description-section">
+        <mat-form-field appearance="outline" class="description-field">
+          <mat-label>Description</mat-label>
+          <textarea
+            matInput
+            [ngModel]="description()"
+            (ngModelChange)="onDescriptionChange($event)"
+            placeholder="Brief description (shown in tooltips)"
+            rows="4"
+            cdkTextareaAutosize></textarea>
+          <mat-hint>Used for tooltips and previews</mat-hint>
+        </mat-form-field>
+      </div>
+    </div>
+  } @else {
+    <!-- Collapsed view - just show image thumbnail -->
+    <div class="collapsed-content">
+      @if (identity().image) {
+        <img class="thumbnail" [src]="identity().image" [alt]="elementName()" />
+      } @else {
+        <mat-icon class="thumbnail-placeholder">image</mat-icon>
+      }
+      <span class="collapsed-name">{{ elementName() }}</span>
+    </div>
+  }
+</aside>

@@ -2,14 +2,27 @@
   class="worldbuilding-editor-container"
   data-testid="worldbuilding-editor"
   [class.panel-open]="showMetaPanel()">
+  <!-- Identity panel (left side on desktop, top on mobile) -->
+  <app-identity-panel
+    [elementId]="elementId()"
+    [elementName]="elementName()"
+    [username]="username()"
+    [slug]="slug()"
+    (renameRequested)="onRenameRequested()">
+  </app-identity-panel>
+
   <div class="editor-section">
     <div class="dynamic-worldbuilding-editor">
       @if (schema()) {
         <form [formGroup]="form">
-          <!-- Toolbar with meta panel toggle -->
-          <div class="template-editor-controls">
-            <!-- Meta panel toggle button -->
+          <app-aria-tabs
+            [tabs]="getTabConfigs()"
+            [selectedIndex]="selectedTabIndex()"
+            (selectedIndexChange)="selectedTabIndex.set($event)"
+            [showScrollArrows]="false">
+            <!-- Tab bar actions -->
             <button
+              tabBarActions
               mat-icon-button
               class="meta-panel-toggle-btn"
               (click)="showMetaPanel.set(!showMetaPanel())"
@@ -19,11 +32,9 @@
                 showMetaPanel() ? 'chevron_right' : 'chevron_left'
               }}</mat-icon>
             </button>
-          </div>
 
-          <mat-tab-group>
             @for (tab of getTabs(); track tab.key) {
-              <mat-tab [label]="tab.label">
+              <app-aria-tab-panel [key]="tab.key">
                 <div class="tab-content">
                   @for (field of getFieldsForTab(tab.key); track field.key) {
                     @if (field.key.includes('.')) {
@@ -220,9 +231,9 @@
                     }
                   }
                 </div>
-              </mat-tab>
+              </app-aria-tab-panel>
             }
-          </mat-tab-group>
+          </app-aria-tabs>
         </form>
       } @else {
         <div class="loading-state">

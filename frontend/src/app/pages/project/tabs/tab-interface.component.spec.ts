@@ -112,6 +112,8 @@ describe('TabInterfaceComponent', () => {
       closeTab: vi.fn(),
       renameNode: vi.fn(),
       openSystemTab: vi.fn(),
+      openHomeTab: vi.fn(),
+      reorderTabs: vi.fn(),
       selectTab: vi.fn((index: number) => selectedTabIndexSignal.set(index)),
     };
 
@@ -213,11 +215,11 @@ describe('TabInterfaceComponent', () => {
 
   it('should close a tab when closeTab is called', () => {
     component.closeTab(1);
-    expect(projectStateService.closeTab).toHaveBeenCalledWith(0); // Index 1 - 1 (home tab offset)
+    expect(projectStateService.closeTab).toHaveBeenCalledWith(1); // Direct index, no offset
   });
 
   it('should navigate to previous tab when current tab is closed', () => {
-    // Set current tab to 1 (first document)
+    // Set current tab to 1 (second tab)
     (projectStateService.selectedTabIndex as any).set(1);
     fixture.detectChanges();
 
@@ -227,12 +229,16 @@ describe('TabInterfaceComponent', () => {
     // Close the current tab
     component.closeTab(1);
 
-    // Should navigate to tab 0 (home)
+    // Should navigate to tab 0
     expect(component.onTabChange).toHaveBeenCalledWith(0);
-    expect(projectStateService.closeTab).toHaveBeenCalledWith(0); // Index 1 - 1 (home tab offset)
+    expect(projectStateService.closeTab).toHaveBeenCalledWith(1); // Direct index
   });
 
-  it('should not close home tab', () => {
+  it('should not close the last remaining tab', () => {
+    // Set up with only one tab
+    (projectStateService.openTabs as any).set([mockTabs[0]]);
+    fixture.detectChanges();
+
     component.closeTab(0);
     expect(projectStateService.closeTab).not.toHaveBeenCalled();
   });
@@ -336,7 +342,7 @@ describe('TabInterfaceComponent', () => {
     expect(selectTabSpy).toHaveBeenCalled();
   });
 
-  it('should set selectedTabIndex to 0 when URL has no tabId', () => {
+  it('should open home tab when URL has no tabId and no home tab exists', () => {
     const mockRoute = {
       root: {
         firstChild: {
@@ -355,13 +361,13 @@ describe('TabInterfaceComponent', () => {
 
     (component as any)['route'] = mockRoute as any;
 
-    // Mock selectTab method
-    const selectTabSpy = vi.spyOn(projectStateService as any, 'selectTab');
+    // Set up with no home tab
+    (projectStateService.openTabs as any).set([mockTabs[0]]); // Just a regular doc
 
     component.updateSelectedTabFromUrl();
 
-    // Should set tab index to 0 (home tab)
-    expect(selectTabSpy).toHaveBeenCalledWith(0);
+    // Should call openHomeTab since there's no home tab
+    expect(projectStateService.openHomeTab).toHaveBeenCalled();
   });
 
   it('should handle router navigation events', () => {

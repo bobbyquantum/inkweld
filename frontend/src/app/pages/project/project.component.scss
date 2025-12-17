@@ -218,7 +218,7 @@ as-split {
   position: relative;
 }
 
-// Mobile toolbar
+// Mobile toolbar - hidden on desktop when tabs are enabled
 .mobile-toolbar {
   position: fixed;
   top: 0;
@@ -260,6 +260,11 @@ mat-sidenav-content {
   height: 100%;
   overflow: hidden;
   padding-top: 48px;
+
+  // Remove padding when toolbar is hidden (desktop with tabs)
+  &.no-toolbar {
+    padding-top: 0;
+  }
 }
 
 // Tabs and content layout

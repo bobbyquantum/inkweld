@@ -1,16 +1,31 @@
-// Main container with editor + meta panel side by side
+// Main container with identity panel + editor + meta panel
 .worldbuilding-editor-container {
   display: flex;
   flex-direction: row;
   height: calc(100vh - 98px);
   overflow: hidden;
 
+  // Mobile: stack vertically
   @media (max-width: 759px) {
+    flex-direction: column;
     height: calc(100vh - 82px);
   }
 }
 
-// Editor section (left side)
+// Identity panel (left side on desktop)
+app-identity-panel {
+  flex-shrink: 0;
+  
+  @media (min-width: 760px) {
+    border-right: 1px solid var(--sys-outline-variant);
+  }
+  
+  @media (max-width: 759px) {
+    border-bottom: 1px solid var(--sys-outline-variant);
+  }
+}
+
+// Editor section (center)
 .editor-section {
   display: flex;
   flex-direction: column;
@@ -35,24 +50,13 @@
     min-height: 0;
   }
 
-  .template-editor-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-    flex-shrink: 0;
-  }
-
-  // Meta panel toggle button in toolbar
-  .meta-panel-toggle-btn {
-    margin-left: auto; // Push to right side of toolbar
-  }
-
-  mat-tab-group {
+  // Aria tabs styling
+  app-aria-tabs {
     flex: 1;
     overflow: hidden;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .tab-content {

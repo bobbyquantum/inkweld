@@ -23,6 +23,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { ElementType } from '../../../../api-client';
+import { ProjectStateService } from '../../../services/project/project-state.service';
+import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
+import { isWorldbuildingType } from '../../../utils/worldbuilding.utils';
 import { ElementRefService } from '../element-ref.service';
 
 /**
@@ -382,6 +385,8 @@ export interface ElementPreviewContent {
 })
 export class ElementRefTooltipComponent {
   private elementRefService = inject(ElementRefService);
+  private worldbuildingService = inject(WorldbuildingService);
+  private projectState = inject(ProjectStateService);
 
   /** The tooltip data */
   @Input() set tooltipData(value: ElementRefTooltipData | null) {
@@ -465,7 +470,7 @@ export class ElementRefTooltipComponent {
   }
 
   /** Load preview content for an element */
-  private loadPreviewContent(elementId: string): void {
+  private async loadPreviewContent(elementId: string): Promise<void> {
     this.isLoadingPreview.set(true);
 
     try {
@@ -473,12 +478,33 @@ export class ElementRefTooltipComponent {
       const element = this.elementRefService.getElementById(elementId);
 
       if (element) {
-        // For now, just show basic info - async content loading can be added later
-        // TODO: Load actual content preview asynchronously
+        // Check if this is a worldbuilding element
+        if (isWorldbuildingType(element.type)) {
+          // Load identity data (description) for worldbuilding elements
+          const project = this.projectState.project();
+          if (project) {
+            const identityData =
+              await this.worldbuildingService.getIdentityData(
+                elementId,
+                project.username,
+                project.slug
+              );
+
+            this.previewContent.set({
+              path: undefined,
+              excerpt: identityData.description,
+              wordCount: undefined,
+            });
+            return;
+          }
+        }
+
+        // For non-worldbuilding elements, show basic info
+        // TODO: Load document excerpt asynchronously for Item type
         this.previewContent.set({
-          path: undefined, // Will be populated when path building is available
-          excerpt: undefined, // Will load document excerpt asynchronously
-          wordCount: undefined, // Will be calculated from document content
+          path: undefined,
+          excerpt: undefined,
+          wordCount: undefined,
         });
       }
     } finally {

@@ -1,0 +1,127 @@
+<h2 mat-dialog-title>
+  @if (showCropper) {
+    Crop Image
+  } @else {
+    Set Image for {{ elementName }}
+  }
+</h2>
+
+<mat-dialog-content class="dialog-content">
+  @if (showCropper) {
+    <!-- Cropper View -->
+    <div class="cropper-view">
+      <p class="cropper-subtitle">
+        Adjust the selection to crop your image (1:1 square ratio)
+      </p>
+      <div class="cropper-container">
+        <image-cropper
+          [imageChangedEvent]="imageChangedEvent"
+          [imageBase64]="imageBase64"
+          [maintainAspectRatio]="true"
+          [aspectRatio]="aspectRatio"
+          [roundCropper]="false"
+          format="png"
+          output="blob"
+          [resizeToWidth]="512"
+          [resizeToHeight]="512"
+          [cropperMinWidth]="100"
+          [cropperMinHeight]="100"
+          [onlyScaleDown]="true"
+          (imageCropped)="imageCropped($event)"
+          (imageLoaded)="onImageLoaded($event)"
+          (cropperReady)="onCropperReady()"
+          (loadImageFailed)="onLoadImageFailed()">
+        </image-cropper>
+      </div>
+    </div>
+  } @else {
+    <!-- Main View -->
+    <div class="main-view">
+      <!-- Current Image Preview -->
+      <div class="image-preview">
+        @if (currentImageUrl && hasCurrentImage) {
+          <img
+            [src]="currentImageUrl"
+            [alt]="elementName"
+            class="preview-img" />
+        } @else {
+          <div class="no-image-placeholder">
+            <mat-icon>image</mat-icon>
+            <span>No image set</span>
+          </div>
+        }
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button
+          mat-stroked-button
+          color="primary"
+          (click)="openFileSelector()"
+          [disabled]="isLoading">
+          <mat-icon>add_photo_alternate</mat-icon>
+          Upload Image
+        </button>
+
+        <button
+          mat-stroked-button
+          color="primary"
+          (click)="openMediaLibrary()"
+          [disabled]="isLoading">
+          <mat-icon>photo_library</mat-icon>
+          Select from Library
+        </button>
+
+        <button
+          mat-stroked-button
+          color="primary"
+          (click)="openGenerateDialog()"
+          [disabled]="isLoading">
+          <mat-icon>auto_awesome</mat-icon>
+          Generate with AI
+        </button>
+
+        @if (hasCurrentImage) {
+          <button
+            mat-stroked-button
+            color="warn"
+            (click)="removeImage()"
+            [disabled]="isLoading">
+            <mat-icon>delete</mat-icon>
+            Remove Image
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Loading indicator -->
+  @if (isLoading) {
+    <mat-progress-bar
+      mode="indeterminate"
+      class="loading-bar"></mat-progress-bar>
+  }
+
+  <!-- Hidden file input -->
+  <input
+    #fileInput
+    type="file"
+    accept="image/jpeg,image/jpg,image/png"
+    style="display: none"
+    (change)="onFileSelected($event)" />
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (showCropper) {
+    <button mat-button (click)="cancelCropping()">Back</button>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="applyCroppedImage()"
+      [disabled]="!croppedBlob">
+      Apply
+    </button>
+  } @else {
+    <button mat-button (click)="cancel()">Cancel</button>
+  }
+</mat-dialog-actions>

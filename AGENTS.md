@@ -361,7 +361,7 @@ cd server && bun run generate:angular-client
 
 ### Build Failures
 
-- Clear node_modules and reinstall: `rm -rf node_modules && npm install`
+- Clear node_modules and reinstall: `rm -rf node_modules && bun install`
 - Clear Angular cache: `rm -rf .angular`
 - Check for TypeScript errors: `npx tsc --noEmit`
 - Verify all dependencies are installed

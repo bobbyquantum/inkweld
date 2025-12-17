@@ -7,6 +7,7 @@ import { DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { Element, ElementType } from '../../../api-client';
 import { ElementTypeSchema } from '../../models/schema-types';
+import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import { WorldbuildingEditorComponent } from './worldbuilding-editor.component';
@@ -100,8 +101,17 @@ describe('WorldbuildingEditorComponent', () => {
     worldbuildingService.saveWorldbuildingData.mockResolvedValue();
     worldbuildingService.initializeWorldbuildingElement.mockResolvedValue();
 
+    // Mock identity data methods
+    worldbuildingService.getIdentityData.mockResolvedValue({});
+    worldbuildingService.saveIdentityData.mockResolvedValue();
+    worldbuildingService.observeIdentityChanges.mockResolvedValue(() => {});
+
     mockProjectState = {
       elements: signal<Element[]>([mockElement]),
+    };
+
+    const mockDialogGateway = {
+      openRenameDialog: vi.fn().mockResolvedValue(null),
     };
 
     await TestBed.configureTestingModule({
@@ -111,6 +121,7 @@ describe('WorldbuildingEditorComponent', () => {
         provideHttpClient(),
         { provide: WorldbuildingService, useValue: worldbuildingService },
         { provide: ProjectStateService, useValue: mockProjectState },
+        { provide: DialogGatewayService, useValue: mockDialogGateway },
       ],
     }).compileComponents();
 

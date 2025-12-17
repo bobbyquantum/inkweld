@@ -659,12 +659,22 @@ export class ProjectStateService implements OnDestroy {
   }
 
   openSystemTab(
-    type: 'documents-list' | 'media' | 'templates-list' | 'relationships-list'
+    type:
+      | 'documents-list'
+      | 'media'
+      | 'templates-list'
+      | 'relationships-list'
+      | 'home'
   ): void {
     const result = this.tabManager.openSystemTab(type);
     if (result.wasCreated) {
       void this.saveOpenedDocumentsToCache();
     }
+  }
+
+  /** Opens the home tab */
+  openHomeTab(): void {
+    this.openSystemTab('home');
   }
 
   closeTab(index: number): void {
@@ -687,6 +697,11 @@ export class ProjectStateService implements OnDestroy {
 
   selectTab(index: number): void {
     this.tabManager.selectTab(index);
+    void this.saveOpenedDocumentsToCache();
+  }
+
+  reorderTabs(fromIndex: number, toIndex: number): void {
+    this.tabManager.reorderTabs(fromIndex, toIndex);
     void this.saveOpenedDocumentsToCache();
   }
 
@@ -874,9 +889,16 @@ export class ProjectStateService implements OnDestroy {
           currentElements.some(el => el.id === doc.id)
         );
 
+        // Open home tab first, then restored documents
+        this.tabManager.openSystemTab('home');
         for (const doc of validDocuments) {
           this.tabManager.openDocument(doc);
         }
+        // Select home tab
+        this.tabManager.selectTab(0);
+      } else {
+        // No cached tabs or documents - open home tab by default
+        this.tabManager.openSystemTab('home');
       }
     } catch (error) {
       this.logger.error(
@@ -884,6 +906,8 @@ export class ProjectStateService implements OnDestroy {
         'Failed to restore opened documents from cache',
         error
       );
+      // On error, still open home tab
+      this.tabManager.openSystemTab('home');
     }
   }
 

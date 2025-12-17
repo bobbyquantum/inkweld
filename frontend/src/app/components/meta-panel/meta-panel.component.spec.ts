@@ -24,6 +24,7 @@ describe('MetaPanelComponent', () => {
   let projectStateMock: {
     elements: ReturnType<typeof signal>;
     openDocument: ReturnType<typeof vi.fn>;
+    project: ReturnType<typeof signal>;
   };
   let relationshipServiceMock: {
     relationships: ReturnType<typeof signal>;
@@ -52,6 +53,7 @@ describe('MetaPanelComponent', () => {
     projectStateMock = {
       elements: signal([]),
       openDocument: vi.fn(),
+      project: signal(null),
     };
 
     dialogMock = {

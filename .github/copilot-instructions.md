@@ -297,7 +297,7 @@ Key variables (see `.env.example` at project root):
 ### Common Issues
 
 - **Module resolution errors**: Run `bun install` from root
-- **Build failures**: Clear caches with `rm -rf .angular node_modules && npm install`
+- **Build failures**: Clear caches with `rm -rf .angular node_modules && bun install`
 - **Test failures**: Run single test with `npm test -- <pattern>` to isolate issues
 - **Lint errors**: Run `npm run lint:fix` to auto-fix
 
