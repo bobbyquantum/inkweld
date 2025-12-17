@@ -306,12 +306,17 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       event.preventDefault();
       event.stopPropagation();
     }
-    if (index === 0) return;
+
+    const tabs = this.projectState.openTabs();
+    // Don't allow closing the last tab
+    if (tabs.length <= 1) return;
+
+    // If closing the current tab, navigate to an adjacent tab first
     if (this.projectState.selectedTabIndex() === index) {
-      const newIndex = Math.max(0, index - 1);
+      const newIndex = index > 0 ? index - 1 : 1;
       this.setSelectedTabIndex(newIndex);
     }
-    this.projectState.closeTab(index - 1);
+    this.projectState.closeTab(index);
   };
 
   setSelectedTabIndex(index: number): void {

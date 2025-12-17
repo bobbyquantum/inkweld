@@ -20,11 +20,9 @@ export class DocumentTabComponent {
     const tabs = this.projectState.openTabs();
     const selectedIndex = this.projectState.selectedTabIndex();
 
-    // selectedTabIndex is 1-based (0 = home), so subtract 1 to get array index
-    const tabArrayIndex = selectedIndex - 1;
-
-    if (tabArrayIndex >= 0 && tabArrayIndex < tabs.length) {
-      const tab = tabs[tabArrayIndex];
+    // selectedTabIndex directly indexes into openTabs (home is at index 0)
+    if (selectedIndex >= 0 && selectedIndex < tabs.length) {
+      const tab = tabs[selectedIndex];
       if (tab?.element) {
         const project = this.projectState.project();
         if (project) {

@@ -450,8 +450,12 @@ export class ProjectStateService implements OnDestroy {
     if (index === -1) return;
 
     const newElements = [...elements];
-    newElements[index] = { ...newElements[index], name: newName };
+    const updatedNode = { ...newElements[index], name: newName };
+    newElements[index] = updatedNode;
     this.updateElements(this.elementTreeService.recomputeOrder(newElements));
+
+    // Update the tab name if this element is open in a tab
+    this.tabManager.updateTabElement(node.id, updatedNode);
   }
 
   moveElement(elementId: string, targetIndex: number, newLevel: number): void {
