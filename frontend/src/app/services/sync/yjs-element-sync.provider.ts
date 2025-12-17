@@ -261,6 +261,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   /**
    * Update elements in the Yjs document.
    * Changes propagate to all connected clients.
+   * Applies optimistic update immediately for responsive UI.
    */
   updateElements(elements: Element[]): void {
     if (!this.doc) {
@@ -269,6 +270,11 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     }
 
     this.logger.debug('YjsSync', `Writing ${elements.length} elements to Yjs`);
+
+    // Optimistic update: emit immediately for responsive UI
+    // The Yjs observer will also fire after the transaction, but that's fine
+    // as it will emit the same elements (no-op for identical arrays)
+    this.elementsSubject.next(elements);
 
     const elementsArray = this.doc.getArray<Element>('elements');
 
@@ -294,6 +300,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   /**
    * Update publish plans in the Yjs document.
    * Changes propagate to all connected clients.
+   * Applies optimistic update immediately for responsive UI.
    */
   updatePublishPlans(plans: PublishPlan[]): void {
     if (!this.doc) {
@@ -308,6 +315,9 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       'YjsSync',
       `Writing ${plans.length} publish plans to Yjs`
     );
+
+    // Optimistic update: emit immediately for responsive UI
+    this.publishPlansSubject.next(plans);
 
     const plansArray = this.doc.getArray<PublishPlan>('publishPlans');
 
@@ -333,6 +343,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   /**
    * Update relationships in the Yjs document.
    * Changes propagate to all connected clients.
+   * Applies optimistic update immediately for responsive UI.
    */
   updateRelationships(relationships: ElementRelationship[]): void {
     if (!this.doc) {
@@ -347,6 +358,9 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       'YjsSync',
       `Writing ${relationships.length} relationships to Yjs`
     );
+
+    // Optimistic update: emit immediately for responsive UI
+    this.relationshipsSubject.next(relationships);
 
     const relationshipsArray =
       this.doc.getArray<ElementRelationship>('relationships');
@@ -373,6 +387,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   /**
    * Update custom relationship types in the Yjs document.
    * Changes propagate to all connected clients.
+   * Applies optimistic update immediately for responsive UI.
    */
   updateCustomRelationshipTypes(types: RelationshipTypeDefinition[]): void {
     if (!this.doc) {
@@ -387,6 +402,9 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       'YjsSync',
       `Writing ${types.length} custom relationship types to Yjs`
     );
+
+    // Optimistic update: emit immediately for responsive UI
+    this.customRelationshipTypesSubject.next(types);
 
     const typesArray = this.doc.getArray<RelationshipTypeDefinition>(
       'customRelationshipTypes'
@@ -414,6 +432,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   /**
    * Update schemas in the Yjs document.
    * Changes propagate to all connected clients.
+   * Applies optimistic update immediately for responsive UI.
    */
   updateSchemas(schemas: ElementTypeSchema[]): void {
     if (!this.doc) {
@@ -422,6 +441,9 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     }
 
     this.logger.debug('YjsSync', `Writing ${schemas.length} schemas to Yjs`);
+
+    // Optimistic update: emit immediately for responsive UI
+    this.schemasSubject.next(schemas);
 
     const schemasArray = this.doc.getArray<ElementTypeSchema>('schemas');
 
