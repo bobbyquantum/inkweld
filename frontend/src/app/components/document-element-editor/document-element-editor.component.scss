@@ -27,9 +27,9 @@
   min-height: 0;
   overflow: hidden;
   transition: flex 200ms ease-out;
-  height: calc(100vh - 90px);
+  height: calc(100vh - 48px);
   &.no-tabs {
-    height: calc(100vh - 48px);
+    height: calc(100vh);
   }
 }
 

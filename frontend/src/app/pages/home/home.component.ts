@@ -57,6 +57,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   searchControl = new FormControl('');
   sideNavOpen = signal(true); // Open by default on desktop
   mobileSearchActive = signal(false); // Track mobile search mode
+  isInitializing = signal(true); // Track if we're still initializing user state
 
   protected user = this.userService.currentUser;
   protected isLoading = this.projectService.isLoading;
@@ -103,7 +104,21 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.projectService.initialized() &&
       this.projectService.projects().length > 0
     ) {
+      this.isInitializing.set(false);
       return;
+    }
+
+    // Initialize user state from cache/server first
+    // This ensures isAuthenticated() is accurate after a fresh page load
+    try {
+      await this.userService.initialize();
+    } catch {
+      // Initialization failed (e.g., session expired) - user will see welcome content
+      this.isInitializing.set(false);
+      return;
+    } finally {
+      // User initialization is complete, we can now show the appropriate content
+      this.isInitializing.set(false);
     }
 
     // Only load projects if user is authenticated

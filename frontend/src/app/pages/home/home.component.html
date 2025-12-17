@@ -1,13 +1,23 @@
-<div class="content-container" [class.is-mobile]="isMobile">
-  <!-- Header section with logo and search bar (always visible) -->
-  <div class="header-section">
-    <div
-      class="search-container"
-      [class.mobile-search-mode]="mobileSearchActive()">
-      <!-- Mobile search mode: Back button + Search field -->
-      @if (isMobile && mobileSearchActive()) {
-        <div class="left-section">
-          <button
+<!-- Splash screen while initializing -->
+@if (isInitializing()) {
+  <div class="splash-screen">
+    <div class="splash-content">
+      <img class="splash-logo" src="logo.png" alt="InkWeld logo" />
+      <span class="splash-app-name">Inkweld</span>
+      <mat-spinner diameter="32"></mat-spinner>
+    </div>
+  </div>
+} @else {
+  <div class="content-container" [class.is-mobile]="isMobile">
+    <!-- Header section with logo and search bar (always visible) -->
+    <div class="header-section">
+      <div
+        class="search-container"
+        [class.mobile-search-mode]="mobileSearchActive()">
+        <!-- Mobile search mode: Back button + Search field -->
+        @if (isMobile && mobileSearchActive()) {
+          <div class="left-section">
+            <button
             mat-icon-button
             (click)="toggleMobileSearch()"
             aria-label="Close search"
@@ -301,3 +311,4 @@
     </div>
   </div>
 </div>
+}

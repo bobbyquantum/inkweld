@@ -125,30 +125,61 @@ export class UserService {
     this.error.set(undefined);
 
     try {
-      // Try cached user first if storage is available
+      let cachedUser: User | undefined;
+
+      // Try cached user first if storage is available - show immediately for fast UI
       if (this.storage.isAvailable()) {
-        const cachedUser = await this.getCachedUser();
+        cachedUser = await this.getCachedUser();
         if (cachedUser) {
           this.currentUser.set(cachedUser);
-          return;
+          // Don't return - continue to validate/refresh from server
         }
       }
 
-      // Fallback to API with retry mechanism
-      const user = await firstValueFrom(
-        this.userAPI.getCurrentUser().pipe(
-          retry(MAX_RETRIES),
-          catchError((error: unknown) => {
-            const userError = this.formatError(error);
-            this.error.set(userError);
-            return throwError(() => userError);
-          })
-        )
-      );
-      this.logger.debug('UserService', 'User result', user);
-      if (user) {
-        this.logger.debug('UserService', 'Saving user', user);
-        await this.setCurrentUser(user);
+      // Always try to fetch from API to validate session and get fresh data
+      try {
+        const user = await firstValueFrom(
+          this.userAPI.getCurrentUser().pipe(
+            retry(MAX_RETRIES),
+            catchError((error: unknown) => {
+              const userError = this.formatError(error);
+              // If we have cached user and it's a network/server error, use cache
+              if (
+                cachedUser &&
+                (userError.code === 'NETWORK_ERROR' ||
+                  userError.code === 'SERVER_ERROR')
+              ) {
+                this.logger.warn(
+                  'UserService',
+                  'Server unavailable, using cached user'
+                );
+                return throwError(
+                  () => new Error('Refresh failed, using cache')
+                );
+              }
+              // For auth errors (SESSION_EXPIRED, ACCESS_DENIED), clear cache and propagate
+              this.error.set(userError);
+              return throwError(() => userError);
+            })
+          )
+        );
+        this.logger.debug('UserService', 'User result', user);
+        if (user) {
+          this.logger.debug('UserService', 'Saving user', user);
+          await this.setCurrentUser(user);
+        }
+      } catch (refreshErr) {
+        // If refresh failed but we have cache (network issue), that's OK
+        const canRecover =
+          refreshErr instanceof Error &&
+          refreshErr.message === 'Refresh failed, using cache';
+        if (canRecover && cachedUser) {
+          this.logger.info('UserService', 'Using cached user due to network error');
+          // User already set from cache above, continue
+        } else if (!canRecover) {
+          // Re-throw auth errors and other non-recoverable errors
+          throw refreshErr;
+        }
       }
     } catch (err) {
       const error =

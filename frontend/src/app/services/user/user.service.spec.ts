@@ -140,17 +140,18 @@ describe('UserService', () => {
       expect(service.error()).toBeUndefined();
     });
 
-    it('should use cached user when available', async () => {
+    it('should use cached user immediately but also validate with server', async () => {
       // First load to cache the user
       userServiceMock.getCurrentUser.mockReturnValue(of(TEST_USER));
       await service.loadCurrentUser();
 
       userServiceMock.getCurrentUser.mockClear();
+      userServiceMock.getCurrentUser.mockReturnValue(of(TEST_USER));
 
-      expect(userServiceMock.getCurrentUser).not.toHaveBeenCalled();
-      // Second load should use cache
+      // Second load should load from cache AND validate with server
       await service.loadCurrentUser();
-      expect(userServiceMock.getCurrentUser).not.toHaveBeenCalled();
+      // Now we always validate with server, so API should be called
+      expect(userServiceMock.getCurrentUser).toHaveBeenCalled();
       expect(service.currentUser()).toEqual(TEST_USER);
     });
 
