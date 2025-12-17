@@ -51,6 +51,9 @@ describe('ElementRefTooltipComponent', () => {
           provide: WorldbuildingService,
           useValue: {
             getCustomSchemaTypes: vi.fn().mockReturnValue([]),
+            getIdentityData: vi
+              .fn()
+              .mockResolvedValue({ description: undefined }),
           },
         },
         {
@@ -550,6 +553,57 @@ describe('ElementRefTooltipComponent', () => {
       expect(pathElement).toBeTruthy();
       expect(excerptElement).toBeTruthy();
       expect(metaElement).toBeTruthy();
+    });
+  });
+
+  describe('worldbuilding element description', () => {
+    it('should load description for worldbuilding elements', async () => {
+      // Setup worldbuilding element
+      const characterElement: Element = {
+        id: 'character-1',
+        name: 'Test Character',
+        type: ElementType.Character,
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      };
+
+      // Update mocks
+      const projectStateService = TestBed.inject(ProjectStateService);
+      const worldbuildingService = TestBed.inject(WorldbuildingService);
+
+      (projectStateService.elements as any).set([characterElement]);
+      (projectStateService.project as any).set({
+        username: 'testuser',
+        slug: 'test-project',
+      });
+      vi.mocked(worldbuildingService.getIdentityData).mockResolvedValue({
+        description: 'A brave warrior from the north.',
+      });
+
+      const tooltipData: ElementRefTooltipData = {
+        elementId: 'character-1',
+        elementType: ElementType.Character,
+        displayText: 'Test Character',
+        originalName: 'Test Character',
+        position: { x: 100, y: 200 },
+      };
+
+      component.tooltipData = tooltipData;
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(worldbuildingService.getIdentityData).toHaveBeenCalledWith(
+        'character-1',
+        'testuser',
+        'test-project'
+      );
+      expect(component.previewContent()?.excerpt).toBe(
+        'A brave warrior from the north.'
+      );
     });
   });
 });

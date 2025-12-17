@@ -1,0 +1,66 @@
+<div class="aria-tabs-container">
+  <!-- Left scroll arrow -->
+  @if (showScrollArrows && canScrollLeft()) {
+    <button
+      type="button"
+      class="scroll-arrow scroll-arrow-left"
+      (click)="scrollLeft()"
+      aria-label="Scroll tabs left">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+  }
+
+  <div class="tabs-scroll-container" ngTabs>
+    <nav
+      #tabNavBar
+      ngTabList
+      class="tab-nav-bar"
+      [selectedTab]="'tab-' + selectedIndex"
+      selectionMode="explicit"
+      (scroll)="onTabsScroll()">
+      @for (tab of tabs; track tab.key; let i = $index) {
+        <button
+          ngTab
+          [value]="'tab-' + i"
+          [disabled]="tab.disabled ?? false"
+          type="button"
+          (click)="onTabSelect(i)"
+          [attr.data-testid]="'aria-tab-' + tab.key"
+          class="tab-button">
+          @if (tab.icon) {
+            <mat-icon class="tab-icon">{{ tab.icon }}</mat-icon>
+          }
+          <span class="tab-label">{{ tab.label }}</span>
+        </button>
+      }
+    </nav>
+  </div>
+
+  <!-- Right scroll arrow -->
+  @if (showScrollArrows && canScrollRight()) {
+    <button
+      type="button"
+      class="scroll-arrow scroll-arrow-right"
+      (click)="scrollRight()"
+      aria-label="Scroll tabs right">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  }
+
+  <!-- Fixed end actions (projected content) -->
+  <div class="tab-bar-actions">
+    <ng-content select="[tabBarActions]"></ng-content>
+  </div>
+</div>
+
+<!-- Tab panels container -->
+<div class="tab-panels-container">
+  @for (panel of tabPanels; track panel.key; let i = $index) {
+    <div
+      class="tab-panel"
+      [class.active]="tabs[selectedIndex]?.key === panel.key"
+      [attr.aria-hidden]="tabs[selectedIndex]?.key !== panel.key">
+      <ng-container *ngTemplateOutlet="panel.contentTemplate"></ng-container>
+    </div>
+  }
+</div>

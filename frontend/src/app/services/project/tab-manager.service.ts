@@ -110,12 +110,11 @@ export class TabManagerService {
     const existingIndex = tabs.findIndex(t => t.id === element.id);
     if (existingIndex !== -1) {
       // Tab exists, just select it
-      // Set index+1 because index 0 is reserved for home tab
-      this.selectedTabIndex.set(existingIndex + 1);
+      this.selectedTabIndex.set(existingIndex);
 
       this.logger.debug(
         'TabManager',
-        `Selected existing tab "${element.name}" at index ${existingIndex + 1}`
+        `Selected existing tab "${element.name}" at index ${existingIndex}`
       );
 
       return {
@@ -137,13 +136,13 @@ export class TabManagerService {
     const newTabs = [...tabs, newTab];
     this.openTabs.set(newTabs);
 
-    // Select the new tab (index+1 for home tab offset)
+    // Select the new tab
     const newIndex = newTabs.length - 1;
-    this.selectedTabIndex.set(newIndex + 1);
+    this.selectedTabIndex.set(newIndex);
 
     this.logger.debug(
       'TabManager',
-      `Created new tab for "${element.name}" (type: ${tabType}) at index ${newIndex + 1}`
+      `Created new tab for "${element.name}" (type: ${tabType}) at index ${newIndex}`
     );
 
     return {
@@ -154,34 +153,40 @@ export class TabManagerService {
   }
 
   /**
-   * Opens a system tab like documents list, project files, or templates.
+   * Opens a system tab like documents list, project files, templates, or home.
    *
    * @param type - The type of system tab to open
    * @returns Information about the opened tab
    */
   openSystemTab(
-    type: 'documents-list' | 'media' | 'templates-list' | 'relationships-list'
+    type:
+      | 'documents-list'
+      | 'media'
+      | 'templates-list'
+      | 'relationships-list'
+      | 'home'
   ): OpenTabResult {
     const tabs = this.openTabs();
     const tabId = `system-${type}`;
     const tabName =
-      type === 'documents-list'
-        ? 'Documents'
-        : type === 'media'
-          ? 'Media'
-          : type === 'templates-list'
-            ? 'Templates'
-            : 'Relationships';
+      type === 'home'
+        ? 'Home'
+        : type === 'documents-list'
+          ? 'Documents'
+          : type === 'media'
+            ? 'Media'
+            : type === 'templates-list'
+              ? 'Templates'
+              : 'Relationships';
 
     // Check if tab already exists
     const existingIndex = tabs.findIndex(t => t.id === tabId);
     if (existingIndex !== -1) {
-      // Set index+1 for home tab offset
-      this.selectedTabIndex.set(existingIndex + 1);
+      this.selectedTabIndex.set(existingIndex);
 
       this.logger.debug(
         'TabManager',
-        `Selected existing system tab "${tabName}" at index ${existingIndex + 1}`
+        `Selected existing system tab "${tabName}" at index ${existingIndex}`
       );
 
       return {
@@ -203,11 +208,11 @@ export class TabManagerService {
     this.openTabs.set(newTabs);
 
     const newIndex = newTabs.length - 1;
-    this.selectedTabIndex.set(newIndex + 1);
+    this.selectedTabIndex.set(newIndex);
 
     this.logger.debug(
       'TabManager',
-      `Created system tab "${tabName}" at index ${newIndex + 1}`
+      `Created system tab "${tabName}" at index ${newIndex}`
     );
 
     return {
@@ -239,12 +244,11 @@ export class TabManagerService {
       };
       this.openTabs.set(updatedTabs);
 
-      // Set index+1 for home tab offset
-      this.selectedTabIndex.set(existingIndex + 1);
+      this.selectedTabIndex.set(existingIndex);
 
       this.logger.debug(
         'TabManager',
-        `Selected existing publish plan tab "${plan.name}" at index ${existingIndex + 1}`
+        `Selected existing publish plan tab "${plan.name}" at index ${existingIndex}`
       );
 
       return {
@@ -266,11 +270,11 @@ export class TabManagerService {
     this.openTabs.set(newTabs);
 
     const newIndex = newTabs.length - 1;
-    this.selectedTabIndex.set(newIndex + 1);
+    this.selectedTabIndex.set(newIndex);
 
     this.logger.debug(
       'TabManager',
-      `Created publish plan tab "${plan.name}" at index ${newIndex + 1}`
+      `Created publish plan tab "${plan.name}" at index ${newIndex}`
     );
 
     return {
@@ -317,11 +321,10 @@ export class TabManagerService {
 
     // Update selected tab index
     const currentSelectedIndex = this.selectedTabIndex();
-    if (currentSelectedIndex === index + 1) {
-      // +1 for home tab offset
-      // If we closed the selected tab, go back to home tab
-      this.selectedTabIndex.set(0);
-    } else if (currentSelectedIndex > index + 1) {
+    if (currentSelectedIndex === index) {
+      // If we closed the selected tab, select previous tab or stay at 0
+      this.selectedTabIndex.set(Math.max(0, index - 1));
+    } else if (currentSelectedIndex > index) {
       // If we closed a tab before the currently selected one, adjust the index
       this.selectedTabIndex.set(currentSelectedIndex - 1);
     }
@@ -446,6 +449,43 @@ export class TabManagerService {
   }
 
   /**
+   * Reorders tabs by moving a tab from one index to another.
+   *
+   * @param fromIndex - The current index of the tab to move
+   * @param toIndex - The target index where the tab should be placed
+   */
+  reorderTabs(fromIndex: number, toIndex: number): void {
+    if (fromIndex === toIndex) return;
+
+    const tabs = this.openTabs();
+    if (fromIndex < 0 || fromIndex >= tabs.length) return;
+    if (toIndex < 0 || toIndex >= tabs.length) return;
+
+    const newTabs = [...tabs];
+    const [movedTab] = newTabs.splice(fromIndex, 1);
+    newTabs.splice(toIndex, 0, movedTab);
+    this.openTabs.set(newTabs);
+
+    // Update selected index if needed
+    const currentSelected = this.selectedTabIndex();
+    if (currentSelected === fromIndex) {
+      // The moved tab was selected, update to new position
+      this.selectedTabIndex.set(toIndex);
+    } else if (fromIndex < currentSelected && toIndex >= currentSelected) {
+      // Tab moved from before to after selected - shift selected left
+      this.selectedTabIndex.set(currentSelected - 1);
+    } else if (fromIndex > currentSelected && toIndex <= currentSelected) {
+      // Tab moved from after to before selected - shift selected right
+      this.selectedTabIndex.set(currentSelected + 1);
+    }
+
+    this.logger.debug(
+      'TabManager',
+      `Reordered tab from index ${fromIndex} to ${toIndex}`
+    );
+  }
+
+  /**
    * Validates tabs against current elements and removes invalid ones.
    *
    * @param currentElements - The current list of valid elements
@@ -512,7 +552,7 @@ export class TabManagerService {
   ): number {
     const tabs = this.openTabs();
     const index = tabs.findIndex(t => t.systemType === systemType);
-    return index !== -1 ? index + 1 : -1; // +1 for home tab offset
+    return index;
   }
 
   /**
@@ -524,7 +564,7 @@ export class TabManagerService {
   findTabIndexByElementId(elementId: string): number {
     const tabs = this.openTabs();
     const index = tabs.findIndex(t => t.id === elementId);
-    return index !== -1 ? index + 1 : -1; // +1 for home tab offset
+    return index;
   }
 
   /**
@@ -538,7 +578,7 @@ export class TabManagerService {
     const index = tabs.findIndex(
       t => t.type === 'publishPlan' && t.publishPlan?.id === planId
     );
-    return index !== -1 ? index + 1 : -1; // +1 for home tab offset
+    return index;
   }
 
   /**

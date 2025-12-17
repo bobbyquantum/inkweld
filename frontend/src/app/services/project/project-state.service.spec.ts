@@ -340,7 +340,8 @@ describe('ProjectStateService', () => {
     it('should open a document in editor tabs', () => {
       service.openDocument(mockElementDto);
       expect(service.openDocuments()).toContain(mockElementDto);
-      expect(service.selectedTabIndex()).toBe(1);
+      // First document is at index 0 (no separate home tab offset)
+      expect(service.selectedTabIndex()).toBe(0);
     });
 
     it('should not duplicate already open documents', () => {

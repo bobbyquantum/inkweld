@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   inject,
   input,
@@ -20,7 +21,6 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime } from 'rxjs';
 
@@ -30,9 +30,16 @@ import {
   FieldSchema,
   TabSchema,
 } from '../../models/schema-types';
+import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
+import {
+  AriaTabConfig,
+  AriaTabPanelComponent,
+  AriaTabsComponent,
+} from '../aria-tabs';
 import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
+import { IdentityPanelComponent } from './identity-panel/identity-panel.component';
 
 /**
  * Main worldbuilding editor component that renders the dynamic
@@ -51,9 +58,11 @@ import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
     MatButtonModule,
     MatIconModule,
     MatExpansionModule,
-    MatTabsModule,
     MatTooltipModule,
     MetaPanelComponent,
+    AriaTabsComponent,
+    AriaTabPanelComponent,
+    IdentityPanelComponent,
   ],
   templateUrl: './worldbuilding-editor.component.html',
   styleUrls: ['./worldbuilding-editor.component.scss'],
@@ -67,13 +76,24 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   private worldbuildingService = inject(WorldbuildingService);
   private projectState = inject(ProjectStateService);
+  private dialogGateway = inject(DialogGatewayService);
 
   // Schema and form
   schema = signal<ElementTypeSchema | null>(null);
   form = new FormGroup({});
 
+  /** Computed element name from project state */
+  elementName = computed(() => {
+    const elements = this.projectState.elements();
+    const element = elements.find(e => e.id === this.elementId());
+    return element?.name || 'Untitled';
+  });
+
   /** Whether to show the meta panel (relationships + snapshots) */
   showMetaPanel = signal(false);
+
+  /** Currently selected tab index for the aria tabs */
+  selectedTabIndex = signal(0);
 
   private unsubscribeObserver: (() => void) | null = null;
   private formSubscription: (() => void) | null = null;
@@ -286,6 +306,20 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     return this.schema()?.tabs || [];
   }
 
+  /** Get tab configs for aria-tabs component */
+  getTabConfigs(): AriaTabConfig[] {
+    return this.getTabs().map(tab => ({
+      key: tab.key,
+      label: tab.label,
+    }));
+  }
+
+  /** Get the currently selected tab key */
+  getSelectedTabKey(): string {
+    const tabs = this.getTabs();
+    return tabs[this.selectedTabIndex()]?.key || '';
+  }
+
   getFieldsForTab(tabKey: string): FieldSchema[] {
     const tab = this.getTabs().find(t => t.key === tabKey);
     return tab?.fields || [];
@@ -303,5 +337,21 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   removeArrayItem(fieldKey: string, index: number): void {
     const formArray = this.getFormArray(fieldKey);
     formArray.removeAt(index);
+  }
+
+  /** Handle rename request from identity panel */
+  async onRenameRequested(): Promise<void> {
+    const elements = this.projectState.elements();
+    const element = elements.find(e => e.id === this.elementId());
+    if (!element) return;
+
+    const newName = await this.dialogGateway.openRenameDialog({
+      currentName: element.name,
+      title: 'Rename Element',
+    });
+
+    if (newName) {
+      void this.projectState.renameNode(element, newName);
+    }
   }
 }
