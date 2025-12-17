@@ -154,10 +154,15 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
       }
       if (tabsReady) {
         const idx = this.projectStateService.selectedTabIndex();
-        // Account for Home fixed tab at index 0
-        const tab = idx > 0 ? tabs[idx - 1] : null;
+        // Home tab is now in openTabs array at index 0, so direct indexing works
+        const tab = tabs[idx] ?? null;
         let elemId: string | null = null;
-        if (tab?.type === 'document' && tab.element) {
+        if (
+          (tab?.type === 'document' ||
+            tab?.type === 'folder' ||
+            tab?.type === 'worldbuilding') &&
+          tab.element
+        ) {
           elemId = tab.element.id;
         }
         this.selectedItem = elemId

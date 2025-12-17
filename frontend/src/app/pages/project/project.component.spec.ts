@@ -326,12 +326,19 @@ describe('ProjectComponent', () => {
 
   describe('tab management', () => {
     it('should close tab at specified index', () => {
+      // Need at least 2 tabs for closeTab to be allowed
+      openTabsSignal.set([
+        { type: 'home', label: 'Home' },
+        { type: 'document', label: 'Doc 1', element: { id: 'doc1' } },
+      ]);
       const mockEvent = { preventDefault: vi.fn(), stopPropagation: vi.fn() };
       component.closeTab(1, mockEvent as unknown as MouseEvent);
-      expect(projectStateService.closeTab).toHaveBeenCalledWith(0); // index - 1
+      expect(projectStateService.closeTab).toHaveBeenCalledWith(1);
     });
 
-    it('should not close home tab (index 0)', () => {
+    it('should not close the last tab', () => {
+      // When there's only one tab, closeTab should not be called
+      openTabsSignal.set([{ type: 'home', label: 'Home' }]);
       component.closeTab(0);
       expect(projectStateService.closeTab).not.toHaveBeenCalled();
     });
