@@ -83,6 +83,7 @@ describe('HomeComponent', () => {
       currentUser: signal<User | undefined>(undefined),
       isAuthenticated: mockIsAuthenticated,
       initialized: mockUserInitialized,
+      initialize: vi.fn().mockResolvedValue(undefined),
     } as unknown as MockedObject<UnifiedUserService>;
 
     // Reset mock signals once before all tests
@@ -181,6 +182,8 @@ describe('HomeComponent', () => {
     // Simulate an error scenario
     const loadError = new Error('Failed to load projects');
     projectService.loadProjects = vi.fn().mockRejectedValue(loadError);
+    // Ensure userService.initialize succeeds so we proceed to loadProjects
+    userService.initialize = vi.fn().mockResolvedValue(undefined);
 
     await component.loadProjects();
 
@@ -211,6 +214,8 @@ describe('HomeComponent', () => {
         'Session expired'
       );
       projectService.loadProjects = vi.fn().mockRejectedValue(sessionError);
+      // Ensure userService.initialize succeeds so we proceed to loadProjects
+      userService.initialize = vi.fn().mockResolvedValue(undefined);
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       await component.loadProjects();
