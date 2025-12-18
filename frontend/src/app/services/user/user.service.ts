@@ -174,7 +174,10 @@ export class UserService {
           refreshErr instanceof Error &&
           refreshErr.message === 'Refresh failed, using cache';
         if (canRecover && cachedUser) {
-          this.logger.info('UserService', 'Using cached user due to network error');
+          this.logger.info(
+            'UserService',
+            'Using cached user due to network error'
+          );
           // User already set from cache above, continue
         } else if (!canRecover) {
           // Re-throw auth errors and other non-recoverable errors

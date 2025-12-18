@@ -41,6 +41,8 @@ describe('ProjectTreeComponent', () => {
   let loadingSignal: WritableSignal<boolean>;
   let savingSignal: WritableSignal<boolean>;
   let errorSignal: WritableSignal<string | undefined>;
+  let selectedTabIndexSignal: WritableSignal<number>;
+  let openTabsSignal: WritableSignal<{ systemType?: string }[]>;
   let dialogGatewayService: MockedObject<DialogGatewayService>;
 
   const mockDto: ProjectElement = {
@@ -69,6 +71,10 @@ describe('ProjectTreeComponent', () => {
     loadingSignal = signal(false);
     savingSignal = signal(false);
     errorSignal = signal<string | undefined>(undefined);
+    selectedTabIndexSignal = signal(0);
+    openTabsSignal = signal<{ systemType?: string }[]>([
+      { systemType: 'home' },
+    ]);
 
     settingsService = {
       getSetting: vi.fn().mockReturnValue(false),
@@ -80,9 +86,13 @@ describe('ProjectTreeComponent', () => {
       isLoading: loadingSignal,
       isSaving: savingSignal,
       error: errorSignal,
-      openTabs: signal([]),
-      selectedTabIndex: signal(0),
-      project: signal({ title: 'Test Project' }),
+      openTabs: openTabsSignal,
+      selectedTabIndex: selectedTabIndexSignal,
+      project: signal({
+        title: 'Test Project',
+        username: 'testuser',
+        slug: 'testproject',
+      }),
       saveProjectElements: vi.fn().mockResolvedValue(undefined),
       showEditProjectDialog: vi.fn(),
       openDocument: vi.fn(),
@@ -99,6 +109,9 @@ describe('ProjectTreeComponent', () => {
         .mockReturnValue({ levels: [1], defaultLevel: 1 }),
       getDropInsertIndex: vi.fn().mockReturnValue(1),
       isValidDrop: vi.fn().mockReturnValue(true),
+      setExpanded: vi.fn(),
+      selectTab: vi.fn(),
+      openSystemTab: vi.fn(),
     } as unknown as MockedObject<ProjectStateService>;
 
     dialogGatewayService = {
@@ -158,7 +171,7 @@ describe('ProjectTreeComponent', () => {
 
   describe('Drag and Drop', () => {
     let mockDrag: CdkDrag<ProjectElement>;
-    let mockDropList: CdkDropList<ProjectElement[]>;
+    let _mockDropList: CdkDropList<ProjectElement[]>;
     let node: ProjectElement;
 
     const createTestDragEvent = (
@@ -240,6 +253,79 @@ describe('ProjectTreeComponent', () => {
           dialogGatewayService.openConfirmationDialog
         ).not.toHaveBeenCalled();
       });
+
+      it('should expand a closed folder when dropping into it', () => {
+        settingsService.getSetting.mockReturnValue(false); // confirmElementMoves disabled
+
+        // Create a closed folder
+        const closedFolder: ProjectElement = {
+          id: 'folder-1',
+          name: 'Closed Folder',
+          type: ElementType.Folder,
+          order: 0,
+          level: 0,
+          expandable: true,
+          expanded: false, // Folder is collapsed
+          version: 0,
+          metadata: {},
+          visible: true,
+          parentId: null,
+        };
+
+        // Set up the visible elements to include the closed folder
+        visibleElementsSignal.set([closedFolder, mockDto]);
+        fixture.detectChanges();
+
+        // Set up the dragged node
+        component.draggedNode = mockDto;
+
+        // Set the target parent folder to the closed folder
+        component.targetParentFolderId.set('folder-1');
+
+        const event = createTestDragEvent();
+        void component.drop(event);
+
+        // Verify setExpanded was called to expand the folder
+        expect(projectStateService.setExpanded).toHaveBeenCalledWith(
+          'folder-1',
+          true
+        );
+      });
+
+      it('should not expand an already open folder when dropping into it', () => {
+        settingsService.getSetting.mockReturnValue(false); // confirmElementMoves disabled
+
+        // Create an open folder
+        const openFolder: ProjectElement = {
+          id: 'folder-1',
+          name: 'Open Folder',
+          type: ElementType.Folder,
+          order: 0,
+          level: 0,
+          expandable: true,
+          expanded: true, // Folder is already expanded
+          version: 0,
+          metadata: {},
+          visible: true,
+          parentId: null,
+        };
+
+        // Set up the visible elements to include the open folder
+        visibleElementsSignal.set([openFolder, mockDto]);
+        fixture.detectChanges();
+
+        // Set up the dragged node
+        component.draggedNode = mockDto;
+
+        // Set the target parent folder to the open folder
+        component.targetParentFolderId.set('folder-1');
+
+        const event = createTestDragEvent();
+        void component.drop(event);
+
+        // Verify setExpanded was NOT called since folder is already open
+        expect(projectStateService.setExpanded).not.toHaveBeenCalled();
+      });
     });
 
     const createTestNode = (
@@ -262,7 +348,7 @@ describe('ProjectTreeComponent', () => {
     beforeEach(() => {
       node = mockDto;
       mockDrag = { data: node } as CdkDrag<ProjectElement>;
-      mockDropList = {
+      _mockDropList = {
         data: [node],
         getSortedItems: () => [mockDrag],
       } as CdkDropList<ProjectElement[]>;
@@ -273,27 +359,49 @@ describe('ProjectTreeComponent', () => {
       expect(component.draggedNode).toBe(node);
       expect(component.currentDropLevel).toBe(node.level);
       expect(component.validLevelsArray).toEqual([node.level]);
+      // Should reset nodeAboveDropPosition
+      expect(component['nodeAboveDropPosition']).toBeNull();
+    });
+
+    it('should handle drag end', () => {
+      component.draggedNode = node;
+      component.targetParentFolderId.set('some-folder-id');
+      component['nodeAboveDropPosition'] = node;
+
+      component.dragEnded();
+
+      expect(component.draggedNode).toBeNull();
+      expect(component.targetParentFolderId()).toBeNull();
+      expect(component['nodeAboveDropPosition']).toBeNull();
     });
 
     it('should handle sorted event', () => {
       // Set up the dragged node for the test
       component.draggedNode = node;
 
-      const mockSortEvent = {
-        previousIndex: 0,
-        currentIndex: 1,
-        container: mockDropList,
-        item: {
-          data: node,
-        } as CdkDrag<ProjectElement>,
-        // Add the drag item to be able to filter it properly
-        // in the sorted event handler
-      } as unknown as CdkDragSortEvent<ProjectElement[]>;
-
       const [nodeAbove, nodeBelow] = [
         createTestNode('2', 1, 0),
         createTestNode('3', 2, 1),
       ];
+
+      // Create mock drop list with multiple items so filtering works properly
+      const mockDropListWithItems = {
+        data: [nodeAbove, node, nodeBelow],
+        getSortedItems: () => [
+          { data: nodeAbove } as CdkDrag<ProjectElement>,
+          { data: node } as CdkDrag<ProjectElement>,
+          { data: nodeBelow } as CdkDrag<ProjectElement>,
+        ],
+      } as CdkDropList<ProjectElement[]>;
+
+      const mockSortEvent = {
+        previousIndex: 0,
+        currentIndex: 1,
+        container: mockDropListWithItems,
+        item: {
+          data: node,
+        } as CdkDrag<ProjectElement>,
+      } as unknown as CdkDragSortEvent<ProjectElement[]>;
 
       // Mock the service to return valid levels based on the nodes
       projectStateService.getValidDropLevels.mockReturnValue({
@@ -306,6 +414,91 @@ describe('ProjectTreeComponent', () => {
         nodeAbove.level,
         nodeBelow.level,
       ]);
+      // Should store nodeAbove for parent folder calculation
+      expect(component['nodeAboveDropPosition']).toBe(nodeAbove);
+    });
+
+    describe('Parent Folder Highlighting', () => {
+      it('should find parent folder when dropping inside a folder', () => {
+        const folder: ProjectElement = {
+          ...mockDto,
+          id: 'folder-1',
+          name: 'Parent Folder',
+          expandable: true,
+          level: 0,
+        };
+        const childItem: ProjectElement = {
+          ...mockDto,
+          id: 'child-1',
+          name: 'Child Item',
+          expandable: false,
+          level: 1,
+        };
+
+        visibleElementsSignal.set([folder, childItem]);
+        fixture.detectChanges();
+
+        // Simulate dropping inside the folder (level 1, after the folder)
+        component['nodeAboveDropPosition'] = folder;
+        component.currentDropLevel = 1;
+        component['updateParentFolderHighlight']();
+
+        expect(component.targetParentFolderId()).toBe('folder-1');
+      });
+
+      it('should return null when dropping at root level', () => {
+        const folder: ProjectElement = {
+          ...mockDto,
+          id: 'folder-1',
+          name: 'Folder',
+          expandable: true,
+          level: 0,
+        };
+
+        visibleElementsSignal.set([folder]);
+        fixture.detectChanges();
+
+        component['nodeAboveDropPosition'] = folder;
+        component.currentDropLevel = 0;
+        component['updateParentFolderHighlight']();
+
+        expect(component.targetParentFolderId()).toBeNull();
+      });
+
+      it('should return null when nodeAbove is null', () => {
+        component['nodeAboveDropPosition'] = null;
+        component.currentDropLevel = 1;
+        component['updateParentFolderHighlight']();
+
+        expect(component.targetParentFolderId()).toBeNull();
+      });
+
+      it('should find ancestor folder when dropping at nested level', () => {
+        const rootFolder: ProjectElement = {
+          ...mockDto,
+          id: 'root-folder',
+          name: 'Root Folder',
+          expandable: true,
+          level: 0,
+        };
+        const nestedItem: ProjectElement = {
+          ...mockDto,
+          id: 'nested-item',
+          name: 'Nested Item',
+          expandable: false,
+          level: 1,
+        };
+
+        visibleElementsSignal.set([rootFolder, nestedItem]);
+        fixture.detectChanges();
+
+        // Dropping after nestedItem at level 1 should find rootFolder
+        component['nodeAboveDropPosition'] = nestedItem;
+        component.currentDropLevel = 1;
+        component['updateParentFolderHighlight']();
+
+        expect(component.targetParentFolderId()).toBe('root-folder');
+      });
     });
 
     it('should handle drag move with valid container dimensions', () => {
@@ -471,6 +664,36 @@ describe('ProjectTreeComponent', () => {
   it('should edit project', () => {
     component.editProject();
     expect(projectStateService.showEditProjectDialog).toHaveBeenCalled();
+  });
+
+  it('should open new element dialog when Create button is clicked', () => {
+    component.onCreateNewElement();
+    expect(projectStateService.showNewElementDialog).toHaveBeenCalled();
+  });
+
+  describe('Home Navigation', () => {
+    it('should navigate to home when goHome is called', () => {
+      component.goHome();
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith('home');
+    });
+
+    it('should return true for isHomeSelected when current tab has systemType home', () => {
+      openTabsSignal.set([{ systemType: 'media' }, { systemType: 'home' }]);
+      selectedTabIndexSignal.set(1);
+      expect(component.isHomeSelected()).toBe(true);
+    });
+
+    it('should return false for isHomeSelected when current tab has different systemType', () => {
+      openTabsSignal.set([{ systemType: 'home' }, { systemType: 'media' }]);
+      selectedTabIndexSignal.set(1);
+      expect(component.isHomeSelected()).toBe(false);
+    });
+
+    it('should return false for isHomeSelected when current tab has no systemType', () => {
+      openTabsSignal.set([{ systemType: 'home' }, {}]);
+      selectedTabIndexSignal.set(1);
+      expect(component.isHomeSelected()).toBe(false);
+    });
   });
 
   describe('Rename Handling', () => {

@@ -203,7 +203,7 @@ test.describe('Element Reference Screenshots', () => {
     await page.waitForTimeout(500);
 
     // Create a character element at the root level
-    await page.getByTestId('add-element-button').click();
+    await page.getByTestId('create-new-element').click();
     await page.getByTestId('element-type-character').click();
     await page.getByTestId('element-name-input').fill(characterName);
     await page.getByTestId('create-element-button').click();

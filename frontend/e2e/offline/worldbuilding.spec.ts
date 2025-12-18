@@ -17,7 +17,7 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page).toHaveURL(/\/.+\/.+/);
 
     // Create a character worldbuilding element to initialize templates
-    await page.getByTestId('add-element-button').click();
+    await page.getByTestId('create-new-element').click();
     await page.getByTestId('element-type-character').click();
     await page.getByTestId('element-name-input').fill('Test Character');
     await page.getByTestId('create-element-button').click();
@@ -26,8 +26,8 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page.getByTestId('element-Test Character')).toBeVisible();
 
     // Navigate to Templates tab to access clone functionality
-    await page.getByTestId('back-to-project-button').click();
-    await page.getByRole('button', { name: 'Templates' }).click();
+    await page.getByTestId('home-node').click();
+    await page.getByTestId('sidebar-templates-button').click();
 
     // Wait for templates to load
     await page.waitForTimeout(500);
@@ -101,8 +101,8 @@ test.describe('Worldbuilding Templates', () => {
         });
       }
 
-      // Ensure add-element-button is visible and clickable
-      const addButton = page.getByTestId('add-element-button');
+      // Ensure create-new-element is visible and clickable
+      const addButton = page.getByTestId('create-new-element');
       await addButton.waitFor({ state: 'visible', timeout: 5000 });
       console.log('Add button is visible, clicking...');
 
@@ -185,7 +185,7 @@ test.describe('Worldbuilding Templates', () => {
       ).toBeVisible();
 
       // Go back to project view
-      await page.getByTestId('back-to-project-button').click();
+      await page.getByTestId('home-node').click();
 
       // Wait for navigation to complete
       await page.waitForLoadState('networkidle');
@@ -200,15 +200,15 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page).toHaveURL(/\/.+\/.+/);
 
     // Create a character first to ensure templates are initialized
-    await page.getByTestId('add-element-button').click();
+    await page.getByTestId('create-new-element').click();
     await page.getByTestId('element-type-character').click();
     await page.getByTestId('element-name-input').fill('Validation Test');
     await page.getByTestId('create-element-button').click();
     await expect(page.getByTestId('element-Validation Test')).toBeVisible();
 
     // Navigate to Templates to create a custom template
-    await page.getByTestId('back-to-project-button').click();
-    await page.getByRole('button', { name: 'Templates' }).click();
+    await page.getByTestId('home-node').click();
+    await page.getByTestId('sidebar-templates-button').click();
     await expect(page).toHaveURL(/.*templates-list.*/);
     await page.waitForSelector('mat-card', {
       state: 'visible',
@@ -268,15 +268,15 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page).toHaveURL(/\/.+\/.+/);
 
     // Create a character first to ensure templates are initialized
-    await page.getByTestId('add-element-button').click();
+    await page.getByTestId('create-new-element').click();
     await page.getByTestId('element-type-character').click();
     await page.getByTestId('element-name-input').fill('Init Character');
     await page.getByTestId('create-element-button').click();
     await expect(page.getByTestId('element-Init Character')).toBeVisible();
 
     // Navigate back to project home, then to Templates
-    await page.getByTestId('back-to-project-button').click();
-    await page.getByRole('button', { name: 'Templates' }).click();
+    await page.getByTestId('home-node').click();
+    await page.getByTestId('sidebar-templates-button').click();
 
     // Wait for templates page to load
     await expect(page).toHaveURL(/.*templates-list.*/);
@@ -320,11 +320,11 @@ test.describe('Worldbuilding Templates', () => {
     expect(customTemplateType).toMatch(/^CUSTOM_\d+$/);
 
     // Go back to project home to create element
-    await page.getByTestId('back-to-project-button').click();
+    await page.getByTestId('home-node').click();
     await page.waitForTimeout(300);
 
     // Create element using custom template
-    await page.getByTestId('add-element-button').click();
+    await page.getByTestId('create-new-element').click();
 
     // Use the dynamically captured custom template type
     const elementTypeTestId = `element-type-${customTemplateType!.toLowerCase()}`;

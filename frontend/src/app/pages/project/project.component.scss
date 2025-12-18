@@ -87,6 +87,59 @@ as-split {
   }
 }
 
+// Fixed bottom navigation in sidebar
+.sidebar-bottom-nav {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--sys-outline-variant);
+  background-color: var(--sys-surface-container);
+  flex-shrink: 0;
+
+  .sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 4px 8px;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 150ms ease;
+    color: var(--sys-on-surface);
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      margin-left: 4px;
+    }
+
+    .nav-title {
+      flex: 1;
+      padding: 4px 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &:focus {
+      background-color: var(--sys-surface-container-high);
+    }
+
+    &:hover {
+      background-color: var(--sys-surface-container-highest);
+    }
+
+    &.selected-item {
+      background-color: var(--sys-surface-container-highest);
+    }
+
+    &.exit-item {
+      color: var(--sys-on-surface-variant);
+      border-top: 1px solid var(--sys-outline-variant);
+      margin-top: 4px;
+    }
+  }
+}
+
 // Mobile sidenav
 .mobile-sidenav {
   width: 80%;
