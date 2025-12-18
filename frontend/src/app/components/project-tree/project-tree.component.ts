@@ -10,7 +10,6 @@ import {
 } from '@angular/cdk/drag-drop';
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import {
-  AfterViewInit,
   Component,
   computed,
   effect,
@@ -19,14 +18,12 @@ import {
   inject,
   OnDestroy,
   Output,
+  signal,
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { Router } from '@angular/router';
 import { Element, ElementType } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
@@ -39,15 +36,12 @@ import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
 
 /**
- * Component for displaying and managing the project tree.
+ * Component for displaying and managing the project tree with ARIA accessibility.
  */
 @Component({
   imports: [
-    MatTreeModule,
     MatIconModule,
     MatButtonModule,
-    MatListModule,
-    MatMenuModule,
     MatProgressSpinnerModule,
     DragDropModule,
     CdkContextMenuTrigger,
@@ -63,11 +57,9 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
   templateUrl: './project-tree.component.html',
   styleUrls: ['./project-tree.component.scss'],
 })
-export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
+export class ProjectTreeComponent implements OnDestroy {
   private dialogGateway = inject(DialogGatewayService);
   private logger = inject(LoggerService);
-
-  @ViewChild('tree') treeEl!: MatTree<ProjectElement>;
   @ViewChild('treeContainer', { static: true })
   treeContainer!: ElementRef<HTMLElement>;
   @ViewChild(CdkDropList) dropList!: CdkDropList<ProjectElement>;
@@ -79,6 +71,40 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     return this.projectStateService.visibleElements();
   });
 
+  // Computed signal for home tab selection state
+  readonly isHomeSelected = computed(() => {
+    const tabs = this.projectStateService.openTabs();
+    const idx = this.projectStateService.selectedTabIndex();
+    const currentTab = tabs[idx];
+    return currentTab?.systemType === 'home';
+  });
+
+  // Computed signal for whether home tab is open
+  readonly isHomeOpen = computed(() => {
+    return this.projectStateService
+      .openTabs()
+      .some(tab => tab.systemType === 'home');
+  });
+
+  // Computed set of element IDs that have open tabs
+  readonly openElementIds = computed(() => {
+    const tabs = this.projectStateService.openTabs();
+    const ids = new Set<string>();
+    for (const tab of tabs) {
+      if (tab.element?.id) {
+        ids.add(tab.element.id);
+      }
+    }
+    return ids;
+  });
+
+  /**
+   * Checks if an element has an open tab.
+   */
+  hasOpenTab(elementId: string): boolean {
+    return this.openElementIds().has(elementId);
+  }
+
   // Other service signals
   readonly isLoading = this.projectStateService.isLoading;
   readonly isSaving = this.projectStateService.isSaving;
@@ -88,29 +114,6 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
   protected readonly router = inject(Router);
 
   selectedItem: ProjectElement | null = null;
-  indicatorTop: number = 0;
-  indicatorHeight: number = 0;
-
-  private updateIndicator(): void {
-    const selectedEl = this.treeContainer.nativeElement.querySelector(
-      '.selected-item'
-    ) as HTMLElement;
-    if (selectedEl) {
-      const containerRect =
-        this.treeContainer.nativeElement.getBoundingClientRect();
-      const elRect = selectedEl.getBoundingClientRect();
-      this.indicatorTop = elRect.top - containerRect.top;
-      this.indicatorHeight = elRect.height;
-    } else {
-      this.indicatorHeight = 0;
-      this.indicatorTop = 0;
-    }
-  }
-
-  public ngAfterViewInit(): void {
-    // Position the indicator on initial load
-    setTimeout(() => this.updateIndicator());
-  }
 
   public ngOnDestroy(): void {
     // Clean up any pending timeout
@@ -124,6 +127,11 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
   draggedNode: ProjectElement | null = null;
   levelWidth = 24; // Width in pixels for each level of indentation
 
+  // Parent folder highlight state - shows which folder the drop will land in
+  targetParentFolderId = signal<string | null>(null);
+  // Track the node above current drop position for parent folder calculation
+  private nodeAboveDropPosition: ProjectElement | null = null;
+
   contextItem: ProjectElement | null = null;
   private recentTouchNodeId: string | null = null;
   private touchTimeout: number | null = null;
@@ -135,6 +143,8 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     // only update indicator after tabs load from storage
     effect(() => {
       const tabs = this.projectStateService.openTabs();
+      // Track isHomeSelected to trigger updates when switching to/from home
+      const isHome = this.isHomeSelected();
       if (!tabsReady && tabs.length > 0) {
         tabsReady = true;
       }
@@ -151,33 +161,16 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
         ) {
           elemId = tab.element.id;
         }
-        this.selectedItem = elemId
-          ? this.projectStateService
-              .visibleElements()
-              .find(el => el.id === elemId) || null
-          : null;
-        setTimeout(() => this.updateIndicator());
+        // Clear selectedItem when on home tab, otherwise find matching element
+        this.selectedItem = isHome
+          ? null
+          : elemId
+            ? this.projectStateService
+                .visibleElements()
+                .find(el => el.id === elemId) || null
+            : null;
       }
     });
-  }
-
-  /**
-   * Track function for efficient DOM updates.
-   * @param index The index of the item.
-   * @param item The project element.
-   * @returns The unique identifier for the item.
-   */
-  trackByElement(_index: number, item: ProjectElement): string {
-    return item.id;
-  }
-
-  /**
-   * Accessor for node levels.
-   * @param dataNode The project element node.
-   * @returns The level of the node.
-   */
-  levelAccessor(dataNode: ProjectElement): number {
-    return dataNode.level;
   }
 
   /**
@@ -237,7 +230,6 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
    */
   public onNodeDown(node: ProjectElement) {
     this.selectedItem = node;
-    setTimeout(() => this.updateIndicator());
   }
 
   /**
@@ -248,6 +240,65 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     this.draggedNode = node;
     this.currentDropLevel = node.level;
     this.validLevelsArray = [node.level];
+    this.nodeAboveDropPosition = null;
+  }
+
+  /**
+   * Handles the drag end event.
+   */
+  public dragEnded() {
+    this.draggedNode = null;
+    this.targetParentFolderId.set(null);
+    this.nodeAboveDropPosition = null;
+  }
+
+  /**
+   * Finds the parent folder for a given drop position and level.
+   * @param nodeAbove The node above the drop position
+   * @param dropLevel The level at which the item will be dropped
+   * @returns The parent folder ID or null if dropping at root
+   */
+  private findParentFolderForDrop(
+    nodeAbove: ProjectElement | null,
+    dropLevel: number
+  ): string | null {
+    if (!nodeAbove || dropLevel === 0) {
+      return null; // Dropping at root level
+    }
+
+    const elements = this.treeElements();
+
+    // If dropping inside nodeAbove (it's a folder and we're one level deeper)
+    if (nodeAbove.expandable && dropLevel === nodeAbove.level + 1) {
+      return nodeAbove.id;
+    }
+
+    // Otherwise, find the parent folder at the target level
+    // Walk backwards from nodeAbove to find a folder at level = dropLevel - 1
+    const nodeAboveIndex = elements.findIndex(n => n.id === nodeAbove.id);
+    for (let i = nodeAboveIndex; i >= 0; i--) {
+      const node = elements[i];
+      if (node.expandable && node.level === dropLevel - 1) {
+        return node.id;
+      }
+      // If we've gone past the target level's parent, stop
+      if (node.level < dropLevel - 1) {
+        break;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Updates the parent folder highlight based on current drop position.
+   */
+  private updateParentFolderHighlight() {
+    const parentFolderId = this.findParentFolderForDrop(
+      this.nodeAboveDropPosition,
+      this.currentDropLevel
+    );
+    this.targetParentFolderId.set(parentFolderId);
   }
 
   /**
@@ -260,29 +311,14 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     const treeRect = this.treeContainer.nativeElement.getBoundingClientRect();
     const indentPerLevel = this.levelWidth;
     const relativeX = pointerX - treeRect.left;
-    const intendedLevel = Math.floor(relativeX / indentPerLevel); // Allow any level based on horizontal position
+    const intendedLevel = Math.floor(relativeX / indentPerLevel);
     const validLevels = this.validLevelsArray;
-
-    // Debug logging
-    // console.log('Drag Debug:', {
-    //   intendedLevel,
-    //   relativeX,
-    //   validLevels,
-    //   draggedNode: this.draggedNode?.name,
-    // });
 
     const selectedLevel = validLevels.reduce((prev, curr) =>
       Math.abs(curr - intendedLevel) < Math.abs(prev - intendedLevel)
         ? curr
         : prev
     );
-
-    // Debug level selection
-    // console.log('Level Selection:', {
-    //   selectedLevel,
-    //   validLevels,
-    //   currentDropLevel: this.currentDropLevel,
-    // });
 
     this.currentDropLevel = selectedLevel;
     const placeholderElement = this.treeContainer.nativeElement.querySelector(
@@ -291,6 +327,9 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     if (placeholderElement) {
       placeholderElement.style.marginLeft = `${Math.max(0, selectedLevel * indentPerLevel)}px`;
     }
+
+    // Update parent folder highlight when level changes
+    this.updateParentFolderHighlight();
   }
 
   /**
@@ -348,6 +387,10 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
       this.projectStateService.getValidDropLevels(nodeAbove, nodeBelow);
     this.validLevelsArray = levels;
     this.currentDropLevel = defaultLevel;
+
+    // Store nodeAbove for parent folder calculation
+    this.nodeAboveDropPosition = nodeAbove;
+    this.updateParentFolderHighlight();
   }
 
   /**
@@ -412,14 +455,28 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
       this.currentDropLevel
     );
 
+    // Capture the target folder ID before resetting state
+    const targetFolderId = this.targetParentFolderId();
+
     void this.projectStateService.moveElement(
       node.id,
       insertIndex,
       this.currentDropLevel
     );
+
+    // Expand the target folder if it was collapsed
+    if (targetFolderId) {
+      const targetFolder = this.treeElements().find(
+        el => el.id === targetFolderId
+      );
+      if (targetFolder && !targetFolder.expanded) {
+        this.projectStateService.setExpanded(targetFolderId, true);
+      }
+    }
+
     this.draggedNode = null;
-    // this.updateDataSource();
-    // await this.saveChanges();
+    this.targetParentFolderId.set(null);
+    this.nodeAboveDropPosition = null;
   }
 
   /**
@@ -495,7 +552,6 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
     };
     this.projectStateService.openDocument(dto);
     this.documentOpened.emit(dto);
-    setTimeout(() => this.updateIndicator());
     // Navigate to document, folder, or worldbuilding route
     const project = this.projectStateService.project();
     if (project?.username && project?.slug) {
@@ -514,6 +570,25 @@ export class ProjectTreeComponent implements AfterViewInit, OnDestroy {
         typeRoute,
         dto.id,
       ]);
+    }
+  }
+
+  /**
+   * Opens the new element dialog to create a new element at the root level.
+   */
+  public onCreateNewElement(): void {
+    this.projectStateService.showNewElementDialog();
+  }
+
+  /**
+   * Navigates to the home tab.
+   */
+  public goHome(): void {
+    const project = this.projectStateService.project();
+    if (project) {
+      this.selectedItem = null;
+      this.projectStateService.openSystemTab('home');
+      void this.router.navigate(['/', project.username, project.slug]);
     }
   }
 }

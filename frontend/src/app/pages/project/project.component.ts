@@ -563,4 +563,15 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       void this.router.navigate(['/', project.username, project.slug]);
     }
   }
+
+  // Check if a system tab is currently selected
+  isSystemTabSelected(systemType: string): boolean {
+    const tabs = this.projectState.openTabs();
+    const currentTabIndex = this.projectState.selectedTabIndex();
+    if (currentTabIndex === 0 || tabs.length === 0) {
+      return false;
+    }
+    const currentTab = tabs[currentTabIndex];
+    return currentTab?.systemType === systemType;
+  }
 }

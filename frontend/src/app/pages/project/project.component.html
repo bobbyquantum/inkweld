@@ -201,26 +201,46 @@
           <!-- Sidebar area -->
           <as-split-area [size]="splitSize" [minSize]="15" [maxSize]="40">
             <div class="sidebar-area">
-              <div class="desktop-open-toolbar">
-                <button
-                  mat-button
-                  data-testid="back-to-project-button"
-                  (click)="goHome()"
-                  aria-label="Home"
-                  [class.active]="projectState.selectedTabIndex() === 0">
-                  <mat-icon>home</mat-icon>
-                  <span class="desktop-button-text">Home</span>
-                </button>
-                <button
-                  mat-icon-button
-                  data-testid="add-element-button"
-                  (click)="projectState.showNewElementDialog()"
-                  aria-label="Add">
-                  <mat-icon>add</mat-icon>
-                </button>
-              </div>
               <app-project-tree
                 (documentOpened)="onDocumentOpened($event)"></app-project-tree>
+              <!-- Fixed bottom navigation -->
+              <div class="sidebar-bottom-nav">
+                <div
+                  class="sidebar-nav-item"
+                  [class.selected-item]="isSystemTabSelected('media')"
+                  data-testid="sidebar-media-button"
+                  tabindex="0"
+                  role="button"
+                  (click)="onShowMediaLibrary()"
+                  (keyup.enter)="onShowMediaLibrary()"
+                  aria-label="Media Library">
+                  <mat-icon>perm_media</mat-icon>
+                  <span class="nav-title">Media Library</span>
+                </div>
+                <div
+                  class="sidebar-nav-item"
+                  [class.selected-item]="isSystemTabSelected('templates-list')"
+                  data-testid="sidebar-templates-button"
+                  tabindex="0"
+                  role="button"
+                  (click)="onShowTemplatesList()"
+                  (keyup.enter)="onShowTemplatesList()"
+                  aria-label="Element Templates">
+                  <mat-icon>description</mat-icon>
+                  <span class="nav-title">Element Templates</span>
+                </div>
+                <div
+                  class="sidebar-nav-item exit-item"
+                  data-testid="sidebar-exit-button"
+                  tabindex="0"
+                  role="button"
+                  (click)="exitProject()"
+                  (keyup.enter)="exitProject()"
+                  aria-label="Exit Project">
+                  <mat-icon>exit_to_app</mat-icon>
+                  <span class="nav-title">Exit Project</span>
+                </div>
+              </div>
             </div>
           </as-split-area>
           <!-- Content area -->

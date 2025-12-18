@@ -1,118 +1,156 @@
 <div #treeContainer class="project-tree-container" data-testid="project-tree">
-  @if (selectedItem) {
-    <div
-      class="selection-indicator"
-      [style.top.px]="indicatorTop"
-      [style.height.px]="indicatorHeight"></div>
-  }
+  <!-- Loading overlay -->
   @if (isLoading()) {
     <div class="loading-overlay">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
   }
 
+  <!-- Error message -->
   @if (error()) {
     <div class="error-message">
       {{ error() }}
     </div>
   }
 
-  <mat-tree
-    #tree
-    [dataSource]="treeElements()"
-    [levelAccessor]="levelAccessor"
+  <!-- Project Tree with ARIA attributes for accessibility -->
+  <ul
+    role="tree"
+    class="aria-tree"
     cdkDropList
     [cdkDropListData]="treeElements()"
     (cdkDropListSorted)="sorted($event)"
-    (cdkDropListDropped)="drop($event)"
-    [trackBy]="trackByElement">
-    <mat-tree-node
-      cdkDrag
-      [cdkDragData]="node"
-      [attr.data-testid]="'element-' + node.name"
-      (mousedown)="onNodeDown(node)"
-      (touchstart)="onNodeDown(node)"
-      (cdkDragMoved)="dragMove($event)"
-      [cdkDragDisabled]="isLoading()"
-      [style.padding-left.px]="node.level * 24 + (node.expandable ? 0 : 16)"
-      [class.folder-node]="node.expandable"
-      [class.context-item]="node.id === contextItem?.id"
-      [class.selected-item]="node.id === selectedItem?.id"
-      [isExpanded]="node.expanded"
-      *matTreeNodeDef="let node"
-      [cdkContextMenuTriggerFor]="contextMenu"
-      (contextmenu)="onContextMenuOpen(node)"
-      (cdkContextMenuClosed)="onContextMenuClose()"
-      [cdkContextMenuTriggerData]="{ node: node }"
-      (click)="!node.expandable && onOpenDocument(node)"
-      (touchend)="!node.expandable && onOpenDocument(node)"
-      (keyup.enter)="!node.expandable && onOpenDocument(node)">
-      @if (node.expandable) {
-        <button
-          mat-icon-button
-          type="button"
-          data-testid="expand-folder-button"
-          (click)="toggleExpandedClick(node, $event)"
-          (touchend)="toggleExpandedTouch(node, $event)"
-          [disabled]="isLoading()">
-          <mat-icon>{{
-            node.expanded ? 'expand_more' : 'chevron_right'
-          }}</mat-icon>
-        </button>
-      }
-      <app-tree-node-icon
-        [isExpandable]="node.expandable"
-        [isExpanded]="node.expanded"
-        [type]="node.type"
-        [metadata]="node.metadata">
-      </app-tree-node-icon>
+    (cdkDropListDropped)="drop($event)">
+    <!-- Home node at the top of the tree -->
+    <li
+      role="treeitem"
+      aria-level="1"
+      [attr.aria-selected]="isHomeSelected()"
+      class="home-item"
+      [class.selected-item]="isHomeSelected()"
+      [class.has-open-tab]="isHomeOpen()"
+      data-testid="home-node"
+      tabindex="0"
+      (click)="goHome()"
+      (keyup.enter)="goHome()">
+      <mat-icon>home</mat-icon>
+      <div class="node-title">Home</div>
+    </li>
 
-      <div
-        class="node-title"
-        tabindex="0"
-        (click)="onOpenDocument(node)"
-        (touchend)="onOpenDocument(node)"
+    @for (node of treeElements(); track node.id) {
+      <li
+        role="treeitem"
+        [attr.aria-expanded]="node.expandable ? node.expanded : null"
+        [attr.aria-level]="node.level + 1"
+        [attr.aria-selected]="node.id === selectedItem?.id"
+        [attr.aria-label]="node.name"
+        cdkDrag
+        [cdkDragData]="node"
+        (cdkDragStarted)="dragStarted(node)"
+        (cdkDragEnded)="dragEnded()"
+        (cdkDragMoved)="dragMove($event)"
+        [cdkDragDisabled]="isLoading()"
+        [attr.data-testid]="'element-' + node.name"
+        [attr.data-level]="node.level"
+        [style.padding-left.px]="node.level * 24 + (node.expandable ? 0 : 16)"
+        [class.folder-node]="node.expandable"
+        [class.context-item]="node.id === contextItem?.id"
+        [class.selected-item]="node.id === selectedItem?.id"
+        [class.has-open-tab]="hasOpenTab(node.id)"
+        [class.drop-target-folder]="
+          draggedNode && node.expandable && targetParentFolderId() === node.id
+        "
+        (mousedown)="onNodeDown(node)"
+        (touchstart)="onNodeDown(node)"
+        [cdkContextMenuTriggerFor]="contextMenu"
+        (contextmenu)="onContextMenuOpen(node)"
+        (cdkContextMenuClosed)="onContextMenuClose()"
+        [cdkContextMenuTriggerData]="{ node: node }"
+        (click)="!node.expandable && onOpenDocument(node)"
+        (touchend)="!node.expandable && onOpenDocument(node)"
         (keyup.enter)="onOpenDocument(node)"
-        (dblclick)="onOpenDocument(node)">
-        {{ node.name }}
-      </div>
-
-      <div
-        class="drag-placeholder"
-        *cdkDragPlaceholder
-        [class.folder-node]="node.expandable">
+        tabindex="0">
+        <!-- Expand/collapse button for folders -->
         @if (node.expandable) {
-          <button mat-icon-button type="button">
+          <button
+            mat-icon-button
+            type="button"
+            data-testid="expand-folder-button"
+            (click)="toggleExpandedClick(node, $event)"
+            (touchend)="toggleExpandedTouch(node, $event)"
+            [disabled]="isLoading()">
             <mat-icon>{{
               node.expanded ? 'expand_more' : 'chevron_right'
             }}</mat-icon>
           </button>
-          <mat-icon>folder</mat-icon>
-        } @else {
-          <app-tree-node-icon
-            [isExpandable]="node.expandable"
-            [isExpanded]="node.expanded"
-            [type]="node.type"
-            [metadata]="node.metadata">
-          </app-tree-node-icon>
         }
+
+        <!-- Node icon -->
+        <app-tree-node-icon
+          [isExpandable]="node.expandable"
+          [isExpanded]="node.expanded ?? false"
+          [type]="node.type"
+          [metadata]="node.metadata">
+        </app-tree-node-icon>
+
+        <!-- Node title -->
         <div class="node-title">
           {{ node.name }}
         </div>
-      </div>
 
-      <div class="drag-preview" *cdkDragPreview>
-        <app-tree-node-icon
-          [isExpandable]="node.expandable"
-          [isExpanded]="node.expanded"
-          [type]="node.type"
-          [metadata]="node.metadata"></app-tree-node-icon>
-        <div class="node-title">{{ node.name }}</div>
-      </div>
-    </mat-tree-node>
-  </mat-tree>
+        <!-- Drag placeholder (ghost) -->
+        <div
+          class="drag-placeholder"
+          *cdkDragPlaceholder
+          [class.folder-node]="node.expandable">
+          @if (node.expandable) {
+            <button mat-icon-button type="button">
+              <mat-icon>{{
+                node.expanded ? 'expand_more' : 'chevron_right'
+              }}</mat-icon>
+            </button>
+            <mat-icon>folder</mat-icon>
+          } @else {
+            <app-tree-node-icon
+              [isExpandable]="node.expandable"
+              [isExpanded]="node.expanded ?? false"
+              [type]="node.type"
+              [metadata]="node.metadata">
+            </app-tree-node-icon>
+          }
+          <div class="node-title">{{ node.name }}</div>
+        </div>
+
+        <!-- Drag preview -->
+        <div class="drag-preview" *cdkDragPreview>
+          <app-tree-node-icon
+            [isExpandable]="node.expandable"
+            [isExpanded]="node.expanded ?? false"
+            [type]="node.type"
+            [metadata]="node.metadata">
+          </app-tree-node-icon>
+          <div class="node-title">{{ node.name }}</div>
+        </div>
+      </li>
+    }
+
+    <!-- Create new element button at the end of the tree -->
+    <li
+      role="treeitem"
+      aria-level="1"
+      aria-selected="false"
+      class="create-item"
+      data-testid="create-new-element"
+      tabindex="0"
+      (click)="onCreateNewElement()"
+      (keyup.enter)="onCreateNewElement()">
+      <mat-icon>add</mat-icon>
+      <div class="node-title">Create</div>
+    </li>
+  </ul>
 </div>
 
+<!-- Context menu -->
 <ng-template #contextMenu let-node="node">
   <div class="context-menu" cdkMenu>
     @if (!node.expandable) {
