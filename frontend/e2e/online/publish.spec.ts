@@ -291,7 +291,7 @@ test.describe('Online Publishing Workflow', () => {
       await page.waitForTimeout(3000);
 
       // Go back to project home
-      await page.getByTestId('back-to-project-button').click();
+      await page.getByTestId('home-node').click();
 
       // Wait for project home to load
       await expect(
@@ -423,7 +423,7 @@ test.describe('Online Publishing Workflow', () => {
       await page.waitForTimeout(3000);
 
       // Go back to project home
-      await page.getByTestId('back-to-project-button').click();
+      await page.getByTestId('home-node').click();
 
       // Wait for project home to load
       await expect(
@@ -553,7 +553,7 @@ test.describe('Online Publishing Workflow', () => {
       await page.waitForTimeout(3000);
 
       // Go back to project home
-      await page.getByTestId('back-to-project-button').click();
+      await page.getByTestId('home-node').click();
 
       // Wait for project home
       await expect(
@@ -664,7 +664,7 @@ test.describe('Online Publishing Workflow', () => {
       await page.waitForTimeout(3000);
 
       // Go back to project home
-      await page.getByTestId('back-to-project-button').click();
+      await page.getByTestId('home-node').click();
 
       // Wait for project home
       await expect(

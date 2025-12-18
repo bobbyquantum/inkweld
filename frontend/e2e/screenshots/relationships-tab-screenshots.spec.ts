@@ -424,7 +424,7 @@ test.describe('Relationships Tab Screenshots', () => {
 
       // Create each character
       for (const charName of characters) {
-        await page.getByTestId('add-element-button').click();
+        await page.getByTestId('create-new-element').click();
         await page.getByTestId('element-type-character').click();
         await page.getByTestId('element-name-input').fill(charName);
         await page.getByTestId('create-element-button').click();

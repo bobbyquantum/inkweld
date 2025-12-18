@@ -40,7 +40,7 @@ test.describe('Media Tab', () => {
       await page.waitForLoadState('networkidle');
 
       // Click the Media Library button on the home tab
-      const mediaButton = page.getByRole('button', { name: /Media Library/i });
+      const mediaButton = page.getByTestId('sidebar-media-button');
       await expect(mediaButton).toBeVisible({ timeout: 5000 });
       await mediaButton.click();
 
@@ -60,15 +60,9 @@ test.describe('Media Tab', () => {
       await page.waitForURL(/\/.+\/.+/);
       await page.waitForLoadState('networkidle');
 
-      // Open the toolbar menu
-      const menuButton = page.getByRole('button', { name: /menu/i });
-      if (await menuButton.isVisible()) {
-        await menuButton.click();
-
-        // Look for media library option in menu
-        const mediaOption = page.getByText(/Media Library/i);
-        await expect(mediaOption).toBeVisible({ timeout: 3000 });
-      }
+      // Check that media library button is visible in the sidebar
+      const mediaButton = page.getByTestId('sidebar-media-button');
+      await expect(mediaButton).toBeVisible({ timeout: 3000 });
     });
   });
 
@@ -82,7 +76,7 @@ test.describe('Media Tab', () => {
       await page.waitForLoadState('networkidle');
 
       // Navigate to media tab
-      const mediaButton = page.getByRole('button', { name: /Media Library/i });
+      const mediaButton = page.getByTestId('sidebar-media-button');
       await mediaButton.click();
       await page.waitForURL(/\/media$/);
 
@@ -130,7 +124,7 @@ test.describe('Media Tab', () => {
       );
 
       // Navigate to media tab
-      const mediaButton = page.getByRole('button', { name: /Media Library/i });
+      const mediaButton = page.getByTestId('sidebar-media-button');
       await mediaButton.click();
       await page.waitForURL(/\/media$/);
 
