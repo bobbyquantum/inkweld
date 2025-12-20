@@ -154,24 +154,13 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.setupNetworkHandlers();
       this.setupDocumentObserver();
 
-      // Try to wait for WebSocket sync, but don't fail if it times out
-      // This is "local-first" - we already have data from IndexedDB
-      try {
-        await this.waitForInitialSync();
-      } catch (wsError) {
-        // WebSocket sync failed/timed out - this is NOT fatal
-        // We have local data from IndexedDB, so continue
-        const wsErrorMsg =
-          wsError instanceof Error
-            ? wsError.message
-            : 'Unknown WebSocket error';
-        this.logger.warn(
-          'YjsSync',
-          `⚠️ WebSocket sync failed, continuing with local data: ${wsErrorMsg}`
-        );
-        this.syncStateSubject.next(DocumentSyncState.Offline);
-        // The WebSocket will keep trying to reconnect in the background
-      }
+      // Don't wait for WebSocket sync - this is local-first
+      // We already have data from IndexedDB, WebSocket syncs in background
+      // The sync state will be updated via the 'sync' event handler
+      this.logger.info(
+        'YjsSync',
+        '🔄 WebSocket connecting in background, local data ready'
+      );
 
       return { success: true };
     } catch (error) {
@@ -477,45 +466,6 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   // ─────────────────────────────────────────────────────────────────────────────
   // Private Methods
   // ─────────────────────────────────────────────────────────────────────────────
-
-  /**
-   * Wait for the WebSocket to sync with the server.
-   * Uses the 'sync' event from y-websocket instead of polling.
-   * Times out after 30 seconds.
-   */
-  private waitForInitialSync(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!this.wsProvider) {
-        reject(new Error('WebSocket provider not initialized'));
-        return;
-      }
-
-      // If already synced, resolve immediately
-      if (this.wsProvider.synced) {
-        this.logger.info('YjsSync', '✅ WebSocket already synced');
-        resolve();
-        return;
-      }
-
-      const timeout = setTimeout(() => {
-        this.logger.warn('YjsSync', '⚠️ WebSocket sync timeout after 30s');
-        reject(new Error('WebSocket sync timeout'));
-      }, 30000);
-
-      // Listen for the sync event instead of polling
-      const onSync = (isSynced: boolean) => {
-        this.logger.debug('YjsSync', `Sync event received: ${isSynced}`);
-        if (isSynced) {
-          clearTimeout(timeout);
-          this.wsProvider?.off('sync', onSync);
-          this.logger.info('YjsSync', '✅ WebSocket synced (via event)');
-          resolve();
-        }
-      };
-
-      this.wsProvider.on('sync', onSync);
-    });
-  }
 
   /**
    * Set up WebSocket status and error handlers.

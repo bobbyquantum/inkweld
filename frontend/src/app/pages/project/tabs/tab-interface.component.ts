@@ -189,6 +189,33 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
+  // Reserved paths that are not project routes (first URL segment)
+  // Must match RESERVED_USERNAMES in backend/src/schemas/auth.schemas.ts
+  private readonly reservedPaths = new Set([
+    'admin',
+    'setup',
+    'reset',
+    'create-project',
+    'welcome',
+    'register',
+    'approval-pending',
+    'unavailable',
+    'api',
+    'assets',
+    'static',
+    '_next',
+    'health',
+    'ws',
+    '',
+  ]);
+
+  /** Check if a URL path is a project route (not a reserved path) */
+  private isProjectRoute(url: string): boolean {
+    const urlParts = url.split('/').filter(p => p);
+    const firstSegment = urlParts[0] || '';
+    return !this.reservedPaths.has(firstSegment);
+  }
+
   ngOnInit(): void {
     // Subscribe to router events to update the tab selection on subsequent navigations
     this.routerSubscription = this.router.events
@@ -198,6 +225,11 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         takeUntil(this.destroy$)
       )
       .subscribe(event => {
+        // Skip non-project routes (admin, setup, etc.)
+        if (!this.isProjectRoute(event.url)) {
+          return;
+        }
+
         // Extract project info from URL to detect project changes
         const urlParts = event.url.split('/').filter(p => p);
         const urlUsername = urlParts[0];

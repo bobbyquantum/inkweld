@@ -6,12 +6,20 @@ import { catchError, tap } from 'rxjs/operators';
 
 import { SetupService } from './setup.service';
 
-/** Default system features for offline mode */
+/** Default system features when user explicitly chooses offline mode */
 const OFFLINE_DEFAULTS: SystemFeatures = {
   aiLinting: false,
   aiImageGeneration: false,
   userApprovalRequired: false, // No approval needed in offline mode
   appMode: SystemFeaturesAppMode.Offline,
+};
+
+/** Default system features when server is unavailable (degraded online mode) */
+const SERVER_UNAVAILABLE_DEFAULTS: SystemFeatures = {
+  aiLinting: false,
+  aiImageGeneration: false,
+  userApprovalRequired: true, // Keep strict in server mode
+  appMode: SystemFeaturesAppMode.Offline, // Treat as offline when server is down
 };
 
 @Injectable({
@@ -73,15 +81,11 @@ export class SystemConfigService {
         }),
         catchError(error => {
           console.warn(
-            '[SystemConfig] Failed to load system features, using defaults:',
+            '[SystemConfig] Failed to load system features, using offline defaults:',
             error
           );
-          this.systemFeaturesSignal.set({
-            aiLinting: false,
-            aiImageGeneration: false,
-            userApprovalRequired: true,
-            appMode: SystemFeaturesAppMode.Both,
-          });
+          // Use server unavailable defaults - operates in degraded offline mode
+          this.systemFeaturesSignal.set(SERVER_UNAVAILABLE_DEFAULTS);
           this.isLoaded.set(true);
           return of(null);
         })

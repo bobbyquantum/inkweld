@@ -25,6 +25,7 @@ import {
   RouterModule,
   RouterOutlet,
 } from '@angular/router';
+import { ConnectionStatusComponent } from '@components/connection-status/connection-status.component';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { Element, ElementType, Project } from '@inkweld/index';
@@ -62,6 +63,7 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
     MatProgressSpinnerModule,
     MatToolbarModule,
     MatMenuModule,
+    ConnectionStatusComponent,
     ProjectTreeComponent,
     DocumentElementEditorComponent,
     RouterModule,
@@ -93,6 +95,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly isZenMode = signal(false);
   public readonly showSidebar = signal(true);
   public readonly isDeleting = signal(false);
+
+  /** Current project sync state - exposed for connection status display */
+  protected readonly projectSyncState = this.projectState.getSyncState;
 
   // Define a consistent breakpoint value for the application
   private readonly MOBILE_BREAKPOINT = '(max-width: 759px)';
@@ -586,5 +591,29 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     const currentTab = tabs[currentTabIndex];
     return currentTab?.systemType === systemType;
+  }
+
+  /**
+   * Retry connection to the server.
+   * Reloads the current project to re-establish sync.
+   */
+  async onRetrySyncConnection(): Promise<void> {
+    const project = this.projectState.project();
+    if (!project) return;
+
+    this.snackBar.open('Reconnecting...', undefined, { duration: 2000 });
+
+    try {
+      // Reload the project to re-establish sync provider
+      await this.projectState.loadProject(project.username, project.slug);
+      this.snackBar.open('Reconnected successfully', 'Close', {
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Failed to reconnect:', error);
+      this.snackBar.open('Failed to reconnect to server', 'Close', {
+        duration: 5000,
+      });
+    }
   }
 }
