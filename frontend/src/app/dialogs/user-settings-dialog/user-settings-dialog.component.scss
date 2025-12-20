@@ -67,18 +67,26 @@ h2 {
 }
 
 .mat-mdc-list-item {
+  border-radius: 24px;
+  margin-bottom: 4px;
+  transition: background-color 0.2s ease;
+
   &.active {
-    background-color: var(--mat-list-active-indicator-color);
-    color: var(--mat-list-list-item-selected-trailing-icon-color);
-    font-weight: bold;
+    background-color: var(--sys-primary-container);
+    color: var(--sys-on-primary-container);
+    font-weight: 500;
+
+    .mat-icon {
+      color: var(--sys-on-primary-container);
+    }
   }
 
   &:focus-visible {
-    outline: 2px solid var(--mat-list-list-item-focus-state-layer-color);
+    outline: 2px solid var(--sys-outline);
     outline-offset: -2px;
   }
 
-  &:hover {
-    background-color: var(--mat-list-list-item-hover-state-layer-color);
+  &:hover:not(.active) {
+    background-color: var(--sys-surface-container-highest);
   }
 }
