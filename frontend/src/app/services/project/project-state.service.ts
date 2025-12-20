@@ -6,10 +6,10 @@ import {
   OnDestroy,
   signal,
 } from '@angular/core';
-import { Element, ElementType, Project, ProjectsService } from '@inkweld/index';
+import { Element, ElementType, Project } from '@inkweld/index';
 import { ProjectElement } from 'app/models/project-element';
 import { nanoid } from 'nanoid';
-import { firstValueFrom, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
@@ -60,7 +60,6 @@ export type { AppTab, ValidDropLevels };
 })
 export class ProjectStateService implements OnDestroy {
   // Injected services
-  private readonly projectsService = inject(ProjectsService);
   private readonly unifiedProjectService = inject(UnifiedProjectService);
   private readonly setupService = inject(SetupService);
   private readonly offlineElementsService = inject(
@@ -209,37 +208,86 @@ export class ProjectStateService implements OnDestroy {
     this.project.set(project);
 
     // Connect sync provider
-    await this.connectSyncProvider(username, slug);
+    const connected = await this.connectSyncProvider(username, slug);
+    if (!connected) {
+      throw new Error('Failed to connect to sync provider');
+    }
   }
 
   private async loadServerProject(
     username: string,
     slug: string
   ): Promise<void> {
-    // Get project metadata from API
-    const project = await firstValueFrom(
-      this.projectsService.getProject(username, slug)
-    );
-    this.project.set(project);
+    // Local-first: Try to get project metadata using UnifiedProjectService
+    // which handles caching and graceful fallback when server is down
+    let project: Project | null = null;
+    let serverError: Error | null = null;
 
-    // Connect sync provider
-    await this.connectSyncProvider(username, slug);
+    try {
+      project = await this.unifiedProjectService.getProject(username, slug);
+    } catch (err) {
+      // Server might be down - save error but continue
+      serverError = err instanceof Error ? err : new Error('Unknown error');
+      this.logger.warn(
+        'ProjectState',
+        `Server unavailable, will try local-first sync: ${serverError.message}`
+      );
+    }
+
+    // If we got project metadata, set it
+    if (project) {
+      this.project.set(project);
+    } else if (!serverError) {
+      // No project and no error means project wasn't found
+      throw new Error('Project not found');
+    }
+
+    // Connect sync provider - this is local-first (IndexedDB + WebSocket)
+    // Even if server is down, we can load from IndexedDB
+    const connected = await this.connectSyncProvider(username, slug);
+
+    // If we don't have project metadata but sync provider connected,
+    // we're in degraded mode - show a placeholder project
+    if (!project && connected && this.syncProvider?.isConnected()) {
+      this.logger.info(
+        'ProjectState',
+        'Operating in offline mode - server unavailable but local data loaded'
+      );
+      // Create a minimal project placeholder so UI can render
+      // The real project data will sync when server comes back
+      this.project.set({
+        id: `local-${username}-${slug}`,
+        username,
+        slug,
+        title: slug, // Use slug as title placeholder
+        description: '',
+        createdDate: new Date().toISOString(),
+        updatedDate: new Date().toISOString(),
+      });
+      // Mark as offline state
+      this.docSyncState.set(DocumentSyncState.Offline);
+    } else if (!project && !connected) {
+      // No project and sync provider failed too
+      throw serverError || new Error('Failed to load project');
+    }
   }
 
   /**
    * Connect the appropriate sync provider and subscribe to its observables.
+   * Returns true if connection succeeded (even in degraded offline mode).
    */
   private async connectSyncProvider(
     username: string,
     slug: string
-  ): Promise<void> {
+  ): Promise<boolean> {
     // Get the appropriate provider (Yjs or Offline)
     this.syncProvider = this.syncProviderFactory.getProvider();
 
     // Subscribe to provider observables
     this.setupProviderSubscriptions();
 
-    // Connect
+    // Connect - Yjs provider is local-first and will load from IndexedDB
+    // even if WebSocket fails
     const result = await this.syncProvider.connect({
       username,
       slug,
@@ -247,7 +295,12 @@ export class ProjectStateService implements OnDestroy {
     });
 
     if (!result.success) {
-      throw new Error(result.error || 'Failed to connect to sync provider');
+      // Critical failure (e.g., IndexedDB unavailable)
+      this.logger.error(
+        'ProjectState',
+        `Sync provider failed: ${result.error}`
+      );
+      return false;
     }
 
     this.logger.info(
@@ -257,6 +310,7 @@ export class ProjectStateService implements OnDestroy {
 
     // Update WorldbuildingService with the sync provider for schema access
     this.worldbuildingService.setSyncProvider(this.syncProvider);
+    return true;
   }
 
   /**

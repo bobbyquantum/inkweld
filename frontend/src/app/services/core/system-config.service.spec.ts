@@ -100,15 +100,16 @@ describe('SystemConfigService', () => {
       // Wait for async operation to complete
       return new Promise<void>(resolve => {
         setTimeout(() => {
+          // When server is unavailable, use offline defaults
           expect(errorService.systemFeatures()).toEqual({
             aiLinting: false,
             aiImageGeneration: false,
-            appMode: 'BOTH',
+            appMode: 'OFFLINE', // Changed from BOTH - treat as offline when server down
             userApprovalRequired: true,
           });
           expect(errorService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
-            '[SystemConfig] Failed to load system features, using defaults:',
+            '[SystemConfig] Failed to load system features, using offline defaults:',
             error
           );
           resolve();
@@ -440,15 +441,16 @@ describe('SystemConfigService', () => {
 
       return new Promise<void>(resolve => {
         setTimeout(() => {
+          // When server is unavailable, use offline defaults
           expect(testService.systemFeatures()).toEqual({
             aiLinting: false,
             aiImageGeneration: false,
-            appMode: 'BOTH',
+            appMode: 'OFFLINE', // Treat as offline when server down
             userApprovalRequired: true,
           });
           expect(testService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
-            '[SystemConfig] Failed to load system features, using defaults:',
+            '[SystemConfig] Failed to load system features, using offline defaults:',
             networkError
           );
           resolve();
@@ -471,15 +473,16 @@ describe('SystemConfigService', () => {
           service.refreshSystemFeatures();
 
           setTimeout(() => {
+            // When server becomes unavailable, use offline defaults
             expect(service.systemFeatures()).toEqual({
               aiLinting: false,
               aiImageGeneration: false,
-              appMode: 'BOTH',
+              appMode: 'OFFLINE', // Treat as offline when server down
               userApprovalRequired: true,
             });
             expect(service.isConfigLoaded()).toBe(true);
             expect(consoleWarnSpy).toHaveBeenCalledWith(
-              '[SystemConfig] Failed to load system features, using defaults:',
+              '[SystemConfig] Failed to load system features, using offline defaults:',
               refreshError
             );
             resolve();

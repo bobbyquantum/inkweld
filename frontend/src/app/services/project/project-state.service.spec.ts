@@ -245,7 +245,8 @@ describe('ProjectStateService', () => {
     it('should load project metadata and connect sync provider', async () => {
       await service.loadProject('testuser', 'test-project');
 
-      expect(mockProjectAPI.getProject).toHaveBeenCalledWith(
+      // Now uses UnifiedProjectService instead of raw API
+      expect(mockUnifiedProjectService.getProject).toHaveBeenCalledWith(
         'testuser',
         'test-project'
       );
@@ -260,8 +261,13 @@ describe('ProjectStateService', () => {
     });
 
     it('should handle errors during project loading', async () => {
-      mockProjectAPI.getProject.mockImplementation(() => {
-        throw new Error('API Error');
+      // UnifiedProjectService throws error AND sync provider fails
+      mockUnifiedProjectService.getProject.mockRejectedValue(
+        new Error('API Error')
+      );
+      mockSyncProvider.connect.mockResolvedValue({
+        success: false,
+        error: 'Connection failed',
       });
 
       await service.loadProject('testuser', 'test-project').catch(() => {});
@@ -270,17 +276,39 @@ describe('ProjectStateService', () => {
       expect(service.getSyncState()).toBe(DocumentSyncState.Unavailable);
     });
 
-    it('should handle sync provider connection failure', async () => {
+    it('should handle sync provider connection failure with fallback', async () => {
+      // When sync provider fails but we have project metadata, should still work
       mockSyncProvider.connect.mockResolvedValue({
         success: false,
         error: 'WebSocket connection failed',
       });
+      mockSyncProvider.isConnected.mockReturnValue(false);
 
       await service.loadProject('testuser', 'test-project').catch(() => {});
 
-      expect(service.error()).toBe(
-        'Failed to load project: WebSocket connection failed'
+      // Project metadata loads successfully even if sync fails
+      expect(service.project()).toEqual(mockProject);
+      // No error because we have project metadata
+      expect(service.error()).toBeFalsy();
+    });
+
+    it('should operate in offline mode when server is down but IndexedDB works', async () => {
+      // Server is down - no project metadata
+      mockUnifiedProjectService.getProject.mockRejectedValue(
+        new Error('Server unavailable')
       );
+      // But sync provider connects via IndexedDB
+      mockSyncProvider.connect.mockResolvedValue({ success: true });
+      mockSyncProvider.isConnected.mockReturnValue(true);
+
+      await service.loadProject('testuser', 'test-project');
+
+      // Should create placeholder project
+      expect(service.project()?.slug).toBe('test-project');
+      expect(service.project()?.username).toBe('testuser');
+      // Should set offline state
+      expect(service.getSyncState()).toBe(DocumentSyncState.Offline);
+      expect(service.error()).toBeFalsy();
     });
   });
 
