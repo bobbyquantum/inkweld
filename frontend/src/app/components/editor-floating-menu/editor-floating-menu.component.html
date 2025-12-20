@@ -1,0 +1,53 @@
+<div ngToolbar class="floating-menu" data-testid="editor-floating-menu">
+  <button
+    ngToolbarWidget
+    value="bold"
+    [attr.aria-pressed]="isBold()"
+    matTooltip="Bold (Ctrl+B)"
+    (mousedown)="preventFocusLoss($event)"
+    (click)="toggleBold()"
+    data-testid="floating-bold">
+    <mat-icon>format_bold</mat-icon>
+  </button>
+  <button
+    ngToolbarWidget
+    value="italic"
+    [attr.aria-pressed]="isItalic()"
+    matTooltip="Italic (Ctrl+I)"
+    (mousedown)="preventFocusLoss($event)"
+    (click)="toggleItalic()"
+    data-testid="floating-italic">
+    <mat-icon>format_italic</mat-icon>
+  </button>
+  <button
+    ngToolbarWidget
+    value="underline"
+    [attr.aria-pressed]="isUnderline()"
+    matTooltip="Underline (Ctrl+U)"
+    (mousedown)="preventFocusLoss($event)"
+    (click)="toggleUnderline()"
+    data-testid="floating-underline">
+    <mat-icon>format_underlined</mat-icon>
+  </button>
+  <button
+    ngToolbarWidget
+    value="strike"
+    [attr.aria-pressed]="isStrike()"
+    matTooltip="Strikethrough"
+    (mousedown)="preventFocusLoss($event)"
+    (click)="toggleStrike()"
+    data-testid="floating-strike">
+    <mat-icon>strikethrough_s</mat-icon>
+  </button>
+  <div class="floating-divider"></div>
+  <button
+    ngToolbarWidget
+    value="link"
+    [attr.aria-pressed]="isLink()"
+    matTooltip="Link"
+    (mousedown)="preventFocusLoss($event)"
+    (click)="toggleLink()"
+    data-testid="floating-link">
+    <mat-icon>link</mat-icon>
+  </button>
+</div>

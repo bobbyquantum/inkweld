@@ -26,6 +26,8 @@ import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
 
+import { EditorFloatingMenuComponent } from '../editor-floating-menu';
+import { EditorToolbarComponent } from '../editor-toolbar';
 import {
   deleteElementRef,
   ElementRefAction,
@@ -60,6 +62,8 @@ import { MetaPanelComponent } from '../meta-panel/meta-panel.component';
     ElementRefPopupComponent,
     ElementRefContextMenuComponent,
     ElementRefTooltipComponent,
+    EditorToolbarComponent,
+    EditorFloatingMenuComponent,
   ],
   templateUrl: './document-element-editor.component.html',
   styleUrls: [

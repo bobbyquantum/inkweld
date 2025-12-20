@@ -5,24 +5,11 @@
     <div class="editor-section" [class.no-tabs]="tabsDisabled">
       <!-- Only show toolbar when not in zen mode -->
       @if (!zenMode) {
-        <div class="editor-toolbar">
-          <ngx-editor-menu
-            [editor]="editor"
-            [toolbar]="toolbar"
-            [colorPresets]="colorPresets">
-          </ngx-editor-menu>
-          <!-- Meta panel toggle button in toolbar -->
-          <button
-            mat-icon-button
-            class="meta-panel-toggle-btn"
-            (click)="showMetaPanel.set(!showMetaPanel())"
-            [matTooltip]="showMetaPanel() ? 'Hide panel' : 'Show panel'"
-            data-testid="meta-panel-toggle">
-            <mat-icon>{{
-              showMetaPanel() ? 'chevron_right' : 'chevron_left'
-            }}</mat-icon>
-          </button>
-        </div>
+        <app-editor-toolbar
+          [editor]="editor"
+          [metaPanelOpen]="showMetaPanel()"
+          (metaPanelToggle)="showMetaPanel.set(!showMetaPanel())">
+        </app-editor-toolbar>
       }
       <div
         class="editor-container fit-width"
@@ -34,20 +21,15 @@
                 [editor]="editor"
                 [placeholder]="'Type here...'"
                 class="editor-content">
-                <ngx-editor-floating-menu [editor]="editor">
-                  @if (isCursorInLintSuggestion()) {
-                    <app-lint-floating-menu
-                      [editor]="editor"></app-lint-floating-menu>
-                  }
-                  @if (!isCursorInLintSuggestion()) {
-                    <ngx-editor-menu
-                      [editor]="editor"
-                      [toolbar]="floatToolbar"
-                      [colorPresets]="colorPresets">
-                    </ngx-editor-menu>
-                  }
-                </ngx-editor-floating-menu>
               </ngx-editor>
+              <!-- Custom floating menus positioned relative to viewport -->
+              @if (isCursorInLintSuggestion()) {
+                <app-lint-floating-menu
+                  [editor]="editor"></app-lint-floating-menu>
+              } @else {
+                <app-editor-floating-menu
+                  [editor]="editor"></app-editor-floating-menu>
+              }
             }
           </div>
         </div>

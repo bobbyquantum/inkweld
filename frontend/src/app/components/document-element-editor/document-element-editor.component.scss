@@ -51,6 +51,13 @@
   }
 }
 
+// Floating menu z-index fix - must be above toolbar
+// Also reduce the extra margin when menu appears below the selection
+::ng-deep ngx-editor-floating-menu {
+  z-index: 200 !important;
+  margin-bottom: 0 !important; // Remove default 5px margin
+}
+
 // Meta panel toggle button in toolbar
 .meta-panel-toggle-btn {
   margin-left: auto; // Push to right side of toolbar

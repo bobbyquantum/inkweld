@@ -1,0 +1,255 @@
+<div ngToolbar class="editor-toolbar" data-testid="editor-toolbar">
+  <!-- Text Formatting Group -->
+  <div class="toolbar-group">
+    <button
+      ngToolbarWidget
+      value="bold"
+      #bold="ngToolbarWidget"
+      [attr.aria-pressed]="isBold()"
+      matTooltip="Bold (Ctrl+B)"
+      (click)="toggleBold()"
+      data-testid="toolbar-bold">
+      <mat-icon>format_bold</mat-icon>
+    </button>
+    <button
+      ngToolbarWidget
+      value="italic"
+      #italic="ngToolbarWidget"
+      [attr.aria-pressed]="isItalic()"
+      matTooltip="Italic (Ctrl+I)"
+      (click)="toggleItalic()"
+      data-testid="toolbar-italic">
+      <mat-icon>format_italic</mat-icon>
+    </button>
+    <button
+      ngToolbarWidget
+      value="underline"
+      #underline="ngToolbarWidget"
+      [attr.aria-pressed]="isUnderline()"
+      matTooltip="Underline (Ctrl+U)"
+      (click)="toggleUnderline()"
+      data-testid="toolbar-underline">
+      <mat-icon>format_underlined</mat-icon>
+    </button>
+    <button
+      ngToolbarWidget
+      value="strike"
+      #strike="ngToolbarWidget"
+      [attr.aria-pressed]="isStrike()"
+      matTooltip="Strikethrough"
+      (click)="toggleStrike()"
+      data-testid="toolbar-strike">
+      <mat-icon>strikethrough_s</mat-icon>
+    </button>
+  </div>
+
+  <mat-divider [vertical]="true" class="toolbar-divider"></mat-divider>
+
+  <!-- Heading Dropdown -->
+  <div class="toolbar-group">
+    <button
+      mat-button
+      [matMenuTriggerFor]="headingMenu"
+      matTooltip="Paragraph style"
+      class="heading-button"
+      data-testid="toolbar-heading">
+      <span class="heading-label">{{ getHeadingLabel() }}</span>
+      <mat-icon class="dropdown-icon">arrow_drop_down</mat-icon>
+    </button>
+    <mat-menu #headingMenu="matMenu" (closed)="onMenuClosed()">
+      <button
+        mat-menu-item
+        (click)="setHeading(0)"
+        [class.active]="headingLevel() === 0">
+        <span class="heading-option paragraph">Paragraph</span>
+      </button>
+      <button
+        mat-menu-item
+        (click)="setHeading(1)"
+        [class.active]="headingLevel() === 1">
+        <span class="heading-option h1">Heading 1</span>
+      </button>
+      <button
+        mat-menu-item
+        (click)="setHeading(2)"
+        [class.active]="headingLevel() === 2">
+        <span class="heading-option h2">Heading 2</span>
+      </button>
+      <button
+        mat-menu-item
+        (click)="setHeading(3)"
+        [class.active]="headingLevel() === 3">
+        <span class="heading-option h3">Heading 3</span>
+      </button>
+      <button
+        mat-menu-item
+        (click)="setHeading(4)"
+        [class.active]="headingLevel() === 4">
+        <span class="heading-option h4">Heading 4</span>
+      </button>
+      <button
+        mat-menu-item
+        (click)="setHeading(5)"
+        [class.active]="headingLevel() === 5">
+        <span class="heading-option h5">Heading 5</span>
+      </button>
+      <button
+        mat-menu-item
+        (click)="setHeading(6)"
+        [class.active]="headingLevel() === 6">
+        <span class="heading-option h6">Heading 6</span>
+      </button>
+    </mat-menu>
+  </div>
+
+  <mat-divider [vertical]="true" class="toolbar-divider"></mat-divider>
+
+  <!-- Alignment Radio Group -->
+  <div
+    ngToolbarWidgetGroup
+    class="toolbar-group alignment-group"
+    role="radiogroup"
+    aria-label="Text alignment"
+    data-testid="toolbar-align">
+    <button
+      ngToolbarWidget
+      value="left"
+      #alignLeft="ngToolbarWidget"
+      [attr.aria-checked]="textAlign() === 'left'"
+      (click)="setAlign('left')"
+      matTooltip="Align left">
+      <mat-icon>format_align_left</mat-icon>
+    </button>
+    <button
+      ngToolbarWidget
+      value="center"
+      #alignCenter="ngToolbarWidget"
+      [attr.aria-checked]="textAlign() === 'center'"
+      (click)="setAlign('center')"
+      matTooltip="Center">
+      <mat-icon>format_align_center</mat-icon>
+    </button>
+    <button
+      ngToolbarWidget
+      value="right"
+      #alignRight="ngToolbarWidget"
+      [attr.aria-checked]="textAlign() === 'right'"
+      (click)="setAlign('right')"
+      matTooltip="Align right">
+      <mat-icon>format_align_right</mat-icon>
+    </button>
+    <button
+      ngToolbarWidget
+      value="justify"
+      #alignJustify="ngToolbarWidget"
+      [attr.aria-checked]="textAlign() === 'justify'"
+      (click)="setAlign('justify')"
+      matTooltip="Justify">
+      <mat-icon>format_align_justify</mat-icon>
+    </button>
+  </div>
+
+  <mat-divider [vertical]="true" class="toolbar-divider"></mat-divider>
+
+  <!-- Lists & Blockquote Group -->
+  <div class="toolbar-group">
+    <button
+      ngToolbarWidget
+      value="bullet-list"
+      #bulletList="ngToolbarWidget"
+      [attr.aria-pressed]="isBulletList()"
+      matTooltip="Bullet list"
+      (click)="toggleBulletList()"
+      data-testid="toolbar-bullet-list">
+      <mat-icon>format_list_bulleted</mat-icon>
+    </button>
+    <button
+      ngToolbarWidget
+      value="ordered-list"
+      #orderedList="ngToolbarWidget"
+      [attr.aria-pressed]="isOrderedList()"
+      matTooltip="Numbered list"
+      (click)="toggleOrderedList()"
+      data-testid="toolbar-ordered-list">
+      <mat-icon>format_list_numbered</mat-icon>
+    </button>
+    <button
+      ngToolbarWidget
+      value="blockquote"
+      #blockquoteWidget="ngToolbarWidget"
+      [attr.aria-pressed]="isBlockquote()"
+      matTooltip="Quote"
+      (click)="toggleBlockquote()"
+      data-testid="toolbar-blockquote">
+      <mat-icon>format_quote</mat-icon>
+    </button>
+  </div>
+
+  <mat-divider [vertical]="true" class="toolbar-divider"></mat-divider>
+
+  <!-- Insert Group -->
+  <div class="toolbar-group">
+    <button
+      ngToolbarWidget
+      value="link"
+      #linkWidget="ngToolbarWidget"
+      [attr.aria-pressed]="isLink()"
+      matTooltip="Insert link"
+      (click)="insertLink()"
+      data-testid="toolbar-link">
+      <mat-icon>link</mat-icon>
+    </button>
+    <button
+      ngToolbarWidget
+      value="hr"
+      matTooltip="Horizontal rule"
+      (click)="insertHorizontalRule()"
+      data-testid="toolbar-hr">
+      <mat-icon>horizontal_rule</mat-icon>
+    </button>
+    <button
+      ngToolbarWidget
+      value="clear"
+      matTooltip="Clear formatting"
+      (click)="clearFormatting()"
+      data-testid="toolbar-clear">
+      <mat-icon>format_clear</mat-icon>
+    </button>
+  </div>
+
+  <mat-divider [vertical]="true" class="toolbar-divider"></mat-divider>
+
+  <!-- History Group -->
+  <div class="toolbar-group">
+    <button
+      ngToolbarWidget
+      value="undo"
+      matTooltip="Undo (Ctrl+Z)"
+      (click)="undo()"
+      data-testid="toolbar-undo">
+      <mat-icon>undo</mat-icon>
+    </button>
+    <button
+      ngToolbarWidget
+      value="redo"
+      matTooltip="Redo (Ctrl+Y)"
+      (click)="redo()"
+      data-testid="toolbar-redo">
+      <mat-icon>redo</mat-icon>
+    </button>
+  </div>
+
+  <!-- Spacer -->
+  <div class="toolbar-spacer"></div>
+
+  <!-- Meta Panel Toggle -->
+  <button
+    ngToolbarWidget
+    value="meta-panel"
+    class="meta-panel-toggle-btn"
+    (click)="onMetaPanelToggle()"
+    [matTooltip]="metaPanelOpen ? 'Hide panel' : 'Show panel'"
+    data-testid="meta-panel-toggle">
+    <mat-icon>{{ metaPanelOpen ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+  </button>
+</div>
