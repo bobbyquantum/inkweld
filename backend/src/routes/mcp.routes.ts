@@ -1,36 +1,69 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
-import { requireAuth } from '../middleware/auth';
 import type { AppContext } from '../types/context';
+import { mcpAuth, handleMcpRequest } from '../mcp';
 
 const mcpRoutes = new OpenAPIHono<AppContext>();
 
-// Apply auth middleware to all mcp routes
-mcpRoutes.use('*', requireAuth);
-
-// Schema
+// Schema for OpenAPI docs
 const ErrorSchema = z
   .object({
     error: z.string().openapi({ example: 'An error occurred', description: 'Error message' }),
   })
   .openapi('MCPError');
 
-// MCP Server-Sent Events endpoint route
-const sseRoute = createRoute({
-  method: 'get',
-  path: '/sse',
+const JsonRpcRequestSchema = z
+  .object({
+    jsonrpc: z.literal('2.0'),
+    id: z.union([z.string(), z.number()]).optional(), // Optional for notifications
+    method: z.string(),
+    params: z.record(z.string(), z.any()).optional(),
+  })
+  .openapi('JsonRpcRequest');
+
+const JsonRpcResponseSchema = z
+  .object({
+    jsonrpc: z.literal('2.0'),
+    id: z.union([z.string(), z.number(), z.null()]).optional(),
+    result: z.any().optional(),
+    error: z
+      .object({
+        code: z.number(),
+        message: z.string(),
+        data: z.any().optional(),
+      })
+      .optional(),
+  })
+  .openapi('JsonRpcResponse');
+
+// ============================================
+// MCP JSON-RPC Endpoint (API Key Auth)
+// ============================================
+
+const mcpJsonRpcRoute = createRoute({
+  method: 'post',
+  path: '/',
   tags: ['MCP'],
-  operationId: 'getMCPEventStream',
+  operationId: 'mcpJsonRpc',
+  description:
+    'MCP (Model Context Protocol) JSON-RPC endpoint. Authenticate with Bearer token or X-API-Key header.',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: JsonRpcRequestSchema,
+        },
+      },
+    },
+  },
   responses: {
     200: {
       content: {
-        'text/event-stream': {
-          schema: {
-            type: 'string',
-          },
+        'application/json': {
+          schema: JsonRpcResponseSchema,
         },
       },
-      description: 'SSE stream of MCP events',
+      description: 'JSON-RPC response',
     },
     401: {
       content: {
@@ -38,15 +71,36 @@ const sseRoute = createRoute({
           schema: ErrorSchema,
         },
       },
-      description: 'Not authenticated',
+      description: 'Invalid or missing API key',
     },
+  },
+});
+
+// Apply MCP auth and handler
+mcpRoutes.use('/', mcpAuth);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Handler types are complex with OpenAPI
+mcpRoutes.openapi(mcpJsonRpcRoute, handleMcpRequest as any);
+
+// ============================================
+// Legacy SSE endpoint (deprecated)
+// ============================================
+
+// MCP Server-Sent Events endpoint route (for backwards compatibility)
+const sseRoute = createRoute({
+  method: 'get',
+  path: '/sse',
+  tags: ['MCP'],
+  operationId: 'getMCPEventStream',
+  deprecated: true,
+  description: 'Deprecated: Use POST / with JSON-RPC instead',
+  responses: {
     501: {
       content: {
         'application/json': {
           schema: ErrorSchema,
         },
       },
-      description: 'MCP not implemented',
+      description: 'SSE transport not implemented - use JSON-RPC instead',
     },
   },
 });
@@ -54,7 +108,7 @@ const sseRoute = createRoute({
 mcpRoutes.openapi(sseRoute, async (c) => {
   return c.json(
     {
-      error: 'Model Context Protocol not yet implemented in Hono backend',
+      error: 'SSE transport is deprecated. Use POST /api/v1/mcp with JSON-RPC protocol instead.',
     },
     501
   );

@@ -122,3 +122,54 @@
     }
   }
 }
+
+// Sync badge in title
+.sync-badge {
+  font-size: 12px;
+  font-weight: normal;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: var(--sys-color-primary-container);
+  color: var(--sys-color-on-primary-container);
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+// Sync progress bar
+.sync-progress {
+  padding: 16px;
+  text-align: center;
+
+  p {
+    margin-top: 8px;
+    color: var(--sys-color-on-surface-variant);
+  }
+}
+
+// Items that need downloading
+.media-item.needs-download {
+  opacity: 0.7;
+  cursor: default;
+
+  &:hover {
+    border-color: var(--sys-color-primary);
+  }
+
+  .placeholder-icon {
+    color: var(--sys-color-primary);
+  }
+
+  .download-btn {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--sys-color-primary);
+    color: var(--sys-color-on-primary);
+
+    &:hover {
+      background: var(--sys-color-primary-container);
+      color: var(--sys-color-on-primary-container);
+    }
+  }
+}

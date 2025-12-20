@@ -10,21 +10,6 @@
 
   @if (isExpanded()) {
     <div class="identity-content">
-      <!-- Image section -->
-      <div class="image-section">
-        <button
-          class="image-placeholder"
-          (click)="onImageClick()"
-          matTooltip="Click to set image">
-          @if (identity().image) {
-            <img [src]="identity().image" [alt]="elementName()" />
-          } @else {
-            <mat-icon class="placeholder-icon">image</mat-icon>
-            <span class="placeholder-text">Add Image</span>
-          }
-        </button>
-      </div>
-
       <!-- Name section -->
       <div class="name-section">
         <span class="element-name">{{ elementName() }}</span>
@@ -35,6 +20,36 @@
           matTooltip="Rename">
           <mat-icon>edit</mat-icon>
         </button>
+      </div>
+
+      <!-- Image section -->
+      <div class="image-section">
+        <button
+          class="image-placeholder"
+          [class.no-image]="!resolvedImageUrl() && !isLoadingImage()"
+          (click)="onImageClick()"
+          matTooltip="Click to set image">
+          @if (isLoadingImage()) {
+            <mat-icon class="placeholder-icon spinning"
+              >hourglass_empty</mat-icon
+            >
+            <span class="placeholder-text">Loading...</span>
+          } @else if (resolvedImageUrl()) {
+            <img [src]="resolvedImageUrl()" [alt]="elementName()" />
+          } @else {
+            <mat-icon class="placeholder-icon">image</mat-icon>
+            <span class="placeholder-text">Add Image</span>
+          }
+        </button>
+        @if (resolvedImageUrl()) {
+          <button
+            mat-icon-button
+            class="view-image-button"
+            (click)="viewImage(); $event.stopPropagation()"
+            matTooltip="View full size">
+            <mat-icon>visibility</mat-icon>
+          </button>
+        }
       </div>
 
       <!-- Description section -->
@@ -55,8 +70,11 @@
   } @else {
     <!-- Collapsed view - just show image thumbnail -->
     <div class="collapsed-content">
-      @if (identity().image) {
-        <img class="thumbnail" [src]="identity().image" [alt]="elementName()" />
+      @if (resolvedImageUrl()) {
+        <img
+          class="thumbnail"
+          [src]="resolvedImageUrl()"
+          [alt]="elementName()" />
       } @else {
         <mat-icon class="thumbnail-placeholder">image</mat-icon>
       }

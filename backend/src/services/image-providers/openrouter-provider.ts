@@ -88,7 +88,7 @@ const OPENROUTER_API_BASE = 'https://openrouter.ai/api/v1';
 /**
  * OpenRouter chat completions response with image generation
  */
-interface OpenRouterChatResponse {
+interface _OpenRouterChatResponse {
   id: string;
   created: number;
   model: string;
@@ -285,11 +285,41 @@ export class OpenRouterImageProvider extends BaseImageProvider {
         throw new Error(`OpenRouter API error: ${response.status} - ${errorBody}`);
       }
 
-      const data = (await response.json()) as OpenRouterChatResponse;
+      const data = (await response.json()) as {
+        error?: { message?: string; metadata?: { raw?: string; provider_name?: string } };
+        choices?: Array<{
+          message?: {
+            content?: string | Array<{ type?: string; image_url?: { url?: string } }>;
+            images?: Array<{ image_url?: { url?: string }; url?: string }>;
+          };
+        }>;
+        data?: Array<{ b64_json?: string; url?: string; revised_prompt?: string }>;
+        created?: number;
+      };
 
-      console.log(`[OpenRouter] Response received. ID: ${data.id}`);
+      // Check for error response in body (some providers return 200 with error in body)
+      if (data.error) {
+        const errorMsg = data.error.message || 'Unknown error';
+        const metadata = data.error.metadata;
+        let details = '';
+        if (metadata?.raw) {
+          try {
+            const rawData = JSON.parse(metadata.raw);
+            if (rawData.status === 'Content Moderated') {
+              details = ` - Content was flagged by ${metadata.provider_name || 'provider'} safety filter. Try rephrasing the prompt or using a different model.`;
+            } else if (rawData.details) {
+              details = ` - ${JSON.stringify(rawData.details)}`;
+            }
+          } catch {
+            details = ` - ${metadata.raw}`;
+          }
+        }
+        console.error(`[OpenRouter] Provider error: ${errorMsg}${details}`);
+        throw new Error(`OpenRouter provider error: ${errorMsg}${details}`);
+      }
 
-      // Extract images from the chat response
+      // Handle different response formats from OpenRouter
+      // Some models return a chat completion format, others return images differently
       const images: Array<{
         b64Json?: string;
         url?: string;
@@ -297,26 +327,72 @@ export class OpenRouterImageProvider extends BaseImageProvider {
         index: number;
       }> = [];
 
-      for (const choice of data.choices) {
-        if (choice.message.images) {
-          for (const image of choice.message.images) {
-            const dataUrl = image.image_url.url;
-            // Extract base64 data from data URL (format: data:image/png;base64,...)
-            const base64Match = dataUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
-            if (base64Match) {
-              images.push({
-                b64Json: base64Match[1],
-                revisedPrompt: choice.message.content || undefined,
-                index: images.length,
-              });
-            } else {
-              // It's a regular URL
-              images.push({
-                url: dataUrl,
-                revisedPrompt: choice.message.content || undefined,
-                index: images.length,
-              });
+      // Check if we have the standard chat completion format with choices
+      if (data.choices && Array.isArray(data.choices)) {
+        for (const choice of data.choices) {
+          // Format 1: Images in message.images array (Gemini-style)
+          if (choice.message?.images && Array.isArray(choice.message.images)) {
+            for (const image of choice.message.images) {
+              const dataUrl = image.image_url?.url || image.url;
+              if (dataUrl) {
+                const revisedPrompt =
+                  typeof choice.message.content === 'string' ? choice.message.content : undefined;
+                const base64Match = dataUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
+                if (base64Match) {
+                  images.push({
+                    b64Json: base64Match[1],
+                    revisedPrompt,
+                    index: images.length,
+                  });
+                } else {
+                  images.push({
+                    url: dataUrl,
+                    revisedPrompt,
+                    index: images.length,
+                  });
+                }
+              }
             }
+          }
+
+          // Format 2: Content is an array with image_url objects (multimodal response)
+          if (Array.isArray(choice.message?.content)) {
+            for (const part of choice.message.content) {
+              if (part.type === 'image_url' && part.image_url?.url) {
+                const dataUrl = part.image_url.url;
+                const base64Match = dataUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
+                if (base64Match) {
+                  images.push({
+                    b64Json: base64Match[1],
+                    index: images.length,
+                  });
+                } else {
+                  images.push({
+                    url: dataUrl,
+                    index: images.length,
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Format 3: FLUX/diffusion models may return data array directly (OpenAI images format)
+      if (data.data && Array.isArray(data.data)) {
+        for (const item of data.data) {
+          if (item.b64_json) {
+            images.push({
+              b64Json: item.b64_json,
+              revisedPrompt: item.revised_prompt,
+              index: images.length,
+            });
+          } else if (item.url) {
+            images.push({
+              url: item.url,
+              revisedPrompt: item.revised_prompt,
+              index: images.length,
+            });
           }
         }
       }
@@ -330,8 +406,6 @@ export class OpenRouterImageProvider extends BaseImageProvider {
           'OpenRouter did not return any images. The model may not support image generation.'
         );
       }
-
-      console.log(`[OpenRouter] Image generated successfully. ${images.length} image(s) received.`);
 
       return {
         created: data.created || Math.floor(Date.now() / 1000),

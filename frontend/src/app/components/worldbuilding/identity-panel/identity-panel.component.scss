@@ -74,18 +74,21 @@
 .image-section {
   display: flex;
   justify-content: center;
+  position: relative;
 
   @media (min-width: 760px) {
-    margin-bottom: 8px;
+    // Make image edge-to-edge horizontally by using negative margins to offset panel padding
+    margin: 0 -16px 8px -16px;
+    width: calc(100% + 32px);
   }
 }
 
 .image-placeholder {
-  width: 200px;
-  height: 200px;
-  border-radius: 12px;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 0;
   background: var(--sys-surface-container-high);
-  border: 2px dashed var(--sys-outline-variant);
+  border: none;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -98,9 +101,21 @@
   overflow: hidden;
   padding: 0;
 
+  // Show placeholder styling only when no image
+  &.no-image {
+    border: 2px dashed var(--sys-outline-variant);
+    border-radius: 12px;
+    width: 200px;
+    height: 200px;
+    aspect-ratio: auto;
+  }
+
   &:hover {
-    border-color: var(--sys-primary);
     background: var(--sys-surface-container-highest);
+
+    &.no-image {
+      border-color: var(--sys-primary);
+    }
   }
 
   &:focus-visible {
@@ -119,6 +134,19 @@
     width: 48px;
     height: 48px;
     color: var(--sys-on-surface-variant);
+
+    &.spinning {
+      animation: spin 1.5s linear infinite;
+    }
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .placeholder-text {
@@ -130,6 +158,13 @@
   @media (max-width: 759px) {
     width: 80px;
     height: 80px;
+    aspect-ratio: auto;
+    border-radius: 8px;
+
+    &.no-image {
+      width: 80px;
+      height: 80px;
+    }
 
     .placeholder-icon {
       font-size: 32px;
@@ -139,6 +174,41 @@
 
     .placeholder-text {
       display: none;
+    }
+  }
+}
+
+// View image button - positioned over the image
+.view-image-button {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  width: 36px;
+  height: 36px;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  // Mobile: smaller button
+  @media (max-width: 759px) {
+    width: 28px;
+    height: 28px;
+    bottom: 4px;
+    right: 4px;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
     }
   }
 }

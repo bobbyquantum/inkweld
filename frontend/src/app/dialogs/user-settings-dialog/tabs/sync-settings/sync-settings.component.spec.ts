@@ -212,4 +212,204 @@ describe('SyncSettingsComponent', () => {
       expect(component.getLastSyncTime()).toBe('1 day ago');
     });
   });
+
+  describe('formatBytes', () => {
+    it('should format 0 bytes', () => {
+      expect(component.formatBytes(0)).toBe('0 B');
+    });
+
+    it('should format bytes', () => {
+      expect(component.formatBytes(500)).toBe('500 B');
+    });
+
+    it('should format kilobytes', () => {
+      expect(component.formatBytes(1024)).toBe('1 KB');
+      expect(component.formatBytes(1536)).toBe('1.5 KB');
+    });
+
+    it('should format megabytes', () => {
+      expect(component.formatBytes(1048576)).toBe('1 MB');
+      expect(component.formatBytes(2621440)).toBe('2.5 MB');
+    });
+
+    it('should format gigabytes', () => {
+      expect(component.formatBytes(1073741824)).toBe('1 GB');
+    });
+  });
+
+  describe('media sync state helpers', () => {
+    it('should return 0 for server total size when no state', () => {
+      component['mediaSyncState'].set(null);
+      expect(component.getServerTotalSize()).toBe(0);
+    });
+
+    it('should return 0 for local total size when no state', () => {
+      component['mediaSyncState'].set(null);
+      expect(component.getLocalTotalSize()).toBe(0);
+    });
+
+    it('should return 0 for server file count when no state', () => {
+      component['mediaSyncState'].set(null);
+      expect(component.getServerFileCount()).toBe(0);
+    });
+
+    it('should return 0 for local file count when no state', () => {
+      component['mediaSyncState'].set(null);
+      expect(component.getLocalFileCount()).toBe(0);
+    });
+
+    it('should calculate server total size from items', () => {
+      component['mediaSyncState'].set({
+        isSyncing: false,
+        lastChecked: null,
+        needsDownload: 0,
+        needsUpload: 0,
+        downloadProgress: 0,
+        items: [
+          {
+            mediaId: '1',
+            size: 100,
+            status: 'synced',
+            server: { filename: 'a.png', size: 100 },
+          },
+          {
+            mediaId: '2',
+            size: 200,
+            status: 'synced',
+            server: { filename: 'b.png', size: 200 },
+          },
+          {
+            mediaId: '3',
+            size: 50,
+            status: 'local-only',
+            local: {
+              mediaId: '3',
+              size: 50,
+              mimeType: 'image/png',
+              createdAt: new Date().toISOString(),
+            },
+          },
+        ],
+      });
+      expect(component.getServerTotalSize()).toBe(300);
+    });
+
+    it('should calculate local total size from items', () => {
+      component['mediaSyncState'].set({
+        isSyncing: false,
+        lastChecked: null,
+        needsDownload: 0,
+        needsUpload: 0,
+        downloadProgress: 0,
+        items: [
+          {
+            mediaId: '1',
+            size: 100,
+            status: 'local-only',
+            local: {
+              mediaId: '1',
+              size: 100,
+              mimeType: 'image/png',
+              createdAt: new Date().toISOString(),
+            },
+          },
+          {
+            mediaId: '2',
+            size: 200,
+            status: 'local-only',
+            local: {
+              mediaId: '2',
+              size: 200,
+              mimeType: 'image/png',
+              createdAt: new Date().toISOString(),
+            },
+          },
+          {
+            mediaId: '3',
+            size: 50,
+            status: 'server-only',
+            server: { filename: 'c.png', size: 50 },
+          },
+        ],
+      });
+      expect(component.getLocalTotalSize()).toBe(300);
+    });
+
+    it('should count server files', () => {
+      component['mediaSyncState'].set({
+        isSyncing: false,
+        lastChecked: null,
+        needsDownload: 0,
+        needsUpload: 0,
+        downloadProgress: 0,
+        items: [
+          {
+            mediaId: '1',
+            size: 100,
+            status: 'synced',
+            server: { filename: 'a.png', size: 100 },
+          },
+          {
+            mediaId: '2',
+            size: 200,
+            status: 'synced',
+            server: { filename: 'b.png', size: 200 },
+          },
+          {
+            mediaId: '3',
+            size: 50,
+            status: 'local-only',
+            local: {
+              mediaId: '3',
+              size: 50,
+              mimeType: 'image/png',
+              createdAt: new Date().toISOString(),
+            },
+          },
+        ],
+      });
+      expect(component.getServerFileCount()).toBe(2);
+    });
+
+    it('should count local files', () => {
+      component['mediaSyncState'].set({
+        isSyncing: false,
+        lastChecked: null,
+        needsDownload: 0,
+        needsUpload: 0,
+        downloadProgress: 0,
+        items: [
+          {
+            mediaId: '1',
+            size: 100,
+            status: 'local-only',
+            local: {
+              mediaId: '1',
+              size: 100,
+              mimeType: 'image/png',
+              createdAt: new Date().toISOString(),
+            },
+          },
+          {
+            mediaId: '2',
+            size: 200,
+            status: 'local-only',
+            local: {
+              mediaId: '2',
+              size: 200,
+              mimeType: 'image/png',
+              createdAt: new Date().toISOString(),
+            },
+          },
+          {
+            mediaId: '3',
+            size: 50,
+            status: 'server-only',
+            server: { filename: 'c.png', size: 50 },
+          },
+        ],
+      });
+      expect(component.getLocalFileCount()).toBe(2);
+    });
+  });
 });

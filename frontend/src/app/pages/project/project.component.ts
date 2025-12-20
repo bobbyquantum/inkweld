@@ -442,6 +442,19 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  public onShowRelationships(): void {
+    this.projectState.openSystemTab('relationships-list');
+    const project = this.projectState.project();
+    if (project) {
+      void this.router.navigate([
+        '/',
+        project.username,
+        project.slug,
+        'relationships-list',
+      ]);
+    }
+  }
+
   openEditDialog() {
     void this.dialogGateway.openEditProjectDialog(this.projectState.project()!);
   }

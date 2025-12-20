@@ -1,6 +1,22 @@
-<h2 mat-dialog-title>{{ title }}</h2>
+<h2 mat-dialog-title>
+  {{ title }}
+  @if (serverItemsCount() > 0) {
+    <span
+      class="sync-badge"
+      matTooltip="Images on server not downloaded locally">
+      {{ serverItemsCount() }} on server
+    </span>
+  }
+</h2>
 
 <mat-dialog-content class="dialog-content">
+  @if (isSyncing()) {
+    <div class="sync-progress">
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      <p>Syncing media from server...</p>
+    </div>
+  }
+
   @if (isLoading()) {
     <div class="loading-container">
       <mat-spinner diameter="40"></mat-spinner>
@@ -23,19 +39,38 @@
         <div
           class="media-item"
           [class.selected]="isSelected(item)"
+          [class.needs-download]="needsDownload(item)"
           (click)="selectItem(item)"
           (keydown.enter)="selectItem(item)"
           (keydown.space)="selectItem(item); $event.preventDefault()"
           tabindex="0"
           role="button"
-          [attr.aria-pressed]="isSelected(item)">
+          [attr.aria-pressed]="isSelected(item)"
+          [matTooltip]="
+            needsDownload(item) ? 'Click to download from server' : ''
+          ">
           @if (item.url) {
             <img
               [src]="item.url"
               [alt]="item.filename || item.mediaId"
               class="thumbnail" />
           } @else {
-            <mat-icon class="placeholder-icon">image</mat-icon>
+            <mat-icon class="placeholder-icon">
+              @if (needsDownload(item)) {
+                cloud_download
+              } @else {
+                image
+              }
+            </mat-icon>
+            @if (needsDownload(item)) {
+              <button
+                mat-icon-button
+                class="download-btn"
+                (click)="downloadItem(item); $event.stopPropagation()"
+                matTooltip="Download from server">
+                <mat-icon>download</mat-icon>
+              </button>
+            }
           }
           @if (isSelected(item)) {
             <div class="selected-overlay">
@@ -52,6 +87,16 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
+  @if (serverItemsCount() > 0) {
+    <button
+      mat-button
+      (click)="syncFromServer()"
+      [disabled]="isSyncing()"
+      matTooltip="Download all images from server">
+      <mat-icon>cloud_download</mat-icon>
+      Sync All
+    </button>
+  }
   <button mat-button (click)="cancel()">Cancel</button>
   <button
     mat-raised-button

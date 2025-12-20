@@ -108,18 +108,6 @@
             <mat-icon>list</mat-icon>
             <span>Show Document List</span>
           </button>
-          <button mat-menu-item (click)="onShowMediaLibrary()">
-            <mat-icon>perm_media</mat-icon>
-            <span>Show Media Library</span>
-          </button>
-          <button mat-menu-item (click)="onShowTemplatesList()">
-            <mat-icon>description</mat-icon>
-            <span>Show Templates</span>
-          </button>
-          <button mat-menu-item (click)="exitProject()">
-            <mat-icon>exit_to_app</mat-icon>
-            <span>Exit project</span>
-          </button>
         </mat-menu>
       </mat-toolbar>
     }
@@ -160,18 +148,6 @@
       <button mat-menu-item (click)="onShowDocumentList()">
         <mat-icon>list</mat-icon>
         <span>Show Document List</span>
-      </button>
-      <button mat-menu-item (click)="onShowMediaLibrary()">
-        <mat-icon>perm_media</mat-icon>
-        <span>Show Media Library</span>
-      </button>
-      <button mat-menu-item (click)="onShowTemplatesList()">
-        <mat-icon>description</mat-icon>
-        <span>Show Templates</span>
-      </button>
-      <button mat-menu-item (click)="exitProject()">
-        <mat-icon>exit_to_app</mat-icon>
-        <span>Exit project</span>
       </button>
     </mat-menu>
 
@@ -228,6 +204,20 @@
                   aria-label="Element Templates">
                   <mat-icon>description</mat-icon>
                   <span class="nav-title">Element Templates</span>
+                </div>
+                <div
+                  class="sidebar-nav-item"
+                  [class.selected-item]="
+                    isSystemTabSelected('relationships-list')
+                  "
+                  data-testid="sidebar-relationships-button"
+                  tabindex="0"
+                  role="button"
+                  (click)="onShowRelationships()"
+                  (keyup.enter)="onShowRelationships()"
+                  aria-label="Relationship Types">
+                  <mat-icon>hub</mat-icon>
+                  <span class="nav-title">Relationship Types</span>
                 </div>
                 <div
                   class="sidebar-nav-item exit-item"

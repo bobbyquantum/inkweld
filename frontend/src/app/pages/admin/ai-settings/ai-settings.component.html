@@ -66,6 +66,38 @@
               </mat-select>
             </mat-form-field>
           </div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-label">Default Model</span>
+              <span class="setting-description"
+                >Model used when none is specified</span
+              >
+            </div>
+            <mat-form-field appearance="outline" class="model-select">
+              <mat-select
+                [value]="defaultModel()"
+                (selectionChange)="saveDefaultModel($event.value)"
+                [disabled]="
+                  isSaving() || availableModelsForDefaultProvider().length === 0
+                ">
+                <mat-option value="">(Use provider default)</mat-option>
+                @for (
+                  model of availableModelsForDefaultProvider();
+                  track model.id
+                ) {
+                  <mat-option [value]="model.id">
+                    {{ model.name }}
+                    @if (model.description) {
+                      <span class="model-description">
+                        - {{ model.description }}</span
+                      >
+                    }
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
         }
       </mat-card-content>
     </mat-card>

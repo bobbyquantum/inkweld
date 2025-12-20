@@ -147,7 +147,7 @@ export interface WorldbuildingContext {
  */
 export interface GeneratedImageData {
   /** Base64-encoded image data */
-  b64_json?: string;
+  b64Json?: string;
   /** URL to the image */
   url?: string;
   /** Revised prompt (if provider modified it) */

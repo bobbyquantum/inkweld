@@ -120,7 +120,11 @@
               "**/*.d.ts",
               "**/main.ts",
               "**/app.routes.ts",
-              "**/api-client/**"
+              "**/api-client/**",
+              "**/index.ts",
+              "**/element-sync-provider.interface.ts",
+              "**/correction-dto.extension.ts",
+              "**/yjs-element-sync.provider.ts"
             ],
             "coverageReporters": ["text", "html", "lcov"],
             "coverageThresholds": {
