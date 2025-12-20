@@ -120,6 +120,7 @@ describe('ProjectComponent', () => {
   const errorSignal = signal<string | undefined>(undefined);
   const openDocumentsSignal = signal<Element[]>([]);
   const visibleElementsSignal = signal<any[]>([]);
+  const syncStateSignal = signal<DocumentSyncState>(DocumentSyncState.Synced);
   let routerUrl = '/testuser/test-project';
 
   beforeEach(async () => {
@@ -132,6 +133,7 @@ describe('ProjectComponent', () => {
     errorSignal.set(undefined);
     openDocumentsSignal.set([]);
     visibleElementsSignal.set([]);
+    syncStateSignal.set(DocumentSyncState.Synced);
     routerUrl = '/testuser/test-project';
 
     paramsSubject = new BehaviorSubject<Record<string, string>>({
@@ -148,6 +150,7 @@ describe('ProjectComponent', () => {
       error: errorSignal,
       openDocuments: openDocumentsSignal,
       visibleElements: visibleElementsSignal,
+      getSyncState: syncStateSignal,
       loadProject: vi.fn().mockResolvedValue(undefined),
       selectTab: vi.fn().mockImplementation((index: number) => {
         selectedTabIndexSignal.set(index);

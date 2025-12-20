@@ -179,6 +179,12 @@
             <div class="sidebar-area">
               <app-project-tree
                 (documentOpened)="onDocumentOpened($event)"></app-project-tree>
+              <!-- Connection Status -->
+              <app-connection-status
+                [syncState]="projectSyncState()"
+                (syncRequested)="onRetrySyncConnection()"
+                data-testid="sidebar-connection-status">
+              </app-connection-status>
               <!-- Fixed bottom navigation -->
               <div class="sidebar-bottom-nav">
                 <div

@@ -5,6 +5,26 @@ import { z } from '@hono/zod-openapi';
 import { UserSchema } from './common.schemas';
 
 /**
+ * Reserved paths that cannot be used as usernames (to prevent URL conflicts)
+ */
+export const RESERVED_USERNAMES = [
+  'admin',
+  'setup',
+  'reset',
+  'create-project',
+  'welcome',
+  'register',
+  'approval-pending',
+  'unavailable',
+  'api',
+  'assets',
+  'static',
+  '_next',
+  'health',
+  'ws',
+] as const;
+
+/**
  * User registration request
  * @component RegisterRequest
  */
@@ -13,6 +33,11 @@ export const RegisterRequestSchema = z
     username: z
       .string()
       .min(3)
+      .refine(
+        (val) =>
+          !RESERVED_USERNAMES.includes(val.toLowerCase() as (typeof RESERVED_USERNAMES)[number]),
+        { message: 'This username is reserved and cannot be used' }
+      )
       .openapi({ description: 'Username (minimum 3 characters)', example: 'johndoe' }),
     password: z
       .string()
