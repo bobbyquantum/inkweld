@@ -1,0 +1,184 @@
+@use '@angular/material' as mat;
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 4px 8px;
+  gap: 4px;
+  background-color: var(--sys-surface-container);
+  border-bottom: 1px solid var(--sys-outline-variant);
+  min-height: 48px;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar-divider {
+  height: 24px !important;
+  margin: 0 4px !important;
+  border-right-color: var(--sys-outline-variant) !important;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+// Base ARIA toolbar button styling (Material-like)
+[ngToolbarWidget] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: transparent;
+  color: var(--sys-on-surface);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-family: inherit;
+
+  &:hover {
+    background-color: var(--sys-surface-container-highest);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sys-primary);
+    outline-offset: 2px;
+  }
+
+  // Pressed state for toggle buttons
+  &[aria-pressed='true'],
+  &[aria-checked='true'] {
+    background-color: var(--sys-secondary-container);
+    color: var(--sys-on-secondary-container);
+
+    mat-icon {
+      color: var(--sys-on-secondary-container);
+    }
+  }
+
+  // Icon styling
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// Alignment group - radio buttons with connected appearance
+.alignment-group {
+  gap: 0;
+  border-radius: 18px;
+  overflow: hidden;
+
+  [ngToolbarWidget] {
+    border-radius: 0;
+    width: 32px;
+
+    &:first-child {
+      border-radius: 18px 0 0 18px;
+    }
+
+    &:last-child {
+      border-radius: 0 18px 18px 0;
+    }
+  }
+}
+
+// Heading button styling (Material button)
+.heading-button {
+  min-width: 64px;
+  padding: 0 8px;
+
+  .heading-label {
+    font-weight: 500;
+    min-width: 24px;
+    text-align: left;
+  }
+
+  .dropdown-icon {
+    font-size: 18px;
+    margin-left: 4px;
+  }
+}
+
+// Heading menu options with visual hierarchy
+.heading-option {
+  &.paragraph {
+    font-size: 14px;
+  }
+
+  &.h1 {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  &.h2 {
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  &.h3 {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  &.h4 {
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  &.h5 {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  &.h6 {
+    font-size: 13px;
+    font-weight: 500;
+  }
+}
+
+// Menu item active state
+::ng-deep .mat-mdc-menu-item.active {
+  background-color: var(--sys-secondary-container) !important;
+}
+
+// Meta panel toggle button
+.meta-panel-toggle-btn {
+  margin-left: auto;
+}
+
+// Responsive: Stack groups on very narrow screens
+@media (max-width: 600px) {
+  .editor-toolbar {
+    padding: 4px;
+    gap: 2px;
+  }
+
+  .toolbar-divider {
+    display: none;
+  }
+
+  .toolbar-group {
+    gap: 0;
+  }
+
+  // Hide less essential buttons on mobile
+  [data-testid='toolbar-strike'],
+  [data-testid='toolbar-hr'],
+  [data-testid='toolbar-clear'] {
+    display: none;
+  }
+}
+
+// Ensure proper tooltip positioning
+button[matTooltip] {
+  position: relative;
+}

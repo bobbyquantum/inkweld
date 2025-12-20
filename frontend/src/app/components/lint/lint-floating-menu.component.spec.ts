@@ -60,6 +60,10 @@ describe('LintFloatingMenuComponent', () => {
         state: createMockEditorState(0),
         dispatch: vi.fn(),
         focus: vi.fn(),
+        coordsAtPos: vi
+          .fn()
+          .mockReturnValue({ top: 100, bottom: 120, left: 200, right: 250 }),
+        hasFocus: vi.fn().mockReturnValue(true),
       },
     };
 

@@ -1,0 +1,64 @@
+.floating-menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background-color: var(--sys-surface-container-high);
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 8px;
+  box-shadow:
+    0 2px 4px -1px rgba(0, 0, 0, 0.2),
+    0 4px 5px 0 rgba(0, 0, 0, 0.14),
+    0 1px 10px 0 rgba(0, 0, 0, 0.12);
+
+  // ARIA toolbar button styling
+  [ngToolbarWidget] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background-color: transparent;
+    color: var(--sys-on-surface);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    font-family: inherit;
+
+    &:hover {
+      background-color: var(--sys-surface-container-highest);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--sys-primary);
+      outline-offset: 1px;
+    }
+
+    // Pressed state for toggle buttons
+    &[aria-pressed='true'] {
+      background-color: var(--sys-secondary-container);
+      color: var(--sys-on-secondary-container);
+
+      mat-icon {
+        color: var(--sys-on-secondary-container);
+      }
+    }
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--sys-on-surface);
+    }
+  }
+}
+
+.floating-divider {
+  width: 1px;
+  height: 20px;
+  background-color: var(--sys-outline);
+  opacity: 0.5;
+  margin: 0 4px;
+}
