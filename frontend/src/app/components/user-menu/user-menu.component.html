@@ -42,6 +42,32 @@
       </div>
       <mat-divider></mat-divider>
       <div class="menu-actions">
+        <!-- Theme Selection -->
+        <div class="theme-selector">
+          <span class="theme-label">Theme:</span>
+          <button
+            mat-icon-button
+            (click)="onThemeChange('light-theme')"
+            matTooltip="Light theme"
+            data-testid="theme-light-button">
+            <mat-icon>light_mode</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            (click)="onThemeChange('dark-theme')"
+            matTooltip="Dark theme"
+            data-testid="theme-dark-button">
+            <mat-icon>dark_mode</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            (click)="onThemeChange('system')"
+            matTooltip="Follow system"
+            data-testid="theme-system-button">
+            <mat-icon>brightness_auto</mat-icon>
+          </button>
+        </div>
+        <mat-divider></mat-divider>
         @if (isAdmin()) {
           <button
             mat-menu-item

@@ -8,13 +8,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock child components
 @Component({
-  selector: 'app-general-settings',
-  standalone: true,
-  template: '<div>General Settings</div>',
-})
-class MockGeneralSettingsComponent {}
-
-@Component({
   selector: 'app-project-tree-settings',
   standalone: true,
   template: '<div>Project Tree Settings</div>',
@@ -55,7 +48,6 @@ describe('UserSettingsDialogComponent', () => {
       standalone: true,
       imports: [
         MatDialogModule,
-        MockGeneralSettingsComponent,
         MockProjectTreeSettingsComponent,
         MockProjectSettingsComponent,
       ],
@@ -63,20 +55,13 @@ describe('UserSettingsDialogComponent', () => {
         <div class="settings-dialog">
           <nav class="settings-nav">
             <button
-              (click)="selectCategory('general')"
-              [attr.aria-selected]="selectedCategory === 'general'">
-              General
-            </button>
-            <button
               (click)="selectCategory('connection')"
               [attr.aria-selected]="selectedCategory === 'connection'">
               Connection
             </button>
           </nav>
           <div class="settings-content">
-            @if (selectedCategory === 'general') {
-              <app-general-settings />
-            } @else if (selectedCategory === 'connection') {
+            @if (selectedCategory === 'connection') {
               <div class="connection-settings">Connection Settings</div>
             } @else if (selectedCategory === 'project') {
               <app-project-settings />
@@ -108,78 +93,75 @@ describe('UserSettingsDialogComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should initialize with general category selected', () => {
-    expect(component.selectedCategory).toBe('general');
+  it('should initialize with connection category selected', () => {
+    expect(component.selectedCategory).toBe('connection');
   });
 
   it('should change category when selectCategory is called', () => {
-    component.selectCategory('connection');
-    expect(component.selectedCategory).toBe('connection');
-    expect(component.previousCategory).toBe('general');
+    component.selectCategory('project-tree');
+    expect(component.selectedCategory).toBe('project-tree');
+    expect(component.previousCategory).toBe('connection');
   });
 
   it('should return correct animation state', () => {
-    component.selectCategory('connection');
+    component.selectCategory('project-tree');
     const animationState = component.getAnimationState();
-    expect(animationState.value).toBe('connection');
+    expect(animationState.value).toBe('project-tree');
     expect(animationState.params.enterTransform).toBe('100%');
     expect(animationState.params.leaveTransform).toBe('-100%');
   });
 
-  it('should return correct animation state when moving from general to connection', () => {
-    component.selectCategory('connection');
+  it('should return correct animation state when moving from connection to project-tree', () => {
+    component.selectCategory('project-tree');
     const animationState = component.getAnimationState();
-    expect(animationState.value).toBe('connection');
+    expect(animationState.value).toBe('project-tree');
     expect(animationState.params.enterTransform).toBe('100%');
     expect(animationState.params.leaveTransform).toBe('-100%');
   });
 
-  it('should return correct animation state when moving from connection to general', () => {
+  it('should return correct animation state when moving from project-tree to connection', () => {
+    component.selectCategory('project-tree');
     component.selectCategory('connection');
-    component.selectCategory('general');
     const animationState = component.getAnimationState();
-    expect(animationState.value).toBe('general');
+    expect(animationState.value).toBe('connection');
     expect(animationState.params.enterTransform).toBe('-100%');
     expect(animationState.params.leaveTransform).toBe('100%');
   });
 
   // TODO: Fix animation timing issue in zoneless mode
   it.skip('should display correct content based on selected category', async () => {
-    // Component already starts with 'general', so just verify it
+    // Component already starts with 'connection', so just verify it
     await fixture.whenStable();
     expect(
-      fixture.debugElement.query(By.css('app-general-settings'))
+      fixture.debugElement.query(By.css('.connection-settings'))
     ).toBeTruthy();
 
-    // Now switch to connection
-    component.selectCategory('connection');
+    // Now switch to project
+    component.selectCategory('project');
     fixture.detectChanges();
     await fixture.whenStable(); // Wait for animations and async operations
     expect(
-      fixture.debugElement.query(By.css('.connection-settings'))
+      fixture.debugElement.query(By.css('app-project-settings'))
     ).toBeTruthy();
   });
 
   it('should have correct aria-selected attribute for nav items', () => {
     // Test component state instead of DOM to avoid ExpressionChangedAfterItHasBeenCheckedError
-    expect(component.selectedCategory).toBe('general');
+    expect(component.selectedCategory).toBe('connection');
+
+    component.selectCategory('project-tree');
+    expect(component.selectedCategory).toBe('project-tree');
 
     component.selectCategory('connection');
     expect(component.selectedCategory).toBe('connection');
-
-    component.selectCategory('general');
-    expect(component.selectedCategory).toBe('general');
   });
 
   it('should change category when nav item is clicked', () => {
     const navItems = fixture.debugElement.queryAll(
       By.css('.settings-nav button')
     );
-    (navItems[1].nativeElement as HTMLElement).click();
-    expect(component.selectedCategory).toBe('connection');
-
     (navItems[0].nativeElement as HTMLElement).click();
-    expect(component.selectedCategory).toBe('general');
+    expect(component.selectedCategory).toBe('connection');
   });
 
   it('should have a close button', () => {
@@ -194,7 +176,7 @@ describe('UserSettingsDialogComponent', () => {
 
   describe('dialog data', () => {
     it('should initialize with category from dialog data', async () => {
-      const dialogData = { selectedCategory: 'connection' };
+      const dialogData = { selectedCategory: 'project-tree' };
 
       @Component({
         selector: 'app-test-wrapper-data',
@@ -222,7 +204,7 @@ describe('UserSettingsDialogComponent', () => {
       const componentWithData = fixtureWithData.componentInstance;
       fixtureWithData.detectChanges();
 
-      expect(componentWithData.selectedCategory).toBe('connection');
+      expect(componentWithData.selectedCategory).toBe('project-tree');
     });
   });
 });
