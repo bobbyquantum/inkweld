@@ -2,13 +2,18 @@
   <div class="media-header">
     <h1>Project Media</h1>
     <div class="header-actions">
-      @if (canUseAiGeneration()) {
+      @if (aiGenerationStatus().status !== 'hidden') {
         <button
           mat-stroked-button
           (click)="openImageGenerator()"
+          [disabled]="aiGenerationStatus().status === 'disabled'"
+          [matTooltip]="aiGenerationStatus().tooltip ?? ''"
           data-testid="generate-image-button">
           <mat-icon>auto_awesome</mat-icon>
           Generate Image
+          @if (aiGenerationStatus().status === 'disabled') {
+            <mat-icon class="disconnected-icon">cloud_off</mat-icon>
+          }
         </button>
       }
     </div>

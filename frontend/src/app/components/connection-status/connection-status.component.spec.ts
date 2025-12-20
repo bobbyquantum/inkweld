@@ -39,15 +39,24 @@ describe('ConnectionStatusComponent', () => {
       expect(icon?.textContent?.trim()).toBe('cloud_done');
     });
 
-    it('should display syncing state with spinner', async () => {
+    it('should display syncing state as offline with spinning retry button', async () => {
       fixture.componentRef.setInput('syncState', DocumentSyncState.Syncing);
       await fixture.whenStable();
 
+      // Should display as "Offline Mode" to reduce visual noise
       const statusText = fixture.nativeElement.querySelector('.status-text');
-      expect(statusText?.textContent?.trim()).toBe('Connecting...');
+      expect(statusText?.textContent?.trim()).toBe('Offline Mode');
 
-      const spinner = fixture.nativeElement.querySelector('mat-spinner');
-      expect(spinner).toBeTruthy();
+      // Should show cloud_off icon (not a spinner)
+      const icon = fixture.nativeElement.querySelector('.status-icon');
+      expect(icon?.textContent?.trim()).toBe('cloud_off');
+
+      // Should show retry button with spinning class
+      const retryButton = fixture.nativeElement.querySelector(
+        '[data-testid="retry-sync-button"]'
+      );
+      expect(retryButton).toBeTruthy();
+      expect(retryButton?.classList.contains('spinning')).toBe(true);
     });
 
     it('should display offline state correctly', async () => {
