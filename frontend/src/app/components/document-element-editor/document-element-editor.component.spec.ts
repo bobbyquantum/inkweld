@@ -9,6 +9,7 @@ import { Project } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
@@ -16,6 +17,12 @@ import { DocumentElementEditorComponent } from './document-element-editor.compon
 
 // Mock ngx-editor module with all required exports
 vi.mock('@bobbyquantum/ngx-editor', () => {
+  const createMockMark = (name: string) => ({
+    name,
+    isInSet: vi.fn().mockReturnValue(false),
+    create: vi.fn().mockReturnValue({ type: { name } }),
+  });
+
   const mockEditorView = {
     state: {
       plugins: [],
@@ -23,9 +30,20 @@ vi.mock('@bobbyquantum/ngx-editor', () => {
         textBetween: vi.fn().mockReturnValue(''),
         content: { size: 0 },
         nodeSize: 0,
+        rangeHasMark: vi.fn().mockReturnValue(false),
       },
-      selection: { from: 0, to: 0 },
+      selection: { from: 0, to: 0, $from: { marks: () => [] }, empty: true },
       reconfigure: vi.fn().mockReturnValue({}),
+      schema: {
+        marks: {
+          strong: createMockMark('strong'),
+          em: createMockMark('em'),
+          u: createMockMark('u'),
+          s: createMockMark('s'),
+          link: createMockMark('link'),
+        },
+      },
+      storedMarks: null,
     },
     updateState: vi.fn(),
   };
@@ -33,6 +51,7 @@ vi.mock('@bobbyquantum/ngx-editor', () => {
   // Create a proper class that can be instantiated with 'new'
   class MockEditor {
     view = mockEditorView;
+    update = new Subject<void>();
     destroy = vi.fn();
     constructor() {}
   }
