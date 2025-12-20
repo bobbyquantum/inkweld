@@ -10,6 +10,10 @@ import { MediaSyncState } from '../../services/offline/media-sync.service';
 /**
  * Component to display the connection status for project sync and media sync.
  * Shows appropriate icons and status text based on the current state.
+ *
+ * Design: While connecting, we show "Offline Mode" with a spinning retry button
+ * rather than a prominent "Connecting..." state, to avoid visual distraction
+ * during repeated connection attempts.
  */
 @Component({
   selector: 'app-connection-status',
@@ -26,28 +30,22 @@ import { MediaSyncState } from '../../services/offline/media-sync.service';
       <div
         class="status-row"
         [class.status-synced]="syncState() === DocumentSyncState.Synced"
-        [class.status-syncing]="syncState() === DocumentSyncState.Syncing"
-        [class.status-offline]="syncState() === DocumentSyncState.Offline"
+        [class.status-offline]="displayAsOffline()"
         [class.status-unavailable]="
           syncState() === DocumentSyncState.Unavailable
         "
         [matTooltip]="syncTooltip()"
         data-testid="project-sync-status">
-        @if (syncState() === DocumentSyncState.Syncing) {
-          <mat-spinner diameter="16" class="status-spinner"></mat-spinner>
-        } @else {
-          <mat-icon class="status-icon">{{ syncIcon() }}</mat-icon>
-        }
+        <mat-icon class="status-icon">{{ syncIcon() }}</mat-icon>
         <span class="status-text">{{ syncStatusText() }}</span>
-        @if (
-          syncState() === DocumentSyncState.Offline ||
-          syncState() === DocumentSyncState.Unavailable
-        ) {
+        @if (showRetryButton()) {
           <button
             mat-icon-button
             class="sync-button"
+            [class.spinning]="isConnecting()"
+            [disabled]="isConnecting()"
             (click)="onSyncClick()"
-            [matTooltip]="'Retry sync'"
+            [matTooltip]="retryButtonTooltip()"
             data-testid="retry-sync-button">
             <mat-icon>sync</mat-icon>
           </button>
@@ -141,18 +139,32 @@ import { MediaSyncState } from '../../services/offline/media-sync.service';
           width: 18px;
           height: 18px;
         }
+
+        &.spinning {
+          mat-icon {
+            animation: spin 1.5s linear infinite;
+            opacity: 0.6;
+          }
+        }
+
+        &:disabled {
+          opacity: 1; /* Keep button visible when disabled/spinning */
+        }
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
       }
 
       /* Status-specific styling */
       .status-synced {
         .status-icon {
           color: var(--sys-primary);
-        }
-      }
-
-      .status-syncing {
-        .status-text {
-          color: var(--sys-on-surface);
         }
       }
 
@@ -191,13 +203,34 @@ export class ConnectionStatusComponent {
   /** Event emitted when user clicks retry sync */
   syncRequested = output<void>();
 
+  /** Whether we're currently trying to connect (Syncing state) */
+  isConnecting = computed(() => this.syncState() === DocumentSyncState.Syncing);
+
+  /** Display as offline when offline OR when connecting (to reduce visual noise) */
+  displayAsOffline = computed(() => {
+    const state = this.syncState();
+    return (
+      state === DocumentSyncState.Offline || state === DocumentSyncState.Syncing
+    );
+  });
+
+  /** Show retry button when offline, connecting, or unavailable */
+  showRetryButton = computed(() => {
+    const state = this.syncState();
+    return (
+      state === DocumentSyncState.Offline ||
+      state === DocumentSyncState.Syncing ||
+      state === DocumentSyncState.Unavailable
+    );
+  });
+
   /** Get the appropriate icon for sync state */
   syncIcon = computed(() => {
     switch (this.syncState()) {
       case DocumentSyncState.Synced:
         return 'cloud_done';
       case DocumentSyncState.Syncing:
-        return 'sync'; // Won't show, spinner used instead
+        return 'cloud_off'; // Show offline icon while connecting
       case DocumentSyncState.Offline:
         return 'cloud_off';
       case DocumentSyncState.Unavailable:
@@ -213,7 +246,7 @@ export class ConnectionStatusComponent {
       case DocumentSyncState.Synced:
         return 'Connected';
       case DocumentSyncState.Syncing:
-        return 'Connecting...';
+        return 'Offline Mode'; // Show as offline while connecting
       case DocumentSyncState.Offline:
         return 'Offline Mode';
       case DocumentSyncState.Unavailable:
@@ -223,13 +256,13 @@ export class ConnectionStatusComponent {
     }
   });
 
-  /** Get tooltip text for sync status */
+  /** Get tooltip text for sync status row */
   syncTooltip = computed(() => {
     switch (this.syncState()) {
       case DocumentSyncState.Synced:
         return 'Project is synced with server';
       case DocumentSyncState.Syncing:
-        return 'Establishing connection to server...';
+        return 'Connecting to server...';
       case DocumentSyncState.Offline:
         return 'Working offline - changes saved locally';
       case DocumentSyncState.Unavailable:
@@ -237,6 +270,14 @@ export class ConnectionStatusComponent {
       default:
         return '';
     }
+  });
+
+  /** Get tooltip for the retry button */
+  retryButtonTooltip = computed(() => {
+    if (this.isConnecting()) {
+      return 'Connecting to server...';
+    }
+    return 'Retry sync';
   });
 
   /** Check if media is fully synced */

@@ -14,6 +14,7 @@ import {
 import { ProjectStateService } from '@services/project/project-state.service';
 import { vi } from 'vitest';
 
+import { DocumentSyncState } from '../../../../models/document-sync-state';
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 import { MediaItem, MediaTabComponent } from './media-tab.component';
 
@@ -61,6 +62,7 @@ describe('MediaTabComponent', () => {
   beforeEach(async () => {
     projectStateService = {
       project: signal(mockProject),
+      getSyncState: signal(DocumentSyncState.Synced),
     };
 
     offlineStorage = {

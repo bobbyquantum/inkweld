@@ -1,6 +1,7 @@
 import {
   ChangeDetectorRef,
   Component,
+  computed,
   ElementRef,
   inject,
   OnInit,
@@ -20,12 +21,15 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { Project } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { UnifiedProjectService } from '@services/offline/unified-project.service';
 import { ProjectService } from '@services/project/project.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 import {
   ImageCroppedEvent,
   ImageCropperComponent,
@@ -45,6 +49,7 @@ import {
     MatButtonModule,
     MatProgressBarModule,
     MatIconModule,
+    MatTooltipModule,
     ImageCropperComponent,
   ],
 })
@@ -58,9 +63,18 @@ export class EditProjectDialogComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private sanitizer = inject(DomSanitizer);
   private cdr = inject(ChangeDetectorRef);
+  private systemConfig = inject(SystemConfigService);
+  private projectState = inject(ProjectStateService);
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('coverImageInput') coverImageInput!: ElementRef<HTMLInputElement>;
+
+  // AI generation status - considers mode, config, and connection state
+  readonly aiGenerationStatus = computed(() =>
+    this.systemConfig.getAiImageGenerationStatus(
+      this.projectState.getSyncState()
+    )
+  );
 
   form = new FormGroup({
     title: new FormControl('', Validators.required),

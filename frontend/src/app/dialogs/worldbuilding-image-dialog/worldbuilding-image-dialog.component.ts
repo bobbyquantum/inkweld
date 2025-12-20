@@ -1,6 +1,7 @@
 import {
   ChangeDetectorRef,
   Component,
+  computed,
   ElementRef,
   inject,
   OnInit,
@@ -15,8 +16,11 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { SystemConfigService } from '@services/core/system-config.service';
+import { ProjectStateService } from '@services/project/project-state.service';
 import {
   ImageCroppedEvent,
   ImageCropperComponent,
@@ -61,6 +65,7 @@ export interface WorldbuildingImageDialogResult {
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
+    MatTooltipModule,
     ImageCropperComponent,
   ],
   templateUrl: './worldbuilding-image-dialog.component.html',
@@ -73,8 +78,17 @@ export class WorldbuildingImageDialogComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private sanitizer = inject(DomSanitizer);
   private cdr = inject(ChangeDetectorRef);
+  private systemConfig = inject(SystemConfigService);
+  private projectState = inject(ProjectStateService);
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+
+  // AI generation status - considers mode, config, and connection state
+  readonly aiGenerationStatus = computed(() =>
+    this.systemConfig.getAiImageGenerationStatus(
+      this.projectState.getSyncState()
+    )
+  );
 
   // Dialog data
   elementName = '';

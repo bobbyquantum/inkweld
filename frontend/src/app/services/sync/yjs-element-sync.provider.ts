@@ -127,6 +127,9 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       `🔗 Connecting to elements document: "${this.docId}"`
     );
 
+    // Set initial state to Syncing while we connect
+    this.syncStateSubject.next(DocumentSyncState.Syncing);
+
     try {
       // Create new Yjs document
       this.doc = new Y.Doc();
@@ -511,8 +514,15 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
         this.scheduleReconnect();
         break;
 
+      case 'connecting':
+        // Show syncing/connecting state while attempting to connect
+        this.syncStateSubject.next(DocumentSyncState.Syncing);
+        break;
+
       default:
-        this.syncStateSubject.next(DocumentSyncState.Synced);
+        // Unknown status - treat as connecting
+        this.logger.debug('YjsSync', `Unknown WebSocket status: ${status}`);
+        this.syncStateSubject.next(DocumentSyncState.Syncing);
     }
   }
 

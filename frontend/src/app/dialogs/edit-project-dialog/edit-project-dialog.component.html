@@ -102,14 +102,22 @@
                 <mat-icon>photo_library</mat-icon>
                 Select from Library
               </button>
-              <button
-                mat-stroked-button
-                color="primary"
-                (click)="openGenerateCoverDialog()"
-                [disabled]="isLoadingCover">
-                <mat-icon>auto_awesome</mat-icon>
-                Generate with AI
-              </button>
+              @if (aiGenerationStatus().status !== 'hidden') {
+                <button
+                  mat-stroked-button
+                  color="primary"
+                  (click)="openGenerateCoverDialog()"
+                  [disabled]="
+                    isLoadingCover || aiGenerationStatus().status === 'disabled'
+                  "
+                  [matTooltip]="aiGenerationStatus().tooltip ?? ''">
+                  <mat-icon>auto_awesome</mat-icon>
+                  Generate with AI
+                  @if (aiGenerationStatus().status === 'disabled') {
+                    <mat-icon class="disconnected-icon">cloud_off</mat-icon>
+                  }
+                </button>
+              }
             </div>
           </div>
         </form>

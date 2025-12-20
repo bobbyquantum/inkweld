@@ -18,7 +18,7 @@ import {
   ImageGenerationService,
 } from '@services/ai/image-generation.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
-import { SetupService } from '@services/core/setup.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import {
   MediaInfo,
   OfflineStorageService,
@@ -60,12 +60,14 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   protected readonly projectState = inject(ProjectStateService);
   private readonly offlineStorage = inject(OfflineStorageService);
   private readonly dialogGateway = inject(DialogGatewayService);
-  private readonly setupService = inject(SetupService);
+  private readonly systemConfig = inject(SystemConfigService);
   private readonly generationService = inject(ImageGenerationService);
 
-  // Check if in server mode (AI generation requires server)
-  readonly canUseAiGeneration = computed(
-    () => this.setupService.getMode() === 'server'
+  // AI generation status - considers mode, config, and connection state
+  readonly aiGenerationStatus = computed(() =>
+    this.systemConfig.getAiImageGenerationStatus(
+      this.projectState.getSyncState()
+    )
   );
 
   // State signals
