@@ -293,7 +293,8 @@ export class IdentityPanelComponent implements OnDestroy {
       elementName: this.elementName(),
       username,
       slug,
-      currentImage: this.identity().image,
+      // Pass the resolved blob URL for display, not the raw media:// URL
+      currentImage: this.resolvedImageUrl() ?? undefined,
       description: this.description(),
       worldbuildingFields: worldbuildingData ?? undefined,
     });
