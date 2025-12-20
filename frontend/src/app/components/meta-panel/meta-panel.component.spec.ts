@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { DocumentSnapshotService } from '@services/project/document-snapshot.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
@@ -65,11 +65,26 @@ describe('MetaPanelComponent', () => {
       hideTooltip: vi.fn(),
     };
 
+    // Mock SystemConfigService to prevent real API calls
+    const systemConfigMock = {
+      systemFeatures: signal({
+        aiLinting: false,
+        aiImageGeneration: false,
+        userApprovalRequired: false,
+        appMode: 'offline',
+      }),
+      isAiLintingEnabled: signal(false),
+      isAiImageGenerationEnabled: signal(false),
+      isUserApprovalRequired: signal(false),
+      isConfigLoaded: signal(true),
+    };
+
     await TestBed.configureTestingModule({
-      imports: [MetaPanelComponent, NoopAnimationsModule],
+      imports: [MetaPanelComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(),
+        { provide: SystemConfigService, useValue: systemConfigMock },
         { provide: DocumentSnapshotService, useValue: snapshotServiceMock },
         { provide: RelationshipService, useValue: relationshipServiceMock },
         { provide: ProjectStateService, useValue: projectStateMock },
@@ -81,7 +96,7 @@ describe('MetaPanelComponent', () => {
     fixture = TestBed.createComponent(MetaPanelComponent);
     component = fixture.componentInstance;
     fixture.componentRef.setInput('documentId', 'test-doc-id');
-    fixture.detectChanges();
+    await fixture.whenStable();
   });
 
   it('should create', () => {
@@ -89,9 +104,9 @@ describe('MetaPanelComponent', () => {
   });
 
   describe('toggle', () => {
-    it('should emit openChange with true when panel is closed', () => {
+    it('should emit openChange with true when panel is closed', async () => {
       fixture.componentRef.setInput('isOpen', false);
-      fixture.detectChanges();
+      await fixture.whenStable();
 
       const openChangeSpy = vi.fn();
       component.openChange.subscribe(openChangeSpy);
@@ -101,9 +116,9 @@ describe('MetaPanelComponent', () => {
       expect(openChangeSpy).toHaveBeenCalledWith(true);
     });
 
-    it('should emit openChange with false when panel is open', () => {
+    it('should emit openChange with false when panel is open', async () => {
       fixture.componentRef.setInput('isOpen', true);
-      fixture.detectChanges();
+      await fixture.whenStable();
 
       const openChangeSpy = vi.fn();
       component.openChange.subscribe(openChangeSpy);
@@ -115,9 +130,9 @@ describe('MetaPanelComponent', () => {
   });
 
   describe('open', () => {
-    it('should emit openChange with true when closed', () => {
+    it('should emit openChange with true when closed', async () => {
       fixture.componentRef.setInput('isOpen', false);
-      fixture.detectChanges();
+      await fixture.whenStable();
 
       const openChangeSpy = vi.fn();
       component.openChange.subscribe(openChangeSpy);
@@ -127,9 +142,9 @@ describe('MetaPanelComponent', () => {
       expect(openChangeSpy).toHaveBeenCalledWith(true);
     });
 
-    it('should not emit when already open', () => {
+    it('should not emit when already open', async () => {
       fixture.componentRef.setInput('isOpen', true);
-      fixture.detectChanges();
+      await fixture.whenStable();
 
       const openChangeSpy = vi.fn();
       component.openChange.subscribe(openChangeSpy);
@@ -141,9 +156,9 @@ describe('MetaPanelComponent', () => {
   });
 
   describe('close', () => {
-    it('should emit openChange with false when open', () => {
+    it('should emit openChange with false when open', async () => {
       fixture.componentRef.setInput('isOpen', true);
-      fixture.detectChanges();
+      await fixture.whenStable();
 
       const openChangeSpy = vi.fn();
       component.openChange.subscribe(openChangeSpy);
@@ -153,9 +168,9 @@ describe('MetaPanelComponent', () => {
       expect(openChangeSpy).toHaveBeenCalledWith(false);
     });
 
-    it('should not emit when already closed', () => {
+    it('should not emit when already closed', async () => {
       fixture.componentRef.setInput('isOpen', false);
-      fixture.detectChanges();
+      await fixture.whenStable();
 
       const openChangeSpy = vi.fn();
       component.openChange.subscribe(openChangeSpy);

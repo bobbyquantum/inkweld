@@ -6,7 +6,13 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import {
+  MediaSyncService,
+  MediaSyncStatus,
+} from '@services/offline/media-sync.service';
 import {
   MediaInfo,
   OfflineStorageService,
@@ -32,6 +38,8 @@ export interface MediaSelectorDialogResult {
 
 interface MediaItem extends MediaInfo {
   url?: string;
+  /** Sync status - undefined means local-only or synced */
+  syncStatus?: MediaSyncStatus;
 }
 
 @Component({
@@ -43,7 +51,9 @@ interface MediaItem extends MediaInfo {
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
+    MatProgressBarModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
   ],
 })
 export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
@@ -52,16 +62,22 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
   );
   private readonly data = inject<MediaSelectorDialogData>(MAT_DIALOG_DATA);
   private readonly offlineStorage = inject(OfflineStorageService);
+  private readonly mediaSync = inject(MediaSyncService);
 
   readonly title = this.data.title || 'Select Image';
   readonly isLoading = signal(true);
+  readonly isSyncing = signal(false);
+  readonly syncProgress = signal(0);
+  readonly serverItemsCount = signal(0);
   readonly error = signal<string | null>(null);
   readonly mediaItems = signal<MediaItem[]>([]);
   readonly selectedItem = signal<MediaItem | null>(null);
 
   private objectUrls: string[] = [];
+  private projectKey = '';
 
   ngOnInit(): void {
+    this.projectKey = `${this.data.username}/${this.data.slug}`;
     void this.loadMedia();
   }
 
@@ -75,8 +91,8 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
     this.error.set(null);
 
     try {
-      const projectKey = `${this.data.username}/${this.data.slug}`;
-      const items = await this.offlineStorage.listMedia(projectKey);
+      // First load local media
+      const items = await this.offlineStorage.listMedia(this.projectKey);
 
       // Filter to images if requested
       let filtered = items;
@@ -94,7 +110,7 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
         const mediaItem: MediaItem = { ...item };
         try {
           const blob = await this.offlineStorage.getMedia(
-            projectKey,
+            this.projectKey,
             item.mediaId
           );
           if (blob) {
@@ -109,6 +125,9 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
       }
 
       this.mediaItems.set(mediaItems);
+
+      // Check for server-side items in background
+      void this.checkServerMedia(mediaItems);
     } catch (err) {
       console.error('Failed to load media:', err);
       this.error.set('Failed to load media library');
@@ -117,7 +136,112 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Check server for additional media items not in local storage
+   */
+  private async checkServerMedia(localItems: MediaItem[]): Promise<void> {
+    try {
+      const syncState = await this.mediaSync.checkSyncStatus(this.projectKey);
+
+      // Count items that are only on the server
+      const serverOnlyCount = syncState.items.filter(
+        item => item.status === 'server-only'
+      ).length;
+
+      this.serverItemsCount.set(serverOnlyCount);
+
+      // If there are server-only items that are images, add them as placeholders
+      if (serverOnlyCount > 0) {
+        const serverOnlyItems = syncState.items.filter(item => {
+          if (item.status !== 'server-only') return false;
+          // Filter to images if requested
+          if (this.data.filterType === 'image') {
+            return (
+              item.mimeType?.startsWith('image/') ||
+              item.filename?.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+            );
+          }
+          return true;
+        });
+
+        // Add server-only items as placeholders
+        const newItems = [...localItems];
+        for (const serverItem of serverOnlyItems) {
+          // Skip if we already have this item locally
+          if (localItems.some(i => i.mediaId === serverItem.mediaId)) continue;
+
+          newItems.push({
+            mediaId: serverItem.mediaId,
+            mimeType: serverItem.mimeType || 'image/jpeg',
+            size: serverItem.size,
+            createdAt:
+              serverItem.server?.uploadedAt || new Date().toISOString(),
+            filename: serverItem.filename,
+            syncStatus: 'server-only',
+            // No URL - will show placeholder
+          });
+        }
+        this.mediaItems.set(newItems);
+      }
+    } catch (err) {
+      // Non-critical - just log and continue
+      console.warn('Failed to check server media:', err);
+    }
+  }
+
+  /**
+   * Sync all media from the server
+   */
+  async syncFromServer(): Promise<void> {
+    this.isSyncing.set(true);
+    this.syncProgress.set(0);
+
+    try {
+      // Download all from server
+      await this.mediaSync.downloadAllFromServer(this.projectKey);
+
+      // Reload media to show newly downloaded items
+      await this.loadMedia();
+
+      this.serverItemsCount.set(0);
+    } catch (err) {
+      console.error('Failed to sync from server:', err);
+      this.error.set('Failed to sync media from server');
+    } finally {
+      this.isSyncing.set(false);
+      this.syncProgress.set(0);
+    }
+  }
+
+  /**
+   * Download a single item from server
+   */
+  async downloadItem(item: MediaItem): Promise<void> {
+    if (!item.filename) return;
+
+    try {
+      await this.mediaSync.downloadFromServer(this.projectKey, item.filename);
+
+      // Reload to update the item
+      await this.loadMedia();
+
+      this.serverItemsCount.update(c => Math.max(0, c - 1));
+    } catch (err) {
+      console.error('Failed to download item:', err);
+      this.error.set(`Failed to download ${item.filename}`);
+    }
+  }
+
+  /**
+   * Check if an item needs downloading
+   */
+  needsDownload(item: MediaItem): boolean {
+    return item.syncStatus === 'server-only';
+  }
+
   selectItem(item: MediaItem): void {
+    // Don't allow selecting items that aren't downloaded
+    if (this.needsDownload(item)) return;
     this.selectedItem.set(item);
   }
 
@@ -130,9 +254,8 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
     if (!selected) return;
 
     // Get the blob for the selected item
-    const projectKey = `${this.data.username}/${this.data.slug}`;
     const blob = await this.offlineStorage.getMedia(
-      projectKey,
+      this.projectKey,
       selected.mediaId
     );
 

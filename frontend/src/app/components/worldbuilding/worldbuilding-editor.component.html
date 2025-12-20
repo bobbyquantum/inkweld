@@ -110,6 +110,49 @@
                               }
                             </mat-form-field>
                           }
+
+                          @case ('array') {
+                            <div class="array-field">
+                              <h4>{{ field.label }}</h4>
+                              @if (field.description) {
+                                <p class="field-description">
+                                  {{ field.description }}
+                                </p>
+                              }
+
+                              @for (
+                                control of getFormArray(field.key).controls;
+                                track $index
+                              ) {
+                                <div class="array-item">
+                                  <mat-form-field appearance="outline">
+                                    <input
+                                      matInput
+                                      [formControl]="$any(control)"
+                                      [placeholder]="
+                                        field.placeholder || 'Add item'
+                                      " />
+                                  </mat-form-field>
+                                  <button
+                                    mat-icon-button
+                                    color="warn"
+                                    type="button"
+                                    (click)="
+                                      removeArrayItem(field.key, $index)
+                                    ">
+                                    <mat-icon>delete</mat-icon>
+                                  </button>
+                                </div>
+                              }
+
+                              <button
+                                mat-raised-button
+                                type="button"
+                                (click)="addArrayItem(field.key)">
+                                <mat-icon>add</mat-icon> Add {{ field.label }}
+                              </button>
+                            </div>
+                          }
                         }
                       </div>
                     } @else {

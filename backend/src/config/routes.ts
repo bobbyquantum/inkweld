@@ -18,6 +18,8 @@ import elementRoutes from '../routes/element.routes';
 import lintRoutes from '../routes/lint.routes';
 import aiImageRoutes from '../routes/ai-image.routes';
 import mcpRoutes from '../routes/mcp.routes';
+import mcpKeyRoutes from '../routes/mcp-keys.routes';
+import mediaRoutes from '../routes/media.routes';
 import { publishedFileRoutes } from '../routes/published-file.routes';
 import { shareRoutes } from '../routes/share.routes';
 import adminRoutes from '../routes/admin.routes';
@@ -58,6 +60,12 @@ export function registerCommonRoutes(app: any): void {
   app.route('/api/v1/ai/lint', lintRoutes);
   app.route('/api/v1/ai/image', aiImageRoutes);
   app.route('/api/v1/ai/mcp', mcpRoutes);
+
+  // MCP key management (for frontend to create/manage API keys)
+  app.route('/api/v1/mcp-keys', mcpKeyRoutes);
+
+  // Media sync endpoints (list/download project media files)
+  app.route('/api/v1/media', mediaRoutes);
 
   // Published files (exports/publishing)
   app.route('/api/v1/projects', publishedFileRoutes);

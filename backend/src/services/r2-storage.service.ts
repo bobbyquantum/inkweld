@@ -151,6 +151,37 @@ export class R2StorageService {
     const key = this.getProjectFileKey(username, projectSlug, filename);
     return await this.bucket.head(key);
   }
+
+  /**
+   * List all files in a project directory
+   * @param username - Project owner username
+   * @param projectSlug - Project slug
+   * @param prefix - Optional prefix to filter files (e.g., 'media/' for only media files)
+   * @returns Array of file info objects
+   */
+  async listProjectFiles(
+    username: string,
+    projectSlug: string,
+    prefix?: string
+  ): Promise<Array<{ filename: string; size: number; mimeType?: string; uploadedAt?: Date }>> {
+    const basePrefix = `${username}/${projectSlug}/`;
+    const fullPrefix = prefix ? `${basePrefix}${prefix}` : basePrefix;
+
+    const listed = await this.bucket.list({ prefix: fullPrefix });
+
+    return listed.objects
+      .filter((obj) => {
+        // Skip internal files
+        const filename = obj.key.replace(basePrefix, '');
+        return !filename.startsWith('.') && !filename.endsWith('.level');
+      })
+      .map((obj) => ({
+        filename: obj.key.replace(basePrefix, ''),
+        size: obj.size,
+        mimeType: obj.httpMetadata?.contentType,
+        uploadedAt: obj.uploaded,
+      }));
+  }
 }
 
 // Type for R2 put options

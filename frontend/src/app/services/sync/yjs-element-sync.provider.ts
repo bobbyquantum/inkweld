@@ -131,7 +131,16 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       // Create new Yjs document
       this.doc = new Y.Doc();
 
-      // Set up WebSocket connection FIRST to get server state
+      // Set up IndexedDB persistence FIRST for local-first experience
+      // This ensures we have local data available immediately
+      this.idbProvider = new IndexeddbPersistence(this.docId, this.doc);
+      await this.idbProvider.whenSynced;
+      this.logger.info('YjsSync', '✅ IndexedDB synced');
+
+      // Load elements from local storage first
+      this.loadElementsFromDoc();
+
+      // Now set up WebSocket connection for server sync
       const wsUrl = `${webSocketUrl}/api/v1/ws/yjs?documentId=${this.docId}`;
       this.logger.info('YjsSync', `🌐 WebSocket URL: ${wsUrl}`);
 
@@ -140,22 +149,29 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
         resyncInterval: 10000,
       });
 
-      // Wait for initial WebSocket sync before enabling IndexedDB
-      // This prevents empty IndexedDB from overwriting server data
-      await this.waitForInitialSync();
-
-      // Now set up IndexedDB persistence (after server state is loaded)
-      this.idbProvider = new IndexeddbPersistence(this.docId, this.doc);
-      await this.idbProvider.whenSynced;
-      this.logger.info('YjsSync', '✅ IndexedDB synced');
-
-      // Set up event handlers
+      // Set up event handlers before waiting for sync
       this.setupWebSocketHandlers();
       this.setupNetworkHandlers();
       this.setupDocumentObserver();
 
-      // Load initial elements
-      this.loadElementsFromDoc();
+      // Try to wait for WebSocket sync, but don't fail if it times out
+      // This is "local-first" - we already have data from IndexedDB
+      try {
+        await this.waitForInitialSync();
+      } catch (wsError) {
+        // WebSocket sync failed/timed out - this is NOT fatal
+        // We have local data from IndexedDB, so continue
+        const wsErrorMsg =
+          wsError instanceof Error
+            ? wsError.message
+            : 'Unknown WebSocket error';
+        this.logger.warn(
+          'YjsSync',
+          `⚠️ WebSocket sync failed, continuing with local data: ${wsErrorMsg}`
+        );
+        this.syncStateSubject.next(DocumentSyncState.Offline);
+        // The WebSocket will keep trying to reconnect in the background
+      }
 
       return { success: true };
     } catch (error) {

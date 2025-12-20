@@ -1,10 +1,11 @@
+import { provideHttpClient } from '@angular/common/http';
 import {
-  HttpClientTestingModule,
   HttpTestingController,
+  provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ElementTypeSchema } from '../../models/schema-types';
 import { DefaultTemplatesService } from './default-templates.service';
@@ -55,8 +56,12 @@ describe('DefaultTemplatesService', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
-      providers: [provideZonelessChangeDetection(), DefaultTemplatesService],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        DefaultTemplatesService,
+      ],
     });
 
     service = TestBed.inject(DefaultTemplatesService);

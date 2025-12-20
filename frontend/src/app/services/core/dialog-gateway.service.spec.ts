@@ -6,6 +6,10 @@ import { of } from 'rxjs';
 import { Mock, MockedObject, vi } from 'vitest';
 
 import {
+  AddRelationshipDialogComponent,
+  AddRelationshipDialogData,
+} from '../../dialogs/add-relationship-dialog/add-relationship-dialog.component';
+import {
   ConfirmationDialogComponent,
   ConfirmationDialogData,
 } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
@@ -17,6 +21,8 @@ import {
   ImageViewerDialogComponent,
   ImageViewerDialogData,
 } from '../../dialogs/image-viewer-dialog/image-viewer-dialog.component';
+import { ImportProjectDialogComponent } from '../../dialogs/import-project-dialog/import-project-dialog.component';
+import { MediaSelectorDialogComponent } from '../../dialogs/media-selector-dialog/media-selector-dialog.component';
 import {
   NewElementDialogComponent,
   NewElementDialogResult,
@@ -26,6 +32,7 @@ import {
   RenameDialogData,
 } from '../../dialogs/rename-dialog/rename-dialog.component';
 import { UserSettingsDialogComponent } from '../../dialogs/user-settings-dialog/user-settings-dialog.component';
+import { WorldbuildingImageDialogComponent } from '../../dialogs/worldbuilding-image-dialog/worldbuilding-image-dialog.component';
 import { DialogGatewayService } from './dialog-gateway.service';
 
 describe('DialogGatewayService', () => {
@@ -225,5 +232,138 @@ describe('DialogGatewayService', () => {
       panelClass: 'user-settings-dialog-panel',
       data: { selectedCategory: 'account' },
     });
+  });
+
+  it('should open add relationship dialog', async () => {
+    const data: AddRelationshipDialogData = {
+      sourceElementId: 'element-1',
+      sourceSchemaType: 'CHARACTER',
+    };
+    const result = {
+      targetElementId: 'element-2',
+      relationshipType: 'related',
+    };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(result));
+
+    const dialogResult = await service.openAddRelationshipDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(
+      AddRelationshipDialogComponent,
+      {
+        data,
+        disableClose: true,
+        width: '500px',
+      }
+    );
+    expect(dialogResult).toEqual(result);
+  });
+
+  it('should open image generation dialog without data', async () => {
+    const result = { saved: true };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(result));
+
+    const dialogResult = await service.openImageGenerationDialog();
+
+    expect(dialogMock.open).toHaveBeenCalledWith(
+      ImageGenerationDialogComponent,
+      expect.objectContaining({
+        data: {},
+        disableClose: false,
+        width: '700px',
+      })
+    );
+    expect(dialogResult).toEqual(result);
+  });
+
+  it('should open image generation dialog with data', async () => {
+    const data = { forCover: false };
+    const result = { saved: true };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(result));
+
+    const dialogResult = await service.openImageGenerationDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(
+      ImageGenerationDialogComponent,
+      expect.objectContaining({
+        data,
+      })
+    );
+    expect(dialogResult).toEqual(result);
+  });
+
+  it('should open import project dialog with username', async () => {
+    const result = { projectId: 'imported-123' };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(result));
+
+    const dialogResult = await service.openImportProjectDialog('testuser');
+
+    expect(dialogMock.open).toHaveBeenCalledWith(ImportProjectDialogComponent, {
+      data: { username: 'testuser' },
+      disableClose: true,
+      width: '500px',
+      maxWidth: '95vw',
+    });
+    expect(dialogResult).toEqual(result);
+  });
+
+  it('should open import project dialog without username', async () => {
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(undefined));
+
+    await service.openImportProjectDialog();
+
+    expect(dialogMock.open).toHaveBeenCalledWith(ImportProjectDialogComponent, {
+      data: { username: undefined },
+      disableClose: true,
+      width: '500px',
+      maxWidth: '95vw',
+    });
+  });
+
+  it('should open media selector dialog', async () => {
+    const data = {
+      projectKey: 'testuser/test-project',
+      selectMultiple: false,
+      username: 'testuser',
+      slug: 'test-project',
+    };
+    const result = { selectedMedia: ['image.jpg'] };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(result));
+
+    const dialogResult = await service.openMediaSelectorDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(MediaSelectorDialogComponent, {
+      data,
+      disableClose: false,
+      width: '600px',
+      maxWidth: '95vw',
+      maxHeight: '80vh',
+    });
+    expect(dialogResult).toEqual(result);
+  });
+
+  it('should open worldbuilding image dialog', async () => {
+    const data = {
+      projectKey: 'testuser/test-project',
+      elementId: 'element-1',
+      elementName: 'Test Element',
+      username: 'testuser',
+      slug: 'test-project',
+    };
+    const result = { imageUrl: 'https://example.com/image.png' };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(result));
+
+    const dialogResult = await service.openWorldbuildingImageDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(
+      WorldbuildingImageDialogComponent,
+      {
+        data,
+        disableClose: false,
+        width: '500px',
+        maxWidth: '95vw',
+        maxHeight: '90vh',
+      }
+    );
+    expect(dialogResult).toEqual(result);
   });
 });

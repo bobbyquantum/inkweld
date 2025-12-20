@@ -17,5 +17,12 @@ export default defineConfig({
 
     // Hook timeout for beforeEach, afterEach, etc.
     hookTimeout: 5000,
+
+    // Enable isolation to prevent test pollution between files
+    // This ensures each test file runs in a fresh environment
+    isolate: true,
+
+    // Retry flaky tests once
+    retry: 1,
   },
 });

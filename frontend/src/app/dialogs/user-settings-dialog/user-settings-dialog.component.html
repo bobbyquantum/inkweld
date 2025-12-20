@@ -61,6 +61,18 @@
         <mat-icon matListItemIcon>description</mat-icon>
         <span matListItemTitle>Project</span>
       </a>
+      <a
+        mat-list-item
+        role="tab"
+        (click)="selectCategory('sync')"
+        (keydown.enter)="selectCategory('sync')"
+        [attr.aria-selected]="selectedCategory === 'sync'"
+        [class.active]="selectedCategory === 'sync'"
+        tabindex="4"
+        aria-label="Sync settings">
+        <mat-icon matListItemIcon>sync</mat-icon>
+        <span matListItemTitle>Sync</span>
+      </a>
     </mat-nav-list>
 
     <div
@@ -80,6 +92,9 @@
         }
         @case ('project') {
           <app-project-settings />
+        }
+        @case ('sync') {
+          <app-sync-settings />
         }
       }
     </div>
