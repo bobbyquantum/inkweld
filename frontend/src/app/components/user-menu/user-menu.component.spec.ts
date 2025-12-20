@@ -6,6 +6,7 @@ import { User } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
+import { ThemeOption, ThemeService } from '@themes/theme.service';
 import { of } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
 
@@ -19,6 +20,7 @@ describe('UserMenuComponent', () => {
   let userServiceMock: MockedObject<UnifiedUserService>;
   let dialogGatewayMock: MockedObject<DialogGatewayService>;
   let setupServiceMock: MockedObject<SetupService>;
+  let themeServiceMock: MockedObject<ThemeService>;
   const activatedRouteMock = {
     params: of({ username: 'testuser' }),
   };
@@ -55,6 +57,13 @@ describe('UserMenuComponent', () => {
       getServerUrl: vi.fn().mockReturnValue('http://localhost:8333'),
     } as unknown as MockedObject<SetupService>;
 
+    themeServiceMock = {
+      update: vi.fn(),
+      getCurrentTheme: vi
+        .fn()
+        .mockReturnValue(of('light-theme' as ThemeOption)),
+    } as unknown as MockedObject<ThemeService>;
+
     await TestBed.configureTestingModule({
       imports: [UserMenuComponent],
       providers: [
@@ -64,6 +73,7 @@ describe('UserMenuComponent', () => {
         { provide: UnifiedUserService, useValue: userServiceMock },
         { provide: DialogGatewayService, useValue: dialogGatewayMock },
         { provide: SetupService, useValue: setupServiceMock },
+        { provide: ThemeService, useValue: themeServiceMock },
         { provide: ActivatedRoute, useValue: activatedRouteMock },
       ],
     }).compileComponents();
@@ -95,6 +105,23 @@ describe('UserMenuComponent', () => {
     it('should open user settings dialog', async () => {
       await component.onSettings();
       expect(dialogGatewayMock.openUserSettingsDialog).toHaveBeenCalled();
+    });
+  });
+
+  describe('onThemeChange()', () => {
+    it('should update theme to light-theme', () => {
+      component.onThemeChange('light-theme');
+      expect(themeServiceMock.update).toHaveBeenCalledWith('light-theme');
+    });
+
+    it('should update theme to dark-theme', () => {
+      component.onThemeChange('dark-theme');
+      expect(themeServiceMock.update).toHaveBeenCalledWith('dark-theme');
+    });
+
+    it('should update theme to system', () => {
+      component.onThemeChange('system');
+      expect(themeServiceMock.update).toHaveBeenCalledWith('system');
     });
   });
 

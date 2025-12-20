@@ -22,7 +22,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject, takeUntil } from 'rxjs';
 
 import { ConnectionSettingsComponent } from './tabs/connection-settings/connection-settings.component';
-import { GeneralSettingsComponent } from './tabs/general-settings/general-settings.component';
 import { ProjectSettingsComponent } from './tabs/project-settings/project-settings.component';
 import { ProjectTreeSettingsComponent } from './tabs/project-tree-settings/project-tree-settings.component';
 import { SyncSettingsComponent } from './tabs/sync-settings/sync-settings.component';
@@ -70,7 +69,6 @@ const slideAnimation = trigger('slideAnimation', [
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
-    GeneralSettingsComponent,
     ProjectTreeSettingsComponent,
     ProjectSettingsComponent,
     ConnectionSettingsComponent,
@@ -87,17 +85,12 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
   });
 
   @Input() selectedCategory:
-    | 'general'
     | 'connection'
     | 'project-tree'
     | 'project'
-    | 'sync' = 'general';
-  previousCategory:
-    | 'general'
-    | 'connection'
-    | 'project-tree'
-    | 'project'
-    | 'sync' = 'general';
+    | 'sync' = 'connection';
+  previousCategory: 'connection' | 'project-tree' | 'project' | 'sync' =
+    'connection';
   isMobile = false;
   private destroyed = new Subject<void>();
 
@@ -122,21 +115,13 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
     this.destroyed.complete();
   }
 
-  selectCategory(
-    category: 'general' | 'connection' | 'project-tree' | 'project' | 'sync'
-  ) {
+  selectCategory(category: 'connection' | 'project-tree' | 'project' | 'sync') {
     this.previousCategory = this.selectedCategory;
     this.selectedCategory = category;
   }
 
   getAnimationState() {
-    const categories = [
-      'general',
-      'connection',
-      'project-tree',
-      'project',
-      'sync',
-    ];
+    const categories = ['connection', 'project-tree', 'project', 'sync'];
     const currentIndex = categories.indexOf(this.selectedCategory);
     const previousIndex = categories.indexOf(this.previousCategory);
     const isMovingDown = currentIndex > previousIndex;
