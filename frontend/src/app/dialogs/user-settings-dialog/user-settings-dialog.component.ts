@@ -15,6 +15,7 @@ import {
   MatDialogContent,
   MatDialogTitle,
 } from '@angular/material/dialog';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -24,6 +25,7 @@ import { ConnectionSettingsComponent } from './tabs/connection-settings/connecti
 import { GeneralSettingsComponent } from './tabs/general-settings/general-settings.component';
 import { ProjectSettingsComponent } from './tabs/project-settings/project-settings.component';
 import { ProjectTreeSettingsComponent } from './tabs/project-tree-settings/project-tree-settings.component';
+import { SyncSettingsComponent } from './tabs/sync-settings/sync-settings.component';
 
 const slideAnimation = trigger('slideAnimation', [
   transition(
@@ -63,6 +65,7 @@ const slideAnimation = trigger('slideAnimation', [
     MatDialogTitle,
     MatDialogContent,
     MatDialogClose,
+    MatDividerModule,
     MatListModule,
     MatButtonModule,
     MatIconModule,
@@ -71,6 +74,7 @@ const slideAnimation = trigger('slideAnimation', [
     ProjectTreeSettingsComponent,
     ProjectSettingsComponent,
     ConnectionSettingsComponent,
+    SyncSettingsComponent,
   ],
   animations: [slideAnimation],
   templateUrl: './user-settings-dialog.component.html',
@@ -86,9 +90,14 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
     | 'general'
     | 'connection'
     | 'project-tree'
-    | 'project' = 'general';
-  previousCategory: 'general' | 'connection' | 'project-tree' | 'project' =
-    'general';
+    | 'project'
+    | 'sync' = 'general';
+  previousCategory:
+    | 'general'
+    | 'connection'
+    | 'project-tree'
+    | 'project'
+    | 'sync' = 'general';
   isMobile = false;
   private destroyed = new Subject<void>();
 
@@ -114,14 +123,20 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
   }
 
   selectCategory(
-    category: 'general' | 'connection' | 'project-tree' | 'project'
+    category: 'general' | 'connection' | 'project-tree' | 'project' | 'sync'
   ) {
     this.previousCategory = this.selectedCategory;
     this.selectedCategory = category;
   }
 
   getAnimationState() {
-    const categories = ['general', 'connection', 'project-tree', 'project'];
+    const categories = [
+      'general',
+      'connection',
+      'project-tree',
+      'project',
+      'sync',
+    ];
     const currentIndex = categories.indexOf(this.selectedCategory);
     const previousIndex = categories.indexOf(this.previousCategory);
     const isMovingDown = currentIndex > previousIndex;

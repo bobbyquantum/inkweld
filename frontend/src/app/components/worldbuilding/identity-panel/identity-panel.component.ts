@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -16,11 +17,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { OfflineStorageService } from '@services/offline/offline-storage.service';
 import {
   WorldbuildingIdentity,
   WorldbuildingService,
 } from '@services/worldbuilding/worldbuilding.service';
-import { debounceTime, Subject, takeUntil } from 'rxjs';
+import { debounceTime, firstValueFrom, Subject, takeUntil } from 'rxjs';
+
+import { environment } from '../../../../environments/environment';
 
 /**
  * Identity panel for worldbuilding elements.
@@ -56,11 +60,24 @@ export class IdentityPanelComponent implements OnDestroy {
   // Services
   private worldbuildingService = inject(WorldbuildingService);
   private dialogGateway = inject(DialogGatewayService);
+  private http = inject(HttpClient);
+  private offlineStorage = inject(OfflineStorageService);
 
   // State
   identity = signal<WorldbuildingIdentity>({});
   description = signal<string>('');
   isExpanded = signal(true);
+
+  /**
+   * Resolved image URL for display.
+   * Handles media:// URLs by providing a resolved blob URL.
+   */
+  resolvedImageUrl = signal<string | null>(null);
+
+  /**
+   * Whether we're currently loading an image
+   */
+  isLoadingImage = signal(false);
 
   // Cleanup
   private destroy$ = new Subject<void>();
@@ -83,6 +100,16 @@ export class IdentityPanelComponent implements OnDestroy {
         void this.setupRealtimeSync(id);
       }
     });
+
+    // Resolve image URL when identity.image changes
+    effect(() => {
+      const imageUrl = this.identity().image;
+      if (imageUrl) {
+        void this.resolveImageUrl(imageUrl);
+      } else {
+        this.resolvedImageUrl.set(null);
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -90,6 +117,88 @@ export class IdentityPanelComponent implements OnDestroy {
     this.destroy$.complete();
     if (this.unsubscribeObserver) {
       this.unsubscribeObserver();
+    }
+  }
+
+  /**
+   * Resolve an image URL for display.
+   * Handles media:// URLs by downloading from the server and caching in IndexedDB.
+   */
+  private async resolveImageUrl(imageUrl: string): Promise<void> {
+    const username = this.username();
+    const slug = this.slug();
+
+    // If it's not a media:// URL, use it directly
+    if (!imageUrl.startsWith('media://')) {
+      this.resolvedImageUrl.set(imageUrl);
+      return;
+    }
+
+    if (!username || !slug) {
+      console.warn(
+        '[IdentityPanel] Cannot resolve media URL: missing username or slug'
+      );
+      return;
+    }
+
+    const projectKey = `${username}/${slug}`;
+    // Extract filename from media://filename.png
+    const filename = imageUrl.substring('media://'.length);
+    // Use filename without extension as mediaId for IndexedDB
+    const mediaId = filename.includes('.')
+      ? filename.substring(0, filename.lastIndexOf('.'))
+      : filename;
+
+    try {
+      // Check if we have it cached in IndexedDB
+      const cachedUrl = await this.offlineStorage.getMediaUrl(
+        projectKey,
+        mediaId
+      );
+      if (cachedUrl) {
+        // Verify the blob URL is still valid by trying to fetch it
+        try {
+          const response = await fetch(cachedUrl);
+          if (
+            response.ok &&
+            response.headers.get('content-type')?.startsWith('image/')
+          ) {
+            this.resolvedImageUrl.set(cachedUrl);
+            return;
+          } else {
+            // Revoke the stale URL and delete from cache
+            this.offlineStorage.revokeUrl(projectKey, mediaId);
+            await this.offlineStorage.deleteMedia(projectKey, mediaId);
+          }
+        } catch {
+          this.offlineStorage.revokeUrl(projectKey, mediaId);
+          await this.offlineStorage.deleteMedia(projectKey, mediaId);
+        }
+      }
+
+      // Not cached or cache was invalid - download from server
+      this.isLoadingImage.set(true);
+      const apiUrl = `${environment.apiUrl}/api/v1/media/${username}/${slug}/${filename}`;
+
+      const blob = await firstValueFrom(
+        this.http.get(apiUrl, { responseType: 'blob' })
+      );
+
+      // Save to IndexedDB for future use
+      await this.offlineStorage.saveMedia(projectKey, mediaId, blob, filename);
+
+      // Get the blob URL for display
+      const blobUrl = await this.offlineStorage.getMediaUrl(
+        projectKey,
+        mediaId
+      );
+      this.resolvedImageUrl.set(blobUrl);
+    } catch (err) {
+      console.error('[IdentityPanel] Failed to load image:', err);
+      // Could fallback to a placeholder here
+      this.resolvedImageUrl.set(null);
+    } finally {
+      this.isLoadingImage.set(false);
     }
   }
 
@@ -146,6 +255,19 @@ export class IdentityPanelComponent implements OnDestroy {
 
   toggleExpanded(): void {
     this.isExpanded.set(!this.isExpanded());
+  }
+
+  /**
+   * View the current image in full size viewer
+   */
+  viewImage(): void {
+    const imageUrl = this.resolvedImageUrl();
+    if (imageUrl) {
+      this.dialogGateway.openImageViewerDialog({
+        imageUrl,
+        fileName: this.elementName(),
+      });
+    }
   }
 
   async onImageClick(): Promise<void> {

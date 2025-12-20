@@ -125,6 +125,123 @@
       </mat-card-content>
     </mat-card>
 
+    <!-- Media Library Sync Card -->
+    @if (projectKey()) {
+      <mat-card class="status-card media-sync">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>perm_media</mat-icon>
+            Media Library Sync
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (mediaSyncState(); as state) {
+            <div class="status-grid">
+              <div class="status-item">
+                <span class="label">Server:</span>
+                <span class="value">
+                  {{ getServerFileCount() }} files ({{
+                    formatBytes(getServerTotalSize())
+                  }})
+                </span>
+              </div>
+              <div class="status-item">
+                <span class="label">Local Cache:</span>
+                <span class="value">
+                  {{ getLocalFileCount() }} files ({{
+                    formatBytes(getLocalTotalSize())
+                  }})
+                </span>
+              </div>
+              <div class="status-item">
+                <span class="label">Needs Download:</span>
+                <span class="value" [class.warning]="state.needsDownload > 0">
+                  {{ state.needsDownload }} files
+                </span>
+              </div>
+              <div class="status-item">
+                <span class="label">Needs Upload:</span>
+                <span class="value" [class.warning]="state.needsUpload > 0">
+                  {{ state.needsUpload }} files
+                </span>
+              </div>
+              <div class="status-item">
+                <span class="label">Last Checked:</span>
+                <span class="value">
+                  {{
+                    state.lastChecked
+                      ? (state.lastChecked | date: 'short')
+                      : 'Never'
+                  }}
+                </span>
+              </div>
+            </div>
+
+            @if (state.isSyncing) {
+              <mat-progress-bar
+                mode="determinate"
+                [value]="state.downloadProgress">
+              </mat-progress-bar>
+              <p class="sync-progress-text">
+                Downloading... {{ state.downloadProgress }}%
+              </p>
+            }
+
+            @if (state.error) {
+              <p class="error-text">{{ state.error }}</p>
+            }
+
+            <div class="action-buttons">
+              <button
+                mat-stroked-button
+                (click)="checkMediaSyncStatus()"
+                [disabled]="state.isSyncing">
+                <mat-icon>refresh</mat-icon>
+                Refresh Status
+              </button>
+              @if (state.needsDownload > 0) {
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="downloadAllMedia()"
+                  [disabled]="state.isSyncing">
+                  <mat-icon>cloud_download</mat-icon>
+                  Download All ({{ state.needsDownload }})
+                </button>
+              }
+              @if (state.needsUpload > 0) {
+                <button
+                  mat-raised-button
+                  color="accent"
+                  (click)="uploadAllMedia()"
+                  [disabled]="state.isSyncing">
+                  <mat-icon>cloud_upload</mat-icon>
+                  Upload All ({{ state.needsUpload }})
+                </button>
+              }
+            </div>
+          } @else {
+            <div class="loading-state">
+              <mat-icon class="spin">sync</mat-icon>
+              <span>Checking media sync status...</span>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    } @else {
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="info-content">
+            <mat-icon>info</mat-icon>
+            <div>
+              <strong>No Project Open:</strong>
+              Open a project to view its media sync status.
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+
     <!-- Sync Info Card -->
     <mat-card class="info-card">
       <mat-card-content>

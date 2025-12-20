@@ -34,6 +34,12 @@ export interface StorageService {
   hasUserAvatar(username: string): Promise<boolean>;
 
   deleteUserAvatar(username: string): Promise<void>;
+
+  listProjectFiles(
+    username: string,
+    projectSlug: string,
+    prefix?: string
+  ): Promise<Array<{ filename: string; size: number; mimeType?: string; uploadedAt?: Date }>>;
 }
 
 /**
@@ -111,6 +117,14 @@ class FileStorageAdapter implements StorageService {
   async deleteUserAvatar(username: string): Promise<void> {
     await this.fileStorage.deleteUserAvatar(username);
   }
+
+  async listProjectFiles(
+    username: string,
+    projectSlug: string,
+    prefix?: string
+  ): Promise<Array<{ filename: string; size: number; mimeType?: string; uploadedAt?: Date }>> {
+    return await this.fileStorage.listProjectFiles(username, projectSlug, prefix);
+  }
 }
 
 /**
@@ -167,6 +181,14 @@ class R2StorageAdapter implements StorageService {
 
   async deleteUserAvatar(username: string): Promise<void> {
     await this.r2Storage.deleteUserAvatar(username);
+  }
+
+  async listProjectFiles(
+    username: string,
+    projectSlug: string,
+    prefix?: string
+  ): Promise<Array<{ filename: string; size: number; mimeType?: string; uploadedAt?: Date }>> {
+    return await this.r2Storage.listProjectFiles(username, projectSlug, prefix);
   }
 }
 

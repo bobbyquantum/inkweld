@@ -57,6 +57,10 @@
             color: var(--sys-success);
           }
 
+          &.warning {
+            color: var(--sys-tertiary);
+          }
+
           mat-icon {
             font-size: 20px;
             width: 20px;
@@ -72,6 +76,32 @@
 
     mat-progress-bar {
       margin: 16px 0;
+    }
+
+    .sync-progress-text {
+      text-align: center;
+      color: var(--sys-on-surface-variant);
+      font-size: 0.875rem;
+      margin: 8px 0;
+    }
+
+    .error-text {
+      color: var(--sys-error);
+      font-size: 0.875rem;
+      margin: 8px 0;
+    }
+
+    .loading-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 24px;
+      color: var(--sys-on-surface-variant);
+
+      mat-icon.spin {
+        animation: spin 1s linear infinite;
+      }
     }
 
     .action-buttons {

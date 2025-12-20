@@ -111,6 +111,15 @@
   width: 200px;
 }
 
+.model-select {
+  width: 320px;
+
+  .model-description {
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 0.85em;
+  }
+}
+
 .api-key-section {
   padding: 16px 0;
   border-top: 1px solid var(--mat-sys-outline-variant);

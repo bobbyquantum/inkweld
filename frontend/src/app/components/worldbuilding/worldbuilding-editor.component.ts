@@ -102,7 +102,11 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   constructor() {
     effect(() => {
       const id = this.elementId();
-      if (id) {
+      const username = this.username();
+      const slug = this.slug();
+
+      // Only load when all required values are available
+      if (id && username && slug) {
         void this.loadElementData(id);
         void this.setupRealtimeSync(id);
       }
@@ -251,25 +255,51 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     Object.entries(data).forEach(([key, value]) => {
       const control = this.form.get(key);
       if (control) {
-        if (control instanceof FormArray) {
-          control.clear();
-          if (Array.isArray(value)) {
-            value.forEach(item => control.push(new FormControl(item)));
-          }
-        } else if (
-          control instanceof FormGroup &&
-          typeof value === 'object' &&
-          value !== null &&
-          !Array.isArray(value)
-        ) {
-          Object.entries(value).forEach(([nestedKey, nestedValue]) => {
-            const nestedControl = control.get(nestedKey);
-            if (nestedControl) {
-              nestedControl.setValue(nestedValue, { emitEvent: false });
+        try {
+          if (control instanceof FormArray) {
+            control.clear({ emitEvent: false });
+            if (Array.isArray(value)) {
+              value.forEach(item =>
+                control.push(new FormControl(item), { emitEvent: false })
+              );
             }
-          });
-        } else {
-          control.setValue(value, { emitEvent: false });
+          } else if (
+            control instanceof FormGroup &&
+            typeof value === 'object' &&
+            value !== null &&
+            !Array.isArray(value)
+          ) {
+            // Nested FormGroup - update child controls
+            Object.entries(value).forEach(([nestedKey, nestedValue]) => {
+              const nestedControl = control.get(nestedKey);
+              if (nestedControl) {
+                if (nestedControl instanceof FormArray) {
+                  nestedControl.clear({ emitEvent: false });
+                  if (Array.isArray(nestedValue)) {
+                    (nestedValue as unknown[]).forEach(item =>
+                      nestedControl.push(new FormControl(item), {
+                        emitEvent: false,
+                      })
+                    );
+                  }
+                } else {
+                  nestedControl.setValue(nestedValue, { emitEvent: false });
+                }
+              }
+            });
+          } else if (control instanceof FormGroup) {
+            // FormGroup but value is not an object - skip, can't map incompatible types
+            console.warn(
+              `[WorldbuildingEditor] Skipping field "${key}": FormGroup expected object but got ${typeof value}`
+            );
+          } else {
+            control.setValue(value, { emitEvent: false });
+          }
+        } catch (err) {
+          console.warn(
+            `[WorldbuildingEditor] Error updating field "${key}":`,
+            err
+          );
         }
       }
     });

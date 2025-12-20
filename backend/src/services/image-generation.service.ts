@@ -216,7 +216,17 @@ class ImageGenerationService {
       );
     }
 
-    console.log(`[ImageGenerationService] Generating image with provider: ${provider.name}`);
+    // If no model specified, try to use the default model from config
+    if (!request.model) {
+      const defaultModel = await this.getConfigValue(db, 'AI_IMAGE_DEFAULT_MODEL');
+      if (defaultModel) {
+        request = { ...request, model: defaultModel };
+      }
+    }
+
+    console.log(
+      `[ImageGenerationService] Generating image with provider: ${provider.name}, model: ${request.model || 'default'}`
+    );
 
     return provider.generate(request);
   }

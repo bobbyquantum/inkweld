@@ -300,6 +300,9 @@ import { Request, Response } from 'express';
 - LevelDB stores per-project document state
 - Offline editing capability with automatic sync
 
+**IMPORTANT - Yjs Document ID Trailing Slash:**
+The frontend uses `username:slug:elements` while the backend/MCP uses `username:slug:elements/` with a trailing slash. **THIS IS NOT A BUG - DO NOT "FIX" IT.** The y-websocket library automatically normalizes these, and both refer to the same document. If you see this difference while debugging sync issues, look elsewhere for the actual problem.
+
 ### Authentication
 
 - Session-based auth with httpOnly cookies

@@ -320,10 +320,22 @@ describe('ProjectStateService', () => {
     it('should subscribe to errors from provider', async () => {
       await service.loadProject('testuser', 'test-project');
 
-      // Simulate provider emitting error
+      // Simulate provider emitting a critical error (session expiry)
+      mockSyncProvider._errorsSubject.next(
+        'Session expired. Please log in again.'
+      );
+
+      expect(service.error()).toBe('Session expired. Please log in again.');
+    });
+
+    it('should NOT set error for non-critical connection issues', async () => {
+      await service.loadProject('testuser', 'test-project');
+
+      // Non-critical errors like connection issues should not block the UI
       mockSyncProvider._errorsSubject.next('Connection lost');
 
-      expect(service.error()).toBe('Connection lost');
+      // Error should remain undefined for non-critical issues
+      expect(service.error()).toBeUndefined();
     });
 
     it('should disconnect provider when loading new project', async () => {

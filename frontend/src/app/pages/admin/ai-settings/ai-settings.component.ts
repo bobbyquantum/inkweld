@@ -70,6 +70,7 @@ export class AdminAiSettingsComponent implements OnInit {
   // Global settings
   readonly imageGenerationEnabled = signal(false);
   readonly defaultProvider = signal<string>('openai');
+  readonly defaultModel = signal<string>('');
 
   // OpenAI settings
   readonly openaiConfig = signal<ProviderConfig>({
@@ -137,6 +138,21 @@ export class AdminAiSettingsComponent implements OnInit {
     () => this.falaiModels().filter(m => m.enabled).length
   );
 
+  // Computed: available models for the selected default provider
+  readonly availableModelsForDefaultProvider = computed(() => {
+    const provider = this.defaultProvider();
+    switch (provider) {
+      case 'openai':
+        return this.openaiModels().filter(m => m.enabled);
+      case 'openrouter':
+        return this.openrouterModels().filter(m => m.enabled);
+      case 'falai':
+        return this.falaiModels().filter(m => m.enabled);
+      default:
+        return [];
+    }
+  });
+
   ngOnInit(): void {
     void this.loadConfig();
   }
@@ -155,6 +171,7 @@ export class AdminAiSettingsComponent implements OnInit {
       this.defaultProvider.set(
         config['AI_IMAGE_DEFAULT_PROVIDER']?.value || 'openai'
       );
+      this.defaultModel.set(config['AI_IMAGE_DEFAULT_MODEL']?.value || '');
 
       // OpenAI
       const openaiHasKey = config['OPENAI_API_KEY']?.value === '********';
@@ -260,6 +277,20 @@ export class AdminAiSettingsComponent implements OnInit {
       await this.configService.setConfig('AI_IMAGE_DEFAULT_PROVIDER', provider);
       this.defaultProvider.set(provider);
       this.snackBar.open('Default provider saved', 'Close', { duration: 2000 });
+    } catch (err) {
+      console.error('Failed to save setting:', err);
+      this.snackBar.open('Failed to save setting', 'Close', { duration: 3000 });
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  async saveDefaultModel(model: string): Promise<void> {
+    this.isSaving.set(true);
+    try {
+      await this.configService.setConfig('AI_IMAGE_DEFAULT_MODEL', model);
+      this.defaultModel.set(model);
+      this.snackBar.open('Default model saved', 'Close', { duration: 2000 });
     } catch (err) {
       console.error('Failed to save setting:', err);
       this.snackBar.open('Failed to save setting', 'Close', { duration: 3000 });

@@ -95,8 +95,8 @@ export class YjsService {
         Y.applyUpdate(ydoc, diff);
       }
 
-      // Listen for updates and persist them
-      ydoc.on('update', async (update: Uint8Array) => {
+      // Listen for updates - persist them AND broadcast to connected clients
+      ydoc.on('update', async (update: Uint8Array, origin: unknown) => {
         try {
           // Look up persistence by PROJECT KEY, not documentId
           const currentPersistence = this.persistences.get(projectKey);
@@ -105,8 +105,19 @@ export class YjsService {
           } else {
             console.warn(`No persistence available for project ${projectKey}, update not saved`);
           }
+
+          // Broadcast update to all connected WebSocket clients
+          // (except the origin if it's a WebSocket connection - they already have it)
+          const sharedDoc = this.docs.get(documentId);
+          if (sharedDoc && sharedDoc.conns.size > 0) {
+            const encoder = encoding.createEncoder();
+            encoding.writeVarUint(encoder, messageSync);
+            syncProtocol.writeUpdate(encoder, update);
+            const message = encoding.toUint8Array(encoder);
+            this.broadcastMessage(sharedDoc, message, origin);
+          }
         } catch (error) {
-          console.error(`Error persisting update for ${documentId}:`, error);
+          console.error(`Error persisting/broadcasting update for ${documentId}:`, error);
         }
       });
     } catch (error) {

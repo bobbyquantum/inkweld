@@ -276,6 +276,8 @@ export class ProjectStateService implements OnDestroy {
           this.elements.set(elements);
           // Enrich custom type elements with icons
           void this.enrichElementsWithIcons(elements);
+          // Update any open tabs whose element names may have changed
+          this.syncTabsWithElements(elements);
         });
       })
     );
@@ -298,15 +300,49 @@ export class ProjectStateService implements OnDestroy {
       })
     );
 
-    // Errors
+    // Errors - only set error if it's a critical error, not transient connection issues
     this.providerSubscriptions.push(
       this.syncProvider.errors$.subscribe(errorMsg => {
         this.ngZone.run(() => {
           this.logger.error('ProjectState', 'Sync provider error', errorMsg);
-          this.error.set(errorMsg);
+          // Don't set a fatal error for transient connection issues
+          // These are logged but the app can continue with local data
+          if (this.isCriticalError(errorMsg)) {
+            this.error.set(errorMsg);
+          }
         });
       })
     );
+  }
+
+  /**
+   * Determine if an error message represents a critical error that should
+   * block the UI, vs a transient connection issue that can be recovered from.
+   */
+  private isCriticalError(errorMsg: string): boolean {
+    // Session expiry is critical - user needs to re-authenticate
+    if (
+      errorMsg.includes('Session expired') ||
+      errorMsg.includes('401') ||
+      errorMsg.includes('Unauthorized')
+    ) {
+      return true;
+    }
+
+    // These are transient and the app can continue with local data:
+    // - WebSocket sync timeout
+    // - Connection errors
+    // - Network errors
+    if (
+      errorMsg.includes('WebSocket sync timeout') ||
+      errorMsg.includes('Unable to connect') ||
+      errorMsg.includes('connection')
+    ) {
+      return false;
+    }
+
+    // For unknown errors, be cautious and don't block the UI
+    return false;
   }
 
   private cleanupProviderSubscriptions(): void {
@@ -968,5 +1004,31 @@ export class ProjectStateService implements OnDestroy {
     }
 
     this.elements.set([...elements]);
+  }
+
+  /**
+   * Sync open tabs with updated elements from Yjs.
+   * Updates tab names when elements are renamed externally (e.g., via MCP).
+   */
+  private syncTabsWithElements(elements: Element[]): void {
+    const openTabs = this.tabManager.openTabs();
+    let anyUpdated = false;
+
+    for (const tab of openTabs) {
+      if (tab.element) {
+        const updatedElement = elements.find(e => e.id === tab.element!.id);
+        if (updatedElement && updatedElement.name !== tab.name) {
+          this.tabManager.updateTabElement(tab.element.id, updatedElement);
+          anyUpdated = true;
+        }
+      }
+    }
+
+    if (anyUpdated) {
+      this.logger.debug(
+        'ProjectState',
+        'Synced tab names with updated elements'
+      );
+    }
   }
 }
