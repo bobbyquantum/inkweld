@@ -15,23 +15,11 @@
       <a
         mat-list-item
         role="tab"
-        (click)="selectCategory('general')"
-        (keydown.enter)="selectCategory('general')"
-        [attr.aria-selected]="selectedCategory === 'general'"
-        [class.active]="selectedCategory === 'general'"
-        tabindex="0"
-        aria-label="General settings">
-        <mat-icon matListItemIcon>settings</mat-icon>
-        <span matListItemTitle>General</span>
-      </a>
-      <a
-        mat-list-item
-        role="tab"
         (click)="selectCategory('connection')"
         (keydown.enter)="selectCategory('connection')"
         [attr.aria-selected]="selectedCategory === 'connection'"
         [class.active]="selectedCategory === 'connection'"
-        tabindex="1"
+        tabindex="0"
         aria-label="Connection settings"
         data-testid="connection-tab">
         <mat-icon matListItemIcon>cloud</mat-icon>
@@ -44,7 +32,7 @@
         (keydown.enter)="selectCategory('project-tree')"
         [attr.aria-selected]="selectedCategory === 'project-tree'"
         [class.active]="selectedCategory === 'project-tree'"
-        tabindex="2"
+        tabindex="1"
         aria-label="Project Tree settings">
         <mat-icon matListItemIcon>account_tree</mat-icon>
         <span matListItemTitle>Project Tree</span>
@@ -56,7 +44,7 @@
         (keydown.enter)="selectCategory('project')"
         [attr.aria-selected]="selectedCategory === 'project'"
         [class.active]="selectedCategory === 'project'"
-        tabindex="3"
+        tabindex="2"
         aria-label="Project settings">
         <mat-icon matListItemIcon>description</mat-icon>
         <span matListItemTitle>Project</span>
@@ -68,7 +56,7 @@
         (keydown.enter)="selectCategory('sync')"
         [attr.aria-selected]="selectedCategory === 'sync'"
         [class.active]="selectedCategory === 'sync'"
-        tabindex="4"
+        tabindex="3"
         aria-label="Sync settings">
         <mat-icon matListItemIcon>sync</mat-icon>
         <span matListItemTitle>Sync</span>
@@ -81,9 +69,6 @@
       role="tabpanel"
       [@slideAnimation]="getAnimationState()">
       @switch (selectedCategory) {
-        @case ('general') {
-          <app-general-settings />
-        }
         @case ('connection') {
           <app-connection-settings />
         }

@@ -3,11 +3,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 import { User } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
+import { ThemeOption, ThemeService } from '@themes/theme.service';
 
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 
@@ -25,6 +27,7 @@ interface AdminUser extends User {
     MatMenuModule,
     MatIconModule,
     MatDividerModule,
+    MatTooltipModule,
     UserAvatarComponent,
     RouterModule,
   ],
@@ -35,6 +38,7 @@ export class UserMenuComponent {
   protected userService = inject(UnifiedUserService);
   protected setupService = inject(SetupService);
   private dialogGateway = inject(DialogGatewayService);
+  private themeService = inject(ThemeService);
 
   @Input() user: User | undefined = undefined;
   @Input() miniMode = false;
@@ -59,6 +63,10 @@ export class UserMenuComponent {
 
   async onSettings() {
     await this.dialogGateway.openUserSettingsDialog();
+  }
+
+  onThemeChange(theme: ThemeOption): void {
+    this.themeService.update(theme);
   }
 
   getConnectionStatus(): { icon: string; text: string; cssClass: string } {

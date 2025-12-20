@@ -56,6 +56,12 @@ describe('GeneralSettingsComponent', () => {
       component.onThemeChange();
       expect(mockThemeService.update).toHaveBeenCalledWith('dark-theme');
     });
+
+    it('should handle system theme option', () => {
+      component.selectedTheme = 'system';
+      component.onThemeChange();
+      expect(mockThemeService.update).toHaveBeenCalledWith('system');
+    });
   });
 
   it('should unsubscribe from theme on destroy', () => {

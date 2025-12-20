@@ -151,3 +151,33 @@ mat-divider {
     }
   }
 }
+.theme-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  justify-content: flex-start;
+
+  .theme-label {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.6);
+    min-width: 50px;
+    padding: 0 4px;
+  }
+
+  button.mat-icon-button {
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
