@@ -371,3 +371,39 @@ mat-toolbar.mat-toolbar {
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
 }
+
+/* Image viewer dialog - responsive fullscreen */
+.image-viewer-dialog-panel {
+  /* Desktop: inset from edges to allow click-outside */
+  @media (min-width: 769px) {
+    margin: 24px !important;
+    width: calc(100vw - 48px) !important;
+    height: calc(100vh - 48px) !important;
+    max-width: calc(100vw - 48px) !important;
+    max-height: calc(100vh - 48px) !important;
+  }
+
+  /* Mobile: true fullscreen */
+  @media (max-width: 768px) {
+    margin: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+  }
+
+  .mat-mdc-dialog-surface {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .mat-mdc-dialog-content {
+    flex: 1;
+    max-height: none !important;
+    padding: 0 !important;
+    display: flex;
+    overflow: hidden;
+  }
+}

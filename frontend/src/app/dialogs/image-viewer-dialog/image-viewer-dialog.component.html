@@ -1,11 +1,28 @@
-<div class="image-viewer-dialog">
-  <div class="dialog-header">
-    <h2 class="image-title">{{ data.fileName }}</h2>
+<div class="dialog-title-bar">
+  <h2 mat-dialog-title class="dialog-title">
+    <span class="title-text">{{ data.fileName }}</span>
     <button mat-icon-button (click)="closeDialog()" aria-label="Close dialog">
       <mat-icon>close</mat-icon>
     </button>
-  </div>
-  <div class="image-container">
-    <img [src]="data.imageUrl" [alt]="data.fileName" />
-  </div>
+  </h2>
 </div>
+<mat-dialog-content class="image-container">
+  <div
+    class="viewer-container"
+    #viewerContainer
+    (pointerdown)="onPointerDown($event)"
+    (pointermove)="onPointerMove($event)"
+    (pointerup)="onPointerUp($event)"
+    (pointercancel)="onPointerUp($event)"
+    (wheel)="onWheel($event)"
+    (dblclick)="onDoubleClick($event)"
+    (contextmenu)="$event.preventDefault()">
+    <img
+      #imageElement
+      [src]="data.imageUrl"
+      [alt]="data.fileName"
+      [style.transform]="getTransform()"
+      [draggable]="false"
+      (dragstart)="onDragStart($event)" />
+  </div>
+</mat-dialog-content>

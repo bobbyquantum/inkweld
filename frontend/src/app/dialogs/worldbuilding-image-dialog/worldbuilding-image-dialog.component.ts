@@ -244,15 +244,46 @@ export class WorldbuildingImageDialogComponent implements OnInit {
       prompt: initialPrompt || undefined,
     });
 
-    if (result?.saved && result.imageData) {
-      // Convert base64 to blob
-      const blob = this.base64ToBlob(result.imageData);
+    if (!result) {
+      return; // Dialog cancelled
+    }
 
-      // Return the result directly (no cropping for AI-generated images)
-      this.dialogRef.close({
-        imageData: result.imageData,
-        imageBlob: blob,
-      } as WorldbuildingImageDialogResult);
+    if (result.saved && result.imageData) {
+      try {
+        let blob: Blob;
+
+        // Handle both base64 and URL data
+        if (
+          result.imageData.startsWith('data:') ||
+          result.imageData.startsWith('blob:')
+        ) {
+          // It's already a data URL, extract and convert to blob
+          blob = this.base64ToBlob(result.imageData);
+        } else if (
+          result.imageData.startsWith('http://') ||
+          result.imageData.startsWith('https://') ||
+          result.imageData.startsWith('media://')
+        ) {
+          // It's a URL, fetch and convert to blob
+          const fetchResponse = await fetch(result.imageData);
+          blob = await fetchResponse.blob();
+        } else {
+          // Assume it's raw base64
+          blob = this.base64ToBlob(result.imageData);
+        }
+
+        // Return the result directly (no cropping for AI-generated images)
+        this.dialogRef.close({
+          imageData: result.imageData,
+          imageBlob: blob,
+        } as WorldbuildingImageDialogResult);
+      } catch (err) {
+        console.error(
+          '[WorldbuildingImageDialog] Failed to process image:',
+          err
+        );
+        this.showError('Failed to process generated image. Please try again.');
+      }
     }
   }
 
