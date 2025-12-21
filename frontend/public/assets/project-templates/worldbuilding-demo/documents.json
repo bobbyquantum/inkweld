@@ -1,0 +1,111 @@
+[
+  {
+    "elementId": "readme-001",
+    "content": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "heading",
+          "attrs": { "level": 1 },
+          "content": [{ "type": "text", "text": "Welcome to the Demo World" }]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "This project demonstrates the worldbuilding features of Inkweld with sample characters, locations, and relationships." }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": { "level": 2 },
+          "content": [{ "type": "text", "text": "Included Content" }]
+        },
+        {
+          "type": "heading",
+          "attrs": { "level": 3 },
+          "content": [{ "type": "text", "text": "Characters" }]
+        },
+        {
+          "type": "bullet_list",
+          "content": [
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Elara Nightwhisper" }, { "type": "text", "text": " - A mysterious scholar with secrets to uncover" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Theron Blackwood" }, { "type": "text", "text": " - A skilled ranger protecting the ancient forest" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Mira Stonehart" }, { "type": "text", "text": " - A determined blacksmith with a hidden past" }]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": { "level": 3 },
+          "content": [{ "type": "text", "text": "Locations" }]
+        },
+        {
+          "type": "bullet_list",
+          "content": [
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Silverhollow" }, { "type": "text", "text": " - A bustling trade town at the forest's edge" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Thornwood Forest" }, { "type": "text", "text": " - An ancient woodland full of mysteries" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Cloudspire Academy" }, { "type": "text", "text": " - A prestigious school for magical studies" }]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": { "level": 2 },
+          "content": [{ "type": "text", "text": "Explore the Relationships" }]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Check the Relationships tab to see how these characters and locations are connected. Feel free to modify, expand, or completely replace this demo content with your own ideas!" }
+          ]
+        }
+      ]
+    }
+  }
+]

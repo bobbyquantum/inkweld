@@ -21,6 +21,7 @@ import {
 } from '@angular/router';
 import { Project } from '@inkweld/index';
 import { UnifiedProjectService } from '@services/offline/unified-project.service';
+import { ProjectTemplateService } from '@services/project/project-template.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { of } from 'rxjs';
 import { MockedObject, vi } from 'vitest';
@@ -32,6 +33,7 @@ describe('CreateProjectComponent', () => {
   let fixture: ComponentFixture<CreateProjectComponent>;
   let userService: Partial<UnifiedUserService>;
   let projectService: MockedObject<UnifiedProjectService>;
+  let templateService: MockedObject<ProjectTemplateService>;
   let snackBar: MockedObject<MatSnackBar>;
   let router: MockedObject<Router>;
 
@@ -44,6 +46,23 @@ describe('CreateProjectComponent', () => {
     id: 'test-id',
     enabled: true,
   };
+
+  const mockTemplates = [
+    {
+      id: 'empty',
+      name: 'Empty Project',
+      description: 'A blank slate',
+      icon: 'description',
+      folder: 'empty',
+    },
+    {
+      id: 'worldbuilding-empty',
+      name: 'Worldbuilding (Empty)',
+      description: 'Ready for worldbuilding',
+      icon: 'public',
+      folder: 'worldbuilding-empty',
+    },
+  ];
 
   const mockProject: Project = {
     id: '1',
@@ -64,6 +83,10 @@ describe('CreateProjectComponent', () => {
     projectService = {
       createProject: vi.fn().mockResolvedValue(mockProject),
     } as unknown as MockedObject<UnifiedProjectService>;
+
+    templateService = {
+      getTemplates: vi.fn().mockResolvedValue(mockTemplates),
+    } as unknown as MockedObject<ProjectTemplateService>;
 
     snackBar = {
       open: vi.fn(),
@@ -92,6 +115,7 @@ describe('CreateProjectComponent', () => {
         provideLocationMocks(),
         { provide: UnifiedUserService, useValue: userService },
         { provide: UnifiedProjectService, useValue: projectService },
+        { provide: ProjectTemplateService, useValue: templateService },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: Router, useValue: router },
         {

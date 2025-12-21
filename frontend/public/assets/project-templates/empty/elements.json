@@ -1,0 +1,13 @@
+[
+  {
+    "id": "readme-001",
+    "name": "README",
+    "type": "ITEM",
+    "order": 0,
+    "level": 0,
+    "parentId": null,
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  }
+]

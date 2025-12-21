@@ -1,0 +1,101 @@
+[
+  {
+    "id": "readme-001",
+    "name": "README",
+    "type": "ITEM",
+    "order": 0,
+    "level": 0,
+    "parentId": null,
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "folder-characters",
+    "name": "Characters",
+    "type": "FOLDER",
+    "order": 1,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "char-elara",
+    "name": "Elara Nightwhisper",
+    "type": "CHARACTER",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-characters",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "char-theron",
+    "name": "Theron Blackwood",
+    "type": "CHARACTER",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-characters",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "char-mira",
+    "name": "Mira Stonehart",
+    "type": "CHARACTER",
+    "order": 2,
+    "level": 1,
+    "parentId": "folder-characters",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "folder-locations",
+    "name": "Locations",
+    "type": "FOLDER",
+    "order": 2,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "loc-silverhollow",
+    "name": "Silverhollow",
+    "type": "LOCATION",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-locations",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "loc-thornwood",
+    "name": "Thornwood Forest",
+    "type": "LOCATION",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-locations",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "loc-cloudspire",
+    "name": "Cloudspire Academy",
+    "type": "LOCATION",
+    "order": 2,
+    "level": 1,
+    "parentId": "folder-locations",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  }
+]

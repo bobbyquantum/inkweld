@@ -1,0 +1,58 @@
+[
+  {
+    "elementId": "readme-001",
+    "content": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "heading",
+          "attrs": { "level": 1 },
+          "content": [{ "type": "text", "text": "Welcome to Your Project" }]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "This is your project's README. You can edit this document or delete it and start fresh." }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": { "level": 2 },
+          "content": [{ "type": "text", "text": "Getting Started" }]
+        },
+        {
+          "type": "bullet_list",
+          "content": [
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "text": "Use the sidebar to create new documents and folders" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "text": "Organize your content with nested folders" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "text": "Access project settings via the menu in the top bar" }]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

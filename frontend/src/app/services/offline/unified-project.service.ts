@@ -1,9 +1,12 @@
 import { computed, inject, Injectable } from '@angular/core';
-import { Project } from '@inkweld/index';
+import { Element, Project } from '@inkweld/index';
 
 import { SetupService } from '../core/setup.service';
+import { DocumentImportService } from '../project/document-import.service';
 import { ProjectService } from '../project/project.service';
+import { ProjectTemplateService } from '../project/project-template.service';
 import { OfflineProjectService } from './offline-project.service';
+import { OfflineProjectElementsService } from './offline-project-elements.service';
 
 @Injectable({
   providedIn: 'root',
@@ -12,6 +15,9 @@ export class UnifiedProjectService {
   private setupService = inject(SetupService);
   private projectService = inject(ProjectService);
   private offlineProjectService = inject(OfflineProjectService);
+  private offlineElements = inject(OfflineProjectElementsService);
+  private templateService = inject(ProjectTemplateService);
+  private documentImport = inject(DocumentImportService);
 
   readonly projects = computed(() => {
     const mode = this.setupService.getMode();
@@ -67,10 +73,15 @@ export class UnifiedProjectService {
     return null;
   }
 
-  async createProject(projectData: Partial<Project>): Promise<Project> {
+  async createProject(
+    projectData: Partial<Project>,
+    templateId?: string
+  ): Promise<Project> {
     const mode = this.setupService.getMode();
+    let project: Project;
+
     if (mode === 'offline') {
-      return this.offlineProjectService.createProject(projectData);
+      project = await this.offlineProjectService.createProject(projectData);
     } else if (mode === 'server') {
       // For server mode, we need to provide required fields
       const fullProjectData: Project = {
@@ -83,9 +94,95 @@ export class UnifiedProjectService {
         updatedDate: projectData.updatedDate || new Date().toISOString(),
         ...projectData,
       };
-      return this.projectService.createProject(fullProjectData);
+      project = await this.projectService.createProject(fullProjectData);
+    } else {
+      throw new Error('No mode configured');
     }
-    throw new Error('No mode configured');
+
+    // Apply template if specified (skip for 'empty' template as it has no data)
+    if (templateId && templateId !== 'empty') {
+      try {
+        await this.applyTemplate(project.username, project.slug, templateId);
+      } catch (error) {
+        console.warn(
+          `Failed to apply template '${templateId}', project created without template:`,
+          error
+        );
+      }
+    }
+
+    return project;
+  }
+
+  /**
+   * Apply a template to a newly created project.
+   * This imports elements, documents, schemas, relationships, etc.
+   */
+  private async applyTemplate(
+    username: string,
+    slug: string,
+    templateId: string
+  ): Promise<void> {
+    const archive = await this.templateService.loadTemplate(templateId);
+
+    // Import elements
+    if (archive.elements.length > 0) {
+      const fullElements: Element[] = archive.elements.map(ae => ({
+        id: ae.id,
+        name: ae.name,
+        type: ae.type,
+        order: ae.order,
+        level: ae.level,
+        parentId: ae.parentId ?? null,
+        expandable: ae.expandable ?? false,
+        version: ae.version ?? 1,
+        metadata: ae.metadata,
+      }));
+      await this.offlineElements.saveElements(username, slug, fullElements);
+    }
+
+    // Import documents
+    for (const doc of archive.documents) {
+      const documentId = `${username}:${slug}:${doc.elementId}`;
+      await this.documentImport.writeDocumentContent(documentId, doc.content);
+    }
+
+    // Import worldbuilding data
+    for (const wb of archive.worldbuilding) {
+      await this.documentImport.writeWorldbuildingData(wb, username, slug);
+    }
+
+    // Import schemas
+    if (archive.schemas.length > 0) {
+      await this.offlineElements.saveSchemas(username, slug, archive.schemas);
+    }
+
+    // Import relationships
+    if (archive.relationships.length > 0) {
+      await this.offlineElements.saveRelationships(
+        username,
+        slug,
+        archive.relationships
+      );
+    }
+
+    // Import custom relationship types
+    if (archive.customRelationshipTypes.length > 0) {
+      await this.offlineElements.saveCustomRelationshipTypes(
+        username,
+        slug,
+        archive.customRelationshipTypes
+      );
+    }
+
+    // Import publish plans
+    if (archive.publishPlans.length > 0) {
+      await this.offlineElements.savePublishPlans(
+        username,
+        slug,
+        archive.publishPlans
+      );
+    }
   }
 
   async updateProject(

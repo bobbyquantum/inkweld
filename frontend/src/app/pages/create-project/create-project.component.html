@@ -13,6 +13,42 @@
     <mat-card class="project-card">
       <form [formGroup]="projectForm" (ngSubmit)="onSubmit()">
         <mat-card-content>
+          <!-- Template Selection -->
+          <div class="template-section">
+            <h3>Choose a Template</h3>
+            @if (loadingTemplates()) {
+              <div class="loading-templates">Loading templates...</div>
+            } @else {
+              <div class="template-grid">
+                @for (template of templates(); track template.id) {
+                  <div
+                    class="template-card"
+                    [class.selected]="selectedTemplateId() === template.id"
+                    (click)="selectTemplate(template.id)"
+                    (keydown.enter)="selectTemplate(template.id)"
+                    (keydown.space)="selectTemplate(template.id)"
+                    role="radio"
+                    tabindex="0"
+                    [attr.aria-checked]="selectedTemplateId() === template.id"
+                    [attr.data-testid]="'template-' + template.id">
+                    <mat-icon class="template-icon">{{
+                      template.icon
+                    }}</mat-icon>
+                    <div class="template-info">
+                      <span class="template-name">{{ template.name }}</span>
+                      <span class="template-description">{{
+                        template.description
+                      }}</span>
+                    </div>
+                    @if (selectedTemplateId() === template.id) {
+                      <mat-icon class="check-icon">check_circle</mat-icon>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
           <mat-form-field appearance="outline">
             <mat-label>Project Title</mat-label>
             <input
