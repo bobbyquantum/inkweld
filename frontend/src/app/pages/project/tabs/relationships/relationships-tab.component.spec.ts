@@ -150,16 +150,15 @@ describe('RelationshipsTabComponent', () => {
     );
   });
 
-  it('should not edit built-in types', async () => {
+  it('should edit built-in types (now editable)', async () => {
     component.loadRelationshipTypes();
     const builtInType = component.builtInTypes()[0];
     await component.editType(builtInType);
 
-    expect(dialogGatewayMock.openRenameDialog).not.toHaveBeenCalled();
-    expect(snackBarMock.open).toHaveBeenCalledWith(
-      'Cannot edit built-in relationship types',
-      'Close',
-      { duration: 3000 }
+    expect(dialogGatewayMock.openRenameDialog).toHaveBeenCalled();
+    expect(relationshipServiceMock.updateCustomType).toHaveBeenCalledWith(
+      'parent',
+      { name: 'New Name' }
     );
   });
 
@@ -186,16 +185,14 @@ describe('RelationshipsTabComponent', () => {
     expect(relationshipServiceMock.removeCustomType).not.toHaveBeenCalled();
   });
 
-  it('should not delete built-in types', async () => {
+  it('should delete built-in types (now deletable)', async () => {
     component.loadRelationshipTypes();
     const builtInType = component.builtInTypes()[0];
     await component.deleteType(builtInType);
 
-    expect(dialogGatewayMock.openConfirmationDialog).not.toHaveBeenCalled();
-    expect(snackBarMock.open).toHaveBeenCalledWith(
-      'Cannot delete built-in relationship types',
-      'Close',
-      { duration: 3000 }
+    expect(dialogGatewayMock.openConfirmationDialog).toHaveBeenCalled();
+    expect(relationshipServiceMock.removeCustomType).toHaveBeenCalledWith(
+      'parent'
     );
   });
 

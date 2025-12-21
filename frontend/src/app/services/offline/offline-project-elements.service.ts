@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
 
+import { DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS } from '../../components/element-ref/default-relationship-types';
 import {
   ElementRelationship,
   RelationshipTypeDefinition,
@@ -352,6 +353,20 @@ export class OfflineProjectElementsService {
     // Check if we need to migrate from localStorage (elements only)
     if (elementsArray.length === 0) {
       this.migrateFromLocalStorage(projectKey, elementsArray, doc);
+    }
+
+    // Seed default relationship types if empty
+    if (customTypesArray.length === 0) {
+      this.logger.info(
+        'OfflineProjectElements',
+        `Seeding ${DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.length} default relationship types for ${projectKey}`
+      );
+      doc.transact(() => {
+        customTypesArray.insert(
+          0,
+          DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.map(t => ({ ...t }))
+        );
+      });
     }
 
     const connection: YjsProjectConnection = {

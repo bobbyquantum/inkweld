@@ -102,12 +102,10 @@
             </button>
 
             <mat-menu #templateMenu="matMenu">
-              @if (!template.isBuiltIn) {
-                <button mat-menu-item (click)="editTemplate(template)">
-                  <mat-icon>edit</mat-icon>
-                  <span>Edit</span>
-                </button>
-              }
+              <button mat-menu-item (click)="editTemplate(template)">
+                <mat-icon>edit</mat-icon>
+                <span>Edit</span>
+              </button>
               <button
                 mat-menu-item
                 (click)="cloneTemplate(template)"
@@ -115,15 +113,13 @@
                 <mat-icon>content_copy</mat-icon>
                 <span>Clone</span>
               </button>
-              @if (!template.isBuiltIn) {
-                <button
-                  mat-menu-item
-                  (click)="deleteTemplate(template)"
-                  data-testid="delete-template-button">
-                  <mat-icon>delete</mat-icon>
-                  <span>Delete</span>
-                </button>
-              }
+              <button
+                mat-menu-item
+                (click)="deleteTemplate(template)"
+                data-testid="delete-template-button">
+                <mat-icon>delete</mat-icon>
+                <span>Delete</span>
+              </button>
             </mat-menu>
           </mat-card-header>
 

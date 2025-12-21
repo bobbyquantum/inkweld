@@ -4,6 +4,7 @@ import { Element, ElementType } from '@inkweld/index';
 import { BehaviorSubject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS } from '../../components/element-ref/default-relationship-types';
 import {
   ElementRelationship,
   RelationshipCategory,
@@ -76,9 +77,9 @@ describe('RelationshipService', () => {
   ];
 
   beforeEach(() => {
-    // Reset stores
+    // Reset stores - pre-seed with default relationship types (as would happen at project creation)
     relationshipsStore = [];
-    customTypesStore = [];
+    customTypesStore = [...DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS];
 
     mockLogger = {
       debug: vi.fn(),
@@ -109,9 +110,10 @@ describe('RelationshipService', () => {
           mockSyncProvider.customRelationshipTypes$.next(types);
         }),
       relationships$: new BehaviorSubject<ElementRelationship[]>([]),
+      // Initialize with seeded types (as would happen at project creation)
       customRelationshipTypes$: new BehaviorSubject<
         RelationshipTypeDefinition[]
-      >([]),
+      >([...DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS]),
     };
 
     mockSyncProviderFactory = {
@@ -140,8 +142,11 @@ describe('RelationshipService', () => {
       expect(service).toBeTruthy();
     });
 
-    it('should initialize with empty custom types', () => {
-      expect(service.customTypes()).toEqual([]);
+    it('should initialize with seeded default types', () => {
+      // Types are now seeded at project creation
+      expect(service.customTypes().length).toBe(
+        DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.length
+      );
     });
 
     it('should have built-in types available', () => {
@@ -357,8 +362,9 @@ describe('RelationshipService', () => {
       });
 
       expect(updated).toBe(true);
-      expect(customTypesStore[0].name).toBe('Updated Type');
-      expect(customTypesStore[0].icon).toBe('star');
+      const updatedType = customTypesStore.find(t => t.id === newType.id);
+      expect(updatedType?.name).toBe('Updated Type');
+      expect(updatedType?.icon).toBe('star');
     });
 
     it('should not update non-existent types', () => {
@@ -370,6 +376,8 @@ describe('RelationshipService', () => {
     });
 
     it('should remove custom relationship type', () => {
+      const initialCount = customTypesStore.length;
+
       const newType = service.addCustomType({
         category: RelationshipCategory.Custom,
         name: 'Temporary Type',
@@ -379,12 +387,13 @@ describe('RelationshipService', () => {
         targetEndpoint: { allowedSchemas: [] },
       });
 
-      expect(customTypesStore.length).toBe(1);
+      expect(customTypesStore.length).toBe(initialCount + 1);
 
       const removed = service.removeCustomType(newType.id);
       expect(removed).toBe(true);
 
-      expect(customTypesStore.length).toBe(0);
+      expect(customTypesStore.length).toBe(initialCount);
+      expect(customTypesStore.find(t => t.id === newType.id)).toBeUndefined();
     });
 
     it('should not remove non-existent types', () => {

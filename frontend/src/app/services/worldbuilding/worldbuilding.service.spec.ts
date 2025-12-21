@@ -472,16 +472,19 @@ describe('WorldbuildingService', () => {
       expect(schema).toBeNull();
     });
 
-    it('should throw error when trying to delete built-in template', () => {
+    it('should allow deleting built-in template (now stored per-project)', () => {
       const username = 'testuser';
       const slug = 'deletetest2';
       const projectKey = `${username}:${slug}`;
 
       service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
 
-      expect(() =>
-        service.deleteTemplate(projectKey, 'CHARACTER', username, slug)
-      ).toThrow('Cannot delete built-in templates');
+      // Should not throw - built-in templates are now deletable
+      service.deleteTemplate(projectKey, 'CHARACTER', username, slug);
+
+      // Verify it's deleted
+      const schema = service.getSchema(username, slug, 'CHARACTER');
+      expect(schema).toBeNull();
     });
   });
 
