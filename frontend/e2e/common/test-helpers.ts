@@ -394,3 +394,51 @@ export async function getOfflineProjects(
     return stored ? (JSON.parse(stored) as Array<{ slug: string }>) : [];
   });
 }
+/**
+ * Create a project with the two-step flow (template selection + project details)
+ * @param page Playwright page
+ * @param projectTitle The project title
+ * @param projectSlug The project slug
+ * @param description Optional project description
+ * @param templateId Optional template ID to select (defaults to first template which is selected by default)
+ */
+export async function createProjectWithTwoSteps(
+  page: Page,
+  projectTitle: string,
+  projectSlug: string,
+  description?: string,
+  templateId?: string
+): Promise<void> {
+  // Click create project button to navigate to create page
+  await page.click('button:has-text("Create Project")');
+
+  // Step 1: Template selection - if a specific template is requested, click it
+  if (templateId) {
+    await page.click(`[data-testid="template-${templateId}"]`);
+  }
+  // Otherwise use the default selected template (worldbuilding-empty)
+
+  // Click Next to proceed to step 2
+  const nextButton = page.getByRole('button', { name: /next/i });
+  await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+  await nextButton.click();
+
+  // Step 2: Fill in project details
+  await page.waitForSelector('input[data-testid="project-title-input"]', {
+    state: 'visible',
+    timeout: 5000,
+  });
+
+  await page.fill('input[data-testid="project-title-input"]', projectTitle);
+  await page.fill('input[data-testid="project-slug-input"]', projectSlug);
+
+  if (description) {
+    await page.fill(
+      'textarea[data-testid="project-description-input"]',
+      description
+    );
+  }
+
+  // Submit the form
+  await page.click('button[data-testid="create-project-button"]');
+}

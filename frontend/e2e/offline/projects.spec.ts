@@ -16,7 +16,11 @@ test.describe('Offline Project Workflows', () => {
     // Navigate to create another project
     await page.goto('/create-project');
 
-    // Fill in project details
+    // Step 1: Template selection - default template is pre-selected
+    // Click Next to proceed to step 2
+    await page.getByRole('button', { name: /next/i }).click();
+
+    // Step 2: Fill in project details
     await page.getByTestId('project-title-input').fill('My Second Project');
     await page.getByTestId('project-slug-input').fill('my-second-project');
     await page
@@ -35,6 +39,10 @@ test.describe('Offline Project Workflows', () => {
   }) => {
     await page.goto('/create-project');
 
+    // Step 1: Click Next to proceed to step 2
+    await page.getByRole('button', { name: /next/i }).click();
+
+    // Step 2: Now on project details form
     // Create button should be disabled without required fields
     await expect(page.getByTestId('create-project-button')).toBeDisabled();
 
@@ -52,7 +60,10 @@ test.describe('Offline Project Workflows', () => {
   }) => {
     await page.goto('/create-project');
 
-    // Fill in title
+    // Step 1: Click Next to proceed to step 2
+    await page.getByRole('button', { name: /next/i }).click();
+
+    // Step 2: Fill in title
     await page.getByTestId('project-title-input').fill('My Awesome Project');
 
     // Blur to trigger slug generation
@@ -94,11 +105,14 @@ test.describe('Offline Project Workflows', () => {
   }) => {
     await page.goto('/create-project');
 
-    // Fill in some data
+    // Step 1: Click Next to proceed to step 2
+    await page.getByRole('button', { name: /next/i }).click();
+
+    // Step 2: Fill in some data
     await page.getByTestId('project-title-input').fill('Cancelled Project');
 
-    // Click cancel button
-    await page.getByTestId('cancel-button').click();
+    // Click the back button in the top bar (arrow_back icon)
+    await page.getByLabel('Go back to home').click();
 
     // Should navigate back to home
     await expect(page).toHaveURL('/');
@@ -115,6 +129,11 @@ test.describe('Offline Project Workflows', () => {
 
     // Create a new project
     await page.goto('/create-project');
+
+    // Step 1: Click Next to proceed to step 2
+    await page.getByRole('button', { name: /next/i }).click();
+
+    // Step 2: Fill in project details
     const uniqueSlug = `persist-test-${Date.now()}`;
     await page.getByTestId('project-title-input').fill('Persistence Test');
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
@@ -135,6 +154,10 @@ test.describe('Offline Project Workflows', () => {
   }) => {
     await page.goto('/create-project');
 
+    // Step 1: Click Next to proceed to step 2
+    await page.getByRole('button', { name: /next/i }).click();
+
+    // Step 2: Fill in long content
     const longTitle = 'A'.repeat(100);
     const longDescription = 'B'.repeat(500);
 
@@ -155,7 +178,10 @@ test.describe('Offline Project Workflows', () => {
   }) => {
     await page.goto('/create-project');
 
-    // Fill in slug
+    // Step 1: Click Next to proceed to step 2
+    await page.getByRole('button', { name: /next/i }).click();
+
+    // Step 2: Fill in slug
     await page.getByTestId('project-slug-input').fill('preview-test');
 
     // Should show URL preview

@@ -16,7 +16,9 @@
         <mat-card-content>
           <div class="step-header">
             <h2>Choose a Template</h2>
-            <p class="step-description">Select a template to start your project</p>
+            <p class="step-description">
+              Select a template to start your project
+            </p>
           </div>
 
           @if (loadingTemplates()) {
@@ -34,9 +36,7 @@
                   tabindex="0"
                   [attr.aria-checked]="selectedTemplateId() === template.id"
                   [attr.data-testid]="'template-' + template.id">
-                  <mat-icon class="template-icon">{{
-                    template.icon
-                  }}</mat-icon>
+                  <mat-icon class="template-icon">{{ template.icon }}</mat-icon>
                   <div class="template-info">
                     <span class="template-name">{{ template.name }}</span>
                     <span class="template-description">{{
@@ -134,7 +134,9 @@
             </mat-form-field>
 
             @if (projectUrl) {
-              <div class="project-url-preview" data-testid="project-url-preview">
+              <div
+                class="project-url-preview"
+                data-testid="project-url-preview">
                 <strong>Project URL:</strong> {{ projectUrl }}
               </div>
             }

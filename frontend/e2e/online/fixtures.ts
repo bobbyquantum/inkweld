@@ -400,6 +400,12 @@ export async function createProject(
     );
   }
 
+  // Step 1: Template selection - default template is pre-selected
+  // Click Next to proceed to step 2
+  await page.getByRole('button', { name: /next/i }).click();
+  await page.waitForTimeout(200);
+
+  // Step 2: Fill in project details
   await page.locator('[data-testid="project-title-input"]').fill(title);
   await page.locator('[data-testid="project-slug-input"]').fill(slug);
 
@@ -428,7 +434,12 @@ export async function createOfflineProject(
   await page.goto('/create-project');
   await page.waitForLoadState('domcontentloaded');
 
-  // Fill project form using data-testids
+  // Step 1: Template selection - default template is pre-selected
+  // Click Next to proceed to step 2
+  await page.getByRole('button', { name: /next/i }).click();
+  await page.waitForTimeout(200);
+
+  // Step 2: Fill project form using data-testids
   await page.locator('[data-testid="project-title-input"]').fill(title);
   await page.locator('[data-testid="project-slug-input"]').fill(slug);
 
