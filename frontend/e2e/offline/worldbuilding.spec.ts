@@ -26,7 +26,7 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page.getByTestId('element-Test Character')).toBeVisible();
 
     // Navigate to Templates tab to access clone functionality
-    await page.getByTestId('home-node').click();
+    await page.getByTestId('toolbar-home-button').click();
     await page.getByTestId('sidebar-templates-button').click();
 
     // Wait for templates to load
@@ -185,7 +185,7 @@ test.describe('Worldbuilding Templates', () => {
       ).toBeVisible();
 
       // Go back to project view
-      await page.getByTestId('home-node').click();
+      await page.getByTestId('toolbar-home-button').click();
 
       // Wait for navigation to complete
       await page.waitForLoadState('networkidle');
@@ -207,7 +207,7 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page.getByTestId('element-Validation Test')).toBeVisible();
 
     // Navigate to Templates to create a custom template
-    await page.getByTestId('home-node').click();
+    await page.getByTestId('toolbar-home-button').click();
     await page.getByTestId('sidebar-templates-button').click();
     await expect(page).toHaveURL(/.*templates-list.*/);
     await page.waitForSelector('mat-card', {
@@ -275,7 +275,7 @@ test.describe('Worldbuilding Templates', () => {
     await expect(page.getByTestId('element-Init Character')).toBeVisible();
 
     // Navigate back to project home, then to Templates
-    await page.getByTestId('home-node').click();
+    await page.getByTestId('toolbar-home-button').click();
     await page.getByTestId('sidebar-templates-button').click();
 
     // Wait for templates page to load
@@ -320,7 +320,7 @@ test.describe('Worldbuilding Templates', () => {
     expect(customTemplateType).toMatch(/^CUSTOM_\d+$/);
 
     // Go back to project home to create element
-    await page.getByTestId('home-node').click();
+    await page.getByTestId('toolbar-home-button').click();
     await page.waitForTimeout(300);
 
     // Create element using custom template

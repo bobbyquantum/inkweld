@@ -1,10 +1,11 @@
 // Project Tree styles with ARIA accessibility
 .aria-tree {
+  flex: 1;
+  overflow-y: auto;
   background-color: var(--sys-surface-container);
   padding: 0;
   margin: 0;
   list-style: none;
-
   li {
     cursor: pointer;
     list-style: none;
@@ -32,6 +33,9 @@
 }
 
 .project-tree-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   position: relative;
   overflow: auto;
 }
@@ -183,5 +187,32 @@
     width: 20px;
     height: 20px;
     margin-left: 4px;
+  }
+}
+
+// Toolbar with action buttons
+.tree-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  background-color: var(--sys-surface-container);
+  border-bottom: 1px solid var(--sys-outline-variant);
+  flex-shrink: 0;
+
+  .toolbar-spacer {
+    flex: 1;
+  }
+
+  .home-button {
+    &.active {
+      background-color: var(--sys-surface-container-highest);
+      color: var(--sys-primary);
+    }
+  }
+
+  button {
+    width: 40px;
+    height: 40px;
   }
 }

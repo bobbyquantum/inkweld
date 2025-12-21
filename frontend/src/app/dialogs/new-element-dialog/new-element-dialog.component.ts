@@ -14,7 +14,11 @@ import {
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -29,6 +33,12 @@ export interface NewElementDialogResult {
   name: string;
   type: ElementType;
 }
+
+interface NewElementDialogData {
+  skipTypeSelection?: boolean;
+  preselectedType?: ElementType;
+}
+
 interface ElementTypeOption {
   type: ElementType;
   label: string;
@@ -63,6 +73,9 @@ export class NewElementDialogComponent {
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly projectState = inject(ProjectStateService);
   private readonly fb = inject(FormBuilder);
+  private readonly data = inject<NewElementDialogData | null>(MAT_DIALOG_DATA, {
+    optional: true,
+  });
 
   // Step control
   currentStep = signal<1 | 2>(1);
@@ -129,6 +142,13 @@ export class NewElementDialogComponent {
         void this.loadWorldbuildingTypes(project.username, project.slug);
       }
     });
+
+    // If dialog data specifies skipping type selection, go directly to step 2
+    if (this.data?.skipTypeSelection && this.data?.preselectedType) {
+      this.selectedType.set(this.data.preselectedType);
+      this.form.controls.type.setValue(this.data.preselectedType);
+      this.currentStep.set(2);
+    }
   }
 
   /**

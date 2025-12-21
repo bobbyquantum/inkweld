@@ -24,6 +24,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { Element, ElementType } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
@@ -43,6 +44,7 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
     MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
     DragDropModule,
     CdkContextMenuTrigger,
     CdkMenu,
@@ -578,6 +580,65 @@ export class ProjectTreeComponent implements OnDestroy {
    */
   public onCreateNewElement(): void {
     this.projectStateService.showNewElementDialog();
+  }
+
+  /**
+   * Creates a new document with context awareness.
+   * If a folder is selected, creates inside it.
+   * If an item is selected, creates at the same level.
+   */
+  public onCreateNewDocument(): void {
+    const parentElement = this.getParentForNewElement();
+    this.projectStateService.showNewElementDialog(parentElement);
+  }
+
+  /**
+   * Creates a new folder with context awareness, skipping type selection.
+   * If a folder is selected, creates inside it.
+   * If an item is selected, creates at the same level.
+   */
+  public onCreateNewFolder(): void {
+    const parentElement = this.getParentForNewElement();
+    this.projectStateService.showNewFolderDialog(parentElement);
+  }
+
+  /**
+   * Determines the parent element for new items based on current selection.
+   * - If a folder is selected: returns the folder (create inside it)
+   * - If an item is selected: returns the item's parent (create at same level)
+   * - If nothing is selected: returns undefined (create at root)
+   */
+  private getParentForNewElement(): Element | undefined {
+    if (!this.selectedItem) {
+      return undefined;
+    }
+
+    const selectedElement = this.projectStateService
+      .elements()
+      .find(e => e.id === this.selectedItem?.id);
+
+    if (!selectedElement) {
+      return undefined;
+    }
+
+    // If selected item is a folder, create inside it
+    if (
+      selectedElement.expandable ||
+      selectedElement.type === ElementType.Folder
+    ) {
+      return selectedElement;
+    }
+
+    // If selected item is not a folder, create at the same level (use its parent)
+    if (selectedElement.parentId) {
+      const parent = this.projectStateService
+        .elements()
+        .find(e => e.id === selectedElement.parentId);
+      return parent;
+    }
+
+    // If selected item has no parent, create at root
+    return undefined;
   }
 
   /**

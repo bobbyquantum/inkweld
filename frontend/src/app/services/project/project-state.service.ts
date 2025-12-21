@@ -858,6 +858,26 @@ export class ProjectStateService implements OnDestroy {
     });
   }
 
+  showNewFolderDialog(parentElement?: Element): void {
+    void this.dialogGateway.openNewFolderDialog().then(result => {
+      if (result) {
+        const newElementId = this.addElement(
+          ElementType.Folder,
+          result.name,
+          parentElement?.id
+        );
+
+        if (newElementId) {
+          const elements = this.elements();
+          const newElement = elements.find(e => e.id === newElementId);
+          if (newElement) {
+            this.openDocument(newElement);
+          }
+        }
+      }
+    });
+  }
+
   showEditProjectDialog(): void {
     void this.dialogGateway
       .openEditProjectDialog(this.project()!)
