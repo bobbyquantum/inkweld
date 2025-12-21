@@ -30,25 +30,50 @@ const ProviderTypeSchema = z
   .openapi('ImageProviderType');
 
 // Image sizes supported across providers
-// Includes standard sizes, OpenRouter aspect ratios, and Fal.ai extended sizes
+// Includes standard sizes, OpenRouter aspect ratios, Fal.ai aspect-ratio formats, and custom dimensions
+const PRESET_IMAGE_SIZES = [
+  '256x256',
+  '512x512',
+  '1024x1024', // 1:1 square
+  '1024x1536',
+  '1536x1024',
+  '1024x1792',
+  '1792x1024',
+  '832x1248', // 2:3 portrait
+  '1248x832', // 3:2 landscape
+  '864x1184', // 3:4 portrait
+  '1184x864', // 4:3 landscape
+  '896x1152', // 4:5 portrait
+  '1152x896', // 5:4 landscape
+  '768x1344', // 9:16 tall portrait - good for covers
+  '1344x768', // 16:9 wide landscape
+  '1536x672', // 21:9 ultra-wide
+  // Fal.ai extended sizes (flexible resolution support)
+  '1920x1080', // HD 1080p landscape
+  '1080x1920', // HD 1080p portrait
+  '1600x2560', // Ebook cover (Kindle)
+  '2560x1600', // Landscape ebook/print
+  'auto',
+] as const;
+
+const AspectRatioResolutionSizeSchema = z
+  .string()
+  .regex(/^(\d+:\d+)@(\d+K)$/)
+  .openapi({
+    description: 'Aspect ratio with resolution (e.g., 16:9@2K, 1:1@1K)',
+    example: '16:9@2K',
+  });
+
+const DimensionSizeSchema = z
+  .string()
+  .regex(/^(\d+)x(\d+)$/)
+  .openapi({
+    description: 'Custom width x height dimensions (e.g., 1200x1800)',
+    example: '1200x1800',
+  });
+
 const ImageSizeSchema = z
-  .enum([
-    '1024x1024', // 1:1 square
-    '832x1248', // 2:3 portrait
-    '1248x832', // 3:2 landscape
-    '864x1184', // 3:4 portrait
-    '1184x864', // 4:3 landscape
-    '896x1152', // 4:5 portrait
-    '1152x896', // 5:4 landscape
-    '768x1344', // 9:16 tall portrait - good for covers
-    '1344x768', // 16:9 wide landscape
-    '1536x672', // 21:9 ultra-wide
-    // Fal.ai extended sizes (flexible resolution support)
-    '1920x1080', // HD 1080p landscape
-    '1080x1920', // HD 1080p portrait
-    '1600x2560', // Ebook cover (Kindle)
-    '2560x1600', // Landscape ebook/print
-  ])
+  .union([z.enum(PRESET_IMAGE_SIZES), AspectRatioResolutionSizeSchema, DimensionSizeSchema])
   .optional()
   .openapi('ImageSize');
 
