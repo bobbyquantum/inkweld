@@ -1,8 +1,10 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import { config } from '../config/env.js';
+import { imageGenerationService } from '../services/image-generation.service.js';
+import type { AppContext } from '../types/context.js';
 
-const configRoutes = new OpenAPIHono();
+const configRoutes = new OpenAPIHono<AppContext>();
 
 // Schema definitions
 const ConfigResponseSchema = z
@@ -82,10 +84,16 @@ const getFeaturesRoute = createRoute({
   },
 });
 
-configRoutes.openapi(getFeaturesRoute, (c) => {
-  // Check if OpenAI API key is configured
+configRoutes.openapi(getFeaturesRoute, async (c) => {
+  const db = c.get('db');
+
+  // Check if OpenAI API key is configured (for AI linting)
   const openaiApiKey = process.env.OPENAI_API_KEY;
   const hasOpenAI = !!openaiApiKey && openaiApiKey.trim().length > 0;
+
+  // Check if ANY image generation provider is available
+  // This properly checks OpenAI, OpenRouter, Fal.ai, and Stable Diffusion
+  const hasImageGeneration = await imageGenerationService.isAvailable(db);
 
   // Get app mode configuration
   const appModeEnv = process.env.APP_MODE?.toUpperCase() || 'BOTH';
@@ -98,7 +106,7 @@ configRoutes.openapi(getFeaturesRoute, (c) => {
 
   return c.json({
     aiLinting: hasOpenAI,
-    aiImageGeneration: hasOpenAI,
+    aiImageGeneration: hasImageGeneration,
     appMode,
     defaultServerName,
     userApprovalRequired: config.userApprovalRequired,
