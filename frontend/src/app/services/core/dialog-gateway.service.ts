@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { Project } from '@inkweld/index';
+import { ElementType, Project } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -78,6 +78,15 @@ export class DialogGatewayService {
       width: '800px',
       maxWidth: '90vw',
       maxHeight: '90vh',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openNewFolderDialog(): Promise<{ name: string } | null> {
+    const dialogRef = this.dialog.open(NewElementDialogComponent, {
+      disableClose: true,
+      width: '500px',
+      data: { skipTypeSelection: true, preselectedType: ElementType.Folder },
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

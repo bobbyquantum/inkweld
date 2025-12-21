@@ -13,6 +13,34 @@
     </div>
   }
 
+  <!-- Toolbar with action buttons -->
+  <div class="tree-toolbar">
+    <button
+      mat-icon-button
+      class="home-button"
+      [class.active]="isHomeSelected()"
+      (click)="goHome()"
+      matTooltip="Home"
+      data-testid="toolbar-home-button">
+      <mat-icon>home</mat-icon>
+    </button>
+    <span class="toolbar-spacer"></span>
+    <button
+      mat-icon-button
+      (click)="onCreateNewDocument()"
+      matTooltip="New Document"
+      data-testid="toolbar-new-document-button">
+      <mat-icon>note_add</mat-icon>
+    </button>
+    <button
+      mat-icon-button
+      (click)="onCreateNewFolder()"
+      matTooltip="New Folder"
+      data-testid="toolbar-new-folder-button">
+      <mat-icon>create_new_folder</mat-icon>
+    </button>
+  </div>
+
   <!-- Project Tree with ARIA attributes for accessibility -->
   <ul
     role="tree"
@@ -21,22 +49,6 @@
     [cdkDropListData]="treeElements()"
     (cdkDropListSorted)="sorted($event)"
     (cdkDropListDropped)="drop($event)">
-    <!-- Home node at the top of the tree -->
-    <li
-      role="treeitem"
-      aria-level="1"
-      [attr.aria-selected]="isHomeSelected()"
-      class="home-item"
-      [class.selected-item]="isHomeSelected()"
-      [class.has-open-tab]="isHomeOpen()"
-      data-testid="home-node"
-      tabindex="0"
-      (click)="goHome()"
-      (keyup.enter)="goHome()">
-      <mat-icon>home</mat-icon>
-      <div class="node-title">Home</div>
-    </li>
-
     @for (node of treeElements(); track node.id) {
       <li
         role="treeitem"
