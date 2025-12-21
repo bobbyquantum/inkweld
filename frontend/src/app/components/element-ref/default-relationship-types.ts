@@ -757,36 +757,37 @@ export function getCategoryLabel(category: RelationshipCategory): string {
 
 /**
  * Get a relationship type definition by ID (new format)
+ * Searches only in the provided types array (project storage)
+ * @param id - The relationship type ID to find
+ * @param types - The array of relationship types (from project storage)
  */
 export function getRelationshipTypeDefinitionById(
   id: string,
-  customTypes: RelationshipTypeDefinition[] = []
+  types: RelationshipTypeDefinition[] = []
 ): RelationshipTypeDefinition | undefined {
-  // Check custom types first (allows overriding built-in)
-  const custom = customTypes.find(t => t.id === id);
-  if (custom) return custom;
-
-  return DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.find(t => t.id === id);
+  return types.find(t => t.id === id);
 }
 
 /**
- * Get all relationship type definitions (built-in + custom)
+ * Get all relationship type definitions from project storage
+ * @param types - The array of relationship types (from project storage)
  */
 export function getAllRelationshipTypeDefinitions(
-  customTypes: RelationshipTypeDefinition[] = []
+  types: RelationshipTypeDefinition[] = []
 ): RelationshipTypeDefinition[] {
-  return [...DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS, ...customTypes];
+  return types;
 }
 
 /**
  * Get relationship type definitions by category
+ * @param category - The category to filter by
+ * @param types - The array of relationship types (from project storage)
  */
 export function getRelationshipTypeDefinitionsByCategory(
   category: RelationshipCategory,
-  customTypes: RelationshipTypeDefinition[] = []
+  types: RelationshipTypeDefinition[] = []
 ): RelationshipTypeDefinition[] {
-  const all = getAllRelationshipTypeDefinitions(customTypes);
-  return all.filter(t => t.category === category);
+  return types.filter(t => t.category === category);
 }
 
 /**
@@ -811,13 +812,14 @@ export function shouldShowInverse(type: RelationshipTypeDefinition): boolean {
 
 /**
  * Get relationship types that are valid for a given source schema
+ * @param sourceSchemaType - The source element's schema type
+ * @param types - The array of relationship types (from project storage)
  */
 export function getValidRelationshipTypesForSource(
   sourceSchemaType: string,
-  customTypes: RelationshipTypeDefinition[] = []
+  types: RelationshipTypeDefinition[] = []
 ): RelationshipTypeDefinition[] {
-  const all = getAllRelationshipTypeDefinitions(customTypes);
-  return all.filter(t => {
+  return types.filter(t => {
     // Empty array means any schema is allowed
     if (t.sourceEndpoint.allowedSchemas.length === 0) return true;
     return t.sourceEndpoint.allowedSchemas.includes(sourceSchemaType);
@@ -826,14 +828,16 @@ export function getValidRelationshipTypesForSource(
 
 /**
  * Get relationship types that are valid for a given source and target schema pair
+ * @param sourceSchemaType - The source element's schema type
+ * @param targetSchemaType - The target element's schema type
+ * @param types - The array of relationship types (from project storage)
  */
 export function getValidRelationshipTypesForPair(
   sourceSchemaType: string,
   targetSchemaType: string,
-  customTypes: RelationshipTypeDefinition[] = []
+  types: RelationshipTypeDefinition[] = []
 ): RelationshipTypeDefinition[] {
-  const all = getAllRelationshipTypeDefinitions(customTypes);
-  return all.filter(t => {
+  return types.filter(t => {
     const sourceAllowed =
       t.sourceEndpoint.allowedSchemas.length === 0 ||
       t.sourceEndpoint.allowedSchemas.includes(sourceSchemaType);

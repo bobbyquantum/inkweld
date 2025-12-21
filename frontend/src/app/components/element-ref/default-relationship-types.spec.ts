@@ -334,19 +334,30 @@ describe('Default Relationship Types', () => {
   });
 
   describe('getRelationshipTypeDefinitionById', () => {
-    it('should find built-in relationship type definition by ID', () => {
-      const parent = getRelationshipTypeDefinitionById('parent');
+    it('should find relationship type definition by ID in provided array', () => {
+      const parent = getRelationshipTypeDefinitionById(
+        'parent',
+        DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS
+      );
       expect(parent).toBeDefined();
       expect(parent?.name).toBe('Parent');
       expect(parent?.inverseLabel).toBe('Child of');
     });
 
     it('should return undefined for unknown ID', () => {
-      const unknown = getRelationshipTypeDefinitionById('unknown-type');
+      const unknown = getRelationshipTypeDefinitionById(
+        'unknown-type',
+        DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS
+      );
       expect(unknown).toBeUndefined();
     });
 
-    it('should prefer custom type over built-in when ID matches', () => {
+    it('should return undefined when searching empty array', () => {
+      const result = getRelationshipTypeDefinitionById('parent', []);
+      expect(result).toBeUndefined();
+    });
+
+    it('should find custom type in provided array', () => {
       const customType: RelationshipTypeDefinition = {
         id: 'parent',
         name: 'Custom Parent',
@@ -365,12 +376,19 @@ describe('Default Relationship Types', () => {
   });
 
   describe('getAllRelationshipTypeDefinitions', () => {
-    it('should return all built-in types when no custom types provided', () => {
+    it('should return empty array when no types provided', () => {
       const all = getAllRelationshipTypeDefinitions();
+      expect(all.length).toBe(0);
+    });
+
+    it('should return provided types array', () => {
+      const all = getAllRelationshipTypeDefinitions(
+        DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS
+      );
       expect(all.length).toBe(DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.length);
     });
 
-    it('should include custom types', () => {
+    it('should include custom types in provided array', () => {
       const customType: RelationshipTypeDefinition = {
         id: 'custom-def',
         name: 'Custom Definition',
@@ -383,20 +401,28 @@ describe('Default Relationship Types', () => {
       };
 
       const all = getAllRelationshipTypeDefinitions([customType]);
-      expect(all.length).toBe(DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.length + 1);
+      expect(all.length).toBe(1);
       expect(all).toContain(customType);
     });
   });
 
   describe('getRelationshipTypeDefinitionsByCategory', () => {
-    it('should filter by category', () => {
+    it('should filter by category from provided types', () => {
       const familial = getRelationshipTypeDefinitionsByCategory(
-        RelationshipCategory.Familial
+        RelationshipCategory.Familial,
+        DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS
       );
       expect(familial.length).toBeGreaterThan(0);
       expect(
         familial.every(t => t.category === RelationshipCategory.Familial)
       ).toBe(true);
+    });
+
+    it('should return empty array when no types provided', () => {
+      const familial = getRelationshipTypeDefinitionsByCategory(
+        RelationshipCategory.Familial
+      );
+      expect(familial.length).toBe(0);
     });
 
     it('should include custom types in category', () => {
@@ -489,7 +515,10 @@ describe('Default Relationship Types', () => {
 
   describe('getValidRelationshipTypesForSource', () => {
     it('should return types where source schema is allowed', () => {
-      const types = getValidRelationshipTypesForSource('CHARACTER');
+      const types = getValidRelationshipTypesForSource(
+        'CHARACTER',
+        DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS
+      );
       expect(types.length).toBeGreaterThan(0);
       types.forEach(t => {
         expect(
@@ -500,7 +529,10 @@ describe('Default Relationship Types', () => {
     });
 
     it('should return types with empty allowedSchemas (any schema)', () => {
-      const types = getValidRelationshipTypesForSource('CUSTOM_UNKNOWN_TYPE');
+      const types = getValidRelationshipTypesForSource(
+        'CUSTOM_UNKNOWN_TYPE',
+        DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS
+      );
       // Should still find types that allow any schema (empty array)
       const anySchemaTypes = types.filter(
         t => t.sourceEndpoint.allowedSchemas.length === 0
@@ -509,16 +541,28 @@ describe('Default Relationship Types', () => {
     });
 
     it('should not return types restricted to other schemas', () => {
-      const types = getValidRelationshipTypesForSource('LOCATION');
+      const types = getValidRelationshipTypesForSource(
+        'LOCATION',
+        DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS
+      );
       // Should not include 'spouse' which is CHARACTER-only
       const spouse = types.find(t => t.id === 'spouse');
       expect(spouse).toBeUndefined();
+    });
+
+    it('should return empty array when no types provided', () => {
+      const types = getValidRelationshipTypesForSource('CHARACTER');
+      expect(types.length).toBe(0);
     });
   });
 
   describe('getValidRelationshipTypesForPair', () => {
     it('should return types valid for both source and target schemas', () => {
-      const types = getValidRelationshipTypesForPair('CHARACTER', 'CHARACTER');
+      const types = getValidRelationshipTypesForPair(
+        'CHARACTER',
+        'CHARACTER',
+        DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS
+      );
       expect(types.length).toBeGreaterThan(0);
 
       // Should include sibling (both ends CHARACTER)
@@ -527,7 +571,11 @@ describe('Default Relationship Types', () => {
     });
 
     it('should not return types where target schema is not allowed', () => {
-      const types = getValidRelationshipTypesForPair('CHARACTER', 'WB_ITEM');
+      const types = getValidRelationshipTypesForPair(
+        'CHARACTER',
+        'WB_ITEM',
+        DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS
+      );
 
       // Should not include sibling (both ends must be CHARACTER)
       const sibling = types.find(t => t.id === 'sibling');
@@ -539,7 +587,11 @@ describe('Default Relationship Types', () => {
     });
 
     it('should return types with empty allowedSchemas on both ends', () => {
-      const types = getValidRelationshipTypesForPair('CUSTOM_A', 'CUSTOM_B');
+      const types = getValidRelationshipTypesForPair(
+        'CUSTOM_A',
+        'CUSTOM_B',
+        DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS
+      );
       // Should find reference types which allow any schema
       const referenced = types.find(t => t.id === 'referenced-in');
       expect(referenced).toBeDefined();

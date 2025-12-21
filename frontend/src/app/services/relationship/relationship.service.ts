@@ -15,9 +15,8 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { nanoid } from 'nanoid';
 
 import {
-  getAllRelationshipTypeDefinitions,
+  DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS,
   getRelationshipLabel,
-  getRelationshipTypeDefinitionById,
   toRelationshipTypeLegacy,
 } from '../../components/element-ref/default-relationship-types';
 import {
@@ -58,10 +57,8 @@ export class RelationshipService {
   /** Alias for backwards compatibility */
   readonly customRelationshipTypes = this.customTypes;
 
-  /** All available relationship types (built-in + custom, new format) */
-  readonly allTypes = computed(() =>
-    getAllRelationshipTypeDefinitions(this.customTypesSignal())
-  );
+  /** All available relationship types stored in the project */
+  readonly allTypes = computed(() => this.customTypesSignal());
 
   constructor() {
     // Subscribe to relationships from sync provider
@@ -314,10 +311,9 @@ export class RelationshipService {
       return null;
     }
 
-    // Get relationship type (v2 format)
-    const relationshipTypeDef = getRelationshipTypeDefinitionById(
-      relationship.relationshipTypeId,
-      this.customTypesSignal()
+    // Get relationship type from project storage
+    const relationshipTypeDef = this.getTypeById(
+      relationship.relationshipTypeId
     );
 
     if (!relationshipTypeDef) {
@@ -393,7 +389,8 @@ export class RelationshipService {
   }
 
   /**
-   * Update a custom relationship type
+   * Update a relationship type (built-in or custom)
+   * All types are now editable since they're stored per-project
    */
   updateCustomType(
     typeId: string,
@@ -410,24 +407,22 @@ export class RelationshipService {
       return false;
     }
 
-    if (types[index].isBuiltIn) {
-      this.logger.warn(
-        'RelationshipService',
-        `Cannot update built-in type ${typeId}`
-      );
-      return false;
-    }
-
     const newTypes = types.map((t, i) =>
       i === index ? { ...t, ...updates } : t
     );
     this.syncProvider.updateCustomRelationshipTypes(newTypes);
 
+    this.logger.debug(
+      'RelationshipService',
+      `Updated relationship type: ${typeId}`
+    );
+
     return true;
   }
 
   /**
-   * Remove a custom relationship type
+   * Remove a relationship type (built-in or custom)
+   * All types are now deletable since they're stored per-project
    */
   removeCustomType(typeId: string): boolean {
     const types = this.syncProvider.getCustomRelationshipTypes();
@@ -441,32 +436,78 @@ export class RelationshipService {
       return false;
     }
 
-    if (type.isBuiltIn) {
-      this.logger.warn(
-        'RelationshipService',
-        `Cannot remove built-in type ${typeId}`
-      );
-      return false;
-    }
-
     const newTypes = types.filter(t => t.id !== typeId);
     this.syncProvider.updateCustomRelationshipTypes(newTypes);
+
+    this.logger.debug(
+      'RelationshipService',
+      `Removed relationship type: ${typeId}`
+    );
 
     return true;
   }
 
   /**
-   * Get all relationship types (for UI) - new format
+   * Get all relationship types stored in the project
+   * Types are seeded from defaults on project creation
    */
   getAllTypes(): RelationshipTypeDefinition[] {
-    return getAllRelationshipTypeDefinitions(this.customTypesSignal());
+    return this.syncProvider.getCustomRelationshipTypes();
   }
 
   /**
-   * Get a relationship type by ID - new format
+   * Get a relationship type by ID from project storage
    */
   getTypeById(typeId: string): RelationshipTypeDefinition | undefined {
-    return getRelationshipTypeDefinitionById(typeId, this.customTypesSignal());
+    return this.syncProvider
+      .getCustomRelationshipTypes()
+      .find(t => t.id === typeId);
+  }
+
+  /**
+   * Seed the project with default relationship types if none exist.
+   * This should be called when a project is first accessed.
+   * Returns true if defaults were loaded, false if types already existed.
+   */
+  seedDefaultRelationshipTypes(): boolean {
+    const existingTypes = this.syncProvider.getCustomRelationshipTypes();
+
+    if (existingTypes.length > 0) {
+      this.logger.debug(
+        'RelationshipService',
+        `Project already has ${existingTypes.length} relationship types, skipping seed`
+      );
+      return false;
+    }
+
+    this.logger.info(
+      'RelationshipService',
+      `Seeding ${DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.length} default relationship types`
+    );
+
+    // Deep copy the defaults so each project has its own instance
+    const defaultsCopy = DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.map(t => ({
+      ...t,
+    }));
+    this.syncProvider.updateCustomRelationshipTypes(defaultsCopy);
+
+    return true;
+  }
+
+  /**
+   * Reset relationship types to defaults.
+   * Warning: This will overwrite any custom modifications.
+   */
+  resetToDefaults(): void {
+    this.logger.info(
+      'RelationshipService',
+      `Resetting to ${DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.length} default relationship types`
+    );
+
+    const defaultsCopy = DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.map(t => ({
+      ...t,
+    }));
+    this.syncProvider.updateCustomRelationshipTypes(defaultsCopy);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

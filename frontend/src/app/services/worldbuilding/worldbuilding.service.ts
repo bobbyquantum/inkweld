@@ -955,8 +955,8 @@ export class WorldbuildingService {
   }
 
   /**
-   * Delete a custom template from the library.
-   * Cannot delete built-in templates.
+   * Delete a template from the library.
+   * All templates are now deletable since they're stored per-project.
    */
   deleteTemplate(
     _projectKey: string,
@@ -967,11 +967,6 @@ export class WorldbuildingService {
     const schema = this.schemasCache.find(s => s.type === templateType);
     if (!schema) {
       throw new Error(`Template ${templateType} not found`);
-    }
-
-    // Check if it's built-in (prevent deletion)
-    if (schema.isBuiltIn) {
-      throw new Error('Cannot delete built-in templates');
     }
 
     // Remove from schemas and update via sync provider
@@ -986,13 +981,12 @@ export class WorldbuildingService {
       throw new Error('No sync provider available');
     }
 
-    console.log(
-      `[WorldbuildingService] Deleted custom template: ${templateType}`
-    );
+    console.log(`[WorldbuildingService] Deleted template: ${templateType}`);
   }
 
   /**
    * Update a template in the library.
+   * All templates are now editable since they're stored per-project.
    */
   updateTemplate(
     _projectKey: string,
@@ -1009,13 +1003,6 @@ export class WorldbuildingService {
     }
 
     const existingSchema = this.schemasCache[schemaIndex];
-
-    // Check if it's built-in (optionally warn)
-    if (existingSchema.isBuiltIn) {
-      console.warn(
-        `[WorldbuildingService] Editing built-in template ${templateType}. Consider cloning first.`
-      );
-    }
 
     // Create updated schema
     const updatedSchema: ElementTypeSchema = {

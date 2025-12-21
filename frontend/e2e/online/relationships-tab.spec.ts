@@ -37,9 +37,9 @@ test.describe('Relationships Tab', () => {
         page.locator('h2:has-text("Relationship Types")')
       ).toBeVisible();
 
-      // Should see built-in types section
+      // Should see default types section
       await expect(
-        page.locator('.section-title:has-text("Built-in Types")')
+        page.locator('.section-title:has-text("Default Types")')
       ).toBeVisible();
 
       // Should see relationship type cards
@@ -254,7 +254,7 @@ test.describe('Relationships Tab', () => {
       ).toBeVisible();
     });
 
-    test('should show warning when trying to edit built-in type', async ({
+    test('should allow editing built-in types (now per-project)', async ({
       authenticatedPage: page,
     }) => {
       // Create a project
@@ -277,13 +277,21 @@ test.describe('Relationships Tab', () => {
       const builtInCard = page.locator('.type-card.built-in').first();
       await builtInCard.locator('button[mat-icon-button]').click();
 
-      // Should only see "Clone as Custom" option (no Edit option)
+      // Wait for the menu to be visible (in CDK overlay)
+      await page.waitForSelector('.mat-mdc-menu-panel', { state: 'visible' });
+
+      // Should see Edit option (built-in types are now editable per-project)
       await expect(
-        page.locator('button:has-text("Clone as Custom")')
+        page.locator('.mat-mdc-menu-panel button:has-text("Edit")')
+      ).toBeVisible();
+
+      // Should also see Clone and Delete options
+      await expect(
+        page.locator('.mat-mdc-menu-panel button:has-text("Clone")')
       ).toBeVisible();
       await expect(
-        page.locator('mat-menu button:has-text("Edit")')
-      ).not.toBeVisible();
+        page.locator('.mat-mdc-menu-panel button:has-text("Delete")')
+      ).toBeVisible();
     });
   });
 
