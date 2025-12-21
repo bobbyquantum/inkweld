@@ -260,6 +260,40 @@ describe('SetupComponent', () => {
     });
   });
 
+  describe('layout order', () => {
+    it('renders Offline option before Server option when BOTH', async () => {
+      // Arrange: BOTH mode, no selection -> show mode selection
+      component['appMode'].set('BOTH');
+      component['showServerSetup'].set(false);
+      component['showOfflineSetup'].set(false);
+
+      // Act
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const container: HTMLElement | null =
+        fixture.nativeElement.querySelector('.setup-options');
+      expect(container).toBeTruthy();
+
+      const buttons = container!.querySelectorAll('button.option-card');
+      // Ensure both options are present when BOTH
+      const hasOffline = Array.from(buttons).some(
+        b => b.getAttribute('data-testid') === 'offline-mode-button'
+      );
+      const hasServer = Array.from(buttons).some(
+        b => b.getAttribute('data-testid') === 'server-mode-button'
+      );
+      expect(hasOffline).toBe(true);
+      expect(hasServer).toBe(true);
+
+      // Assert: first button should be Offline
+      const firstButton = buttons.item(0);
+      expect(firstButton.getAttribute('data-testid')).toBe(
+        'offline-mode-button'
+      );
+    });
+  });
+
   describe('mode selection', () => {
     it('chooseServerMode should show server setup', () => {
       component['chooseServerMode']();
