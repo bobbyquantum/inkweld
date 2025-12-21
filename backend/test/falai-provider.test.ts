@@ -57,9 +57,10 @@ describe('FalAiImageProvider', () => {
     it('should return default models when not configured', () => {
       const models = provider.getModels();
       expect(models.length).toBeGreaterThan(0);
-      // Check that default models include FLUX 2 Pro and Nano Banana Pro
+      // Check that default models include FLUX 2 Pro, GPT Image 1.5, and Nano Banana Pro
       const modelIds = models.map((m) => m.id);
       expect(modelIds).toContain('fal-ai/flux-2-pro');
+      expect(modelIds).toContain('fal-ai/gpt-image-1.5');
       expect(modelIds).toContain('fal-ai/nano-banana-pro');
     });
 
@@ -117,10 +118,16 @@ describe('FalAiImageProvider', () => {
       expect(models[0].name).toBe('FLUX 2 Pro');
     });
 
-    it('should have Nano Banana Pro as the second default model', () => {
+    it('should have GPT Image 1.5 as the second default model', () => {
       const models = provider.getModels();
-      expect(models[1].id).toBe('fal-ai/nano-banana-pro');
-      expect(models[1].name).toBe('Nano Banana Pro');
+      expect(models[1].id).toBe('fal-ai/gpt-image-1.5');
+      expect(models[1].name).toBe('GPT Image 1.5');
+    });
+
+    it('should have Nano Banana Pro as the third default model', () => {
+      const models = provider.getModels();
+      expect(models[2].id).toBe('fal-ai/nano-banana-pro');
+      expect(models[2].name).toBe('Nano Banana Pro');
     });
 
     it('FLUX 2 Pro should use dimensions mode with HD and ebook cover sizes', () => {
@@ -133,6 +140,19 @@ describe('FalAiImageProvider', () => {
       expect(sizes).toContain('1920x1080'); // HD 1080p landscape
       expect(sizes).toContain('1080x1920'); // HD 1080p portrait
       expect(sizes).toContain('1600x2560'); // Ebook cover
+    });
+
+    it('GPT Image 1.5 should use aspect_ratio mode with aspect ratio + resolution sizes', () => {
+      const models = provider.getModels();
+      const gpt = models.find((m) => m.id === 'fal-ai/gpt-image-1.5');
+      expect(gpt).toBeDefined();
+      expect(gpt!.sizeMode).toBe('aspect_ratio');
+      expect(gpt!.resolutions).toContain('1K');
+      expect(gpt!.resolutions).toContain('2K');
+      expect(gpt!.resolutions).toContain('4K');
+      expect(gpt!.aspectRatios).toContain('16:9');
+      expect(gpt!.supportedSizes).toContain('16:9@2K');
+      expect(gpt!.supportedSizes).toContain('1:1@1K');
     });
 
     it('Nano Banana Pro should use aspect_ratio mode', () => {
@@ -150,6 +170,7 @@ describe('FalAiImageProvider', () => {
       const sizes = nano.supportedSizes || [];
       expect(sizes).toContain('16:9@4K');
       expect(sizes).toContain('9:16@4K');
+      expect(sizes).toContain('1:1@1K');
     });
   });
 });

@@ -63,10 +63,10 @@ const FLUX_2_PRO_SIZES: ImageSize[] = [
 ];
 
 /**
- * Nano Banana Pro aspect ratios.
- * This model uses aspect_ratio + resolution instead of dimensions.
+ * Aspect ratios and resolutions shared by Fal.ai aspect-ratio models.
+ * Both Nano Banana Pro and GPT Image 1.5 use these inputs.
  */
-const NANO_BANANA_ASPECT_RATIOS = [
+const DEFAULT_ASPECT_RATIOS = [
   '1:1', // Square
   '16:9', // Landscape
   '9:16', // Portrait (tall)
@@ -78,7 +78,12 @@ const NANO_BANANA_ASPECT_RATIOS = [
   '2:3', // Classic photo portrait
 ];
 
-const NANO_BANANA_RESOLUTIONS = ['1K', '2K', '4K'];
+const DEFAULT_ASPECT_RESOLUTIONS = ['1K', '2K', '4K'];
+
+const NANO_BANANA_ASPECT_RATIOS = DEFAULT_ASPECT_RATIOS;
+const NANO_BANANA_RESOLUTIONS = DEFAULT_ASPECT_RESOLUTIONS;
+const GPT_IMAGE_15_ASPECT_RATIOS = DEFAULT_ASPECT_RATIOS;
+const GPT_IMAGE_15_RESOLUTIONS = DEFAULT_ASPECT_RESOLUTIONS;
 
 /**
  * Convert aspect ratio + resolution to a size string for storage.
@@ -102,15 +107,25 @@ function parseAspectRatioSize(size: string): { ratio: string; resolution: string
 /**
  * Generate all supported sizes for Nano Banana (aspect ratio combinations).
  */
-function getNanoBananaSizes(): ImageSize[] {
+function getAspectRatioSizes(aspectRatios: string[], resolutions: string[]): ImageSize[] {
   const sizes: ImageSize[] = [];
-  for (const ratio of NANO_BANANA_ASPECT_RATIOS) {
-    for (const res of NANO_BANANA_RESOLUTIONS) {
+  for (const ratio of aspectRatios) {
+    for (const res of resolutions) {
       sizes.push(aspectRatioToSizeString(ratio, res));
     }
   }
   return sizes;
 }
+
+const NANO_BANANA_SUPPORTED_SIZES = getAspectRatioSizes(
+  NANO_BANANA_ASPECT_RATIOS,
+  NANO_BANANA_RESOLUTIONS
+);
+
+const GPT_IMAGE_15_SUPPORTED_SIZES = getAspectRatioSizes(
+  GPT_IMAGE_15_ASPECT_RATIOS,
+  GPT_IMAGE_15_RESOLUTIONS
+);
 
 /**
  * Default Fal.ai image models.
@@ -132,10 +147,24 @@ export const DEFAULT_FALAI_MODELS: FalAiModelInfo[] = [
     sizeMode: 'dimensions',
   },
   {
+    id: 'fal-ai/gpt-image-1.5',
+    name: 'GPT Image 1.5',
+    provider: 'falai',
+    supportedSizes: GPT_IMAGE_15_SUPPORTED_SIZES,
+    supportsQuality: false,
+    supportsStyle: false,
+    maxImages: 4,
+    description:
+      'GPT Image 1.5 - high quality generation with aspect ratio + resolution control',
+    sizeMode: 'aspect_ratio',
+    resolutions: GPT_IMAGE_15_RESOLUTIONS,
+    aspectRatios: GPT_IMAGE_15_ASPECT_RATIOS,
+  },
+  {
     id: 'fal-ai/nano-banana-pro',
     name: 'Nano Banana Pro',
     provider: 'falai',
-    supportedSizes: getNanoBananaSizes(),
+    supportedSizes: NANO_BANANA_SUPPORTED_SIZES,
     supportsQuality: false,
     supportsStyle: false,
     maxImages: 4,
@@ -151,6 +180,7 @@ export const DEFAULT_FALAI_MODELS: FalAiModelInfo[] = [
  */
 const MODEL_SIZE_MODES: Record<string, FalAiSizeMode> = {
   'fal-ai/flux-2-pro': 'dimensions',
+  'fal-ai/gpt-image-1.5': 'aspect_ratio',
   'fal-ai/nano-banana-pro': 'aspect_ratio',
 };
 
