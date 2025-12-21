@@ -3,6 +3,7 @@ import { mkdir } from 'fs/promises';
 import { join } from 'path';
 
 import {
+  createProjectWithTwoSteps,
   DEMO_ASSETS,
   storeRealEpubInIndexedDB,
   storeRealMediaInIndexedDB,
@@ -162,25 +163,14 @@ test.describe('PWA Screenshots', () => {
       timeout: 3000,
     });
 
-    // Click the "Create Project" button in the empty state
-    await page.click('button:has-text("Create Project")');
-
-    // Wait for create project form to load
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-      timeout: 3000,
-    });
-
-    // Fill in project details
-    await page.fill('input[data-testid="project-title-input"]', 'My Novel');
-    await page.fill(
-      'textarea[formcontrolname="description"]',
-      'A captivating story about creativity and collaboration'
+    // Create project using worldbuilding-demo template for rich content
+    await createProjectWithTwoSteps(
+      page,
+      'My Novel',
+      'my-novel',
+      'A captivating story about creativity and collaboration',
+      'worldbuilding-demo'
     );
-    await page.fill('input[data-testid="project-slug-input"]', 'my-novel');
-
-    // Submit the form
-    await page.click('button[type="submit"]');
 
     // Wait for navigation to the project page
     await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
@@ -192,36 +182,21 @@ test.describe('PWA Screenshots', () => {
     });
     await page.waitForTimeout(1500);
 
-    // The default structure creates "Chapters" folder with "Chapter 1" inside
-    // First, expand the "Chapters" folder by clicking the chevron button
+    // The worldbuilding-demo template has "Chronicles" folder with "The Moonveil Accord" inside
+    // First, expand the "Chronicles" folder by clicking the chevron button
     const expandButton = page
       .locator('[data-testid="expand-folder-button"]')
       .first();
     await expandButton.click();
     await page.waitForTimeout(500);
 
-    // Now "Chapter 1" should be visible - click on it to open
-    await page.click('text="Chapter 1"');
+    // Now "The Moonveil Accord" should be visible - click on it to open
+    await page.click('text="The Moonveil Accord"');
     await page.waitForTimeout(300);
 
-    // Wait for editor to load and click into it
+    // Wait for editor to load - the document already has rich content from the template
     const editor = page.locator('.ProseMirror').first();
     await editor.waitFor({ state: 'visible', timeout: 5000 });
-    await editor.click();
-
-    // Type some compelling content
-    await editor.pressSequentially(
-      'The rain hammered against the windowpane as Sarah opened her laptop, ready to pour her imagination onto the digital page. ',
-      { delay: 10 }
-    );
-    await editor.pressSequentially(
-      'Inkweld made it effortless—her characters, plot notes, and chapters all organized in one place.\n\n',
-      { delay: 10 }
-    );
-    await editor.pressSequentially(
-      'She smiled, knowing that collaboration with her co-author would be seamless, even across continents.',
-      { delay: 10 }
-    );
 
     // Wait for content to settle
     await page.waitForTimeout(300);
@@ -246,25 +221,14 @@ test.describe('PWA Screenshots', () => {
       timeout: 3000,
     });
 
-    // Click the create project button
-    await page.click('button:has-text("Create Project")');
-
-    // Wait for create project form
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-      timeout: 3000,
-    });
-
-    // Fill in project details
-    await page.fill('input[data-testid="project-title-input"]', 'Mobile Story');
-    await page.fill(
-      'textarea[formcontrolname="description"]',
-      'Writing on the go'
+    // Create project using worldbuilding-demo template for rich content
+    await createProjectWithTwoSteps(
+      page,
+      'Mobile Story',
+      'mobile-story',
+      'Writing on the go',
+      'worldbuilding-demo'
     );
-    await page.fill('input[data-testid="project-slug-input"]', 'mobile-story');
-
-    // Submit form
-    await page.click('button[type="submit"]');
 
     // Wait for navigation to project page
     await page.waitForURL(/\/demouser\/mobile-story/, { timeout: 3000 });
@@ -286,48 +250,24 @@ test.describe('PWA Screenshots', () => {
     });
     await page.waitForTimeout(500);
 
-    // Expand "Chapters" folder by clicking the chevron
+    // Expand "Chronicles" folder by clicking the chevron
     const expandButton = page
       .locator('[data-testid="expand-folder-button"]')
       .first();
     await expandButton.click();
     await page.waitForTimeout(500);
 
-    // Click on "Chapter 1" from default structure
-    await page.click('text="Chapter 1"');
+    // Click on "The Moonveil Accord" from worldbuilding-demo template
+    await page.click('text="The Moonveil Accord"');
     await page.waitForTimeout(300);
 
-    // Type into editor - multiple paragraphs
+    // Wait for editor to load - the document already has rich content from the template
     const editor = page.locator('.ProseMirror').first();
     await editor.waitFor({ state: 'visible', timeout: 5000 });
-    await editor.click();
-
-    // Type first paragraph
-    await editor.pressSequentially(
-      'Writing on mobile has never been easier. Inkweld adapts to your screen, letting you craft stories wherever inspiration strikes.',
-      { delay: 10 }
-    );
-    await page.keyboard.press('Enter');
-    await page.keyboard.press('Enter');
-
-    // Type second paragraph
-    await editor.pressSequentially(
-      "Whether you're on the bus, waiting in line, or relaxing in a café, your stories are always at your fingertips.",
-      { delay: 10 }
-    );
-    await page.keyboard.press('Enter');
-    await page.keyboard.press('Enter');
-
-    // Type third paragraph
-    await editor.pressSequentially(
-      'Start writing today and bring your ideas to life.',
-      { delay: 10 }
-    );
 
     await page.waitForTimeout(500);
 
-    // Select the last paragraph by triple-clicking (this worked before)
-    // Triple-click selects the entire paragraph and triggers the inline menu
+    // Select some text by triple-clicking to trigger the inline menu
     const editorElement = page.locator('.ProseMirror').first();
     await editorElement.click({ clickCount: 3 });
     await page.waitForTimeout(300); // Wait for inline menu to appear
@@ -357,25 +297,14 @@ test.describe('PWA Screenshots', () => {
       timeout: 3000,
     });
 
-    // Click the "Create Project" button in the empty state
-    await page.click('button:has-text("Create Project")');
-
-    // Wait for create project form to load
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-      timeout: 3000,
-    });
-
-    // Fill in project details
-    await page.fill('input[data-testid="project-title-input"]', 'My Novel');
-    await page.fill(
-      'textarea[formcontrolname="description"]',
-      'A captivating story about creativity and collaboration'
+    // Create project using worldbuilding-demo template for rich content
+    await createProjectWithTwoSteps(
+      page,
+      'My Novel',
+      'my-novel',
+      'A captivating story about creativity and collaboration',
+      'worldbuilding-demo'
     );
-    await page.fill('input[data-testid="project-slug-input"]', 'my-novel');
-
-    // Submit the form
-    await page.click('button[type="submit"]');
 
     // Wait for navigation to the project page
     await page.waitForURL(/\/demouser\/my-novel/, { timeout: 3000 });
@@ -387,36 +316,21 @@ test.describe('PWA Screenshots', () => {
     });
     await page.waitForTimeout(1500);
 
-    // The default structure creates "Chapters" folder with "Chapter 1" inside
-    // First, expand the "Chapters" folder by clicking the chevron button
+    // The worldbuilding-demo template has "Chronicles" folder with "The Moonveil Accord" inside
+    // First, expand the "Chronicles" folder by clicking the chevron button
     const expandButton = page
       .locator('[data-testid="expand-folder-button"]')
       .first();
     await expandButton.click();
     await page.waitForTimeout(500);
 
-    // Now "Chapter 1" should be visible - click on it to open
-    await page.click('text="Chapter 1"');
+    // Now "The Moonveil Accord" should be visible - click on it to open
+    await page.click('text="The Moonveil Accord"');
     await page.waitForTimeout(300);
 
-    // Wait for editor to load and click into it
+    // Wait for editor to load - the document already has rich content from the template
     const editor = page.locator('.ProseMirror').first();
     await editor.waitFor({ state: 'visible', timeout: 5000 });
-    await editor.click();
-
-    // Type some compelling content
-    await editor.pressSequentially(
-      'The rain hammered against the windowpane as Sarah opened her laptop, ready to pour her imagination onto the digital page. ',
-      { delay: 10 }
-    );
-    await editor.pressSequentially(
-      'Inkweld made it effortless—her characters, plot notes, and chapters all organized in one place.\n\n',
-      { delay: 10 }
-    );
-    await editor.pressSequentially(
-      'She smiled, knowing that collaboration with her co-author would be seamless, even across continents.',
-      { delay: 10 }
-    );
 
     // Wait for content to settle
     await page.waitForTimeout(300);
@@ -446,25 +360,14 @@ test.describe('PWA Screenshots', () => {
       timeout: 3000,
     });
 
-    // Click the create project button
-    await page.click('button:has-text("Create Project")');
-
-    // Wait for create project form
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-      timeout: 3000,
-    });
-
-    // Fill in project details
-    await page.fill('input[data-testid="project-title-input"]', 'Mobile Story');
-    await page.fill(
-      'textarea[formcontrolname="description"]',
-      'Writing on the go'
+    // Create project using worldbuilding-demo template for rich content
+    await createProjectWithTwoSteps(
+      page,
+      'Mobile Story',
+      'mobile-story',
+      'Writing on the go',
+      'worldbuilding-demo'
     );
-    await page.fill('input[data-testid="project-slug-input"]', 'mobile-story');
-
-    // Submit form
-    await page.click('button[type="submit"]');
 
     // Wait for navigation to project page
     await page.waitForURL(/\/demouser\/mobile-story/, { timeout: 3000 });
@@ -486,48 +389,24 @@ test.describe('PWA Screenshots', () => {
     });
     await page.waitForTimeout(500);
 
-    // Expand "Chapters" folder by clicking the chevron
+    // Expand "Chronicles" folder by clicking the chevron
     const expandButton = page
       .locator('[data-testid="expand-folder-button"]')
       .first();
     await expandButton.click();
     await page.waitForTimeout(500);
 
-    // Click on "Chapter 1" from default structure
-    await page.click('text="Chapter 1"');
+    // Click on "The Moonveil Accord" from worldbuilding-demo template
+    await page.click('text="The Moonveil Accord"');
     await page.waitForTimeout(300);
 
-    // Type into editor - multiple paragraphs
+    // Wait for editor to load - the document already has rich content from the template
     const editor = page.locator('.ProseMirror').first();
     await editor.waitFor({ state: 'visible', timeout: 5000 });
-    await editor.click();
-
-    // Type first paragraph
-    await editor.pressSequentially(
-      'Writing on mobile has never been easier. Inkweld adapts to your screen, letting you craft stories wherever inspiration strikes.',
-      { delay: 10 }
-    );
-    await page.keyboard.press('Enter');
-    await page.keyboard.press('Enter');
-
-    // Type second paragraph
-    await editor.pressSequentially(
-      "Whether you're on the bus, waiting in line, or relaxing in a café, your stories are always at your fingertips.",
-      { delay: 10 }
-    );
-    await page.keyboard.press('Enter');
-    await page.keyboard.press('Enter');
-
-    // Type third paragraph
-    await editor.pressSequentially(
-      'Start writing today and bring your ideas to life.',
-      { delay: 10 }
-    );
 
     await page.waitForTimeout(500);
 
-    // Select the last paragraph by triple-clicking (this worked before)
-    // Triple-click selects the entire paragraph and triggers the inline menu
+    // Select some text by triple-clicking to trigger the inline menu
     const editorElement = page.locator('.ProseMirror').first();
     await editorElement.click({ clickCount: 3 });
     await page.waitForTimeout(300); // Wait for inline menu to appear
@@ -561,25 +440,12 @@ test.describe('PWA Screenshots', () => {
     });
 
     // Create a project first
-    await page.click('button:has-text("Create Project")');
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-      timeout: 3000,
-    });
-
-    await page.fill(
-      'input[data-testid="project-title-input"]',
-      'Media Showcase'
-    );
-    await page.fill(
-      'textarea[formcontrolname="description"]',
+    await createProjectWithTwoSteps(
+      page,
+      'Media Showcase',
+      'media-showcase',
       'A project demonstrating media storage'
     );
-    await page.fill(
-      'input[data-testid="project-slug-input"]',
-      'media-showcase'
-    );
-    await page.click('button[type="submit"]');
     await page.waitForURL(/\/demouser\/media-showcase/, { timeout: 3000 });
     await page.waitForTimeout(500);
 
@@ -655,21 +521,7 @@ test.describe('PWA Screenshots', () => {
     });
 
     // Create a project first
-    await page.click('button:has-text("Create Project")');
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-      timeout: 3000,
-    });
-
-    await page.fill(
-      'input[data-testid="project-title-input"]',
-      'Filtered Media'
-    );
-    await page.fill(
-      'input[data-testid="project-slug-input"]',
-      'filtered-media'
-    );
-    await page.click('button[type="submit"]');
+    await createProjectWithTwoSteps(page, 'Filtered Media', 'filtered-media');
     await page.waitForURL(/\/demouser\/filtered-media/, { timeout: 3000 });
     await page.waitForTimeout(500);
 
@@ -738,15 +590,7 @@ test.describe('PWA Screenshots', () => {
     });
 
     // Create a project
-    await page.click('button:has-text("Create Project")');
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-      timeout: 3000,
-    });
-
-    await page.fill('input[data-testid="project-title-input"]', 'Empty Media');
-    await page.fill('input[data-testid="project-slug-input"]', 'empty-media');
-    await page.click('button[type="submit"]');
+    await createProjectWithTwoSteps(page, 'Empty Media', 'empty-media');
     await page.waitForURL(/\/demouser\/empty-media/, { timeout: 3000 });
     await page.waitForTimeout(500);
 
@@ -782,15 +626,7 @@ test.describe('PWA Screenshots', () => {
     });
 
     // Create a project
-    await page.click('button:has-text("Create Project")');
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-      timeout: 3000,
-    });
-
-    await page.fill('input[data-testid="project-title-input"]', 'Mobile Media');
-    await page.fill('input[data-testid="project-slug-input"]', 'mobile-media');
-    await page.click('button[type="submit"]');
+    await createProjectWithTwoSteps(page, 'Mobile Media', 'mobile-media');
     await page.waitForURL(/\/demouser\/mobile-media/, { timeout: 3000 });
     await page.waitForTimeout(500);
 
@@ -852,15 +688,7 @@ test.describe('PWA Screenshots', () => {
     });
 
     // Create a project
-    await page.click('button:has-text("Create Project")');
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-      timeout: 3000,
-    });
-
-    await page.fill('input[data-testid="project-title-input"]', 'Dark Media');
-    await page.fill('input[data-testid="project-slug-input"]', 'dark-media');
-    await page.click('button[type="submit"]');
+    await createProjectWithTwoSteps(page, 'Dark Media', 'dark-media');
     await page.waitForURL(/\/demouser\/dark-media/, { timeout: 3000 });
     await page.waitForTimeout(500);
 

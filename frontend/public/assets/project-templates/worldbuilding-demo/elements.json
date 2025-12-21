@@ -11,10 +11,32 @@
     "metadata": {}
   },
   {
+    "id": "folder-chronicles",
+    "name": "Chronicles",
+    "type": "FOLDER",
+    "order": 1,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "doc-moonveil-accord",
+    "name": "The Moonveil Accord",
+    "type": "ITEM",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-chronicles",
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
     "id": "folder-characters",
     "name": "Characters",
     "type": "FOLDER",
-    "order": 1,
+    "order": 2,
     "level": 0,
     "parentId": null,
     "expandable": true,
@@ -58,7 +80,7 @@
     "id": "folder-locations",
     "name": "Locations",
     "type": "FOLDER",
-    "order": 2,
+    "order": 3,
     "level": 0,
     "parentId": null,
     "expandable": true,

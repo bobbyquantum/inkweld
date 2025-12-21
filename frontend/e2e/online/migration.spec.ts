@@ -192,7 +192,10 @@ test.describe('Offline to Server Migration', () => {
     await authenticatedPage.goto('/create-project');
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
-    // Fill and submit the form
+    // Step 1: Click Next to proceed to step 2
+    await authenticatedPage.getByRole('button', { name: /next/i }).click();
+
+    // Step 2: Fill and submit the form
     await authenticatedPage
       .locator('[data-testid="project-title-input"]')
       .fill('Duplicate Test Server');

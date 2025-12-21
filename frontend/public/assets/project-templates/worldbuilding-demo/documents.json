@@ -107,5 +107,130 @@
         }
       ]
     }
+  },
+  {
+    "elementId": "doc-moonveil-accord",
+    "content": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "heading",
+          "attrs": { "level": 1 },
+          "content": [{ "type": "text", "text": "The Moonveil Accord" }]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "marks": [{ "type": "italic" }], "text": "A Chronicle of the Night That Changed Everything" }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Fifty years before " },
+            { "type": "text", "marks": [{ "type": "bold" }], "text": "Theron Blackwood" },
+            { "type": "text", "text": " took up his post as guardian of the Thornwood, the forest and the town of Silverhollow stood on the brink of war. The lumber barons demanded access to the ancient heartwood. The forest spirits spoke of purging the settlement entirely." }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": { "level": 2 },
+          "content": [{ "type": "text", "text": "The Summit at Moonwell Spring" }]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "It was " },
+            { "type": "text", "marks": [{ "type": "bold" }], "text": "Elara Nightwhisper's" },
+            { "type": "text", "text": " mentor, the great Aldric the Grey, who brokered the peace. He journeyed from " },
+            { "type": "text", "marks": [{ "type": "bold" }], "text": "Cloudspire Academy" },
+            { "type": "text", "text": " to the sacred Moonwell Spring at the heart of the forest. There, beneath the light of a blood-red moon, representatives of both sides met." }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "The dryad queen Thessaly spoke for the forest. Mayor Harwick Stonehart—great-grandfather of " },
+            { "type": "text", "marks": [{ "type": "bold" }], "text": "Mira Stonehart" },
+            { "type": "text", "text": "—spoke for Silverhollow. The negotiations lasted three days and three nights." }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": { "level": 2 },
+          "content": [{ "type": "text", "text": "Terms of the Accord" }]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "The final agreement established the boundaries that hold to this day:" }
+          ]
+        },
+        {
+          "type": "bullet_list",
+          "content": [
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "text": "No cutting of trees within the heart grove, marked by ancient standing stones" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "text": "A human ranger, chosen by both sides, would serve as guardian and liaison" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "text": "Trade in forest herbs and fallen wood permitted along the Silver Path" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "text": "The Festival of the Moonveil held each autumn to renew the bonds of friendship" }]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": { "level": 2 },
+          "content": [{ "type": "text", "text": "Legacy" }]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Today, " },
+            { "type": "text", "marks": [{ "type": "bold" }], "text": "Theron" },
+            { "type": "text", "text": " carries on the tradition of the forest guardians. " },
+            { "type": "text", "marks": [{ "type": "bold" }], "text": "Mira" },
+            { "type": "text", "text": " forges tools and weapons that honor her great-grandfather's commitment to peace. And " },
+            { "type": "text", "marks": [{ "type": "bold" }], "text": "Elara" },
+            { "type": "text", "text": " searches for the Library of Moonveil, said to contain Aldric's personal account of those fateful nights." }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "The Accord endures—but whispers speak of dark forces gathering in the deep woods. Forces that remember no treaties, and hunger for what was lost." }
+          ]
+        }
+      ]
+    }
   }
 ]

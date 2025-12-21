@@ -2,13 +2,6 @@
   "version": 1,
   "templates": [
     {
-      "id": "empty",
-      "name": "Empty Project",
-      "description": "A blank slate with just a README to get you started.",
-      "icon": "description",
-      "folder": "empty"
-    },
-    {
       "id": "worldbuilding-empty",
       "name": "Worldbuilding (Empty)",
       "description": "Ready for worldbuilding with built-in relationship types and templates, but no starter content.",
@@ -21,6 +14,13 @@
       "description": "A fully-featured demo with sample characters, locations, and relationships to explore.",
       "icon": "auto_stories",
       "folder": "worldbuilding-demo"
+    },
+    {
+      "id": "empty",
+      "name": "Empty Project",
+      "description": "A blank slate with just a README to get you started.",
+      "icon": "description",
+      "folder": "empty"
     }
   ]
 }

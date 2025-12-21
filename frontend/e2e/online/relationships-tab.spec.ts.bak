@@ -153,6 +153,10 @@ test.describe('Relationships Tab', () => {
         'Created relationship type'
       );
 
+      // Should see the new custom type in the Custom Types section
+      await expect(
+        page.locator('.section-title:has-text("Custom Types")')
+      ).toBeVisible();
       await expect(
         page.locator('mat-card-title:has-text("Nemesis of")')
       ).toBeVisible();
@@ -165,7 +169,7 @@ test.describe('Relationships Tab', () => {
       await page.goto('/create-project');
       const uniqueSlug = `rel-cancel-${Date.now()}`;
 
-      // Step 1: Click Next to proceed to step 2 (use default template)
+      // Step 1: Click Next to proceed to step 2
       await page.getByRole('button', { name: /next/i }).click();
 
       // Step 2: Fill in project details
@@ -182,9 +186,8 @@ test.describe('Relationships Tab', () => {
         state: 'visible',
       });
 
-      // Wait for relationship types to load and get initial count
+      // Get initial count of relationship types
       const typeCards = page.getByTestId('relationship-type-card');
-      await typeCards.first().waitFor({ state: 'visible' });
       const initialCount = await typeCards.count();
 
       // Click "New Type" button
@@ -406,13 +409,8 @@ test.describe('Relationships Tab', () => {
       const typeCard = page.getByTestId('relationship-type-card').first();
       await typeCard.locator('button[mat-icon-button]').click();
 
-      // Wait for the menu to be visible (in CDK overlay)
-      await page.waitForSelector('.mat-mdc-menu-panel', { state: 'visible' });
-
-      // Click "Clone as Custom" - it's a menu item, not a testid button
-      await page
-        .locator('.mat-mdc-menu-panel button:has-text("Clone")')
-        .click();
+      // Click "Clone as Custom"
+      await page.getByTestId('clone-type-button').click();
 
       // Enter new name for the clone
       await page.waitForSelector('app-rename-dialog', { state: 'visible' });

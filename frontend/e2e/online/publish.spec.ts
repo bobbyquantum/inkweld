@@ -21,6 +21,10 @@ test.describe('Online Publishing Workflow', () => {
     const uniqueSlug = `publish-test-${Date.now()}`;
     await page.goto('/create-project');
 
+    // Step 1: Click Next to proceed to step 2
+    await page.getByRole('button', { name: /next/i }).click();
+
+    // Step 2: Fill in project details
     await page.getByTestId('project-title-input').fill('Publishing Test');
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
     await page.getByTestId('create-project-button').click();
@@ -53,6 +57,11 @@ test.describe('Online Publishing Workflow', () => {
       // Create a project
       const uniqueSlug = `plan-test-${Date.now()}`;
       await page.goto('/create-project');
+
+      // Step 1: Click Next to proceed to step 2
+      await page.getByRole('button', { name: /next/i }).click();
+
+      // Step 2: Fill in project details
       await page.getByTestId('project-title-input').fill('Plan Test');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();
@@ -233,6 +242,11 @@ test.describe('Online Publishing Workflow', () => {
         'The quick brown fox jumps over the lazy dog near the riverbank.';
 
       await page.goto('/create-project');
+
+      // Step 1: Click Next to proceed to step 2
+      await page.getByRole('button', { name: /next/i }).click();
+
+      // Step 2: Fill in project details
       await page.getByTestId('project-title-input').fill('PDF Content Test');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();
@@ -374,6 +388,11 @@ test.describe('Online Publishing Workflow', () => {
         'The quick brown fox jumps over the lazy dog near the riverbank.';
 
       await page.goto('/create-project');
+
+      // Step 1: Click Next to proceed to step 2
+      await page.getByRole('button', { name: /next/i }).click();
+
+      // Step 2: Fill in project details
       await page.getByTestId('project-title-input').fill('EPUB Content Test');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();
@@ -512,6 +531,11 @@ test.describe('Online Publishing Workflow', () => {
         'The quick brown fox jumps over the lazy dog near the riverbank.';
 
       await page.goto('/create-project');
+
+      // Step 1: Click Next to proceed to step 2
+      await page.getByRole('button', { name: /next/i }).click();
+
+      // Step 2: Fill in project details
       await page
         .getByTestId('project-title-input')
         .fill('Markdown Content Test');
@@ -625,6 +649,11 @@ test.describe('Online Publishing Workflow', () => {
         'The quick brown fox jumps over the lazy dog near the riverbank.';
 
       await page.goto('/create-project');
+
+      // Step 1: Click Next to proceed to step 2
+      await page.getByRole('button', { name: /next/i }).click();
+
+      // Step 2: Fill in project details
       await page.getByTestId('project-title-input').fill('HTML Content Test');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();

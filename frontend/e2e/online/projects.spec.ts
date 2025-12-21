@@ -93,8 +93,8 @@ test.describe('Online Project Workflows', () => {
     // Step 2: Fill in some data
     await page.getByTestId('project-title-input').fill('Cancelled Project');
 
-    // Click cancel button
-    await page.getByTestId('cancel-button').click();
+    // Click the back button in the top bar
+    await page.getByLabel('Go back to home').click();
 
     // Should navigate back to home
     await expect(page).toHaveURL('/');

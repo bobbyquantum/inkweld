@@ -56,7 +56,7 @@ export class CreateProjectComponent {
   /** Available project templates */
   templates = signal<ProjectTemplateInfo[]>([]);
   /** Currently selected template ID */
-  selectedTemplateId = signal<string>('empty');
+  selectedTemplateId = signal<string>('worldbuilding-empty');
   /** Whether templates are loading */
   loadingTemplates = signal(true);
 
