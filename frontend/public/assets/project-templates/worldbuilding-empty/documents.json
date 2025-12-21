@@ -1,0 +1,95 @@
+[
+  {
+    "elementId": "readme-001",
+    "content": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "heading",
+          "attrs": { "level": 1 },
+          "content": [{ "type": "text", "text": "Welcome to Your Worldbuilding Project" }]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "This project comes pre-configured with worldbuilding templates and relationship types to help you build your world." }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": { "level": 2 },
+          "content": [{ "type": "text", "text": "Included Templates" }]
+        },
+        {
+          "type": "bullet_list",
+          "content": [
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Character" }, { "type": "text", "text": " - Create detailed character profiles with appearance, personality, and background" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Location" }, { "type": "text", "text": " - Document places with culture, history, and geography" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "marks": [{ "type": "bold" }], "text": "Item" }, { "type": "text", "text": " - Catalog objects, artifacts, and other items" }]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": { "level": 2 },
+          "content": [{ "type": "text", "text": "Getting Started" }]
+        },
+        {
+          "type": "bullet_list",
+          "content": [
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "text": "Right-click in the sidebar to create characters, locations, or other worldbuilding elements" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "text": "Use the Relationships tab to connect your elements together" }]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [{ "type": "text", "text": "Customize templates in Project Settings to fit your world's needs" }]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

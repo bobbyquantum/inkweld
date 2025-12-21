@@ -1,0 +1,65 @@
+[
+  {
+    "id": "rel-elara-theron-friend",
+    "sourceId": "char-elara",
+    "targetId": "char-theron",
+    "typeId": "friend",
+    "notes": "An unlikely friendship formed when Theron helped Elara navigate Thornwood safely. They respect each other's need for solitude."
+  },
+  {
+    "id": "rel-elara-cloudspire",
+    "sourceId": "char-elara",
+    "targetId": "loc-cloudspire",
+    "typeId": "originated-from",
+    "notes": "Elara studied at Cloudspire Academy under Aldric the Grey. Her thesis on pre-Sundering magical theory is still referenced today."
+  },
+  {
+    "id": "rel-mira-elara-colleague",
+    "sourceId": "char-mira",
+    "targetId": "char-elara",
+    "typeId": "colleague",
+    "notes": "Mira occasionally crafts specialized tools for Elara's research. They share a mutual respect for craftsmanship in their respective fields."
+  },
+  {
+    "id": "rel-theron-thornwood",
+    "sourceId": "char-theron",
+    "targetId": "loc-thornwood",
+    "typeId": "lives-in",
+    "notes": "Theron has lived in Thornwood Forest for ten years, serving as its primary guardian and liaison with Silverhollow."
+  },
+  {
+    "id": "rel-theron-silverhollow-origin",
+    "sourceId": "char-theron",
+    "targetId": "loc-silverhollow",
+    "typeId": "originated-from",
+    "notes": "Born and raised in Silverhollow before joining the military. His family still lives there, unaware he's alive."
+  },
+  {
+    "id": "rel-mira-silverhollow",
+    "sourceId": "char-mira",
+    "targetId": "loc-silverhollow",
+    "typeId": "lives-in",
+    "notes": "Mira runs the Stonehart Forge, the finest smithy in town. She's been a resident for five years."
+  },
+  {
+    "id": "rel-silverhollow-thornwood-adjacent",
+    "sourceId": "loc-silverhollow",
+    "targetId": "loc-thornwood",
+    "typeId": "adjacent-to",
+    "notes": "Silverhollow sits at the edge of Thornwood Forest. The Thornwood Accord established peaceful relations between the two."
+  },
+  {
+    "id": "rel-elara-thornwood",
+    "sourceId": "char-elara",
+    "targetId": "loc-thornwood",
+    "typeId": "located-in",
+    "notes": "Elara frequently visits Thornwood seeking clues to the Library of Moonveil. Theron guides her to the safer areas."
+  },
+  {
+    "id": "rel-theron-mira-friend",
+    "sourceId": "char-theron",
+    "targetId": "char-mira",
+    "typeId": "friend",
+    "notes": "Theron trades forest materials with Mira. They share a similar taciturn nature and respect for honest work."
+  }
+]
