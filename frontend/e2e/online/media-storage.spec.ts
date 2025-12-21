@@ -16,6 +16,11 @@ test.describe('Online Media Storage', () => {
       // Create a new project first
       const uniqueSlug = generateUniqueSlug('cover-test');
       await page.goto('/create-project');
+
+      // Step 1: Click Next to proceed to step 2
+      await page.getByRole('button', { name: /next/i }).click();
+
+      // Step 2: Fill in project details
       await page.getByTestId('project-title-input').fill('Cover Test Project');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();
@@ -38,6 +43,11 @@ test.describe('Online Media Storage', () => {
       // Create a project
       const uniqueSlug = generateUniqueSlug('display-cover');
       await page.goto('/create-project');
+
+      // Step 1: Click Next to proceed to step 2
+      await page.getByRole('button', { name: /next/i }).click();
+
+      // Step 2: Fill in project details
       await page.getByTestId('project-title-input').fill('Display Cover Test');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();
@@ -56,6 +66,11 @@ test.describe('Online Media Storage', () => {
       // Create a project
       const uniqueSlug = generateUniqueSlug('persist-cover');
       await page.goto('/create-project');
+
+      // Step 1: Click Next to proceed to step 2
+      await page.getByRole('button', { name: /next/i }).click();
+
+      // Step 2: Fill in project details
       await page.getByTestId('project-title-input').fill('Persist Cover Test');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();
@@ -127,6 +142,11 @@ test.describe('Online Media Storage', () => {
       // Create a project
       const uniqueSlug = generateUniqueSlug('api-cover');
       await page.goto('/create-project');
+
+      // Step 1: Click Next to proceed to step 2
+      await page.getByRole('button', { name: /next/i }).click();
+
+      // Step 2: Fill in project details
       await page.getByTestId('project-title-input').fill('API Cover Test');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();
@@ -159,6 +179,11 @@ test.describe('Online Media Storage', () => {
       const uniqueSlug = generateUniqueSlug('with-cover');
 
       await page.goto('/create-project');
+
+      // Step 1: Click Next to proceed to step 2
+      await page.getByRole('button', { name: /next/i }).click();
+
+      // Step 2: Fill in project details
       await page.getByTestId('project-title-input').fill('Project With Cover');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page
@@ -183,6 +208,11 @@ test.describe('Online Media Storage', () => {
       const uniqueSlug = generateUniqueSlug('no-cover');
 
       await page.goto('/create-project');
+
+      // Step 1: Click Next to proceed to step 2
+      await page.getByRole('button', { name: /next/i }).click();
+
+      // Step 2: Fill in project details
       await page.getByTestId('project-title-input').fill('Project No Cover');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();
@@ -207,6 +237,11 @@ test.describe('Online Media Storage', () => {
       const uniqueSlug = generateUniqueSlug('home-display');
 
       await page.goto('/create-project');
+
+      // Step 1: Click Next to proceed to step 2
+      await page.getByRole('button', { name: /next/i }).click();
+
+      // Step 2: Fill in project details
       await page.getByTestId('project-title-input').fill('Home Display Test');
       await page.getByTestId('project-slug-input').fill(uniqueSlug);
       await page.getByTestId('create-project-button').click();

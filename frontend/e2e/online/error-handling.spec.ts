@@ -83,7 +83,10 @@ test.describe('Error Handling and Edge Cases', () => {
     }) => {
       await page.goto('/create-project');
 
-      // Try XSS in project title
+      // Step 1: Click Next to proceed to step 2
+      await page.getByRole('button', { name: /next/i }).click();
+
+      // Step 2: Try XSS in project title
       await page
         .getByTestId('project-title-input')
         .fill('<script>alert("XSS")</script>');

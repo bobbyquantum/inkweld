@@ -15,6 +15,7 @@ import { existsSync } from 'fs';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
 
+import { createProjectWithTwoSteps } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 /**
@@ -105,26 +106,14 @@ test.describe('Element Reference Screenshots', () => {
       timeout: 5000,
     });
 
-    // Click the create project button
-    await page.click('button:has-text("Create Project")');
-
-    // Wait for create project form
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-      timeout: 3000,
-    });
-
-    // Fill in project details
-    await page.fill('input[data-testid="project-title-input"]', projectTitle);
-    await page.fill('input[data-testid="project-slug-input"]', projectSlug);
-
-    // Submit the form
-    await page.click('button[type="submit"]');
-
-    // Wait for navigation to the project page
-    await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {
-      timeout: 5000,
-    });
+    // Create project using worldbuilding-demo template for rich content
+    await createProjectWithTwoSteps(
+      page,
+      projectTitle,
+      projectSlug,
+      undefined,
+      'worldbuilding-demo'
+    );
 
     // Wait for project tree to be visible
     await page.waitForSelector('app-project-tree', {
@@ -133,7 +122,7 @@ test.describe('Element Reference Screenshots', () => {
     });
     await page.waitForTimeout(500);
 
-    // Expand the "Chapters" folder
+    // Expand the "Chronicles" folder (from worldbuilding-demo template)
     const expandButton = page
       .locator('[data-testid="expand-folder-button"]')
       .first();
@@ -142,8 +131,8 @@ test.describe('Element Reference Screenshots', () => {
       await page.waitForTimeout(400);
     }
 
-    // Click on "Chapter 1" to open it
-    await page.click('text="Chapter 1"').catch(() => {
+    // Click on "The Moonveil Accord" to open it
+    await page.click('text="The Moonveil Accord"').catch(() => {
       return page.locator('.tree-node-item').first().click();
     });
     await page.waitForTimeout(400);
@@ -174,26 +163,14 @@ test.describe('Element Reference Screenshots', () => {
       timeout: 5000,
     });
 
-    // Click the create project button
-    await page.click('button:has-text("Create Project")');
-
-    // Wait for create project form
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-      timeout: 3000,
-    });
-
-    // Fill in project details
-    await page.fill('input[data-testid="project-title-input"]', projectTitle);
-    await page.fill('input[data-testid="project-slug-input"]', projectSlug);
-
-    // Submit the form
-    await page.click('button[type="submit"]');
-
-    // Wait for navigation to the project page
-    await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {
-      timeout: 5000,
-    });
+    // Create project using worldbuilding-demo template for rich content
+    await createProjectWithTwoSteps(
+      page,
+      projectTitle,
+      projectSlug,
+      undefined,
+      'worldbuilding-demo'
+    );
 
     // Wait for project tree to be visible
     await page.waitForSelector('app-project-tree', {
@@ -209,7 +186,7 @@ test.describe('Element Reference Screenshots', () => {
     await page.getByTestId('create-element-button').click();
     await page.waitForTimeout(300);
 
-    // Expand the "Chapters" folder to access Chapter 1
+    // Expand the "Chronicles" folder to access The Moonveil Accord
     const expandButton = page
       .locator('[data-testid="expand-folder-button"]')
       .first();
@@ -218,8 +195,8 @@ test.describe('Element Reference Screenshots', () => {
       await page.waitForTimeout(400);
     }
 
-    // Click on "Chapter 1" to open it
-    await page.click('text="Chapter 1"').catch(() => {
+    // Click on "The Moonveil Accord" to open it
+    await page.click('text="The Moonveil Accord"').catch(() => {
       return page.locator('.tree-node-item').first().click();
     });
     await page.waitForTimeout(400);

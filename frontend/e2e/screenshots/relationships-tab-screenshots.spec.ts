@@ -52,6 +52,12 @@ async function captureElementScreenshot(
   const clipWidth = Math.min(maxX - minX, (viewport?.width || 1280) - minX);
   const clipHeight = Math.min(maxY - minY, (viewport?.height || 800) - minY);
 
+  // Safeguard against invalid clip dimensions
+  if (clipWidth <= 0 || clipHeight <= 0) {
+    await page.screenshot({ path, fullPage: false });
+    return;
+  }
+
   await page.screenshot({
     path,
     clip: {
@@ -97,6 +103,12 @@ test.describe('Relationships Tab Screenshots', () => {
 
     await page.click('button:has-text("Create Project")');
 
+    // Step 1: Template selection - click Next to proceed
+    const nextButton = page.getByRole('button', { name: /next/i });
+    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await nextButton.click();
+
+    // Step 2: Fill in project details
     await page.waitForSelector('input[data-testid="project-title-input"]', {
       state: 'visible',
       timeout: 3000,
@@ -105,7 +117,7 @@ test.describe('Relationships Tab Screenshots', () => {
     await page.fill('input[data-testid="project-title-input"]', projectTitle);
     await page.fill('input[data-testid="project-slug-input"]', projectSlug);
 
-    await page.click('button[type="submit"]');
+    await page.click('button[data-testid="create-project-button"]');
 
     await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {
       timeout: 5000,
@@ -142,28 +154,26 @@ test.describe('Relationships Tab Screenshots', () => {
       });
     });
 
-    test('built-in types section', async ({ offlinePage: page }) => {
+    test('relationship types section', async ({ offlinePage: page }) => {
       await setupProjectAndRelationshipsTab(
         page,
-        'rel-builtin-light',
-        'Built-in Types Demo'
+        'rel-types-light',
+        'Relationship Types Demo'
       );
 
-      await page.waitForSelector('.type-card.built-in', {
+      await page.waitForSelector('[data-testid="relationship-type-card"]', {
         state: 'visible',
         timeout: 5000,
       });
       await page.waitForTimeout(300);
 
-      // Capture just the built-in types section
-      const builtInSection = page.locator(
-        '.section:has(.section-title:has-text("Built-in Types"))'
-      );
+      // Capture the types grid section
+      const typesSection = page.locator('.types-grid').first();
 
       await captureElementScreenshot(
         page,
-        [builtInSection],
-        join(screenshotsDir, 'relationships-builtin-types-light.png'),
+        [typesSection],
+        join(screenshotsDir, 'relationships-types-light.png'),
         16
       );
     });
@@ -205,33 +215,18 @@ test.describe('Relationships Tab Screenshots', () => {
         'Type Details Demo'
       );
 
+      // Wait for type cards to load
       await page.waitForSelector('[data-testid="relationship-type-card"]', {
         state: 'visible',
         timeout: 5000,
       });
       await page.waitForTimeout(300);
 
-      // Find a card with good details (Parent type has constraints)
-      const parentCard = page.locator(
-        '.type-card:has(mat-card-title:has-text("Parent"))'
-      );
-
-      if (await parentCard.isVisible().catch(() => false)) {
-        await captureElementScreenshot(
-          page,
-          [parentCard],
-          join(screenshotsDir, 'relationships-card-details-light.png'),
-          16
-        );
-      } else {
-        // Fallback to first card
-        await captureElementScreenshot(
-          page,
-          [page.locator('[data-testid="relationship-type-card"]').first()],
-          join(screenshotsDir, 'relationships-card-details-light.png'),
-          16
-        );
-      }
+      // Screenshot the viewport showing the type cards
+      await page.screenshot({
+        path: join(screenshotsDir, 'relationships-card-details-light.png'),
+        fullPage: false,
+      });
     });
 
     test('type action menu', async ({ offlinePage: page }) => {
@@ -241,21 +236,23 @@ test.describe('Relationships Tab Screenshots', () => {
         'Action Menu Demo'
       );
 
-      await page.waitForSelector('.type-card.built-in', {
+      await page.waitForSelector('[data-testid="relationship-type-card"]', {
         state: 'visible',
         timeout: 5000,
       });
       await page.waitForTimeout(300);
 
-      // Open the menu on a built-in type to show clone option
-      const builtInCard = page.locator('.type-card.built-in').first();
-      await builtInCard.locator('button[mat-icon-button]').click();
+      // Open the menu on a type card
+      const typeCard = page
+        .locator('[data-testid="relationship-type-card"]')
+        .first();
+      await typeCard.locator('button[mat-icon-button]').click();
       await page.waitForTimeout(200);
 
       // Screenshot with menu open
       await captureElementScreenshot(
         page,
-        [builtInCard, page.locator('.mat-mdc-menu-panel')],
+        [typeCard, page.locator('.mat-mdc-menu-panel')],
         join(screenshotsDir, 'relationships-action-menu-light.png'),
         24
       );
@@ -284,29 +281,27 @@ test.describe('Relationships Tab Screenshots', () => {
       });
     });
 
-    test('built-in types section dark', async ({ offlinePage: page }) => {
+    test('relationship types section dark', async ({ offlinePage: page }) => {
       // Set dark mode via media emulation
       await page.emulateMedia({ colorScheme: 'dark' });
 
       await setupProjectAndRelationshipsTab(
         page,
-        'rel-builtin-dark',
-        'Built-in Types Demo'
+        'rel-types-dark',
+        'Relationship Types Demo'
       );
 
-      await page.waitForSelector('.type-card.built-in', {
+      await page.waitForSelector('[data-testid="relationship-type-card"]', {
         state: 'visible',
         timeout: 5000,
       });
 
-      const builtInSection = page.locator(
-        '.section:has(.section-title:has-text("Built-in Types"))'
-      );
+      const typesSection = page.locator('.types-grid').first();
 
       await captureElementScreenshot(
         page,
-        [builtInSection],
-        join(screenshotsDir, 'relationships-builtin-types-dark.png'),
+        [typesSection],
+        join(screenshotsDir, 'relationships-types-dark.png'),
         16
       );
     });
@@ -321,31 +316,18 @@ test.describe('Relationships Tab Screenshots', () => {
         'Type Card Demo'
       );
 
-      await page.waitForSelector('.type-card.built-in', {
+      // Wait for type cards to load
+      await page.waitForSelector('[data-testid="relationship-type-card"]', {
         state: 'visible',
         timeout: 5000,
       });
+      await page.waitForTimeout(300);
 
-      // Screenshot of a built-in type card in dark mode
-      const parentCard = page.locator(
-        '.type-card:has(mat-card-title:has-text("Parent"))'
-      );
-
-      if (await parentCard.isVisible().catch(() => false)) {
-        await captureElementScreenshot(
-          page,
-          [parentCard],
-          join(screenshotsDir, 'relationships-type-card-dark.png'),
-          16
-        );
-      } else {
-        await captureElementScreenshot(
-          page,
-          [page.locator('.type-card.built-in').first()],
-          join(screenshotsDir, 'relationships-type-card-dark.png'),
-          16
-        );
-      }
+      // Screenshot the viewport showing the type cards
+      await page.screenshot({
+        path: join(screenshotsDir, 'relationships-type-card-dark.png'),
+        fullPage: false,
+      });
     });
   });
 
@@ -401,6 +383,12 @@ test.describe('Relationships Tab Screenshots', () => {
 
       await page.click('button:has-text("Create Project")');
 
+      // Step 1: Template selection - click Next to proceed
+      const nextButton = page.getByRole('button', { name: /next/i });
+      await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+      await nextButton.click();
+
+      // Step 2: Fill in project details
       await page.waitForSelector('input[data-testid="project-title-input"]', {
         state: 'visible',
         timeout: 3000,
@@ -409,7 +397,7 @@ test.describe('Relationships Tab Screenshots', () => {
       await page.fill('input[data-testid="project-title-input"]', projectTitle);
       await page.fill('input[data-testid="project-slug-input"]', projectSlug);
 
-      await page.click('button[type="submit"]');
+      await page.click('button[data-testid="create-project-button"]');
 
       await page.waitForURL(new RegExp(`/demouser/${projectSlug}`), {
         timeout: 5000,

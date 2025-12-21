@@ -10,6 +10,8 @@
 
 import { expect, test } from '@playwright/test';
 
+import { createProjectWithTwoSteps } from '../common/test-helpers';
+
 test.describe('Element Reference (@mentions)', () => {
   test.beforeEach(async ({ page }) => {
     // Configure offline mode for isolated testing
@@ -37,16 +39,14 @@ test.describe('Element Reference (@mentions)', () => {
       timeout: 5000,
     });
 
-    // Create a project
-    await page.click('button:has-text("Create Project")');
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-      timeout: 3000,
-    });
-
-    await page.fill('input[data-testid="project-title-input"]', 'Test Project');
-    await page.fill('input[data-testid="project-slug-input"]', 'test-project');
-    await page.click('button[type="submit"]');
+    // Create a project using the two-step flow with demo template
+    await createProjectWithTwoSteps(
+      page,
+      'Test Project',
+      'test-project',
+      undefined,
+      'worldbuilding-demo'
+    );
 
     // Wait for navigation
     await page.waitForURL(/\/testuser\/test-project/, { timeout: 5000 });
@@ -57,17 +57,8 @@ test.describe('Element Reference (@mentions)', () => {
       timeout: 3000,
     });
 
-    // Expand folders if needed
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    if (await expandButton.isVisible().catch(() => false)) {
-      await expandButton.click();
-      await page.waitForTimeout(300);
-    }
-
-    // Open a document
-    await page.click('text="Chapter 1"').catch(() => {
+    // Open the README document (exists in all templates)
+    await page.click('text="README"').catch(() => {
       return page.locator('.tree-node-item').first().click();
     });
 
@@ -98,14 +89,14 @@ test.describe('Element Reference (@mentions)', () => {
       timeout: 5000,
     });
 
-    // Create project
-    await page.click('button:has-text("Create Project")');
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-    });
-    await page.fill('input[data-testid="project-title-input"]', 'Escape Test');
-    await page.fill('input[data-testid="project-slug-input"]', 'escape-test');
-    await page.click('button[type="submit"]');
+    // Create project using the two-step flow with demo template
+    await createProjectWithTwoSteps(
+      page,
+      'Escape Test',
+      'escape-test',
+      undefined,
+      'worldbuilding-demo'
+    );
     await page.waitForURL(/\/testuser\/escape-test/, { timeout: 5000 });
 
     // Open document
@@ -113,15 +104,10 @@ test.describe('Element Reference (@mentions)', () => {
       state: 'visible',
       timeout: 3000,
     });
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    if (await expandButton.isVisible().catch(() => false)) {
-      await expandButton.click();
-      await page.waitForTimeout(200);
-    }
+
+    // Open the README document
     await page
-      .click('text="Chapter 1"')
+      .click('text="README"')
       .catch(() => page.locator('.tree-node-item').first().click());
 
     // Get editor and type @
@@ -149,36 +135,31 @@ test.describe('Element Reference (@mentions)', () => {
       timeout: 5000,
     });
 
-    await page.click('button:has-text("Create Project")');
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-    });
-    await page.fill('input[data-testid="project-title-input"]', 'Search Test');
-    await page.fill('input[data-testid="project-slug-input"]', 'search-test');
-    await page.click('button[type="submit"]');
+    await createProjectWithTwoSteps(
+      page,
+      'Search Test',
+      'search-test',
+      undefined,
+      'worldbuilding-demo'
+    );
     await page.waitForURL(/\/testuser\/search-test/, { timeout: 5000 });
 
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
       timeout: 3000,
     });
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    if (await expandButton.isVisible().catch(() => false)) {
-      await expandButton.click();
-      await page.waitForTimeout(200);
-    }
+
+    // Open the README document
     await page
-      .click('text="Chapter 1"')
+      .click('text="README"')
       .catch(() => page.locator('.tree-node-item').first().click());
 
     const editor = page.locator('.ProseMirror').first();
     await editor.waitFor({ state: 'visible', timeout: 5000 });
     await editor.click();
 
-    // Type @ with a search term
-    await page.keyboard.type('@chapter');
+    // Type @ with a search term (searching for a character in the demo template)
+    await page.keyboard.type('@elara');
 
     // Wait for popup
     const popup = page.locator('[data-testid="element-ref-popup"]');
@@ -188,9 +169,9 @@ test.describe('Element Reference (@mentions)', () => {
     const searchInput = page.locator(
       '[data-testid="element-ref-search-input"]'
     );
-    await expect(searchInput).toHaveValue('chapter');
+    await expect(searchInput).toHaveValue('elara');
 
-    // Results should show items matching "chapter"
+    // Results should show items matching "elara"
     // The results container should be visible
     const results = page.locator('[data-testid="element-ref-results"]');
     await expect(results).toBeVisible();
@@ -204,28 +185,23 @@ test.describe('Element Reference (@mentions)', () => {
       timeout: 5000,
     });
 
-    await page.click('button:has-text("Create Project")');
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-    });
-    await page.fill('input[data-testid="project-title-input"]', 'Click Test');
-    await page.fill('input[data-testid="project-slug-input"]', 'click-test');
-    await page.click('button[type="submit"]');
+    await createProjectWithTwoSteps(
+      page,
+      'Click Test',
+      'click-test',
+      undefined,
+      'worldbuilding-demo'
+    );
     await page.waitForURL(/\/testuser\/click-test/, { timeout: 5000 });
 
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
       timeout: 3000,
     });
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    if (await expandButton.isVisible().catch(() => false)) {
-      await expandButton.click();
-      await page.waitForTimeout(200);
-    }
+
+    // Open the README document
     await page
-      .click('text="Chapter 1"')
+      .click('text="README"')
       .catch(() => page.locator('.tree-node-item').first().click());
 
     const editor = page.locator('.ProseMirror').first();
@@ -259,31 +235,23 @@ test.describe('Element Reference (@mentions)', () => {
       timeout: 5000,
     });
 
-    await page.click('button:has-text("Create Project")');
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-    });
-    await page.fill(
-      'input[data-testid="project-title-input"]',
-      'Keyboard Test'
+    await createProjectWithTwoSteps(
+      page,
+      'Keyboard Test',
+      'keyboard-test',
+      undefined,
+      'worldbuilding-demo'
     );
-    await page.fill('input[data-testid="project-slug-input"]', 'keyboard-test');
-    await page.click('button[type="submit"]');
     await page.waitForURL(/\/testuser\/keyboard-test/, { timeout: 5000 });
 
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
       timeout: 3000,
     });
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    if (await expandButton.isVisible().catch(() => false)) {
-      await expandButton.click();
-      await page.waitForTimeout(200);
-    }
+
+    // Open the README document
     await page
-      .click('text="Chapter 1"')
+      .click('text="README"')
       .catch(() => page.locator('.tree-node-item').first().click());
 
     const editor = page.locator('.ProseMirror').first();
@@ -328,28 +296,23 @@ test.describe('Element Reference (@mentions)', () => {
       timeout: 5000,
     });
 
-    await page.click('button:has-text("Create Project")');
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-    });
-    await page.fill('input[data-testid="project-title-input"]', 'Style Test');
-    await page.fill('input[data-testid="project-slug-input"]', 'style-test');
-    await page.click('button[type="submit"]');
+    await createProjectWithTwoSteps(
+      page,
+      'Style Test',
+      'style-test',
+      undefined,
+      'worldbuilding-demo'
+    );
     await page.waitForURL(/\/testuser\/style-test/, { timeout: 5000 });
 
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
       timeout: 3000,
     });
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    if (await expandButton.isVisible().catch(() => false)) {
-      await expandButton.click();
-      await page.waitForTimeout(200);
-    }
+
+    // Open the README document
     await page
-      .click('text="Chapter 1"')
+      .click('text="README"')
       .catch(() => page.locator('.tree-node-item').first().click());
 
     const editor = page.locator('.ProseMirror').first();
@@ -400,34 +363,23 @@ test.describe('Element Reference (@mentions)', () => {
       timeout: 5000,
     });
 
-    await page.click('button:has-text("Create Project")');
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-    });
-    await page.fill(
-      'input[data-testid="project-title-input"]',
-      'Context Menu Test'
+    await createProjectWithTwoSteps(
+      page,
+      'Context Menu Test',
+      'context-menu-test',
+      undefined,
+      'worldbuilding-demo'
     );
-    await page.fill(
-      'input[data-testid="project-slug-input"]',
-      'context-menu-test'
-    );
-    await page.click('button[type="submit"]');
     await page.waitForURL(/\/testuser\/context-menu-test/, { timeout: 5000 });
 
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
       timeout: 3000,
     });
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    if (await expandButton.isVisible().catch(() => false)) {
-      await expandButton.click();
-      await page.waitForTimeout(200);
-    }
+
+    // Open the README document
     await page
-      .click('text="Chapter 1"')
+      .click('text="README"')
       .catch(() => page.locator('.tree-node-item').first().click());
 
     const editor = page.locator('.ProseMirror').first();
@@ -484,28 +436,23 @@ test.describe('Element Reference (@mentions)', () => {
       timeout: 5000,
     });
 
-    await page.click('button:has-text("Create Project")');
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-    });
-    await page.fill('input[data-testid="project-title-input"]', 'Edit Test');
-    await page.fill('input[data-testid="project-slug-input"]', 'edit-test');
-    await page.click('button[type="submit"]');
+    await createProjectWithTwoSteps(
+      page,
+      'Edit Test',
+      'edit-test',
+      undefined,
+      'worldbuilding-demo'
+    );
     await page.waitForURL(/\/testuser\/edit-test/, { timeout: 5000 });
 
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
       timeout: 3000,
     });
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    if (await expandButton.isVisible().catch(() => false)) {
-      await expandButton.click();
-      await page.waitForTimeout(200);
-    }
+
+    // Open the README document
     await page
-      .click('text="Chapter 1"')
+      .click('text="README"')
       .catch(() => page.locator('.tree-node-item').first().click());
 
     const editor = page.locator('.ProseMirror').first();
@@ -568,28 +515,23 @@ test.describe('Element Reference (@mentions)', () => {
       timeout: 5000,
     });
 
-    await page.click('button:has-text("Create Project")');
-    await page.waitForSelector('input[data-testid="project-title-input"]', {
-      state: 'visible',
-    });
-    await page.fill('input[data-testid="project-title-input"]', 'Delete Test');
-    await page.fill('input[data-testid="project-slug-input"]', 'delete-test');
-    await page.click('button[type="submit"]');
+    await createProjectWithTwoSteps(
+      page,
+      'Delete Test',
+      'delete-test',
+      undefined,
+      'worldbuilding-demo'
+    );
     await page.waitForURL(/\/testuser\/delete-test/, { timeout: 5000 });
 
     await page.waitForSelector('app-project-tree', {
       state: 'visible',
       timeout: 3000,
     });
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    if (await expandButton.isVisible().catch(() => false)) {
-      await expandButton.click();
-      await page.waitForTimeout(200);
-    }
+
+    // Open the README document
     await page
-      .click('text="Chapter 1"')
+      .click('text="README"')
       .catch(() => page.locator('.tree-node-item').first().click());
 
     const editor = page.locator('.ProseMirror').first();
@@ -608,12 +550,13 @@ test.describe('Element Reference (@mentions)', () => {
       await resultItem.click();
       await page.waitForTimeout(300);
 
-      // Find the element reference
+      // Find the element reference and count how many there are
+      const elementRefsBefore = await page.locator('.element-ref').count();
+      expect(elementRefsBefore).toBeGreaterThan(0);
+
+      // Find the first element reference
       const elementRef = page.locator('.element-ref').first();
       await expect(elementRef).toBeVisible({ timeout: 2000 });
-
-      // Get the display text for verification later
-      const displayText = await elementRef.textContent();
 
       // Right-click and open context menu
       await elementRef.click({ button: 'right' });
@@ -626,15 +569,10 @@ test.describe('Element Reference (@mentions)', () => {
       const deleteBtn = page.locator('[data-testid="context-menu-delete"]');
       await deleteBtn.click();
 
-      // Verify the element reference was removed
+      // Verify the element reference count decreased
       await page.waitForTimeout(300);
-      await expect(page.locator('.element-ref').first()).not.toBeVisible({
-        timeout: 1000,
-      });
-
-      // Verify the text is now just plain text in the editor (not an element ref)
-      const editorText = await editor.textContent();
-      expect(editorText).not.toContain(displayText);
+      const elementRefsAfter = await page.locator('.element-ref').count();
+      expect(elementRefsAfter).toBe(elementRefsBefore - 1);
     }
   });
 });
