@@ -65,6 +65,17 @@
 
 .project-card {
   padding: 24px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+:host-context(.dark-theme) .project-card {
+  background: rgba(30, 33, 34, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
 mat-form-field {
@@ -83,6 +94,34 @@ mat-form-field {
 mat-card-actions {
   padding: 16px;
   padding-top: 0;
+}
+
+// Step header styling
+.step-header {
+  margin-bottom: 2rem;
+
+  h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  .step-description {
+    margin: 0;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+:host-context(.dark-theme) .step-header {
+  h2 {
+    color: rgba(255, 255, 255, 0.87);
+  }
+
+  .step-description {
+    color: rgba(255, 255, 255, 0.6);
+  }
 }
 
 // Template Selection Styles
@@ -107,6 +146,7 @@ mat-card-actions {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  animation: fadeIn 0.3s ease-in-out;
 }
 
 .template-card {
@@ -164,5 +204,14 @@ mat-card-actions {
   .check-icon {
     color: var(--mat-primary-color, #7c4dff);
     flex-shrink: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
