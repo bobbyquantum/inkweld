@@ -13,7 +13,12 @@ test.describe('Online Project Workflows', () => {
     // Navigate to create project page
     await page.goto('/create-project');
 
-    // Fill in project details
+    // Step 1: Template selection (default 'empty' is already selected)
+    const nextButton = page.getByRole('button', { name: /next/i });
+    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await nextButton.click();
+
+    // Step 2: Fill in project details
     const uniqueSlug = `test-project-${Date.now()}`;
     await page.getByTestId('project-title-input').fill('My Test Project');
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
@@ -33,7 +38,12 @@ test.describe('Online Project Workflows', () => {
   }) => {
     await page.goto('/create-project');
 
-    // Try to submit without filling required fields
+    // Step 1: Template selection (default 'empty' is already selected)
+    const nextButton = page.getByRole('button', { name: /next/i });
+    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await nextButton.click();
+
+    // Step 2: Try to submit without filling required fields
     await expect(page.getByTestId('create-project-button')).toBeDisabled();
 
     // Fill only slug
@@ -50,7 +60,12 @@ test.describe('Online Project Workflows', () => {
   }) => {
     await page.goto('/create-project');
 
-    // Fill in title
+    // Step 1: Template selection
+    const nextButton = page.getByRole('button', { name: /next/i });
+    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await nextButton.click();
+
+    // Step 2: Fill in title
     await page.getByTestId('project-title-input').fill('My Awesome Project');
 
     // Blur to trigger slug generation
@@ -70,7 +85,12 @@ test.describe('Online Project Workflows', () => {
   }) => {
     await page.goto('/create-project');
 
-    // Fill in some data
+    // Step 1: Template selection
+    const nextButton = page.getByRole('button', { name: /next/i });
+    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await nextButton.click();
+
+    // Step 2: Fill in some data
     await page.getByTestId('project-title-input').fill('Cancelled Project');
 
     // Click cancel button
@@ -84,6 +104,12 @@ test.describe('Online Project Workflows', () => {
     authenticatedPage: page,
   }) => {
     await page.goto('/create-project');
+
+    // Step 1: Template selection
+    const nextButton = page.getByRole('button', { name: /next/i });
+    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await nextButton.click();
+
     const uniqueSlug = `persist-test-${Date.now()}`;
     await page.getByTestId('project-title-input').fill('Persistence Test');
     await page.getByTestId('project-slug-input').fill(uniqueSlug);
@@ -108,9 +134,15 @@ test.describe('Online Project Workflows', () => {
     authenticatedPage: page,
   }) => {
     await page.goto('/create-project');
+
+    // Step 1: Template selection
+    const nextButton = page.getByRole('button', { name: /next/i });
+    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await nextButton.click();
+
     await page.waitForLoadState('networkidle');
 
-    // Fill in slug
+    // Step 2: Fill in slug
     await page.getByTestId('project-slug-input').fill('preview-test');
 
     // Should show URL preview
@@ -124,6 +156,11 @@ test.describe('Online Project Workflows', () => {
     authenticatedPage: page,
   }) => {
     await page.goto('/create-project');
+
+    // Step 1: Template selection
+    const nextButton = page.getByRole('button', { name: /next/i });
+    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await nextButton.click();
 
     const longTitle = 'A'.repeat(100);
     const longDescription = 'B'.repeat(500);
@@ -145,6 +182,11 @@ test.describe('Online Project Workflows', () => {
     authenticatedPage: page,
   }) => {
     await page.goto('/create-project');
+
+    // Step 1: Template selection
+    const nextButton = page.getByRole('button', { name: /next/i });
+    await nextButton.waitFor({ state: 'visible', timeout: 5000 });
+    await nextButton.click();
 
     await page.getByTestId('project-title-input').fill('Loading Test');
     await page.getByTestId('project-slug-input').fill(`loading-${Date.now()}`);
