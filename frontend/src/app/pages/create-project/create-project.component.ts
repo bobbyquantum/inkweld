@@ -51,6 +51,8 @@ export class CreateProjectComponent {
   private router = inject(Router);
   private fb = inject(FormBuilder);
 
+  /** Current step (1: template selection, 2: project details) */
+  step = signal<1 | 2>(1);
   /** Available project templates */
   templates = signal<ProjectTemplateInfo[]>([]);
   /** Currently selected template ID */
@@ -120,6 +122,14 @@ export class CreateProjectComponent {
 
   selectTemplate(templateId: string): void {
     this.selectedTemplateId.set(templateId);
+  }
+
+  nextStep(): void {
+    this.step.set(2);
+  }
+
+  previousStep(): void {
+    this.step.set(1);
   }
 
   private async loadTemplates(): Promise<void> {

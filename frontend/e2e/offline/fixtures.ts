@@ -153,7 +153,13 @@ export const test = base.extend<OfflineTestFixtures>({
     await createButton.waitFor({ state: 'visible', timeout: 15000 });
     await createButton.click();
 
-    // Fill in project details in the dialog
+    // Step 1: Template Selection
+    // Wait for template to be selected (defaults to 'empty')
+    const nextButton = page.getByRole('button', { name: /next/i });
+    await nextButton.waitFor({ state: 'visible', timeout: 10000 });
+    await nextButton.click();
+
+    // Step 2: Fill in project details
     const titleInput = page.getByLabel(/project title/i);
     await titleInput.waitFor({ state: 'visible', timeout: 10000 });
     await titleInput.fill('Test Project');
@@ -163,7 +169,7 @@ export const test = base.extend<OfflineTestFixtures>({
     await slugInput.fill('test-project');
 
     // Submit the form
-    const submitButton = page.getByRole('button', { name: /create/i });
+    const submitButton = page.getByRole('button', { name: /create project/i });
     await submitButton.waitFor({ state: 'visible', timeout: 5000 });
     await submitButton.click();
 

@@ -11,105 +11,44 @@
 
   <div class="container">
     <mat-card class="project-card">
-      <form [formGroup]="projectForm" (ngSubmit)="onSubmit()">
+      <!-- Step 1: Template Selection -->
+      @if (step() === 1) {
         <mat-card-content>
-          <!-- Template Selection -->
-          <div class="template-section">
-            <h3>Choose a Template</h3>
-            @if (loadingTemplates()) {
-              <div class="loading-templates">Loading templates...</div>
-            } @else {
-              <div class="template-grid">
-                @for (template of templates(); track template.id) {
-                  <div
-                    class="template-card"
-                    [class.selected]="selectedTemplateId() === template.id"
-                    (click)="selectTemplate(template.id)"
-                    (keydown.enter)="selectTemplate(template.id)"
-                    (keydown.space)="selectTemplate(template.id)"
-                    role="radio"
-                    tabindex="0"
-                    [attr.aria-checked]="selectedTemplateId() === template.id"
-                    [attr.data-testid]="'template-' + template.id">
-                    <mat-icon class="template-icon">{{
-                      template.icon
-                    }}</mat-icon>
-                    <div class="template-info">
-                      <span class="template-name">{{ template.name }}</span>
-                      <span class="template-description">{{
-                        template.description
-                      }}</span>
-                    </div>
-                    @if (selectedTemplateId() === template.id) {
-                      <mat-icon class="check-icon">check_circle</mat-icon>
-                    }
-                  </div>
-                }
-              </div>
-            }
+          <div class="step-header">
+            <h2>Choose a Template</h2>
+            <p class="step-description">Select a template to start your project</p>
           </div>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Project Title</mat-label>
-            <input
-              matInput
-              formControlName="title"
-              title="Project Title"
-              placeholder="Title"
-              required
-              data-testid="project-title-input" />
-            @if (
-              projectForm.get('title')?.hasError('required') &&
-              projectForm.get('title')?.touched
-            ) {
-              <mat-error>Title is required</mat-error>
-            }
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Project Slug</mat-label>
-            <input
-              matInput
-              formControlName="slug"
-              title="Project Slug"
-              placeholder="project-slug"
-              required
-              data-testid="project-slug-input" />
-            @if (
-              projectForm.get('slug')?.hasError('required') &&
-              projectForm.get('slug')?.touched
-            ) {
-              <mat-error>Slug is required</mat-error>
-            }
-            @if (
-              projectForm.get('slug')?.hasError('pattern') &&
-              projectForm.get('slug')?.touched
-            ) {
-              <mat-error>
-                Slug can only contain lowercase letters, numbers, and hyphens
-              </mat-error>
-            }
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Project Description</mat-label>
-            <textarea
-              matInput
-              title="Project Description"
-              placeholder="Project Description"
-              formControlName="description"
-              rows="4"
-              data-testid="project-description-input"></textarea>
-          </mat-form-field>
-
-          @if (projectUrl) {
-            <div class="project-url-preview" data-testid="project-url-preview">
-              <strong>Project URL:</strong> {{ projectUrl }}
+          @if (loadingTemplates()) {
+            <div class="loading-templates">Loading templates...</div>
+          } @else {
+            <div class="template-grid">
+              @for (template of templates(); track template.id) {
+                <div
+                  class="template-card"
+                  [class.selected]="selectedTemplateId() === template.id"
+                  (click)="selectTemplate(template.id)"
+                  (keydown.enter)="selectTemplate(template.id)"
+                  (keydown.space)="selectTemplate(template.id)"
+                  role="radio"
+                  tabindex="0"
+                  [attr.aria-checked]="selectedTemplateId() === template.id"
+                  [attr.data-testid]="'template-' + template.id">
+                  <mat-icon class="template-icon">{{
+                    template.icon
+                  }}</mat-icon>
+                  <div class="template-info">
+                    <span class="template-name">{{ template.name }}</span>
+                    <span class="template-description">{{
+                      template.description
+                    }}</span>
+                  </div>
+                  @if (selectedTemplateId() === template.id) {
+                    <mat-icon class="check-icon">check_circle</mat-icon>
+                  }
+                </div>
+              }
             </div>
-          }
-
-          @if (isSaving) {
-            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
           }
         </mat-card-content>
 
@@ -118,19 +57,113 @@
             mat-button
             type="button"
             (click)="onCancel()"
-            data-testid="cancel-button">
+            data-testid="cancel-button-step1">
             Cancel
           </button>
           <button
             mat-raised-button
             color="primary"
-            type="submit"
-            [disabled]="projectForm.invalid || isSaving"
-            data-testid="create-project-button">
-            Create Project
+            type="button"
+            (click)="nextStep()"
+            data-testid="next-step-button">
+            Next
           </button>
         </mat-card-actions>
-      </form>
+      }
+
+      <!-- Step 2: Project Details -->
+      @if (step() === 2) {
+        <form [formGroup]="projectForm" (ngSubmit)="onSubmit()">
+          <mat-card-content>
+            <div class="step-header">
+              <h2>Project Details</h2>
+              <p class="step-description">Enter your project information</p>
+            </div>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Project Title</mat-label>
+              <input
+                matInput
+                formControlName="title"
+                title="Project Title"
+                placeholder="Title"
+                required
+                data-testid="project-title-input" />
+              @if (
+                projectForm.get('title')?.hasError('required') &&
+                projectForm.get('title')?.touched
+              ) {
+                <mat-error>Title is required</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Project Slug</mat-label>
+              <input
+                matInput
+                formControlName="slug"
+                title="Project Slug"
+                placeholder="project-slug"
+                required
+                data-testid="project-slug-input" />
+              @if (
+                projectForm.get('slug')?.hasError('required') &&
+                projectForm.get('slug')?.touched
+              ) {
+                <mat-error>Slug is required</mat-error>
+              }
+              @if (
+                projectForm.get('slug')?.hasError('pattern') &&
+                projectForm.get('slug')?.touched
+              ) {
+                <mat-error>
+                  Slug can only contain lowercase letters, numbers, and hyphens
+                </mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Project Description</mat-label>
+              <textarea
+                matInput
+                title="Project Description"
+                placeholder="Project Description"
+                formControlName="description"
+                rows="4"
+                data-testid="project-description-input"></textarea>
+            </mat-form-field>
+
+            @if (projectUrl) {
+              <div class="project-url-preview" data-testid="project-url-preview">
+                <strong>Project URL:</strong> {{ projectUrl }}
+              </div>
+            }
+
+            @if (isSaving) {
+              <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+            }
+          </mat-card-content>
+
+          <mat-card-actions align="end">
+            <button
+              mat-button
+              type="button"
+              (click)="previousStep()"
+              [disabled]="isSaving"
+              data-testid="back-button">
+              Back
+            </button>
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              [disabled]="projectForm.invalid || isSaving"
+              data-testid="create-project-button">
+              Create Project
+            </button>
+          </mat-card-actions>
+        </form>
+      }
     </mat-card>
   </div>
 </div>
