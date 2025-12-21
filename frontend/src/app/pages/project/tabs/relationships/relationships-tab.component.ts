@@ -13,7 +13,6 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 
-import { DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS } from '../../../../components/element-ref/default-relationship-types';
 import {
   RelationshipCategory,
   RelationshipTypeDefinition,
@@ -231,17 +230,36 @@ export class RelationshipsTabComponent {
   }
 
   /**
-   * Load default relationship types
+   * Reset relationship types to defaults
    */
-  loadDefaultTypes(): void {
-    // The default types are already included via DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS
-    // This is just a refresh/confirmation action
-    this.snackBar.open(
-      `✓ ${DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.length} built-in relationship types available`,
-      'Close',
-      { duration: 3000 }
-    );
-    void this.loadRelationshipTypes();
+  async resetToDefaults(): Promise<void> {
+    const confirmed = await this.dialogGateway.openConfirmationDialog({
+      title: 'Reset to Defaults',
+      message:
+        'This will replace all relationship types with the defaults. Any customizations will be lost. Continue?',
+      confirmText: 'Reset',
+      cancelText: 'Cancel',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      this.relationshipService.resetToDefaults();
+      this.snackBar.open(`✓ Reset to default relationship types`, 'Close', {
+        duration: 3000,
+      });
+      this.loadRelationshipTypes();
+    } catch (err: unknown) {
+      console.error(
+        '[RelationshipsTab] Error resetting to defaults:',
+        err instanceof Error ? err.message : err
+      );
+      this.snackBar.open('Failed to reset relationship types', 'Close', {
+        duration: 5000,
+      });
+    }
   }
 
   /**
@@ -304,16 +322,10 @@ export class RelationshipsTabComponent {
   }
 
   /**
-   * Edit a custom relationship type
+   * Edit a relationship type
+   * All types are now editable since they're stored per-project
    */
   async editType(type: RelationshipTypeView): Promise<void> {
-    if (type.isBuiltIn) {
-      this.snackBar.open('Cannot edit built-in relationship types', 'Close', {
-        duration: 3000,
-      });
-      return;
-    }
-
     // Ask for the new name
     const newName = await this.dialogGateway.openRenameDialog({
       title: 'Edit Relationship Type',
@@ -351,16 +363,10 @@ export class RelationshipsTabComponent {
   }
 
   /**
-   * Delete a custom relationship type
+   * Delete a relationship type
+   * All types are now deletable since they're stored per-project
    */
   async deleteType(type: RelationshipTypeView): Promise<void> {
-    if (type.isBuiltIn) {
-      this.snackBar.open('Cannot delete built-in relationship types', 'Close', {
-        duration: 3000,
-      });
-      return;
-    }
-
     const confirmed = await this.dialogGateway.openConfirmationDialog({
       title: 'Delete Relationship Type',
       message: `Are you sure you want to delete "${type.name}"? This action cannot be undone.`,

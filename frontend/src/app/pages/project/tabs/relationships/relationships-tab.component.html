@@ -29,7 +29,7 @@
         Relationship types define how elements can be connected to each other
         (e.g., "Parent of", "Lives at", "Owns").
       </p>
-      <button mat-raised-button color="primary" (click)="loadDefaultTypes()">
+      <button mat-raised-button color="primary" (click)="resetToDefaults()">
         <span class="button-content">
           <mat-icon>download</mat-icon>
           <span>Load Default Types</span>
@@ -161,8 +161,8 @@
     @if (builtInTypes().length > 0) {
       <div class="section">
         <h3 class="section-title">
-          <mat-icon>lock</mat-icon>
-          Built-in Types
+          <mat-icon>auto_awesome</mat-icon>
+          Default Types
         </h3>
         <div class="types-grid">
           @for (type of builtInTypes(); track type.id) {
@@ -181,7 +181,7 @@
                   }}</mat-chip>
                 </mat-card-subtitle>
 
-                <!-- Actions menu (limited for built-in) -->
+                <!-- Actions menu -->
                 <button
                   mat-icon-button
                   [matMenuTriggerFor]="builtInMenu"
@@ -191,12 +191,23 @@
                 </button>
 
                 <mat-menu #builtInMenu="matMenu">
+                  <button mat-menu-item (click)="editType(type)">
+                    <mat-icon>edit</mat-icon>
+                    <span>Edit</span>
+                  </button>
                   <button
                     mat-menu-item
                     (click)="cloneType(type)"
                     data-testid="clone-type-button">
                     <mat-icon>content_copy</mat-icon>
-                    <span>Clone as Custom</span>
+                    <span>Clone</span>
+                  </button>
+                  <button
+                    mat-menu-item
+                    (click)="deleteType(type)"
+                    data-testid="delete-builtin-type-button">
+                    <mat-icon>delete</mat-icon>
+                    <span>Delete</span>
                   </button>
                 </mat-menu>
               </mat-card-header>
