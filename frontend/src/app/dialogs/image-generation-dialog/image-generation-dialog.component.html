@@ -55,12 +55,13 @@
         <!-- Provider Selection -->
         <div class="form-section">
           <h3>Provider</h3>
-          <div class="provider-chips">
+          <mat-button-toggle-group
+            [value]="selectedProvider()"
+            (change)="selectedProvider.set($event.value)"
+            class="provider-toggle-group">
             @for (provider of enabledProviders(); track provider.key) {
-              <button
-                mat-stroked-button
-                [class.selected]="selectedProvider() === provider.key"
-                (click)="selectedProvider.set(provider.key)"
+              <mat-button-toggle
+                [value]="provider.key"
                 [matTooltip]="provider.models.join(', ')">
                 @if (provider.key === 'openrouter') {
                   <svg
@@ -86,9 +87,9 @@
                   <mat-icon>{{ getProviderIcon(provider.key) }}</mat-icon>
                 }
                 {{ getProviderLabel(provider.key) }}
-              </button>
+              </mat-button-toggle>
             }
-          </div>
+          </mat-button-toggle-group>
         </div>
 
         <!-- Model Selection -->
@@ -293,68 +294,77 @@
     <!-- STAGE 2: Generating / Results -->
     @if (stage() === 'generating') {
       <div class="generating-stage">
-        <!-- Summary Card -->
-        <div class="generation-summary">
-          <div class="summary-row">
-            <span class="label">Prompt</span>
-            <span class="value prompt-value">{{
-              truncatePrompt(currentJob()?.request?.prompt || '', 150)
-            }}</span>
-          </div>
-          <div class="summary-row">
-            <span class="label">Provider</span>
-            <span class="value">{{
-              getProviderLabel(currentJob()?.request?.provider!)
-            }}</span>
-          </div>
-          <div class="summary-row">
-            <span class="label">Model</span>
-            <span class="value">{{
-              currentJob()?.response?.model ||
-                currentJob()?.request?.model ||
-                'Default'
-            }}</span>
-          </div>
-          <div class="summary-row">
-            <span class="label">Size</span>
-            <span class="value">{{
-              getSizeLabel(currentJob()?.request?.size || '')
-            }}</span>
-          </div>
-          @if ((currentJob()?.request?.n || 1) > 1) {
+        <!-- Summary Card (only show during generation, not during image selection) -->
+        @if (currentJob()?.status !== 'completed') {
+          <div class="generation-summary">
             <div class="summary-row">
-              <span class="label">Count</span>
-              <span class="value">{{ currentJob()?.request?.n }} images</span>
+              <span class="label">Prompt</span>
+              <span class="value prompt-value">{{
+                truncatePrompt(currentJob()?.request?.prompt || '', 150)
+              }}</span>
             </div>
-          }
-        </div>
+            <div class="summary-row">
+              <span class="label">Provider</span>
+              <span class="value">{{
+                getProviderLabel(currentJob()?.request?.provider!)
+              }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="label">Model</span>
+              <span class="value">{{
+                currentJob()?.response?.model ||
+                  currentJob()?.request?.model ||
+                  'Default'
+              }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="label">Size</span>
+              <span class="value">{{
+                getSizeLabel(currentJob()?.request?.size || '')
+              }}</span>
+            </div>
+            @if ((currentJob()?.request?.n || 1) > 1) {
+              <div class="summary-row">
+                <span class="label">Count</span>
+                <span class="value">{{ currentJob()?.request?.n }} images</span>
+              </div>
+            }
+          </div>
+        }
 
-        <!-- Status indicator -->
-        <div class="status-container">
-          @if (
-            currentJob()?.status === 'pending' ||
-            currentJob()?.status === 'generating'
-          ) {
-            <mat-spinner diameter="48"></mat-spinner>
-            <p class="status-message">{{ currentJob()?.message }}</p>
-            <p class="status-hint">
-              You can close this dialog - generation will continue in the
-              background.
-            </p>
-          } @else if (currentJob()?.status === 'saving') {
-            <mat-spinner diameter="32"></mat-spinner>
-            <p class="status-message">{{ currentJob()?.message }}</p>
-          } @else if (currentJob()?.status === 'failed') {
-            <mat-icon class="error-icon">error</mat-icon>
-            <p class="status-message error">
-              {{ currentJob()?.error || 'Generation failed' }}
-            </p>
-            <button mat-stroked-button (click)="goBack()">
-              <mat-icon>arrow_back</mat-icon>
-              Try Again
-            </button>
-          }
-        </div>
+        <!-- Status indicator (only show if there's actual status content) -->
+        @if (
+          currentJob()?.status === 'pending' ||
+          currentJob()?.status === 'generating' ||
+          currentJob()?.status === 'saving' ||
+          currentJob()?.status === 'failed'
+        ) {
+          <div class="status-container">
+            @if (
+              currentJob()?.status === 'pending' ||
+              currentJob()?.status === 'generating'
+            ) {
+              <mat-spinner diameter="48"></mat-spinner>
+              <p class="status-message">{{ currentJob()?.message }}</p>
+              <p class="status-hint">
+                You can close this dialog - generation will continue in the
+                background.
+              </p>
+            } @else if (currentJob()?.status === 'saving') {
+              <mat-spinner diameter="32"></mat-spinner>
+              <p class="status-message">{{ currentJob()?.message }}</p>
+            } @else if (currentJob()?.status === 'failed') {
+              <mat-icon class="error-icon">error</mat-icon>
+              <p class="status-message error">
+                {{ currentJob()?.error || 'Generation failed' }}
+              </p>
+              <button mat-stroked-button (click)="goBack()">
+                <mat-icon>arrow_back</mat-icon>
+                Try Again
+              </button>
+            }
+          </div>
+        }
 
         <!-- Results (when completed) -->
         @if (

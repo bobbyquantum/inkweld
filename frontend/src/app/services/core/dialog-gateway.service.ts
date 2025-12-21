@@ -111,8 +111,10 @@ export class DialogGatewayService {
   openImageViewerDialog(data: ImageViewerDialogData): void {
     this.dialog.open(ImageViewerDialogComponent, {
       data,
-      maxWidth: '90vw',
-      maxHeight: '90vh',
+      width: '100vw',
+      height: '100vh',
+      maxWidth: '100vw',
+      maxHeight: '100vh',
       panelClass: 'image-viewer-dialog-panel',
     });
   }
