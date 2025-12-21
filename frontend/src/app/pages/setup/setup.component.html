@@ -42,25 +42,6 @@
         } @else if (shouldShowModeSelection()) {
           <!-- Initial choice screen - only shown when appMode is 'BOTH' -->
           <div class="setup-options">
-            @if (canUseServerMode()) {
-              <button
-                class="option-card"
-                (click)="chooseServerMode()"
-                data-testid="server-mode-button">
-                <mat-icon class="option-icon">cloud</mat-icon>
-                <h3>Connect to Server</h3>
-                <p>
-                  Connect to an Inkweld server for collaboration and cloud sync.
-                  Perfect for teams and shared projects.
-                </p>
-                <span class="option-button">Choose Server Mode</span>
-              </button>
-            }
-
-            @if (canUseServerMode() && canUseOfflineMode()) {
-              <mat-divider [vertical]="true"></mat-divider>
-            }
-
             @if (canUseOfflineMode()) {
               <button
                 class="option-card"
@@ -73,6 +54,25 @@
                   will be stored on your device.
                 </p>
                 <span class="option-button">Choose Offline Mode</span>
+              </button>
+            }
+
+            @if (canUseServerMode() && canUseOfflineMode()) {
+              <mat-divider [vertical]="true"></mat-divider>
+            }
+
+            @if (canUseServerMode()) {
+              <button
+                class="option-card"
+                (click)="chooseServerMode()"
+                data-testid="server-mode-button">
+                <mat-icon class="option-icon">cloud</mat-icon>
+                <h3>Connect to Server</h3>
+                <p>
+                  Connect to an Inkweld server for collaboration and cloud sync.
+                  Perfect for teams and shared projects.
+                </p>
+                <span class="option-button">Choose Server Mode</span>
               </button>
             }
           </div>
