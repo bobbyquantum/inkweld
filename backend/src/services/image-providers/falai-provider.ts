@@ -154,8 +154,7 @@ export const DEFAULT_FALAI_MODELS: FalAiModelInfo[] = [
     supportsQuality: false,
     supportsStyle: false,
     maxImages: 4,
-    description:
-      'GPT Image 1.5 - high quality generation with aspect ratio + resolution control',
+    description: 'GPT Image 1.5 - high quality generation with aspect ratio + resolution control',
     sizeMode: 'aspect_ratio',
     resolutions: GPT_IMAGE_15_RESOLUTIONS,
     aspectRatios: GPT_IMAGE_15_ASPECT_RATIOS,

@@ -1,6 +1,7 @@
 // Element Sync Provider abstraction
 export type {
   IElementSyncProvider,
+  ProjectMeta,
   SyncConnectionConfig,
   SyncConnectionResult,
 } from './element-sync-provider.interface';

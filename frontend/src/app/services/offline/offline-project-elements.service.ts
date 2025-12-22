@@ -12,6 +12,7 @@ import {
 import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
+import { ProjectMeta } from '../sync/element-sync-provider.interface';
 
 const OFFLINE_ELEMENTS_STORAGE_KEY = 'inkweld-offline-elements';
 
@@ -33,6 +34,7 @@ interface YjsProjectConnection {
   relationshipsArray: Y.Array<ElementRelationship>;
   customTypesArray: Y.Array<RelationshipTypeDefinition>;
   schemasArray: Y.Array<ElementTypeSchema>;
+  projectMetaMap: Y.Map<string>;
 }
 
 /**
@@ -68,6 +70,7 @@ export class OfflineProjectElementsService {
   readonly relationships = signal<ElementRelationship[]>([]);
   readonly customRelationshipTypes = signal<RelationshipTypeDefinition[]>([]);
   readonly schemas = signal<ElementTypeSchema[]>([]);
+  readonly projectMeta = signal<ProjectMeta | undefined>(undefined);
   readonly isLoading = signal(false);
 
   // Yjs connections per project (username:slug -> connection)
@@ -88,6 +91,7 @@ export class OfflineProjectElementsService {
       this.relationships.set(connection.relationshipsArray.toArray());
       this.customRelationshipTypes.set(connection.customTypesArray.toArray());
       this.schemas.set(connection.schemasArray.toArray());
+      this.projectMeta.set(this.extractProjectMeta(connection.projectMetaMap));
 
       this.logger.debug(
         'OfflineProjectElements',
@@ -109,6 +113,7 @@ export class OfflineProjectElementsService {
       this.relationships.set([]);
       this.customRelationshipTypes.set([]);
       this.schemas.set([]);
+      this.projectMeta.set(undefined);
     } finally {
       this.isLoading.set(false);
     }
@@ -295,6 +300,66 @@ export class OfflineProjectElementsService {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Project Metadata
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Save project metadata (name, description, coverMediaId) for a specific project using Yjs
+   */
+  async saveProjectMeta(
+    username: string,
+    slug: string,
+    meta: Partial<ProjectMeta>
+  ): Promise<void> {
+    try {
+      const connection = await this.getOrCreateConnection(username, slug);
+
+      connection.doc.transact(() => {
+        if (meta.name !== undefined) {
+          connection.projectMetaMap.set('name', meta.name);
+        }
+        if (meta.description !== undefined) {
+          connection.projectMetaMap.set('description', meta.description);
+        }
+        if (meta.coverMediaId !== undefined) {
+          connection.projectMetaMap.set('coverMediaId', meta.coverMediaId);
+        }
+        connection.projectMetaMap.set('updatedAt', new Date().toISOString());
+      });
+
+      // Update signal with current values
+      this.projectMeta.set(this.extractProjectMeta(connection.projectMetaMap));
+      this.logger.debug(
+        'OfflineProjectElements',
+        `Saved project meta for ${username}/${slug}`,
+        meta
+      );
+    } catch (error) {
+      this.logger.error(
+        'OfflineProjectElements',
+        'Failed to save project meta',
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Extract ProjectMeta from Y.Map
+   */
+  private extractProjectMeta(map: Y.Map<string>): ProjectMeta | undefined {
+    const name = map.get('name');
+    if (!name) return undefined;
+
+    return {
+      name,
+      description: map.get('description') || '',
+      coverMediaId: map.get('coverMediaId'),
+      updatedAt: map.get('updatedAt') || new Date().toISOString(),
+    };
+  }
+
   /**
    * Get or create a Yjs connection for a project.
    * Creates a single Yjs document with all project metadata arrays.
@@ -328,6 +393,7 @@ export class OfflineProjectElementsService {
       'customRelationshipTypes'
     );
     const schemasArray = doc.getArray<ElementTypeSchema>('schemas');
+    const projectMetaMap = doc.getMap<string>('projectMeta');
 
     // Set up observers for all arrays
     elementsArray.observe(() => {
@@ -348,6 +414,10 @@ export class OfflineProjectElementsService {
 
     schemasArray.observe(() => {
       this.schemas.set(schemasArray.toArray());
+    });
+
+    projectMetaMap.observe(() => {
+      this.projectMeta.set(this.extractProjectMeta(projectMetaMap));
     });
 
     // Check if we need to migrate from localStorage (elements only)
@@ -377,6 +447,7 @@ export class OfflineProjectElementsService {
       relationshipsArray,
       customTypesArray,
       schemasArray,
+      projectMetaMap,
     };
     this.yjsConnections.set(projectKey, connection);
 
