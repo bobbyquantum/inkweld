@@ -71,7 +71,7 @@ export class CreateProjectComponent {
   projectUrl = '';
   baseUrl: string;
   username = '';
-  isSaving = false;
+  readonly isSaving = signal(false);
 
   constructor() {
     this.baseUrl = window.location.origin;
@@ -158,7 +158,7 @@ export class CreateProjectComponent {
       return;
     }
 
-    this.isSaving = true;
+    this.isSaving.set(true);
     try {
       const projectData = this.projectForm.value as Partial<Project>;
       const templateId = this.selectedTemplateId();
@@ -183,7 +183,7 @@ export class CreateProjectComponent {
       });
       console.error('Failed to create project:', error);
     } finally {
-      this.isSaving = false;
+      this.isSaving.set(false);
     }
   }
 }

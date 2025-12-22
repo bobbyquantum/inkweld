@@ -58,7 +58,7 @@
           mat-stroked-button
           color="primary"
           (click)="openFileSelector()"
-          [disabled]="isLoading">
+          [disabled]="isLoading()">
           <mat-icon>add_photo_alternate</mat-icon>
           Upload Image
         </button>
@@ -67,7 +67,7 @@
           mat-stroked-button
           color="primary"
           (click)="openMediaLibrary()"
-          [disabled]="isLoading">
+          [disabled]="isLoading()">
           <mat-icon>photo_library</mat-icon>
           Select from Library
         </button>
@@ -77,7 +77,9 @@
             mat-stroked-button
             color="primary"
             (click)="openGenerateDialog()"
-            [disabled]="isLoading || aiGenerationStatus().status === 'disabled'"
+            [disabled]="
+              isLoading() || aiGenerationStatus().status === 'disabled'
+            "
             [matTooltip]="aiGenerationStatus().tooltip ?? ''">
             <mat-icon>auto_awesome</mat-icon>
             Generate with AI
@@ -92,7 +94,7 @@
             mat-stroked-button
             color="warn"
             (click)="removeImage()"
-            [disabled]="isLoading">
+            [disabled]="isLoading()">
             <mat-icon>delete</mat-icon>
             Remove Image
           </button>
@@ -102,7 +104,7 @@
   }
 
   <!-- Loading indicator -->
-  @if (isLoading) {
+  @if (isLoading()) {
     <mat-progress-bar
       mode="indeterminate"
       class="loading-bar"></mat-progress-bar>

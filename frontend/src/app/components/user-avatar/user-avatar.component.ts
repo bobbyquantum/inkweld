@@ -6,6 +6,7 @@ import {
   OnChanges,
   OnDestroy,
   OnInit,
+  signal,
   SimpleChanges,
 } from '@angular/core';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
@@ -34,7 +35,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
 
   protected avatarUrl: SafeUrl | undefined;
   protected fallbackAvatarUrl: string | undefined;
-  protected isLoading = false;
+  protected readonly isLoading = signal(false);
   protected error = false;
 
   private currentObjectUrl: string | undefined;
@@ -96,7 +97,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     // In server mode, first try local cache, then fall back to server
-    this.isLoading = true;
+    this.isLoading.set(true);
     this.error = false;
     this.avatarUrl = undefined;
 
@@ -105,7 +106,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
     if (cachedUrl) {
       this.avatarUrl = this.sanitizer.bypassSecurityTrustUrl(cachedUrl);
       this.error = false;
-      this.isLoading = false;
+      this.isLoading.set(false);
       this.cdr.detectChanges();
       return;
     }
@@ -128,13 +129,13 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
               // Empty blob means no avatar, use fallback
               this.error = true;
             }
-            this.isLoading = false;
+            this.isLoading.set(false);
             this.cdr.detectChanges();
           })();
         },
         error: () => {
           this.error = true;
-          this.isLoading = false;
+          this.isLoading.set(false);
           this.cdr.detectChanges();
         },
       });
@@ -144,7 +145,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
    * Load avatar from IndexedDB cache (for offline mode)
    */
   private async loadFromOfflineCache(): Promise<void> {
-    this.isLoading = true;
+    this.isLoading.set(true);
     this.error = false;
     this.avatarUrl = undefined;
 
@@ -161,7 +162,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
       console.warn('Failed to load avatar from cache:', err);
       this.error = true;
     } finally {
-      this.isLoading = false;
+      this.isLoading.set(false);
       this.cdr.detectChanges();
     }
   }
