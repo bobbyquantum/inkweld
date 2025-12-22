@@ -12,6 +12,8 @@ export interface ProjectSyncState {
   lastSync: string | null;
   /** Media IDs that were created/modified offline and need uploading */
   pendingUploads: string[];
+  /** Pending metadata fields to sync (e.g., title/description) */
+  pendingMetadata?: Partial<Record<'title' | 'description', string>>;
   /** Current sync status */
   status: 'synced' | 'pending' | 'syncing' | 'error' | 'offline-only';
   /** Last error message if status is 'error' */
@@ -94,6 +96,7 @@ export class ProjectSyncService {
       projectKey,
       lastSync: null,
       pendingUploads: [],
+      pendingMetadata: undefined,
       status: 'offline-only',
     };
   }
@@ -125,7 +128,13 @@ export class ProjectSyncService {
    */
   hasPendingChanges(projectKey: string): boolean {
     const state = this.syncStates.get(projectKey);
-    return (state?.().pendingUploads.length ?? 0) > 0;
+    const s = state?.();
+    const hasUploads = (s?.pendingUploads.length ?? 0) > 0;
+    const hasMetadata =
+      !!s?.pendingMetadata &&
+      (s.pendingMetadata.title !== undefined ||
+        s.pendingMetadata.description !== undefined);
+    return hasUploads || hasMetadata;
   }
 
   /**
@@ -159,6 +168,43 @@ export class ProjectSyncService {
       ...current,
       pendingUploads: current.pendingUploads.filter(id => id !== mediaId),
       status: current.pendingUploads.length <= 1 ? 'synced' : current.status,
+    };
+    state.set(updated);
+    await this.saveSyncState(updated);
+  }
+
+  /**
+   * Mark metadata fields as needing sync when going online.
+   * Call this when updating title/description in offline or server-unavailable mode.
+   */
+  async markPendingMetadata(
+    projectKey: string,
+    metadata: Partial<Record<'title' | 'description', string>>
+  ): Promise<void> {
+    const state = this.getSyncState(projectKey);
+    const current = state();
+
+    const updated: ProjectSyncState = {
+      ...current,
+      pendingMetadata: { ...(current.pendingMetadata ?? {}), ...metadata },
+      status: 'pending',
+    };
+    state.set(updated);
+    await this.saveSyncState(updated);
+  }
+
+  /**
+   * Clear any pending metadata fields after successful sync.
+   */
+  async clearPendingMetadata(projectKey: string): Promise<void> {
+    const state = this.getSyncState(projectKey);
+    const current = state();
+
+    const updated: ProjectSyncState = {
+      ...current,
+      pendingMetadata: undefined,
+      status:
+        (current.pendingUploads.length ?? 0) === 0 ? 'synced' : current.status,
     };
     state.set(updated);
     await this.saveSyncState(updated);

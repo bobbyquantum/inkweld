@@ -14,7 +14,10 @@ import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
 import { SetupService } from '../core/setup.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
-import { IElementSyncProvider } from '../sync/element-sync-provider.interface';
+import {
+  IElementSyncProvider,
+  ProjectMeta,
+} from '../sync/element-sync-provider.interface';
 import { DefaultTemplatesService } from './default-templates.service';
 import { WorldbuildingService } from './worldbuilding.service';
 
@@ -31,6 +34,9 @@ function createMockSyncProvider(): IElementSyncProvider & {
     []
   );
   const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
+  const projectMetaSubject = new BehaviorSubject<ProjectMeta | undefined>(
+    undefined
+  );
   const syncStateSubject = new BehaviorSubject<DocumentSyncState>(
     DocumentSyncState.Synced
   );
@@ -47,6 +53,7 @@ function createMockSyncProvider(): IElementSyncProvider & {
     getRelationships: vi.fn(() => relationshipsSubject.getValue()),
     getCustomRelationshipTypes: vi.fn(() => customTypesSubject.getValue()),
     getSchemas: vi.fn(() => schemasSubject.getValue()),
+    getProjectMeta: vi.fn(() => projectMetaSubject.getValue()),
     updateElements: vi.fn(),
     updatePublishPlans: vi.fn(),
     updateRelationships: vi.fn(),
@@ -54,6 +61,7 @@ function createMockSyncProvider(): IElementSyncProvider & {
     updateSchemas: vi.fn((schemas: ElementTypeSchema[]) => {
       schemasSubject.next(schemas);
     }),
+    updateProjectMeta: vi.fn(),
 
     syncState$: syncStateSubject.asObservable(),
     elements$: elementsSubject.asObservable(),
@@ -61,6 +69,7 @@ function createMockSyncProvider(): IElementSyncProvider & {
     relationships$: relationshipsSubject.asObservable(),
     customRelationshipTypes$: customTypesSubject.asObservable(),
     schemas$: schemasSubject.asObservable(),
+    projectMeta$: projectMetaSubject.asObservable(),
     errors$: new BehaviorSubject<string>('').asObservable(),
   };
 }

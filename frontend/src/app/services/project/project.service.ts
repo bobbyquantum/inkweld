@@ -334,35 +334,74 @@ export class ProjectService {
         title: Project.title,
         description: Project.description || undefined,
       };
-      const project = await firstValueFrom(
-        this.projectApi.updateProject(username, slug, updateRequest).pipe(
-          retry(MAX_RETRIES),
-          catchError((error: unknown) => {
-            const projectError = this.formatError(error);
-            this.error.set(projectError);
-            return throwError(() => projectError);
-          })
-        )
-      );
+      try {
+        const project = await firstValueFrom(
+          this.projectApi.updateProject(username, slug, updateRequest).pipe(
+            retry(MAX_RETRIES),
+            catchError((error: unknown) => {
+              const projectError = this.formatError(error);
+              return throwError(() => projectError);
+            })
+          )
+        );
 
-      // Update the project in cache
-      await this.setCachedProject(`${username}/${slug}`, project);
+        // Update the project in cache
+        await this.setCachedProject(`${username}/${slug}`, project);
 
-      // Update the project in the projects list if it exists
-      const currentProjects = this.projects();
-      const updatedProjects = currentProjects.map(p =>
-        p.slug === slug && p.username === username ? project : p
-      );
-      await this.setProjects(updatedProjects);
-      return project;
-    } catch (err: unknown) {
-      const error =
-        err instanceof ProjectServiceError
-          ? err
-          : new ProjectServiceError('SERVER_ERROR', 'Failed to update project');
-      this.error.set(error);
-      console.error('Project update error:', error);
-      throw error;
+        // Update the project in the projects list if it exists
+        const currentProjects = this.projects();
+        const updatedProjects = currentProjects.map(p =>
+          p.slug === slug && p.username === username ? project : p
+        );
+        await this.setProjects(updatedProjects);
+
+        // Clear any pending metadata for this project on success
+        await this.projectSync.clearPendingMetadata(`${username}/${slug}`);
+        return project;
+      } catch (e) {
+        const formatted =
+          e instanceof ProjectServiceError ? e : this.formatError(e);
+
+        // For recoverable network/server errors, update cache locally and queue metadata sync
+        if (formatted.canUseCache) {
+          const cacheKey = `${username}/${slug}`;
+          const existing = await this.getCachedProject(cacheKey);
+          const updated: Project = {
+            ...(existing ??
+              ({
+                id: '',
+                username,
+                slug,
+                createdDate: '',
+                updatedDate: '',
+              } as Project)),
+            title: updateRequest.title ?? existing?.title ?? '',
+            description:
+              updateRequest.description ?? existing?.description ?? undefined,
+          };
+
+          await this.setCachedProject(cacheKey, updated);
+
+          const currentProjects = this.projects();
+          const updatedProjects = currentProjects.map(p =>
+            p.slug === slug && p.username === username ? updated : p
+          );
+          await this.setProjects(updatedProjects);
+
+          await this.projectSync.markPendingMetadata(cacheKey, {
+            title: updateRequest.title,
+            description: updateRequest.description,
+          });
+
+          // Do not set error to allow UI to proceed with local changes
+          return updated;
+        }
+
+        // Non-recoverable errors should propagate
+        this.error.set(formatted);
+        console.error('Project update error:', formatted);
+        throw formatted;
+      }
     } finally {
       this.isLoading.set(false);
     }
@@ -416,15 +455,38 @@ export class ProjectService {
   async getProjectCover(username: string, slug: string): Promise<Blob> {
     this.error.set(undefined);
 
-    // In offline mode, load from IndexedDB cache only
-    if (this.setupService.getMode() === 'offline') {
-      const cachedCover = await this.offlineStorage.getProjectCover(
-        username,
-        slug
-      );
-      if (cachedCover) {
-        return cachedCover;
+    const projectKey = `${username}/${slug}`;
+
+    // Offline-first: if we have a cached cover, return it immediately
+    const cachedCover = await this.offlineStorage.getProjectCover(
+      username,
+      slug
+    );
+    if (cachedCover) {
+      // If in server mode, try a background refresh to update cache
+      if (this.setupService.getMode() !== 'offline') {
+        void (async () => {
+          try {
+            const freshBlob = await firstValueFrom(
+              this.imagesApi
+                .getProjectCover(username, slug)
+                .pipe(retry(MAX_RETRIES))
+            );
+            await this.offlineStorage.saveProjectCover(
+              username,
+              slug,
+              freshBlob
+            );
+          } catch {
+            // Ignore refresh errors silently
+          }
+        })();
       }
+      return cachedCover;
+    }
+
+    // If fully offline mode, and no cached cover, surface not found
+    if (this.setupService.getMode() === 'offline') {
       throw new ProjectServiceError(
         'PROJECT_NOT_FOUND',
         'Cover image not found'
@@ -455,7 +517,6 @@ export class ProjectService {
 
       return blob;
     } catch (err: unknown) {
-      // Add type annotation
       // For cover images, a 404 is expected when no cover image exists yet
       // So we should handle it specially
       if (
@@ -471,6 +532,18 @@ export class ProjectService {
         console.warn('Project cover image not found:', coverError);
         throw coverError;
       } else {
+        // If server error but we have cached cover, return cache
+        const offlineBlob = await this.offlineStorage.getProjectCover(
+          username,
+          slug
+        );
+        if (offlineBlob) {
+          console.warn(
+            `Server unavailable, using cached cover for ${projectKey}`
+          );
+          return offlineBlob;
+        }
+
         const error =
           err instanceof ProjectServiceError
             ? err
@@ -559,16 +632,36 @@ export class ProjectService {
       formData.append('cover', coverImage);
 
       const url = `${this.imagesApi.configuration.basePath}/api/v1/projects/${username}/${slug}/cover`;
-      await firstValueFrom(
-        this.http
-          .post(url, formData, {
-            withCredentials: true,
-          })
-          .pipe(
-            retry(MAX_RETRIES),
-            catchError(err => throwError(() => this.formatError(err)))
-          )
-      );
+      try {
+        await firstValueFrom(
+          this.http
+            .post(url, formData, {
+              withCredentials: true,
+            })
+            .pipe(
+              retry(MAX_RETRIES),
+              catchError(err => throwError(() => this.formatError(err)))
+            )
+        );
+      } catch (e) {
+        const formatted = this.formatError(e);
+        // For recoverable network/server errors, save locally and queue sync
+        if (formatted.canUseCache) {
+          await this.offlineStorage.saveProjectCover(
+            username,
+            slug,
+            coverImage
+          );
+          await this.projectSync.markPendingUpload(
+            `${username}/${slug}`,
+            'cover'
+          );
+          // Do not rethrow to allow UX to proceed with local cache
+          return;
+        }
+        // Non-recoverable errors should propagate
+        throw formatted;
+      }
 
       // Cache the cover image to IndexedDB for offline access
       await this.offlineStorage.saveProjectCover(username, slug, coverImage);

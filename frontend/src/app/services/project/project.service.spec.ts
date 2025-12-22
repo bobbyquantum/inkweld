@@ -635,7 +635,7 @@ describe('ProjectService', () => {
       expect(service.error()?.code).toBe('PROJECT_NOT_FOUND');
     });
 
-    it('handles network errors correctly', async () => {
+    it('handles network errors with offline-first - returns local data', async () => {
       const updatedProject: Project = {
         ...BASE[0],
         title: 'Offline Update',
@@ -648,10 +648,17 @@ describe('ProjectService', () => {
         apiErr(new HttpErrorResponse({ status: 0 }))
       );
 
-      await expect(
-        service.updateProject('alice', 'project-1', updatedProject)
-      ).rejects.toThrow(ProjectServiceError);
-      expect(service.error()?.code).toBe('NETWORK_ERROR');
+      // Network error should succeed with offline-first (returns local data)
+      const result = await service.updateProject(
+        'alice',
+        'project-1',
+        updatedProject
+      );
+
+      // Should return the updated project (from cache)
+      expect(result.title).toBe('Offline Update');
+      // Error should NOT be set for recoverable network errors
+      expect(service.error()).toBeUndefined();
     });
 
     it('handles unauthorized errors correctly', async () => {

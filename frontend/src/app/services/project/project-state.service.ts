@@ -90,6 +90,16 @@ export class ProjectStateService implements OnDestroy {
   readonly isSaving = signal<boolean>(false);
   readonly error = signal<string | undefined>(undefined);
 
+  /**
+   * Cover image media ID (stored in local IndexedDB media library).
+   * This is separate from the API Project.coverImage URL because it enables
+   * offline-first editing via Yjs sync.
+   */
+  readonly coverMediaId = signal<string | undefined>(undefined);
+
+  // Flag to prevent feedback loop when we're the source of metadata changes
+  private isUpdatingMeta = false;
+
   // Sync state from provider
   private readonly docSyncState = signal<DocumentSyncState>(
     DocumentSyncState.Unavailable
@@ -350,6 +360,42 @@ export class ProjectStateService implements OnDestroy {
       this.syncProvider.syncState$.subscribe(state => {
         this.ngZone.run(() => {
           this.docSyncState.set(state);
+        });
+      })
+    );
+
+    // Project metadata changes (name, description, cover)
+    // This receives updates from Yjs (both local and remote changes)
+    this.providerSubscriptions.push(
+      this.syncProvider.projectMeta$.subscribe(meta => {
+        // Skip if we're the source of this change (prevents feedback loop)
+        // We already updated signals directly in updateProject()
+        if (this.isUpdatingMeta) {
+          return;
+        }
+
+        // For remote changes, update signals
+        // Defer to next microtask to avoid ExpressionChangedAfterItHasBeenCheckedError
+        queueMicrotask(() => {
+          // Double-check flag in case another update started
+          if (this.isUpdatingMeta) {
+            return;
+          }
+          this.ngZone.run(() => {
+            if (meta) {
+              // Merge Yjs metadata with current project
+              const current = this.project();
+              if (current) {
+                this.project.set({
+                  ...current,
+                  title: meta.name,
+                  description: meta.description,
+                });
+                // Store coverMediaId separately - it's not part of the API Project model
+                this.coverMediaId.set(meta.coverMediaId);
+              }
+            }
+          });
         });
       })
     );
@@ -820,10 +866,56 @@ export class ProjectStateService implements OnDestroy {
   // Project Operations
   // ─────────────────────────────────────────────────────────────────────────────
 
-  updateProject(project: Project): void {
-    // Note: This updates local state only.
-    // Full project updates should go through ProjectsService API
+  /**
+   * Update project state and sync metadata via Yjs.
+   * This enables offline-first editing of project name, description, and cover.
+   *
+   * @param project The updated project
+   * @param coverMediaId Optional cover media ID (stored separately in Yjs)
+   */
+  updateProject(project: Project, coverMediaId?: string): void {
+    const previousProject = this.project();
+    const previousCoverMediaId = this.coverMediaId();
     this.project.set(project);
+
+    // Update cover media ID if provided
+    if (coverMediaId !== undefined) {
+      this.coverMediaId.set(coverMediaId);
+    }
+
+    // Sync metadata changes to Yjs if provider is connected
+    if (this.syncProvider?.isConnected()) {
+      // Only update Yjs if metadata actually changed
+      const metaChanged =
+        previousProject?.title !== project.title ||
+        previousProject?.description !== project.description ||
+        (coverMediaId !== undefined && previousCoverMediaId !== coverMediaId);
+
+      if (metaChanged) {
+        const meta: {
+          name: string;
+          description: string;
+          coverMediaId?: string;
+        } = {
+          name: project.title,
+          description: project.description || '',
+        };
+        if (coverMediaId !== undefined) {
+          meta.coverMediaId = coverMediaId;
+        }
+        // Set flag to prevent feedback loop from subscription
+        this.isUpdatingMeta = true;
+        this.syncProvider.updateProjectMeta(meta);
+        this.logger.debug(
+          'ProjectState',
+          'Updated project metadata via Yjs sync'
+        );
+        // Clear flag after microtask to ensure subscription callback is fully skipped
+        queueMicrotask(() => {
+          this.isUpdatingMeta = false;
+        });
+      }
+    }
   }
 
   updateSyncState(

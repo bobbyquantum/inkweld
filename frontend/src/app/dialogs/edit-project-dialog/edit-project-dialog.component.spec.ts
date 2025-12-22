@@ -20,8 +20,10 @@ import {
   vi,
 } from 'vitest';
 
+import { OfflineStorageService } from '../../services/offline/offline-storage.service';
 import { UnifiedProjectService } from '../../services/offline/unified-project.service';
 import { ProjectService } from '../../services/project/project.service';
+import { ProjectStateService } from '../../services/project/project-state.service';
 import { EditProjectDialogComponent } from './edit-project-dialog.component';
 
 // Helper to create a mock File object
@@ -38,6 +40,8 @@ describe('EditProjectDialogComponent', () => {
   let ProjectsService: MockedObject<ProjectsService>;
   let projectService: MockedObject<ProjectService>;
   let unifiedProjectService: MockedObject<UnifiedProjectService>;
+  let offlineStorageService: MockedObject<OfflineStorageService>;
+  let projectStateService: MockedObject<ProjectStateService>;
 
   const mockUser: User = {
     username: 'testuser',
@@ -93,6 +97,21 @@ describe('EditProjectDialogComponent', () => {
       updateProject: vi.fn().mockResolvedValue(mockProject),
     } as any;
 
+    // Mock OfflineStorageService methods
+    offlineStorageService = {
+      getMedia: vi.fn().mockResolvedValue(null),
+      saveMedia: vi.fn().mockResolvedValue(undefined),
+      deleteMedia: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
+    // Mock ProjectStateService
+    projectStateService = {
+      coverMediaId: vi.fn().mockReturnValue(undefined),
+      project: vi.fn().mockReturnValue(mockProject),
+      updateProject: vi.fn(),
+      getSyncState: vi.fn().mockReturnValue('synced'),
+    } as any;
+
     // Mock XSRF token cookie
     document.cookie = 'XSRF-TOKEN=test-token';
 
@@ -108,6 +127,8 @@ describe('EditProjectDialogComponent', () => {
         { provide: ProjectsService, useValue: ProjectsService },
         { provide: ProjectService, useValue: projectService },
         { provide: UnifiedProjectService, useValue: unifiedProjectService },
+        { provide: OfflineStorageService, useValue: offlineStorageService },
+        { provide: ProjectStateService, useValue: projectStateService },
         { provide: MatSnackBar, useValue: snackBar },
       ],
     }).compileComponents();
@@ -521,7 +542,7 @@ describe('EditProjectDialogComponent', () => {
         mockCoverFile
       );
       expect(snackBar.open).toHaveBeenCalledWith(
-        expect.stringContaining('Project and cover image updated successfully'),
+        'Project updated successfully',
         'Close',
         expect.any(Object)
       );
@@ -540,24 +561,35 @@ describe('EditProjectDialogComponent', () => {
       expect(dialogRef.close).toHaveBeenCalledWith(mockProject);
     });
 
-    it('should handle error during cover upload but still close dialog', async () => {
+    it('should succeed even if cover upload to server fails (offline-first)', async () => {
       component.coverImage = mockCoverFile; // Simulate selecting a new file
       component.form.patchValue({ title: 'Valid Title' });
       const uploadError = new Error('Upload failed');
       projectService.uploadProjectCover.mockRejectedValue(uploadError);
 
+      // Mock console.warn to verify it's called
+      const consoleWarnSpy = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {});
+
       await component.onSave();
 
       expect(unifiedProjectService.updateProject).toHaveBeenCalled();
       expect(projectService.uploadProjectCover).toHaveBeenCalled();
+      // Should show success because local storage saved successfully
       expect(snackBar.open).toHaveBeenCalledWith(
-        expect.stringContaining(
-          `Project updated but failed to upload cover image: ${uploadError.message}`
-        ),
+        'Project updated successfully',
         'Close',
         expect.any(Object)
       );
       expect(dialogRef.close).toHaveBeenCalledWith(mockProject);
+      // Verify the error was logged but didn't fail the operation
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to upload cover to server'),
+        uploadError
+      );
+
+      consoleWarnSpy.mockRestore();
     });
 
     it('should handle error during project update', async () => {

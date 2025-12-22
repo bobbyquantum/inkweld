@@ -22,6 +22,7 @@ import { UnifiedProjectService } from '../offline/unified-project.service';
 import {
   ElementSyncProviderFactory,
   IElementSyncProvider,
+  ProjectMeta,
 } from '../sync/index';
 import { ProjectStateService } from './project-state.service';
 import { RecentFilesService } from './recent-files.service';
@@ -35,6 +36,7 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
   _relationshipsSubject: BehaviorSubject<ElementRelationship[]>;
   _customTypesSubject: BehaviorSubject<RelationshipTypeDefinition[]>;
   _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
+  _projectMetaSubject: BehaviorSubject<ProjectMeta | undefined>;
   _syncStateSubject: BehaviorSubject<DocumentSyncState>;
   _errorsSubject: Subject<string>;
 } {
@@ -45,6 +47,9 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     []
   );
   const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
+  const projectMetaSubject = new BehaviorSubject<ProjectMeta | undefined>(
+    undefined
+  );
   const syncStateSubject = new BehaviorSubject<DocumentSyncState>(
     DocumentSyncState.Unavailable
   );
@@ -56,6 +61,7 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     _relationshipsSubject: relationshipsSubject,
     _customTypesSubject: customTypesSubject,
     _schemasSubject: schemasSubject,
+    _projectMetaSubject: projectMetaSubject,
     _syncStateSubject: syncStateSubject,
     _errorsSubject: errorsSubject,
 
@@ -68,6 +74,7 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     getRelationships: vi.fn(() => relationshipsSubject.getValue()),
     getCustomRelationshipTypes: vi.fn(() => customTypesSubject.getValue()),
     getSchemas: vi.fn(() => schemasSubject.getValue()),
+    getProjectMeta: vi.fn(() => projectMetaSubject.getValue()),
     updateElements: vi.fn((elements: Element[]) => {
       elementsSubject.next(elements);
     }),
@@ -85,6 +92,15 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     updateSchemas: vi.fn((schemas: ElementTypeSchema[]) => {
       schemasSubject.next(schemas);
     }),
+    updateProjectMeta: vi.fn((meta: Partial<ProjectMeta>) => {
+      const current = projectMetaSubject.getValue();
+      projectMetaSubject.next({
+        name: meta.name ?? current?.name ?? '',
+        description: meta.description ?? current?.description ?? '',
+        coverMediaId: meta.coverMediaId ?? current?.coverMediaId,
+        updatedAt: new Date().toISOString(),
+      });
+    }),
 
     syncState$: syncStateSubject.asObservable(),
     elements$: elementsSubject.asObservable(),
@@ -92,6 +108,7 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     relationships$: relationshipsSubject.asObservable(),
     customRelationshipTypes$: customTypesSubject.asObservable(),
     schemas$: schemasSubject.asObservable(),
+    projectMeta$: projectMetaSubject.asObservable(),
     errors$: errorsSubject.asObservable(),
   } as MockedObject<IElementSyncProvider> & {
     _elementsSubject: BehaviorSubject<Element[]>;
@@ -99,6 +116,7 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     _relationshipsSubject: BehaviorSubject<ElementRelationship[]>;
     _customTypesSubject: BehaviorSubject<RelationshipTypeDefinition[]>;
     _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
+    _projectMetaSubject: BehaviorSubject<ProjectMeta | undefined>;
     _syncStateSubject: BehaviorSubject<DocumentSyncState>;
     _errorsSubject: Subject<string>;
   };
@@ -707,6 +725,89 @@ describe('ProjectStateService', () => {
       expect(visible).toHaveLength(1);
       expect(visible[0].name).toBe('Parent');
       expect(visible[0].expanded).toBe(false);
+    });
+  });
+
+  describe('updateProject', () => {
+    it('should update project and sync to Yjs', async () => {
+      await service.loadProject('testuser', 'test-project');
+
+      const updatedProject: Project = {
+        id: 'project-1',
+        username: 'testuser',
+        slug: 'test-project',
+        title: 'Updated Title',
+        description: 'Updated description',
+        createdDate: new Date().toISOString(),
+        updatedDate: new Date().toISOString(),
+      };
+
+      service.updateProject(updatedProject);
+
+      expect(service.project()?.title).toBe('Updated Title');
+      expect(mockSyncProvider.updateProjectMeta).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Updated Title',
+          description: 'Updated description',
+        })
+      );
+    });
+
+    it('should update coverMediaId when provided', async () => {
+      await service.loadProject('testuser', 'test-project');
+
+      const updatedProject: Project = {
+        id: 'project-1',
+        username: 'testuser',
+        slug: 'test-project',
+        title: 'Test Project',
+        description: 'Test description',
+        createdDate: new Date().toISOString(),
+        updatedDate: new Date().toISOString(),
+      };
+
+      service.updateProject(updatedProject, 'cover-abc123');
+
+      expect(service.coverMediaId()).toBe('cover-abc123');
+      expect(mockSyncProvider.updateProjectMeta).toHaveBeenCalledWith(
+        expect.objectContaining({
+          coverMediaId: 'cover-abc123',
+        })
+      );
+    });
+
+    it('should not sync to Yjs if metadata unchanged', async () => {
+      await service.loadProject('testuser', 'test-project');
+      const originalProject = service.project();
+      mockSyncProvider.updateProjectMeta.mockClear();
+
+      // Update with same values
+      service.updateProject(originalProject!);
+
+      // Should not have called updateProjectMeta since nothing changed
+      expect(mockSyncProvider.updateProjectMeta).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('coverMediaId from projectMeta$', () => {
+    it('should update coverMediaId when projectMeta$ emits', async () => {
+      await service.loadProject('testuser', 'test-project');
+
+      // Initially undefined
+      expect(service.coverMediaId()).toBeUndefined();
+
+      // Emit project meta with coverMediaId
+      mockSyncProvider._projectMetaSubject.next({
+        name: 'Test Project',
+        description: '',
+        coverMediaId: 'cover-xyz789',
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Wait for microtask to complete (subscription is deferred)
+      await new Promise<void>(resolve => queueMicrotask(() => resolve()));
+
+      expect(service.coverMediaId()).toBe('cover-xyz789');
     });
   });
 

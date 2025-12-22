@@ -12,6 +12,7 @@ import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import { OfflineProjectElementsService } from '../offline/offline-project-elements.service';
+import { ProjectMeta } from './element-sync-provider.interface';
 import { OfflineElementSyncProvider } from './offline-element-sync.provider';
 
 describe('OfflineElementSyncProvider', () => {
@@ -23,17 +24,20 @@ describe('OfflineElementSyncProvider', () => {
     relationships: ReturnType<typeof vi.fn>;
     customRelationshipTypes: ReturnType<typeof vi.fn>;
     schemas: ReturnType<typeof vi.fn>;
+    projectMeta: ReturnType<typeof vi.fn>;
     saveElements: ReturnType<typeof vi.fn>;
     savePublishPlans: ReturnType<typeof vi.fn>;
     saveRelationships: ReturnType<typeof vi.fn>;
     saveCustomRelationshipTypes: ReturnType<typeof vi.fn>;
     saveSchemas: ReturnType<typeof vi.fn>;
+    saveProjectMeta: ReturnType<typeof vi.fn>;
     closeConnection: ReturnType<typeof vi.fn>;
     _elementsSubject: BehaviorSubject<Element[]>;
     _publishPlansSubject: BehaviorSubject<PublishPlan[]>;
     _relationshipsSubject: BehaviorSubject<ElementRelationship[]>;
     _customTypesSubject: BehaviorSubject<RelationshipType[]>;
     _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
+    _projectMetaSubject: BehaviorSubject<ProjectMeta | undefined>;
     _errorsSubject: Subject<string>;
   };
   let mockLoggerService: {
@@ -62,6 +66,9 @@ describe('OfflineElementSyncProvider', () => {
     const relationshipsSubject = new BehaviorSubject<ElementRelationship[]>([]);
     const customTypesSubject = new BehaviorSubject<RelationshipType[]>([]);
     const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
+    const projectMetaSubject = new BehaviorSubject<ProjectMeta | undefined>(
+      undefined
+    );
     const errorsSubject = new Subject<string>();
 
     mockOfflineElementsService = {
@@ -71,17 +78,20 @@ describe('OfflineElementSyncProvider', () => {
       relationships: vi.fn(() => relationshipsSubject.getValue()),
       customRelationshipTypes: vi.fn(() => customTypesSubject.getValue()),
       schemas: vi.fn(() => schemasSubject.getValue()),
+      projectMeta: vi.fn(() => projectMetaSubject.getValue()),
       saveElements: vi.fn().mockResolvedValue(undefined),
       savePublishPlans: vi.fn().mockResolvedValue(undefined),
       saveRelationships: vi.fn().mockResolvedValue(undefined),
       saveCustomRelationshipTypes: vi.fn().mockResolvedValue(undefined),
       saveSchemas: vi.fn().mockResolvedValue(undefined),
+      saveProjectMeta: vi.fn().mockResolvedValue(undefined),
       closeConnection: vi.fn().mockResolvedValue(undefined),
       _elementsSubject: elementsSubject,
       _publishPlansSubject: publishPlansSubject,
       _relationshipsSubject: relationshipsSubject,
       _customTypesSubject: customTypesSubject,
       _schemasSubject: schemasSubject,
+      _projectMetaSubject: projectMetaSubject,
       _errorsSubject: errorsSubject,
     };
 

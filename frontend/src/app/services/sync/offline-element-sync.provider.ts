@@ -13,6 +13,7 @@ import { LoggerService } from '../core/logger.service';
 import { OfflineProjectElementsService } from '../offline/offline-project-elements.service';
 import {
   IElementSyncProvider,
+  ProjectMeta,
   SyncConnectionConfig,
   SyncConnectionResult,
 } from './element-sync-provider.interface';
@@ -58,6 +59,9 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
   private readonly schemasSubject = new BehaviorSubject<ElementTypeSchema[]>(
     []
   );
+  private readonly projectMetaSubject = new BehaviorSubject<
+    ProjectMeta | undefined
+  >(undefined);
   private readonly errorsSubject = new Subject<string>();
 
   // Public observables
@@ -73,6 +77,8 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
     this.customRelationshipTypesSubject.asObservable();
   readonly schemas$: Observable<ElementTypeSchema[]> =
     this.schemasSubject.asObservable();
+  readonly projectMeta$: Observable<ProjectMeta | undefined> =
+    this.projectMetaSubject.asObservable();
   readonly errors$: Observable<string> = this.errorsSubject.asObservable();
 
   /**
@@ -104,12 +110,14 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
       const relationships = this.offlineService.relationships();
       const customTypes = this.offlineService.customRelationshipTypes();
       const schemas = this.offlineService.schemas();
+      const projectMeta = this.offlineService.projectMeta();
 
       this.elementsSubject.next(elements);
       this.publishPlansSubject.next(publishPlans);
       this.relationshipsSubject.next(relationships);
       this.customRelationshipTypesSubject.next(customTypes);
       this.schemasSubject.next(schemas);
+      this.projectMetaSubject.next(projectMeta);
       this.syncStateSubject.next(DocumentSyncState.Offline);
 
       this.logger.info(
@@ -160,6 +168,7 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
     this.relationshipsSubject.next([]);
     this.customRelationshipTypesSubject.next([]);
     this.schemasSubject.next([]);
+    this.projectMetaSubject.next(undefined);
     this.syncStateSubject.next(DocumentSyncState.Unavailable);
   }
 
@@ -350,6 +359,55 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
       .catch(error => {
         this.logger.error('OfflineSync', 'Failed to save schemas', error);
         this.errorsSubject.next('Failed to save schemas offline');
+      });
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────────
+  // Project Metadata (name, description, cover - synced via Yjs for offline-first)
+  // ───────────────────────────────────────────────────────────────────────────────
+
+  getProjectMeta(): ProjectMeta | undefined {
+    return this.projectMetaSubject.getValue();
+  }
+
+  /**
+   * Update project metadata in offline storage.
+   * Only updates the fields provided (partial update).
+   */
+  updateProjectMeta(meta: Partial<ProjectMeta>): void {
+    if (!this.connected || !this.currentUsername || !this.currentSlug) {
+      this.logger.warn(
+        'OfflineSync',
+        'Cannot update project metadata - not connected'
+      );
+      return;
+    }
+
+    // Merge with current values
+    const current = this.projectMetaSubject.getValue();
+    const updated: ProjectMeta = {
+      name: meta.name ?? current?.name ?? '',
+      description: meta.description ?? current?.description ?? '',
+      coverMediaId: meta.coverMediaId ?? current?.coverMediaId,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Update local state immediately
+    this.projectMetaSubject.next(updated);
+
+    // Save to offline service asynchronously
+    void this.offlineService
+      .saveProjectMeta(this.currentUsername, this.currentSlug, updated)
+      .then(() => {
+        this.logger.debug('OfflineSync', 'Saved project metadata', updated);
+      })
+      .catch(error => {
+        this.logger.error(
+          'OfflineSync',
+          'Failed to save project metadata',
+          error
+        );
+        this.errorsSubject.next('Failed to save project metadata offline');
       });
   }
 }
