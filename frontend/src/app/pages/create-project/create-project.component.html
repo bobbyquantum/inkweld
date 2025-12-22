@@ -141,7 +141,7 @@
               </div>
             }
 
-            @if (isSaving) {
+            @if (isSaving()) {
               <mat-progress-bar mode="indeterminate"></mat-progress-bar>
             }
           </mat-card-content>
@@ -151,7 +151,7 @@
               mat-button
               type="button"
               (click)="previousStep()"
-              [disabled]="isSaving"
+              [disabled]="isSaving()"
               data-testid="back-button">
               Back
             </button>
@@ -159,7 +159,7 @@
               mat-raised-button
               color="primary"
               type="submit"
-              [disabled]="projectForm.invalid || isSaving"
+              [disabled]="projectForm.invalid || isSaving()"
               data-testid="create-project-button">
               Create Project
             </button>

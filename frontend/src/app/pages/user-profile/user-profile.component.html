@@ -12,7 +12,7 @@
   </mat-toolbar>
 
   <!-- Loading State -->
-  @if (isLoading) {
+  @if (isLoading()) {
     <div class="loading-state">
       <mat-spinner diameter="40"></mat-spinner>
       <p>Loading user profile...</p>
@@ -20,7 +20,7 @@
   }
 
   <!-- Error State -->
-  @if (!isLoading && loadError) {
+  @if (!isLoading() && loadError) {
     <div class="error-state">
       <mat-icon class="error-icon">error_outline</mat-icon>
       <h2>Failed to load profile</h2>
@@ -33,7 +33,7 @@
   }
 
   <!-- User Profile Content -->
-  @if (!isLoading && !loadError && profileUser) {
+  @if (!isLoading() && !loadError && profileUser) {
     <div class="user-profile-container">
       <div class="user-profile-header">
         <div

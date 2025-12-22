@@ -5,6 +5,7 @@ import {
   ElementRef,
   inject,
   OnInit,
+  signal,
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -109,7 +110,7 @@ export class WorldbuildingImageDialogComponent implements OnInit {
   hasLoadFailed = false;
   showCropper = false;
   pendingFileName = '';
-  isLoading = false;
+  readonly isLoading = signal(false);
 
   // Square aspect ratio for worldbuilding images
   readonly aspectRatio = 1;

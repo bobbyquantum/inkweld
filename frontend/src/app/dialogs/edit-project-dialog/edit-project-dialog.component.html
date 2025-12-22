@@ -33,7 +33,7 @@
     <div class="dialog-layout">
       <!-- Left column: Cover image -->
       <div class="cover-column">
-        @if (coverImageUrl && !isLoadingCover) {
+        @if (coverImageUrl && !isLoadingCover()) {
           <div class="cover-image-wrapper">
             <img
               [src]="coverImageUrl"
@@ -44,12 +44,12 @@
               color="warn"
               class="remove-image-btn"
               (click)="removeCoverImage()"
-              [disabled]="isLoadingCover"
+              [disabled]="isLoadingCover()"
               aria-label="Remove cover image">
               <mat-icon>delete</mat-icon>
             </button>
           </div>
-        } @else if (isLoadingCover) {
+        } @else if (isLoadingCover()) {
           <div class="placeholder-wrapper">
             <mat-progress-bar
               mode="indeterminate"
@@ -90,7 +90,7 @@
                 mat-stroked-button
                 color="primary"
                 (click)="openCoverImageSelector()"
-                [disabled]="isLoadingCover">
+                [disabled]="isLoadingCover()">
                 <mat-icon>add_photo_alternate</mat-icon>
                 Upload Image
               </button>
@@ -98,7 +98,7 @@
                 mat-stroked-button
                 color="primary"
                 (click)="openMediaLibrarySelector()"
-                [disabled]="isLoadingCover">
+                [disabled]="isLoadingCover()">
                 <mat-icon>photo_library</mat-icon>
                 Select from Library
               </button>
@@ -108,7 +108,8 @@
                   color="primary"
                   (click)="openGenerateCoverDialog()"
                   [disabled]="
-                    isLoadingCover || aiGenerationStatus().status === 'disabled'
+                    isLoadingCover() ||
+                    aiGenerationStatus().status === 'disabled'
                   "
                   [matTooltip]="aiGenerationStatus().tooltip ?? ''">
                   <mat-icon>auto_awesome</mat-icon>
@@ -149,7 +150,7 @@
     <button
       mat-raised-button
       color="primary"
-      [disabled]="form.invalid || isSaving"
+      [disabled]="form.invalid || isSaving()"
       (click)="onSave()">
       Save
     </button>

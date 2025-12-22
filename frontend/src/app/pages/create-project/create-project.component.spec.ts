@@ -247,7 +247,7 @@ describe('CreateProjectComponent', () => {
       'Close',
       { duration: 3000 }
     );
-    expect(component.isSaving).toBeFalsy();
+    expect(component.isSaving()).toBeFalsy();
   });
 
   it('should redirect to home if project response is incomplete', async () => {

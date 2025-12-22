@@ -201,13 +201,13 @@ describe('EditProjectDialogComponent', () => {
       projectService.getProjectCover.mockImplementation(() => {
         return Promise.resolve(mockCoverBlob).then(blob => {
           // Simulate the component's behavior of setting isLoadingCover to false
-          component.isLoadingCover = false;
+          component.isLoadingCover.set(false);
           return blob;
         });
       });
 
       // Manually mark loading as true initially, as the component would
-      component.isLoadingCover = true;
+      component.isLoadingCover.set(true);
 
       // Execute the method directly and verify state
       await component.loadCoverImage();
@@ -215,7 +215,7 @@ describe('EditProjectDialogComponent', () => {
       // Verify the properties are set correctly
       expect(component.coverImage).toBe(mockCoverBlob);
       expect(component.coverImageUrl).toBeDefined();
-      expect(component.isLoadingCover).toBe(false);
+      expect(component.isLoadingCover()).toBe(false);
     });
 
     it('should handle "Cover image not found" error gracefully', async () => {
@@ -235,7 +235,7 @@ describe('EditProjectDialogComponent', () => {
       expect(component.coverImage).toBeUndefined();
       expect(component.coverImageUrl).toBeUndefined();
       expect(snackBar.open).not.toHaveBeenCalled(); // Should not show error for not found
-      expect(component.isLoadingCover).toBe(false);
+      expect(component.isLoadingCover()).toBe(false);
     });
 
     it('should handle generic errors during cover load', async () => {
@@ -264,7 +264,7 @@ describe('EditProjectDialogComponent', () => {
         genericError
       );
       consoleWarnSpy.mockRestore();
-      expect(component.isLoadingCover).toBe(false);
+      expect(component.isLoadingCover()).toBe(false);
     });
   });
 
@@ -448,7 +448,7 @@ describe('EditProjectDialogComponent', () => {
           'Close',
           expect.any(Object)
         );
-        expect(component.isLoadingCover).toBe(false);
+        expect(component.isLoadingCover()).toBe(false);
       });
     });
 
@@ -469,7 +469,7 @@ describe('EditProjectDialogComponent', () => {
           'Close',
           expect.any(Object)
         );
-        expect(component.isLoadingCover).toBe(false);
+        expect(component.isLoadingCover()).toBe(false);
       });
     });
 
