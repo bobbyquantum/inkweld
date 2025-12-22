@@ -1,5 +1,5 @@
 <div class="avatar" [class]="size">
-  @if (isLoading) {
+  @if (isLoading()) {
     <div class="skeleton"></div>
   } @else if (error || !avatarUrl) {
     @if (fallbackAvatarUrl) {

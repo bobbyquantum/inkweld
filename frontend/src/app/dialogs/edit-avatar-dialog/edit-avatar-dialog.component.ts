@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -40,7 +40,7 @@ export class EditAvatarDialogComponent {
   croppedImage: SafeUrl | null = null;
   croppedBlob: Blob | null = null;
   fileName = '';
-  isSubmitting = false;
+  readonly isSubmitting = signal(false);
   isCropperReady = false;
   hasImageLoaded = false;
   hasLoadFailed = false;
@@ -90,7 +90,7 @@ export class EditAvatarDialogComponent {
     if (!this.croppedBlob || !this.fileName) {
       return;
     }
-    this.isSubmitting = true;
+    this.isSubmitting.set(true);
     try {
       const mode = this.setupService.getMode();
       const username = this.unifiedUserService.currentUser()?.username;
@@ -116,7 +116,7 @@ export class EditAvatarDialogComponent {
       console.error('Failed to upload avatar:', error);
       alert('Failed to upload avatar. Please try again.');
     } finally {
-      this.isSubmitting = false;
+      this.isSubmitting.set(false);
     }
   }
 }

@@ -5,6 +5,7 @@ import {
   ElementRef,
   inject,
   OnInit,
+  signal,
   ViewChild,
 } from '@angular/core';
 import {
@@ -84,8 +85,8 @@ export class EditProjectDialogComponent implements OnInit {
     description: new FormControl(''),
   });
 
-  isSaving = false;
-  isLoadingCover = false;
+  readonly isSaving = signal(false);
+  readonly isLoadingCover = signal(false);
   project!: Project;
   coverImage?: Blob;
   coverImageUrl?: SafeUrl;
@@ -130,7 +131,7 @@ export class EditProjectDialogComponent implements OnInit {
    * Load cover image - tries local storage first (offline-first), then server.
    */
   async loadCoverImage(): Promise<void> {
-    this.isLoadingCover = true;
+    this.isLoadingCover.set(true);
     const projectKey = `${this.project.username}/${this.project.slug}`;
 
     try {
@@ -194,7 +195,7 @@ export class EditProjectDialogComponent implements OnInit {
       this.coverImageUrl = undefined;
       this.hasCoverImage = false;
     } finally {
-      this.isLoadingCover = false;
+      this.isLoadingCover.set(false);
     }
   }
 
@@ -327,7 +328,7 @@ export class EditProjectDialogComponent implements OnInit {
       );
       // Save immediately to local storage (offline-first)
       if (this.project.username && this.project.slug) {
-        this.isLoadingCover = true;
+        this.isLoadingCover.set(true);
         const projectKey = `${this.project.username}/${this.project.slug}`;
         try {
           // Save to local storage first
@@ -365,7 +366,7 @@ export class EditProjectDialogComponent implements OnInit {
             error instanceof Error ? error.message : 'Unknown error';
           this.showError(`Failed to save cover image: ${errorMessage}`);
         } finally {
-          this.isLoadingCover = false;
+          this.isLoadingCover.set(false);
         }
       }
     }
@@ -387,7 +388,7 @@ export class EditProjectDialogComponent implements OnInit {
   async removeCoverImage(): Promise<void> {
     if (!this.project.username || !this.project.slug) return;
 
-    this.isLoadingCover = true;
+    this.isLoadingCover.set(true);
     const projectKey = `${this.project.username}/${this.project.slug}`;
 
     try {
@@ -431,7 +432,7 @@ export class EditProjectDialogComponent implements OnInit {
         error instanceof Error ? error.message : 'Unknown error';
       this.showError(`Failed to remove cover image: ${errorMessage}`);
     } finally {
-      this.isLoadingCover = false;
+      this.isLoadingCover.set(false);
     }
   }
 
@@ -447,7 +448,7 @@ export class EditProjectDialogComponent implements OnInit {
   async onSave(): Promise<void> {
     if (this.form.invalid) return;
 
-    this.isSaving = true;
+    this.isSaving.set(true);
     try {
       interface FormValues {
         title: string;
@@ -520,7 +521,7 @@ export class EditProjectDialogComponent implements OnInit {
       console.error('Failed to update project:', errorMessage);
       this.showError(`Failed to update project: ${errorMessage}`);
     } finally {
-      this.isSaving = false;
+      this.isSaving.set(false);
     }
   }
 

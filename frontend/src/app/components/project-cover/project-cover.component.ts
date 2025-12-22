@@ -115,7 +115,10 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
 
       // If coverMediaId is provided, use the new offline-first approach
       if (this.coverMediaId) {
-        url = await this.offlineStorage.getMediaUrl(projectKey, this.coverMediaId);
+        url = await this.offlineStorage.getMediaUrl(
+          projectKey,
+          this.coverMediaId
+        );
       }
 
       // Fall back to legacy approach (fixed 'cover' key)
@@ -133,7 +136,11 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
         if (blob) {
           // Save to IndexedDB for future use (using coverMediaId if available, else legacy)
           if (this.coverMediaId) {
-            await this.offlineStorage.saveMedia(projectKey, this.coverMediaId, blob);
+            await this.offlineStorage.saveMedia(
+              projectKey,
+              this.coverMediaId,
+              blob
+            );
           } else {
             await this.offlineStorage.saveProjectCover(
               project.username,
@@ -143,7 +150,10 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
           }
           // Get the blob URL
           url = this.coverMediaId
-            ? await this.offlineStorage.getMediaUrl(projectKey, this.coverMediaId)
+            ? await this.offlineStorage.getMediaUrl(
+                projectKey,
+                this.coverMediaId
+              )
             : await this.offlineStorage.getProjectCoverUrl(
                 project.username,
                 project.slug

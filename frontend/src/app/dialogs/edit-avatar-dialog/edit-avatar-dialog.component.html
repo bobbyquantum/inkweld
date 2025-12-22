@@ -52,14 +52,17 @@
   }
 </div>
 <div mat-dialog-actions align="end">
-  <button mat-button (click)="dialogRef.close(false)" [disabled]="isSubmitting">
+  <button
+    mat-button
+    (click)="dialogRef.close(false)"
+    [disabled]="isSubmitting()">
     Cancel
   </button>
   <button
     mat-raised-button
     color="primary"
     (click)="submit()"
-    [disabled]="isSubmitting || !croppedBlob">
-    {{ isSubmitting ? 'Uploading...' : 'Save' }}
+    [disabled]="isSubmitting() || !croppedBlob">
+    {{ isSubmitting() ? 'Uploading...' : 'Save' }}
   </button>
 </div>

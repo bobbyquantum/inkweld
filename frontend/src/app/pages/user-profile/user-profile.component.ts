@@ -5,6 +5,7 @@ import {
   inject,
   OnDestroy,
   OnInit,
+  signal,
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -50,7 +51,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   username: string | null = null;
   profileUser: User | null = null;
   isMobile = false;
-  isLoading = true;
+  readonly isLoading = signal(true);
   loadError = false;
   isOwner = false;
 
@@ -82,7 +83,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   }
 
   private loadUserProfile() {
-    this.isLoading = true;
+    this.isLoading.set(true);
     this.loadError = false;
 
     // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
@@ -98,7 +99,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
         console.error('Failed to load user profile:', error);
         this.loadError = true;
       } finally {
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.cdr.detectChanges();
       }
     });
