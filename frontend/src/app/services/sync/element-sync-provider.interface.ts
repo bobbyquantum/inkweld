@@ -10,6 +10,21 @@ import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
 
 /**
+ * Project metadata stored in Yjs for offline-first sync.
+ * This includes fields that need CRDT conflict resolution.
+ */
+export interface ProjectMeta {
+  /** Project display name/title */
+  name: string;
+  /** Project description */
+  description: string;
+  /** Media ID of the cover image (stored in local IndexedDB media library) */
+  coverMediaId?: string;
+  /** Last update timestamp (ISO string) for debugging */
+  updatedAt: string;
+}
+
+/**
  * Configuration for connecting to a sync provider
  */
 export interface SyncConnectionConfig {
@@ -195,6 +210,30 @@ export interface IElementSyncProvider {
    * @param schemas The new schemas array
    */
   updateSchemas(schemas: ElementTypeSchema[]): void;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Project Metadata (name, description, cover - synced via Yjs for offline-first)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get the current project metadata.
+   * Returns undefined if not connected or not yet loaded.
+   */
+  getProjectMeta(): ProjectMeta | undefined;
+
+  /**
+   * Observable stream of project metadata changes.
+   * Emits whenever name, description, or cover changes.
+   */
+  projectMeta$: Observable<ProjectMeta | undefined>;
+
+  /**
+   * Update project metadata fields.
+   * Only updates the fields provided (partial update).
+   *
+   * @param meta Partial metadata to update
+   */
+  updateProjectMeta(meta: Partial<ProjectMeta>): void;
 }
 
 /**

@@ -27,9 +27,11 @@ import { ProjectsService } from '@inkweld/api/projects.service';
 import { Project } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SystemConfigService } from '@services/core/system-config.service';
+import { OfflineStorageService } from '@services/offline/offline-storage.service';
 import { UnifiedProjectService } from '@services/offline/unified-project.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { nanoid } from 'nanoid';
 import {
   ImageCroppedEvent,
   ImageCropperComponent,
@@ -65,6 +67,7 @@ export class EditProjectDialogComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private systemConfig = inject(SystemConfigService);
   private projectState = inject(ProjectStateService);
+  private offlineStorage = inject(OfflineStorageService);
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('coverImageInput') coverImageInput!: ElementRef<HTMLInputElement>;
@@ -102,6 +105,9 @@ export class EditProjectDialogComponent implements OnInit {
   // Project cover aspect ratio is 2:3 (width:height) for portrait book covers
   readonly coverAspectRatio = 1 / 1.6;
 
+  /** Track the coverMediaId for Yjs sync (separate from API cover URL) */
+  private currentCoverMediaId: string | undefined;
+
   ngOnInit(): void {
     this.project = this.dialogData;
     console.log('dialogData: ', this.dialogData);
@@ -111,15 +117,56 @@ export class EditProjectDialogComponent implements OnInit {
       description: this.project.description,
     });
 
+    // Get coverMediaId from project state (stored in Yjs)
+    this.currentCoverMediaId = this.projectState.coverMediaId();
+
     // Load cover image if available
     if (this.project.username && this.project.slug) {
       void this.loadCoverImage();
     }
   }
 
+  /**
+   * Load cover image - tries local storage first (offline-first), then server.
+   */
   async loadCoverImage(): Promise<void> {
     this.isLoadingCover = true;
+    const projectKey = `${this.project.username}/${this.project.slug}`;
+
     try {
+      // First, try loading from local storage using coverMediaId
+      if (this.currentCoverMediaId) {
+        const localBlob = await this.offlineStorage.getMedia(
+          projectKey,
+          this.currentCoverMediaId
+        );
+        if (localBlob) {
+          this.coverImage = localBlob;
+          this.coverImageUrl = this.sanitizer.bypassSecurityTrustUrl(
+            URL.createObjectURL(localBlob)
+          );
+          this.hasCoverImage = true;
+          return;
+        }
+      }
+
+      // Also try the legacy "cover" mediaId for backward compatibility
+      const legacyCover = await this.offlineStorage.getMedia(
+        projectKey,
+        'cover'
+      );
+      if (legacyCover) {
+        this.coverImage = legacyCover;
+        this.coverImageUrl = this.sanitizer.bypassSecurityTrustUrl(
+          URL.createObjectURL(legacyCover)
+        );
+        this.hasCoverImage = true;
+        // Migrate to new coverMediaId system
+        this.currentCoverMediaId = 'cover';
+        return;
+      }
+
+      // Fall back to server API if local storage has nothing
       const coverBlob = await this.projectService.getProjectCover(
         this.project.username,
         this.project.slug
@@ -129,6 +176,11 @@ export class EditProjectDialogComponent implements OnInit {
         URL.createObjectURL(coverBlob)
       );
       this.hasCoverImage = true;
+
+      // Save to local storage for offline access
+      const mediaId = `cover-${nanoid(8)}`;
+      await this.offlineStorage.saveMedia(projectKey, mediaId, coverBlob);
+      this.currentCoverMediaId = mediaId;
     } catch (error) {
       // Check if this is a "Cover image not found" error, which is expected
       if (error instanceof Error && error.message === 'Cover image not found') {
@@ -273,15 +325,40 @@ export class EditProjectDialogComponent implements OnInit {
       this.coverImageUrl = this.sanitizer.bypassSecurityTrustUrl(
         result.imageData
       );
-      // Save immediately to the project
+      // Save immediately to local storage (offline-first)
       if (this.project.username && this.project.slug) {
         this.isLoadingCover = true;
+        const projectKey = `${this.project.username}/${this.project.slug}`;
         try {
-          await this.projectService.uploadProjectCover(
-            this.project.username,
-            this.project.slug,
-            file
+          // Save to local storage first
+          const newCoverMediaId = `cover-${nanoid(8)}`;
+          await this.offlineStorage.saveMedia(
+            projectKey,
+            newCoverMediaId,
+            blob
           );
+          this.currentCoverMediaId = newCoverMediaId;
+
+          // Try to upload to server (best effort)
+          try {
+            await this.projectService.uploadProjectCover(
+              this.project.username,
+              this.project.slug,
+              file
+            );
+          } catch (serverError) {
+            console.warn(
+              'Failed to upload cover to server (will sync later):',
+              serverError
+            );
+          }
+
+          // Update project state with coverMediaId for Yjs sync
+          const currentProject = this.projectState.project();
+          if (currentProject) {
+            this.projectState.updateProject(currentProject, newCoverMediaId);
+          }
+
           this.showSuccess('Cover image generated and saved successfully');
         } catch (error) {
           const errorMessage =
@@ -311,14 +388,43 @@ export class EditProjectDialogComponent implements OnInit {
     if (!this.project.username || !this.project.slug) return;
 
     this.isLoadingCover = true;
+    const projectKey = `${this.project.username}/${this.project.slug}`;
+
     try {
-      await this.projectService.deleteProjectCover(
-        this.project.username,
-        this.project.slug
-      );
+      // Delete from local storage first (offline-first)
+      if (this.currentCoverMediaId) {
+        await this.offlineStorage.deleteMedia(
+          projectKey,
+          this.currentCoverMediaId
+        );
+      }
+
+      // Try to delete from server (best effort)
+      try {
+        await this.projectService.deleteProjectCover(
+          this.project.username,
+          this.project.slug
+        );
+      } catch (serverError) {
+        // Log but don't fail - local storage is the source of truth
+        console.warn(
+          'Failed to delete cover from server (will sync later):',
+          serverError
+        );
+      }
+
+      // Clear local state
       this.coverImage = undefined;
       this.coverImageUrl = undefined;
       this.hasCoverImage = false;
+      this.currentCoverMediaId = undefined;
+
+      // Update project state to clear coverMediaId via Yjs
+      const currentProject = this.projectState.project();
+      if (currentProject) {
+        this.projectState.updateProject(currentProject, '');
+      }
+
       this.showSuccess('Cover image removed successfully');
     } catch (error) {
       const errorMessage =
@@ -358,6 +464,41 @@ export class EditProjectDialogComponent implements OnInit {
       if (!updatedProject.slug) {
         throw new Error('Project slug is required');
       }
+
+      const projectKey = `${updatedProject.username}/${updatedProject.slug}`;
+
+      // Handle cover image - save to local storage first (offline-first)
+      let newCoverMediaId = this.currentCoverMediaId;
+      if (
+        this.coverImage instanceof File &&
+        updatedProject.username &&
+        updatedProject.slug
+      ) {
+        // Generate new mediaId and save locally
+        newCoverMediaId = `cover-${nanoid(8)}`;
+        await this.offlineStorage.saveMedia(
+          projectKey,
+          newCoverMediaId,
+          this.coverImage
+        );
+        this.currentCoverMediaId = newCoverMediaId;
+
+        // Try to upload to server (best effort - don't fail if server unreachable)
+        try {
+          await this.projectService.uploadProjectCover(
+            updatedProject.username,
+            updatedProject.slug,
+            this.coverImage
+          );
+        } catch (imageError) {
+          // Log but don't fail - local storage is the source of truth
+          console.warn(
+            'Failed to upload cover to server (will sync later):',
+            imageError
+          );
+        }
+      }
+
       // Use UnifiedProjectService for update - handles both online and offline modes
       const response = await this.unifiedProjectService.updateProject(
         updatedProject.username,
@@ -368,31 +509,10 @@ export class EditProjectDialogComponent implements OnInit {
         }
       );
 
-      // Handle cover image upload if we have a new image
-      if (
-        this.coverImage instanceof File &&
-        updatedProject.username &&
-        updatedProject.slug
-      ) {
-        // Check if it's a File
-        try {
-          await this.projectService.uploadProjectCover(
-            updatedProject.username,
-            updatedProject.slug,
-            this.coverImage
-          );
-          this.showSuccess('Project and cover image updated successfully');
-        } catch (imageError) {
-          const errorMessage =
-            imageError instanceof Error ? imageError.message : 'Unknown error';
-          this.showError(
-            `Project updated but failed to upload cover image: ${errorMessage}`
-          );
-          console.error('Failed to upload cover image:', errorMessage);
-          // Continue - we still want to close the dialog even if the image upload failed
-        }
-      }
+      // Update project state with coverMediaId for Yjs sync
+      this.projectState.updateProject(response, newCoverMediaId);
 
+      this.showSuccess('Project updated successfully');
       this.dialogRef.close(response);
     } catch (error: unknown) {
       const errorMessage =

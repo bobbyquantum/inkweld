@@ -31,6 +31,13 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
   @Input() project!: Project;
   @Input() variant: ProjectCoverVariant = 'card';
 
+  /**
+   * Optional cover media ID (from Yjs sync).
+   * When provided, uses the new offline-first approach to load cover.
+   * Falls back to legacy approach if not provided.
+   */
+  @Input() coverMediaId?: string;
+
   /** Signal for cover blob URL (from IndexedDB) */
   private coverBlobUrl = signal<string | null>(null);
 
@@ -40,13 +47,18 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
   /** Track current project key for cleanup */
   private currentProjectKey: string | null = null;
 
+  /** Track current coverMediaId to detect changes */
+  private currentCoverMediaId: string | undefined = undefined;
+
   /** Track loading state to prevent duplicate fetches */
   private isLoading = false;
 
   ngOnChanges(changes: SimpleChanges): void {
-    // Load cover when project changes
-    if (changes['project'] && this.project) {
-      void this.loadCover(this.project);
+    // Load cover when project or coverMediaId changes
+    if (changes['project'] || changes['coverMediaId']) {
+      if (this.project) {
+        void this.loadCover(this.project);
+      }
     }
   }
 
@@ -73,46 +85,69 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
   }
 
   /**
-   * Load cover - first try IndexedDB, then fetch from server if online
+   * Load cover - first try IndexedDB (with coverMediaId or legacy key), then fetch from server if online
    */
   private async loadCover(project: Project): Promise<void> {
     const projectKey = `${project.username}/${project.slug}`;
 
-    // Skip if already loading this project
-    if (this.isLoading && this.currentProjectKey === projectKey) {
+    // Skip if already loading this exact project+coverMediaId combination
+    if (
+      this.isLoading &&
+      this.currentProjectKey === projectKey &&
+      this.currentCoverMediaId === this.coverMediaId
+    ) {
       return;
     }
 
-    // Clear local state if project changed (but don't revoke URLs - service manages that)
-    if (this.currentProjectKey && this.currentProjectKey !== projectKey) {
+    // Clear local state if project or coverMediaId changed
+    if (
+      this.currentProjectKey !== projectKey ||
+      this.currentCoverMediaId !== this.coverMediaId
+    ) {
       this.coverBlobUrl.set(null);
     }
     this.currentProjectKey = projectKey;
+    this.currentCoverMediaId = this.coverMediaId;
     this.isLoading = true;
 
     try {
-      // First, try to get from IndexedDB cache
-      let url = await this.offlineStorage.getProjectCoverUrl(
-        project.username,
-        project.slug
-      );
+      let url: string | null = null;
+
+      // If coverMediaId is provided, use the new offline-first approach
+      if (this.coverMediaId) {
+        url = await this.offlineStorage.getMediaUrl(projectKey, this.coverMediaId);
+      }
+
+      // Fall back to legacy approach (fixed 'cover' key)
+      if (!url) {
+        url = await this.offlineStorage.getProjectCoverUrl(
+          project.username,
+          project.slug
+        );
+      }
 
       // If not in cache and we're online, try to fetch from server
       // Only fetch if server is configured (online mode) and project has a cover
       if (!url && !this.isOffline() && project.coverImage) {
         const blob = await this.fetchCoverFromServer(project);
         if (blob) {
-          // Save to IndexedDB for future use
-          await this.offlineStorage.saveProjectCover(
-            project.username,
-            project.slug,
-            blob
-          );
+          // Save to IndexedDB for future use (using coverMediaId if available, else legacy)
+          if (this.coverMediaId) {
+            await this.offlineStorage.saveMedia(projectKey, this.coverMediaId, blob);
+          } else {
+            await this.offlineStorage.saveProjectCover(
+              project.username,
+              project.slug,
+              blob
+            );
+          }
           // Get the blob URL
-          url = await this.offlineStorage.getProjectCoverUrl(
-            project.username,
-            project.slug
-          );
+          url = this.coverMediaId
+            ? await this.offlineStorage.getMediaUrl(projectKey, this.coverMediaId)
+            : await this.offlineStorage.getProjectCoverUrl(
+                project.username,
+                project.slug
+              );
         }
       }
 

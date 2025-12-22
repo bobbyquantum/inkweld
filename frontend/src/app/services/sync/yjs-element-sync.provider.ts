@@ -17,6 +17,7 @@ import { ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
 import {
   IElementSyncProvider,
+  ProjectMeta,
   SyncConnectionConfig,
   SyncConnectionResult,
 } from './element-sync-provider.interface';
@@ -87,7 +88,13 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   private readonly schemasSubject = new BehaviorSubject<ElementTypeSchema[]>(
     []
   );
+  private readonly projectMetaSubject = new BehaviorSubject<
+    ProjectMeta | undefined
+  >(undefined);
   private readonly errorsSubject = new Subject<string>();
+
+  // Flag to skip observer emission during local updates (prevents feedback loop)
+  private isUpdatingProjectMeta = false;
 
   // Public observables
   readonly syncState$: Observable<DocumentSyncState> =
@@ -102,6 +109,8 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.customRelationshipTypesSubject.asObservable();
   readonly schemas$: Observable<ElementTypeSchema[]> =
     this.schemasSubject.asObservable();
+  readonly projectMeta$: Observable<ProjectMeta | undefined> =
+    this.projectMetaSubject.asObservable();
   readonly errors$: Observable<string> = this.errorsSubject.asObservable();
 
   /**
@@ -252,6 +261,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.relationshipsSubject.next([]);
     this.customRelationshipTypesSubject.next([]);
     this.schemasSubject.next([]);
+    this.projectMetaSubject.next(undefined);
     this.syncStateSubject.next(DocumentSyncState.Unavailable);
   }
 
@@ -468,6 +478,65 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Project Metadata (name, description, cover - synced via Yjs for offline-first)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  getProjectMeta(): ProjectMeta | undefined {
+    return this.projectMetaSubject.getValue();
+  }
+
+  /**
+   * Update project metadata in the Yjs document.
+   * Only updates the fields provided (partial update).
+   * Applies optimistic update immediately for responsive UI.
+   */
+  updateProjectMeta(meta: Partial<ProjectMeta>): void {
+    if (!this.doc) {
+      this.logger.warn(
+        'YjsSync',
+        'Cannot update project metadata - not connected'
+      );
+      return;
+    }
+
+    this.logger.debug('YjsSync', 'Updating project metadata', meta);
+
+    const metaMap = this.doc.getMap<string>('projectMeta');
+
+    // Get current values and merge with new ones
+    const current = this.projectMetaSubject.getValue();
+    const updated: ProjectMeta = {
+      name: meta.name ?? current?.name ?? '',
+      description: meta.description ?? current?.description ?? '',
+      coverMediaId: meta.coverMediaId ?? current?.coverMediaId,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Set flag to prevent observer from emitting during transaction
+    this.isUpdatingProjectMeta = true;
+    try {
+      // Update the Yjs map
+      this.doc.transact(() => {
+        metaMap.set('name', updated.name);
+        metaMap.set('description', updated.description);
+        if (updated.coverMediaId !== undefined) {
+          metaMap.set('coverMediaId', updated.coverMediaId);
+        } else {
+          metaMap.delete('coverMediaId');
+        }
+        metaMap.set('updatedAt', updated.updatedAt);
+      });
+    } finally {
+      this.isUpdatingProjectMeta = false;
+    }
+
+    // Emit after flag is cleared - this is the single source of truth
+    this.projectMetaSubject.next(updated);
+
+    this.logger.debug('YjsSync', 'Project metadata updated in Yjs');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Private Methods
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -680,6 +749,35 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.logger.debug('YjsSync', `Schemas changed: ${schemas.length}`);
       this.schemasSubject.next(schemas);
     });
+
+    // Project metadata observer
+    const metaMap = this.doc.getMap<string>('projectMeta');
+    metaMap.observe(() => {
+      // Skip if we're the source of this change (prevents feedback loop)
+      if (this.isUpdatingProjectMeta) {
+        return;
+      }
+      const meta = this.extractProjectMeta(metaMap);
+      this.logger.debug('YjsSync', 'Project metadata changed', meta);
+      this.projectMetaSubject.next(meta);
+    });
+  }
+
+  /**
+   * Extract ProjectMeta from a Yjs Map.
+   */
+  private extractProjectMeta(metaMap: Y.Map<string>): ProjectMeta | undefined {
+    const name = metaMap.get('name');
+    // If no name is set, metadata hasn't been initialized yet
+    if (name === undefined) {
+      return undefined;
+    }
+    return {
+      name: name ?? '',
+      description: metaMap.get('description') ?? '',
+      coverMediaId: metaMap.get('coverMediaId'),
+      updatedAt: metaMap.get('updatedAt') ?? new Date().toISOString(),
+    };
   }
 
   /**
@@ -760,6 +858,12 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     const schemas = schemasArray.toArray();
     this.logger.debug('YjsSync', `Loaded ${schemas.length} schemas from Yjs`);
     this.schemasSubject.next(schemas);
+
+    // Load project metadata
+    const metaMap = this.doc.getMap<string>('projectMeta');
+    const meta = this.extractProjectMeta(metaMap);
+    this.logger.debug('YjsSync', 'Loaded project metadata from Yjs', meta);
+    this.projectMetaSubject.next(meta);
   }
 
   /**
