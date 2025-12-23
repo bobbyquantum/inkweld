@@ -10,6 +10,7 @@ import {
   ElementRelationship,
   RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
+import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
@@ -36,6 +37,8 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
   _relationshipsSubject: BehaviorSubject<ElementRelationship[]>;
   _customTypesSubject: BehaviorSubject<RelationshipTypeDefinition[]>;
   _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
+  _elementTagsSubject: BehaviorSubject<ElementTag[]>;
+  _customTagsSubject: BehaviorSubject<TagDefinition[]>;
   _projectMetaSubject: BehaviorSubject<ProjectMeta | undefined>;
   _syncStateSubject: BehaviorSubject<DocumentSyncState>;
   _errorsSubject: Subject<string>;
@@ -47,6 +50,8 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     []
   );
   const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
+  const elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
+  const customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
   const projectMetaSubject = new BehaviorSubject<ProjectMeta | undefined>(
     undefined
   );
@@ -61,6 +66,8 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     _relationshipsSubject: relationshipsSubject,
     _customTypesSubject: customTypesSubject,
     _schemasSubject: schemasSubject,
+    _elementTagsSubject: elementTagsSubject,
+    _customTagsSubject: customTagsSubject,
     _projectMetaSubject: projectMetaSubject,
     _syncStateSubject: syncStateSubject,
     _errorsSubject: errorsSubject,
@@ -74,6 +81,8 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     getRelationships: vi.fn(() => relationshipsSubject.getValue()),
     getCustomRelationshipTypes: vi.fn(() => customTypesSubject.getValue()),
     getSchemas: vi.fn(() => schemasSubject.getValue()),
+    getElementTags: vi.fn(() => elementTagsSubject.getValue()),
+    getCustomTags: vi.fn(() => customTagsSubject.getValue()),
     getProjectMeta: vi.fn(() => projectMetaSubject.getValue()),
     updateElements: vi.fn((elements: Element[]) => {
       elementsSubject.next(elements);
@@ -92,6 +101,12 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     updateSchemas: vi.fn((schemas: ElementTypeSchema[]) => {
       schemasSubject.next(schemas);
     }),
+    updateElementTags: vi.fn((tags: ElementTag[]) => {
+      elementTagsSubject.next(tags);
+    }),
+    updateCustomTags: vi.fn((tags: TagDefinition[]) => {
+      customTagsSubject.next(tags);
+    }),
     updateProjectMeta: vi.fn((meta: Partial<ProjectMeta>) => {
       const current = projectMetaSubject.getValue();
       projectMetaSubject.next({
@@ -108,6 +123,8 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     relationships$: relationshipsSubject.asObservable(),
     customRelationshipTypes$: customTypesSubject.asObservable(),
     schemas$: schemasSubject.asObservable(),
+    elementTags$: elementTagsSubject.asObservable(),
+    customTags$: customTagsSubject.asObservable(),
     projectMeta$: projectMetaSubject.asObservable(),
     errors$: errorsSubject.asObservable(),
   } as MockedObject<IElementSyncProvider> & {
@@ -116,6 +133,8 @@ function createMockSyncProvider(): MockedObject<IElementSyncProvider> & {
     _relationshipsSubject: BehaviorSubject<ElementRelationship[]>;
     _customTypesSubject: BehaviorSubject<RelationshipTypeDefinition[]>;
     _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
+    _elementTagsSubject: BehaviorSubject<ElementTag[]>;
+    _customTagsSubject: BehaviorSubject<TagDefinition[]>;
     _projectMetaSubject: BehaviorSubject<ProjectMeta | undefined>;
     _syncStateSubject: BehaviorSubject<DocumentSyncState>;
     _errorsSubject: Subject<string>;

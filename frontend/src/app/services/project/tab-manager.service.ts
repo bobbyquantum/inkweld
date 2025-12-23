@@ -20,6 +20,7 @@ export interface AppTab {
     | 'media'
     | 'templates-list'
     | 'relationships-list'
+    | 'tags-list'
     | 'home';
   /** The element associated with this tab (for document/folder/worldbuilding tabs) */
   element?: Element;
@@ -164,6 +165,7 @@ export class TabManagerService {
       | 'media'
       | 'templates-list'
       | 'relationships-list'
+      | 'tags-list'
       | 'home'
   ): OpenTabResult {
     const tabs = this.openTabs();
@@ -177,7 +179,9 @@ export class TabManagerService {
             ? 'Media'
             : type === 'templates-list'
               ? 'Templates'
-              : 'Relationships';
+              : type === 'tags-list'
+                ? 'Tags'
+                : 'Relationships';
 
     // Check if tab already exists
     const existingIndex = tabs.findIndex(t => t.id === tabId);
@@ -549,6 +553,7 @@ export class TabManagerService {
       | 'project-files'
       | 'templates-list'
       | 'relationships-list'
+      | 'tags-list'
   ): number {
     const tabs = this.openTabs();
     const index = tabs.findIndex(t => t.systemType === systemType);

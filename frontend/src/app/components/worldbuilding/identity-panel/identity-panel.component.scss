@@ -260,6 +260,17 @@
   }
 }
 
+// Tags section
+.tags-section {
+  width: 100%;
+  margin-top: 8px;
+
+  @media (max-width: 759px) {
+    flex: 1 1 100%;
+    margin-top: 0;
+  }
+}
+
 // Collapsed view (mobile only)
 .collapsed-content {
   display: flex;

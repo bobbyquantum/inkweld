@@ -8,6 +8,7 @@ import {
   ElementRelationship,
   RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
+import { TagDefinition } from '../../components/tags/tag.model';
 import {
   ARCHIVE_VERSION,
   ArchiveDocumentContent,
@@ -382,6 +383,11 @@ export class ProjectImportService {
     const customTypesJson = await this.readJsonFile<
       RelationshipTypeDefinition[]
     >(zip, 'relationship-types.json', []);
+    const tagsJson = await this.readJsonFile<TagDefinition[]>(
+      zip,
+      'tags.json',
+      []
+    );
     const publishPlansJson = await this.readJsonFile<PublishPlan[]>(
       zip,
       'publish-plans.json',
@@ -409,6 +415,7 @@ export class ProjectImportService {
       schemas: schemasJson,
       relationships: relationshipsJson,
       customRelationshipTypes: customTypesJson,
+      tags: tagsJson,
       publishPlans: publishPlansJson,
       media: mediaIndexJson,
       snapshots: snapshotsJson,
@@ -625,6 +632,11 @@ export class ProjectImportService {
         slug,
         archive.customRelationshipTypes
       );
+    }
+
+    // Import tags
+    if (archive.tags.length > 0) {
+      await this.offlineElements.saveCustomTags(username, slug, archive.tags);
     }
 
     // Import publish plans

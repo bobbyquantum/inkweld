@@ -9,6 +9,7 @@ import {
   ElementRelationship,
   RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
+import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
@@ -34,6 +35,8 @@ function createMockSyncProvider(): IElementSyncProvider & {
     []
   );
   const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
+  const elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
+  const customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
   const projectMetaSubject = new BehaviorSubject<ProjectMeta | undefined>(
     undefined
   );
@@ -53,6 +56,8 @@ function createMockSyncProvider(): IElementSyncProvider & {
     getRelationships: vi.fn(() => relationshipsSubject.getValue()),
     getCustomRelationshipTypes: vi.fn(() => customTypesSubject.getValue()),
     getSchemas: vi.fn(() => schemasSubject.getValue()),
+    getElementTags: vi.fn(() => elementTagsSubject.getValue()),
+    getCustomTags: vi.fn(() => customTagsSubject.getValue()),
     getProjectMeta: vi.fn(() => projectMetaSubject.getValue()),
     updateElements: vi.fn(),
     updatePublishPlans: vi.fn(),
@@ -61,6 +66,8 @@ function createMockSyncProvider(): IElementSyncProvider & {
     updateSchemas: vi.fn((schemas: ElementTypeSchema[]) => {
       schemasSubject.next(schemas);
     }),
+    updateElementTags: vi.fn(),
+    updateCustomTags: vi.fn(),
     updateProjectMeta: vi.fn(),
 
     syncState$: syncStateSubject.asObservable(),
@@ -69,6 +76,8 @@ function createMockSyncProvider(): IElementSyncProvider & {
     relationships$: relationshipsSubject.asObservable(),
     customRelationshipTypes$: customTypesSubject.asObservable(),
     schemas$: schemasSubject.asObservable(),
+    elementTags$: elementTagsSubject.asObservable(),
+    customTags$: customTagsSubject.asObservable(),
     projectMeta$: projectMetaSubject.asObservable(),
     errors$: new BehaviorSubject<string>('').asObservable(),
   };

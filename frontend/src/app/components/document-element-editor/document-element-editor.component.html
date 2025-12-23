@@ -7,8 +7,11 @@
       @if (!zenMode) {
         <app-editor-toolbar
           [editor]="editor"
+          [elementId]="documentId"
+          [elementName]="elementName()"
           [metaPanelOpen]="showMetaPanel()"
-          (metaPanelToggle)="showMetaPanel.set(!showMetaPanel())">
+          (metaPanelToggle)="showMetaPanel.set(!showMetaPanel())"
+          (tagsClick)="openTagsDialog()">
         </app-editor-toolbar>
       }
       <div

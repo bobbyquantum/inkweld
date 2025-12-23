@@ -5,6 +5,7 @@ import {
   ElementRelationship,
   RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
+import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
@@ -210,6 +211,48 @@ export interface IElementSyncProvider {
    * @param schemas The new schemas array
    */
   updateSchemas(schemas: ElementTypeSchema[]): void;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Tags (element tagging system)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get the current element tags array.
+   * Returns an empty array if not connected.
+   */
+  getElementTags(): ElementTag[];
+
+  /**
+   * Observable stream of element tag changes.
+   * Emits whenever tags are added or removed from elements.
+   */
+  elementTags$: Observable<ElementTag[]>;
+
+  /**
+   * Update the entire element tags array.
+   * The provider handles merging/conflict resolution.
+   *
+   * @param tags The new element tags array
+   */
+  updateElementTags(tags: ElementTag[]): void;
+
+  /**
+   * Get the current custom tag definitions array.
+   * Returns an empty array if not connected.
+   */
+  getCustomTags(): TagDefinition[];
+
+  /**
+   * Observable stream of custom tag definition changes.
+   */
+  customTags$: Observable<TagDefinition[]>;
+
+  /**
+   * Update the entire custom tag definitions array.
+   *
+   * @param tags The new custom tag definitions array
+   */
+  updateCustomTags(tags: TagDefinition[]): void;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Project Metadata (name, description, cover - synced via Yjs for offline-first)

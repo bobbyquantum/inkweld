@@ -226,6 +226,18 @@
                   <span class="nav-title">Relationship Types</span>
                 </div>
                 <div
+                  class="sidebar-nav-item"
+                  [class.selected-item]="isSystemTabSelected('tags-list')"
+                  data-testid="sidebar-tags-button"
+                  tabindex="0"
+                  role="button"
+                  (click)="onShowTags()"
+                  (keyup.enter)="onShowTags()"
+                  aria-label="Tags">
+                  <mat-icon>local_offer</mat-icon>
+                  <span class="nav-title">Tags</span>
+                </div>
+                <div
                   class="sidebar-nav-item exit-item"
                   data-testid="sidebar-exit-button"
                   tabindex="0"

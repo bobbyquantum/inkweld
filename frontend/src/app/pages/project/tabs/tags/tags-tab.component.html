@@ -1,0 +1,140 @@
+<mat-card class="tags-tab">
+  <mat-card-header>
+    <mat-card-title>
+      <mat-icon>local_offer</mat-icon>
+      Tags
+    </mat-card-title>
+    <mat-card-subtitle>
+      Manage and view tags in your project
+    </mat-card-subtitle>
+  </mat-card-header>
+
+  <mat-card-content>
+    <!-- Search and filter -->
+    <div class="toolbar">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search tags</mat-label>
+        <input
+          matInput
+          type="text"
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          placeholder="Search by name..." />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+
+      <button
+        mat-flat-button
+        color="primary"
+        data-testid="new-tag-button"
+        (click)="createTag()">
+        <mat-icon>add</mat-icon>
+        New Tag
+      </button>
+    </div>
+
+    <!-- Loading state -->
+    @if (isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="48"></mat-spinner>
+        <p>Loading tags...</p>
+      </div>
+    }
+
+    <!-- Error state -->
+    @if (error()) {
+      <div class="error-container">
+        <mat-icon>error</mat-icon>
+        <p>{{ error() }}</p>
+        <button mat-button (click)="loadTags()">Retry</button>
+      </div>
+    }
+
+    <!-- Empty state -->
+    @if (!isLoading() && !error() && filteredTags().length === 0) {
+      <div class="empty-state">
+        <mat-icon>local_offer</mat-icon>
+        @if (searchQuery()) {
+          <p>No tags match your search</p>
+          <button mat-button (click)="searchQuery.set('')">
+            Clear filters
+          </button>
+        } @else {
+          <p>No tags defined yet</p>
+          <button mat-flat-button color="primary" (click)="createTag()">
+            Create your first tag
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Tags list -->
+    @if (!isLoading() && !error() && filteredTags().length > 0) {
+      <div class="tags-grid">
+        @for (tag of filteredTags(); track tag.id) {
+          <div class="tag-card">
+            <div class="tag-header">
+              <div
+                class="tag-chip"
+                [style.backgroundColor]="tag.color"
+                [style.color]="getTextColor(tag.color)">
+                <mat-icon>{{ tag.icon }}</mat-icon>
+                <span>{{ tag.name }}</span>
+              </div>
+              <div class="tag-actions">
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="tagMenu"
+                  data-testid="tag-menu-trigger"
+                  matTooltip="Tag options">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #tagMenu="matMenu">
+                  <button
+                    mat-menu-item
+                    data-testid="edit-tag-button"
+                    (click)="editTag(tag)">
+                    <mat-icon>edit</mat-icon>
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    mat-menu-item
+                    (click)="deleteTag(tag)"
+                    class="delete-action">
+                    <mat-icon color="warn">delete</mat-icon>
+                    <span>Delete</span>
+                  </button>
+                </mat-menu>
+              </div>
+            </div>
+
+            <div class="tag-meta">
+              <span
+                class="element-count"
+                tabindex="0"
+                role="button"
+                (click)="viewTaggedElements(tag)"
+                (keyup.enter)="viewTaggedElements(tag)">
+                <mat-icon>inventory_2</mat-icon>
+                {{ tag.count }} element{{ tag.count !== 1 ? 's' : '' }}
+              </span>
+            </div>
+
+            @if (tag.description) {
+              <p class="tag-description">{{ tag.description }}</p>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Summary stats -->
+    @if (!isLoading() && hasTags()) {
+      <div class="stats-bar">
+        <span>
+          <strong>{{ tags().length }}</strong> tags
+        </span>
+      </div>
+    }
+  </mat-card-content>
+</mat-card>

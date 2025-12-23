@@ -17,6 +17,7 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatOptionModule } from '@angular/material/core';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -26,6 +27,10 @@ import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
 
+import {
+  TagEditorDialogComponent,
+  TagEditorDialogData,
+} from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
 import {
@@ -78,6 +83,7 @@ export class DocumentElementEditorComponent
   private projectState = inject(ProjectStateService);
   private settingsService = inject(SettingsService);
   private relationshipService = inject(RelationshipService);
+  private dialog = inject(MatDialog);
   protected elementRefService = inject(ElementRefService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
@@ -145,6 +151,14 @@ export class DocumentElementEditorComponent
 
   readonly wordCount = computed(() => {
     return this.documentService.getWordCountSignal(this.documentIdSignal())();
+  });
+
+  /** Element name for the current document */
+  readonly elementName = computed(() => {
+    const docId = this.documentIdSignal();
+    const elements = this.projectState.elements();
+    const element = elements.find(e => e.id === docId);
+    return element?.name ?? 'Untitled';
   });
 
   constructor() {
@@ -637,6 +651,22 @@ export class DocumentElementEditorComponent
           this.cdr.detectChanges();
         });
       }
+    });
+  }
+
+  /**
+   * Open the tag editor dialog for this document
+   */
+  openTagsDialog(): void {
+    const data: TagEditorDialogData = {
+      elementId: this.documentId,
+      elementName: this.elementName(),
+    };
+
+    this.dialog.open(TagEditorDialogComponent, {
+      data,
+      width: '450px',
+      autoFocus: false,
     });
   }
 }

@@ -9,6 +9,7 @@ import {
   ElementRelationship,
   RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
+import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
 import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
 import { LoggerService } from '../core/logger.service';
@@ -23,7 +24,7 @@ interface StoredProjectElements {
 /**
  * Connection to a single Yjs document for a project.
  *
- * All project metadata (elements, publish plans, relationships, custom types, schemas)
+ * All project metadata (elements, publish plans, relationships, custom types, schemas, tags)
  * is stored in the SAME Yjs document, matching the online YjsElementSyncProvider.
  */
 interface YjsProjectConnection {
@@ -34,6 +35,8 @@ interface YjsProjectConnection {
   relationshipsArray: Y.Array<ElementRelationship>;
   customTypesArray: Y.Array<RelationshipTypeDefinition>;
   schemasArray: Y.Array<ElementTypeSchema>;
+  elementTagsArray: Y.Array<ElementTag>;
+  customTagsArray: Y.Array<TagDefinition>;
   projectMetaMap: Y.Map<string>;
 }
 
@@ -70,6 +73,8 @@ export class OfflineProjectElementsService {
   readonly relationships = signal<ElementRelationship[]>([]);
   readonly customRelationshipTypes = signal<RelationshipTypeDefinition[]>([]);
   readonly schemas = signal<ElementTypeSchema[]>([]);
+  readonly elementTags = signal<ElementTag[]>([]);
+  readonly customTags = signal<TagDefinition[]>([]);
   readonly projectMeta = signal<ProjectMeta | undefined>(undefined);
   readonly isLoading = signal(false);
 
@@ -91,6 +96,8 @@ export class OfflineProjectElementsService {
       this.relationships.set(connection.relationshipsArray.toArray());
       this.customRelationshipTypes.set(connection.customTypesArray.toArray());
       this.schemas.set(connection.schemasArray.toArray());
+      this.elementTags.set(connection.elementTagsArray.toArray());
+      this.customTags.set(connection.customTagsArray.toArray());
       this.projectMeta.set(this.extractProjectMeta(connection.projectMetaMap));
 
       this.logger.debug(
@@ -98,7 +105,8 @@ export class OfflineProjectElementsService {
         `Loaded ${connection.elementsArray.length} elements, ` +
           `${connection.publishPlansArray.length} publish plans, ` +
           `${connection.relationshipsArray.length} relationships, ` +
-          `${connection.schemasArray.length} schemas ` +
+          `${connection.schemasArray.length} schemas, ` +
+          `${connection.customTagsArray.length} tags ` +
           `for ${username}/${slug}`
       );
     } catch (error) {
@@ -113,6 +121,8 @@ export class OfflineProjectElementsService {
       this.relationships.set([]);
       this.customRelationshipTypes.set([]);
       this.schemas.set([]);
+      this.elementTags.set([]);
+      this.customTags.set([]);
       this.projectMeta.set(undefined);
     } finally {
       this.isLoading.set(false);
@@ -301,6 +311,75 @@ export class OfflineProjectElementsService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Element Tags
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Save element tags for a specific project using Yjs
+   */
+  async saveElementTags(
+    username: string,
+    slug: string,
+    tags: ElementTag[]
+  ): Promise<void> {
+    try {
+      const connection = await this.getOrCreateConnection(username, slug);
+
+      connection.doc.transact(() => {
+        connection.elementTagsArray.delete(
+          0,
+          connection.elementTagsArray.length
+        );
+        connection.elementTagsArray.insert(0, tags);
+      });
+
+      this.elementTags.set(tags);
+      this.logger.debug(
+        'OfflineProjectElements',
+        `Saved ${tags.length} element tags for ${username}/${slug}`
+      );
+    } catch (error) {
+      this.logger.error(
+        'OfflineProjectElements',
+        'Failed to save element tags',
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Save custom tag definitions for a specific project using Yjs
+   */
+  async saveCustomTags(
+    username: string,
+    slug: string,
+    tags: TagDefinition[]
+  ): Promise<void> {
+    try {
+      const connection = await this.getOrCreateConnection(username, slug);
+
+      connection.doc.transact(() => {
+        connection.customTagsArray.delete(0, connection.customTagsArray.length);
+        connection.customTagsArray.insert(0, tags);
+      });
+
+      this.customTags.set(tags);
+      this.logger.debug(
+        'OfflineProjectElements',
+        `Saved ${tags.length} custom tag definitions for ${username}/${slug}`
+      );
+    } catch (error) {
+      this.logger.error(
+        'OfflineProjectElements',
+        'Failed to save custom tags',
+        error
+      );
+      throw error;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Project Metadata
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -393,6 +472,8 @@ export class OfflineProjectElementsService {
       'customRelationshipTypes'
     );
     const schemasArray = doc.getArray<ElementTypeSchema>('schemas');
+    const elementTagsArray = doc.getArray<ElementTag>('elementTags');
+    const customTagsArray = doc.getArray<TagDefinition>('customTags');
     const projectMetaMap = doc.getMap<string>('projectMeta');
 
     // Set up observers for all arrays
@@ -414,6 +495,14 @@ export class OfflineProjectElementsService {
 
     schemasArray.observe(() => {
       this.schemas.set(schemasArray.toArray());
+    });
+
+    elementTagsArray.observe(() => {
+      this.elementTags.set(elementTagsArray.toArray());
+    });
+
+    customTagsArray.observe(() => {
+      this.customTags.set(customTagsArray.toArray());
     });
 
     projectMetaMap.observe(() => {
@@ -447,6 +536,8 @@ export class OfflineProjectElementsService {
       relationshipsArray,
       customTypesArray,
       schemasArray,
+      elementTagsArray,
+      customTagsArray,
       projectMetaMap,
     };
     this.yjsConnections.set(projectKey, connection);

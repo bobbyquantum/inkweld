@@ -239,6 +239,20 @@
     </button>
   </div>
 
+  <mat-divider [vertical]="true" class="toolbar-divider"></mat-divider>
+
+  <!-- Tags Button -->
+  <div class="toolbar-group">
+    <button
+      ngToolbarWidget
+      value="tags"
+      matTooltip="Manage tags"
+      (click)="openTags()"
+      data-testid="toolbar-tags">
+      <mat-icon>label</mat-icon>
+    </button>
+  </div>
+
   <!-- Spacer -->
   <div class="toolbar-spacer"></div>
 

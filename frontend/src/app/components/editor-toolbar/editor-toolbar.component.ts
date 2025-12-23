@@ -68,8 +68,17 @@ export class EditorToolbarComponent implements OnDestroy {
   /** The ngx-editor Editor instance */
   @Input({ required: true }) editor!: Editor;
 
+  /** Element ID for the document (used for tag management) */
+  @Input() elementId?: string;
+
+  /** Element name for the document (used for tag dialog title) */
+  @Input() elementName?: string;
+
   /** Emitted when the meta panel toggle is clicked */
   @Output() metaPanelToggle = new EventEmitter<void>();
+
+  /** Emitted when the tags button is clicked */
+  @Output() tagsClick = new EventEmitter<void>();
 
   /** Whether the meta panel is currently open (for icon state) */
   @Input() metaPanelOpen = false;
@@ -611,5 +620,12 @@ export class EditorToolbarComponent implements OnDestroy {
   /** Toggle the meta panel */
   onMetaPanelToggle(): void {
     this.metaPanelToggle.emit();
+  }
+
+  // ========== Tags ==========
+
+  /** Open the tags editor */
+  openTags(): void {
+    this.tagsClick.emit();
   }
 }
