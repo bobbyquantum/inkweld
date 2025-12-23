@@ -77,7 +77,7 @@ function ShowcaseSection(): ReactNode {
           <div className={styles.showcaseItem}>
             <div className={styles.showcaseImageWrapper}>
               <img
-                src="/img/bookshelf-desktop.png"
+                src="/img/generated/bookshelf-desktop-light.png"
                 alt="Project Dashboard"
                 className={clsx(
                   styles.showcaseImage,
@@ -85,7 +85,7 @@ function ShowcaseSection(): ReactNode {
                 )}
               />
               <img
-                src="/img/bookshelf-desktop-dark.png"
+                src="/img/generated/bookshelf-desktop-dark.png"
                 alt="Project Dashboard"
                 className={clsx(styles.showcaseImage, styles.showcaseImageDark)}
               />
@@ -110,7 +110,7 @@ function ShowcaseSection(): ReactNode {
             </div>
             <div className={styles.showcaseImageWrapper}>
               <img
-                src="/img/editor-desktop.png"
+                src="/img/generated/editor-desktop-light.png"
                 alt="Editor Interface"
                 className={clsx(
                   styles.showcaseImage,
@@ -118,7 +118,7 @@ function ShowcaseSection(): ReactNode {
                 )}
               />
               <img
-                src="/img/editor-desktop-dark.png"
+                src="/img/generated/editor-desktop-dark.png"
                 alt="Editor Interface"
                 className={clsx(styles.showcaseImage, styles.showcaseImageDark)}
               />
@@ -128,7 +128,7 @@ function ShowcaseSection(): ReactNode {
             <div className={styles.mobileShowcaseWrapper}>
               <div className={styles.mobileImageContainer}>
                 <img
-                  src="/img/editor-mobile.png"
+                  src="/img/generated/editor-mobile-light.png"
                   alt="Mobile Editor"
                   className={clsx(
                     styles.mobileImage,
@@ -136,14 +136,14 @@ function ShowcaseSection(): ReactNode {
                   )}
                 />
                 <img
-                  src="/img/editor-mobile-dark.png"
+                  src="/img/generated/editor-mobile-dark.png"
                   alt="Mobile Editor"
                   className={clsx(styles.mobileImage, styles.showcaseImageDark)}
                 />
               </div>
               <div className={styles.mobileImageContainer}>
                 <img
-                  src="/img/bookshelf-mobile.png"
+                  src="/img/generated/bookshelf-mobile-light.png"
                   alt="Mobile Bookshelf"
                   className={clsx(
                     styles.mobileImage,
@@ -151,7 +151,7 @@ function ShowcaseSection(): ReactNode {
                   )}
                 />
                 <img
-                  src="/img/bookshelf-mobile-dark.png"
+                  src="/img/generated/bookshelf-mobile-dark.png"
                   alt="Mobile Bookshelf"
                   className={clsx(styles.mobileImage, styles.showcaseImageDark)}
                 />

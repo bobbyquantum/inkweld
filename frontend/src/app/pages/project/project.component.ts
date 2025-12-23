@@ -460,6 +460,19 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  public onShowTags(): void {
+    this.projectState.openSystemTab('tags-list');
+    const project = this.projectState.project();
+    if (project) {
+      void this.router.navigate([
+        '/',
+        project.username,
+        project.slug,
+        'tags-list',
+      ]);
+    }
+  }
+
   openEditDialog() {
     void this.dialogGateway.openEditProjectDialog(this.projectState.project()!);
   }

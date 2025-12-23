@@ -300,6 +300,7 @@ describe('ProjectExportService', () => {
       expect(await fileExistsInZip('schemas.json')).toBe(true);
       expect(await fileExistsInZip('relationships.json')).toBe(true);
       expect(await fileExistsInZip('relationship-types.json')).toBe(true);
+      expect(await fileExistsInZip('tags.json')).toBe(true);
       expect(await fileExistsInZip('publish-plans.json')).toBe(true);
       expect(await fileExistsInZip('media-index.json')).toBe(true);
     });
@@ -631,6 +632,24 @@ describe('ProjectExportService', () => {
       );
       expect(types).toHaveLength(1);
       expect(types[0].id).toBe('type-1');
+    });
+
+    it('should include tags in archive', async () => {
+      const mockTags = [
+        {
+          id: 'tag-1',
+          name: 'Custom Tag',
+          icon: 'star',
+          color: '#FF5722',
+        },
+      ];
+      offlineElements.customTags.mockReturnValue(mockTags);
+
+      await service.exportProject();
+
+      const tags = await readJsonFromZip<Array<{ id: string }>>('tags.json');
+      expect(tags).toHaveLength(1);
+      expect(tags[0].id).toBe('tag-1');
     });
 
     it('should include publish plans in archive', async () => {

@@ -66,6 +66,16 @@
           <mat-hint>Used for tooltips and previews</mat-hint>
         </mat-form-field>
       </div>
+
+      <!-- Tags section -->
+      <div class="tags-section">
+        <app-tag-chip-list
+          [elementId]="elementId()"
+          label="Tags"
+          hint="Organize with tags"
+          [compact]="true">
+        </app-tag-chip-list>
+      </div>
     </div>
   } @else {
     <!-- Collapsed view - just show image thumbnail -->

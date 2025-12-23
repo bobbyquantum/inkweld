@@ -55,7 +55,7 @@ test.describe('PWA Screenshots', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'bookshelf-desktop.png'),
+      path: join(SCREENSHOTS_DIR, 'bookshelf-desktop-light.png'),
       fullPage: true,
     });
   });
@@ -113,7 +113,7 @@ test.describe('PWA Screenshots', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'bookshelf-mobile.png'),
+      path: join(SCREENSHOTS_DIR, 'bookshelf-mobile-light.png'),
       fullPage: true,
     });
   });
@@ -203,7 +203,7 @@ test.describe('PWA Screenshots', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'editor-desktop.png'),
+      path: join(SCREENSHOTS_DIR, 'editor-desktop-light.png'),
       fullPage: true,
     });
   });
@@ -274,7 +274,7 @@ test.describe('PWA Screenshots', () => {
 
     // Take screenshot with text selected and formatting menu visible
     await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'editor-mobile.png'),
+      path: join(SCREENSHOTS_DIR, 'editor-mobile-light.png'),
       fullPage: true,
     });
   });
@@ -500,7 +500,7 @@ test.describe('PWA Screenshots', () => {
 
     // Take screenshot
     await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'media-tab-desktop.png'),
+      path: join(SCREENSHOTS_DIR, 'media-tab-desktop-light.png'),
       fullPage: true,
     });
   });
@@ -571,7 +571,7 @@ test.describe('PWA Screenshots', () => {
 
     // Take screenshot showing filtered view
     await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'media-tab-filtered.png'),
+      path: join(SCREENSHOTS_DIR, 'media-tab-filtered-light.png'),
       fullPage: true,
     });
   });
@@ -607,7 +607,7 @@ test.describe('PWA Screenshots', () => {
 
     // Take screenshot of empty state
     await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'media-tab-empty.png'),
+      path: join(SCREENSHOTS_DIR, 'media-tab-empty-light.png'),
       fullPage: true,
     });
   });
@@ -666,7 +666,7 @@ test.describe('PWA Screenshots', () => {
 
     // Take mobile screenshot
     await page.screenshot({
-      path: join(SCREENSHOTS_DIR, 'media-tab-mobile.png'),
+      path: join(SCREENSHOTS_DIR, 'media-tab-mobile-light.png'),
       fullPage: true,
     });
   });

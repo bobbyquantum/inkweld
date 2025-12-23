@@ -5,7 +5,7 @@ import {
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Project } from '@inkweld/index';
+import { Element, Project } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -101,6 +101,7 @@ describe('DocumentElementEditorComponent', () => {
     const wordCountSignal = signal(0);
     const isLoadingSignal = signal(false);
     const projectSignal = signal<Project | undefined>(mockProject);
+    const elementsSignal = signal<Element[]>([]);
 
     documentServiceMock = {
       setupCollaboration: vi.fn().mockResolvedValue(undefined),
@@ -112,6 +113,7 @@ describe('DocumentElementEditorComponent', () => {
     projectStateServiceMock = {
       isLoading: isLoadingSignal,
       project: projectSignal,
+      elements: elementsSignal,
     };
 
     settingsServiceMock = {

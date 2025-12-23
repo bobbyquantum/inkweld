@@ -25,6 +25,7 @@ const sidebars: SidebarsConfig = {
         'user-guide/projects',
         'user-guide/element-references',
         'user-guide/relationships',
+        'user-guide/tags',
       ],
     },
     {

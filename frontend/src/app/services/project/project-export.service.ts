@@ -159,6 +159,7 @@ export class ProjectExportService {
         username,
         slug
       );
+      const tags = await this.getTags(username, slug);
       const publishPlans = await this.getPublishPlans(username, slug);
 
       // Phase 3: Get snapshots
@@ -199,6 +200,7 @@ export class ProjectExportService {
         schemas,
         relationships,
         customRelationshipTypes,
+        tags,
         publishPlans,
         media: mediaManifest,
         snapshots,
@@ -525,6 +527,17 @@ export class ProjectExportService {
   }
 
   /**
+   * Get tag definitions.
+   */
+  private async getTags(username: string, slug: string) {
+    if (this.syncFactory.isOfflineMode()) {
+      return this.offlineElements.customTags();
+    }
+    await this.offlineElements.loadElements(username, slug);
+    return this.offlineElements.customTags();
+  }
+
+  /**
    * Get publish plans.
    */
   private async getPublishPlans(
@@ -682,6 +695,7 @@ export class ProjectExportService {
       'relationship-types.json',
       JSON.stringify(archive.customRelationshipTypes, null, 2)
     );
+    zip.file('tags.json', JSON.stringify(archive.tags, null, 2));
     zip.file(
       'publish-plans.json',
       JSON.stringify(archive.publishPlans, null, 2)

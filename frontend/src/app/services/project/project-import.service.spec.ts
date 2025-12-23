@@ -44,6 +44,7 @@ async function createTestArchive(archive: ProjectArchive): Promise<File> {
     'relationship-types.json',
     JSON.stringify(archive.customRelationshipTypes)
   );
+  zip.file('tags.json', JSON.stringify(archive.tags));
   zip.file('publish-plans.json', JSON.stringify(archive.publishPlans));
   zip.file('media-index.json', JSON.stringify(archive.media));
   zip.file('snapshots.json', JSON.stringify(archive.snapshots ?? []));
@@ -124,6 +125,7 @@ describe('ProjectImportService', () => {
     schemas: [],
     relationships: [],
     customRelationshipTypes: [],
+    tags: [],
     publishPlans: [],
     media: [],
   };
@@ -158,6 +160,7 @@ describe('ProjectImportService', () => {
     offlineElements.saveSchemas.mockResolvedValue(undefined);
     offlineElements.saveRelationships.mockResolvedValue(undefined);
     offlineElements.saveCustomRelationshipTypes.mockResolvedValue(undefined);
+    offlineElements.saveCustomTags.mockResolvedValue(undefined);
     offlineElements.savePublishPlans.mockResolvedValue(undefined);
     offlineStorage.saveMedia.mockResolvedValue(undefined);
     offlineSnapshots.importSnapshot.mockResolvedValue({
@@ -588,6 +591,25 @@ describe('ProjectImportService', () => {
       await service.importProject(file, { slug: 'imported-project' });
 
       expect(offlineElements.saveCustomRelationshipTypes).toHaveBeenCalled();
+    });
+
+    it('should import tags', async () => {
+      const archiveWithTags: ProjectArchive = {
+        ...mockArchive,
+        tags: [
+          {
+            id: 'tag-1',
+            name: 'Custom Tag',
+            icon: 'star',
+            color: '#FF5722',
+          },
+        ],
+      };
+      const file = await createTestArchive(archiveWithTags);
+
+      await service.importProject(file, { slug: 'imported-project' });
+
+      expect(offlineElements.saveCustomTags).toHaveBeenCalled();
     });
 
     it('should import publish plans', async () => {

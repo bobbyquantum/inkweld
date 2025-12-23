@@ -183,6 +183,11 @@ export class UnifiedProjectService {
         archive.publishPlans
       );
     }
+
+    // Import custom tags from template
+    if (archive.tags.length > 0) {
+      await this.offlineElements.saveCustomTags(username, slug, archive.tags);
+    }
   }
 
   async updateProject(

@@ -11,6 +11,7 @@ import {
   ElementRelationship,
   RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
+import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
@@ -88,6 +89,8 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   private readonly schemasSubject = new BehaviorSubject<ElementTypeSchema[]>(
     []
   );
+  private readonly elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
+  private readonly customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
   private readonly projectMetaSubject = new BehaviorSubject<
     ProjectMeta | undefined
   >(undefined);
@@ -109,6 +112,10 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.customRelationshipTypesSubject.asObservable();
   readonly schemas$: Observable<ElementTypeSchema[]> =
     this.schemasSubject.asObservable();
+  readonly elementTags$: Observable<ElementTag[]> =
+    this.elementTagsSubject.asObservable();
+  readonly customTags$: Observable<TagDefinition[]> =
+    this.customTagsSubject.asObservable();
   readonly projectMeta$: Observable<ProjectMeta | undefined> =
     this.projectMetaSubject.asObservable();
   readonly errors$: Observable<string> = this.errorsSubject.asObservable();
@@ -474,6 +481,83 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.logger.debug(
       'YjsSync',
       `Yjs doc now contains ${schemasArray.length} schemas`
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Element Tags (tag assignments)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  getElementTags(): ElementTag[] {
+    return this.elementTagsSubject.getValue();
+  }
+
+  /**
+   * Update element tags in the Yjs document.
+   * Changes propagate to all connected clients.
+   * Applies optimistic update immediately for responsive UI.
+   */
+  updateElementTags(tags: ElementTag[]): void {
+    if (!this.doc) {
+      this.logger.warn('YjsSync', 'Cannot update element tags - not connected');
+      return;
+    }
+
+    this.logger.debug('YjsSync', `Writing ${tags.length} element tags to Yjs`);
+
+    // Optimistic update: emit immediately for responsive UI
+    this.elementTagsSubject.next(tags);
+
+    const tagsArray = this.doc.getArray<ElementTag>('elementTags');
+
+    this.doc.transact(() => {
+      tagsArray.delete(0, tagsArray.length);
+      tagsArray.insert(0, tags);
+    });
+
+    this.logger.debug(
+      'YjsSync',
+      `Yjs doc now contains ${tagsArray.length} element tags`
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Custom Tag Definitions (project-specific tag types)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  getCustomTags(): TagDefinition[] {
+    return this.customTagsSubject.getValue();
+  }
+
+  /**
+   * Update custom tag definitions in the Yjs document.
+   * Changes propagate to all connected clients.
+   * Applies optimistic update immediately for responsive UI.
+   */
+  updateCustomTags(tags: TagDefinition[]): void {
+    if (!this.doc) {
+      this.logger.warn('YjsSync', 'Cannot update custom tags - not connected');
+      return;
+    }
+
+    this.logger.debug(
+      'YjsSync',
+      `Writing ${tags.length} custom tag definitions to Yjs`
+    );
+
+    // Optimistic update: emit immediately for responsive UI
+    this.customTagsSubject.next(tags);
+
+    const tagsArray = this.doc.getArray<TagDefinition>('customTags');
+
+    this.doc.transact(() => {
+      tagsArray.delete(0, tagsArray.length);
+      tagsArray.insert(0, tags);
+    });
+
+    this.logger.debug(
+      'YjsSync',
+      `Yjs doc now contains ${tagsArray.length} custom tag definitions`
     );
   }
 
@@ -858,6 +942,25 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     const schemas = schemasArray.toArray();
     this.logger.debug('YjsSync', `Loaded ${schemas.length} schemas from Yjs`);
     this.schemasSubject.next(schemas);
+
+    // Load element tags
+    const elementTagsArray = this.doc.getArray<ElementTag>('elementTags');
+    const elementTags = elementTagsArray.toArray();
+    this.logger.debug(
+      'YjsSync',
+      `Loaded ${elementTags.length} element tags from Yjs`
+    );
+    this.elementTagsSubject.next(elementTags);
+
+    // Load custom tag definitions
+    const customTagsArray = this.doc.getArray<TagDefinition>('customTags');
+    const customTags = customTagsArray.toArray();
+
+    this.logger.debug(
+      'YjsSync',
+      `Loaded ${customTags.length} custom tag definitions from Yjs`
+    );
+    this.customTagsSubject.next(customTags);
 
     // Load project metadata
     const metaMap = this.doc.getMap<string>('projectMeta');

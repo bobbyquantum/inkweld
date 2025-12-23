@@ -52,6 +52,36 @@ export const DEFAULT_OPENROUTER_MODELS: ImageModelInfo[] = [
     description: 'Flexible FLUX model with fast generation (~$0.06/MP)',
   },
   {
+    id: 'black-forest-labs/flux.2-pro',
+    name: 'FLUX 2 Pro',
+    provider: 'openrouter',
+    supportedSizes: OPENROUTER_SUPPORTED_SIZES,
+    supportsQuality: false,
+    supportsStyle: false,
+    maxImages: 1,
+    description: 'High end FLUX model with fast generation (~$0.06/MP)',
+  },
+  {
+    id: 'black-forest-labs/flux.2-max',
+    name: 'FLUX 2 Max',
+    provider: 'openrouter',
+    supportedSizes: OPENROUTER_SUPPORTED_SIZES,
+    supportsQuality: false,
+    supportsStyle: false,
+    maxImages: 1,
+    description: 'Flexible FLUX model with fast generation (~$0.06/MP)',
+  },
+  {
+    id: 'sourceful/riverflow-v2-fast-preview',
+    name: 'Riverflow v2 Fast',
+    provider: 'openrouter',
+    supportedSizes: OPENROUTER_SUPPORTED_SIZES,
+    supportsQuality: false,
+    supportsStyle: false,
+    maxImages: 1,
+    description: 'Riverflow v2 fast image generation model (preview)',
+  },
+  {
     id: 'sourceful/riverflow-v2-standard-preview',
     name: 'Riverflow v2 Standard',
     provider: 'openrouter',
@@ -60,6 +90,16 @@ export const DEFAULT_OPENROUTER_MODELS: ImageModelInfo[] = [
     supportsStyle: false,
     maxImages: 1,
     description: 'Riverflow v2 image generation model (preview)',
+  },
+  {
+    id: 'sourceful/riverflow-v2-max-preview',
+    name: 'Riverflow v2 Max',
+    provider: 'openrouter',
+    supportedSizes: OPENROUTER_SUPPORTED_SIZES,
+    supportsQuality: false,
+    supportsStyle: false,
+    maxImages: 1,
+    description: 'Riverflow v2 max image generation model (preview)',
   },
   {
     id: 'google/gemini-2.5-flash-image',
@@ -80,6 +120,26 @@ export const DEFAULT_OPENROUTER_MODELS: ImageModelInfo[] = [
     supportsStyle: false,
     maxImages: 1,
     description: 'Google Gemini 3 Pro image generation preview',
+  },
+  {
+    id: 'openai/gpt-5-image',
+    name: 'GPT-5 Image',
+    provider: 'openrouter',
+    supportedSizes: OPENROUTER_SUPPORTED_SIZES,
+    supportsQuality: false,
+    supportsStyle: false,
+    maxImages: 1,
+    description: 'OpenAI GPT-5 model with image generation capabilities',
+  },
+  {
+    id: 'openai/gpt-5-image-mini',
+    name: 'GPT-5 Image Mini',
+    provider: 'openrouter',
+    supportedSizes: OPENROUTER_SUPPORTED_SIZES,
+    supportsQuality: false,
+    supportsStyle: false,
+    maxImages: 1,
+    description: 'Smaller version of OpenAI GPT-5 with image generation',
   },
 ];
 
@@ -217,7 +277,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
       throw new Error('OpenRouter image generation is not available. Please configure API key.');
     }
 
-    const model = request.model || this.configuredModels[0]?.id || 'black-forest-labs/flux-1.1-pro';
+    const model = request.model || this.configuredModels[0]?.id || 'black-forest-labs/flux-2-fast';
     const modelInfo = this.configuredModels.find((m) => m.id === model);
 
     if (!modelInfo) {

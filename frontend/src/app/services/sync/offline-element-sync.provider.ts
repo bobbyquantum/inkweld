@@ -6,6 +6,7 @@ import {
   ElementRelationship,
   RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
+import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
@@ -59,6 +60,8 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
   private readonly schemasSubject = new BehaviorSubject<ElementTypeSchema[]>(
     []
   );
+  private readonly elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
+  private readonly customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
   private readonly projectMetaSubject = new BehaviorSubject<
     ProjectMeta | undefined
   >(undefined);
@@ -77,6 +80,10 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
     this.customRelationshipTypesSubject.asObservable();
   readonly schemas$: Observable<ElementTypeSchema[]> =
     this.schemasSubject.asObservable();
+  readonly elementTags$: Observable<ElementTag[]> =
+    this.elementTagsSubject.asObservable();
+  readonly customTags$: Observable<TagDefinition[]> =
+    this.customTagsSubject.asObservable();
   readonly projectMeta$: Observable<ProjectMeta | undefined> =
     this.projectMetaSubject.asObservable();
   readonly errors$: Observable<string> = this.errorsSubject.asObservable();
@@ -110,6 +117,8 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
       const relationships = this.offlineService.relationships();
       const customTypes = this.offlineService.customRelationshipTypes();
       const schemas = this.offlineService.schemas();
+      const elementTags = this.offlineService.elementTags();
+      const customTags = this.offlineService.customTags();
       const projectMeta = this.offlineService.projectMeta();
 
       this.elementsSubject.next(elements);
@@ -117,6 +126,8 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
       this.relationshipsSubject.next(relationships);
       this.customRelationshipTypesSubject.next(customTypes);
       this.schemasSubject.next(schemas);
+      this.elementTagsSubject.next(elementTags);
+      this.customTagsSubject.next(customTags);
       this.projectMetaSubject.next(projectMeta);
       this.syncStateSubject.next(DocumentSyncState.Offline);
 
@@ -124,7 +135,7 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
         'OfflineSync',
         `✅ Connected with ${elements.length} elements, ` +
           `${publishPlans.length} publish plans, ${relationships.length} relationships, ` +
-          `${schemas.length} schemas`
+          `${schemas.length} schemas, ${elementTags.length} element tags`
       );
 
       return { success: true };
@@ -168,6 +179,8 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
     this.relationshipsSubject.next([]);
     this.customRelationshipTypesSubject.next([]);
     this.schemasSubject.next([]);
+    this.elementTagsSubject.next([]);
+    this.customTagsSubject.next([]);
     this.projectMetaSubject.next(undefined);
     this.syncStateSubject.next(DocumentSyncState.Unavailable);
   }
@@ -359,6 +372,76 @@ export class OfflineElementSyncProvider implements IElementSyncProvider {
       .catch(error => {
         this.logger.error('OfflineSync', 'Failed to save schemas', error);
         this.errorsSubject.next('Failed to save schemas offline');
+      });
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────────
+  // Element Tags (tag assignments)
+  // ───────────────────────────────────────────────────────────────────────────────
+
+  getElementTags(): ElementTag[] {
+    return this.elementTagsSubject.getValue();
+  }
+
+  /**
+   * Update element tags in offline storage.
+   */
+  updateElementTags(tags: ElementTag[]): void {
+    if (!this.connected || !this.currentUsername || !this.currentSlug) {
+      this.logger.warn(
+        'OfflineSync',
+        'Cannot update element tags - not connected'
+      );
+      return;
+    }
+
+    // Update local state immediately
+    this.elementTagsSubject.next(tags);
+
+    // Save to offline service asynchronously
+    void this.offlineService
+      .saveElementTags(this.currentUsername, this.currentSlug, tags)
+      .then(() => {
+        this.logger.debug('OfflineSync', `Saved ${tags.length} element tags`);
+      })
+      .catch(error => {
+        this.logger.error('OfflineSync', 'Failed to save element tags', error);
+        this.errorsSubject.next('Failed to save element tags offline');
+      });
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────────
+  // Custom Tag Definitions (project-specific tag types)
+  // ───────────────────────────────────────────────────────────────────────────────
+
+  getCustomTags(): TagDefinition[] {
+    return this.customTagsSubject.getValue();
+  }
+
+  /**
+   * Update custom tag definitions in offline storage.
+   */
+  updateCustomTags(tags: TagDefinition[]): void {
+    if (!this.connected || !this.currentUsername || !this.currentSlug) {
+      this.logger.warn(
+        'OfflineSync',
+        'Cannot update custom tags - not connected'
+      );
+      return;
+    }
+
+    // Update local state immediately
+    this.customTagsSubject.next(tags);
+
+    // Save to offline service asynchronously
+    void this.offlineService
+      .saveCustomTags(this.currentUsername, this.currentSlug, tags)
+      .then(() => {
+        this.logger.debug('OfflineSync', `Saved ${tags.length} custom tags`);
+      })
+      .catch(error => {
+        this.logger.error('OfflineSync', 'Failed to save custom tags', error);
+        this.errorsSubject.next('Failed to save custom tags offline');
       });
   }
 
