@@ -25,10 +25,11 @@ import {
 import { debounceTime, firstValueFrom, Subject, takeUntil } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
+import { TagChipListComponent } from '../../tags/tag-chip-list.component';
 
 /**
  * Identity panel for worldbuilding elements.
- * Shows common fields: name (read-only + rename), image, description.
+ * Shows common fields: name (read-only + rename), image, description, tags.
  * Responsive: side panel on desktop, collapsed header on mobile.
  */
 @Component({
@@ -43,6 +44,7 @@ import { environment } from '../../../../environments/environment';
     MatFormFieldModule,
     MatInputModule,
     MatTooltipModule,
+    TagChipListComponent,
   ],
   templateUrl: './identity-panel.component.html',
   styleUrls: ['./identity-panel.component.scss'],

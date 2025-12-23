@@ -31,6 +31,11 @@ html[data-theme='light'] .heroBanner::before {
   z-index: 1;
 }
 
+.heroBanner * {
+  position: relative;
+  z-index: 1;
+}
+
 @media screen and (max-width: 996px) {
   .heroBanner {
     padding: 3rem 1rem;

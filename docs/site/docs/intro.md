@@ -4,7 +4,12 @@ title: Welcome to Inkweld
 description: Self-hosted collaborative writing for novelists, screenwriters, and creative teams.
 ---
 
-![Inkweld Editor](/img/generated/editor-desktop.png)
+import ThemedImage from '@site/src/components/ThemedImage';
+
+<ThemedImage
+  src="/img/generated/editor-desktop"
+  alt="Inkweld Editor"
+/>
 
 Inkweld is a **self-hosted collaborative writing platform** designed for novelists, screenwriters, worldbuilders, and creative teams who want complete control over their work. Write together in real-time, build detailed fictional universes, and own every word—all on your own infrastructure.
 
@@ -65,7 +70,10 @@ Export your data anytime in standard formats. Migrate to another platform or sel
 ✅ **Self-hosted** - Docker deployment on any server  
 ✅ **Open source** - MIT licensed, free forever
 
-![Project Dashboard](/img/generated/bookshelf-desktop.png)
+<ThemedImage
+  src="/img/generated/bookshelf-desktop"
+  alt="Project Dashboard"
+/>
 
 ## Quick Start
 

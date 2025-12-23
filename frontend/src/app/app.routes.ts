@@ -12,6 +12,7 @@ import { HomeTabComponent } from './pages/project/tabs/home/home-tab.component';
 import { MediaTabComponent } from './pages/project/tabs/media/media-tab.component';
 import { PublishPlanTabComponent } from './pages/project/tabs/publish-plan/publish-plan-tab.component';
 import { RelationshipsTabComponent } from './pages/project/tabs/relationships/relationships-tab.component';
+import { TagsTabComponent } from './pages/project/tabs/tags/tags-tab.component';
 import { TemplatesTabComponent } from './pages/project/tabs/templates/templates-tab.component';
 import { WorldbuildingTabComponent } from './pages/project/tabs/worldbuilding/worldbuilding-tab.component';
 
@@ -168,6 +169,13 @@ export const routes: Routes = [
       {
         path: 'relationships-list',
         component: RelationshipsTabComponent,
+        data: {
+          reuseComponent: false,
+        },
+      },
+      {
+        path: 'tags-list',
+        component: TagsTabComponent,
         data: {
           reuseComponent: false,
         },

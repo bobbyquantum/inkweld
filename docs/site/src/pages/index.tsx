@@ -44,12 +44,12 @@ function HomepageHeader(): ReactNode {
           </div>
           <div className={styles.heroImage}>
             <img
-              src="/img/editor-desktop.png"
+              src="/img/generated/editor-desktop-light.png"
               alt="Inkweld Editor"
               className={clsx(styles.screenshot, styles.screenshotLight)}
             />
             <img
-              src="/img/editor-desktop-dark.png"
+              src="/img/generated/editor-desktop-dark.png"
               alt="Inkweld Editor"
               className={clsx(styles.screenshot, styles.screenshotDark)}
             />

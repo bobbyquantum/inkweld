@@ -7,6 +7,7 @@ import {
   ElementRelationship,
   RelationshipType,
 } from '../../components/element-ref/element-ref.model';
+import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { PublishPlan } from '../../models/publish-plan';
 import { ElementTypeSchema } from '../../models/schema-types';
@@ -24,12 +25,16 @@ describe('OfflineElementSyncProvider', () => {
     relationships: ReturnType<typeof vi.fn>;
     customRelationshipTypes: ReturnType<typeof vi.fn>;
     schemas: ReturnType<typeof vi.fn>;
+    elementTags: ReturnType<typeof vi.fn>;
+    customTags: ReturnType<typeof vi.fn>;
     projectMeta: ReturnType<typeof vi.fn>;
     saveElements: ReturnType<typeof vi.fn>;
     savePublishPlans: ReturnType<typeof vi.fn>;
     saveRelationships: ReturnType<typeof vi.fn>;
     saveCustomRelationshipTypes: ReturnType<typeof vi.fn>;
     saveSchemas: ReturnType<typeof vi.fn>;
+    saveElementTags: ReturnType<typeof vi.fn>;
+    saveCustomTags: ReturnType<typeof vi.fn>;
     saveProjectMeta: ReturnType<typeof vi.fn>;
     closeConnection: ReturnType<typeof vi.fn>;
     _elementsSubject: BehaviorSubject<Element[]>;
@@ -37,6 +42,8 @@ describe('OfflineElementSyncProvider', () => {
     _relationshipsSubject: BehaviorSubject<ElementRelationship[]>;
     _customTypesSubject: BehaviorSubject<RelationshipType[]>;
     _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
+    _elementTagsSubject: BehaviorSubject<ElementTag[]>;
+    _customTagsSubject: BehaviorSubject<TagDefinition[]>;
     _projectMetaSubject: BehaviorSubject<ProjectMeta | undefined>;
     _errorsSubject: Subject<string>;
   };
@@ -66,6 +73,8 @@ describe('OfflineElementSyncProvider', () => {
     const relationshipsSubject = new BehaviorSubject<ElementRelationship[]>([]);
     const customTypesSubject = new BehaviorSubject<RelationshipType[]>([]);
     const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
+    const elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
+    const customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
     const projectMetaSubject = new BehaviorSubject<ProjectMeta | undefined>(
       undefined
     );
@@ -78,12 +87,16 @@ describe('OfflineElementSyncProvider', () => {
       relationships: vi.fn(() => relationshipsSubject.getValue()),
       customRelationshipTypes: vi.fn(() => customTypesSubject.getValue()),
       schemas: vi.fn(() => schemasSubject.getValue()),
+      elementTags: vi.fn(() => elementTagsSubject.getValue()),
+      customTags: vi.fn(() => customTagsSubject.getValue()),
       projectMeta: vi.fn(() => projectMetaSubject.getValue()),
       saveElements: vi.fn().mockResolvedValue(undefined),
       savePublishPlans: vi.fn().mockResolvedValue(undefined),
       saveRelationships: vi.fn().mockResolvedValue(undefined),
       saveCustomRelationshipTypes: vi.fn().mockResolvedValue(undefined),
       saveSchemas: vi.fn().mockResolvedValue(undefined),
+      saveElementTags: vi.fn().mockResolvedValue(undefined),
+      saveCustomTags: vi.fn().mockResolvedValue(undefined),
       saveProjectMeta: vi.fn().mockResolvedValue(undefined),
       closeConnection: vi.fn().mockResolvedValue(undefined),
       _elementsSubject: elementsSubject,
@@ -91,6 +104,8 @@ describe('OfflineElementSyncProvider', () => {
       _relationshipsSubject: relationshipsSubject,
       _customTypesSubject: customTypesSubject,
       _schemasSubject: schemasSubject,
+      _elementTagsSubject: elementTagsSubject,
+      _customTagsSubject: customTagsSubject,
       _projectMetaSubject: projectMetaSubject,
       _errorsSubject: errorsSubject,
     };

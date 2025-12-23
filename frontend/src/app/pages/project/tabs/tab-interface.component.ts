@@ -332,6 +332,8 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         systemRoute = 'templates-list';
       } else if (url === `${projectBaseUrl}/relationships-list`) {
         systemRoute = 'relationships-list';
+      } else if (url === `${projectBaseUrl}/tags-list`) {
+        systemRoute = 'tags-list';
       } else if (url.startsWith(`${projectBaseUrl}/publish-plan/`)) {
         // Extract publish plan ID from URL
         const urlParts = url.split('/');
@@ -390,6 +392,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
             | 'media'
             | 'templates-list'
             | 'relationships-list'
+            | 'tags-list'
         );
         // Re-find the tab index after creating
         tabIndex = this.projectState

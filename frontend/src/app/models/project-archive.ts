@@ -3,6 +3,7 @@ import {
   ElementRelationship,
   RelationshipTypeDefinition,
 } from '../components/element-ref/element-ref.model';
+import { TagDefinition } from '../components/tags/tag.model';
 import { PublishPlan } from './publish-plan';
 import { ElementTypeSchema } from './schema-types';
 
@@ -189,6 +190,8 @@ export interface ProjectArchive {
   relationships: ElementRelationship[];
   /** Custom relationship types */
   customRelationshipTypes: RelationshipTypeDefinition[];
+  /** Tag definitions for this project */
+  tags: TagDefinition[];
   /** Publish plans */
   publishPlans: PublishPlan[];
   /** Media file manifest */
