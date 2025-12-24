@@ -58,6 +58,8 @@ describe('IdentityPanelComponent', () => {
     // Set required inputs
     fixture.componentRef.setInput('elementId', 'test-element-id');
     fixture.componentRef.setInput('elementName', 'Test Element');
+    fixture.componentRef.setInput('username', 'testuser');
+    fixture.componentRef.setInput('slug', 'test-project');
   });
 
   it('should create', () => {
@@ -76,8 +78,8 @@ describe('IdentityPanelComponent', () => {
 
     expect(worldbuildingService.getIdentityData).toHaveBeenCalledWith(
       'test-element-id',
-      undefined,
-      undefined
+      'testuser',
+      'test-project'
     );
   });
 
@@ -115,8 +117,8 @@ describe('IdentityPanelComponent', () => {
     expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
       'test-element-id',
       { description: 'New description' },
-      undefined,
-      undefined
+      'testuser',
+      'test-project'
     );
 
     vi.useRealTimers();
@@ -147,19 +149,7 @@ describe('IdentityPanelComponent', () => {
   });
 
   describe('onImageClick', () => {
-    it('should not open dialog when username is missing', async () => {
-      fixture.detectChanges();
-      // username and slug are undefined by default
-      await component.onImageClick();
-
-      expect(
-        dialogGatewayService.openWorldbuildingImageDialog
-      ).not.toHaveBeenCalled();
-    });
-
     it('should open worldbuilding image dialog when username and slug are set', async () => {
-      fixture.componentRef.setInput('username', 'testuser');
-      fixture.componentRef.setInput('slug', 'testproject');
       fixture.detectChanges();
 
       await component.onImageClick();
@@ -169,7 +159,7 @@ describe('IdentityPanelComponent', () => {
       ).toHaveBeenCalledWith({
         elementName: 'Test Element',
         username: 'testuser',
-        slug: 'testproject',
+        slug: 'test-project',
         currentImage: undefined,
         description: '',
         worldbuildingFields: undefined,

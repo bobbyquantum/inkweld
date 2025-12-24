@@ -181,7 +181,7 @@ test.describe('Element Reference Screenshots', () => {
 
     // Create a character element at the root level
     await page.getByTestId('create-new-element').click();
-    await page.getByTestId('element-type-character').click();
+    await page.getByTestId('element-type-character-v1').click();
     await page.getByTestId('element-name-input').fill(characterName);
     await page.getByTestId('create-element-button').click();
     await page.waitForTimeout(300);

@@ -29,25 +29,9 @@
       </p>
       <p class="help-text">
         Templates define the structure for worldbuilding elements like
-        characters, locations, and more.
+        characters, locations, and more. Create a new project from a template to
+        get started with pre-configured schemas.
       </p>
-      <button
-        mat-raised-button
-        color="primary"
-        (click)="loadDefaultTemplates()"
-        [disabled]="isLoadingDefaults()">
-        @if (isLoadingDefaults()) {
-          <span class="button-content">
-            <mat-spinner diameter="20"></mat-spinner>
-            <span>Loading...</span>
-          </span>
-        } @else {
-          <span class="button-content">
-            <mat-icon>download</mat-icon>
-            <span>Load Default Templates</span>
-          </span>
-        }
-      </button>
     </div>
   }
 
@@ -75,7 +59,7 @@
     </div>
 
     <div class="templates-grid">
-      @for (template of templates(); track template.type) {
+      @for (template of templates(); track template.id) {
         <mat-card
           class="template-card"
           [class.built-in]="template.isBuiltIn"

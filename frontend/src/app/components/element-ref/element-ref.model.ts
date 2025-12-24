@@ -402,3 +402,91 @@ export interface RelationshipValidationElement {
   id: string;
   type: string; // ElementType or custom schema type
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Utility Functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get the display label for a relationship (considering direction)
+ */
+export function getRelationshipLabel(
+  type: RelationshipType,
+  isIncoming: boolean
+): string {
+  if (isIncoming && type.inverseLabel) {
+    return type.inverseLabel;
+  }
+  return type.label;
+}
+
+/**
+ * Get the default icon for a relationship category
+ */
+export function getCategoryIcon(category: RelationshipCategory): string {
+  switch (category) {
+    case RelationshipCategory.Reference:
+      return 'link';
+    case RelationshipCategory.Familial:
+      return 'family_restroom';
+    case RelationshipCategory.Social:
+      return 'people';
+    case RelationshipCategory.Professional:
+      return 'work';
+    case RelationshipCategory.Spatial:
+      return 'place';
+    case RelationshipCategory.Temporal:
+      return 'schedule';
+    case RelationshipCategory.Ownership:
+      return 'inventory_2';
+    case RelationshipCategory.Custom:
+      return 'tune';
+    default:
+      return 'link';
+  }
+}
+
+/**
+ * Get a human-readable label for a relationship category
+ */
+export function getCategoryLabel(category: RelationshipCategory): string {
+  switch (category) {
+    case RelationshipCategory.Reference:
+      return 'References';
+    case RelationshipCategory.Familial:
+      return 'Family';
+    case RelationshipCategory.Social:
+      return 'Social';
+    case RelationshipCategory.Professional:
+      return 'Professional';
+    case RelationshipCategory.Spatial:
+      return 'Location';
+    case RelationshipCategory.Temporal:
+      return 'Timeline';
+    case RelationshipCategory.Ownership:
+      return 'Ownership';
+    case RelationshipCategory.Custom:
+      return 'Custom';
+    default:
+      return 'Other';
+  }
+}
+
+/**
+ * Convert a RelationshipTypeDefinition (v2) to a RelationshipType (v1) for backward compatibility.
+ * This is a transitional helper while the codebase is being migrated.
+ * @deprecated Use RelationshipTypeDefinition directly where possible
+ */
+export function toRelationshipTypeLegacy(
+  def: RelationshipTypeDefinition
+): RelationshipType {
+  return {
+    id: def.id,
+    label: def.name,
+    inverseLabel: def.inverseLabel,
+    icon: def.icon,
+    category: def.category,
+    isBuiltIn: def.isBuiltIn,
+    color: def.color,
+  };
+}

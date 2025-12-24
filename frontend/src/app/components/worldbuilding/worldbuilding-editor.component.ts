@@ -71,8 +71,8 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   // Input properties
   elementId = input.required<string>();
   elementType = input.required<ElementType>();
-  username = input<string>();
-  slug = input<string>();
+  username = input.required<string>();
+  slug = input.required<string>();
 
   private worldbuildingService = inject(WorldbuildingService);
   private projectState = inject(ProjectStateService);
@@ -137,7 +137,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         );
       }
       this.schema.set(loadedSchema);
-      console.log('[WorldbuildingEditor] Loaded schema:', loadedSchema);
 
       if (!loadedSchema && username && slug) {
         const elements = this.projectState.elements();
@@ -167,8 +166,11 @@ export class WorldbuildingEditorComponent implements OnDestroy {
         this.buildFormFromSchema(loadedSchema);
       }
 
-      const data =
-        await this.worldbuildingService.getWorldbuildingData(elementId);
+      const data = await this.worldbuildingService.getWorldbuildingData(
+        elementId,
+        username,
+        slug
+      );
       if (data) {
         this.updateFormFromData(data);
       }

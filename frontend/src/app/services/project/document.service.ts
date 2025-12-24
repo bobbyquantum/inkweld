@@ -357,6 +357,13 @@ export class DocumentService {
     this.importXmlString(connection.ydoc, connection.type, content);
   }
 
+  /**
+   * Import XML content into a Yjs XmlFragment.
+   *
+   * This properly handles nested elements and attributes, including
+   * inline nodes like elementRef. Uses forward CRDT operations to ensure
+   * proper propagation through Yjs to all clients.
+   */
   importXmlString(ydoc: Y.Doc, fragment: Y.XmlFragment, xmlString: string) {
     // Ensure the string has a single root element by wrapping it.
     const wrapped = `<root>${xmlString}</root>`;
@@ -371,36 +378,74 @@ export class DocumentService {
       this.logger.debug('DocumentService', 'Cleared previous doc');
       // Traverse each child element of our temporary root.
       for (let i = 0; i < root.childNodes.length; i++) {
-        this.logger.debug(
-          'DocumentService',
-          'Importing node',
-          root.childNodes[i]
-        );
         const node = root.childNodes[i];
-        let yNode: Y.XmlElement | Y.XmlText;
-        if (node.nodeType === Node.ELEMENT_NODE) {
-          this.logger.debug('DocumentService', 'Element node');
-          // Create a Y.XmlElement with the same tag name
-          yNode = new Y.XmlElement(node.nodeName);
-          // Optionally, handle attributes here if needed.
-          // Recursively add children if the element has nested nodes.
-          for (let j = 0; j < node.childNodes.length; j++) {
-            const child = node.childNodes[j];
-            if (child.nodeType === Node.TEXT_NODE) {
-              // Create a Y.XmlText for text content
-              const yText = new Y.XmlText();
-              yText.insert(0, child.textContent || '');
-              yNode.insert(0, [yText]);
-            }
-          }
-        } else {
-          this.logger.debug('DocumentService', 'Skip node');
-          continue; // skip other node types
+        const yNode = this.domNodeToYjsNode(node);
+        if (yNode) {
+          // Append the created node to the fragment using forward CRDT operation.
+          fragment.push([yNode]);
         }
-        // Append the created node to the fragment.
-        fragment.push([yNode]);
       }
     });
+  }
+
+  /**
+   * Recursively convert a DOM Node to a Yjs XmlElement or XmlText.
+   * Properly handles nested elements and attributes.
+   */
+  private domNodeToYjsNode(node: Node): Y.XmlElement | Y.XmlText | null {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent || '';
+      if (text.trim() === '' && text !== ' ') {
+        // Skip whitespace-only text nodes (but preserve single spaces)
+        return null;
+      }
+      const yText = new Y.XmlText();
+      yText.insert(0, text);
+      return yText;
+    }
+
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const element = node as Element;
+      // Keep the original case of node names - ProseMirror schema uses camelCase (e.g., elementRef)
+      const yElement = new Y.XmlElement(element.nodeName);
+
+      // Copy all attributes from the DOM element
+      for (const attr of Array.from(element.attributes)) {
+        // Parse attribute values that might be JSON
+        let value: string | number | boolean | object = attr.value;
+        try {
+          // Try to parse as JSON for complex values (like objects)
+          const parsed = JSON.parse(attr.value) as unknown;
+          if (
+            typeof parsed === 'object' ||
+            typeof parsed === 'number' ||
+            typeof parsed === 'boolean'
+          ) {
+            value = parsed as string | number | boolean | object;
+          }
+        } catch {
+          // Keep as string if not valid JSON
+        }
+        yElement.setAttribute(attr.name, value as string);
+      }
+
+      // Recursively process children
+      const children: (Y.XmlElement | Y.XmlText)[] = [];
+      for (let i = 0; i < element.childNodes.length; i++) {
+        const childNode = this.domNodeToYjsNode(element.childNodes[i]);
+        if (childNode) {
+          children.push(childNode);
+        }
+      }
+
+      if (children.length > 0) {
+        yElement.insert(0, children);
+      }
+
+      return yElement;
+    }
+
+    return null;
   }
 
   /**

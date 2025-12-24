@@ -5,19 +5,8 @@
  * element reference and relationship system.
  */
 
-// Models
+// Models (includes utility functions)
 export * from './element-ref.model';
-
-// Relationship types
-export {
-  DEFAULT_RELATIONSHIP_TYPES,
-  getAllRelationshipTypes,
-  getCategoryIcon,
-  getCategoryLabel,
-  getRelationshipLabel,
-  getRelationshipTypeById,
-  getRelationshipTypesByCategory,
-} from './default-relationship-types';
 
 // ProseMirror schema
 export {

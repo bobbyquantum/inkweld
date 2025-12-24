@@ -26,6 +26,7 @@ import {
 } from '../../../../models/publish-plan';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import { PublishService } from '../../../../services/publish/publish.service';
+import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
 import { PublishPlanTabComponent } from './publish-plan-tab.component';
 
 describe('PublishPlanTabComponent', () => {
@@ -77,6 +78,12 @@ describe('PublishPlanTabComponent', () => {
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: PublishService, useValue: mockPublishService },
         { provide: MatSnackBar, useValue: mockSnackBar },
+        {
+          provide: WorldbuildingService,
+          useValue: {
+            getIconForType: vi.fn().mockReturnValue('auto_awesome'),
+          },
+        },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -507,20 +514,31 @@ describe('PublishPlanTabComponent', () => {
       );
     });
 
-    it('should return person for characters', () => {
-      expect(component.getElementIcon({ type: ElementType.Character })).toBe(
-        'person'
-      );
+    it('should return auto_awesome for worldbuilding with schemaId (no project mocked)', () => {
+      expect(
+        component.getElementIcon({
+          type: ElementType.Worldbuilding,
+          schemaId: 'character-v1',
+        })
+      ).toBe('auto_awesome');
     });
 
-    it('should return place for locations', () => {
-      expect(component.getElementIcon({ type: ElementType.Location })).toBe(
-        'place'
-      );
+    it('should return auto_awesome for worldbuilding with schemaId (no project mocked) - location', () => {
+      expect(
+        component.getElementIcon({
+          type: ElementType.Worldbuilding,
+          schemaId: 'location-v1',
+        })
+      ).toBe('auto_awesome');
     });
 
-    it('should return map for maps', () => {
-      expect(component.getElementIcon({ type: ElementType.Map })).toBe('map');
+    it('should return auto_awesome for worldbuilding with schemaId (no project mocked) - map', () => {
+      expect(
+        component.getElementIcon({
+          type: ElementType.Worldbuilding,
+          schemaId: 'map-v1',
+        })
+      ).toBe('auto_awesome');
     });
   });
 

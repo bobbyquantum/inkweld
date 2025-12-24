@@ -15,15 +15,12 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { nanoid } from 'nanoid';
 
 import {
-  DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS,
-  getRelationshipLabel,
-  toRelationshipTypeLegacy,
-} from '../../components/element-ref/default-relationship-types';
-import {
   ElementRelationship,
   ElementRelationshipView,
+  getRelationshipLabel,
   RelationshipTypeDefinition,
   ResolvedRelationship,
+  toRelationshipTypeLegacy,
 } from '../../components/element-ref/element-ref.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
@@ -449,7 +446,7 @@ export class RelationshipService {
 
   /**
    * Get all relationship types stored in the project
-   * Types are seeded from defaults on project creation
+   * Types come from project templates at project creation
    */
   getAllTypes(): RelationshipTypeDefinition[] {
     return this.syncProvider.getCustomRelationshipTypes();
@@ -462,52 +459,6 @@ export class RelationshipService {
     return this.syncProvider
       .getCustomRelationshipTypes()
       .find(t => t.id === typeId);
-  }
-
-  /**
-   * Seed the project with default relationship types if none exist.
-   * This should be called when a project is first accessed.
-   * Returns true if defaults were loaded, false if types already existed.
-   */
-  seedDefaultRelationshipTypes(): boolean {
-    const existingTypes = this.syncProvider.getCustomRelationshipTypes();
-
-    if (existingTypes.length > 0) {
-      this.logger.debug(
-        'RelationshipService',
-        `Project already has ${existingTypes.length} relationship types, skipping seed`
-      );
-      return false;
-    }
-
-    this.logger.info(
-      'RelationshipService',
-      `Seeding ${DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.length} default relationship types`
-    );
-
-    // Deep copy the defaults so each project has its own instance
-    const defaultsCopy = DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.map(t => ({
-      ...t,
-    }));
-    this.syncProvider.updateCustomRelationshipTypes(defaultsCopy);
-
-    return true;
-  }
-
-  /**
-   * Reset relationship types to defaults.
-   * Warning: This will overwrite any custom modifications.
-   */
-  resetToDefaults(): void {
-    this.logger.info(
-      'RelationshipService',
-      `Resetting to ${DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.length} default relationship types`
-    );
-
-    const defaultsCopy = DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.map(t => ({
-      ...t,
-    }));
-    this.syncProvider.updateCustomRelationshipTypes(defaultsCopy);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

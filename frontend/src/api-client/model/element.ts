@@ -23,6 +23,10 @@ export interface Element {
      */
     type: ElementType;
     /**
+     * Schema ID for WORLDBUILDING elements
+     */
+    schemaId?: string | null;
+    /**
      * Parent element ID
      */
     parentId: string | null;
@@ -58,15 +62,7 @@ export interface Element {
 export enum ElementType {
     Folder = 'FOLDER',
     Item = 'ITEM',
-    Character = 'CHARACTER',
-    Location = 'LOCATION',
-    WbItem = 'WB_ITEM',
-    Map = 'MAP',
-    Relationship = 'RELATIONSHIP',
-    Philosophy = 'PHILOSOPHY',
-    Culture = 'CULTURE',
-    Species = 'SPECIES',
-    Systems = 'SYSTEMS'
+    Worldbuilding = 'WORLDBUILDING'
 };
 
 

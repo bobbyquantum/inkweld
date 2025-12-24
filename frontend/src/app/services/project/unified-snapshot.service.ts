@@ -794,14 +794,22 @@ export class UnifiedSnapshotService {
    * Get the Yjs document for worldbuilding data.
    */
   private getWorldbuildingYDoc(elementId: string): Y.Doc | null {
-    return this.worldbuildingService.getYDoc(elementId);
+    const project = this.projectState.project();
+    if (!project) {
+      return null;
+    }
+    return this.worldbuildingService.getYDoc(
+      elementId,
+      project.username,
+      project.slug
+    );
   }
 
   /**
    * Check if an element type is a worldbuilding type.
    */
   private isWorldbuildingType(type: string): boolean {
-    return ['CHARACTER', 'LOCATION', 'WB_ITEM'].includes(type);
+    return type === 'WORLDBUILDING';
   }
 
   /**

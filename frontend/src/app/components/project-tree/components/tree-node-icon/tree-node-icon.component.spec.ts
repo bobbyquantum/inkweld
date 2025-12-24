@@ -1,15 +1,25 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ElementType } from '@inkweld/index';
 
+import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
 import { TreeNodeIconComponent } from './tree-node-icon.component';
 
 describe('TreeNodeIconComponent', () => {
   let component: TreeNodeIconComponent;
   let fixture: ComponentFixture<TreeNodeIconComponent>;
+  let mockWorldbuildingService: { getSchemaById: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    mockWorldbuildingService = {
+      getSchemaById: vi.fn().mockReturnValue(null),
+    };
+
     await TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection()],
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: WorldbuildingService, useValue: mockWorldbuildingService },
+      ],
       imports: [TreeNodeIconComponent],
     }).compileComponents();
 
@@ -35,18 +45,18 @@ describe('TreeNodeIconComponent', () => {
     expect(matIconEl.textContent.trim()).toBe('folder');
   });
 
-  it('should display image icon when not expandable and type is IMAGE', () => {
+  it('should display description icon for Item type', () => {
     component.isExpandable = false;
-    component.type = 'IMAGE';
+    component.type = ElementType.Item;
     fixture.detectChanges();
     const matIconEl: HTMLElement =
       fixture.nativeElement.querySelector('mat-icon');
-    expect(matIconEl.textContent.trim()).toBe('image');
+    expect(matIconEl.textContent.trim()).toBe('description');
   });
 
-  it('should display description icon when not expandable and type is not IMAGE', () => {
+  it('should display description icon for unknown type', () => {
     component.isExpandable = false;
-    component.type = 'OTHER';
+    component.type = 'UNKNOWN';
     fixture.detectChanges();
     const matIconEl: HTMLElement =
       fixture.nativeElement.querySelector('mat-icon');
@@ -63,23 +73,54 @@ describe('TreeNodeIconComponent', () => {
     expect(matIconEl.textContent.trim()).toBe('star');
   });
 
-  it.each([
-    ['CHARACTER', 'person'],
-    ['LOCATION', 'place'],
-    ['WB_ITEM', 'category'],
-    ['MAP', 'map'],
-    ['RELATIONSHIP', 'diversity_1'],
-    ['PHILOSOPHY', 'auto_stories'],
-    ['CULTURE', 'groups'],
-    ['SPECIES', 'pets'],
-    ['SYSTEMS', 'settings'],
-    ['item', 'description'],
-  ])('should display %s icon for type %s', (type, expectedIcon) => {
-    component.isExpandable = false;
-    component.type = type;
-    fixture.detectChanges();
-    const matIconEl: HTMLElement =
-      fixture.nativeElement.querySelector('mat-icon');
-    expect(matIconEl.textContent.trim()).toBe(expectedIcon);
+  describe('Worldbuilding elements', () => {
+    it('should display schema icon for worldbuilding element', () => {
+      mockWorldbuildingService.getSchemaById.mockReturnValue({
+        icon: 'person',
+      });
+      component.isExpandable = false;
+      component.type = ElementType.Worldbuilding;
+      component.schemaId = 'character-v1';
+      fixture.detectChanges();
+      const matIconEl: HTMLElement =
+        fixture.nativeElement.querySelector('mat-icon');
+      expect(matIconEl.textContent.trim()).toBe('person');
+      expect(mockWorldbuildingService.getSchemaById).toHaveBeenCalledWith(
+        'character-v1'
+      );
+    });
+
+    it('should display category fallback when schema has no icon', () => {
+      mockWorldbuildingService.getSchemaById.mockReturnValue({});
+      component.isExpandable = false;
+      component.type = ElementType.Worldbuilding;
+      component.schemaId = 'custom-schema';
+      fixture.detectChanges();
+      const matIconEl: HTMLElement =
+        fixture.nativeElement.querySelector('mat-icon');
+      expect(matIconEl.textContent.trim()).toBe('category');
+    });
+
+    it('should display category fallback when schema not found', () => {
+      mockWorldbuildingService.getSchemaById.mockReturnValue(null);
+      component.isExpandable = false;
+      component.type = ElementType.Worldbuilding;
+      component.schemaId = 'nonexistent-schema';
+      fixture.detectChanges();
+      const matIconEl: HTMLElement =
+        fixture.nativeElement.querySelector('mat-icon');
+      expect(matIconEl.textContent.trim()).toBe('category');
+    });
+
+    it('should display category fallback when worldbuilding has no schemaId', () => {
+      component.isExpandable = false;
+      component.type = ElementType.Worldbuilding;
+      component.schemaId = null;
+      fixture.detectChanges();
+      const matIconEl: HTMLElement =
+        fixture.nativeElement.querySelector('mat-icon');
+      // Falls through to default since no schemaId
+      expect(matIconEl.textContent.trim()).toBe('description');
+    });
   });
 });

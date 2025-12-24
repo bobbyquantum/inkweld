@@ -23,16 +23,17 @@
   @if (!isLoading() && !error() && !hasTypes()) {
     <div class="empty-container">
       <mat-icon class="empty-icon">link</mat-icon>
-      <h3>No Relationship Types Found</h3>
-      <p>This project doesn't have any relationship types configured yet.</p>
+      <h3>No Relationship Types Configured</h3>
+      <p>This project doesn't have any relationship types configured.</p>
       <p class="help-text">
         Relationship types define how elements can be connected to each other
-        (e.g., "Parent of", "Lives at", "Owns").
+        (e.g., "Parent of", "Lives at", "Owns"). Create a custom type to get
+        started.
       </p>
-      <button mat-raised-button color="primary" (click)="resetToDefaults()">
+      <button mat-raised-button color="primary" (click)="createCustomType()">
         <span class="button-content">
-          <mat-icon>download</mat-icon>
-          <span>Load Default Types</span>
+          <mat-icon>add</mat-icon>
+          <span>Create Custom Type</span>
         </span>
       </button>
     </div>

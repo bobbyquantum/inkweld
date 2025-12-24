@@ -30,7 +30,8 @@ describe('WorldbuildingTabComponent', () => {
   const mockElement: Element = {
     id: 'element-123',
     name: 'Test Character',
-    type: ElementType.Character,
+    type: ElementType.Worldbuilding,
+    schemaId: 'character-v1',
     parentId: null,
     order: 0,
     level: 0,
@@ -101,9 +102,9 @@ describe('WorldbuildingTabComponent', () => {
 
       fixture.detectChanges();
 
-      expect(component['elementType']()).toBe(ElementType.Character);
+      expect(component['elementType']()).toBe(ElementType.Worldbuilding);
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '[WorldbuildingTab] Element type: CHARACTER'
+        '[WorldbuildingTab] Element type: WORLDBUILDING'
       );
 
       consoleLogSpy.mockRestore();
@@ -195,9 +196,9 @@ describe('WorldbuildingTabComponent', () => {
       mockProjectState.elements.set([mockElement]);
       fixture.detectChanges(); // Trigger effect
 
-      expect(component['elementType']()).toBe(ElementType.Character);
+      expect(component['elementType']()).toBe(ElementType.Worldbuilding);
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        '[WorldbuildingTab] Element type loaded: CHARACTER'
+        '[WorldbuildingTab] Element type loaded: WORLDBUILDING'
       );
 
       consoleLogSpy.mockRestore();

@@ -58,7 +58,8 @@ describe('project-element model', () => {
       const dto: ElementDto = {
         id: 'id',
         name: 'name',
-        type: ElementType.Character,
+        type: ElementType.Worldbuilding,
+        schemaId: 'character-v1',
         parentId: 'parent-id',
         order: 1,
         level: 2,

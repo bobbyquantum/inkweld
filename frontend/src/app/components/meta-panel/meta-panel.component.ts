@@ -224,13 +224,9 @@ export class MetaPanelComponent {
     switch (element.type) {
       case ElementType.Folder:
         return 'folder';
-      case ElementType.Character:
-        return 'person';
-      case ElementType.Location:
-        return 'place';
       case ElementType.Item:
         return 'description';
-      case ElementType.WbItem:
+      case ElementType.Worldbuilding:
         return 'auto_awesome';
       default:
         return 'link';
@@ -238,24 +234,15 @@ export class MetaPanelComponent {
   }
 
   /**
-   * Get the schema type for an element
+   * Get the schema ID for an element.
+   * For WORLDBUILDING elements, returns the schemaId.
+   * For other elements, returns the element type.
    */
   private getElementSchema(element: Element): string {
-    switch (element.type) {
-      case ElementType.Character:
-        return 'CHARACTER';
-      case ElementType.Location:
-        return 'LOCATION';
-      case ElementType.Item:
-        return 'ITEM';
-      case ElementType.Folder:
-        return 'FOLDER';
-      case ElementType.WbItem:
-        // For worldbuilding items, check metadata for schema type
-        return element.metadata?.['schemaType'] || 'WB_ITEM';
-      default:
-        return 'ITEM';
+    if (element.type === ElementType.Worldbuilding && element.schemaId) {
+      return element.schemaId;
     }
+    return element.type;
   }
 
   /**

@@ -102,6 +102,7 @@
           [isExpandable]="node.expandable"
           [isExpanded]="node.expanded ?? false"
           [type]="node.type"
+          [schemaId]="node.schemaId"
           [metadata]="node.metadata">
         </app-tree-node-icon>
 
@@ -127,6 +128,7 @@
               [isExpandable]="node.expandable"
               [isExpanded]="node.expanded ?? false"
               [type]="node.type"
+              [schemaId]="node.schemaId"
               [metadata]="node.metadata">
             </app-tree-node-icon>
           }
@@ -139,6 +141,7 @@
             [isExpandable]="node.expandable"
             [isExpanded]="node.expanded ?? false"
             [type]="node.type"
+            [schemaId]="node.schemaId"
             [metadata]="node.metadata">
           </app-tree-node-icon>
           <div class="node-title">{{ node.name }}</div>

@@ -6,7 +6,7 @@ import {
   ElementRelationship,
   RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
-import { TagDefinition } from '../../components/tags/tag.model';
+import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
 import {
   ArchiveDocumentContent,
   ArchiveElement,
@@ -120,6 +120,7 @@ export class ProjectTemplateService {
       relationships,
       customRelationshipTypes,
       tags,
+      elementTags,
       publishPlans,
       snapshots,
       media,
@@ -144,6 +145,7 @@ export class ProjectTemplateService {
         []
       ),
       this.loadJsonFile<TagDefinition[]>(basePath, 'tags.json', []),
+      this.loadJsonFile<ElementTag[]>(basePath, 'element-tags.json', []),
       this.loadJsonFile<PublishPlan[]>(basePath, 'publish-plans.json', []),
       this.loadJsonFile<ArchiveSnapshot[]>(basePath, 'snapshots.json', []),
       this.loadJsonFile<ArchiveMediaFile[]>(basePath, 'media.json', []),
@@ -159,6 +161,7 @@ export class ProjectTemplateService {
       relationships,
       customRelationshipTypes,
       tags,
+      elementTags,
       publishPlans,
       snapshots,
       media,

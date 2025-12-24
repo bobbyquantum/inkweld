@@ -26,7 +26,7 @@ describe('ElementRefContextMenuComponent', () => {
 
   const mockContextData: ElementRefContextData = {
     elementId: 'elem-123',
-    elementType: ElementType.Character,
+    elementType: ElementType.Worldbuilding,
     displayText: 'John Smith',
     originalName: 'John Smith',
     nodePos: 42,
@@ -232,7 +232,7 @@ describe('ElementRefContextMenuComponent', () => {
       expect(actionSpy).toHaveBeenCalledWith({
         type: 'navigate',
         elementId: 'elem-123',
-        elementType: ElementType.Character,
+        elementType: ElementType.Worldbuilding,
       });
     });
 

@@ -35,6 +35,7 @@ import {
 import { filter, Subject, Subscription, takeUntil } from 'rxjs';
 
 import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
+import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
 
 @Component({
   selector: 'app-tab-interface',
@@ -67,6 +68,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly dialog = inject(MatDialog);
   private readonly cdr = inject(ChangeDetectorRef);
   protected readonly dialogGateway = inject(DialogGatewayService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
 
   private destroy$ = new Subject<void>();
   private routerSubscription: Subscription | null = null;
@@ -616,31 +618,23 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
       return 'folder';
     }
 
-    if (tab.type === 'worldbuilding' && tab.elementType) {
-      const iconMap: Record<string, string> = {
-        ['CHARACTER']: 'person',
-        ['LOCATION']: 'place',
-        ['WB_ITEM']: 'category',
-        ['MAP']: 'map',
-        ['RELATIONSHIP']: 'diversity_1',
-        ['PHILOSOPHY']: 'auto_stories',
-        ['CULTURE']: 'groups',
-        ['SPECIES']: 'pets',
-        ['SYSTEMS']: 'settings',
-      };
-
-      // Check if it's a built-in type
-      if (iconMap[tab.elementType]) {
-        return iconMap[tab.elementType];
+    if (tab.type === 'worldbuilding') {
+      // For worldbuilding elements, look up the icon from the schema
+      if (tab.element?.schemaId) {
+        const schema = this.worldbuildingService.getSchemaById(
+          tab.element.schemaId
+        );
+        if (schema?.icon) {
+          return schema.icon;
+        }
       }
 
-      // For custom types, try to load from cached metadata or fallback
-      // Note: We can't use async here, so we'll need to cache icons in the tab metadata
+      // Fallback to metadata icon if available
       if (tab.element?.metadata && tab.element.metadata['icon']) {
         return tab.element.metadata['icon'];
       }
 
-      return 'description';
+      return 'category';
     }
 
     return 'insert_drive_file';

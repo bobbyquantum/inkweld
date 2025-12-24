@@ -19,7 +19,6 @@ function getSchemaLibraryDocId(username: string, slug: string): string {
 
 interface SchemaInfo {
   id: string;
-  type: string;
   name: string;
   description: string;
   icon: string;
@@ -42,7 +41,6 @@ async function readSchemas(username: string, slug: string): Promise<SchemaInfo[]
         const schema = value as Record<string, unknown>;
         schemas.push({
           id: key,
-          type: String(schema.type ?? key),
           name: String(schema.name ?? key),
           description: String(schema.description ?? ''),
           icon: String(schema.icon ?? 'description'),
@@ -59,19 +57,19 @@ async function readSchemas(username: string, slug: string): Promise<SchemaInfo[]
 }
 
 /**
- * Read a specific schema
+ * Read a specific schema by ID
  */
 async function readSchema(
   username: string,
   slug: string,
-  schemaType: string
+  schemaId: string
 ): Promise<unknown | null> {
   const docId = getSchemaLibraryDocId(username, slug);
 
   try {
     const sharedDoc = await yjsService.getDocument(docId);
     const schemasMap = sharedDoc.doc.getMap('schemas');
-    const schema = schemasMap.get(schemaType);
+    const schema = schemasMap.get(schemaId);
 
     if (!schema) return null;
 
@@ -113,10 +111,10 @@ const schemasResourceHandler = {
     const schemas = await readSchemas(username, slug);
     for (const schema of schemas) {
       resources.push({
-        uri: `inkweld://project/${username}/${slug}/schema/${schema.type}`,
+        uri: `inkweld://project/${username}/${slug}/schema/${schema.id}`,
         name: schema.name,
         title: `${schema.name} Schema`,
-        description: schema.description || `Template for ${schema.type}`,
+        description: schema.description || `Template: ${schema.name}`,
         mimeType: 'application/json',
         annotations: {
           audience: ['assistant'],
@@ -157,8 +155,8 @@ const schemasResourceHandler = {
       new RegExp(`^${baseUri.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/schema/(.+)$`)
     );
     if (schemaMatch) {
-      const schemaType = schemaMatch[1];
-      const schema = await readSchema(username, slug, schemaType);
+      const schemaId = schemaMatch[1];
+      const schema = await readSchema(username, slug, schemaId);
 
       if (!schema) {
         return null;

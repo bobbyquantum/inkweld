@@ -92,7 +92,8 @@ describe('ProjectExportService', () => {
     {
       id: 'elem-3',
       name: 'Hero Character',
-      type: ElementType.Character,
+      type: ElementType.Worldbuilding,
+      schemaId: 'character-v1',
       order: 0,
       level: 0,
       parentId: null,
@@ -569,7 +570,6 @@ describe('ProjectExportService', () => {
       const mockSchemas = [
         {
           id: 'schema-1',
-          type: 'CHARACTER',
           name: 'Character Template',
           icon: 'person',
           description: 'A character',

@@ -29,8 +29,8 @@
     "category": "Familial",
     "icon": "family_restroom",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"], "maxCount": null },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"], "maxCount": 2 }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"], "maxCount": null },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"], "maxCount": 2 }
   },
   {
     "id": "mother",
@@ -40,8 +40,8 @@
     "category": "Familial",
     "icon": "face_3",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"], "maxCount": null },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"], "maxCount": 1 }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"], "maxCount": null },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"], "maxCount": 1 }
   },
   {
     "id": "father",
@@ -51,8 +51,8 @@
     "category": "Familial",
     "icon": "face",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"], "maxCount": null },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"], "maxCount": 1 }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"], "maxCount": null },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"], "maxCount": 1 }
   },
   {
     "id": "sibling",
@@ -62,8 +62,8 @@
     "category": "Familial",
     "icon": "people",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
   },
   {
     "id": "brother",
@@ -73,8 +73,8 @@
     "category": "Familial",
     "icon": "face",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
   },
   {
     "id": "sister",
@@ -84,8 +84,8 @@
     "category": "Familial",
     "icon": "face_3",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
   },
   {
     "id": "spouse",
@@ -95,8 +95,8 @@
     "category": "Familial",
     "icon": "favorite",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
   },
   {
     "id": "ancestor",
@@ -106,8 +106,8 @@
     "category": "Familial",
     "icon": "account_tree",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
   },
   {
     "id": "employer",
@@ -117,8 +117,8 @@
     "category": "Professional",
     "icon": "business",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER", "LOCATION"] },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1", "location-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
   },
   {
     "id": "colleague",
@@ -128,8 +128,8 @@
     "category": "Professional",
     "icon": "groups",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
   },
   {
     "id": "mentor",
@@ -139,8 +139,8 @@
     "category": "Professional",
     "icon": "school",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
   },
   {
     "id": "member-of",
@@ -151,7 +151,7 @@
     "icon": "badge",
     "isBuiltIn": false,
     "sourceEndpoint": { "allowedSchemas": [] },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"] }
+    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
   },
   {
     "id": "leader",
@@ -161,7 +161,7 @@
     "category": "Professional",
     "icon": "military_tech",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
     "targetEndpoint": { "allowedSchemas": [] }
   },
   {
@@ -172,8 +172,8 @@
     "category": "Social",
     "icon": "handshake",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
   },
   {
     "id": "enemy",
@@ -183,8 +183,8 @@
     "category": "Social",
     "icon": "swords",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
   },
   {
     "id": "ally",
@@ -194,8 +194,8 @@
     "category": "Social",
     "icon": "shield",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
   },
   {
     "id": "rival",
@@ -205,8 +205,8 @@
     "category": "Social",
     "icon": "sports_martial_arts",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
   },
   {
     "id": "romantic-interest",
@@ -216,8 +216,8 @@
     "category": "Social",
     "icon": "heart_broken",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["CHARACTER"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["character-v1"] }
   },
   {
     "id": "located-in",
@@ -228,7 +228,7 @@
     "icon": "place",
     "isBuiltIn": false,
     "sourceEndpoint": { "allowedSchemas": [] },
-    "targetEndpoint": { "allowedSchemas": ["LOCATION"] }
+    "targetEndpoint": { "allowedSchemas": ["location-v1"] }
   },
   {
     "id": "lives-in",
@@ -238,8 +238,8 @@
     "category": "Spatial",
     "icon": "home",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["LOCATION"], "maxCount": 1 }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["location-v1"], "maxCount": 1 }
   },
   {
     "id": "originated-from",
@@ -249,8 +249,8 @@
     "category": "Spatial",
     "icon": "flag",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER", "WB_ITEM"] },
-    "targetEndpoint": { "allowedSchemas": ["LOCATION"], "maxCount": 1 }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1", "wb-item-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["location-v1"], "maxCount": 1 }
   },
   {
     "id": "adjacent-to",
@@ -260,8 +260,8 @@
     "category": "Spatial",
     "icon": "compare_arrows",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["LOCATION"] },
-    "targetEndpoint": { "allowedSchemas": ["LOCATION"] }
+    "sourceEndpoint": { "allowedSchemas": ["location-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["location-v1"] }
   },
   {
     "id": "happened-before",
@@ -304,8 +304,8 @@
     "category": "Ownership",
     "icon": "inventory_2",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["WB_ITEM", "LOCATION"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["wb-item-v1", "location-v1"] }
   },
   {
     "id": "created",
@@ -315,8 +315,8 @@
     "category": "Ownership",
     "icon": "construction",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["WB_ITEM"] }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["wb-item-v1"] }
   },
   {
     "id": "wields",
@@ -326,7 +326,7 @@
     "category": "Ownership",
     "icon": "gavel",
     "isBuiltIn": false,
-    "sourceEndpoint": { "allowedSchemas": ["CHARACTER"] },
-    "targetEndpoint": { "allowedSchemas": ["WB_ITEM"], "maxCount": 1 }
+    "sourceEndpoint": { "allowedSchemas": ["character-v1"] },
+    "targetEndpoint": { "allowedSchemas": ["wb-item-v1"], "maxCount": 1 }
   }
 ]

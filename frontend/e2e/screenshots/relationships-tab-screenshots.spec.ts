@@ -383,7 +383,12 @@ test.describe('Relationships Tab Screenshots', () => {
 
       await page.click('button:has-text("Create Project")');
 
-      // Step 1: Template selection - click Next to proceed
+      // Step 1: Template selection - select worldbuilding-empty template
+      // which includes relationship types with proper schema constraints
+      const wbTemplate = page.getByTestId('template-worldbuilding-empty');
+      await wbTemplate.waitFor({ state: 'visible', timeout: 5000 });
+      await wbTemplate.click();
+
       const nextButton = page.getByRole('button', { name: /next/i });
       await nextButton.waitFor({ state: 'visible', timeout: 5000 });
       await nextButton.click();
@@ -413,7 +418,7 @@ test.describe('Relationships Tab Screenshots', () => {
       // Create each character
       for (const charName of characters) {
         await page.getByTestId('create-new-element').click();
-        await page.getByTestId('element-type-character').click();
+        await page.getByTestId('element-type-character-v1').click();
         await page.getByTestId('element-name-input').fill(charName);
         await page.getByTestId('create-element-button').click();
         await page.waitForTimeout(400);

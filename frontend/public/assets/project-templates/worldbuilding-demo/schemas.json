@@ -1,7 +1,6 @@
 [
   {
     "id": "character-v1",
-    "type": "CHARACTER",
     "name": "Character",
     "icon": "person",
     "description": "A character in your story or world",
@@ -243,13 +242,10 @@
         ]
       }
     ],
-    "defaultValues": {
-      "type": "CHARACTER"
-    }
+    "defaultValues": {}
   },
   {
     "id": "location-v1",
-    "type": "LOCATION",
     "name": "Location",
     "icon": "place",
     "description": "A place or location in your world",
@@ -427,13 +423,10 @@
         ]
       }
     ],
-    "defaultValues": {
-      "type": "LOCATION"
-    }
+    "defaultValues": {}
   },
   {
     "id": "wb-item-v1",
-    "type": "WB_ITEM",
     "name": "Item",
     "icon": "category",
     "description": "A generic item or object in your world.",
