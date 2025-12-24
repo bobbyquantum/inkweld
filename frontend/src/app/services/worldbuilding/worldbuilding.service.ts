@@ -1092,17 +1092,6 @@ export class WorldbuildingService {
   }
 
   /**
-   * @deprecated Use getElementSchemaId instead
-   */
-  async getElementSchemaType(
-    elementId: string,
-    username: string,
-    slug: string
-  ): Promise<string | null> {
-    return this.getElementSchemaId(elementId, username, slug);
-  }
-
-  /**
    * Get the full schema for a worldbuilding element from the project library.
    * Looks up the schema ID stored in the element and retrieves the schema from the library.
    * @param elementId - The element ID

@@ -90,7 +90,6 @@ describe('WorldbuildingEditorComponent', () => {
     worldbuildingService.getSchemaForElement.mockResolvedValue(
       mockCharacterSchema
     );
-    worldbuildingService.getElementSchemaType.mockResolvedValue('character');
     worldbuildingService.getWorldbuildingData.mockResolvedValue({
       id: 'test-element-123',
       type: 'character',

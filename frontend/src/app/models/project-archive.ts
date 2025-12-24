@@ -148,21 +148,6 @@ export interface ArchiveSnapshot {
    * Worldbuilding data as JSON (new format).
    */
   worldbuildingData?: Record<string, unknown>;
-  /**
-   * @deprecated Use xmlContent instead. Kept for backward compatibility.
-   * Yjs document state as base64
-   */
-  yDocState?: string;
-  /**
-   * @deprecated Use worldbuildingData instead.
-   * Worldbuilding Yjs state as base64 (for WB elements)
-   */
-  worldbuildingState?: string;
-  /**
-   * @deprecated No longer needed with content-based snapshots.
-   * Yjs state vector as base64
-   */
-  stateVector?: string;
   /** Word count at time of snapshot */
   wordCount?: number;
   /** Additional metadata */

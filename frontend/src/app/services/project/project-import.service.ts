@@ -538,7 +538,7 @@ export class ProjectImportService {
       id: ae.id,
       name: ae.name,
       type: ae.type,
-      schemaId: ae.schemaId,
+      schemaId: ae.schemaId ?? undefined,
       order: ae.order,
       level: ae.level,
       parentId: ae.parentId ?? null,
@@ -689,17 +689,6 @@ export class ProjectImportService {
       );
 
       try {
-        // Handle both new format (xmlContent) and legacy format (yDocState)
-        const yDocState = snapshot.yDocState
-          ? this.base64ToUint8Array(snapshot.yDocState)
-          : undefined;
-        const worldbuildingState = snapshot.worldbuildingState
-          ? this.base64ToUint8Array(snapshot.worldbuildingState)
-          : undefined;
-        const stateVector = snapshot.stateVector
-          ? this.base64ToUint8Array(snapshot.stateVector)
-          : undefined;
-
         await this.offlineSnapshots.importSnapshot(projectKey, {
           documentId: snapshot.documentId,
           name: snapshot.name,
@@ -707,10 +696,6 @@ export class ProjectImportService {
           // New format
           xmlContent: snapshot.xmlContent,
           worldbuildingData: snapshot.worldbuildingData,
-          // Legacy format
-          yDocState,
-          worldbuildingState,
-          stateVector,
           wordCount: snapshot.wordCount,
           metadata: snapshot.metadata,
           createdAt: snapshot.createdAt,

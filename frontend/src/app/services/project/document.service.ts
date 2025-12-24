@@ -1,5 +1,4 @@
 import {
-  effect,
   inject,
   Injectable,
   NgZone,
@@ -1223,19 +1222,6 @@ export class DocumentService {
         this.syncStatusSignals.get(documentId)!.set(state);
       }
       this.projectStateService.updateSyncState(documentId, state);
-    });
-  }
-
-  /**
-   * @deprecated use getSyncStatusSignal
-   */
-  getSyncStatus(documentId: string): Observable<DocumentSyncState> {
-    this.initializeSyncStatus(documentId);
-    return new Observable(observer => {
-      const sig = this.syncStatusSignals.get(documentId)!;
-      observer.next(sig());
-      const eff = effect(() => observer.next(sig()));
-      return () => eff.destroy();
     });
   }
 

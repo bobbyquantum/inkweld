@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { ElementType } from './element-type';
 
 
 export interface Element { 
@@ -18,14 +19,7 @@ export interface Element {
      * Element name
      */
     name: string;
-    /**
-     * Element type
-     */
     type: ElementType;
-    /**
-     * Schema ID for WORLDBUILDING elements
-     */
-    schemaId?: string | null;
     /**
      * Parent element ID
      */
@@ -47,6 +41,10 @@ export interface Element {
      */
     version: number;
     /**
+     * Schema ID for worldbuilding elements
+     */
+    schemaId?: string;
+    /**
      * Element metadata key-value pairs
      */
     metadata: { [key: string]: string; };
@@ -59,11 +57,6 @@ export interface Element {
      */
     updatedAt?: string;
 }
-export enum ElementType {
-    Folder = 'FOLDER',
-    Item = 'ITEM',
-    Worldbuilding = 'WORLDBUILDING'
-};
 
 
 
