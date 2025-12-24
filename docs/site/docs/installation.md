@@ -90,7 +90,7 @@ bun run dev
 
 # Frontend (in another terminal)
 cd frontend
-bun run start
+npm start
 ```
 
 ### 5. Create Your First User
