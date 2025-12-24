@@ -37,12 +37,6 @@ export default function ThemedImage({
   const fullSrc = `${src}${suffix}`;
 
   return (
-    <img
-      src={fullSrc}
-      alt={alt}
-      width={width}
-      style={style}
-      loading="lazy"
-    />
+    <img src={fullSrc} alt={alt} width={width} style={style} loading="lazy" />
   );
 }

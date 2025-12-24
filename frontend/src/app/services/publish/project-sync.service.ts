@@ -451,12 +451,6 @@ export class ProjectSyncService {
     elementIds: string[],
     _result: SyncResult
   ): Promise<void> {
-    // TODO: Implement asset syncing
-    // This would:
-    // 1. Scan documents for image references
-    // 2. Check if images are cached locally
-    // 3. Download and cache any missing images
-
     this.updateProgress({
       phase: SyncPhase.SyncingAssets,
       overallProgress: 85,

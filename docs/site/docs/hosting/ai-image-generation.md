@@ -14,11 +14,11 @@ The AI image generation system allows users to generate images directly within t
 
 ### Supported Providers
 
-| Provider | Models | Requirements |
-|----------|--------|--------------|
-| **OpenAI** | DALL-E 2, DALL-E 3 | OpenAI API key |
-| **OpenRouter** | FLUX, Stable Diffusion 3, and more | OpenRouter API key |
-| **Stable Diffusion** | Local models | Self-hosted AUTOMATIC1111 WebUI |
+| Provider             | Models                             | Requirements                    |
+| -------------------- | ---------------------------------- | ------------------------------- |
+| **OpenAI**           | DALL-E 2, DALL-E 3                 | OpenAI API key                  |
+| **OpenRouter**       | FLUX, Stable Diffusion 3, and more | OpenRouter API key              |
+| **Stable Diffusion** | Local models                       | Self-hosted AUTOMATIC1111 WebUI |
 
 ## Admin Configuration
 
@@ -133,6 +133,7 @@ The element's data is sent to the AI provider to help generate more accurate ima
 ### Saving Generated Images
 
 After generation, users can:
+
 - Preview multiple generated images
 - Select the preferred result
 - Save directly to the project's media library
@@ -148,14 +149,14 @@ AI image generation requires a server connection and is not available in offline
 
 Image generation costs vary by provider and model:
 
-| Provider | Model | Approximate Cost |
-|----------|-------|------------------|
-| OpenAI | DALL-E 3 HD | ~$0.080/image |
-| OpenAI | DALL-E 3 | ~$0.040/image |
-| OpenAI | DALL-E 2 | ~$0.020/image |
-| OpenRouter | FLUX Schnell | ~$0.003/image |
-| OpenRouter | SD3 | ~$0.035/image |
-| Self-hosted | Any | Electricity + Hardware |
+| Provider    | Model        | Approximate Cost       |
+| ----------- | ------------ | ---------------------- |
+| OpenAI      | DALL-E 3 HD  | ~$0.080/image          |
+| OpenAI      | DALL-E 3     | ~$0.040/image          |
+| OpenAI      | DALL-E 2     | ~$0.020/image          |
+| OpenRouter  | FLUX Schnell | ~$0.003/image          |
+| OpenRouter  | SD3          | ~$0.035/image          |
+| Self-hosted | Any          | Electricity + Hardware |
 
 :::tip Cost Control
 Use DALL-E 2 or FLUX Schnell for drafts, then upgrade to higher-quality models for final images.
@@ -166,6 +167,7 @@ Use DALL-E 2 or FLUX Schnell for drafts, then upgrade to higher-quality models f
 ### Provider Not Available
 
 If a provider shows as "not available":
+
 - Verify the API key is entered correctly
 - Check that the key has sufficient credits/quota
 - For Stable Diffusion, ensure the WebUI is running and accessible
@@ -173,6 +175,7 @@ If a provider shows as "not available":
 ### Generation Failures
 
 Common causes of generation failures:
+
 - **Content policy violations**: The prompt may contain prohibited content
 - **Rate limits**: Too many requests in a short time
 - **Network issues**: Connection to provider API failed

@@ -109,10 +109,7 @@ export class TemplatesTabComponent {
 
     try {
       // Schemas are already synced via the sync provider - no delay needed
-      const schemas = this.worldbuildingService.getAllSchemas(
-        project.username,
-        project.slug
-      );
+      const schemas = this.worldbuildingService.getAllSchemas();
 
       if (schemas.length === 0) {
         console.warn('[TemplatesTab] No schemas found in library');
@@ -176,14 +173,10 @@ export class TemplatesTabComponent {
     }
 
     try {
-      const projectKey = `${project.username}:${project.slug}`;
       this.worldbuildingService.cloneTemplate(
-        projectKey,
         template.id,
         newName,
-        `Clone of ${template.label}`,
-        project.username,
-        project.slug
+        `Clone of ${template.label}`
       );
 
       this.snackBar.open(`✓ Template "${newName}" created`, 'Close', {
@@ -223,13 +216,7 @@ export class TemplatesTabComponent {
     }
 
     try {
-      const projectKey = `${project.username}:${project.slug}`;
-      this.worldbuildingService.deleteTemplate(
-        projectKey,
-        template.id,
-        project.username,
-        project.slug
-      );
+      this.worldbuildingService.deleteTemplate(template.id);
 
       this.snackBar.open(`✓ Template "${template.label}" deleted`, 'Close', {
         duration: 3000,
@@ -259,11 +246,7 @@ export class TemplatesTabComponent {
 
     try {
       // Load the full schema using the abstraction layer
-      const fullSchema = this.worldbuildingService.getSchema(
-        project.username,
-        project.slug,
-        template.id
-      );
+      const fullSchema = this.worldbuildingService.getSchema(template.id);
 
       if (!fullSchema) {
         this.snackBar.open('Template not found', 'Close', { duration: 3000 });
@@ -287,14 +270,7 @@ export class TemplatesTabComponent {
 
       if (result) {
         // Update the template
-        const projectKey = `${project.username}:${project.slug}`;
-        this.worldbuildingService.updateTemplate(
-          projectKey,
-          template.id,
-          result,
-          project.username,
-          project.slug
-        );
+        this.worldbuildingService.updateTemplate(template.id, result);
 
         this.snackBar.open(`✓ Template "${result.name}" updated`, 'Close', {
           duration: 3000,

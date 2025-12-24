@@ -149,7 +149,7 @@ export class ProjectExportService {
       );
 
       // Get additional project data
-      const schemas = await this.getSchemas(username, slug);
+      const schemas = await this.getSchemas();
       const relationships = await this.getRelationships(username, slug);
       const customRelationshipTypes = await this.getCustomRelationshipTypes(
         username,
@@ -488,14 +488,11 @@ export class ProjectExportService {
   /**
    * Get worldbuilding schemas.
    */
-  private getSchemas(
-    username: string,
-    slug: string
-  ): ElementTypeSchema[] | Promise<ElementTypeSchema[]> {
+  private getSchemas(): ElementTypeSchema[] | Promise<ElementTypeSchema[]> {
     if (this.syncFactory.isOfflineMode()) {
       return this.offlineElements.schemas();
     }
-    return this.worldbuildingService.getAllSchemas(username, slug);
+    return this.worldbuildingService.getAllSchemas();
   }
 
   /**
