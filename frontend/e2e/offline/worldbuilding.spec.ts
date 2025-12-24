@@ -303,25 +303,10 @@ test.describe('Worldbuilding Templates', () => {
     // Fill in the rename dialog
     await page.getByLabel(/name/i).fill('Custom Hero');
 
-    // Listen for console logs to capture the custom template type
-    let customTemplateType: string | undefined;
-    page.on('console', msg => {
-      const text = msg.text();
-      // Look for: [WorldbuildingService] Cloned template character-v1 to custom-123: "Custom Hero"
-      const match = text.match(/Cloned template [\w-]+ to ([\w-]+):/);
-      if (match) {
-        customTemplateType = match[1];
-      }
-    });
-
     await page.getByRole('button', { name: 'Rename' }).click();
 
     // Wait for template to be created and snackbar
     await page.waitForTimeout(500);
-
-    // Verify we captured the custom template type
-    expect(customTemplateType).toBeDefined();
-    expect(customTemplateType).toMatch(/^custom-\d+$/);
 
     // Go back to project home to create element
     await page.getByTestId('toolbar-home-button').click();
@@ -330,16 +315,19 @@ test.describe('Worldbuilding Templates', () => {
     // Create element using custom template
     await page.getByTestId('create-new-element').click();
 
-    // Use the dynamically captured custom template type
-    const elementTypeTestId = `element-type-${customTemplateType!.toLowerCase()}`;
+    // Find the custom template option by its label "Custom Hero"
+    const customHeroOption = page
+      .locator('.type-card')
+      .filter({ hasText: 'Custom Hero' });
 
     // Wait for the custom template option to appear (async from schema library)
-    await page.waitForSelector(`[data-testid="${elementTypeTestId}"]`, {
-      state: 'visible',
-      timeout: 10000,
-    });
+    await expect(customHeroOption).toBeVisible({ timeout: 10000 });
 
-    await page.getByTestId(elementTypeTestId).click();
+    // Get the data-testid attribute to verify it has the expected format
+    const testId = await customHeroOption.getAttribute('data-testid');
+    expect(testId).toMatch(/^element-type-custom-\d+$/);
+
+    await customHeroOption.click();
     await page.getByTestId('element-name-input').fill('My Hero');
     await page.getByTestId('create-element-button').click();
 

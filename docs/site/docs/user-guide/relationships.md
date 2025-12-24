@@ -54,14 +54,14 @@ For example, if you mark "Marcus" as the **Parent** of "Elena":
   alt="Parent relationship on source character"
 />
 
-*The parent element shows the outgoing "Parent" relationship*
+_The parent element shows the outgoing "Parent" relationship_
 
 <ThemedImage
   src="/img/features/character-child-overview"
   alt="Child backlink on target character"
 />
 
-*The child element shows the incoming "Child of" backlink*
+_The child element shows the incoming "Child of" backlink_
 
 ## The Relationships Panel
 
@@ -172,7 +172,7 @@ Characters often have many relationships. The panel groups them by type for easy
   alt="Character with multiple relationship types"
 />
 
-*A character with relationship types shown as expandable panels*
+_A character with relationship types shown as expandable panels_
 
 ### Managing Relationships
 

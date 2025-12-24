@@ -171,7 +171,7 @@ export class NewElementDialogComponent {
       );
 
       // Get all schemas as plain objects
-      const schemas = this.worldbuildingService.getAllSchemas(username, slug);
+      const schemas = this.worldbuildingService.getAllSchemas();
 
       if (schemas.length === 0) {
         console.warn('[NewElementDialog] No schemas found');

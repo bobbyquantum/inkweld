@@ -31,12 +31,12 @@ Tags are created at the project level and can be applied to any element within t
 
 Each tag has the following properties:
 
-| Property        | Description                                           |
-| --------------- | ----------------------------------------------------- |
-| **Name**        | A short, descriptive label (required)                 |
-| **Icon**        | A Material icon to visually identify the tag          |
-| **Color**       | One of 16 preset colors for visual distinction        |
-| **Description** | Optional text explaining the tag's purpose            |
+| Property        | Description                                    |
+| --------------- | ---------------------------------------------- |
+| **Name**        | A short, descriptive label (required)          |
+| **Icon**        | A Material icon to visually identify the tag   |
+| **Color**       | One of 16 preset colors for visual distinction |
+| **Description** | Optional text explaining the tag's purpose     |
 
 ### Create Tag Dialog
 
@@ -110,24 +110,24 @@ The 16 available tag colors are chosen for:
 - **Visual distinction**: Each color is clearly different from the others
 - **Professional appearance**: Balanced saturation levels
 
-| Color       | Hex Code  | Suggested Use        |
-| ----------- | --------- | -------------------- |
-| Crimson     | `#DC143C` | Important/Urgent     |
-| Firebrick   | `#B22222` | Critical/Danger      |
-| Orange Red  | `#FF4500` | Warning/Attention    |
-| Dark Orange | `#FF8C00` | In Progress          |
-| Forest      | `#228B22` | Complete/Success     |
-| Sea Green   | `#2E8B57` | Approved/Ready       |
-| Light Sea   | `#20B2AA` | Review/Pending       |
-| Steel Blue  | `#4682B4` | Info/Reference       |
-| Dodger Blue | `#1E90FF` | Primary/Main         |
-| Royal Blue  | `#4169E1` | Secondary            |
-| Blue Violet | `#8A2BE2` | Special/Magic        |
-| Dark Violet | `#9400D3` | Rare/Unique          |
-| Medium Purple| `#9370DB` | Creative/Ideas      |
-| Slate Gray  | `#708090` | Archived/Inactive    |
-| Blue Gray   | `#607D8B` | Default/Neutral      |
-| Sienna      | `#A0522D` | Historical/Past      |
+| Color         | Hex Code  | Suggested Use     |
+| ------------- | --------- | ----------------- |
+| Crimson       | `#DC143C` | Important/Urgent  |
+| Firebrick     | `#B22222` | Critical/Danger   |
+| Orange Red    | `#FF4500` | Warning/Attention |
+| Dark Orange   | `#FF8C00` | In Progress       |
+| Forest        | `#228B22` | Complete/Success  |
+| Sea Green     | `#2E8B57` | Approved/Ready    |
+| Light Sea     | `#20B2AA` | Review/Pending    |
+| Steel Blue    | `#4682B4` | Info/Reference    |
+| Dodger Blue   | `#1E90FF` | Primary/Main      |
+| Royal Blue    | `#4169E1` | Secondary         |
+| Blue Violet   | `#8A2BE2` | Special/Magic     |
+| Dark Violet   | `#9400D3` | Rare/Unique       |
+| Medium Purple | `#9370DB` | Creative/Ideas    |
+| Slate Gray    | `#708090` | Archived/Inactive |
+| Blue Gray     | `#607D8B` | Default/Neutral   |
+| Sienna        | `#A0522D` | Historical/Past   |
 
 ## Best Practices
 
