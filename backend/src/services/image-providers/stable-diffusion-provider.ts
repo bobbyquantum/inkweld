@@ -7,8 +7,8 @@ import type {
   ImageGenerateResponse,
   ImageModelInfo,
   ImageProviderType,
-} from '../../types/image-generation.js';
-import { BaseImageProvider } from './base-provider.js';
+} from '../../types/image-generation';
+import { BaseImageProvider } from './base-provider';
 
 // Default models - actual models depend on the server configuration
 const DEFAULT_SD_MODELS: ImageModelInfo[] = [

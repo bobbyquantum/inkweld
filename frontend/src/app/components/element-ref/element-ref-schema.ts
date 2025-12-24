@@ -172,54 +172,20 @@ export const elementRefStyles = `
     content: 'description';
   }
 
-  .element-ref--character::before {
-    content: 'person';
-  }
-
-  .element-ref--location::before {
-    content: 'place';
-  }
-
-  .element-ref--wb_item::before {
+  .element-ref--worldbuilding::before {
     content: 'category';
-  }
-
-  .element-ref--map::before {
-    content: 'map';
   }
 
   .element-ref--folder::before {
     content: 'folder';
   }
 
-  /* Character refs get a slightly different color */
-  .element-ref--character {
-    --element-ref-bg-end: #f0c8d8;
-    background: linear-gradient(135deg, var(--sys-tertiary-container, #ffd8e4) 0%, var(--element-ref-bg-end, #f0c8d8) 100%);
-    color: var(--sys-on-tertiary-container, #31111d);
-    border-color: var(--sys-outline-variant, rgba(125, 82, 96, 0.3));
-  }
-
-  .element-ref--character:hover {
-    background: linear-gradient(135deg, var(--sys-tertiary, #7d5260) 0%, #6a4552 100%);
-    color: var(--sys-on-tertiary, #ffffff);
-    border-color: var(--sys-tertiary, #7d5260);
-    box-shadow: 0 2px 6px rgba(125, 82, 96, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  }
-
-  /* Location refs */
-  .element-ref--location {
-    --element-ref-bg-end: #c8d8f0;
-    background: linear-gradient(135deg, var(--sys-secondary-container, #e8dff5) 0%, var(--element-ref-bg-end, #c8d8f0) 100%);
-    color: var(--sys-on-secondary-container, #1d192b);
-    border-color: var(--sys-outline-variant, rgba(98, 91, 113, 0.3));
-  }
-
-  .element-ref--location:hover {
-    background: linear-gradient(135deg, var(--sys-secondary, #625b71) 0%, #524b61 100%);
-    color: var(--sys-on-secondary, #ffffff);
-    border-color: var(--sys-secondary, #625b71);
-    box-shadow: 0 2px 6px rgba(98, 91, 113, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  .element-ref:hover {
+    background: linear-gradient(135deg, var(--sys-primary, #6750a4) 0%, #5a4590 100%);
+    color: var(--sys-on-primary, #ffffff);
+    box-shadow: 0 2px 6px rgba(103, 80, 164, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    border-color: var(--sys-primary, #6750a4);
+    transform: translateY(-1px);
   }
 
   /* Deleted element style */
@@ -267,36 +233,6 @@ export const elementRefStyles = `
     color: var(--sys-on-primary, #381e72);
     border-color: var(--sys-primary, #d0bcff);
     box-shadow: 0 2px 6px rgba(208, 188, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  }
-
-  .dark-theme .element-ref--character,
-  :host-context(.dark-theme) .element-ref--character {
-    --element-ref-bg-end: #4a2838;
-    background: linear-gradient(135deg, var(--sys-tertiary-container, #633b48) 0%, var(--element-ref-bg-end, #4a2838) 100%);
-    color: var(--sys-on-tertiary-container, #ffd8e4);
-    border-color: rgba(255, 216, 228, 0.3);
-  }
-
-  .dark-theme .element-ref--character:hover,
-  :host-context(.dark-theme) .element-ref--character:hover {
-    background: linear-gradient(135deg, var(--sys-tertiary, #efb8c8) 0%, #d8a4b8 100%);
-    color: var(--sys-on-tertiary, #492532);
-    border-color: var(--sys-tertiary, #efb8c8);
-  }
-
-  .dark-theme .element-ref--location,
-  :host-context(.dark-theme) .element-ref--location {
-    --element-ref-bg-end: #383248;
-    background: linear-gradient(135deg, var(--sys-secondary-container, #4a4458) 0%, var(--element-ref-bg-end, #383248) 100%);
-    color: var(--sys-on-secondary-container, #e8def8);
-    border-color: rgba(232, 223, 248, 0.3);
-  }
-
-  .dark-theme .element-ref--location:hover,
-  :host-context(.dark-theme) .element-ref--location:hover {
-    background: linear-gradient(135deg, var(--sys-secondary, #ccc2dc) 0%, #b4aac4 100%);
-    color: var(--sys-on-secondary, #332d41);
-    border-color: var(--sys-secondary, #ccc2dc);
   }
 
   .dark-theme .element-ref--has-note::after,

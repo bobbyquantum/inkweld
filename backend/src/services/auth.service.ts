@@ -1,9 +1,9 @@
 import type { Context } from 'hono';
 import { sign, verify } from 'hono/jwt';
-import { config } from '../config/env.js';
-import { userService } from './user.service.js';
-import type { User } from '../db/schema/users.js';
-import type { DatabaseInstance } from '../types/context.js';
+import { config } from '../config/env';
+import { userService } from './user.service';
+import type { User } from '../db/schema/users';
+import type { DatabaseInstance } from '../types/context';
 
 const TOKEN_EXPIRY = 30 * 24 * 60 * 60; // 30 days in seconds
 

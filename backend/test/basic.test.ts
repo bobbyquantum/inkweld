@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
-import { startTestServer, stopTestServer, TestClient } from './server-test-helper.js';
+import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
 
 let client: TestClient;
 

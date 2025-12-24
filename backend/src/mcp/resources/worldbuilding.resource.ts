@@ -8,35 +8,14 @@ import type { McpContext, McpResource, McpResourceContents } from '../mcp.types'
 import { registerResourceHandler } from '../mcp.handler';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
-
-/**
- * Worldbuilding element types
- */
-const WORLDBUILDING_TYPES = [
-  'CHARACTER',
-  'LOCATION',
-  'WB_ITEM',
-  'MAP',
-  'RELATIONSHIP',
-  'PHILOSOPHY',
-  'CULTURE',
-  'SPECIES',
-  'SYSTEMS',
-];
+import { Element } from '../../schemas/element.schemas';
+import { getElementsDocId } from '../tools/tree-helpers';
 
 /**
  * Check if an element type is a worldbuilding type
  */
 function isWorldbuildingType(type: string): boolean {
-  return WORLDBUILDING_TYPES.includes(type);
-}
-
-/**
- * Get the elements Yjs document ID for a project
- * Note: The trailing '/' is required because y-websocket appends it to the room URL
- */
-function getElementsDocId(username: string, slug: string): string {
-  return `${username}:${slug}:elements/`;
+  return type === 'WORLDBUILDING';
 }
 
 /**
@@ -47,39 +26,13 @@ function getWorldbuildingDocId(username: string, slug: string, elementId: string
   return `${username}:${slug}:${elementId}/`;
 }
 
-interface Element {
-  id: string;
-  name: string;
-  type: string;
-}
-
 /**
  * Read worldbuilding elements from elements document
  */
 async function getWorldbuildingElements(username: string, slug: string): Promise<Element[]> {
-  const docId = getElementsDocId(username, slug);
-
   try {
-    const sharedDoc = await yjsService.getDocument(docId);
-    // Elements are stored in a Y.Array, not a Y.Map
-    const elementsArray = sharedDoc.doc.getArray('elements');
-
-    const elements: Element[] = [];
-    elementsArray.forEach((value) => {
-      if (value && typeof value === 'object') {
-        const elem = value as Record<string, unknown>;
-        const type = String(elem.type ?? '');
-        if (isWorldbuildingType(type)) {
-          elements.push({
-            id: String(elem.id ?? ''),
-            name: String(elem.name ?? ''),
-            type,
-          });
-        }
-      }
-    });
-
-    return elements;
+    const elements = await yjsService.getElements(username, slug);
+    return elements.filter((e) => isWorldbuildingType(e.type));
   } catch (err) {
     console.error('Error reading worldbuilding elements:', err);
     return [];

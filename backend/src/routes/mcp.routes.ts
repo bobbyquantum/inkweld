@@ -81,37 +81,4 @@ mcpRoutes.use('/', mcpAuth);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Handler types are complex with OpenAPI
 mcpRoutes.openapi(mcpJsonRpcRoute, handleMcpRequest as any);
 
-// ============================================
-// Legacy SSE endpoint (deprecated)
-// ============================================
-
-// MCP Server-Sent Events endpoint route (for backwards compatibility)
-const sseRoute = createRoute({
-  method: 'get',
-  path: '/sse',
-  tags: ['MCP'],
-  operationId: 'getMCPEventStream',
-  deprecated: true,
-  description: 'Deprecated: Use POST / with JSON-RPC instead',
-  responses: {
-    501: {
-      content: {
-        'application/json': {
-          schema: ErrorSchema,
-        },
-      },
-      description: 'SSE transport not implemented - use JSON-RPC instead',
-    },
-  },
-});
-
-mcpRoutes.openapi(sseRoute, async (c) => {
-  return c.json(
-    {
-      error: 'SSE transport is deprecated. Use POST /api/v1/mcp with JSON-RPC protocol instead.',
-    },
-    501
-  );
-});
-
 export default mcpRoutes;
