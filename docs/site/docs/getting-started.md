@@ -42,7 +42,7 @@ Key backend settings (see `.env.example` at project root):
 From the repo root, start both servers with one command:
 
 ```bash
- npm start
+ npm run dev
 ```
 
 That launches the Bun backend on port `8333` and the Angular dev server on port `4200`. If you prefer to control them independently:
@@ -56,15 +56,15 @@ That launches the Bun backend on port `8333` and the Angular dev server on port 
  bun run dev:node
  bun run dev:worker
 
- # Frontend
+ # Frontend (Bun runs Angular CLI via Node.js)
  cd ../frontend
- npm start
+ bun run start
 ```
 
 ## Testing and linting
 
 ```bash
- # Full workspace helpers
+ # Full workspace helpers (from root)
  bun run lint
  bun run test
 
@@ -75,9 +75,9 @@ That launches the Bun backend on port `8333` and the Angular dev server on port 
 
  # Frontend only
  cd ../frontend
- npm run lint
- npm test
- npm run e2e
+ bun run lint
+ bun test
+ bun run e2e
 ```
 
 Frontend unit tests use Vitest, while end-to-end coverage runs through Playwright with fixtures in `frontend/e2e/fixtures.ts`. Backend tests run via Bun.
