@@ -4,7 +4,7 @@
 
 Inkweld is a **collaborative creative writing platform** with a monorepo structure:
 
-- **Frontend**: Angular 20 standalone components (port 4200, runs on Node.js)
+- **Frontend**: Angular 21 standalone components (port 4200, runs on Node.js)
 - **Backend**: Hono on Bun runtime (port 8333)
 - **Database**: Drizzle ORM (SQLite/D1) + per-project LevelDB for Yjs documents
 - **Real-time**: Yjs CRDTs via WebSocket for collaborative editing
@@ -13,7 +13,7 @@ Inkweld is a **collaborative creative writing platform** with a monorepo structu
 Root (npm) → Frontend (bun+npm) + Backend (bun)
 ```
 
-**Critical**: Frontend dev server uses Node.js (`npm start`), but backend uses Bun (`bun run start:dev`).
+**Critical**: Frontend dev server uses Node.js (`npm start`), but backend uses Bun (`bun run dev`).
 
 ## AI Development Tools
 
@@ -47,7 +47,7 @@ For more information, visit: https://angular.dev/ai/mcp
 - **All code changes require test coverage** - no exceptions
 - **All tests must pass** before considering work complete
 - Run `npm test` (frontend) or `bun test` (backend) before submitting
-- Use Jest for unit tests (NOT Jasmine)
+- Use Vitest for unit tests (NOT Jasmine)
 - Use Playwright for e2e tests with test fixtures in `frontend/e2e/fixtures.ts`
 
 ### 2. Linting is Sacred
@@ -63,12 +63,12 @@ For more information, visit: https://angular.dev/ai/mcp
 - Provide summaries in conversation only
 - Update existing documentation when making significant changes
 
-## Frontend-Specific Patterns (Angular 20)
+## Frontend-Specific Patterns (Angular 21)
 
 ### Dependency Injection - Always Use `inject()`
 
 ```typescript
-// ✅ CORRECT - Modern Angular 20
+// ✅ CORRECT - Modern Angular 21
 export class MyComponent {
   private myService = inject(MyService);
   private router = inject(Router);
@@ -83,7 +83,7 @@ export class MyComponent {
 ### Control Flow - Use Modern Syntax
 
 ```html
-<!-- ✅ CORRECT - Angular 20 control flow -->
+<!-- ✅ CORRECT - Angular 21 control flow -->
 @if (condition) {
 <div>Content</div>
 } @else {
@@ -118,7 +118,7 @@ Use import aliases for cleaner imports:
 
 ### Testing
 
-- **Unit tests**: Jest with `@ngneat/spectator` for components
+- **Unit tests**: Vitest with `@ngneat/spectator` for components
 - **E2E tests**: Playwright with fixtures (`authenticatedPage`, `anonymousPage`, `adminPage`)
 - Use `data-testid` attributes for stable selectors in e2e tests
 - Mock API responses using `frontend/e2e/mock-api/` framework
@@ -175,7 +175,7 @@ npm start  # Runs concurrently
 
 # Or individually:
 cd frontend && npm start      # Port 4200
-cd server && bun run start:dev  # Port 8333
+cd backend && bun run dev     # Port 8333
 ```
 
 ### Running Tests
@@ -185,7 +185,7 @@ cd server && bun run start:dev  # Port 8333
 npm test
 
 # Frontend only
-cd frontend && npm test        # Jest
+cd frontend && npm test        # Vitest
 cd frontend && npm run e2e     # Playwright
 
 # Backend only
@@ -212,13 +212,13 @@ The API client is **auto-generated** - never edit files in `frontend/src/api-cli
 2. Add Swagger decorators (`@ApiOperation`, `@ApiResponse`, etc.)
 3. Run `bun run generate:angular-client` from `backend/`
 4. Use generated types in frontend services
-5. Write controller tests using Jest + Supertest
+5. Write controller tests using Bun test
 6. Update e2e mock API handlers if needed
 
 ### Adding a New Frontend Component
 
 1. Use Angular CLI: `ng generate component path/component-name`
-2. Make it standalone (default in Angular 20)
+2. Make it standalone (default in Angular 21)
 3. Use `inject()` for dependency injection
 4. Use modern control flow (`@if`, `@for`, `@switch`)
 5. Write component tests using Spectator
