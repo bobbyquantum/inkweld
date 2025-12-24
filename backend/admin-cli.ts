@@ -2,11 +2,11 @@
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { Database as BunDatabase } from 'bun:sqlite';
 import { eq, asc, desc, sql } from 'drizzle-orm';
-import * as schema from './src/db/schema/index.js';
-import { users } from './src/db/schema/users.js';
-import { projects } from './src/db/schema/projects.js';
-import type { User } from './src/db/schema/users.js';
-import type { Project } from './src/db/schema/projects.js';
+import * as schema from './src/db/schema/index';
+import { users } from './src/db/schema/users';
+import { projects } from './src/db/schema/projects';
+import type { User } from './src/db/schema/users';
+import type { Project } from './src/db/schema/projects';
 import * as path from 'path';
 import * as fs from 'fs';
 import { config } from 'dotenv';

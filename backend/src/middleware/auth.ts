@@ -1,8 +1,8 @@
 import { Context, Next } from 'hono';
-import { authService } from '../services/auth.service.js';
-import { userService } from '../services/user.service.js';
-import { type AppContext } from '../types/context.js';
-import { UnauthorizedError, ForbiddenError } from '../errors.js';
+import { authService } from '../services/auth.service';
+import { userService } from '../services/user.service';
+import { type AppContext } from '../types/context';
+import { UnauthorizedError, ForbiddenError } from '../errors';
 
 export const requireAuth = async (c: Context<AppContext>, next: Next) => {
   const db = c.get('db');

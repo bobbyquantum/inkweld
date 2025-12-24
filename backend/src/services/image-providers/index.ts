@@ -2,8 +2,8 @@
  * Image generation providers module exports.
  */
 
-export { BaseImageProvider } from './base-provider.js';
-export { FalAiImageProvider } from './falai-provider.js';
-export { OpenAIImageProvider } from './openai-provider.js';
-export { OpenRouterImageProvider } from './openrouter-provider.js';
-export { StableDiffusionProvider } from './stable-diffusion-provider.js';
+export { BaseImageProvider } from './base-provider';
+export { FalAiImageProvider } from './falai-provider';
+export { OpenAIImageProvider } from './openai-provider';
+export { OpenRouterImageProvider } from './openrouter-provider';
+export { StableDiffusionProvider } from './stable-diffusion-provider';

@@ -16,8 +16,8 @@ import type {
   ImageModelInfo,
   ImageProviderType,
   ImageSize,
-} from '../../types/image-generation.js';
-import { BaseImageProvider } from './base-provider.js';
+} from '../../types/image-generation';
+import { BaseImageProvider } from './base-provider';
 
 /**
  * Size mode determines how size is passed to the model.

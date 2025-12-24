@@ -6,15 +6,15 @@
  */
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
-import { requireAuth, requireAdmin } from '../middleware/auth.js';
-import { imageGenerationService } from '../services/image-generation.service.js';
-import { configService } from '../services/config.service.js';
-import type { AppContext } from '../types/context.js';
+import { requireAuth, requireAdmin } from '../middleware/auth';
+import { imageGenerationService } from '../services/image-generation.service';
+import { configService } from '../services/config.service';
+import type { AppContext } from '../types/context';
 import type {
   ImageProviderType,
   WorldbuildingContext,
   CustomImageSize,
-} from '../types/image-generation.js';
+} from '../types/image-generation';
 
 const aiImageRoutes = new OpenAPIHono<AppContext>();
 
@@ -55,22 +55,6 @@ const PRESET_IMAGE_SIZES = [
   '2560x1600', // Landscape ebook/print
   'auto',
 ] as const;
-
-const AspectRatioResolutionSizeSchema = z
-  .string()
-  .regex(/^(\d+:\d+)@(\d+K)$/)
-  .openapi({
-    description: 'Aspect ratio with resolution (e.g., 16:9@2K, 1:1@1K)',
-    example: '16:9@2K',
-  });
-
-const DimensionSizeSchema = z
-  .string()
-  .regex(/^(\d+)x(\d+)$/)
-  .openapi({
-    description: 'Custom width x height dimensions (e.g., 1200x1800)',
-    example: '1200x1800',
-  });
 
 const ImageSizeSchema = z.enum(PRESET_IMAGE_SIZES).openapi('ImageSize');
 

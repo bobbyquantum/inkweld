@@ -272,8 +272,8 @@ describe('element-ref-schema', () => {
       expect(elementRefStyles).toBeDefined();
       expect(typeof elementRefStyles).toBe('string');
       expect(elementRefStyles).toContain('.element-ref');
-      expect(elementRefStyles).toContain('.element-ref--character');
-      expect(elementRefStyles).toContain('.element-ref--location');
+      expect(elementRefStyles).toContain('.element-ref--worldbuilding');
+      expect(elementRefStyles).toContain('.element-ref--item');
       expect(elementRefStyles).toContain('.element-ref--deleted');
       expect(elementRefStyles).toContain('.element-ref--has-note');
     });

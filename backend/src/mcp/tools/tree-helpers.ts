@@ -21,34 +21,7 @@
  */
 
 import { nanoid } from 'nanoid';
-
-export const ELEMENT_TYPES = [
-  'FOLDER',
-  'ITEM',
-  'CHARACTER',
-  'LOCATION',
-  'WB_ITEM',
-  'MAP',
-  'RELATIONSHIP',
-  'PHILOSOPHY',
-  'CULTURE',
-  'SPECIES',
-  'SYSTEMS',
-] as const;
-
-export type ElementType = (typeof ELEMENT_TYPES)[number];
-
-export interface Element {
-  id: string;
-  name: string;
-  type: ElementType;
-  parentId: string | null;
-  level: number;
-  expandable: boolean;
-  order: number;
-  version: number;
-  metadata: Record<string, string>;
-}
+import { Element, ElementType } from '../../schemas/element.schemas';
 
 /**
  * Get the Yjs document ID for a project's elements array.
@@ -566,17 +539,11 @@ export function treeToText(elements: Element[]): string {
       const typeIcon =
         node.type === 'FOLDER'
           ? '📁'
-          : node.type === 'CHARACTER'
-            ? '👤'
-            : node.type === 'LOCATION'
-              ? '📍'
-              : node.type === 'ITEM'
-                ? '📄'
-                : node.type === 'WB_ITEM'
-                  ? '📦'
-                  : node.type === 'MAP'
-                    ? '🗺️'
-                    : '📋';
+          : node.type === 'ITEM'
+            ? '📄'
+            : node.type === 'WORLDBUILDING'
+              ? '📦'
+              : '📋';
 
       text += `${indent}${prefix}${typeIcon} ${node.name} (${node.id})\n`;
 

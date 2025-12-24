@@ -4,22 +4,9 @@ import { z } from '@hono/zod-openapi';
  * Element type enum
  * @component ElementType
  */
-export const ElementTypeSchema = z
-  .enum([
-    'FOLDER',
-    'ITEM',
-    'CHARACTER',
-    'LOCATION',
-    'WB_ITEM',
-    'WORLDBUILDING',
-    'MAP',
-    'RELATIONSHIP',
-    'PHILOSOPHY',
-    'CULTURE',
-    'SPECIES',
-    'SYSTEMS',
-  ])
-  .openapi('ElementType');
+export const ELEMENT_TYPES = ['FOLDER', 'ITEM', 'WORLDBUILDING'] as const;
+
+export const ElementTypeSchema = z.enum(ELEMENT_TYPES).openapi('ElementType');
 
 /**
  * Element information
@@ -56,6 +43,9 @@ export const ElementSchema = z
       .openapi({ example: '2023-01-01T00:00:00.000Z', description: 'Last update timestamp' }),
   })
   .openapi('Element');
+
+export type ElementType = z.infer<typeof ElementTypeSchema>;
+export type Element = z.infer<typeof ElementSchema>;
 
 /**
  * Element error response

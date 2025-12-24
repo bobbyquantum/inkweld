@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
-import { getDatabase } from '../src/db/index.js';
-import { users, projects } from '../src/db/schema/index.js';
+import { getDatabase } from '../src/db/index';
+import { users, projects } from '../src/db/schema/index';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { startTestServer, stopTestServer, TestClient } from './server-test-helper.js';
+import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
 
 describe('Projects', () => {
   let testUserId: string;

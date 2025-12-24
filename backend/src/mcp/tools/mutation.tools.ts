@@ -18,10 +18,8 @@ import { registerTool } from '../mcp.handler';
 import type { McpContext, McpToolResult } from '../mcp.types';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
+import { Element, ElementType, ELEMENT_TYPES } from '../../schemas/element.schemas';
 import {
-  ELEMENT_TYPES,
-  type Element,
-  type ElementType,
   getElementsDocId,
   getWorldbuildingDocId,
   insertElement,
@@ -58,8 +56,7 @@ Use move_elements or reorder_element to reposition after creation.`,
         type: {
           type: 'string',
           enum: ELEMENT_TYPES,
-          description:
-            'Type of element: FOLDER, ITEM (document), CHARACTER, LOCATION, WB_ITEM, MAP, RELATIONSHIP, PHILOSOPHY, CULTURE, SPECIES, SYSTEMS',
+          description: 'Type of element: FOLDER, ITEM (document), WORLDBUILDING',
         },
         parentId: {
           type: 'string',
@@ -848,15 +845,7 @@ This properly handles positional hierarchy - subtrees move with their parents.`,
       const typeOrder: Record<string, number> = {
         FOLDER: 0,
         ITEM: 1,
-        CHARACTER: 2,
-        LOCATION: 3,
-        WB_ITEM: 4,
-        MAP: 5,
-        PHILOSOPHY: 6,
-        CULTURE: 7,
-        SPECIES: 8,
-        SYSTEMS: 9,
-        RELATIONSHIP: 10,
+        WORLDBUILDING: 2,
       };
 
       // Sort function

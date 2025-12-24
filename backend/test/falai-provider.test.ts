@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { FalAiImageProvider } from '../src/services/image-providers/falai-provider.js';
+import { FalAiImageProvider } from '../src/services/image-providers/falai-provider';
 
 describe('FalAiImageProvider', () => {
   let provider: FalAiImageProvider;
@@ -146,13 +146,15 @@ describe('FalAiImageProvider', () => {
       const models = provider.getModels();
       const gpt = models.find((m) => m.id === 'fal-ai/gpt-image-1.5');
       expect(gpt).toBeDefined();
-      expect(gpt!.sizeMode).toBe('aspect_ratio');
-      expect(gpt!.resolutions).toContain('1K');
-      expect(gpt!.resolutions).toContain('2K');
-      expect(gpt!.resolutions).toContain('4K');
-      expect(gpt!.aspectRatios).toContain('16:9');
-      expect(gpt!.supportedSizes).toContain('16:9@2K');
-      expect(gpt!.supportedSizes).toContain('1:1@1K');
+      if (gpt) {
+        expect(gpt.sizeMode).toBe('aspect_ratio');
+        expect(gpt.resolutions).toContain('1K');
+        expect(gpt.resolutions).toContain('2K');
+        expect(gpt.resolutions).toContain('4K');
+        expect(gpt.aspectRatios).toContain('16:9');
+        expect(gpt.supportedSizes).toContain('16:9@2K');
+        expect(gpt.supportedSizes).toContain('1:1@1K');
+      }
     });
 
     it('Nano Banana Pro should use aspect_ratio mode', () => {

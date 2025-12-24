@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { errorHandler } from '../src/middleware/error-handler.js';
+import { errorHandler } from '../src/middleware/error-handler';
 
 describe('Error Handler Middleware', () => {
   /**

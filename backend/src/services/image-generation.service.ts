@@ -2,21 +2,21 @@
  * Unified image generation service that manages multiple providers.
  * Handles provider configuration, selection, and image generation.
  */
-import { configService } from './config.service.js';
+import { configService } from './config.service';
 import {
   FalAiImageProvider,
   OpenAIImageProvider,
   OpenRouterImageProvider,
   StableDiffusionProvider,
-} from './image-providers/index.js';
-import type { IImageProvider } from '../types/image-generation.js';
+} from './image-providers/index';
+import type { IImageProvider } from '../types/image-generation';
 import type {
   ImageGenerateRequest,
   ImageGenerateResponse,
   ImageGenerationStatus,
   ImageProviderType,
-} from '../types/image-generation.js';
-import type { DatabaseInstance } from '../types/context.js';
+} from '../types/image-generation';
+import type { DatabaseInstance } from '../types/context';
 
 /**
  * Service for managing image generation across multiple providers.
