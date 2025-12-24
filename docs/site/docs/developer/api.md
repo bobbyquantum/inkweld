@@ -81,7 +81,7 @@ Future versions will be released as `/api/v2/`, etc., with backward compatibilit
 The complete API specification is available at:
 
 - **File**: `backend/openapi.json`
-- **Generation**: Auto-generated from Hono routes with Zod schemas
+- **Generation**: Auto-generated from Hono Zod OpenAPI definitions
 - **Format**: OpenAPI 3.1 (JSON)
 
 ### Generating the Spec

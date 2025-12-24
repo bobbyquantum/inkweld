@@ -13,7 +13,7 @@ Inkweld is a monorepo application with distinct frontend and backend services:
 %%{init: {'theme':'neutral'}}%%
 graph TB
     subgraph Browser["🌐 Browser Client"]
-        Angular["Angular 20 SPA"]
+        Angular["Angular 21 SPA"]
         IndexedDB["IndexedDB<br/>(Offline Storage)"]
         Angular --> IndexedDB
     end
@@ -37,17 +37,17 @@ graph TB
     style Storage fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
 ```
 
-## Frontend (Angular 20)
+## Frontend (Angular 21)
 
 ### Technology Stack
 
-- **Framework**: Angular 20 with standalone components
+- **Framework**: Angular 21 with standalone components
 - **State Management**: Service-based with RxJS
 - **Offline Storage**: IndexedDB via y-indexeddb
 - **Real-Time**: Yjs + y-websocket provider
 - **Editor**: ProseMirror with y-prosemirror binding
 - **Build**: Angular CLI + Vite
-- **Testing**: Jest (unit) + Playwright (e2e)
+- **Testing**: Vitest (unit) + Playwright (e2e)
 
 ### Modern Angular Patterns
 
@@ -470,7 +470,7 @@ Multi-stage Dockerfile:
 ### Frontend Tests
 
 ```bash
-npm test          # Jest unit tests
+npm test          # Vitest unit tests
 npm run e2e       # Playwright e2e tests
 ```
 
