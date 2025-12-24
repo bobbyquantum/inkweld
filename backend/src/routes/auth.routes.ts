@@ -251,7 +251,4 @@ authRoutes.openapi(providersRoute, async (c) => {
   });
 });
 
-// GitHub OAuth endpoints will be added using @hono/oauth-providers
-// TODO: Implement GitHub OAuth with @hono/oauth-providers/github
-
 export default authRoutes;

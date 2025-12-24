@@ -11,6 +11,10 @@ import { SetupService } from '../core/setup.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { IElementSyncProvider } from '../sync/element-sync-provider.interface';
 
+// Constants for timeouts and intervals
+const INDEXEDDB_SYNC_TIMEOUT = 5000;
+const WEBSOCKET_RESYNC_INTERVAL = 10000;
+
 interface WorldbuildingConnection {
   ydoc: Y.Doc;
   dataMap: Y.Map<unknown>;
@@ -124,16 +128,15 @@ export class WorldbuildingService {
       // Wait for IndexedDB sync with timeout
       const syncPromise = indexeddbProvider.whenSynced;
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('IndexedDB sync timeout')), 5000)
+        setTimeout(
+          () => reject(new Error('IndexedDB sync timeout')),
+          INDEXEDDB_SYNC_TIMEOUT
+        )
       );
 
       try {
         await Promise.race([syncPromise, timeoutPromise]);
-      } catch (error) {
-        console.warn(
-          `[Worldbuilding] IndexedDB sync timeout for ${elementId}, continuing anyway:`,
-          error
-        );
+      } catch {
         // Continue anyway - the document may be empty/new
       }
 
@@ -157,15 +160,13 @@ export class WorldbuildingService {
           ydoc,
           {
             connect: true,
-            resyncInterval: 10000,
+            resyncInterval: WEBSOCKET_RESYNC_INTERVAL,
           }
         );
 
         // Handle connection status
-        provider.on('status', ({ status }: { status: string }) => {
-          console.log(
-            `[Worldbuilding] WebSocket status for ${elementId}: ${status}`
-          );
+        provider.on('status', ({ status: _status }: { status: string }) => {
+          // Connection status changes are handled internally
         });
       }
 
@@ -345,20 +346,12 @@ export class WorldbuildingService {
     // Perform transaction to update all fields
     connection.ydoc.transact(() => {
       Object.entries(data).forEach(([key, value]) => {
-        console.log(
-          `[WorldbuildingService] Setting key="${key}", value=`,
-          value,
-          `type=${typeof value}`
-        );
         if (value !== undefined) {
           if (Array.isArray(value)) {
             // Handle arrays
             const yArray = new Y.Array();
             value.forEach(item => yArray.push([item]));
             dataMap.set(key, yArray);
-            console.log(
-              `[WorldbuildingService] Set array key="${key}" with ${value.length} items`
-            );
           } else if (typeof value === 'object' && value !== null) {
             // For nested objects, check if it already exists as a Y.Map
             let nestedMap = dataMap.get(key) as Y.Map<unknown> | undefined;
@@ -366,17 +359,10 @@ export class WorldbuildingService {
               // Create new Y.Map if it doesn't exist or isn't a Y.Map
               nestedMap = new Y.Map();
               dataMap.set(key, nestedMap);
-              console.log(
-                `[WorldbuildingService] Created new Y.Map for key="${key}"`
-              );
             }
             // Update the nested map with new values
             Object.entries(value as Record<string, unknown>).forEach(
               ([nestedKey, nestedValue]) => {
-                console.log(
-                  `[WorldbuildingService]   Setting nested "${key}.${nestedKey}" = `,
-                  nestedValue
-                );
                 // Convert nested arrays to Y.Array
                 if (Array.isArray(nestedValue)) {
                   const yArray = new Y.Array();
@@ -390,24 +376,13 @@ export class WorldbuildingService {
           } else {
             // Handle primitive values
             dataMap.set(key, value);
-            console.log(
-              `[WorldbuildingService] Set primitive key="${key}"`,
-              value
-            );
           }
         }
       });
 
       // Update lastModified timestamp
       dataMap.set('lastModified', new Date().toISOString());
-      console.log(
-        '[WorldbuildingService] Transaction complete, data:',
-        dataMap.toJSON()
-      );
     });
-    console.log(
-      '[WorldbuildingService] Data saved to Y.Doc, will sync automatically'
-    );
     // Data is automatically synced via WebSocket and IndexedDB
   }
 
@@ -443,15 +418,8 @@ export class WorldbuildingService {
     const schemaId = element.schemaId;
 
     if (!schemaId) {
-      console.warn(
-        `[WorldbuildingService] Element ${element.id} is WORLDBUILDING but has no schemaId`
-      );
       return;
     }
-
-    console.log(
-      `[WorldbuildingService] Looking for schema: projectKey="${projectKey}", schemaId="${schemaId}"`
-    );
 
     // Check if schema library is empty and auto-load defaults if needed
     const schema = this.getSchemaFromLibrary(
@@ -459,11 +427,6 @@ export class WorldbuildingService {
       schemaId,
       username,
       slug
-    );
-
-    console.log(
-      `[WorldbuildingService] Schema lookup result:`,
-      schema ? `Found ${schema.name} (v${schema.version})` : 'NOT FOUND'
     );
 
     const connectionKey = this.buildConnectionKey(element.id, username, slug);
@@ -516,11 +479,6 @@ export class WorldbuildingService {
             }
           });
         });
-      } else {
-        // Fallback if no schema found
-        console.warn(
-          `[WorldbuildingService] No schema found for ${element.type}, skipping initialization`
-        );
       }
 
       // Set common fields
@@ -529,10 +487,6 @@ export class WorldbuildingService {
       dataMap.set('createdDate', new Date().toISOString());
       dataMap.set('lastModified', new Date().toISOString());
     });
-
-    console.log(
-      `[WorldbuildingService] Initialized ${element.type} element ${element.id} with schema-based data`
-    );
   }
 
   /**
@@ -626,11 +580,7 @@ export class WorldbuildingService {
    * Check if the schema library is empty.
    * Uses the sync provider's schema cache.
    */
-  isSchemaLibraryEmpty(
-    _projectKey: string,
-    _username?: string,
-    _slug?: string
-  ): boolean {
+  isSchemaLibraryEmpty(): boolean {
     return this.schemasCache.length === 0;
   }
 
@@ -639,12 +589,9 @@ export class WorldbuildingService {
    * Creates a new custom template based on an existing one
    */
   cloneTemplate(
-    projectKey: string,
     sourceSchemaId: string,
     newName: string,
-    newDescription?: string,
-    _username?: string,
-    _slug?: string
+    newDescription?: string
   ): ElementTypeSchema {
     // Find source schema from cache by ID
     const sourceSchema = this.schemasCache.find(s => s.id === sourceSchemaId);
@@ -681,10 +628,6 @@ export class WorldbuildingService {
       throw new Error('No sync provider available');
     }
 
-    console.log(
-      `[WorldbuildingService] Cloned template ${sourceSchemaId} to ${newId}: "${newName}"`
-    );
-
     return clonedSchema;
   }
 
@@ -692,12 +635,7 @@ export class WorldbuildingService {
    * Delete a template from the library.
    * All templates are now deletable since they're stored per-project.
    */
-  deleteTemplate(
-    _projectKey: string,
-    schemaId: string,
-    _username?: string,
-    _slug?: string
-  ): void {
+  deleteTemplate(schemaId: string): void {
     const schema = this.schemasCache.find(s => s.id === schemaId);
     if (!schema) {
       throw new Error(`Template with ID ${schemaId} not found`);
@@ -712,8 +650,6 @@ export class WorldbuildingService {
     } else {
       throw new Error('No sync provider available');
     }
-
-    console.log(`[WorldbuildingService] Deleted template: ${schemaId}`);
   }
 
   /**
@@ -721,11 +657,8 @@ export class WorldbuildingService {
    * All templates are now editable since they're stored per-project.
    */
   updateTemplate(
-    _projectKey: string,
     schemaId: string,
-    updates: Partial<ElementTypeSchema>,
-    _username?: string,
-    _slug?: string
+    updates: Partial<ElementTypeSchema>
   ): ElementTypeSchema {
     const schemaIndex = this.schemasCache.findIndex(s => s.id === schemaId);
     if (schemaIndex === -1) {
@@ -756,10 +689,6 @@ export class WorldbuildingService {
     } else {
       throw new Error('No sync provider available');
     }
-
-    console.log(
-      `[WorldbuildingService] Updated template ${schemaId} to v${updatedSchema.version}`
-    );
 
     return updatedSchema;
   }
@@ -807,11 +736,8 @@ export class WorldbuildingService {
         if (schema?.icon) {
           return schema.icon;
         }
-      } catch (error) {
-        console.warn(
-          `[WorldbuildingService] Could not load icon for custom type ${elementType}:`,
-          error
-        );
+      } catch {
+        // Fallback to default icon on error
       }
     }
 
@@ -847,19 +773,8 @@ export class WorldbuildingService {
       }
       const dataMap = connection.ydoc.getMap('worldbuilding');
       const schemaId = (dataMap.get('schemaId') as string) || null;
-      const allData = dataMap.toJSON();
-      console.log(
-        `[Worldbuilding] Element ${elementId} has schemaId: ${schemaId || 'none'}, all keys:`,
-        Object.keys(allData),
-        'first few values:',
-        Object.fromEntries(Object.entries(allData).slice(0, 3))
-      );
       return schemaId;
-    } catch (error) {
-      console.error(
-        `[Worldbuilding] Error getting schema ID for ${elementId}:`,
-        error
-      );
+    } catch {
       return null;
     }
   }
@@ -877,14 +792,6 @@ export class WorldbuildingService {
     username: string,
     slug: string
   ): Promise<ElementTypeSchema | null> {
-    console.log(
-      `[Worldbuilding] Getting schema for element ${elementId} (${username}/${slug})`
-    );
-    console.log(
-      `[Worldbuilding] Current schemas cache has ${this.schemasCache.length} schemas:`,
-      this.schemasCache.map(s => s.id)
-    );
-
     const schemaId = await this.getElementSchemaId(elementId, username, slug);
     if (!schemaId) {
       console.warn(
@@ -899,36 +806,24 @@ export class WorldbuildingService {
       username,
       slug
     );
-    console.log(
-      `[Worldbuilding] Retrieved schema for element ${elementId}:`,
-      schema ? schema.id : 'not found'
-    );
     return schema;
   }
 
   /**
    * Get all schemas from the project's schema library as plain objects.
    * Uses the sync provider's schema cache.
-   * @param _username - Project username (unused, kept for API compatibility)
-   * @param _slug - Project slug (unused, kept for API compatibility)
    * @returns Array of all schemas in the library
    */
-  getAllSchemas(_username: string, _slug: string): ElementTypeSchema[] {
+  getAllSchemas(): ElementTypeSchema[] {
     return [...this.schemasCache];
   }
 
   /**
    * Save a schema to the project's schema library.
    * Creates or updates the schema in the library via sync provider.
-   * @param _username - Project username (unused, kept for API compatibility)
-   * @param _slug - Project slug (unused, kept for API compatibility)
    * @param schema - The schema to save
    */
-  saveSchemaToLibrary(
-    _username: string,
-    _slug: string,
-    schema: ElementTypeSchema
-  ): void {
+  saveSchemaToLibrary(schema: ElementTypeSchema): void {
     if (!this.syncProvider) {
       throw new Error('No sync provider available');
     }
@@ -951,15 +846,9 @@ export class WorldbuildingService {
   /**
    * Save multiple schemas to the project's schema library.
    * Updates via sync provider.
-   * @param _username - Project username (unused, kept for API compatibility)
-   * @param _slug - Project slug (unused, kept for API compatibility)
    * @param schemas - Array of schemas to save
    */
-  saveSchemasToLibrary(
-    _username: string,
-    _slug: string,
-    schemas: ElementTypeSchema[]
-  ): void {
+  saveSchemasToLibrary(schemas: ElementTypeSchema[]): void {
     if (!this.syncProvider) {
       throw new Error('No sync provider available');
     }
@@ -979,26 +868,18 @@ export class WorldbuildingService {
   /**
    * Get a single schema from the library by ID.
    * Returns a plain object, not a Yjs type.
-   * @param _username - Project username (unused, kept for API compatibility)
-   * @param _slug - Project slug (unused, kept for API compatibility)
    * @param schemaId - The schema ID to retrieve
    * @returns The schema or null if not found
    */
-  getSchema(
-    _username: string,
-    _slug: string,
-    schemaId: string
-  ): ElementTypeSchema | null {
+  getSchema(schemaId: string): ElementTypeSchema | null {
     return this.schemasCache.find(s => s.id === schemaId) ?? null;
   }
 
   /**
    * Check if the schema library has any schemas.
-   * @param _username - Project username (unused, kept for API compatibility)
-   * @param _slug - Project slug (unused, kept for API compatibility)
    * @returns true if the library is empty
    */
-  hasNoSchemas(_username: string, _slug: string): boolean {
+  hasNoSchemas(): boolean {
     return this.schemasCache.length === 0;
   }
 }

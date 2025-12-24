@@ -281,10 +281,7 @@ describe('NewElementDialogComponent', () => {
       // Wait for async loading
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      expect(mockWorldbuildingService.getAllSchemas).toHaveBeenCalledWith(
-        'testuser',
-        'test-project'
-      );
+      expect(mockWorldbuildingService.getAllSchemas).toHaveBeenCalled();
 
       const wbOptions = component.worldbuildingOptions();
       expect(wbOptions.length).toBe(2);

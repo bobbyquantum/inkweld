@@ -41,6 +41,13 @@ import { UnifiedUserService } from '../user/unified-user.service';
 import { ProjectStateService } from './project-state.service';
 
 /**
+ * Constants for reconnection logic
+ */
+const MAX_RECONNECT_ATTEMPTS = 5;
+const INITIAL_RECONNECT_DELAY = 1000;
+const MAX_RECONNECT_DELAY = 30000;
+
+/**
  * Represents an active Yjs document connection
  */
 interface DocumentConnection {
@@ -751,7 +758,6 @@ export class DocumentService {
 
         // Track connection attempts for exponential backoff
         let reconnectAttempts = 0;
-        const maxReconnectAttempts = 5;
         let reconnectTimeout: number | null = null;
 
         // Handle connection status with enhanced logging
@@ -790,10 +796,10 @@ export class DocumentService {
             );
 
             // Exponential backoff for reconnection
-            if (reconnectAttempts < maxReconnectAttempts) {
+            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
               const delay = Math.min(
-                1000 * Math.pow(2, reconnectAttempts),
-                30000
+                INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttempts),
+                MAX_RECONNECT_DELAY
               );
 
               reconnectTimeout = window.setTimeout(() => {
@@ -871,7 +877,7 @@ export class DocumentService {
               clearTimeout(reconnectTimeout);
               reconnectTimeout = null;
             }
-            reconnectAttempts = maxReconnectAttempts;
+            reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
             return; // Don't set to Offline for auth errors
           }
 

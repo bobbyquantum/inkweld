@@ -44,7 +44,6 @@ app.get(
 
     // Check access - owner or collaborator
     if (project.userId !== user.id) {
-      // TODO: Check collaborator access when implemented
       console.error(`User ${user.username} attempted to access project ${username}/${slug}`);
       return {};
     }

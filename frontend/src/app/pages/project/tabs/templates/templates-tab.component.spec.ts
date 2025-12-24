@@ -224,12 +224,9 @@ describe('TemplatesTabComponent', () => {
       // With timeouts set to 0, no wait needed
 
       expect(mockWorldbuildingService.cloneTemplate).toHaveBeenCalledWith(
-        'testuser:test-project',
         'char-1',
         'New Character',
-        'Clone of Character',
-        'testuser',
-        'test-project'
+        'Clone of Character'
       );
       // SnackBar may not be called in test environment due to async timing
     });
@@ -305,10 +302,7 @@ describe('TemplatesTabComponent', () => {
       // With timeouts set to 0, no wait needed
 
       expect(mockWorldbuildingService.deleteTemplate).toHaveBeenCalledWith(
-        'testuser:test-project',
-        'custom-1',
-        'testuser',
-        'test-project'
+        'custom-1'
       );
       // SnackBar may not be called in test environment due to async timing
     });
@@ -399,11 +393,8 @@ describe('TemplatesTabComponent', () => {
       // With timeouts set to 0, no wait needed
 
       expect(mockWorldbuildingService.updateTemplate).toHaveBeenCalledWith(
-        'testuser:test-project',
         'custom-1',
-        updatedSchema,
-        'testuser',
-        'test-project'
+        updatedSchema
       );
       // SnackBar may not be called in test environment due to async timing
     });

@@ -304,7 +304,7 @@ describe('WorldbuildingService', () => {
       const slug = 'testproject';
 
       // Save a schema to the library
-      service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+      service.saveSchemaToLibrary(mockCharacterSchema);
 
       // Initialize an element (which sets schemaId)
       const element = {
@@ -336,7 +336,7 @@ describe('WorldbuildingService', () => {
       const slug = 'testproject-full';
 
       // Save a schema to the library
-      service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+      service.saveSchemaToLibrary(mockCharacterSchema);
 
       // Initialize an element (which sets schemaId)
       const element = {
@@ -368,20 +368,17 @@ describe('WorldbuildingService', () => {
 
   describe('getAllSchemas / saveSchemaToLibrary', () => {
     it('should return empty array for new project', () => {
-      const schemas = service.getAllSchemas('newuser', 'newproject');
+      const schemas = service.getAllSchemas();
 
       expect(schemas).toEqual([]);
     });
 
     it('should save and retrieve schemas from library', () => {
-      const username = 'testuser';
-      const slug = 'testproject';
-
       // Save a schema
-      service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+      service.saveSchemaToLibrary(mockCharacterSchema);
 
       // Retrieve all schemas
-      const schemas = service.getAllSchemas(username, slug);
+      const schemas = service.getAllSchemas();
 
       expect(schemas).toHaveLength(1);
       expect(schemas[0].id).toBe('character-v1');
@@ -389,9 +386,6 @@ describe('WorldbuildingService', () => {
     });
 
     it('should save multiple schemas', () => {
-      const username = 'testuser';
-      const slug = 'testproject2';
-
       const locationSchema: ElementTypeSchema = {
         ...mockCharacterSchema,
         id: 'location-v1',
@@ -399,12 +393,9 @@ describe('WorldbuildingService', () => {
         icon: 'place',
       };
 
-      service.saveSchemasToLibrary(username, slug, [
-        mockCharacterSchema,
-        locationSchema,
-      ]);
+      service.saveSchemasToLibrary([mockCharacterSchema, locationSchema]);
 
-      const schemas = service.getAllSchemas(username, slug);
+      const schemas = service.getAllSchemas();
 
       expect(schemas).toHaveLength(2);
       expect(schemas.map(s => s.id).sort()).toEqual([
@@ -416,25 +407,18 @@ describe('WorldbuildingService', () => {
 
   describe('getSchema', () => {
     it('should retrieve specific schema by ID', () => {
-      const username = 'testuser';
-      const slug = 'testproject3';
-
       // Save schema first
-      service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+      service.saveSchemaToLibrary(mockCharacterSchema);
 
       // Get specific schema
-      const schema = service.getSchema(username, slug, 'character-v1');
+      const schema = service.getSchema('character-v1');
 
       expect(schema).toBeDefined();
       expect(schema?.id).toBe('character-v1');
     });
 
     it('should return null for non-existent schema ID', () => {
-      const schema = service.getSchema(
-        'testuser',
-        'testproject4',
-        'nonexistent'
-      );
+      const schema = service.getSchema('nonexistent');
 
       expect(schema).toBeNull();
     });
@@ -442,18 +426,15 @@ describe('WorldbuildingService', () => {
 
   describe('hasNoSchemas', () => {
     it('should return true for empty library', () => {
-      const isEmpty = service.hasNoSchemas('newuser2', 'newproject2');
+      const isEmpty = service.hasNoSchemas();
 
       expect(isEmpty).toBe(true);
     });
 
     it('should return false when schemas exist', () => {
-      const username = 'testuser';
-      const slug = 'testproject5';
+      service.saveSchemaToLibrary(mockCharacterSchema);
 
-      service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
-
-      const isEmpty = service.hasNoSchemas(username, slug);
+      const isEmpty = service.hasNoSchemas();
 
       expect(isEmpty).toBe(false);
     });
@@ -461,19 +442,16 @@ describe('WorldbuildingService', () => {
 
   describe('isSchemaLibraryEmpty', () => {
     it('should return true when schema cache is empty', () => {
-      const result = service.isSchemaLibraryEmpty('testuser:testproject');
+      const result = service.isSchemaLibraryEmpty();
 
       expect(result).toBe(true);
     });
 
     it('should return false when schemas exist in cache', () => {
-      const username = 'testuser';
-      const slug = 'testproject-empty';
-
       // Add a schema to populate the cache
-      service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+      service.saveSchemaToLibrary(mockCharacterSchema);
 
-      const result = service.isSchemaLibraryEmpty(`${username}:${slug}`);
+      const result = service.isSchemaLibraryEmpty();
 
       expect(result).toBe(false);
     });
@@ -487,11 +465,8 @@ describe('WorldbuildingService', () => {
     });
 
     it('should return schema when it exists in cache', () => {
-      const username = 'testuser';
-      const slug = 'testproject-schema';
-
       // Add a schema to the cache
-      service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+      service.saveSchemaToLibrary(mockCharacterSchema);
 
       const result = service.getSchemaById('character-v1');
 
@@ -501,21 +476,14 @@ describe('WorldbuildingService', () => {
 
   describe('cloneTemplate', () => {
     it('should clone an existing template with new ID', () => {
-      const username = 'testuser';
-      const slug = 'clonetest';
-      const projectKey = `${username}:${slug}`;
-
       // Save original template
-      service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+      service.saveSchemaToLibrary(mockCharacterSchema);
 
       // Clone it using schemaId
       const clonedSchema = service.cloneTemplate(
-        projectKey,
         'character-v1',
         'Hero',
-        'Custom hero template',
-        username,
-        slug
+        'Custom hero template'
       );
 
       expect(clonedSchema).toBeDefined();
@@ -528,79 +496,50 @@ describe('WorldbuildingService', () => {
     });
 
     it('should throw error if source template not found', () => {
-      const username = 'testuser';
-      const slug = 'clonetest2';
-      const projectKey = `${username}:${slug}`;
-
       expect(() =>
-        service.cloneTemplate(
-          projectKey,
-          'nonexistent',
-          'New',
-          undefined,
-          username,
-          slug
-        )
+        service.cloneTemplate('nonexistent', 'New', undefined)
       ).toThrow('Template with ID nonexistent not found');
     });
   });
 
   describe('deleteTemplate', () => {
     it('should delete a custom template from the library', () => {
-      const username = 'testuser';
-      const slug = 'deletetest';
-      const projectKey = `${username}:${slug}`;
-
       // Save and clone to create a custom template
-      service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+      service.saveSchemaToLibrary(mockCharacterSchema);
       const cloned = service.cloneTemplate(
-        projectKey,
         'character-v1',
         'ToDelete',
-        undefined,
-        username,
-        slug
+        undefined
       );
 
       // Delete the custom template using its id
-      service.deleteTemplate(projectKey, cloned.id, username, slug);
+      service.deleteTemplate(cloned.id);
 
       // Verify it's deleted
-      const schema = service.getSchema(username, slug, cloned.id);
+      const schema = service.getSchema(cloned.id);
       expect(schema).toBeNull();
     });
 
     it('should allow deleting built-in template (now stored per-project)', () => {
-      const username = 'testuser';
-      const slug = 'deletetest2';
-      const projectKey = `${username}:${slug}`;
-
-      service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+      service.saveSchemaToLibrary(mockCharacterSchema);
 
       // Should not throw - built-in templates are now deletable
-      service.deleteTemplate(projectKey, 'character-v1', username, slug);
+      service.deleteTemplate('character-v1');
 
       // Verify it's deleted
-      const schema = service.getSchema(username, slug, 'character-v1');
+      const schema = service.getSchema('character-v1');
       expect(schema).toBeNull();
     });
   });
 
   describe('updateTemplate', () => {
     it('should update an existing template in the library', () => {
-      const username = 'testuser';
-      const slug = 'updatetest';
-      const projectKey = `${username}:${slug}`;
-
       // Save and clone to create a custom template
-      service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+      service.saveSchemaToLibrary(mockCharacterSchema);
       const cloned = service.cloneTemplate(
-        projectKey,
         'character-v1',
         'ToUpdate',
-        undefined,
-        username,
-        slug
+        undefined
       );
 
       const updatedData = {
@@ -608,13 +547,7 @@ describe('WorldbuildingService', () => {
         description: 'Updated description',
       };
 
-      const result = service.updateTemplate(
-        projectKey,
-        cloned.id,
-        updatedData,
-        username,
-        slug
-      );
+      const result = service.updateTemplate(cloned.id, updatedData);
 
       expect(result.name).toBe('Updated Hero');
       expect(result.description).toBe('Updated description');
@@ -679,7 +612,7 @@ describe('WorldbuildingService', () => {
       const slug = 'inittest';
 
       // Pre-save schema to library so initialization can find it
-      service.saveSchemaToLibrary(username, slug, mockCharacterSchema);
+      service.saveSchemaToLibrary(mockCharacterSchema);
 
       // Initialize first time
       await service.initializeWorldbuildingElement(element, username, slug);
@@ -760,7 +693,7 @@ describe('WorldbuildingService', () => {
     mockProvider._schemasSubject.next(schemas);
 
     service.setSyncProvider(mockProvider);
-    expect(service.getAllSchemas(username, slug)).toEqual(schemas);
+    expect(service.getAllSchemas()).toEqual(schemas);
 
     const newSchemas: ElementTypeSchema[] = [
       ...schemas,
@@ -775,10 +708,10 @@ describe('WorldbuildingService', () => {
       },
     ];
     mockProvider._schemasSubject.next(newSchemas);
-    expect(service.getAllSchemas(username, slug)).toEqual(newSchemas);
+    expect(service.getAllSchemas()).toEqual(newSchemas);
 
     service.setSyncProvider(null);
-    expect(service.getAllSchemas(username, slug)).toEqual([]);
+    expect(service.getAllSchemas()).toEqual([]);
   });
 
   it('should save schemas to library', () => {
@@ -794,7 +727,7 @@ describe('WorldbuildingService', () => {
       isBuiltIn: true,
       tabs: [],
     };
-    service.saveSchemaToLibrary(username, slug, schema);
+    service.saveSchemaToLibrary(schema);
 
     expect(mockProvider.updateSchemas).toHaveBeenCalledWith([schema]);
 
@@ -807,7 +740,7 @@ describe('WorldbuildingService', () => {
       isBuiltIn: true,
       tabs: [],
     };
-    service.saveSchemasToLibrary(username, slug, [schema2]);
+    service.saveSchemasToLibrary([schema2]);
     // It merges with existing in cache
     expect(mockProvider.updateSchemas).toHaveBeenCalledWith([schema, schema2]);
   });
