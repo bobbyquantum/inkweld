@@ -58,7 +58,7 @@ That launches the Bun backend on port `8333` and the Angular dev server on port 
 
  # Frontend
  cd ../frontend
- bun run start
+ npm start
 ```
 
 ## Testing and linting

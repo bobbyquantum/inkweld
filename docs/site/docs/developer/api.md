@@ -68,7 +68,7 @@ Currently, there are no rate limits on the API. This may change in production de
 
 ## CORS
 
-CORS is configured to allow requests from the frontend application. See `backend/src/app.module.ts` for configuration.
+CORS is configured to allow requests from the frontend application. See `backend/src/bun-app.ts` for configuration.
 
 ## Versioning
 
@@ -99,7 +99,7 @@ When the API changes:
 
 1. Update Hono route definitions and Zod schemas
 2. Regenerate OpenAPI spec: `cd backend && bun run generate:openapi`
-3. Regenerate docs: `cd docs/site && npm run gen-api-docs`
+3. Regenerate docs: `cd docs/site && bun run gen-api-docs`
 4. Review changes in documentation site
 
 ## Developer Resources
