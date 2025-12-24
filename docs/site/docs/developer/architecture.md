@@ -240,19 +240,19 @@ graph LR
 
     subgraph Server["Server Side"]
         API["Hono API"]
-        PG[("SQLite/D1<br/>Metadata")]
+        DB[("SQLite/D1<br/>Metadata")]
         LDB[("LevelDB<br/>Document Content")]
     end
 
     App -->|Offline| IDB
     App <-->|HTTP/WS| API
-    API --> PG
+    API --> DB
     API --> LDB
 
     style Client fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
     style Server fill:#fff3e0,stroke:#e65100,stroke-width:2px
     style IDB fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style PG fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style DB fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
     style LDB fill:#fce4ec,stroke:#c2185b,stroke-width:2px
 ```
 
@@ -289,7 +289,7 @@ sequenceDiagram
 ### Session-Based Auth
 
 - **httpOnly cookies** for CSRF protection
-- **Session store** backed by TypeORM
+- **Session store** backed by Drizzle
 - **No JWT tokens** (intentional design choice)
 - **Optional GitHub OAuth** (configurable)
 

@@ -40,7 +40,6 @@ The backend automatically loads `.env` from the project root.
 Key environment variables:
 - `PORT` - Server port (default: 8333)
 - `DB_TYPE` - Database type (`sqlite` or `d1`)
-- `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE` - Database connection
 - `SESSION_SECRET` - Secret key for session encryption
 - `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins
 
