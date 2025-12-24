@@ -419,18 +419,16 @@
             "enum": [
               "FOLDER",
               "ITEM",
-              "CHARACTER",
-              "LOCATION",
-              "WB_ITEM",
-              "MAP",
-              "RELATIONSHIP",
-              "PHILOSOPHY",
-              "CULTURE",
-              "SPECIES",
-              "SYSTEMS"
+              "WORLDBUILDING"
             ],
             "example": "ITEM",
             "description": "Element type"
+          },
+          "schemaId": {
+            "type": "string",
+            "nullable": true,
+            "example": "sch_abc123",
+            "description": "Schema ID for WORLDBUILDING elements"
           },
           "parentId": {
             "type": "string",

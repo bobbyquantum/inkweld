@@ -144,7 +144,6 @@ describe('schema-types', () => {
       it('should accept complete schema definition', () => {
         const schema: ElementTypeSchema = {
           id: 'character-schema',
-          type: 'CHARACTER',
           name: 'Character',
           icon: 'person',
           description: 'A character template',
@@ -163,7 +162,6 @@ describe('schema-types', () => {
         };
 
         expect(schema.id).toBe('character-schema');
-        expect(schema.type).toBe('CHARACTER');
         expect(schema.isBuiltIn).toBe(true);
         expect(schema.tabs).toHaveLength(1);
         expect(schema.defaultValues).toEqual({ name: 'New Character' });

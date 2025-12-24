@@ -6,7 +6,6 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
-import { DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS } from '../../components/element-ref/default-relationship-types';
 import {
   ElementRelationship,
   RelationshipTypeDefinition,
@@ -910,26 +909,11 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     );
     this.relationshipsSubject.next(relationships);
 
-    // Load custom relationship types - seed defaults if empty
+    // Load custom relationship types
     const typesArray = this.doc.getArray<RelationshipTypeDefinition>(
       'customRelationshipTypes'
     );
-    let types = typesArray.toArray();
-
-    // If no relationship types exist, seed with defaults
-    if (types.length === 0) {
-      this.logger.info(
-        'YjsSync',
-        `No relationship types found - seeding ${DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.length} defaults`
-      );
-      const defaultTypes = DEFAULT_RELATIONSHIP_TYPE_DEFINITIONS.map(t => ({
-        ...t,
-      }));
-      this.doc.transact(() => {
-        typesArray.insert(0, defaultTypes);
-      });
-      types = typesArray.toArray();
-    }
+    const types = typesArray.toArray();
 
     this.logger.debug(
       'YjsSync',

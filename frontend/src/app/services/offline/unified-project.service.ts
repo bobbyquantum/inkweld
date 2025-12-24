@@ -131,6 +131,7 @@ export class UnifiedProjectService {
         id: ae.id,
         name: ae.name,
         type: ae.type,
+        schemaId: ae.schemaId ?? null,
         order: ae.order,
         level: ae.level,
         parentId: ae.parentId ?? null,

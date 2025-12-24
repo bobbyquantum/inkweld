@@ -512,7 +512,7 @@ describe('Plugin Public API', () => {
       const view = createMockView('Hello world', false);
       const attrs: ElementRefNodeAttrs = {
         elementId: 'test-id',
-        elementType: ElementType.Character,
+        elementType: ElementType.Worldbuilding,
         displayText: 'John',
         originalName: 'John',
         relationshipTypeId: 'referenced-in',
@@ -554,7 +554,7 @@ describe('Plugin Public API', () => {
 
       const attrs: ElementRefNodeAttrs = {
         elementId: 'test-id',
-        elementType: ElementType.Character,
+        elementType: ElementType.Worldbuilding,
         displayText: 'John',
         originalName: 'John',
         relationshipTypeId: 'referenced-in',
@@ -577,7 +577,7 @@ describe('Plugin Public API', () => {
 
       const attrs: ElementRefNodeAttrs = {
         elementId: 'test-id',
-        elementType: ElementType.Character,
+        elementType: ElementType.Worldbuilding,
         displayText: 'John',
         originalName: 'John',
         relationshipTypeId: 'referenced-in',
@@ -626,7 +626,7 @@ describe('Plugin Public API', () => {
       const plugin = createElementRefPlugin(callbacks);
       const elementRefNode = testSchema.nodes[ELEMENT_REF_NODE_NAME].create({
         elementId: 'test-id',
-        elementType: ElementType.Character,
+        elementType: ElementType.Worldbuilding,
         displayText: 'Old Name',
         originalName: 'Old Name',
         relationshipTypeId: 'referenced-in',
@@ -678,7 +678,7 @@ describe('Plugin Public API', () => {
       const plugin = createElementRefPlugin(callbacks);
       const elementRefNode = testSchema.nodes[ELEMENT_REF_NODE_NAME].create({
         elementId: 'test-id',
-        elementType: ElementType.Character,
+        elementType: ElementType.Worldbuilding,
         displayText: 'John',
         originalName: 'John',
         relationshipTypeId: 'referenced-in',
@@ -740,7 +740,7 @@ describe('elementRefNodeSpec', () => {
   it('should serialize to DOM with correct structure', () => {
     const node = testSchema.nodes[ELEMENT_REF_NODE_NAME].create({
       elementId: 'test-id',
-      elementType: ElementType.Character,
+      elementType: ElementType.Worldbuilding,
       displayText: 'John Smith',
       originalName: 'John Smith',
       relationshipId: 'rel-1',
@@ -758,12 +758,12 @@ describe('elementRefNodeSpec', () => {
     const attrs = domArray[1] as Record<string, string>;
     expect(attrs['data-element-ref']).toBe('true');
     expect(attrs['data-element-id']).toBe('test-id');
-    expect(attrs['data-element-type']).toBe(ElementType.Character);
+    expect(attrs['data-element-type']).toBe(ElementType.Worldbuilding);
     expect(attrs['data-original-name']).toBe('John Smith');
     expect(attrs['data-relationship-id']).toBe('rel-1');
     expect(attrs['data-relationship-note']).toBe('Main character');
     expect(attrs['class']).toContain('element-ref');
-    expect(attrs['class']).toContain('element-ref--character');
+    expect(attrs['class']).toContain('element-ref--worldbuilding');
     expect(attrs['class']).toContain('element-ref--has-note');
 
     // Text content
@@ -773,7 +773,7 @@ describe('elementRefNodeSpec', () => {
   it('should add deleted class when elementId is missing', () => {
     const node = testSchema.nodes[ELEMENT_REF_NODE_NAME].create({
       elementId: '',
-      elementType: ElementType.Character,
+      elementType: ElementType.Worldbuilding,
       displayText: 'Deleted Reference',
       originalName: 'Deleted Reference',
     });
@@ -807,7 +807,7 @@ describe('elementRefNodeSpec', () => {
         getAttribute: vi.fn((attr: string) => {
           const attrs: Record<string, string> = {
             'data-element-id': 'parsed-id',
-            'data-element-type': ElementType.Location,
+            'data-element-type': ElementType.Worldbuilding,
             'data-original-name': 'Castle',
             'data-relationship-id': 'rel-2',
             'data-relationship-type': 'contains',
@@ -823,7 +823,7 @@ describe('elementRefNodeSpec', () => {
       )(mockElement);
 
       expect(parsedAttrs.elementId).toBe('parsed-id');
-      expect(parsedAttrs.elementType).toBe(ElementType.Location);
+      expect(parsedAttrs.elementType).toBe(ElementType.Worldbuilding);
       expect(parsedAttrs.displayText).toBe('Castle Blackwood');
       expect(parsedAttrs.originalName).toBe('Castle');
       expect(parsedAttrs.relationshipId).toBe('rel-2');

@@ -18,7 +18,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { DefaultTemplatesService } from '@services/worldbuilding/default-templates.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -27,18 +26,6 @@ import {
   TemplateEditorDialogData,
 } from '../../../../dialogs/template-editor-dialog/template-editor-dialog.component';
 import { ElementTypeSchema, TabSchema } from '../../../../models/schema-types';
-
-/**
- * Injection token for WebSocket sync timeout.
- * In tests, this can be overridden to speed up tests.
- */
-export const TEMPLATE_SYNC_TIMEOUT = new InjectionToken<number>(
-  'TEMPLATE_SYNC_TIMEOUT',
-  {
-    providedIn: 'root',
-    factory: () => 1000, // Default 1000ms in production
-  }
-);
 
 /**
  * Injection token for reload delay after mutations.
@@ -53,7 +40,8 @@ export const TEMPLATE_RELOAD_DELAY = new InjectionToken<number>(
 );
 
 interface TemplateSchema {
-  type: string;
+  /** Schema ID (nanoid) - used for all lookups */
+  id: string;
   label: string;
   icon: string;
   description?: string;
@@ -88,14 +76,11 @@ export class TemplatesTabComponent {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly dialog = inject(MatDialog);
-  private readonly defaultTemplatesService = inject(DefaultTemplatesService);
-  private readonly syncTimeout = inject(TEMPLATE_SYNC_TIMEOUT);
   private readonly reloadDelay = inject(TEMPLATE_RELOAD_DELAY);
 
   readonly project = this.projectState.project;
   readonly templates = signal<TemplateSchema[]>([]);
   readonly isLoading = signal(false);
-  readonly isLoadingDefaults = signal(false);
   readonly error = signal<string | null>(null);
 
   readonly hasTemplates = computed(() => this.templates().length > 0);
@@ -105,7 +90,7 @@ export class TemplatesTabComponent {
     effect(() => {
       const project = this.project();
       if (project) {
-        void this.loadTemplates();
+        this.loadTemplates();
       }
     });
   }
@@ -113,7 +98,7 @@ export class TemplatesTabComponent {
   /**
    * Load all templates from the project's schema library
    */
-  async loadTemplates(): Promise<void> {
+  loadTemplates(): void {
     const project = this.project();
     if (!project) {
       return;
@@ -123,11 +108,7 @@ export class TemplatesTabComponent {
     this.error.set(null);
 
     try {
-      // Wait for WebSocket sync to complete after library is loaded
-      // For new projects, schemas may have just been created on the backend
-      await new Promise(resolve => setTimeout(resolve, this.syncTimeout));
-
-      // Use the abstraction layer to get all schemas as plain objects
+      // Schemas are already synced via the sync provider - no delay needed
       const schemas = this.worldbuildingService.getAllSchemas(
         project.username,
         project.slug
@@ -140,8 +121,8 @@ export class TemplatesTabComponent {
       }
 
       const templates: TemplateSchema[] = schemas.map(schema => ({
-        type: schema.type,
-        label: schema.name || schema.type,
+        id: schema.id,
+        label: schema.name || schema.id,
         icon: schema.icon || 'article',
         description: schema.description,
         tabCount: schema.tabs?.length || 0,
@@ -172,53 +153,7 @@ export class TemplatesTabComponent {
    * Refresh the templates list
    */
   refresh(): void {
-    void this.loadTemplates();
-  }
-
-  /**
-   * Load default templates from client-side assets
-   */
-  async loadDefaultTemplates(): Promise<void> {
-    const project = this.project();
-    if (!project || this.isLoadingDefaults()) {
-      return;
-    }
-
-    this.isLoadingDefaults.set(true);
-    this.error.set(null);
-
-    try {
-      // Load default templates from assets
-      const defaultTemplates =
-        await this.defaultTemplatesService.loadDefaultTemplates();
-
-      // Use the abstraction layer to save all schemas
-      const templateArray = Object.values(defaultTemplates);
-      this.worldbuildingService.saveSchemasToLibrary(
-        project.username,
-        project.slug,
-        templateArray
-      );
-
-      this.snackBar.open(
-        `✓ Loaded ${templateArray.length} default templates`,
-        'Close',
-        {
-          duration: 3000,
-        }
-      );
-
-      // Reload templates list to show the new templates
-      await this.loadTemplates();
-    } catch (err) {
-      console.error('[TemplatesTab] Error loading default templates:', err);
-      this.error.set('Failed to load default templates');
-      this.snackBar.open('Failed to load default templates', 'Close', {
-        duration: 5000,
-      });
-    } finally {
-      this.isLoadingDefaults.set(false);
-    }
+    this.loadTemplates();
   }
 
   /**
@@ -244,7 +179,7 @@ export class TemplatesTabComponent {
       const projectKey = `${project.username}:${project.slug}`;
       this.worldbuildingService.cloneTemplate(
         projectKey,
-        template.type,
+        template.id,
         newName,
         `Clone of ${template.label}`,
         project.username,
@@ -257,7 +192,7 @@ export class TemplatesTabComponent {
 
       // Wait for sync then reload
       await new Promise(resolve => setTimeout(resolve, this.reloadDelay));
-      await this.loadTemplates();
+      this.loadTemplates();
     } catch (err) {
       console.error('[TemplatesTab] Error cloning template:', err);
       this.snackBar.open('Failed to clone template', 'Close', {
@@ -291,7 +226,7 @@ export class TemplatesTabComponent {
       const projectKey = `${project.username}:${project.slug}`;
       this.worldbuildingService.deleteTemplate(
         projectKey,
-        template.type,
+        template.id,
         project.username,
         project.slug
       );
@@ -302,7 +237,7 @@ export class TemplatesTabComponent {
 
       // Wait for sync then reload
       await new Promise(resolve => setTimeout(resolve, this.reloadDelay));
-      await this.loadTemplates();
+      this.loadTemplates();
     } catch (err) {
       console.error('[TemplatesTab] Error deleting template:', err);
       const errorMessage =
@@ -327,7 +262,7 @@ export class TemplatesTabComponent {
       const fullSchema = this.worldbuildingService.getSchema(
         project.username,
         project.slug,
-        template.type
+        template.id
       );
 
       if (!fullSchema) {
@@ -355,7 +290,7 @@ export class TemplatesTabComponent {
         const projectKey = `${project.username}:${project.slug}`;
         this.worldbuildingService.updateTemplate(
           projectKey,
-          template.type,
+          template.id,
           result,
           project.username,
           project.slug
@@ -367,7 +302,7 @@ export class TemplatesTabComponent {
 
         // Wait for sync then reload
         await new Promise(resolve => setTimeout(resolve, this.reloadDelay));
-        await this.loadTemplates();
+        this.loadTemplates();
       }
     } catch (err) {
       console.error('[TemplatesTab] Error editing template:', err);

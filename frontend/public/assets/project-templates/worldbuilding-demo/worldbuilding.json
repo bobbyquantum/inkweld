@@ -1,6 +1,7 @@
 [
   {
     "elementId": "char-elara",
+    "schemaId": "character-v1",
     "data": {
       "fullName": "Elara Nightwhisper",
       "age": "127 (appears mid-20s)",
@@ -32,6 +33,7 @@
   },
   {
     "elementId": "char-theron",
+    "schemaId": "character-v1",
     "data": {
       "fullName": "Theron Blackwood",
       "age": "34",
@@ -63,6 +65,7 @@
   },
   {
     "elementId": "char-mira",
+    "schemaId": "character-v1",
     "data": {
       "fullName": "Mira Stonehart",
       "age": "28",
@@ -94,6 +97,7 @@
   },
   {
     "elementId": "loc-silverhollow",
+    "schemaId": "location-v1",
     "data": {
       "name": "Silverhollow",
       "type": "Town",
@@ -116,6 +120,7 @@
   },
   {
     "elementId": "loc-thornwood",
+    "schemaId": "location-v1",
     "data": {
       "name": "Thornwood Forest",
       "type": "Natural Feature",
@@ -138,6 +143,7 @@
   },
   {
     "elementId": "loc-cloudspire",
+    "schemaId": "location-v1",
     "data": {
       "name": "Cloudspire Academy",
       "type": "Building",

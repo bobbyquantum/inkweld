@@ -38,8 +38,8 @@ describe('RelationshipsTabComponent', () => {
       category: RelationshipCategory.Familial,
       icon: 'family_restroom',
       isBuiltIn: true,
-      sourceEndpoint: { allowedSchemas: ['CHARACTER'], maxCount: null },
-      targetEndpoint: { allowedSchemas: ['CHARACTER'], maxCount: 2 },
+      sourceEndpoint: { allowedSchemas: ['character-v1'], maxCount: null },
+      targetEndpoint: { allowedSchemas: ['character-v1'], maxCount: 2 },
     },
     {
       id: 'custom-nemesis',
@@ -214,8 +214,8 @@ describe('RelationshipsTabComponent', () => {
     component.loadRelationshipTypes();
 
     const parentType = component.builtInTypes().find(t => t.id === 'parent');
-    expect(parentType?.sourceConstraints).toBe('CHARACTER');
-    expect(parentType?.targetConstraints).toBe('CHARACTER · max 2');
+    expect(parentType?.sourceConstraints).toBe('character-v1');
+    expect(parentType?.targetConstraints).toBe('character-v1 · max 2');
 
     const customType = component
       .customTypes()

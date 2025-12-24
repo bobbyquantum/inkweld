@@ -40,7 +40,8 @@ describe('AddRelationshipDialogComponent', () => {
     {
       id: 'char-1',
       name: 'Character Alpha',
-      type: ElementType.Character,
+      type: ElementType.Worldbuilding,
+      schemaId: 'character-v1',
       parentId: null,
       order: 1,
       level: 0,
@@ -51,7 +52,8 @@ describe('AddRelationshipDialogComponent', () => {
     {
       id: 'char-2',
       name: 'Character Beta',
-      type: ElementType.Character,
+      type: ElementType.Worldbuilding,
+      schemaId: 'character-v1',
       parentId: null,
       order: 2,
       level: 0,
@@ -62,7 +64,8 @@ describe('AddRelationshipDialogComponent', () => {
     {
       id: 'loc-1',
       name: 'Location One',
-      type: ElementType.Location,
+      type: ElementType.Worldbuilding,
+      schemaId: 'location-v1',
       parentId: null,
       order: 3,
       level: 0,
@@ -90,8 +93,8 @@ describe('AddRelationshipDialogComponent', () => {
       showInverse: true,
       category: RelationshipCategory.Social,
       isBuiltIn: true,
-      sourceEndpoint: { allowedSchemas: ['CHARACTER'] },
-      targetEndpoint: { allowedSchemas: ['CHARACTER'] },
+      sourceEndpoint: { allowedSchemas: ['character-v1'] },
+      targetEndpoint: { allowedSchemas: ['character-v1'] },
     },
     {
       id: 'located-at',
@@ -100,8 +103,8 @@ describe('AddRelationshipDialogComponent', () => {
       showInverse: true,
       category: RelationshipCategory.Spatial,
       isBuiltIn: true,
-      sourceEndpoint: { allowedSchemas: ['CHARACTER', 'ITEM'] },
-      targetEndpoint: { allowedSchemas: ['LOCATION'] },
+      sourceEndpoint: { allowedSchemas: ['character-v1', 'Item'] },
+      targetEndpoint: { allowedSchemas: ['location-v1'] },
     },
   ];
 
@@ -195,7 +198,7 @@ describe('AddRelationshipDialogComponent', () => {
 
       const characterData: AddRelationshipDialogData = {
         sourceElementId: 'char-1',
-        sourceSchemaType: 'CHARACTER',
+        sourceSchemaType: 'character-v1',
       };
 
       await TestBed.configureTestingModule({
@@ -350,8 +353,8 @@ describe('AddRelationshipDialogComponent', () => {
 
     it('should get correct icon for element types', () => {
       expect(component.getElementIcon(mockElements[0])).toBe('description'); // Item
-      expect(component.getElementIcon(mockElements[1])).toBe('person'); // Character
-      expect(component.getElementIcon(mockElements[3])).toBe('place'); // Location
+      expect(component.getElementIcon(mockElements[1])).toBe('auto_awesome'); // Worldbuilding (character)
+      expect(component.getElementIcon(mockElements[3])).toBe('auto_awesome'); // Worldbuilding (location)
     });
   });
 

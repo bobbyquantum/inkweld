@@ -49,6 +49,7 @@ import {
   PublishingResult,
   PublishService,
 } from '../../../../services/publish/publish.service';
+import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
 
 @Component({
   selector: 'app-publish-plan-tab',
@@ -75,6 +76,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   private projectState = inject(ProjectStateService);
   private publishService = inject(PublishService);
   private snackBar = inject(MatSnackBar);
+  private worldbuildingService = inject(WorldbuildingService);
   private paramSubscription: Subscription | null = null;
 
   /** Expose ElementType for template */
@@ -254,18 +256,28 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   }
 
   /** Get icon for element type */
-  getElementIcon(element: { type: ElementType }): string {
+  getElementIcon(element: {
+    type: ElementType;
+    schemaId?: string | null;
+  }): string {
     switch (element.type) {
       case ElementType.Folder:
         return 'folder';
       case ElementType.Item:
         return 'description';
-      case ElementType.Character:
-        return 'person';
-      case ElementType.Location:
-        return 'place';
-      case ElementType.Map:
-        return 'map';
+      case ElementType.Worldbuilding:
+        // Look up icon from schema using schemaId
+        if (element.schemaId) {
+          const project = this.projectState.project();
+          if (project) {
+            return this.worldbuildingService.getIconForType(
+              element.schemaId,
+              project.username,
+              project.slug
+            );
+          }
+        }
+        return 'auto_awesome';
       default:
         return 'article';
     }

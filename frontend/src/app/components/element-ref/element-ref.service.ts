@@ -24,15 +24,7 @@ import { ElementRefTooltipData } from './element-ref-tooltip/element-ref-tooltip
 const ELEMENT_TYPE_ICONS: Record<string, string> = {
   [ElementType.Folder]: 'folder',
   [ElementType.Item]: 'description',
-  [ElementType.Character]: 'person',
-  [ElementType.Location]: 'place',
-  [ElementType.WbItem]: 'category',
-  [ElementType.Map]: 'map',
-  [ElementType.Relationship]: 'people',
-  [ElementType.Philosophy]: 'psychology',
-  [ElementType.Culture]: 'public',
-  [ElementType.Species]: 'pets',
-  [ElementType.Systems]: 'settings',
+  [ElementType.Worldbuilding]: 'category',
 };
 
 @Injectable({
@@ -188,14 +180,9 @@ export class ElementRefService {
       score += 5;
     }
 
-    // Boost characters (commonly referenced)
-    if (element.type === ElementType.Character) {
+    // Boost worldbuilding elements (commonly referenced)
+    if (element.type === ElementType.Worldbuilding) {
       score += 10;
-    }
-
-    // Boost locations
-    if (element.type === ElementType.Location) {
-      score += 8;
     }
 
     return score;
@@ -210,9 +197,21 @@ export class ElementRefService {
       return element.metadata['icon'];
     }
 
-    // Check for custom type prefix
-    if (element.type.startsWith('CUSTOM_')) {
-      return 'category';
+    // For WORLDBUILDING elements, look up schema icon
+    if (element.type === ElementType.Worldbuilding && element.schemaId) {
+      const project = this.projectState.project();
+      const projectKey = project
+        ? `${project.username}/${project.slug}`
+        : 'unknown';
+      const schema = this.worldbuildingService.getSchemaFromLibrary(
+        projectKey,
+        element.schemaId,
+        project?.username,
+        project?.slug
+      );
+      if (schema?.icon) {
+        return schema.icon;
+      }
     }
 
     // Use default icon for type
@@ -224,28 +223,17 @@ export class ElementRefService {
    * Used as a fallback when the element can't be resolved
    */
   getDefaultIconForType(type: ElementType | string): string {
-    if (typeof type === 'string' && type.startsWith('CUSTOM_')) {
-      return 'category';
-    }
     return ELEMENT_TYPE_ICONS[type] || 'description';
   }
 
   /**
-   * Format element type for display (e.g., CHARACTER -> Character, WB_ITEM -> Item)
+   * Format element type for display (e.g., FOLDER -> Folder)
    */
   formatElementType(type: ElementType | string): string {
     const typeMap: Record<string, string> = {
       [ElementType.Item]: 'Document',
-      [ElementType.Character]: 'Character',
-      [ElementType.Location]: 'Location',
       [ElementType.Folder]: 'Folder',
-      [ElementType.WbItem]: 'Item',
-      [ElementType.Map]: 'Map',
-      [ElementType.Relationship]: 'Relationship',
-      [ElementType.Philosophy]: 'Philosophy',
-      [ElementType.Culture]: 'Culture',
-      [ElementType.Species]: 'Species',
-      [ElementType.Systems]: 'System',
+      [ElementType.Worldbuilding]: 'Worldbuilding',
     };
     return (
       typeMap[type] ||

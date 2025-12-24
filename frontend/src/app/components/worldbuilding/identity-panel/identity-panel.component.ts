@@ -53,8 +53,8 @@ export class IdentityPanelComponent implements OnDestroy {
   // Inputs
   elementId = input.required<string>();
   elementName = input.required<string>();
-  username = input<string>();
-  slug = input<string>();
+  username = input.required<string>();
+  slug = input.required<string>();
 
   // Outputs
   renameRequested = output<void>();

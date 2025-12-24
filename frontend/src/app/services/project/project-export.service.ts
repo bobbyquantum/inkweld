@@ -32,11 +32,7 @@ import { ProjectStateService } from './project-state.service';
 /**
  * Worldbuilding element types that have their own Yjs documents.
  */
-const WORLDBUILDING_TYPES = [
-  ElementType.Character,
-  ElementType.Location,
-  ElementType.WbItem,
-];
+const WORLDBUILDING_TYPES = [ElementType.Worldbuilding];
 
 /**
  * Check if an element type is a worldbuilding type.
@@ -160,6 +156,7 @@ export class ProjectExportService {
         slug
       );
       const tags = await this.getTags(username, slug);
+      const elementTags = await this.getElementTags(username, slug);
       const publishPlans = await this.getPublishPlans(username, slug);
 
       // Phase 3: Get snapshots
@@ -201,6 +198,7 @@ export class ProjectExportService {
         relationships,
         customRelationshipTypes,
         tags,
+        elementTags,
         publishPlans,
         media: mediaManifest,
         snapshots,
@@ -416,10 +414,10 @@ export class ProjectExportService {
           slug
         );
         if (data) {
-          const schemaType = (data['schemaType'] as string) || elem.type;
+          const schemaId = (data['schemaId'] as string) || elem.schemaId || '';
           worldbuilding.push({
             elementId: elem.id,
-            schemaType,
+            schemaId,
             data: this.flattenYjsData(data),
           });
         }
@@ -535,6 +533,17 @@ export class ProjectExportService {
     }
     await this.offlineElements.loadElements(username, slug);
     return this.offlineElements.customTags();
+  }
+
+  /**
+   * Get element tag assignments.
+   */
+  private async getElementTags(username: string, slug: string) {
+    if (this.syncFactory.isOfflineMode()) {
+      return this.offlineElements.elementTags();
+    }
+    await this.offlineElements.loadElements(username, slug);
+    return this.offlineElements.elementTags();
   }
 
   /**
@@ -659,6 +668,7 @@ export class ProjectExportService {
       id: element.id,
       name: element.name,
       type: element.type,
+      schemaId: element.schemaId,
       order: element.order,
       level: element.level,
       parentId: element.parentId ?? null,
@@ -696,6 +706,7 @@ export class ProjectExportService {
       JSON.stringify(archive.customRelationshipTypes, null, 2)
     );
     zip.file('tags.json', JSON.stringify(archive.tags, null, 2));
+    zip.file('element-tags.json', JSON.stringify(archive.elementTags, null, 2));
     zip.file(
       'publish-plans.json',
       JSON.stringify(archive.publishPlans, null, 2)

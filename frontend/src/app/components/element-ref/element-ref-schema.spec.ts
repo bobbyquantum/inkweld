@@ -51,7 +51,10 @@ describe('element-ref-schema', () => {
         const mockElement = document.createElement('span');
         mockElement.setAttribute('data-element-ref', 'true');
         mockElement.setAttribute('data-element-id', 'test-id');
-        mockElement.setAttribute('data-element-type', ElementType.Character);
+        mockElement.setAttribute(
+          'data-element-type',
+          ElementType.Worldbuilding
+        );
         mockElement.setAttribute('data-original-name', 'Original Name');
         mockElement.setAttribute('data-relationship-id', 'rel-123');
         mockElement.setAttribute('data-relationship-type', 'appears-in');
@@ -61,7 +64,7 @@ describe('element-ref-schema', () => {
         const attrs = getAttrs(mockElement);
 
         expect(attrs['elementId']).toBe('test-id');
-        expect(attrs['elementType']).toBe(ElementType.Character);
+        expect(attrs['elementType']).toBe(ElementType.Worldbuilding);
         expect(attrs['displayText']).toBe('Display Text');
         expect(attrs['originalName']).toBe('Original Name');
         expect(attrs['relationshipId']).toBe('rel-123');
@@ -106,7 +109,7 @@ describe('element-ref-schema', () => {
       it('should generate DOM for complete element ref', () => {
         const node = createMockNode({
           elementId: 'test-id',
-          elementType: ElementType.Character,
+          elementType: ElementType.Worldbuilding,
           displayText: 'Test Character',
           originalName: 'Test Character',
           relationshipId: 'rel-123',
@@ -122,23 +125,23 @@ describe('element-ref-schema', () => {
         const domAttrs = result[1] as Record<string, string>;
         expect(domAttrs['data-element-ref']).toBe('true');
         expect(domAttrs['data-element-id']).toBe('test-id');
-        expect(domAttrs['data-element-type']).toBe(ElementType.Character);
+        expect(domAttrs['data-element-type']).toBe(ElementType.Worldbuilding);
         expect(domAttrs['data-original-name']).toBe('Test Character');
         expect(domAttrs['data-relationship-id']).toBe('rel-123');
         expect(domAttrs['data-relationship-type']).toBe('appears-in');
         expect(domAttrs['data-relationship-note']).toBe('An important note');
         expect(domAttrs['class']).toContain('element-ref');
-        expect(domAttrs['class']).toContain('element-ref--character');
+        expect(domAttrs['class']).toContain('element-ref--worldbuilding');
         expect(domAttrs['class']).toContain('element-ref--has-note');
         expect(domAttrs['aria-label']).toContain('Test Character');
-        expect(domAttrs['aria-label']).toContain('Character');
+        expect(domAttrs['aria-label']).toContain('WORLDBUILDING');
         expect(domAttrs['aria-label']).toContain('An important note');
       });
 
       it('should show deleted class when elementId is null', () => {
         const node = createMockNode({
           elementId: null,
-          elementType: ElementType.Location,
+          elementType: ElementType.Worldbuilding,
           displayText: 'Deleted Ref',
         });
 
@@ -207,7 +210,7 @@ describe('element-ref-schema', () => {
       it('should build aria-label with displayText and type', () => {
         const node = createMockNode({
           elementId: 'test-id',
-          elementType: ElementType.Character,
+          elementType: ElementType.Worldbuilding,
           displayText: 'My Character',
           relationshipNote: null,
         });
@@ -217,7 +220,7 @@ describe('element-ref-schema', () => {
 
         // Type is included as-is (e.g., "CHARACTER") not formatted
         expect(domAttrs['aria-label']).toBe(
-          `My Character (${ElementType.Character})`
+          `My Character (${ElementType.Worldbuilding})`
         );
       });
 

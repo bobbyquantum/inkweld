@@ -10,7 +10,6 @@ import { isWorldbuildingType } from '../../utils/worldbuilding.utils';
 import { SetupService } from '../core/setup.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { IElementSyncProvider } from '../sync/element-sync-provider.interface';
-import { DefaultTemplatesService } from './default-templates.service';
 
 interface WorldbuildingConnection {
   ydoc: Y.Doc;
@@ -36,7 +35,6 @@ export interface WorldbuildingIdentity {
 })
 export class WorldbuildingService {
   private setupService = inject(SetupService);
-  private defaultTemplatesService = inject(DefaultTemplatesService);
   private syncProviderFactory = inject(ElementSyncProviderFactory);
 
   // Per-element worldbuilding data connections (each element has its own Yjs doc)
@@ -78,17 +76,40 @@ export class WorldbuildingService {
   }
 
   /**
+   * Build a connection key for the connections map.
+   * Includes project context to prevent cross-project collisions.
+   */
+  private buildConnectionKey(
+    elementId: string,
+    username: string,
+    slug: string
+  ): string {
+    return `${username}:${slug}:${elementId}`;
+  }
+
+  /**
+   * Quick lookup for a schema by ID from the current cache.
+   * This is a lightweight method for synchronous icon resolution.
+   * @param schemaId - The schema ID to look up
+   */
+  getSchemaById(schemaId: string): ElementTypeSchema | null {
+    return this.schemasCache.find(s => s.id === schemaId) ?? null;
+  }
+
+  /**
    * Set up real-time collaboration for a worldbuilding element
    * @param elementId - The element ID
-   * @param username - Project username (optional, for WebSocket sync)
-   * @param slug - Project slug (optional, for WebSocket sync)
+   * @param username - Project username
+   * @param slug - Project slug
    */
   private async setupCollaboration(
     elementId: string,
-    username?: string,
-    slug?: string
+    username: string,
+    slug: string
   ): Promise<Y.Map<unknown>> {
-    let connection = this.connections.get(elementId);
+    // Create a unique connection key that includes project context
+    const connectionKey = `${username}:${slug}:${elementId}`;
+    let connection = this.connections.get(connectionKey);
 
     if (!connection) {
       const ydoc = new Y.Doc();
@@ -96,29 +117,35 @@ export class WorldbuildingService {
       const identityMap = ydoc.getMap('identity');
 
       // Initialize IndexedDB provider for offline persistence
-      const indexeddbProvider = new IndexeddbPersistence(
-        `worldbuilding:${elementId}`,
-        ydoc
+      // Include project key to prevent cross-project data collisions
+      const dbKey = `worldbuilding:${username}:${slug}:${elementId}`;
+      const indexeddbProvider = new IndexeddbPersistence(dbKey, ydoc);
+
+      // Wait for IndexedDB sync with timeout
+      const syncPromise = indexeddbProvider.whenSynced;
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('IndexedDB sync timeout')), 5000)
       );
 
-      // Wait for IndexedDB sync
-      await indexeddbProvider.whenSynced;
+      try {
+        await Promise.race([syncPromise, timeoutPromise]);
+      } catch (error) {
+        console.warn(
+          `[Worldbuilding] IndexedDB sync timeout for ${elementId}, continuing anyway:`,
+          error
+        );
+        // Continue anyway - the document may be empty/new
+      }
 
       // Setup WebSocket provider if not in offline mode
       const mode = this.setupService.getMode();
       const wsUrl = this.setupService.getWebSocketUrl();
       let provider: WebsocketProvider | undefined;
 
-      console.log(
-        `[Worldbuilding] Setup check - mode: ${mode}, wsUrl: ${wsUrl}, username: ${username}, slug: ${slug}`
-      );
-
       if (mode !== 'offline' && wsUrl && username && slug) {
         // Build full document ID in format: username:slug:elementId
         const fullDocId = `${username}:${slug}:${elementId}`;
         const formattedId = fullDocId.replace(/^\/+/, '');
-
-        console.log(`[Worldbuilding] Connecting WebSocket for ${formattedId}`);
 
         // WebsocketProvider(url, roomName, doc, options)
         // The roomName parameter is appended to the URL, but we want documentId as a query param
@@ -140,8 +167,6 @@ export class WorldbuildingService {
             `[Worldbuilding] WebSocket status for ${elementId}: ${status}`
           );
         });
-      } else {
-        console.log('[Worldbuilding] WebSocket NOT created - missing params');
       }
 
       connection = {
@@ -152,7 +177,7 @@ export class WorldbuildingService {
         indexeddbProvider,
       };
 
-      this.connections.set(elementId, connection);
+      this.connections.set(connectionKey, connection);
     }
 
     return connection.dataMap;
@@ -165,17 +190,16 @@ export class WorldbuildingService {
    * Unlike prose documents, worldbuilding docs are always loaded via setupCollaboration.
    *
    * @param elementId - The element ID
+   * @param username - Project username
+   * @param slug - Project slug
    * @returns The Yjs document or null if not connected
    */
-  getYDoc(elementId: string): Y.Doc | null {
-    const connection = this.connections.get(elementId);
+  getYDoc(elementId: string, username: string, slug: string): Y.Doc | null {
+    const connectionKey = this.buildConnectionKey(elementId, username, slug);
+    const connection = this.connections.get(connectionKey);
     if (connection) {
       return connection.ydoc;
     }
-
-    // For worldbuilding, we need to set up the connection first
-    // Try to get project context
-    // Note: This is a simplified version - caller should ensure collaboration is set up
     return null;
   }
 
@@ -184,8 +208,8 @@ export class WorldbuildingService {
    */
   async getWorldbuildingData(
     elementId: string,
-    username?: string,
-    slug?: string
+    username: string,
+    slug: string
   ): Promise<Record<string, unknown> | null> {
     const dataMap = await this.setupCollaboration(elementId, username, slug);
     const jsonData = dataMap.toJSON() as Record<string, unknown>;
@@ -202,8 +226,8 @@ export class WorldbuildingService {
   async observeChanges(
     elementId: string,
     callback: (data: Record<string, unknown>) => void,
-    username?: string,
-    slug?: string
+    username: string,
+    slug: string
   ): Promise<() => void> {
     const dataMap = await this.setupCollaboration(elementId, username, slug);
 
@@ -227,11 +251,12 @@ export class WorldbuildingService {
    */
   async getIdentityData(
     elementId: string,
-    username?: string,
-    slug?: string
+    username: string,
+    slug: string
   ): Promise<WorldbuildingIdentity> {
     await this.setupCollaboration(elementId, username, slug);
-    const connection = this.connections.get(elementId);
+    const connectionKey = this.buildConnectionKey(elementId, username, slug);
+    const connection = this.connections.get(connectionKey);
     if (!connection) {
       return {};
     }
@@ -249,11 +274,12 @@ export class WorldbuildingService {
   async saveIdentityData(
     elementId: string,
     data: Partial<WorldbuildingIdentity>,
-    username?: string,
-    slug?: string
+    username: string,
+    slug: string
   ): Promise<void> {
     await this.setupCollaboration(elementId, username, slug);
-    const connection = this.connections.get(elementId);
+    const connectionKey = this.buildConnectionKey(elementId, username, slug);
+    const connection = this.connections.get(connectionKey);
     if (!connection) {
       return;
     }
@@ -275,11 +301,12 @@ export class WorldbuildingService {
   async observeIdentityChanges(
     elementId: string,
     callback: (data: WorldbuildingIdentity) => void,
-    username?: string,
-    slug?: string
+    username: string,
+    slug: string
   ): Promise<() => void> {
     await this.setupCollaboration(elementId, username, slug);
-    const connection = this.connections.get(elementId);
+    const connectionKey = this.buildConnectionKey(elementId, username, slug);
+    const connection = this.connections.get(connectionKey);
     if (!connection) {
       return () => {};
     }
@@ -302,8 +329,8 @@ export class WorldbuildingService {
   async saveWorldbuildingData(
     elementId: string,
     data: Record<string, unknown>,
-    username?: string,
-    slug?: string
+    username: string,
+    slug: string
   ): Promise<void> {
     console.log('[WorldbuildingService] saveWorldbuildingData called:', {
       elementId,
@@ -312,7 +339,8 @@ export class WorldbuildingService {
       slug,
     });
     const dataMap = await this.setupCollaboration(elementId, username, slug);
-    const connection = this.connections.get(elementId)!;
+    const connectionKey = this.buildConnectionKey(elementId, username, slug);
+    const connection = this.connections.get(connectionKey)!;
 
     // Perform transaction to update all fields
     connection.ydoc.transact(() => {
@@ -389,8 +417,8 @@ export class WorldbuildingService {
    */
   async initializeWorldbuildingElement(
     element: Element,
-    username?: string,
-    slug?: string
+    username: string,
+    slug: string
   ): Promise<void> {
     if (!element.id || !isWorldbuildingType(element.type)) {
       return;
@@ -398,8 +426,8 @@ export class WorldbuildingService {
 
     const dataMap = await this.setupCollaboration(element.id, username, slug);
 
-    // Check if already initialized (has a 'type' field)
-    if (dataMap.has('type')) {
+    // Check if already initialized (has a 'schemaId' field)
+    if (dataMap.has('schemaId')) {
       console.log(
         `[WorldbuildingService] Element ${element.id} already initialized, skipping`
       );
@@ -407,60 +435,45 @@ export class WorldbuildingService {
     }
 
     console.log(
-      `[WorldbuildingService] Initializing new ${element.type} element ${element.id}`
+      `[WorldbuildingService] Initializing new WORLDBUILDING element ${element.id} with schemaId=${element.schemaId}`
     );
 
     // Get the schema from the project's template library
     const projectKey = username && slug ? `${username}:${slug}` : 'default';
+    const schemaId = element.schemaId;
+
+    if (!schemaId) {
+      console.warn(
+        `[WorldbuildingService] Element ${element.id} is WORLDBUILDING but has no schemaId`
+      );
+      return;
+    }
+
     console.log(
-      `[WorldbuildingService] Looking for schema: projectKey="${projectKey}", elementType="${element.type}"`
+      `[WorldbuildingService] Looking for schema: projectKey="${projectKey}", schemaId="${schemaId}"`
     );
 
     // Check if schema library is empty and auto-load defaults if needed
-    let schema = this.getSchemaFromLibrary(
+    const schema = this.getSchemaFromLibrary(
       projectKey,
-      element.type,
+      schemaId,
       username,
       slug
     );
-
-    // If schema not found, check if library is empty and auto-initialize
-    if (!schema && username && slug) {
-      const libraryIsEmpty = this.isSchemaLibraryEmpty(
-        projectKey,
-        username,
-        slug
-      );
-
-      if (libraryIsEmpty) {
-        console.log(
-          `[WorldbuildingService] Schema library is empty, auto-loading default templates`
-        );
-        await this.autoLoadDefaultTemplates(projectKey, username, slug);
-
-        // Try to get schema again after loading defaults
-        schema = this.getSchemaFromLibrary(
-          projectKey,
-          element.type,
-          username,
-          slug
-        );
-      }
-    }
 
     console.log(
       `[WorldbuildingService] Schema lookup result:`,
       schema ? `Found ${schema.name} (v${schema.version})` : 'NOT FOUND'
     );
 
-    const connection = this.connections.get(element.id)!;
+    const connectionKey = this.buildConnectionKey(element.id, username, slug);
+    const connection = this.connections.get(connectionKey)!;
 
     connection.ydoc.transact(() => {
-      // Store only the schema type reference (not the full schema)
+      // Store the schema ID reference (not the full schema)
       if (schema) {
         // Initialize data based on schema's default values
-        dataMap.set('type', schema.type);
-        dataMap.set('schemaType', schema.type);
+        dataMap.set('schemaId', schema.id);
         if (schema.defaultValues) {
           Object.entries(schema.defaultValues).forEach(([key, value]) => {
             dataMap.set(key, value);
@@ -773,18 +786,27 @@ export class WorldbuildingService {
   /**
    * Export worldbuilding data to JSON
    */
-  async exportToJSON(elementId: string): Promise<string> {
-    const data = await this.getWorldbuildingData(elementId);
+  async exportToJSON(
+    elementId: string,
+    username: string,
+    slug: string
+  ): Promise<string> {
+    const data = await this.getWorldbuildingData(elementId, username, slug);
     return JSON.stringify(data, null, 2);
   }
 
   /**
    * Import worldbuilding data from JSON
    */
-  async importFromJSON(elementId: string, jsonData: string): Promise<void> {
+  async importFromJSON(
+    elementId: string,
+    jsonData: string,
+    username: string,
+    slug: string
+  ): Promise<void> {
     try {
       const data = JSON.parse(jsonData) as Record<string, unknown>;
-      await this.saveWorldbuildingData(elementId, data);
+      await this.saveWorldbuildingData(elementId, data, username, slug);
     } catch (error) {
       console.error('Error importing worldbuilding data:', error);
       throw new Error('Invalid JSON data');
@@ -797,7 +819,7 @@ export class WorldbuildingService {
    */
   getSchemaFromLibrary(
     _projectKey: string,
-    elementType: string,
+    schemaId: string,
     _username?: string,
     _slug?: string
   ): ElementTypeSchema | null {
@@ -809,17 +831,17 @@ export class WorldbuildingService {
       return null;
     }
 
-    // Log available schema types for debugging
-    const availableTypes = schemas.map(s => s.type);
+    // Log available schema IDs for debugging
+    const availableIds = schemas.map(s => s.id);
     console.log(
-      `[SchemaLibrary] Looking for "${elementType}" in available types:`,
-      availableTypes
+      `[SchemaLibrary] Looking for "${schemaId}" in available IDs:`,
+      availableIds
     );
 
-    const schema = schemas.find(s => s.type === elementType);
+    const schema = schemas.find(s => s.id === schemaId);
     if (!schema) {
       console.warn(
-        `[SchemaLibrary] No schema found for type "${elementType}". Available: ${availableTypes.join(', ')}`
+        `[SchemaLibrary] No schema found for ID "${schemaId}". Available: ${availableIds.join(', ')}`
       );
       return null;
     }
@@ -840,92 +862,31 @@ export class WorldbuildingService {
   }
 
   /**
-   * Auto-load default templates from client-side assets into the project's schema library.
-   * This is called automatically when the schema library is empty.
-   * Updates the sync provider with the loaded schemas.
-   */
-  async autoLoadDefaultTemplates(
-    projectKey: string,
-    _username?: string,
-    _slug?: string
-  ): Promise<void> {
-    try {
-      console.log(
-        `[WorldbuildingService] Auto-loading default templates for ${projectKey}`
-      );
-
-      // Load default templates from assets
-      const defaultTemplates: Record<string, ElementTypeSchema> =
-        await this.defaultTemplatesService.loadDefaultTemplates();
-
-      // Convert to array and save via sync provider
-      const templateArray = Object.values(defaultTemplates);
-
-      if (this.syncProvider) {
-        // Merge with existing schemas (don't overwrite)
-        const existingSchemas = this.schemasCache;
-        const existingTypes = new Set(existingSchemas.map(s => s.type));
-
-        const newSchemas = templateArray.filter(
-          schema => !existingTypes.has(schema.type)
-        );
-
-        if (newSchemas.length > 0) {
-          const allSchemas = [...existingSchemas, ...newSchemas];
-          this.syncProvider.updateSchemas(allSchemas);
-          // Update local cache immediately so sync methods can read from it
-          // without waiting for the Yjs observer to fire
-          this.schemasCache = allSchemas;
-          console.log(
-            `[WorldbuildingService] Auto-loaded ${newSchemas.length} default templates`
-          );
-        } else {
-          console.log(
-            `[WorldbuildingService] All default templates already exist`
-          );
-        }
-      } else {
-        console.warn(
-          '[WorldbuildingService] No sync provider available for saving schemas'
-        );
-      }
-    } catch (error) {
-      console.error(
-        '[WorldbuildingService] Failed to auto-load default templates:',
-        error
-      );
-      // Don't throw - fallback to hard-coded defaults will be used
-    }
-  }
-
-  /**
    * Clone a template in the project's schema library
    * Creates a new custom template based on an existing one
    */
   cloneTemplate(
     projectKey: string,
-    sourceType: string,
+    sourceSchemaId: string,
     newName: string,
     newDescription?: string,
     _username?: string,
     _slug?: string
   ): ElementTypeSchema {
-    // Find source schema from cache
-    const sourceSchema = this.schemasCache.find(s => s.type === sourceType);
+    // Find source schema from cache by ID
+    const sourceSchema = this.schemasCache.find(s => s.id === sourceSchemaId);
     if (!sourceSchema) {
-      throw new Error(`Template ${sourceType} not found`);
+      throw new Error(`Template with ID ${sourceSchemaId} not found`);
     }
 
-    // Create a new unique type ID for the cloned template
+    // Create a new unique ID for the cloned template
     const timestamp = Date.now();
-    const newType = `CUSTOM_${timestamp}`;
     const newId = `custom-${timestamp}`;
     const now = new Date().toISOString();
 
     // Clone the schema as a plain object
     const clonedSchema: ElementTypeSchema = {
       id: newId,
-      type: newType,
       name: newName,
       icon: sourceSchema.icon,
       description: newDescription || `Clone of ${sourceSchema.name}`,
@@ -948,7 +909,7 @@ export class WorldbuildingService {
     }
 
     console.log(
-      `[WorldbuildingService] Cloned template ${sourceType} to ${newType}: "${newName}"`
+      `[WorldbuildingService] Cloned template ${sourceSchemaId} to ${newId}: "${newName}"`
     );
 
     return clonedSchema;
@@ -960,20 +921,18 @@ export class WorldbuildingService {
    */
   deleteTemplate(
     _projectKey: string,
-    templateType: string,
+    schemaId: string,
     _username?: string,
     _slug?: string
   ): void {
-    const schema = this.schemasCache.find(s => s.type === templateType);
+    const schema = this.schemasCache.find(s => s.id === schemaId);
     if (!schema) {
-      throw new Error(`Template ${templateType} not found`);
+      throw new Error(`Template with ID ${schemaId} not found`);
     }
 
     // Remove from schemas and update via sync provider
     if (this.syncProvider) {
-      const filteredSchemas = this.schemasCache.filter(
-        s => s.type !== templateType
-      );
+      const filteredSchemas = this.schemasCache.filter(s => s.id !== schemaId);
       this.syncProvider.updateSchemas(filteredSchemas);
       // Update local cache immediately
       this.schemasCache = filteredSchemas;
@@ -981,7 +940,7 @@ export class WorldbuildingService {
       throw new Error('No sync provider available');
     }
 
-    console.log(`[WorldbuildingService] Deleted template: ${templateType}`);
+    console.log(`[WorldbuildingService] Deleted template: ${schemaId}`);
   }
 
   /**
@@ -990,16 +949,14 @@ export class WorldbuildingService {
    */
   updateTemplate(
     _projectKey: string,
-    templateType: string,
+    schemaId: string,
     updates: Partial<ElementTypeSchema>,
     _username?: string,
     _slug?: string
   ): ElementTypeSchema {
-    const schemaIndex = this.schemasCache.findIndex(
-      s => s.type === templateType
-    );
+    const schemaIndex = this.schemasCache.findIndex(s => s.id === schemaId);
     if (schemaIndex === -1) {
-      throw new Error(`Template ${templateType} not found`);
+      throw new Error(`Template with ID ${schemaId} not found`);
     }
 
     const existingSchema = this.schemasCache[schemaIndex];
@@ -1010,7 +967,6 @@ export class WorldbuildingService {
       ...updates,
       // Preserve immutable fields
       id: existingSchema.id,
-      type: existingSchema.type,
       createdAt: existingSchema.createdAt,
       // Increment version
       version: (existingSchema.version || 1) + 1,
@@ -1029,7 +985,7 @@ export class WorldbuildingService {
     }
 
     console.log(
-      `[WorldbuildingService] Updated template ${templateType} to v${updatedSchema.version}`
+      `[WorldbuildingService] Updated template ${schemaId} to v${updatedSchema.version}`
     );
 
     return updatedSchema;
@@ -1095,35 +1051,60 @@ export class WorldbuildingService {
   // ============================================================================
 
   /**
-   * Get the schema type stored in a worldbuilding element.
-   * Returns the schema type reference, not the full schema.
+   * Get the schema ID stored in a worldbuilding element.
+   * Returns the schema ID reference, not the full schema.
    * Use getSchemaForElement() to get the full schema from the project library.
    * @param elementId - The element ID
-   * @param username - Project username (optional, for WebSocket sync)
-   * @param slug - Project slug (optional, for WebSocket sync)
-   * @returns The schema type string or null if not found
+   * @param username - Project username
+   * @param slug - Project slug
+   * @returns The schema ID string or null if not found
+   */
+  async getElementSchemaId(
+    elementId: string,
+    username: string,
+    slug: string
+  ): Promise<string | null> {
+    try {
+      await this.setupCollaboration(elementId, username, slug);
+      const connectionKey = this.buildConnectionKey(elementId, username, slug);
+      const connection = this.connections.get(connectionKey);
+      if (!connection?.ydoc) {
+        console.warn(`[Worldbuilding] No connection for element ${elementId}`);
+        return null;
+      }
+      const dataMap = connection.ydoc.getMap('worldbuilding');
+      const schemaId = (dataMap.get('schemaId') as string) || null;
+      const allData = dataMap.toJSON();
+      console.log(
+        `[Worldbuilding] Element ${elementId} has schemaId: ${schemaId || 'none'}, all keys:`,
+        Object.keys(allData),
+        'first few values:',
+        Object.fromEntries(Object.entries(allData).slice(0, 3))
+      );
+      return schemaId;
+    } catch (error) {
+      console.error(
+        `[Worldbuilding] Error getting schema ID for ${elementId}:`,
+        error
+      );
+      return null;
+    }
+  }
+
+  /**
+   * @deprecated Use getElementSchemaId instead
    */
   async getElementSchemaType(
     elementId: string,
-    username?: string,
-    slug?: string
+    username: string,
+    slug: string
   ): Promise<string | null> {
-    await this.setupCollaboration(elementId, username, slug);
-    const connection = this.connections.get(elementId);
-    if (!connection?.ydoc) {
-      return null;
-    }
-    const dataMap = connection.ydoc.getMap('worldbuilding');
-    return (
-      (dataMap.get('schemaType') as string) ||
-      (dataMap.get('type') as string) ||
-      null
-    );
+    return this.getElementSchemaId(elementId, username, slug);
   }
 
   /**
    * Get the full schema for a worldbuilding element from the project library.
-   * Looks up the schema type stored in the element and retrieves the schema from the library.
+   * Looks up the schema ID stored in the element and retrieves the schema from the library.
    * @param elementId - The element ID
    * @param username - Project username
    * @param slug - Project slug
@@ -1134,16 +1115,33 @@ export class WorldbuildingService {
     username: string,
     slug: string
   ): Promise<ElementTypeSchema | null> {
-    const schemaType = await this.getElementSchemaType(
-      elementId,
-      username,
-      slug
+    console.log(
+      `[Worldbuilding] Getting schema for element ${elementId} (${username}/${slug})`
     );
-    if (!schemaType) {
+    console.log(
+      `[Worldbuilding] Current schemas cache has ${this.schemasCache.length} schemas:`,
+      this.schemasCache.map(s => s.id)
+    );
+
+    const schemaId = await this.getElementSchemaId(elementId, username, slug);
+    if (!schemaId) {
+      console.warn(
+        `[Worldbuilding] No schema ID found for element ${elementId}`
+      );
       return null;
     }
     const projectKey = `${username}:${slug}`;
-    return this.getSchemaFromLibrary(projectKey, schemaType, username, slug);
+    const schema = this.getSchemaFromLibrary(
+      projectKey,
+      schemaId,
+      username,
+      slug
+    );
+    console.log(
+      `[Worldbuilding] Retrieved schema for element ${elementId}:`,
+      schema ? schema.id : 'not found'
+    );
+    return schema;
   }
 
   /**
@@ -1174,9 +1172,7 @@ export class WorldbuildingService {
     }
 
     // Find existing or add new
-    const existingIndex = this.schemasCache.findIndex(
-      s => s.type === schema.type
-    );
+    const existingIndex = this.schemasCache.findIndex(s => s.id === schema.id);
     const allSchemas = [...this.schemasCache];
 
     if (existingIndex >= 0) {
@@ -1207,9 +1203,9 @@ export class WorldbuildingService {
     }
 
     // Merge: update existing schemas and add new ones
-    const schemaMap = new Map(this.schemasCache.map(s => [s.type, s]));
+    const schemaMap = new Map(this.schemasCache.map(s => [s.id, s]));
     for (const schema of schemas) {
-      schemaMap.set(schema.type, schema);
+      schemaMap.set(schema.id, schema);
     }
 
     const updatedSchemas = Array.from(schemaMap.values());
@@ -1219,19 +1215,19 @@ export class WorldbuildingService {
   }
 
   /**
-   * Get a single schema from the library by type.
+   * Get a single schema from the library by ID.
    * Returns a plain object, not a Yjs type.
    * @param _username - Project username (unused, kept for API compatibility)
    * @param _slug - Project slug (unused, kept for API compatibility)
-   * @param schemaType - The schema type to retrieve
+   * @param schemaId - The schema ID to retrieve
    * @returns The schema or null if not found
    */
   getSchema(
     _username: string,
     _slug: string,
-    schemaType: string
+    schemaId: string
   ): ElementTypeSchema | null {
-    return this.schemasCache.find(s => s.type === schemaType) ?? null;
+    return this.schemasCache.find(s => s.id === schemaId) ?? null;
   }
 
   /**
@@ -1242,15 +1238,5 @@ export class WorldbuildingService {
    */
   hasNoSchemas(_username: string, _slug: string): boolean {
     return this.schemasCache.length === 0;
-  }
-
-  /**
-   * Load default templates into the project's schema library.
-   * @param username - Project username
-   * @param slug - Project slug
-   */
-  async loadDefaults(username: string, slug: string): Promise<void> {
-    const projectKey = `${username}:${slug}`;
-    await this.autoLoadDefaultTemplates(projectKey, username, slug);
   }
 }

@@ -527,7 +527,8 @@ export class ProjectStateService implements OnDestroy {
   addElement(
     type: Element['type'],
     name: string,
-    parentId?: string
+    parentId?: string,
+    schemaId?: string
   ): string | undefined {
     const project = this.project();
     if (!project) return undefined;
@@ -550,6 +551,7 @@ export class ProjectStateService implements OnDestroy {
       id: nanoid(),
       name,
       type,
+      schemaId: schemaId || undefined,
       parentId: parentId || null,
       level: parentLevel + 1,
       expandable: type === ElementType.Folder,
@@ -937,7 +939,8 @@ export class ProjectStateService implements OnDestroy {
         const newElementId = this.addElement(
           result.type,
           result.name,
-          parentElement?.id
+          parentElement?.id,
+          result.schemaId
         );
 
         if (newElementId) {
@@ -1062,13 +1065,25 @@ export class ProjectStateService implements OnDestroy {
 
       if (tabs && tabs.length > 0) {
         const currentElements = this.elements();
-        const validTabs = tabs.filter(tab => {
-          if (tab.type === 'system') return true;
-          return (
-            tab.element &&
-            currentElements.some(element => element.id === tab.id)
-          );
-        });
+        // Filter valid tabs and update element data with fresh data from elements()
+        // This ensures properties like schemaId are up-to-date
+        const validTabs = tabs
+          .filter(tab => {
+            if (tab.type === 'system') return true;
+            return (
+              tab.element &&
+              currentElements.some(element => element.id === tab.id)
+            );
+          })
+          .map(tab => {
+            if (tab.type === 'system') return tab;
+            // Update tab.element with fresh data from currentElements
+            const freshElement = currentElements.find(el => el.id === tab.id);
+            if (freshElement) {
+              return { ...tab, element: freshElement };
+            }
+            return tab;
+          });
 
         if (validTabs.length > 0) {
           const urlParams = window.location.pathname.split('/');
@@ -1142,8 +1157,13 @@ export class ProjectStateService implements OnDestroy {
   private async initializeWorldbuildingForElement(
     element: Element
   ): Promise<void> {
-    if (element.id) {
-      await this.worldbuildingService.initializeWorldbuildingElement(element);
+    const project = this.project();
+    if (element.id && project) {
+      await this.worldbuildingService.initializeWorldbuildingElement(
+        element,
+        project.username,
+        project.slug
+      );
     }
   }
 

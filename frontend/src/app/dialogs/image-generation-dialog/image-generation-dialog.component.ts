@@ -540,7 +540,9 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       try {
         if (username && slug) {
           const result = await this.worldbuildingService.getWorldbuildingData(
-            el.id
+            el.id,
+            username,
+            slug
           );
           data = result ?? undefined;
         }

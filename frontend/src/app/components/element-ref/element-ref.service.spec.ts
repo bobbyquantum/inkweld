@@ -38,7 +38,7 @@ describe('ElementRefService', () => {
     {
       id: 'char-1',
       name: 'John Smith',
-      type: ElementType.Character,
+      type: ElementType.Worldbuilding,
       parentId: null,
       order: 1,
       level: 0,
@@ -49,7 +49,7 @@ describe('ElementRefService', () => {
     {
       id: 'char-2',
       name: 'Jane Johnson',
-      type: ElementType.Character,
+      type: ElementType.Worldbuilding,
       parentId: null,
       order: 2,
       level: 0,
@@ -60,7 +60,7 @@ describe('ElementRefService', () => {
     {
       id: 'loc-1',
       name: 'Castle Blackwood',
-      type: ElementType.Location,
+      type: ElementType.Worldbuilding,
       parentId: null,
       order: 3,
       level: 0,
@@ -116,11 +116,11 @@ describe('ElementRefService', () => {
     });
 
     it('should filter by type', () => {
-      const results = service.searchElements('character');
-      expect(results.length).toBe(2);
-      expect(results.every(r => r.element.type === ElementType.Character)).toBe(
-        true
-      );
+      const results = service.searchElements('worldbuilding');
+      expect(results.length).toBe(3);
+      expect(
+        results.every(r => r.element.type === ElementType.Worldbuilding)
+      ).toBe(true);
     });
 
     it('should respect limit option', () => {
@@ -130,12 +130,12 @@ describe('ElementRefService', () => {
 
     it('should filter by types option', () => {
       const results = service.searchElements('', {
-        types: [ElementType.Character],
+        types: [ElementType.Worldbuilding],
       });
-      expect(results.length).toBe(2);
-      expect(results.every(r => r.element.type === ElementType.Character)).toBe(
-        true
-      );
+      expect(results.length).toBe(3);
+      expect(
+        results.every(r => r.element.type === ElementType.Worldbuilding)
+      ).toBe(true);
     });
 
     it('should exclude specified IDs', () => {
@@ -166,7 +166,7 @@ describe('ElementRefService', () => {
     it('should return default icon when no metadata icon', () => {
       const results = service.searchElements('castle');
       const castleResult = results.find(r => r.element.id === 'loc-1');
-      expect(castleResult?.icon).toBe('place'); // Default for Location
+      expect(castleResult?.icon).toBe('category'); // Default for Worldbuilding without schema
     });
   });
 
@@ -204,13 +204,13 @@ describe('ElementRefService', () => {
       const element = {
         id: 'char-1',
         name: 'John Smith',
-        type: ElementType.Character,
+        type: ElementType.Worldbuilding,
       };
 
       const attrs = service.createNodeAttrs(element);
 
       expect(attrs.elementId).toBe('char-1');
-      expect(attrs.elementType).toBe(ElementType.Character);
+      expect(attrs.elementType).toBe(ElementType.Worldbuilding);
       expect(attrs.displayText).toBe('John Smith');
       expect(attrs.originalName).toBe('John Smith');
       expect(attrs.relationshipTypeId).toBe('referenced-in');
@@ -220,7 +220,7 @@ describe('ElementRefService', () => {
       const element = {
         id: 'char-1',
         name: 'John Smith',
-        type: ElementType.Character,
+        type: ElementType.Worldbuilding,
       };
 
       const attrs = service.createNodeAttrs(element, {
@@ -235,7 +235,7 @@ describe('ElementRefService', () => {
       const element = {
         id: 'char-1',
         name: 'John Smith',
-        type: ElementType.Character,
+        type: ElementType.Worldbuilding,
       };
 
       const attrs = service.createNodeAttrs(element, {
@@ -264,10 +264,10 @@ describe('ElementRefService', () => {
     });
 
     it('should filter by type in search query', () => {
-      service.setSearchQuery('location');
+      service.setSearchQuery('castle');
       const results = service.searchResults();
       expect(results.length).toBe(1);
-      expect(results[0].element.type).toBe(ElementType.Location);
+      expect(results[0].element.type).toBe(ElementType.Worldbuilding);
     });
 
     it('should handle whitespace in queries', () => {
@@ -289,7 +289,7 @@ describe('ElementRefService', () => {
         {
           id: 'orphan-1',
           name: 'Orphan Element',
-          type: ElementType.Character,
+          type: ElementType.Worldbuilding,
           parentId: 'non-existent-parent', // Parent doesn't exist
           order: 10,
           level: 1,
@@ -340,7 +340,7 @@ describe('ElementRefService', () => {
 
     it('should return default icon for type', () => {
       const element = mockElements.find(e => e.id === 'loc-1')!;
-      expect(service.getElementIcon(element)).toBe('place');
+      expect(service.getElementIcon(element)).toBe('category');
     });
 
     it('should return folder icon for folders', () => {
@@ -365,16 +365,15 @@ describe('ElementRefService', () => {
         version: 1,
         metadata: {},
       };
-      expect(service.getElementIcon(customElement)).toBe('category');
+      expect(service.getElementIcon(customElement)).toBe('description');
     });
   });
 
   describe('getDefaultIconForType', () => {
     it('should return default icon for standard types', () => {
-      expect(service.getDefaultIconForType(ElementType.Character)).toBe(
-        'person'
+      expect(service.getDefaultIconForType(ElementType.Worldbuilding)).toBe(
+        'category'
       );
-      expect(service.getDefaultIconForType(ElementType.Location)).toBe('place');
       expect(service.getDefaultIconForType(ElementType.Folder)).toBe('folder');
       expect(service.getDefaultIconForType(ElementType.Item)).toBe(
         'description'
@@ -383,7 +382,7 @@ describe('ElementRefService', () => {
 
     it('should return category icon for custom types', () => {
       expect(service.getDefaultIconForType('CUSTOM_Race' as ElementType)).toBe(
-        'category'
+        'description'
       );
     });
 
@@ -396,10 +395,9 @@ describe('ElementRefService', () => {
 
   describe('formatElementType', () => {
     it('should format standard element types', () => {
-      expect(service.formatElementType(ElementType.Character)).toBe(
-        'Character'
+      expect(service.formatElementType(ElementType.Worldbuilding)).toBe(
+        'Worldbuilding'
       );
-      expect(service.formatElementType(ElementType.Location)).toBe('Location');
       expect(service.formatElementType(ElementType.Item)).toBe('Document');
     });
 
@@ -425,7 +423,7 @@ describe('ElementRefService', () => {
         elementId: 'char-1',
         displayText: 'John',
         originalName: 'John Smith',
-        elementType: ElementType.Character,
+        elementType: ElementType.Worldbuilding,
         position: { x: 100, y: 200 },
       };
 
@@ -439,7 +437,7 @@ describe('ElementRefService', () => {
         elementId: 'char-1',
         displayText: 'John',
         originalName: 'John Smith',
-        elementType: ElementType.Character,
+        elementType: ElementType.Worldbuilding,
         position: { x: 100, y: 200 },
       };
 
@@ -454,7 +452,7 @@ describe('ElementRefService', () => {
     it('should handle ref click event', () => {
       const clickEvent = {
         elementId: 'char-1',
-        elementType: ElementType.Character,
+        elementType: ElementType.Worldbuilding,
         displayText: 'John',
         originalName: 'John Smith',
         nodePos: 42,
@@ -470,7 +468,7 @@ describe('ElementRefService', () => {
     it('should clear click event', () => {
       const clickEvent = {
         elementId: 'char-1',
-        elementType: ElementType.Character,
+        elementType: ElementType.Worldbuilding,
         displayText: 'John',
         originalName: 'John Smith',
         nodePos: 42,

@@ -230,39 +230,6 @@ export class RelationshipsTabComponent {
   }
 
   /**
-   * Reset relationship types to defaults
-   */
-  async resetToDefaults(): Promise<void> {
-    const confirmed = await this.dialogGateway.openConfirmationDialog({
-      title: 'Reset to Defaults',
-      message:
-        'This will replace all relationship types with the defaults. Any customizations will be lost. Continue?',
-      confirmText: 'Reset',
-      cancelText: 'Cancel',
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      this.relationshipService.resetToDefaults();
-      this.snackBar.open(`✓ Reset to default relationship types`, 'Close', {
-        duration: 3000,
-      });
-      this.loadRelationshipTypes();
-    } catch (err: unknown) {
-      console.error(
-        '[RelationshipsTab] Error resetting to defaults:',
-        err instanceof Error ? err.message : err
-      );
-      this.snackBar.open('Failed to reset relationship types', 'Close', {
-        duration: 5000,
-      });
-    }
-  }
-
-  /**
    * Create a new custom relationship type
    */
   async createCustomType(): Promise<void> {

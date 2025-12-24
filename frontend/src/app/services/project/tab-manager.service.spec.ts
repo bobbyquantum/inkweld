@@ -60,13 +60,13 @@ describe('TabManagerService', () => {
     });
 
     it('should return "worldbuilding" for Character type', () => {
-      expect(service.getTabTypeForElement(ElementType.Character)).toBe(
+      expect(service.getTabTypeForElement(ElementType.Worldbuilding)).toBe(
         'worldbuilding'
       );
     });
 
     it('should return "worldbuilding" for Location type', () => {
-      expect(service.getTabTypeForElement(ElementType.Location)).toBe(
+      expect(service.getTabTypeForElement(ElementType.Worldbuilding)).toBe(
         'worldbuilding'
       );
     });
@@ -104,7 +104,7 @@ describe('TabManagerService', () => {
       const element = createElement(
         'char-1',
         'John Doe',
-        ElementType.Character
+        ElementType.Worldbuilding
       );
 
       const result = service.openDocument(element);

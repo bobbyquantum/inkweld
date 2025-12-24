@@ -1,26 +1,11 @@
 import { ElementType } from '../../api-client';
 
 /**
- * Helper to check if an element type is a worldbuilding type
+ * Helper to check if an element type is a worldbuilding type.
+ * Returns true if the type is ElementType.Worldbuilding (or the string 'WORLDBUILDING').
  */
-export function isWorldbuildingType(type: ElementType): boolean {
-  // Custom templates start with 'CUSTOM_'
-  if (typeof type === 'string' && type.startsWith('CUSTOM_')) {
-    return true;
-  }
-
-  // Check built-in worldbuilding types
-  const worldbuildingTypes: ElementType[] = [
-    ElementType.Character,
-    ElementType.Location,
-    ElementType.WbItem,
-    ElementType.Map,
-    ElementType.Relationship,
-    ElementType.Philosophy,
-    ElementType.Culture,
-    ElementType.Species,
-    ElementType.Systems,
-  ];
-
-  return worldbuildingTypes.includes(type);
+export function isWorldbuildingType(type: ElementType | string): boolean {
+  // Convert to string for comparison to handle both enum and string inputs
+  const typeStr = String(type);
+  return typeStr === 'WORLDBUILDING';
 }

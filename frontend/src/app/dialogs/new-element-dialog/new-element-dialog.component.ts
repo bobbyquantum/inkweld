@@ -32,15 +32,20 @@ import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding
 export interface NewElementDialogResult {
   name: string;
   type: ElementType;
+  /** Schema ID for WORLDBUILDING elements */
+  schemaId?: string;
 }
 
 interface NewElementDialogData {
   skipTypeSelection?: boolean;
   preselectedType?: ElementType;
+  preselectedSchemaId?: string;
 }
 
 interface ElementTypeOption {
   type: ElementType;
+  /** Schema ID for worldbuilding types */
+  schemaId?: string;
   label: string;
   icon: string;
   description: string;
@@ -129,6 +134,9 @@ export class NewElementDialogComponent {
     )
   );
 
+  // Track selected schema ID for worldbuilding types
+  selectedSchemaId = signal<string | undefined>(undefined);
+
   readonly form = this.fb.group({
     name: ['', [Validators.required]],
     type: [ElementType.Item as ElementType, [Validators.required]],
@@ -139,7 +147,7 @@ export class NewElementDialogComponent {
     effect(() => {
       const project = this.projectState.project();
       if (project) {
-        void this.loadWorldbuildingTypes(project.username, project.slug);
+        this.loadWorldbuildingTypes(project.username, project.slug);
       }
     });
 
@@ -154,26 +162,13 @@ export class NewElementDialogComponent {
   /**
    * Load worldbuilding element types from project's schema library
    */
-  private async loadWorldbuildingTypes(
-    username: string,
-    slug: string
-  ): Promise<void> {
+  private loadWorldbuildingTypes(username: string, slug: string): void {
     try {
       console.log(
         '[NewElementDialog] Loading worldbuilding types for',
         username,
         slug
       );
-
-      // Check if library is empty and auto-load defaults if needed
-      const isEmpty = this.worldbuildingService.hasNoSchemas(username, slug);
-
-      if (isEmpty) {
-        console.log(
-          '[NewElementDialog] Schema library empty, auto-loading default templates'
-        );
-        await this.worldbuildingService.loadDefaults(username, slug);
-      }
 
       // Get all schemas as plain objects
       const schemas = this.worldbuildingService.getAllSchemas(username, slug);
@@ -194,7 +189,7 @@ export class NewElementDialogComponent {
    * Build worldbuilding type options from schemas array
    */
   private buildWorldbuildingOptions(
-    schemas: { type: string; name: string; icon: string; description: string }[]
+    schemas: { id: string; name: string; icon: string; description: string }[]
   ): void {
     const worldbuildingOptions: ElementTypeOption[] = [];
 
@@ -202,7 +197,8 @@ export class NewElementDialogComponent {
       console.log('[NewElementDialog] Found schema:', schema);
 
       worldbuildingOptions.push({
-        type: schema.type as ElementType,
+        type: ElementType.Worldbuilding,
+        schemaId: schema.id,
         label: schema.name,
         icon: schema.icon,
         description: schema.description,
@@ -237,15 +233,17 @@ export class NewElementDialogComponent {
       const result: NewElementDialogResult = {
         name: this.form.controls.name.value!,
         type: this.form.controls.type.value!,
+        schemaId: this.selectedSchemaId(),
       };
       this.dialogRef.close(result);
     }
   };
 
-  // Step 1: Select type
-  selectType(type: ElementType): void {
-    this.selectedType.set(type);
-    this.form.controls.type.setValue(type);
+  // Step 1: Select type and optionally schema ID for worldbuilding
+  selectType(option: ElementTypeOption): void {
+    this.selectedType.set(option.type);
+    this.selectedSchemaId.set(option.schemaId);
+    this.form.controls.type.setValue(option.type);
     this.nextStep();
   }
 
@@ -272,9 +270,10 @@ export class NewElementDialogComponent {
   // Get the selected type option details
   getSelectedOption(): ElementTypeOption | undefined {
     const selected = this.selectedType();
+    const schemaId = this.selectedSchemaId();
     if (!selected) return undefined;
     return this.elementTypeOptions().find(
-      (o: ElementTypeOption) => o.type === selected
+      (o: ElementTypeOption) => o.type === selected && o.schemaId === schemaId
     );
   }
 }

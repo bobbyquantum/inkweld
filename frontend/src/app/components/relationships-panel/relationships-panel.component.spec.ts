@@ -9,6 +9,7 @@ import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Element, ElementType } from '../../../api-client';
+import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 import {
   ElementRelationship,
   RelationshipCategory,
@@ -49,7 +50,8 @@ describe('RelationshipsPanelComponent', () => {
     {
       id: 'char-1',
       name: 'Character One',
-      type: ElementType.Character,
+      type: ElementType.Worldbuilding,
+      schemaId: 'character-v1',
       parentId: null,
       order: 2,
       level: 0,
@@ -60,7 +62,8 @@ describe('RelationshipsPanelComponent', () => {
     {
       id: 'loc-1',
       name: 'Location One',
-      type: ElementType.Location,
+      type: ElementType.Worldbuilding,
+      schemaId: 'location-v1',
       parentId: null,
       order: 3,
       level: 0,
@@ -125,6 +128,14 @@ describe('RelationshipsPanelComponent', () => {
 
     projectStateMock = {
       elements: signal(mockElements),
+      project: signal({
+        id: '1',
+        title: 'Test Project',
+        username: 'test',
+        slug: 'test-project',
+        createdDate: new Date().toISOString(),
+        updatedDate: new Date().toISOString(),
+      }),
       openDocument: vi.fn(),
     };
 
@@ -142,6 +153,12 @@ describe('RelationshipsPanelComponent', () => {
         { provide: RelationshipService, useValue: relationshipServiceMock },
         { provide: ProjectStateService, useValue: projectStateMock },
         { provide: MatDialog, useValue: dialogMock },
+        {
+          provide: WorldbuildingService,
+          useValue: {
+            getSchemaFromLibrary: vi.fn().mockReturnValue(null),
+          },
+        },
       ],
     }).compileComponents();
 
@@ -188,8 +205,8 @@ describe('RelationshipsPanelComponent', () => {
 
   describe('element icon resolution', () => {
     it('should return correct icon for element types', () => {
-      expect(component.getElementIcon('char-1')).toBe('person');
-      expect(component.getElementIcon('loc-1')).toBe('place');
+      expect(component.getElementIcon('char-1')).toBe('category');
+      expect(component.getElementIcon('loc-1')).toBe('category');
       expect(component.getElementIcon('doc-1')).toBe('description');
     });
 
