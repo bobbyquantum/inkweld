@@ -1,8 +1,8 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
-import { config } from '../config/env.js';
-import { imageGenerationService } from '../services/image-generation.service.js';
-import type { AppContext } from '../types/context.js';
+import { config } from '../config/env';
+import { imageGenerationService } from '../services/image-generation.service';
+import type { AppContext } from '../types/context';
 
 const configRoutes = new OpenAPIHono<AppContext>();
 

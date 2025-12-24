@@ -9,7 +9,7 @@ import type {
   ImageModelInfo,
   ImageProviderStatus,
   ImageProviderType,
-} from '../../types/image-generation.js';
+} from '../../types/image-generation';
 
 export abstract class BaseImageProvider implements IImageProvider {
   abstract readonly type: ImageProviderType;

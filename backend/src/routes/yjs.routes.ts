@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import { upgradeWebSocket } from 'hono/bun';
-import { yjsService } from '../services/yjs.service.js';
-import { authService } from '../services/auth.service.js';
-import { type AppContext } from '../types/context.js';
+import { yjsService } from '../services/yjs.service';
+import { authService } from '../services/auth.service';
+import { projectService } from '../services/project.service';
+import { type AppContext } from '../types/context';
 
 const app = new Hono<AppContext>();
 
@@ -33,9 +34,17 @@ app.get(
     }
 
     const [username, slug] = parts;
-    // For now, only the owner can access the project
-    // TODO: Add collaborator check when implemented
-    if (user.username !== username) {
+
+    // Verify project exists and user has access
+    const project = await projectService.findByUsernameAndSlug(db, username, slug);
+    if (!project) {
+      console.error(`Project not found: ${username}/${slug}`);
+      return {};
+    }
+
+    // Check access - owner or collaborator
+    if (project.userId !== user.id) {
+      // TODO: Check collaborator access when implemented
       console.error(`User ${user.username} attempted to access project ${username}/${slug}`);
       return {};
     }

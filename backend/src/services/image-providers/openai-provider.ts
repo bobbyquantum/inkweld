@@ -9,8 +9,8 @@ import type {
   ImageGenerateResponse,
   ImageModelInfo,
   ImageProviderType,
-} from '../../types/image-generation.js';
-import { BaseImageProvider } from './base-provider.js';
+} from '../../types/image-generation';
+import { BaseImageProvider } from './base-provider';
 
 /**
  * Default OpenAI image models.

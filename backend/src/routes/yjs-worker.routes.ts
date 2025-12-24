@@ -6,6 +6,8 @@
 
 import { Hono } from 'hono';
 import type { CloudflareAppContext } from '../types/cloudflare';
+import { authService } from '../services/auth.service';
+import { projectService } from '../services/project.service';
 
 const app = new Hono<CloudflareAppContext>();
 
@@ -21,26 +23,33 @@ app.get('/yjs', async (c) => {
     return c.json({ error: 'Missing documentId parameter' }, 400);
   }
 
+  // Authentication check
+  const db = c.get('db');
+  const user = await authService.getUserFromSession(db, c);
+  if (!user) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
   // Validate document format (username:slug:documentId or username:slug:elements)
   const parts = documentId.split(':');
   if (parts.length < 2) {
     return c.json({ error: `Invalid document ID format: ${documentId}` }, 400);
   }
 
-  // Extract projectId (username:slug) from documentId
-  const projectId = `${parts[0]}:${parts[1]}`;
+  const [username, slug] = parts;
+  const projectId = `${username}:${slug}`;
 
-  // TODO: Add authentication check
-  // const userId = c.req.query('userId');
-  // if (!userId) {
-  //   return c.json({ error: 'Unauthorized' }, 401);
-  // }
+  // Verify project exists and user has access
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
+  if (!project) {
+    return c.json({ error: 'Project not found' }, 404);
+  }
 
-  // TODO: Validate project access permissions
-  // const hasAccess = await checkProjectAccess(userId, projectId);
-  // if (!hasAccess) {
-  //   return c.json({ error: 'Forbidden' }, 403);
-  // }
+  // Check access - owner or collaborator
+  if (project.userId !== user.id) {
+    // TODO: Check collaborator access when implemented
+    return c.json({ error: 'Forbidden' }, 403);
+  }
 
   try {
     // Get Durable Object namespace binding

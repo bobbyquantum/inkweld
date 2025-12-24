@@ -1,6 +1,7 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import { projectService } from '../services/project.service';
+import { yjsService } from '../services/yjs.service';
 import { requireAuth } from '../middleware/auth';
 import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
@@ -67,6 +68,22 @@ const listDocsRoute = createRoute({
       },
       description: 'Project not found',
     },
+    403: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Unauthorized access',
+    },
+    500: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: 'Internal server error',
+    },
   },
 });
 
@@ -82,9 +99,22 @@ documentRoutes.openapi(listDocsRoute, async (c) => {
     return c.json({ error: 'Project not found' }, 404);
   }
 
-  // For now, return empty array - full implementation would query elements
-  // from the project's elements Yjs document
-  return c.json([], 200);
+  // Check access
+  const user = c.get('user');
+  if (!user || project.userId !== user.id) {
+    // TODO: Check collaborator access when implemented
+    return c.json({ error: 'Unauthorized' }, 403);
+  }
+
+  // Get elements from Yjs document and filter for items (documents)
+  try {
+    const elements = await yjsService.getElements(username, slug);
+    const documents = elements.filter((e) => e.type === 'ITEM');
+    return c.json(documents, 200);
+  } catch (error) {
+    console.error('Error fetching documents:', error);
+    return c.json({ error: 'Failed to fetch documents' }, 500);
+  }
 });
 
 // Get document metadata

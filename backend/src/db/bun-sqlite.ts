@@ -8,7 +8,7 @@ import { Database as BunDatabase } from 'bun:sqlite';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import * as schema from './schema';
-import { config } from '../config/env.js';
+import { config } from '../config/env';
 
 let db: BunSQLiteDatabase<typeof schema> | null = null;
 let sqlite: BunDatabase | null = null;

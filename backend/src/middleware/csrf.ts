@@ -1,6 +1,6 @@
 import { MiddlewareHandler } from 'hono';
 import { ForbiddenError } from '../errors';
-import { config } from '../config/env.js';
+import { config } from '../config/env';
 
 // Simple CSRF token storage (in production, use Redis or similar)
 const csrfTokens = new Map<string, string>();

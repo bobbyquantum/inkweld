@@ -8,6 +8,7 @@ import * as decoding from 'lib0/decoding';
 import { WebSocket } from 'ws';
 import { fileStorageService } from './file-storage.service';
 import * as path from 'path';
+import { Element, ElementType } from '../schemas/element.schemas';
 
 const messageSync = 0;
 const messageAwareness = 1;
@@ -123,6 +124,39 @@ export class YjsService {
     } catch (error) {
       console.error('Error loading persisted state:', error);
     }
+  }
+
+  /**
+   * Get all elements for a project from its Yjs document
+   */
+  async getElements(username: string, projectSlug: string): Promise<Element[]> {
+    const docId = `${username}:${projectSlug}:elements/`;
+    const sharedDoc = await this.getDocument(docId);
+
+    // Elements are stored in a Y.Array named 'elements'
+    const elementsArray = sharedDoc.doc.getArray('elements');
+
+    const elements: Element[] = [];
+    elementsArray.forEach((value) => {
+      if (value && typeof value === 'object') {
+        const elem = value as Record<string, unknown>;
+        elements.push({
+          id: String(elem.id ?? ''),
+          name: String(elem.name ?? ''),
+          type: (elem.type as ElementType) ?? 'ITEM',
+          parentId: elem.parentId ? String(elem.parentId) : null,
+          order: Number(elem.order ?? 0),
+          level: Number(elem.level ?? 0),
+          expandable: Boolean(elem.expandable ?? false),
+          version: Number(elem.version ?? 1),
+          schemaId: elem.schemaId ? String(elem.schemaId) : undefined,
+          metadata: (elem.metadata as Record<string, string>) ?? {},
+        });
+      }
+    });
+
+    // Sort by order
+    return elements.sort((a, b) => a.order - b.order);
   }
 
   /**

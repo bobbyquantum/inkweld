@@ -1,17 +1,17 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
-import { authService } from '../services/auth.service.js';
-import { userService } from '../services/user.service.js';
-import { configService } from '../services/config.service.js';
-import { config } from '../config/env.js';
-import { type AppContext } from '../types/context.js';
+import { authService } from '../services/auth.service';
+import { userService } from '../services/user.service';
+import { configService } from '../services/config.service';
+import { config } from '../config/env';
+import { type AppContext } from '../types/context';
 import {
   LoginRequestSchema,
   LoginResponseSchema,
   OAuthProvidersResponseSchema,
   RegisterRequestSchema,
   RegisterResponseSchema,
-} from '../schemas/auth.schemas.js';
-import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas.js';
+} from '../schemas/auth.schemas';
+import { ErrorResponseSchema, MessageResponseSchema } from '../schemas/common.schemas';
 
 const authRoutes = new OpenAPIHono<AppContext>();
 

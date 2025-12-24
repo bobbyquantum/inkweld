@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, beforeAll, afterAll } from 'bun:test';
-import { getDatabase } from '../src/db/index.js';
-import { users, projects, documentSnapshots } from '../src/db/schema/index.js';
+import { getDatabase } from '../src/db/index';
+import { users, projects, documentSnapshots } from '../src/db/schema/index';
 import { eq } from 'drizzle-orm';
-import { documentSnapshotService } from '../src/services/document-snapshot.service.js';
-import { startTestServer, stopTestServer } from './server-test-helper.js';
+import { documentSnapshotService } from '../src/services/document-snapshot.service';
+import { startTestServer, stopTestServer } from './server-test-helper';
 
 describe('Document Snapshot Service', () => {
   let testUserId: string;

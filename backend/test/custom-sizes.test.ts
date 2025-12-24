@@ -2,7 +2,7 @@
  * Tests for custom image sizes API endpoints
  */
 import { describe, it, expect, beforeEach } from 'bun:test';
-import type { CustomImageSize } from '../src/types/image-generation.js';
+import type { CustomImageSize } from '../src/types/image-generation';
 
 describe('Custom Image Sizes', () => {
   // Test data

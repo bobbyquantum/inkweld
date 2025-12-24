@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
-import { getDatabase } from '../src/db/index.js';
-import { users } from '../src/db/schema/index.js';
+import { getDatabase } from '../src/db/index';
+import { users } from '../src/db/schema/index';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { startTestServer, stopTestServer, TestClient } from './server-test-helper.js';
-import { userService } from '../src/services/user.service.js';
+import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import { userService } from '../src/services/user.service';
 
 describe('User Service', () => {
   const db = getDatabase();

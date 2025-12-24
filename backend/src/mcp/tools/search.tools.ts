@@ -16,22 +16,8 @@ import type { McpContext, McpToolResult } from '../mcp.types';
 import { registerTool } from '../mcp.handler';
 import { MCP_PERMISSIONS } from '../../db/schema/mcp-access-keys';
 import { yjsService } from '../../services/yjs.service';
-import { type Element, getElementsDocId, buildVisualTree, treeToText } from './tree-helpers';
-
-/**
- * Worldbuilding element types
- */
-const WORLDBUILDING_TYPES = [
-  'CHARACTER',
-  'LOCATION',
-  'WB_ITEM',
-  'MAP',
-  'RELATIONSHIP',
-  'PHILOSOPHY',
-  'CULTURE',
-  'SPECIES',
-  'SYSTEMS',
-];
+import { Element } from '../../schemas/element.schemas';
+import { buildVisualTree, treeToText } from './tree-helpers';
 
 interface SearchResult {
   elementId: string;
@@ -46,33 +32,8 @@ interface SearchResult {
  * Get elements from Yjs
  */
 async function getElements(username: string, slug: string): Promise<Element[]> {
-  const docId = getElementsDocId(username, slug);
-
   try {
-    const sharedDoc = await yjsService.getDocument(docId);
-
-    // Elements are stored in a Y.Array in positional order
-    const elementsArray = sharedDoc.doc.getArray('elements');
-
-    const elements: Element[] = [];
-    elementsArray.forEach((value) => {
-      if (value && typeof value === 'object') {
-        const elem = value as Record<string, unknown>;
-        elements.push({
-          id: String(elem.id ?? ''),
-          name: String(elem.name ?? ''),
-          type: String(elem.type ?? 'ITEM') as Element['type'],
-          parentId: elem.parentId ? String(elem.parentId) : null,
-          order: Number(elem.order ?? 0),
-          level: Number(elem.level ?? 0),
-          expandable: Boolean(elem.expandable ?? elem.type === 'FOLDER'),
-          version: Number(elem.version ?? 0),
-          metadata: (elem.metadata as Record<string, string>) ?? {},
-        });
-      }
-    });
-
-    return elements;
+    return await yjsService.getElements(username, slug);
   } catch (err) {
     console.error('[MCP Search] Error getting elements:', err);
     return [];
@@ -437,8 +398,8 @@ registerTool({
     // Filter to worldbuilding types
     const wbElements = elements.filter(
       (e) =>
-        WORLDBUILDING_TYPES.includes(e.type) &&
-        (schemaTypes.length === 0 || schemaTypes.includes(e.type))
+        e.type === 'WORLDBUILDING' &&
+        (schemaTypes.length === 0 || (e.schemaId && schemaTypes.includes(e.schemaId)))
     );
 
     const results: SearchResult[] = [];

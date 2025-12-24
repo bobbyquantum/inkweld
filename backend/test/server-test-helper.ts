@@ -4,7 +4,7 @@
  * Hono's app.request() doesn't maintain cookies/sessions.
  */
 import { serve, type Server } from 'bun';
-import { createBunApp } from '../src/bun-app.js';
+import { createBunApp } from '../src/bun-app';
 
 let testServer: Server | null = null;
 let testPort: number = 0;

@@ -1,6 +1,7 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
 import { projectService } from '../services/project.service';
+import { yjsService } from '../services/yjs.service';
 import { requireAuth } from '../middleware/auth';
 import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
@@ -45,6 +46,22 @@ const listElementsRoute = createRoute({
       },
       description: 'Project not found',
     },
+    403: {
+      content: {
+        'application/json': {
+          schema: ElementErrorSchema,
+        },
+      },
+      description: 'Unauthorized access',
+    },
+    500: {
+      content: {
+        'application/json': {
+          schema: ElementErrorSchema,
+        },
+      },
+      description: 'Internal server error',
+    },
   },
 });
 
@@ -60,9 +77,21 @@ elementRoutes.openapi(listElementsRoute, async (c) => {
     return c.json({ error: 'Project not found' }, 404);
   }
 
-  // Placeholder - full implementation would query elements from Yjs document
-  // The elements are stored in a Yjs Map in the project's elements document
-  return c.json([], 200);
+  // Check access
+  const user = c.get('user');
+  if (!user || project.userId !== user.id) {
+    // TODO: Check collaborator access when implemented
+    return c.json({ error: 'Unauthorized' }, 403);
+  }
+
+  // Fetch elements from Yjs document
+  try {
+    const elements = await yjsService.getElements(username, slug);
+    return c.json(elements, 200);
+  } catch (error) {
+    console.error('Error fetching elements:', error);
+    return c.json({ error: 'Failed to fetch elements' }, 500);
+  }
 });
 
 export default elementRoutes;

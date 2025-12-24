@@ -461,44 +461,6 @@ export class UnifiedSnapshotService {
     }
   }
 
-  /**
-   * @deprecated Use restoreFromContent instead. This uses the broken Y.applyUpdate approach.
-   *
-   * Restore document content from Yjs state bytes directly.
-   * Kept for backward compatibility only.
-   */
-  async restoreFromBytes(
-    documentId: string,
-    yDocState: Uint8Array,
-    worldbuildingState?: Uint8Array
-  ): Promise<void> {
-    // Removed logger.warn
-    const ydoc = await this.getDocumentYDoc(documentId);
-    if (!ydoc) {
-      throw new Error(`Document ${documentId} not found or not loaded`);
-    }
-
-    // Apply the state (legacy approach - may cause CRDT issues)
-    Y.applyUpdate(ydoc, yDocState);
-
-    this.logger.debug(
-      'UnifiedSnapshot',
-      `Applied Yjs state to document ${documentId}`
-    );
-
-    // Handle worldbuilding state if present
-    if (worldbuildingState) {
-      const wbYdoc = this.getWorldbuildingYDoc(documentId);
-      if (wbYdoc) {
-        Y.applyUpdate(wbYdoc, worldbuildingState);
-        this.logger.debug(
-          'UnifiedSnapshot',
-          `Applied worldbuilding state to ${documentId}`
-        );
-      }
-    }
-  }
-
   // ─────────────────────────────────────────────────────────────────────────────
   // Delete Snapshot
   // ─────────────────────────────────────────────────────────────────────────────
