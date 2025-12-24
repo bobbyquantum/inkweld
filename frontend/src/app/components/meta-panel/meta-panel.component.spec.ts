@@ -3,7 +3,6 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { SystemConfigService } from '@services/core/system-config.service';
-import { DocumentSnapshotService } from '@services/project/document-snapshot.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship';
 import { of } from 'rxjs';
@@ -36,11 +35,6 @@ describe('MetaPanelComponent', () => {
   };
 
   beforeEach(async () => {
-    // Mock services to prevent errors when panel opens
-    const snapshotServiceMock = {
-      listSnapshots: vi.fn().mockReturnValue(of([])),
-    };
-
     relationshipServiceMock = {
       relationships: signal([]),
       customRelationshipTypes: signal([]),
@@ -85,7 +79,6 @@ describe('MetaPanelComponent', () => {
         provideZonelessChangeDetection(),
         provideHttpClient(),
         { provide: SystemConfigService, useValue: systemConfigMock },
-        { provide: DocumentSnapshotService, useValue: snapshotServiceMock },
         { provide: RelationshipService, useValue: relationshipServiceMock },
         { provide: ProjectStateService, useValue: projectStateMock },
         { provide: MatDialog, useValue: dialogMock },

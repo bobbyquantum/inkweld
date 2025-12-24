@@ -72,10 +72,7 @@ const DimensionSizeSchema = z
     example: '1200x1800',
   });
 
-const ImageSizeSchema = z
-  .union([z.enum(PRESET_IMAGE_SIZES), AspectRatioResolutionSizeSchema, DimensionSizeSchema])
-  .optional()
-  .openapi('ImageSize');
+const ImageSizeSchema = z.enum(PRESET_IMAGE_SIZES).openapi('ImageSize');
 
 const WorldbuildingContextSchema = z
   .object({

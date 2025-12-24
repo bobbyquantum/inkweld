@@ -61,8 +61,8 @@ class DocumentSnapshotService {
       userId: string;
       name: string;
       description?: string;
-      yDocState: Buffer;
-      stateVector?: Buffer;
+      xmlContent?: string;
+      worldbuildingData?: Record<string, unknown>;
       wordCount?: number;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Metadata can contain arbitrary JSON
       metadata?: Record<string, any>;
@@ -76,8 +76,8 @@ class DocumentSnapshotService {
       userId: data.userId,
       name: data.name,
       description: data.description || null,
-      yDocState: data.yDocState,
-      stateVector: data.stateVector || null,
+      xmlContent: data.xmlContent || null,
+      worldbuildingData: data.worldbuildingData || null,
       wordCount: data.wordCount || null,
       metadata: data.metadata || null,
       createdAt: Date.now(),

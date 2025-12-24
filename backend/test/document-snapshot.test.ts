@@ -184,8 +184,8 @@ describe('Document Snapshot Service', () => {
   describe('create', () => {
     it('should create a new snapshot with all fields', async () => {
       const db = getDatabase();
-      const yDocState = Buffer.from('full-ydoc-state');
-      const stateVector = Buffer.from('state-vector-data');
+      const xmlContent = '<p>Test content</p>';
+      const worldbuildingData = { character: { name: 'John' } };
       const metadata = { editor: 'prosemirror', version: 1 };
 
       const snapshot = await documentSnapshotService.create(db, {
@@ -194,8 +194,8 @@ describe('Document Snapshot Service', () => {
         userId: testUserId,
         name: 'Test Snapshot',
         description: 'A test snapshot description',
-        yDocState,
-        stateVector,
+        xmlContent,
+        worldbuildingData,
         wordCount: 500,
         metadata,
       });
@@ -207,8 +207,8 @@ describe('Document Snapshot Service', () => {
       expect(snapshot.userId).toBe(testUserId);
       expect(snapshot.name).toBe('Test Snapshot');
       expect(snapshot.description).toBe('A test snapshot description');
-      expect(snapshot.yDocState).toEqual(yDocState);
-      expect(snapshot.stateVector).toEqual(stateVector);
+      expect(snapshot.xmlContent).toBe(xmlContent);
+      expect(snapshot.worldbuildingData).toEqual(worldbuildingData);
       expect(snapshot.wordCount).toBe(500);
       expect(snapshot.metadata).toEqual(metadata);
       expect(snapshot.createdAt).toBeGreaterThan(0);
@@ -216,19 +216,19 @@ describe('Document Snapshot Service', () => {
 
     it('should create snapshot with minimal required fields', async () => {
       const db = getDatabase();
-      const yDocState = Buffer.from('minimal-ydoc-state');
+      const xmlContent = '<p>Minimal content</p>';
 
       const snapshot = await documentSnapshotService.create(db, {
         documentId: 'doc-minimal',
         projectId: testProjectId,
         userId: testUserId,
         name: 'Test Snapshot',
-        yDocState,
+        xmlContent,
       });
 
       expect(snapshot).toBeDefined();
       expect(snapshot.description).toBeNull();
-      expect(snapshot.stateVector).toBeNull();
+      expect(snapshot.worldbuildingData).toBeNull();
       expect(snapshot.wordCount).toBeNull();
       expect(snapshot.metadata).toBeNull();
     });
@@ -237,7 +237,7 @@ describe('Document Snapshot Service', () => {
   describe('delete', () => {
     it('should delete a snapshot', async () => {
       const db = getDatabase();
-      const yDocState = Buffer.from('delete-test');
+      const xmlContent = '<p>Delete test</p>';
       const snapshotId = crypto.randomUUID();
 
       await db.insert(documentSnapshots).values({
@@ -246,7 +246,7 @@ describe('Document Snapshot Service', () => {
         projectId: testProjectId,
         userId: testUserId,
         name: 'Test Snapshot',
-        yDocState,
+        xmlContent,
         createdAt: Date.now(),
       });
 

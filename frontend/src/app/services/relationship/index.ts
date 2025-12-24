@@ -8,7 +8,6 @@ export { RelationshipService } from './relationship.service';
 export type {
   ElementRelationship,
   ElementRelationshipView,
-  RelationshipType,
   RelationshipTypeDefinition,
   ResolvedRelationship,
 } from '../../components/element-ref/element-ref.model';

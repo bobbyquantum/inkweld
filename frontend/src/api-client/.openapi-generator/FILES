@@ -14,7 +14,9 @@ api/elements.service.ts
 api/health.service.ts
 api/images.service.ts
 api/linting.service.ts
+api/mcp-keys.service.ts
 api/mcp.service.ts
+api/media.service.ts
 api/projects.service.ts
 api/published-files.service.ts
 api/security.service.ts
@@ -32,6 +34,8 @@ model/admin-set-config-request.ts
 model/admin-set-user-admin-request.ts
 model/config-response.ts
 model/correction.ts
+model/create-mcp-key-request.ts
+model/create-mcp-key-response.ts
 model/create-project-request.ts
 model/create-snapshot-request.ts
 model/csrf-error-response.ts
@@ -43,9 +47,12 @@ model/document-error.ts
 model/document-snapshot.ts
 model/document.ts
 model/element-error.ts
+model/element-type.ts
 model/element.ts
 model/error-response.ts
 model/generated-image.ts
+model/get-mcp-permissions200-response-permissions-inner.ts
+model/get-mcp-permissions200-response.ts
 model/get-provider-models200-response.ts
 model/get-shared-file-info200-response.ts
 model/health-response.ts
@@ -60,6 +67,11 @@ model/image-model-info.ts
 model/image-provider-status.ts
 model/image-provider-type.ts
 model/image-size.ts
+model/json-rpc-request-id.ts
+model/json-rpc-request.ts
+model/json-rpc-response-error.ts
+model/json-rpc-response-id.ts
+model/json-rpc-response.ts
 model/lint-error.ts
 model/lint-request.ts
 model/lint-response.ts
@@ -67,6 +79,13 @@ model/lint-status.ts
 model/login-request.ts
 model/login-response.ts
 model/mcp-error.ts
+model/mcp-key-error.ts
+model/mcp-key-message.ts
+model/mcp-permission.ts
+model/mcp-public-key.ts
+model/media-error.ts
+model/media-item.ts
+model/media-list-response.ts
 model/message-response.ts
 model/message.ts
 model/models.ts
@@ -88,6 +107,7 @@ model/system-features.ts
 model/update-custom-image-sizes-request.ts
 model/update-project-request.ts
 model/update-published-file-request.ts
+model/upload-project-media200-response.ts
 model/user.ts
 model/username-availability.ts
 model/worldbuilding-context.ts

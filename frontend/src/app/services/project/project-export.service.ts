@@ -575,29 +575,10 @@ export class ProjectExportService {
       // New format
       xmlContent: s.xmlContent,
       worldbuildingData: s.worldbuildingData,
-      // Legacy format (for backward compatibility with older imports)
-      yDocState: s.yDocState ? this.uint8ArrayToBase64(s.yDocState) : undefined,
-      worldbuildingState: s.worldbuildingState
-        ? this.uint8ArrayToBase64(s.worldbuildingState)
-        : undefined,
-      stateVector: s.stateVector
-        ? this.uint8ArrayToBase64(s.stateVector)
-        : undefined,
       wordCount: s.wordCount,
       metadata: s.metadata,
       createdAt: s.createdAt,
     }));
-  }
-
-  /**
-   * Convert Uint8Array to base64 string.
-   */
-  private uint8ArrayToBase64(bytes: Uint8Array): string {
-    let binary = '';
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
   }
 
   /**

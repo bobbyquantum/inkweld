@@ -31,17 +31,6 @@ export interface StoredSnapshot {
    * Stored as JSON, restored using forward CRDT map operations.
    */
   worldbuildingData?: Record<string, unknown>;
-  /**
-   * @deprecated Use xmlContent instead. Kept for backward compatibility
-   * with existing snapshots during migration period.
-   */
-  yDocState?: Uint8Array;
-  /**
-   * @deprecated Use worldbuildingData instead.
-   */
-  worldbuildingState?: Uint8Array;
-  /** @deprecated No longer needed with content-based snapshots */
-  stateVector?: Uint8Array;
   /** Word count at time of snapshot */
   wordCount?: number;
   /** Arbitrary metadata */
@@ -110,8 +99,7 @@ const STORE_NAME = 'snapshots';
  * // Create a snapshot
  * const snapshot = await offlineSnapshot.createSnapshot('alice/my-novel', 'doc-123', {
  *   name: 'Chapter 1 draft',
- *   yDocState: encodeStateAsUpdate(ydoc),
- *   stateVector: encodeStateVector(ydoc),
+ *   xmlContent: '<article>...</article>',
  *   wordCount: 1500,
  * });
  *
@@ -463,8 +451,6 @@ export class OfflineSnapshotService {
   /**
    * Import a snapshot from archive data (e.g., during project import).
    *
-   * Supports both new format (xmlContent) and legacy format (yDocState).
-   *
    * @param projectKey Project key
    * @param snapshot Snapshot data from archive
    */
@@ -474,16 +460,10 @@ export class OfflineSnapshotService {
       documentId: string;
       name: string;
       description?: string;
-      /** New format: XML content string */
+      /** XML content string */
       xmlContent?: string;
-      /** New format: worldbuilding data as JSON */
+      /** Worldbuilding data as JSON */
       worldbuildingData?: Record<string, unknown>;
-      /** @deprecated Legacy format: Yjs state bytes */
-      yDocState?: Uint8Array;
-      /** @deprecated Legacy format */
-      worldbuildingState?: Uint8Array;
-      /** @deprecated Legacy format */
-      stateVector?: Uint8Array;
       wordCount?: number;
       metadata?: Record<string, unknown>;
       createdAt: string;
@@ -499,13 +479,8 @@ export class OfflineSnapshotService {
       documentId: snapshot.documentId,
       name: snapshot.name,
       description: snapshot.description,
-      // New format
       xmlContent: snapshot.xmlContent ?? '',
       worldbuildingData: snapshot.worldbuildingData,
-      // Legacy format (for backward compatibility)
-      yDocState: snapshot.yDocState,
-      worldbuildingState: snapshot.worldbuildingState,
-      stateVector: snapshot.stateVector,
       wordCount: snapshot.wordCount,
       metadata: snapshot.metadata,
       createdAt: snapshot.createdAt,

@@ -263,8 +263,8 @@ describe('DocumentService', () => {
 
       let currentStatus: DocumentSyncState | undefined;
       TestBed.runInInjectionContext(() => {
-        const syncStatus$ = service.getSyncStatus(testDocumentId);
-        syncStatus$.subscribe(status => (currentStatus = status));
+        const syncStatus = service.getSyncStatusSignal(testDocumentId);
+        currentStatus = syncStatus();
       });
 
       expect(currentStatus).toBe(DocumentSyncState.Synced);
@@ -301,8 +301,8 @@ describe('DocumentService', () => {
 
       let currentStatus: DocumentSyncState | undefined;
       TestBed.runInInjectionContext(() => {
-        const syncStatus$ = service.getSyncStatus(testDocumentId);
-        syncStatus$.subscribe(status => (currentStatus = status));
+        const syncStatus = service.getSyncStatusSignal(testDocumentId);
+        currentStatus = syncStatus();
       });
 
       expect(currentStatus).toBe(DocumentSyncState.Offline);
@@ -315,8 +315,8 @@ describe('DocumentService', () => {
     it('should initialize with Offline status', () => {
       let currentStatus: DocumentSyncState | undefined;
       TestBed.runInInjectionContext(() => {
-        const syncStatus$ = service.getSyncStatus(testDocumentId);
-        syncStatus$.subscribe(status => (currentStatus = status));
+        const syncStatus = service.getSyncStatusSignal(testDocumentId);
+        currentStatus = syncStatus();
       });
 
       expect(currentStatus).toBe(DocumentSyncState.Offline);

@@ -13,8 +13,8 @@ export interface CreateSnapshotRequest {
     documentId: string;
     name: string;
     description?: string;
-    yDocState: string;
-    stateVector?: string;
+    xmlContent?: string;
+    worldbuildingData?: { [key: string]: any | null; };
     wordCount?: number;
     metadata?: { [key: string]: any | null; };
 }

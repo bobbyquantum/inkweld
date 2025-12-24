@@ -175,8 +175,8 @@ snapshotRoutes.openapi(getSnapshotRoute, async (c) => {
   const response = {
     ...snapshot,
     createdAt: new Date(snapshot.createdAt).toISOString(),
-    yDocState: snapshot.yDocState.toString('base64'),
-    stateVector: snapshot.stateVector?.toString('base64'),
+    xmlContent: snapshot.xmlContent,
+    worldbuildingData: snapshot.worldbuildingData,
   };
 
   return c.json(response, 200);
@@ -275,8 +275,8 @@ snapshotRoutes.openapi(createSnapshotRoute, async (c) => {
     userId: user.id,
     name: data.name,
     description: data.description,
-    yDocState: Buffer.from(data.yDocState, 'base64'),
-    stateVector: data.stateVector ? Buffer.from(data.stateVector, 'base64') : undefined,
+    xmlContent: data.xmlContent,
+    worldbuildingData: data.worldbuildingData,
     wordCount: data.wordCount,
     metadata: data.metadata,
   });
@@ -537,8 +537,8 @@ snapshotRoutes.openapi(previewSnapshotRoute, async (c) => {
   const response = {
     ...snapshot,
     createdAt: new Date(snapshot.createdAt).toISOString(),
-    yDocState: snapshot.yDocState.toString('base64'),
-    stateVector: snapshot.stateVector?.toString('base64'),
+    xmlContent: snapshot.xmlContent,
+    worldbuildingData: snapshot.worldbuildingData,
   };
 
   return c.json(response, 200);
