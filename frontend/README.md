@@ -2,14 +2,14 @@
 
 ## Overview
 
-The InkWeld frontend is a modern, modular Angular 20 application designed to provide a rich, real-time collaborative writing experience. It serves as the client interface for the InkWeld platform, enabling users to create, edit, and manage writing projects with seamless integration of AI assistance and real-time collaboration.
+The InkWeld frontend is a modern, modular Angular 21 application designed to provide a rich, real-time collaborative writing experience. It serves as the client interface for the InkWeld platform, enabling users to create, edit, and manage writing projects with seamless integration of AI assistance and real-time collaboration.
 
 ## Key Features
 
 - Real-time collaborative editing using Yjs and ProseMirror
-- Modular architecture with standalone Angular 20 components
+- Modular architecture with standalone Angular 21 components
 - Modern dependency injection using `inject()` syntax
-- Comprehensive testing with Jest and Playwright
+- Comprehensive testing with Vitest and Playwright
 - Theming and customization support
 - API client abstraction for backend communication
 - Strict linting and formatting rules for code quality
@@ -18,7 +18,7 @@ The InkWeld frontend is a modern, modular Angular 20 application designed to pro
 
 ```mermaid
 graph TD
-    User["User (Browser)"] -->|HTTP/WebSocket| App["Angular 20 App"]
+    User["User (Browser)"] -->|HTTP/WebSocket| App["Angular 21 App"]
     App -->|API| ApiClient["API Client Services"]
     App -->|State Mgmt| Services["App Services"]
     App -->|Routing| Pages["Pages & Components"]
@@ -53,10 +53,10 @@ graph TD
 
 ## Technology Stack
 
-- **Framework:** Angular 20 (standalone components, `inject()` DI, control flow directives)
+- **Framework:** Angular 21 (standalone components, `inject()` DI, control flow directives)
 - **State Management:** Service-based with RxJS
 - **Real-time Collaboration:** Yjs, y-websocket, y-prosemirror
-- **Testing:** Jest (unit tests), Playwright (end-to-end tests)
+- **Testing:** Vitest (unit tests), Playwright (end-to-end tests)
 - **Linting:** ESLint, Prettier, Angular ESLint
 - **Build Tools:** Angular CLI, esbuild-visualizer
 - **Theming:** Angular Material, custom themes
@@ -98,7 +98,7 @@ Build artifacts will be output to the `dist/` directory.
 
 ### Running Tests
 
-- Unit tests (Jest):
+- Unit tests (Vitest):
 
 ```bash
 npm test
@@ -136,16 +136,16 @@ bun run lint:fix
 - `serve:prod` - Run production server
 - `build` - Build project
 - `watch` - Build in watch mode
-- `test` - Run unit tests with Jest
+- `test` - Run unit tests with Vitest
 - `lint` / `lint:fix` - Linting commands
 - `analyze` - Bundle analysis
-- `upgrade-angular` - Upgrade Angular dependencies to v19
+- `upgrade-angular` - Upgrade Angular dependencies to v21
 - `fix-angular-control-flow` - Migrate to Angular control flow directives
 - `e2e` - Run Playwright end-to-end tests
 
 ## Unique Technical Features
 
-- Full adoption of Angular 20 standalone APIs and `inject()` for dependency injection
+- Full adoption of Angular 21 standalone APIs and `inject()` for dependency injection
 - Modern Angular control flow directives (`@if`, `@for`, `@switch`)
 - Real-time collaborative editing with Yjs and ProseMirror
 - Strict linting and formatting rules to maintain code quality
@@ -153,8 +153,7 @@ bun run lint:fix
 
 ## Testing
 
-- Jest configured with `jest-preset-angular`
-- Coverage thresholds enforced (80% statements, functions, lines; 60% branches)
+- Vitest configured for Angular with coverage thresholds enforced (80% statements, functions, lines; 60% branches)
 - Playwright for end-to-end testing
 - Test utilities and mocks located in `src/testing/`
 
