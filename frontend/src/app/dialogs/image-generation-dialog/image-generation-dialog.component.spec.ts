@@ -236,6 +236,7 @@ describe('ImageGenerationDialogComponent', () => {
       request: {
         prompt: 'test',
         provider: ImageProviderType.Openrouter,
+        size: ImageSize._1024x1024,
       },
       status: 'completed',
       message: 'Generation complete',
@@ -747,7 +748,11 @@ describe('ImageGenerationDialogComponent', () => {
       const completedJob: GenerationJob = {
         id: 'job-123',
         projectKey: 'test',
-        request: { prompt: 'test', provider: ImageProviderType.Openrouter },
+        request: {
+          prompt: 'test',
+          provider: ImageProviderType.Openrouter,
+          size: ImageSize._1024x1024,
+        },
         status: 'completed',
         message: 'Done',
         images: [],
@@ -768,7 +773,11 @@ describe('ImageGenerationDialogComponent', () => {
       const activeJob: GenerationJob = {
         id: 'job-123',
         projectKey: 'test',
-        request: { prompt: 'test', provider: ImageProviderType.Openrouter },
+        request: {
+          prompt: 'test',
+          provider: ImageProviderType.Openrouter,
+          size: ImageSize._1024x1024,
+        },
         status: 'generating',
         message: 'Generating...',
         images: [],
@@ -787,7 +796,11 @@ describe('ImageGenerationDialogComponent', () => {
       const activeJob: GenerationJob = {
         id: 'job-123',
         projectKey: 'test',
-        request: { prompt: 'test', provider: ImageProviderType.Openrouter },
+        request: {
+          prompt: 'test',
+          provider: ImageProviderType.Openrouter,
+          size: ImageSize._1024x1024,
+        },
         status: 'generating',
         message: 'Generating...',
         images: [],
@@ -843,7 +856,11 @@ describe('ImageGenerationDialogComponent', () => {
       const activeJob: GenerationJob = {
         id: 'job-123',
         projectKey: 'test',
-        request: { prompt: 'test', provider: ImageProviderType.Openrouter },
+        request: {
+          prompt: 'test',
+          provider: ImageProviderType.Openrouter,
+          size: ImageSize._1024x1024,
+        },
         status: 'generating',
         message: 'Generating...',
         images: [],
@@ -866,7 +883,11 @@ describe('ImageGenerationDialogComponent', () => {
       const emptyJob: GenerationJob = {
         id: 'job-123',
         projectKey: 'test',
-        request: { prompt: 'test', provider: ImageProviderType.Openrouter },
+        request: {
+          prompt: 'test',
+          provider: ImageProviderType.Openrouter,
+          size: ImageSize._1024x1024,
+        },
         status: 'completed',
         message: 'Done',
         images: [],
@@ -895,7 +916,11 @@ describe('ImageGenerationDialogComponent', () => {
       generationService.getJob.mockReturnValue({
         id: 'job-123',
         projectKey: 'test',
-        request: { prompt: 'test', provider: ImageProviderType.Openrouter },
+        request: {
+          prompt: 'test',
+          provider: ImageProviderType.Openrouter,
+          size: ImageSize._1024x1024,
+        },
         status: 'generating',
         message: 'Generating...',
         images: [],

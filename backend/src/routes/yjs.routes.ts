@@ -1,13 +1,15 @@
 import { Hono } from 'hono';
 import { upgradeWebSocket } from 'hono/bun';
-import { yjsService } from '../services/yjs.service';
+import { yjsService } from '../services/yjs.service.js';
+import { authService } from '../services/auth.service.js';
+import { type AppContext } from '../types/context.js';
 
-const app = new Hono();
+const app = new Hono<AppContext>();
 
 // WebSocket upgrade handler for Yjs collaboration
 app.get(
   '/yjs',
-  upgradeWebSocket((c) => {
+  upgradeWebSocket(async (c) => {
     const documentId = c.req.query('documentId');
 
     if (!documentId) {
@@ -15,17 +17,26 @@ app.get(
       return {};
     }
 
-    // TODO: Add authentication check
-    // const session = c.get('session');
-    // if (!session?.userId) {
-    //   console.error('Unauthorized WebSocket connection attempt');
-    //   return {};
-    // }
+    // Authentication check
+    const db = c.get('db');
+    const user = await authService.getUserFromSession(db, c);
+    if (!user) {
+      console.error('Unauthorized WebSocket connection attempt');
+      return {};
+    }
 
     // Validate document access (format: username:slug:documentId or username:slug:elements)
     const parts = documentId.split(':');
     if (parts.length < 2) {
       console.error(`Invalid document ID format: ${documentId}`);
+      return {};
+    }
+
+    const [username, slug] = parts;
+    // For now, only the owner can access the project
+    // TODO: Add collaborator check when implemented
+    if (user.username !== username) {
+      console.error(`User ${user.username} attempted to access project ${username}/${slug}`);
       return {};
     }
 

@@ -388,7 +388,7 @@ export class UnifiedSnapshotService {
     // Get the prosemirror fragment
     const prosemirror = ydoc.getXmlFragment('prosemirror');
 
-    // Check if we have the new XML content format or legacy yDocState
+    // Check if we have the XML content format
     if (snapshot.xmlContent) {
       // New format: Apply XML content as forward CRDT operations
       applyXmlToFragment(ydoc, prosemirror, snapshot.xmlContent);
@@ -396,20 +396,6 @@ export class UnifiedSnapshotService {
         'UnifiedSnapshot',
         `Restored document ${documentId} from snapshot "${snapshot.name}" using XML content`
       );
-    } else if (snapshot.yDocState) {
-      // Legacy format: Fall back to the old (broken) approach
-      // This is kept for backward compatibility with existing snapshots
-      this.logger.warn(
-        'UnifiedSnapshot',
-        `Restoring from legacy yDocState format for snapshot "${snapshot.name}". ` +
-          'This may cause CRDT issues. Consider creating new snapshots.'
-      );
-      ydoc.transact(() => {
-        while (prosemirror.length > 0) {
-          prosemirror.delete(0, 1);
-        }
-      });
-      Y.applyUpdate(ydoc, snapshot.yDocState);
     } else {
       throw new Error(`Snapshot ${snapshotId} has no content to restore`);
     }
@@ -425,16 +411,6 @@ export class UnifiedSnapshotService {
           'UnifiedSnapshot',
           `Restored worldbuilding data for ${documentId}`
         );
-      }
-    } else if (snapshot.worldbuildingState) {
-      // Legacy format
-      const wbYdoc = this.getWorldbuildingYDoc(documentId);
-      if (wbYdoc) {
-        this.logger.warn(
-          'UnifiedSnapshot',
-          'Restoring worldbuilding from legacy format'
-        );
-        Y.applyUpdate(wbYdoc, snapshot.worldbuildingState);
       }
     }
 
@@ -496,12 +472,7 @@ export class UnifiedSnapshotService {
     yDocState: Uint8Array,
     worldbuildingState?: Uint8Array
   ): Promise<void> {
-    this.logger.warn(
-      'UnifiedSnapshot',
-      'restoreFromBytes is deprecated. Use restoreFromContent with XML instead.'
-    );
-
-    // Get or create the document's Yjs doc
+    // Removed logger.warn
     const ydoc = await this.getDocumentYDoc(documentId);
     if (!ydoc) {
       throw new Error(`Document ${documentId} not found or not loaded`);
@@ -654,28 +625,14 @@ export class UnifiedSnapshotService {
       return;
     }
 
-    // New format snapshots can't be synced until backend is updated
-    if (!snapshot.yDocState) {
-      this.logger.debug(
-        'UnifiedSnapshot',
-        `Snapshot ${snapshot.id} uses new format (xmlContent), skipping server sync until backend is updated`
-      );
-      return;
-    }
-
+    // Sync to server
     try {
-      // Convert Uint8Array to base64 for API
-      const yDocStateBase64 = this.uint8ArrayToBase64(snapshot.yDocState);
-      const stateVectorBase64 = snapshot.stateVector
-        ? this.uint8ArrayToBase64(snapshot.stateVector)
-        : undefined;
-
       const request: CreateSnapshotRequest = {
         documentId: snapshot.documentId,
         name: snapshot.name,
         description: snapshot.description,
-        yDocState: yDocStateBase64,
-        stateVector: stateVectorBase64,
+        xmlContent: snapshot.xmlContent,
+        worldbuildingData: snapshot.worldbuildingData,
         wordCount: snapshot.wordCount,
         metadata: snapshot.metadata as Record<string, unknown>,
       };
@@ -734,9 +691,8 @@ export class UnifiedSnapshotService {
       documentId: string;
       name: string;
       description?: string;
-      yDocState: Uint8Array;
-      worldbuildingState?: Uint8Array;
-      stateVector?: Uint8Array;
+      xmlContent?: string;
+      worldbuildingData?: Record<string, unknown>;
       wordCount?: number;
       metadata?: Record<string, unknown>;
       createdAt: string;
@@ -907,54 +863,27 @@ export class UnifiedSnapshotService {
    * to StoredSnapshot with empty xmlContent for now, since restore
    * will fall back to using yDocState if xmlContent is empty.
    */
+  /**
+   * Convert server snapshot to local format.
+   */
   private serverSnapshotToLocal(
     server: SnapshotWithContent
   ): StoredSnapshot | undefined {
-    if (!server.yDocState) {
-      return undefined;
-    }
-
     return {
       id: server.id,
       projectKey: '', // Not available from server
       documentId: server.documentId,
       name: server.name,
       description: server.description ?? undefined,
-      // Empty xmlContent - restore will use yDocState fallback
-      xmlContent: '',
-      // Legacy format from server
-      yDocState: this.base64ToUint8Array(server.yDocState),
-      stateVector: server.stateVector
-        ? this.base64ToUint8Array(server.stateVector)
-        : undefined,
+      xmlContent: server.xmlContent ?? '',
+      worldbuildingData: server.worldbuildingData as
+        | Record<string, unknown>
+        | undefined,
       wordCount: server.wordCount ?? undefined,
       metadata: server.metadata as Record<string, unknown> | undefined,
       createdAt: server.createdAt,
       synced: true,
       serverId: server.id,
     };
-  }
-
-  /**
-   * Convert Uint8Array to base64 string.
-   */
-  private uint8ArrayToBase64(bytes: Uint8Array): string {
-    let binary = '';
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-  }
-
-  /**
-   * Convert base64 string to Uint8Array.
-   */
-  private base64ToUint8Array(base64: string): Uint8Array {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes;
   }
 }

@@ -14,7 +14,7 @@ import { Project } from '@inkweld/index';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 
 import { DocumentTabComponent } from './document-tab.component';
 
@@ -69,7 +69,6 @@ describe('DocumentTabComponent', () => {
     documentService = {
       initializeSyncStatus: vi.fn(),
       disconnect: vi.fn(),
-      getSyncStatus: vi.fn().mockReturnValue(of({})),
     };
 
     projectStateService = {

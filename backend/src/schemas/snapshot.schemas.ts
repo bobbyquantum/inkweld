@@ -28,8 +28,8 @@ export const CreateSnapshotRequestSchema = z
     documentId: z.string(),
     name: z.string().min(1).max(255),
     description: z.string().max(1000).optional(),
-    yDocState: z.string(),
-    stateVector: z.string().optional(),
+    xmlContent: z.string().optional(),
+    worldbuildingData: z.record(z.string(), z.unknown()).optional(),
     wordCount: z.number().optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
   })
@@ -56,7 +56,7 @@ export const SnapshotWithContentSchema = z
     wordCount: z.number().nullable().optional(),
     metadata: z.record(z.string(), z.unknown()).nullable().optional(),
     createdAt: z.string().datetime(),
-    yDocState: z.string(),
-    stateVector: z.string().nullable().optional(),
+    xmlContent: z.string().nullable().optional(),
+    worldbuildingData: z.record(z.string(), z.unknown()).nullable().optional(),
   })
   .openapi('SnapshotWithContent');

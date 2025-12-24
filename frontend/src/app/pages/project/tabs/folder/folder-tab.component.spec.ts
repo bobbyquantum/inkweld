@@ -6,7 +6,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { Project } from '@inkweld/index';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { vi } from 'vitest';
 
 import { FolderTabComponent } from './folder-tab.component';
@@ -62,7 +62,6 @@ describe('FolderTabComponent', () => {
     // Set up mocked services
     documentService = {
       disconnect: vi.fn(),
-      getSyncStatus: vi.fn().mockReturnValue(of({})),
     };
 
     projectStateService = {

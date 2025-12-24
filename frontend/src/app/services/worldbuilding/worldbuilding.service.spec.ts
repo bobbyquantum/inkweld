@@ -328,14 +328,6 @@ describe('WorldbuildingService', () => {
         slug
       );
       expect(schemaId).toBe('character-v1');
-
-      // Test deprecated getElementSchemaType
-      const schemaType = await service.getElementSchemaType(
-        elementId,
-        username,
-        slug
-      );
-      expect(schemaType).toBe('character-v1');
     });
 
     it('should retrieve full schema for element from library', async () => {

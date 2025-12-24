@@ -23,18 +23,20 @@ mcpKeyRoutes.use('*', requireAuth);
 // Schemas
 // ============================================
 
-const PermissionSchema = z.enum([
-  'read:project',
-  'read:elements',
-  'read:documents',
-  'read:worldbuilding',
-  'read:schemas',
-  'read:media',
-  'write:elements',
-  'write:worldbuilding',
-  'write:schemas',
-  'write:media',
-]);
+const PermissionSchema = z
+  .enum([
+    'read:project',
+    'read:elements',
+    'read:documents',
+    'read:worldbuilding',
+    'read:schemas',
+    'read:media',
+    'write:elements',
+    'write:worldbuilding',
+    'write:schemas',
+    'write:media',
+  ])
+  .openapi('McpPermission');
 
 const PublicKeySchema = z
   .object({

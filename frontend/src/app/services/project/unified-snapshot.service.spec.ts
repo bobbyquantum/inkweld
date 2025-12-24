@@ -530,44 +530,10 @@ describe('UnifiedSnapshotService', () => {
       );
     });
 
-    it('should fall back to yDocState for legacy snapshots', async () => {
-      // Create a real Yjs document state for the test
-      const sourceDoc = new Y.Doc();
-      const sourceProsemirror = sourceDoc.getXmlFragment('prosemirror');
-      sourceDoc.transact(() => {
-        const para = new Y.XmlElement('paragraph');
-        para.insert(0, [new Y.XmlText('Legacy content')]);
-        sourceProsemirror.insert(0, [para]);
-      });
-      const validYDocState = Y.encodeStateAsUpdate(sourceDoc);
-
-      const legacySnapshot: StoredSnapshot = {
-        ...mockStoredSnapshot,
-        xmlContent: '',
-        yDocState: validYDocState,
-      };
-      offlineSnapshots.getSnapshotById.mockResolvedValue(legacySnapshot);
-
-      const ydoc = new Y.Doc();
-      documentService.getYDoc.mockResolvedValue(ydoc);
-
-      const result = await service.restoreFromSnapshot(
-        'doc-123',
-        legacySnapshot.id
-      );
-
-      expect(result).toBe(true);
-      expect(logger.warn).toHaveBeenCalledWith(
-        'UnifiedSnapshot',
-        expect.stringContaining('legacy yDocState format')
-      );
-    });
-
     it('should throw if snapshot has no content', async () => {
       const emptySnapshot: StoredSnapshot = {
         ...mockStoredSnapshot,
         xmlContent: '',
-        yDocState: undefined,
       };
       offlineSnapshots.getSnapshotById.mockResolvedValue(emptySnapshot);
 
@@ -725,12 +691,10 @@ describe('UnifiedSnapshotService', () => {
         {
           ...mockStoredSnapshot,
           id: 'testuser/test-project:doc-123:snap-1',
-          yDocState: new Uint8Array([1, 2, 3]),
         },
         {
           ...mockStoredSnapshot,
           id: 'other/project:doc-456:snap-2',
-          yDocState: new Uint8Array([4, 5, 6]),
         },
       ];
       offlineSnapshots.getUnsyncedSnapshots.mockResolvedValue(unsynced);
@@ -750,26 +714,6 @@ describe('UnifiedSnapshotService', () => {
       await promise;
 
       expect(service.isSyncing()).toBe(false);
-    });
-
-    it('should skip new-format snapshots without yDocState', async () => {
-      const newFormatSnapshot: StoredSnapshot = {
-        ...mockStoredSnapshot,
-        id: 'testuser/test-project:doc-123:snap-1',
-        xmlContent: '<paragraph>New format</paragraph>',
-        yDocState: undefined,
-      };
-      offlineSnapshots.getUnsyncedSnapshots.mockResolvedValue([
-        newFormatSnapshot,
-      ]);
-
-      await service.syncPendingSnapshots();
-
-      expect(snapshotsApi.createProjectSnapshot).not.toHaveBeenCalled();
-      expect(logger.debug).toHaveBeenCalledWith(
-        'UnifiedSnapshot',
-        expect.stringContaining('skipping server sync until backend is updated')
-      );
     });
   });
 
@@ -883,28 +827,6 @@ describe('UnifiedSnapshotService', () => {
 
       expect(result[0].createdAt).toBe('2025-01-15T00:00:00.000Z');
       expect(result[1].createdAt).toBe('2025-01-01T00:00:00.000Z');
-    });
-  });
-
-  describe('base64 conversion helpers (via server sync)', () => {
-    it('should correctly encode base64', async () => {
-      const testData = new Uint8Array([0, 1, 127, 128, 255]);
-      const snapshot: StoredSnapshot = {
-        ...mockStoredSnapshot,
-        id: 'testuser/test-project:doc-123:snap-1',
-        yDocState: testData,
-      };
-      offlineSnapshots.getUnsyncedSnapshots.mockResolvedValue([snapshot]);
-
-      await service.syncPendingSnapshots();
-
-      expect(snapshotsApi.createProjectSnapshot).toHaveBeenCalledWith(
-        'testuser',
-        'test-project',
-        expect.objectContaining({
-          yDocState: expect.any(String),
-        })
-      );
     });
   });
 

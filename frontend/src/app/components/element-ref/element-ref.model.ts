@@ -34,34 +34,6 @@ export enum RelationshipCategory {
   Custom = 'custom',
 }
 
-/**
- * A relationship type definition (can be built-in or user-created)
- *
- * Relationship types define the vocabulary for connecting elements.
- * Each type has a forward label (e.g., "Parent of") and optionally
- * an inverse label (e.g., "Child of") for displaying backlinks.
- *
- * @deprecated Use RelationshipTypeDefinition instead
- */
-export interface RelationshipType {
-  /** Unique identifier for this relationship type */
-  id: string;
-  /** Category for grouping in UI */
-  category: RelationshipCategory;
-  /** Forward label: "Parent of", "Works for", etc. */
-  label: string;
-  /** Inverse label for backlinks: "Child of", "Employer of", etc. */
-  inverseLabel?: string;
-  /** Material icon name for visual identification */
-  icon?: string;
-  /** Whether this is a built-in type (cannot be deleted) */
-  isBuiltIn: boolean;
-  /** Optional color for visual distinction (hex code) */
-  color?: string;
-  /** Whether this relationship is symmetric (same in both directions) */
-  isSymmetric?: boolean;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // New Relationship Type System (v2)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -247,7 +219,7 @@ export interface ResolvedRelationship extends ElementRelationship {
     icon?: string;
   };
   /** The resolved relationship type */
-  relationshipType: RelationshipType;
+  relationshipType: RelationshipTypeDefinition;
   /** Whether this is an incoming (backlink) relationship */
   isIncoming: boolean;
   /** The label to display (forward or inverse depending on direction) */
@@ -411,13 +383,13 @@ export interface RelationshipValidationElement {
  * Get the display label for a relationship (considering direction)
  */
 export function getRelationshipLabel(
-  type: RelationshipType,
+  type: RelationshipTypeDefinition,
   isIncoming: boolean
 ): string {
   if (isIncoming && type.inverseLabel) {
     return type.inverseLabel;
   }
-  return type.label;
+  return type.name;
 }
 
 /**
@@ -470,23 +442,4 @@ export function getCategoryLabel(category: RelationshipCategory): string {
     default:
       return 'Other';
   }
-}
-
-/**
- * Convert a RelationshipTypeDefinition (v2) to a RelationshipType (v1) for backward compatibility.
- * This is a transitional helper while the codebase is being migrated.
- * @deprecated Use RelationshipTypeDefinition directly where possible
- */
-export function toRelationshipTypeLegacy(
-  def: RelationshipTypeDefinition
-): RelationshipType {
-  return {
-    id: def.id,
-    label: def.name,
-    inverseLabel: def.inverseLabel,
-    icon: def.icon,
-    category: def.category,
-    isBuiltIn: def.isBuiltIn,
-    color: def.color,
-  };
 }

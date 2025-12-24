@@ -17,7 +17,7 @@ export interface SnapshotWithContent {
     wordCount?: number | null;
     metadata?: { [key: string]: any | null; } | null;
     createdAt: string;
-    yDocState: string;
-    stateVector?: string | null;
+    xmlContent?: string | null;
+    worldbuildingData?: { [key: string]: any | null; } | null;
 }
 

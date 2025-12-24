@@ -20,7 +20,6 @@ import {
   getRelationshipLabel,
   RelationshipTypeDefinition,
   ResolvedRelationship,
-  toRelationshipTypeLegacy,
 } from '../../components/element-ref/element-ref.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
@@ -321,9 +320,6 @@ export class RelationshipService {
       return null;
     }
 
-    // Convert to legacy format for backward compatibility with ResolvedRelationship
-    const relationshipType = toRelationshipTypeLegacy(relationshipTypeDef);
-
     return {
       ...relationship,
       relatedElement: {
@@ -332,9 +328,9 @@ export class RelationshipService {
         type: relatedElement.type,
         icon: relatedElement.metadata?.['icon'],
       },
-      relationshipType,
+      relationshipType: relationshipTypeDef,
       isIncoming,
-      displayLabel: getRelationshipLabel(relationshipType, isIncoming),
+      displayLabel: getRelationshipLabel(relationshipTypeDef, isIncoming),
     };
   }
 

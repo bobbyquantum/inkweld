@@ -1,7 +1,4 @@
-import {
-  Element as ElementDto,
-  ElementType,
-} from '../../api-client/model/element';
+import { Element as ElementDto, ElementType } from '../../api-client';
 import { mapDtoToProjectElement, ProjectElement } from './project-element';
 
 describe('project-element model', () => {

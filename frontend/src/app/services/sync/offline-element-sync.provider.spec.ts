@@ -5,7 +5,7 @@ import { vi } from 'vitest';
 
 import {
   ElementRelationship,
-  RelationshipType,
+  RelationshipTypeDefinition,
 } from '../../components/element-ref/element-ref.model';
 import { ElementTag, TagDefinition } from '../../components/tags/tag.model';
 import { DocumentSyncState } from '../../models/document-sync-state';
@@ -40,7 +40,7 @@ describe('OfflineElementSyncProvider', () => {
     _elementsSubject: BehaviorSubject<Element[]>;
     _publishPlansSubject: BehaviorSubject<PublishPlan[]>;
     _relationshipsSubject: BehaviorSubject<ElementRelationship[]>;
-    _customTypesSubject: BehaviorSubject<RelationshipType[]>;
+    _customTypesSubject: BehaviorSubject<RelationshipTypeDefinition[]>;
     _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
     _elementTagsSubject: BehaviorSubject<ElementTag[]>;
     _customTagsSubject: BehaviorSubject<TagDefinition[]>;
@@ -71,7 +71,9 @@ describe('OfflineElementSyncProvider', () => {
     const elementsSubject = new BehaviorSubject<Element[]>([]);
     const publishPlansSubject = new BehaviorSubject<PublishPlan[]>([]);
     const relationshipsSubject = new BehaviorSubject<ElementRelationship[]>([]);
-    const customTypesSubject = new BehaviorSubject<RelationshipType[]>([]);
+    const customTypesSubject = new BehaviorSubject<
+      RelationshipTypeDefinition[]
+    >([]);
     const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
     const elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
     const customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);

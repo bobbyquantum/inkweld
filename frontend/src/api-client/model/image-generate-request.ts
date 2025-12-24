@@ -29,7 +29,7 @@ export interface ImageGenerateRequest {
      * Number of images to generate
      */
     n?: number;
-    size?: ImageSize;
+    size: ImageSize;
     /**
      * Image quality (DALL-E 3 only)
      */

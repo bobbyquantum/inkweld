@@ -79,54 +79,6 @@ async function runMigrations(database: BunDatabaseInstance): Promise<void> {
     console.error('[drizzle] Failed to run migrations:', error);
     throw error;
   }
-
-  // Apply any missing columns for incremental schema changes
-  await applyMissingColumns();
-}
-
-/**
- * Apply any missing columns to existing databases.
- * This is a LEGACY fallback for databases that were created before proper migrations.
- * New schema changes should ONLY use Drizzle migrations.
- *
- * @deprecated This should eventually be removed once all databases are migrated properly.
- */
-async function applyMissingColumns(): Promise<void> {
-  if (!sqlite) return;
-
-  // Only apply manual column fixes if Drizzle migrations haven't been set up yet
-  // Check if __drizzle_migrations table exists - if it does, migrations handle schema
-  try {
-    const migrationsTable = sqlite
-      .query<
-        { name: string },
-        []
-      >("SELECT name FROM sqlite_master WHERE type='table' AND name='__drizzle_migrations'")
-      .get();
-
-    if (migrationsTable) {
-      // Drizzle migrations are managing the schema, don't apply manual fixes
-      return;
-    }
-  } catch {
-    // Continue with legacy fixes if we can't check
-  }
-
-  // LEGACY: Check and add isAdmin column if it doesn't exist
-  // This is only for very old databases that predate the migration system
-  try {
-    const columns = sqlite.query<{ name: string }, []>('PRAGMA table_info(users)').all();
-
-    const hasIsAdmin = columns.some((col) => col.name === 'isAdmin');
-
-    if (!hasIsAdmin) {
-      console.log('[drizzle] Adding isAdmin column to users table...');
-      sqlite.exec('ALTER TABLE users ADD COLUMN isAdmin INTEGER DEFAULT 0 NOT NULL');
-      console.log('[drizzle] Added isAdmin column successfully');
-    }
-  } catch (error) {
-    console.warn('[drizzle] Could not check/add isAdmin column:', error);
-  }
 }
 
 /**
